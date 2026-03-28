@@ -998,6 +998,16 @@ class NaTType(_NaT):
         format string, using the same directives as the standard library's
         :meth:`datetime.datetime.strftime`.
 
+        In addition to the standard directives, the following extra directive
+        is supported:
+
+        +-----------+--------------------------------+-------+
+        | Directive | Meaning                        |Example|
+        +===========+================================+=======+
+        | ``%n``    | Nanoseconds zero-padded to 9   |       |
+        |           | digits.                        |000000 |
+        +-----------+--------------------------------+-------+
+
         Parameters
         ----------
         format : str
@@ -1016,6 +1026,11 @@ class NaTType(_NaT):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
+
+        Use ``%n`` to format nanoseconds:
+
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%n')
+        '2020-03-14T15:32:52.192548651'
         """,
     )
 
