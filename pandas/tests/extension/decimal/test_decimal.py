@@ -67,7 +67,7 @@ def data_for_grouping():
 
 
 class TestDecimalArray(base.ExtensionTests):
-    _respects_fillna_copy_false = False
+    _respects_fillna_copy_false = True
 
     def _get_expected_exception(
         self, op_name: str, obj, other

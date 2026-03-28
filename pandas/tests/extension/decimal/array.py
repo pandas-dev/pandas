@@ -299,10 +299,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return np.asarray(res, dtype=bool)
 
-    # Simulates a 3rd-party EA that hasn't added the `copy` kwarg yet.
-    # Always copies; never modifies in-place.
-    def fillna(self, value=None, limit=None):
-        return super().fillna(value=value, limit=limit, copy=True)
+    # Simulates a 3rd-party EA that has its own fillna implementation
+    # and correctly forwards the copy keyword to the base class.
+    def fillna(self, value=None, limit=None, copy: bool = True):
+        return super().fillna(value=value, limit=limit, copy=copy)
 
 
 def to_decimal(values, context=None):
