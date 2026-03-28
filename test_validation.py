@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Quick validation test for limit_behavior feature"""
-import numpy as np
 import sys
+
+import numpy as np
 
 # Test 1: Validate function works
 print("=" * 60)

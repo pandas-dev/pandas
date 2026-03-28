@@ -575,16 +575,16 @@ def _interpolate_1d(
             gap_starts = np.concatenate(([0], gap_ends + 1))
             gap_ends = np.concatenate((gap_ends, [len(nan_indices) - 1]))
 
-            revert_indices = []
+            revert_indices: list[int] = []
             for start, end in zip(gap_starts, gap_ends, strict=False):
                 gap_size = end - start + 1
                 if gap_size > limit:
                     # Gap exceeds limit; mark these NaN indices for reverting
-                    revert_indices.extend(nan_indices[start : end + 1])
+                    revert_indices.extend(nan_indices[start : end + 1].tolist())
 
             if revert_indices:
-                revert_indices = np.array(revert_indices, dtype=np.int64)
-                preserve_nans = np.union1d(preserve_nans, revert_indices)
+                revert_indices_arr = np.array(revert_indices, dtype=np.int64)
+                preserve_nans = np.union1d(preserve_nans, revert_indices_arr)
 
     if mask is not None:
         mask[:] = False
