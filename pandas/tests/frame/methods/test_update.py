@@ -220,8 +220,24 @@ class TestDataFrameUpdate:
         orig = DataFrame({"a": [1]}, index=[1])
         df = orig.copy()
         other = DataFrame({"a": [2]}, index=[2])
-        df.update(other)
+        with tm.assert_produces_warning(None):
+            df.update(other)
         tm.assert_frame_equal(df, orig)
+
+    def test_update_warns_on_index_dtype_mismatch_with_apparent_overlap(self):
+        # GH#19905
+        df = DataFrame({"col": ["foo", "bar", np.nan]}, index=[1, 2, 3])
+        other = DataFrame({"col": [np.nan, np.nan, "baz"]}, index=["1", "2", "3"])
+
+        msg = (
+            "DataFrame.update found no matching indices because the index dtypes "
+            "do not match."
+        )
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.update(other)
+
+        expected = DataFrame({"col": ["foo", "bar", np.nan]}, index=[1, 2, 3])
+        tm.assert_frame_equal(df, expected)
 
     def test_update_on_duplicate_frame_unique_argument_index(self):
         # GH#55509

@@ -12413,6 +12413,18 @@ class DataFrame(NDFrame, OpsMixin):
 
         index_intersection = other.index.intersection(self.index)
         if index_intersection.empty:
+            if (
+                len(self.index) > 0
+                and len(other.index) > 0
+                and self.index.dtype != other.index.dtype
+                and not self.index.map(str).intersection(other.index.map(str)).empty
+            ):
+                warnings.warn(
+                    "DataFrame.update found no matching indices because the index "
+                    "dtypes do not match.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return
         other = other.reindex(index_intersection)
         this_data = self.loc[index_intersection]
