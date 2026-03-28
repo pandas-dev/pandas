@@ -263,7 +263,8 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
-  } else if (pandas_is_NA(a) || pandas_is_NA(b)) {
+  }
+  if (pandas_is_NA(a) || pandas_is_NA(b)) {
     // GH#57052: PyObject_RichCompareBool would raise
     // because comparing anything to pd.NA returns pd.NA
     return 0;
