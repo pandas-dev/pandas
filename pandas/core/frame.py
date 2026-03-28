@@ -1683,6 +1683,10 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         data : dict
             Of the form {field : array-like} or {field : dict}.
+
+            .. deprecated:: 3.1.0
+                Passing a non-dict to ``from_dict`` is deprecated.
+                Use the :class:`DataFrame` constructor instead.
         orient : {'columns', 'index', 'tight'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
@@ -1754,6 +1758,13 @@ class DataFrame(NDFrame, OpsMixin):
            c   2  4
         """
         index: list | Index | None = None
+        if not isinstance(data, dict):
+            warnings.warn(
+                f"Passing a {type(data).__name__} to DataFrame.from_dict is "
+                "deprecated. Use the DataFrame constructor instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
@@ -4670,9 +4681,15 @@ class DataFrame(NDFrame, OpsMixin):
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
-                for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
-                    self[col] = value[col_droplevel]
-                return
+                if not cols_droplevel.equals(cols):
+                    # Levels were actually dropped, so we can safely use
+                    # key-based indexing without re-entering this method.
+                    for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
+                        self[col] = value[col_droplevel]
+                    return
+                # If cols_droplevel == cols (key matched all levels),
+                # fall through to positional isetitem to avoid
+                # infinite recursion (GH#53498).
 
             if is_scalar(cols):
                 self[cols] = value[value.columns[0]]

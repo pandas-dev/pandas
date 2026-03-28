@@ -4073,7 +4073,15 @@ similar to how ``read_csv`` and ``to_csv`` work.
    os.remove("store_tl.h5")
 
 
-HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
+HDFStore will by default not drop rows that are all missing. To drop all-NaN
+rows before writing, use :meth:`DataFrame.dropna` before calling
+:meth:`~DataFrame.to_hdf`.
+
+.. deprecated:: 3.1.0
+   The ``dropna`` keyword in :meth:`~DataFrame.to_hdf`, :meth:`HDFStore.put`,
+   :meth:`HDFStore.append`, and :meth:`HDFStore.append_to_multiple`, and the
+   ``io.hdf.dropna_table`` option are deprecated. Use :meth:`DataFrame.dropna`
+   before writing instead.
 
 
 .. ipython:: python
@@ -4090,8 +4098,8 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
    pd.read_hdf("file.h5", "df_with_missing")
 
-   df_with_missing.to_hdf(
-       "file.h5", key="df_with_missing", format="table", mode="w", dropna=True
+   df_with_missing.dropna(how="all").to_hdf(
+       "file.h5", key="df_with_missing", format="table", mode="w"
    )
    pd.read_hdf("file.h5", "df_with_missing")
 

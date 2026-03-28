@@ -2664,7 +2664,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None = None,
+        dropna: bool | None | lib.NoDefault = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -2733,6 +2733,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Not allowed with append=True.
         dropna : bool, default False, optional
             Remove missing values.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
