@@ -390,3 +390,14 @@ def test_0x00_control_byte(datapath):
     with pd.read_sas(fname, chunksize=11_000) as reader:
         df = next(reader)
     assert df.shape == (11_000, 20)
+
+
+def test_amd_page(datapath):
+    # GH 60809
+    # SAS files with 'amd' (amendment) pages contain amended metadata
+    # (e.g. column text) that is referenced by subheaders on earlier pages.
+    # Without the fix this raises IndexError: list index out of range
+    fname = datapath("io", "sas", "data", "test_amd_page.sas7bdat")
+    df = pd.read_sas(fname, encoding="latin-1")
+    assert df.shape == (33, 16)
+    assert df.columns[11] == "TotalNoise"

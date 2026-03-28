@@ -207,11 +207,15 @@ class SAS7BDATReader(SASReader):
         self.columns: list[_Column] = []
 
         self._current_page_data_subheader_pointers: list[tuple[int, int]] = []
+        self._column_name_subheader_args: list[tuple[int, int]] = []
         self._cached_page = None
         self._column_data_lengths: list[int] = []
         self._column_data_offsets: list[int] = []
         self._column_types: list[bytes] = []
 
+        self._current_page_type: int = -1
+        self._current_page_block_count: int = 0
+        self._current_page_subheaders_count: int = 0
         self._current_row_in_file_index = 0
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
@@ -387,6 +391,48 @@ class SAS7BDATReader(SASReader):
             if len(self._cached_page) != self._page_length:
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
+        self._process_amd_pages()
+
+    def _process_amd_pages(self) -> None:
+        """Process any amd (amendment) pages that follow the data/mix page.
+
+        These contain amended metadata (e.g. column text) that may be
+        referenced by subheaders on earlier pages. GH#60809
+        """
+        if self._current_page_type == -1:
+            return
+        # Save state so we can restore after processing amd pages.
+        cached_page = self._cached_page
+        current_page_type = self._current_page_type
+        current_page_block_count = self._current_page_block_count
+        current_page_subheaders_count = self._current_page_subheaders_count
+        file_pos = self._path_or_buf.tell()
+        column_names_raw_len = len(self.column_names_raw)
+        found_amd = False
+        while True:
+            self._cached_page = self._path_or_buf.read(self._page_length)
+            if len(self._cached_page) != self._page_length:
+                break
+            self._read_page_header()
+            if self._current_page_type == const.page_amd_type:
+                self._process_page_metadata()
+                found_amd = True
+            else:
+                break
+        if found_amd and len(self.column_names_raw) > column_names_raw_len:
+            # The amd page added new column text entries. Re-derive column
+            # names from the original page so they reference the correct data.
+            self.column_names.clear()
+            self._cached_page = cached_page
+            saved_args = list(self._column_name_subheader_args)
+            for offset, length in saved_args:
+                self._process_columnname_subheader(offset, length)
+        # Restore state so that data reading resumes from the data/mix page.
+        self._cached_page = cached_page
+        self._current_page_type = current_page_type
+        self._current_page_block_count = current_page_block_count
+        self._current_page_subheaders_count = current_page_subheaders_count
+        self._path_or_buf.seek(file_pos)
 
         self._column_convert_types: list[str | None] = []
         for j in range(self.column_count):
@@ -560,6 +606,7 @@ class SAS7BDATReader(SASReader):
                 self.creator_proc = self._convert_header_text(self.creator_proc)  # pyright: ignore[reportArgumentType]
 
     def _process_columnname_subheader(self, offset: int, length: int) -> None:
+        self._column_name_subheader_args.append((offset, length))
         int_len = self._int_length
         offset += int_len
         column_name_pointers_count = (length - 2 * int_len - 12) // 8
@@ -588,6 +635,7 @@ class SAS7BDATReader(SASReader):
             )
             col_len = self._read_uint(col_name_length, const.column_name_length_length)
 
+            idx = min(idx, len(self.column_names_raw) - 1)
             name_raw = self.column_names_raw[idx]
             cname = name_raw[col_offset : col_offset + col_len]
             self.column_names.append(self._convert_header_text(cname))
