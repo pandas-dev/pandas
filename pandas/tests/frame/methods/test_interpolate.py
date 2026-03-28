@@ -440,7 +440,8 @@ class TestDataFrameInterpolate:
         expected = DataFrame(
             {
                 "A": [1.0, np.nan, np.nan, np.nan, 5.0],  # gap=3 > limit, skip
-                "B": [2.0, 4.0, 6.0, np.nan, np.nan],  # gap[1]<=limit fill, gap[3,4]>limit skip
+                "B": [2.0, 4.0, 6.0, np.nan, np.nan],
+                # gap[1] <= limit fill, gap[3,4] > limit skip
             }
         )
         tm.assert_frame_equal(result, expected)
