@@ -539,6 +539,19 @@ class TestDataFrameAnalytics:
             assert not (result < 0).any()
 
     @pytest.mark.parametrize("meth", ["sem", "var", "std"])
+
+    @pytest.mark.parametrize("meth", ["sum", "prod", "mean", "median", "var", "std", "sem", "skew", "kurt", "min", "max"])
+    def test_numeric_only_bool_validation(self, meth):
+        # GH 53098
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        msg = 'For argument "numeric_only" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, meth)(numeric_only=None)
+
+        msg2 = 'For argument "numeric_only" expected type bool, received type int.'
+        with pytest.raises(ValueError, match=msg2):
+            getattr(df, meth)(numeric_only=1)
+
     def test_numeric_only_flag(self, meth):
         # GH 9201
         df1 = DataFrame(
