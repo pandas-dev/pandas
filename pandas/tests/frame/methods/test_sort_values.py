@@ -836,10 +836,7 @@ class TestSortValuesLevelAsStr:
         if request.node.callspec.id == "df_idx0-inner-True":
             request.applymarker(
                 pytest.mark.xfail(
-                    reason=(
-                        "pandas default unstable sorting of duplicates"
-                        "issue with numpy>=1.25 with AVX instructions"
-                    ),
+                    reason="unstable sorting of duplicates, platform-dependent",
                     strict=False,
                 )
             )
@@ -861,6 +858,13 @@ class TestSortValuesLevelAsStr:
         self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if request.node.callspec.id == "df_idx0-inner-True":
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="unstable sorting of duplicates, platform-dependent",
+                    strict=False,
+                )
+            )
 
         # Get levels from df_idx
         levels = df_idx.index.names
@@ -876,16 +880,6 @@ class TestSortValuesLevelAsStr:
 
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
-
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
-        )
 
         tm.assert_frame_equal(result, expected)
 
