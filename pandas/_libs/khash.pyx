@@ -6,29 +6,10 @@ from cpython.object cimport PyObject
 from cpython.ref cimport Py_XDECREF
 
 
-cdef inline raise_if_errors():
-    cdef:
-        object exc_type
-        object exc_value
-        PyObject *type
-        PyObject *value
-        PyObject *traceback
-
+cdef int raise_if_errors() except -1:
     if PyErr_Occurred():
-        PyErr_Fetch(&type, &value, &traceback)
-        Py_XDECREF(traceback)
-        if value != NULL:
-            exc_value = <object>value
-            if isinstance(exc_value, str):
-                if type != NULL:
-                    exc_type = <object>type
-                else:
-                    exc_type = RuntimeError
-                Py_XDECREF(type)
-                raise exc_type(exc_value)
-            else:
-                Py_XDECREF(type)
-                raise exc_value
+        return -1
+    return 0
 
 
 cdef kh_pymap_t* kh_init_pymap_checked():
