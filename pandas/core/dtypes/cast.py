@@ -1724,8 +1724,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                arr = element._values if isinstance(element, ABCSeries) else element
-                if arr._hasna:
+                arr = (
+                    element._values
+                    if isinstance(element, (ABCIndex, ABCSeries))
+                    else element
+                )
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
 
@@ -1760,7 +1764,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                if element._hasna:
+                arr = (
+                    element._values
+                    if isinstance(element, (ABCIndex, ABCSeries))
+                    else element
+                )
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
@@ -1800,7 +1809,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind == "b":
                 if not isinstance(tipo, np.dtype):
                     # i.e. we have a BooleanArray
-                    if element._hasna:
+                    arr = (
+                        element._values
+                        if isinstance(element, (ABCIndex, ABCSeries))
+                        else element
+                    )
+                    if arr._hasna:  # type: ignore[union-attr]
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element

@@ -18,6 +18,8 @@ import matplotlib.dates as mdates
 import matplotlib.units as munits
 import numpy as np
 
+from pandas._config.config import _global_config
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timestamp,
@@ -39,7 +41,6 @@ from pandas.core.dtypes.common import (
 from pandas import (
     Index,
     Series,
-    get_option,
 )
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import (
@@ -103,7 +104,7 @@ def pandas_converters() -> Generator[None]:
     --------
     register_pandas_matplotlib_converters : Decorator that applies this.
     """
-    value = get_option("plotting.matplotlib.register_converters")
+    value = _global_config["plotting"]["matplotlib"]["register_converters"]
 
     if value:
         # register for True or "auto"

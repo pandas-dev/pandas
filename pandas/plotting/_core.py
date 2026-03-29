@@ -6,7 +6,7 @@ from typing import (
     Literal,
 )
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas.util._decorators import set_module
 
@@ -2469,7 +2469,7 @@ def _get_plot_backend(backend: str | None = None):
     -----
     Modifies `_backends` with imported backend as a side effect.
     """
-    backend_str: str = backend or get_option("plotting.backend")
+    backend_str: str = backend or _global_config["plotting"]["backend"]
 
     if backend_str in _backends:
         return _backends[backend_str]

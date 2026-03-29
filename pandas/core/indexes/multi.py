@@ -22,7 +22,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -1671,7 +1671,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = get_option("display.multi_sparse")
+            sparsify = _global_config["display"]["multi_sparse"]
 
         if sparsify:
             sentinel: Literal[""] | bool | lib.NoDefault = ""
@@ -2888,7 +2888,10 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if get_option("performance_warnings") and self._lexsort_depth == 0:
+                    if (
+                        _global_config["mode"]["performance_warnings"]
+                        and self._lexsort_depth == 0
+                    ):
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -3630,7 +3633,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if get_option("performance_warnings"):
+        if _global_config["mode"]["performance_warnings"]:
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,
@@ -4067,22 +4070,32 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-                    for x in k:
-                        if not is_hashable(x):
-                            # e.g. slice
-                            raise err
-                        # GH 39424: Ignore not founds
-                        # GH 42351: No longer ignore not founds & enforced in 2.0
-                        # TODO: how to handle IntervalIndex level? (no test cases)
-                        item_indexer = self._get_level_indexer(
-                            x, level=i, indexer=indexer
-                        )
-                        if lvl_indexer is None:
-                            lvl_indexer = _to_bool_indexer(item_indexer)
-                        elif isinstance(item_indexer, slice):
-                            lvl_indexer[item_indexer] = True  # type: ignore[index]
-                        else:
-                            lvl_indexer |= item_indexer
+
+                    # GH#55786 Vectorized path: use the level's hashtable to
+                    # map all labels to codes at once, then use algos.isin
+                    # instead of looping with per-element _get_level_indexer.
+                    if any(not is_hashable(x) for x in k):
+                        raise err
+                    level_codes = self.codes[i]
+                    k_codes = self.levels[i].get_indexer(k)
+                    # NaN labels are stored as code -1 and are absent
+                    # from levels, so get_indexer returns -1 for them.
+                    # Separate true missing labels from NaN labels.
+                    k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                    na_count = k_isna.sum()
+                    missing_mask = k_codes == -1
+                    if na_count:
+                        if missing_mask.sum() > na_count:
+                            raise KeyError(k) from None
+                        # NaN is in k but must also be present in the data
+                        if not (level_codes == -1).any():
+                            raise KeyError(k) from None
+                    elif missing_mask.any():
+                        raise KeyError(k) from None
+                    k_codes = k_codes[~missing_mask]
+                    lvl_indexer = algos.isin(level_codes, k_codes)
+                    if na_count:
+                        lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
                     # no matches we are done
