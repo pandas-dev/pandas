@@ -615,7 +615,7 @@ def sanitize_array(
     elif (
         hasattr(data, "type")
         and "pyarrow" in type(data).__module__
-        and str(getattr(data, "type", "")) == "uuid"
+        and "uuid" in str(getattr(data, "type", "")).lower()
     ):
         subarr = data
         try:
