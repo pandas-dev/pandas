@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
+from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gt2
 
 from pandas import Index
@@ -160,13 +161,14 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(missing, expected_missing)
 
 
-@pytest.mark.xfail(
-    not np_version_gt2,
-    reason="numpy < 2 violates hash invariant for mixed-resolution datetime64",
-)
 class TestMixedResolutionDatetime64:
     # GH#50690 - object-dtype Index with mixed-resolution datetime64 values
     # should respect the invariant x == y => hash(x) == hash(y)
+
+    _xfail_np_hash = pytest.mark.xfail(
+        not np_version_gt2 or WASM,
+        reason="numpy < 2 violates hash invariant for mixed-resolution datetime64",
+    )
 
     @pytest.fixture
     def dt_ms(self):
@@ -176,6 +178,7 @@ class TestMixedResolutionDatetime64:
     def dt_us(self):
         return np.datetime64(1000, "us")
 
+    @_xfail_np_hash
     def test_contains(self, dt_ms, dt_us):
         # GH#50690
         left = Index([dt_ms], dtype=object)
@@ -184,6 +187,7 @@ class TestMixedResolutionDatetime64:
         assert dt_us in left
         assert dt_ms in right
 
+    @_xfail_np_hash
     def test_get_loc(self, dt_ms, dt_us):
         # GH#50690
         left = Index([dt_ms], dtype=object)
@@ -201,6 +205,7 @@ class TestMixedResolutionDatetime64:
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @_xfail_np_hash
     def test_get_indexer_non_monotonic(self, dt_ms, dt_us):
         # GH#50690 - non-monotonic case uses hashtable; this is where
         # the hash invariant violation caused incorrect results
@@ -212,6 +217,7 @@ class TestMixedResolutionDatetime64:
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @_xfail_np_hash
     def test_get_indexer_non_unique(self, dt_ms, dt_us):
         # GH#50690
         idx = Index([dt_ms, "foo", dt_ms], dtype=object)
