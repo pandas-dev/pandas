@@ -612,6 +612,7 @@ def sanitize_array(
 
     # GH63511
     elif hasattr(data, "type") and "pyarrow" in type(data).__module__:
+        subarr = data
         try:
             import pyarrow as pa
             from pyarrow import (
@@ -622,7 +623,7 @@ def sanitize_array(
             if isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid():
                 from pandas.core.arrays.arrow import ArrowExtensionArray
 
-                return ArrowExtensionArray(data)
+                subarr = ArrowExtensionArray(data)
         except (ImportError, AttributeError):
             pass
 
