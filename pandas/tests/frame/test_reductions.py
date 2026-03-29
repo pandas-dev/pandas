@@ -550,6 +550,7 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match=msg2):
             getattr(df, meth)(numeric_only=1)
 
+    @pytest.mark.parametrize("meth", ["sem", "var", "std"])
     def test_numeric_only_flag(self, meth):
         # GH 9201
         df1 = DataFrame(
