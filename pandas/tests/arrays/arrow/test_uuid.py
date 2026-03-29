@@ -1,17 +1,11 @@
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
 import uuid
 
 import pytest
 
 import pandas as pd
+from pandas.core.arrays import ArrowExtensionArray
 
 pa = pytest.importorskip("pyarrow")
-
-if TYPE_CHECKING:
-    from pandas.core.arrays import ArrowExtensionArray
 
 
 def test_uuid_keeps_dtype_verify() -> None:
@@ -26,12 +20,13 @@ def test_uuid_keeps_dtype_verify() -> None:
 
     assert s.dtype != object
 
-    # Cast is required for Mypy to recognize ._pa_array attribute
-    ser_array = cast("ArrowExtensionArray", s.array)
+    ser_array = s.array
+    assert isinstance(ser_array, ArrowExtensionArray)
     assert ser_array._pa_array.type == pa.uuid()
 
     d = pd.DataFrame({"id": arr})
-    df_array = cast("ArrowExtensionArray", d["id"].array)
+    df_array = d["id"].array
+    assert isinstance(df_array, ArrowExtensionArray)
     assert df_array._pa_array.type == pa.uuid()
 
 
@@ -133,7 +128,7 @@ def test_series_from_pyarrow_uuid_chunkedarray() -> None:
 
     assert s.dtype != object
 
-    # Cast is required for Mypy to recognize ._pa_array attribute
-    ser_array = cast("ArrowExtensionArray", s.array)
+    ser_array = s.array
+    assert isinstance(ser_array, ArrowExtensionArray)
     assert ser_array._pa_array.type == pa.uuid()
     assert ser_array.isna().tolist() == [False, True]
