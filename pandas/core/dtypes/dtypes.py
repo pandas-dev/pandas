@@ -2480,5 +2480,3 @@ class ArrowDtype(StorageExtensionDtype):
         array_class = self.construct_array_type()
         arr = array.cast(self.pyarrow_dtype, safe=True)
         return array_class(arr)
-
-

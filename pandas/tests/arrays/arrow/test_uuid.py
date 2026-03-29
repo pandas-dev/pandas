@@ -1,40 +1,60 @@
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import uuid
+
 import pytest
+
 import pandas as pd
-
-
 
 pa = pytest.importorskip("pyarrow")
 
-#TEST1: first test will be basic, to see if construciton works
-def test_uuid_keeps_dtype_verify():
-    u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000") #we have our uuid in u
-    arr = pa.array([u.bytes, None], type=pa.uuid()) #we put it in a function, we include None in the array to simultaneously test the case where there is a "missing value" since they cause bugs a lot so knock two birds out with one stone
+if TYPE_CHECKING:
+    from pandas.core.arrays import ArrowExtensionArray
 
-    s = pd.Series(arr) #lets put it into a series and hope it does not convert to object
 
+def test_uuid_keeps_dtype_verify() -> None:
+    """
+    Verify that Arrow-backed UUIDs maintain their type during construction.
+
+    GH#63511
+    """
+    u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
+    arr = pa.array([u.bytes, None], type=pa.uuid())
+    s = pd.Series(arr)
 
     assert s.dtype != object
-    assert s.array._pa_array.type == pa.uuid() #we peak inside before the comparison to avoid any weird wrapper stuff inside of series. We just want to see if it maintains uuid type
 
-#now we verified series, lets do data frame
+    # Cast is required for Mypy to recognize ._pa_array attribute
+    ser_array = cast("ArrowExtensionArray", s.array)
+    assert ser_array._pa_array.type == pa.uuid()
+
     d = pd.DataFrame({"id": arr})
-    assert d["id"].array._pa_array.type == pa.uuid()
+    df_array = cast("ArrowExtensionArray", d["id"].array)
+    assert df_array._pa_array.type == pa.uuid()
 
 
-#TEST2: lets see if it can read missing UUID values in an array
-def test_uuid_isna():
-    #standard, create uuid, put in array, put in series
+def test_uuid_isna() -> None:
+    """
+    Verify that Arrow-back UUIDs array handles NULL values.
+
+    GH#63511
+    """
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
 
     result = s.isna().tolist()
-    assert result == [False, True] #should return flase and true for missing value
+    assert result == [False, True]
 
-#TEST3: for next test, maintainers talked about comparisons, and its a basic functinoality so verifying it with a test
-def test_uuid_comparison_eq():
-    #standard create uuid, array, then series
+
+def test_uuid_comparison_eq() -> None:
+    """
+    Verify that Arrow-back UUIDs array handles comparisons correctly.
+
+    GH#63511
+    """
     u1 = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     u2 = uuid.UUID("550e8400-e29b-41d4-a716-446655440001")
     u3 = uuid.UUID("550e8400-e29b-41d4-a716-446655440002")
@@ -43,7 +63,7 @@ def test_uuid_comparison_eq():
     s1 = pd.Series(arr1)
     s2 = pd.Series(arr2)
 
-    # cast uuid.UUID to PyArrow type with length of 16 bytes
+    # Cast uuid.UUID to PyArrow type with length 16 bytes
     pa_binary16 = pd.ArrowDtype(pa.binary(16))
 
     out0 = s1[0] == s2[0]
@@ -52,51 +72,68 @@ def test_uuid_comparison_eq():
     out3 = s1[3] == s2[3]
     out4 = (s1.astype(pa_binary16) == s2.astype(pa_binary16)).tolist()
 
-    assert out0 == True
-    assert out1 == False
-    assert out2 == False
+    assert out0
+    assert not out1
+    assert not out2
     assert pd.isna(out3)
     assert out4 == [True, False, pd.NA, pd.NA]
 
 
-#TEST4: we already test thge entrie array being UUID, now individual elements lets make sure bytes and does iloc[i] work
-def test_uuid_getitem_scalar():
+def test_uuid_getitem_scalar() -> None:
+    """
+    Verify that iloc[i] works correctly with an Arrow-back UUID array.
+
+    GH#63511
+    """
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
 
-    #extract individual elements
+    # Extract individual elements
     v0 = s.iloc[0]
     v1 = s.iloc[1]
 
     assert isinstance(v0, uuid.UUID)
-    assert v1 is pd.NA #pd.NA is same as NONE, pandas version of None is pd.NA
+    assert v1 is pd.NA
 
-#TEST5: Maintainer explicitly talked about this, we dont want UUID support to break pandas "semantics" so  "x in s" should check index, not value, and "x in s.array" should check balues
-def test_uuid_contains_behavior():
+
+def test_uuid_contains_behavior() -> None:
+    """
+    Verify the following semantics still works:
+        - "x in s" checks index
+        - "x in s.array" checks value
+
+    GH#63511
+    """
     u = uuid.uuid4()
     arr = pa.array([u.bytes], type=pa.uuid())
     s = pd.Series(arr)
 
-    #checks index and not value
+    # Checks index
     assert (s.iloc[0] in s) is False
 
-    #checks values
+    # Checks values
     assert (s.iloc[0] in s.array) is True
     assert (None in s.array) is False
 
-#TEST6: pass as chunked array to make sure nothing breaks with this since using chunked array within pandas is common in piplines
-def test_series_from_pyarrow_uuid_chunkedarray():
+
+def test_series_from_pyarrow_uuid_chunkedarray() -> None:
+    """
+    Verify that a chunked array correctly implements:
+        - comparison
+        - null values
+
+    GH#63511
+    """
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     chunk1 = pa.array([u.bytes], type=pa.uuid())
     chunk2 = pa.array([None], type=pa.uuid())
     carr = pa.chunked_array([chunk1, chunk2])
     s = pd.Series(carr)
 
-    #everythig should work
     assert s.dtype != object
-    assert s.array._pa_array.type == pa.uuid()
-    assert s.isna().tolist() == [False, True]
 
-    
-    
+    # Cast is required for Mypy to recognize ._pa_array attribute
+    ser_array = cast("ArrowExtensionArray", s.array)
+    assert ser_array._pa_array.type == pa.uuid()
+    assert ser_array.isna().tolist() == [False, True]

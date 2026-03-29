@@ -14,10 +14,7 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow as pa
 from numpy import ma
-
-from pyarrow import UuidArray, Array, ChunkedArray
 
 from pandas._config import using_string_dtype
 
@@ -72,8 +69,8 @@ if TYPE_CHECKING:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
-        TimedeltaArray
-)
+        TimedeltaArray,
+    )
 
 
 @set_module("pandas")
@@ -589,6 +586,19 @@ def sanitize_array(
 
         return data
 
+    # GH63511
+    elif hasattr(data, "type"):
+        import pyarrow as pa
+        from pyarrow import (
+            Array,
+            ChunkedArray,
+        )
+
+        if isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid():
+            from pandas.core.arrays.arrow import ArrowExtensionArray
+
+            return ArrowExtensionArray(data)
+
     elif isinstance(data, ABCExtensionArray):
         # it is already ensured above this is not a NumpyExtensionArray
         # Until GH#49309 is fixed this check needs to come before the
@@ -640,11 +650,6 @@ def sanitize_array(
         else:
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
-
-    #python checks conditions from left to right and MUST check for pa.Array before chekcing for pa.UuidType
-    elif isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid(): #cant do and isinstance(data, UuidArray) because it does not catch chunked arrays
-        from pandas.core.arrays.arrow import ArrowExtensionArray
-        return ArrowExtensionArray(data)
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
