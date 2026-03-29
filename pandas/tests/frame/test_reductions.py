@@ -538,8 +538,6 @@ class TestDataFrameAnalytics:
             result = nanops.nanvar(arr, axis=0)
             assert not (result < 0).any()
 
-    @pytest.mark.parametrize("meth", ["sem", "var", "std"])
-
     @pytest.mark.parametrize("meth", ["sum", "prod", "mean", "median", "var", "std", "sem", "skew", "kurt", "min", "max"])
     def test_numeric_only_bool_validation(self, meth):
         # GH 53098
