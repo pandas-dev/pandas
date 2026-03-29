@@ -51,13 +51,40 @@ def test_agg_regression1(tsframe):
 
 
 def test_agg_must_agg(df):
+    # https://github.com/pandas-dev/pandas/pull/63957
     grouped = df.groupby("A")["C"]
+    expected = Series(
+        {
+            "bar": df[df.A == "bar"]["C"].describe().tolist(),
+            "foo": df[df.A == "foo"]["C"].describe().tolist(),
+        },
+        index=Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: x.describe())
+    tm.assert_series_equal(result, expected)
 
-    msg = "Must produce aggregated value"
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.describe())
-    with pytest.raises(Exception, match=msg):
-        grouped.agg(lambda x: x.index[:2])
+    expected = Series(
+        {
+            "bar": df[df.A == "bar"]["C"].index[:2],
+            "foo": df[df.A == "foo"]["C"].index[:2],
+        },
+        index=Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: x.index[:2])
+    tm.assert_series_equal(result, expected)
+
+    expected = Series(
+        {
+            "bar": np.array(df[df.A == "bar"]["C"]),
+            "foo": np.array(df[df.A == "foo"]["C"]),
+        },
+        index=Index(["bar", "foo"], name="A"),
+        name="C",
+    )
+    result = grouped.agg(lambda x: np.array(x))
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_ser_multi_key(df):
@@ -182,8 +209,6 @@ def test_with_na_groups(any_real_numpy_dtype):
     expected = Series([4, 2], index=["bar", "foo"])
 
     tm.assert_series_equal(agged, expected, check_dtype=False)
-
-    # assert issubclass(agged.dtype.type, np.integer)
 
     # explicitly return a float from my function
     def f(x):
@@ -1063,7 +1088,7 @@ def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouby_agg_loses_results_with_as_index_false_relabel():
+def test_groupby_agg_loses_results_with_as_index_false_relabel():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped.
 
@@ -1077,7 +1102,7 @@ def test_grouby_agg_loses_results_with_as_index_false_relabel():
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
+def test_groupby_agg_loses_results_with_as_index_false_relabel_multiindex():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped. Check if
     # multiindex is returned in the right order
@@ -1674,11 +1699,7 @@ def test_groupby_complex_raises(func):
         ([[20, "A"], [20, "B"], [10, "C"]], {0: [10, 20], 1: ["C", ["A", "B"]]}),
         ([[20, "A"], [20, "B"], [30, "C"]], {0: [20, 30], 1: [["A", "B"], "C"]}),
         ([["a", 1], ["a", 1], ["b", 2], ["b", 3]], {0: ["a", "b"], 1: [1, [2, 3]]}),
-        pytest.param(
-            [["a", 1], ["a", 2], ["b", 3], ["b", 3]],
-            {0: ["a", "b"], 1: [[1, 2], 3]},
-            marks=pytest.mark.xfail,
-        ),
+        ([["a", 1], ["a", 2], ["b", 3], ["b", 3]], {0: ["a", "b"], 1: [[1, 2], 3]}),
     ],
 )
 def test_agg_of_mode_list(test, constant):
@@ -2065,4 +2086,23 @@ def test_agg_relabel_with_name_match_and_namedagg():
     result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
 
     expected = DataFrame({"B": [3, 7]}, index=Index([0, 1], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_multiple_partial_functions_same_name():
+    # GH#28570
+    quant50 = partial(np.percentile, q=50)
+    quant70 = partial(np.percentile, q=70)
+
+    df = DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
+    expected = DataFrame(
+        [[1.5, 1.7], [4.0, 4.4]],
+        index=Index(["a", "b"], name="col1"),
+        columns=MultiIndex(
+            levels=[["col2"], ["percentile"]],
+            codes=[[0, 0], [0, 0]],
+        ),
+    )
+    gb = df.groupby("col1")
+    result = gb.agg({"col2": [quant50, quant70]})
     tm.assert_frame_equal(result, expected)

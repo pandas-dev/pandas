@@ -926,21 +926,8 @@ class TestAlignment:
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
-        self, request, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
+        self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
-        if (
-            engine == "numexpr"
-            and parser in ("pandas", "python")
-            and index_name == "index"
-            and r_idx_type == "i"
-            and c_idx_type == "s"
-        ):
-            reason = (
-                f"Flaky column ordering when engine={engine}, "
-                f"parser={parser}, index_name={index_name}, "
-                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
-            )
-            request.applymarker(pytest.mark.xfail(reason=reason, strict=False))
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 7)),
             index=idx_func_dict[r_idx_type](10),
@@ -1311,7 +1298,6 @@ class TestOperations:
         expected = Series([True], name="a")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
@@ -1323,7 +1309,8 @@ class TestOperations:
 
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(actual, expected)
+        assert list(df.columns) == ["a", "b"]
 
     def test_multi_line_expression(self):
         # GH 11149

@@ -956,10 +956,10 @@ def test_mi_add_cell_missing_row_non_unique():
     result.loc["d", (1, "A")] = 3
     expected = DataFrame(
         [
-            [1.0, 2.0, 5.0, 6.0],
-            [3.0, 4.0, 7.0, 8.0],
-            [3.0, -1.0, -1, -1],
-            [3.0, np.nan, np.nan, np.nan],
+            [1, 2.0, 5.0, 6.0],
+            [3, 4.0, 7.0, 8.0],
+            [3, -1.0, -1, -1],
+            [3, np.nan, np.nan, np.nan],
         ],
         index=["a", "a", "c", "d"],
         columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
@@ -1010,3 +1010,23 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+
+def test_loc_np_datetime64_key_on_object_dt64_level():
+    # GH#64689 (revert)
+    # Verify MultiIndex.loc works with np.datetime64 key on object-dtype level
+    # holding datetime64 values without the datetime64-to-date conversion.
+    mi = MultiIndex.from_arrays(
+        [
+            Index(
+                [np.datetime64("2023-01-01", "s")] * 2,
+                dtype=object,
+            ),
+            ["A", "B"],
+            ["X", "Y"],
+        ],
+    )
+    df = DataFrame({"val": [1, 2]}, index=mi)
+    result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
+    expected = DataFrame({"val": [1]}, index=Index(["X"]))
+    tm.assert_frame_equal(result, expected)

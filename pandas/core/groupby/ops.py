@@ -612,6 +612,7 @@ class BaseGrouper:
         self._groupings = groupings
         self._sort = sort
         self.dropna = dropna
+        self._is_resample = False
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -797,7 +798,7 @@ class BaseGrouper:
         # When passed a categorical grouping, keep all categories
         for k, (ping, level) in enumerate(zip(self.groupings, levels, strict=True)):
             if ping._passed_categorical:
-                levels[k] = level.set_categories(ping._orig_cats)
+                levels[k] = level.set_categories(ping._orig_cats)  # type: ignore[attr-defined]
 
         if len(self.groupings) == 1:
             result_index = levels[0]
@@ -1013,7 +1014,7 @@ class BaseGrouper:
             res = func(group)
             res = extract_result(res)
 
-            if not initialized:
+            if self._is_resample and not initialized:
                 # We only do this validation on the first iteration
                 check_result_array(res, group.dtype)
                 initialized = True

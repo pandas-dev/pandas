@@ -152,7 +152,7 @@ def test_mul_bool_invalid(any_string_dtype):
     ser = Series(["a", "b", "c"], dtype=dtype)
 
     if dtype == object:
-        pytest.skip("This is not expect to raise")
+        pytest.skip("This is not expected to raise")
     elif dtype.storage == "python":
         msg = "Cannot multiply StringArray by bools. Explicitly cast to integers"
     else:
@@ -274,7 +274,13 @@ def test_add_strings(any_string_dtype, request):
 
 
 @pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(dtype):
+def test_add_frame(any_string_dtype, using_infer_string):
+    if not using_infer_string:
+        pytest.skip(
+            "This doesn't fail on this build, but this build is going away, "
+            "so not worth more invasive fix."
+        )
+    dtype = any_string_dtype
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
 

@@ -3,6 +3,8 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -171,7 +173,9 @@ class TestFromDict:
     )
     def test_constructor_from_dict_tuples(self, data_dict, orient, expected):
         # GH#16769
-        df = DataFrame.from_dict(data_dict, orient)
+        warn = Pandas4Warning if isinstance(data_dict, list) else None
+        with tm.assert_produces_warning(warn, match="from_dict is deprecated"):
+            df = DataFrame.from_dict(data_dict, orient)
         result = df.columns
         tm.assert_index_equal(result, expected)
 
@@ -200,6 +204,18 @@ class TestFromDict:
         )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
+
+    def test_from_dict_list_of_dicts_deprecated(self):
+        # GH#58862
+        data = [
+            {"key1": "value1", "key2": 42},
+            {"key1": "value2", "key2": 123},
+        ]
+        msg = "Passing a list to DataFrame.from_dict is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame.from_dict(data)
+        expected = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
 
     def test_from_dict_order_with_single_column(self):
         data = {

@@ -287,8 +287,8 @@ pandas Numba Engine
 
 If Numba is installed, one can specify ``engine="numba"`` in select pandas methods to execute the method using Numba.
 Methods that support ``engine="numba"`` will also have an ``engine_kwargs`` keyword that accepts a dictionary that allows one to specify
-``"nogil"``, ``"nopython"`` and ``"parallel"`` keys with boolean values to pass into the ``@jit`` decorator.
-If ``engine_kwargs`` is not specified, it defaults to ``{"nogil": False, "nopython": True, "parallel": False}`` unless otherwise specified.
+``"nogil"`` and ``"parallel"`` keys with boolean values to pass into the ``@jit`` decorator.
+If ``engine_kwargs`` is not specified, it defaults to ``{"nogil": False, "parallel": False}`` unless otherwise specified.
 
 .. note::
 
@@ -424,10 +424,7 @@ Numba is best at accelerating functions that apply numerical functions to NumPy
 arrays. If you try to ``@jit`` a function that contains unsupported `Python <https://numba.readthedocs.io/en/stable/reference/pysupported.html>`__
 or `NumPy <https://numba.readthedocs.io/en/stable/reference/numpysupported.html>`__
 code, compilation will revert `object mode <https://numba.readthedocs.io/en/stable/glossary.html#term-object-mode>`__ which
-will mostly likely not speed up your function. If you would
-prefer that Numba throw an error if it cannot compile a function in a way that
-speeds up your code, pass Numba the argument
-``nopython=True`` (e.g.  ``@jit(nopython=True)``). For more on
+will mostly likely not speed up your function. For more on
 troubleshooting Numba modes, see the `Numba troubleshooting page
 <https://numba.readthedocs.io/en/stable/user/troubleshoot.html>`__.
 

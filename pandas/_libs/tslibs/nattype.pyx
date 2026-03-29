@@ -286,7 +286,7 @@ cdef class _NaT(datetime):
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        np.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None:
             # GH#44460
@@ -422,12 +422,74 @@ class NaTType(_NaT):
     nanosecond = property(fget=lambda self: np.nan)
 
     week = property(fget=lambda self: np.nan)
-    dayofyear = property(fget=lambda self: np.nan)
+
+    @property
+    def dayofyear(self):
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`day_of_year` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.dayofyear is deprecated and will be removed in a "
+            "future version. Use NaTType.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
     day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
-    daysinmonth = property(fget=lambda self: np.nan)
-    dayofweek = property(fget=lambda self: np.nan)
+
+    @property
+    def daysinmonth(self):
+        """
+        Return the number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`days_in_month` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.daysinmonth is deprecated and will be removed in a "
+            "future version. Use NaTType.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
+    @property
+    def dayofweek(self):
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`day_of_week` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.dayofweek is deprecated and will be removed in a "
+            "future version. Use NaTType.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
     day_of_week = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
@@ -559,6 +621,10 @@ class NaTType(_NaT):
         """
         Return the day name of the Timestamp with specified locale.
 
+        This method returns the full name of the day of the week (e.g.,
+        'Monday', 'Tuesday') for the given Timestamp. The locale can be
+        specified to return the name in a particular language.
+
         Parameters
         ----------
         locale : str, default None (English locale)
@@ -588,7 +654,41 @@ class NaTType(_NaT):
     # _nat_methods
 
     # "fromisocalendar" was introduced in 3.8
-    fromisocalendar = _make_error_func("fromisocalendar", datetime)
+    fromisocalendar = _make_error_func(
+        "fromisocalendar",
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """,
+    )
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
@@ -597,6 +697,11 @@ class NaTType(_NaT):
         "isocalendar",
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -887,6 +992,10 @@ class NaTType(_NaT):
         """
         Return a formatted string of the Timestamp.
 
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
+
         Parameters
         ----------
         format : str
@@ -1016,6 +1125,40 @@ class NaTType(_NaT):
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
+    fromisoformat = _make_error_func(
+        "fromisoformat",
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
+        """,
+    )
     combine = _make_error_func(
         "combine",
         """
@@ -1057,6 +1200,10 @@ class NaTType(_NaT):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
@@ -1434,6 +1581,10 @@ timedelta}, default 'raise'
         """
         Return a new Timestamp floored to this resolution.
 
+        This method rounds the Timestamp down to the nearest boundary of the
+        given frequency. The result will never be later than the original
+        Timestamp.
+
         Parameters
         ----------
         freq : str
@@ -1528,6 +1679,10 @@ timedelta}, default 'raise'
         "ceil",
         """
         Return a new Timestamp ceiled to this resolution.
+
+        This method rounds the Timestamp up to the nearest boundary of the
+        given frequency. The result will never be earlier than the original
+        Timestamp.
 
         Parameters
         ----------
@@ -1841,6 +1996,11 @@ default 'raise'
     def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
         """
         Convert the underlying int64 representation to the given unit.
+
+        This method changes the resolution of the Timestamp's internal
+        representation. When converting to a coarser resolution (e.g.,
+        nanoseconds to seconds), precision may be lost through rounding
+        unless ``round_ok`` is set to False.
 
         Parameters
         ----------

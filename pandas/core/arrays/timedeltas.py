@@ -40,6 +40,10 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
@@ -125,7 +129,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     data : array-like
         The timedelta data.
     dtype : numpy.dtype
-        Currently, only ``numpy.dtype("timedelta64[ns]")`` is accepted.
+        Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
+        ``timedelta64[ms]``, and ``timedelta64[s]``.
     freq : Offset, optional
         Frequency of the data.
     copy : bool, default False
@@ -833,6 +838,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         Return an ndarray of datetime.timedelta objects.
 
+        Each element of the :class:`TimedeltaIndex` is converted to the
+        corresponding native Python :class:`datetime.timedelta` object.
+
         Returns
         -------
         numpy.ndarray
@@ -1008,7 +1016,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     See Also
     --------
     Series.dt.seconds : Return number of seconds for each element.
-    Series.dt.microseconds : Return number of nanoseconds for each element.
+    Series.dt.microseconds : Return number of microseconds for each element.
 
     Examples
     --------
@@ -1084,7 +1092,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         hasnans = self._hasna
         if hasnans:
 
-            def f(x):
+            def f(x):  # pyright: ignore[reportRedeclaration]
                 if isna(x):
                     return [np.nan] * len(columns)
                 return x.components
@@ -1161,7 +1169,13 @@ def sequence_to_td64ns(
 
     elif is_integer_dtype(data.dtype):
         # treat as multiples of the given unit
-        data, copy_made = _ints_to_td64ns(data, unit=unit)
+        try:
+            data, copy_made = _ints_to_td64ns(data, unit=unit)
+        except OutOfBoundsTimedelta:
+            if errors == "raise":
+                raise
+            data = _objects_to_td64ns(data.astype(object), unit=unit, errors=errors)
+            copy_made = True
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
@@ -1176,8 +1190,17 @@ def sequence_to_td64ns(
         if unit is not None and unit != "ns":
             # if all non-NaN entries are round, treat these like ints and give
             #  back the requested unit (or closest-supported)
-            int_data = data.astype(np.int64)
-            all_round = (mask | (data == int_data)).all()
+            with np.errstate(invalid="ignore"):
+                int_data = data.astype(np.int64)
+            # On ARM, float-to-int64 overflow saturates to INT64_MAX
+            # instead of wrapping, which makes the data == int_data
+            # check pass incorrectly for OOB values like float(2**63).
+            # Exclude values outside the int64 domain from the check.
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (data >= np.float64(i64.min)) & (
+                data < np.float64(i64.max)
+            )
+            all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
                 result, _ = sequence_to_td64ns(
                     int_data, copy=False, unit=unit, errors=errors
@@ -1185,7 +1208,12 @@ def sequence_to_td64ns(
                 result[mask] = iNaT
                 return result, inferred_freq
 
-        data = cast_from_unit_vectorized(data, unit or "ns")
+        # If we have float32, cast to float64
+        data = data.astype(np.float64, copy=False)
+        try:
+            data = cast_from_unit_vectorized(data, unit or "ns")
+        except OutOfBoundsDatetime as err:
+            raise OutOfBoundsTimedelta(*err.args) from err
         data[mask] = iNaT
         data = data.view("m8[ns]")
         copy = False
@@ -1232,6 +1260,10 @@ def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
     unit = unit if unit is not None else "ns"
 
     if data.dtype != np.int64:
+        # GH#60677 unsigned integers > int64 max overflow silently
+        # when cast to int64 (which timedelta64 is backed by)
+        if data.dtype == np.dtype("uint64") and (data > np.iinfo(np.int64).max).any():
+            raise OutOfBoundsTimedelta(f"Cannot convert input with unit '{unit}'")
         # converting to int64 makes a copy, so we can avoid
         # re-copying later
         data = data.astype(np.int64)

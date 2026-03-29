@@ -14,7 +14,10 @@ import warnings
 import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
-from pandas._libs.lib import item_from_zerodim
+from pandas._libs.lib import (
+    is_np_dtype,
+    item_from_zerodim,
+)
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import REF_COUNT_IDX
 from pandas.errors import (
@@ -23,12 +26,14 @@ from pandas.errors import (
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_msg
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
-    maybe_promote,
+    maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -43,7 +48,10 @@ from pandas.core.dtypes.common import (
     is_sequence,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -52,7 +60,6 @@ from pandas.core.dtypes.missing import (
     construct_1d_array_from_inferred_fill_value,
     infer_fill_value,
     is_valid_na_for_dtype,
-    isna,
     na_value_for_dtype,
 )
 
@@ -80,6 +87,7 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
+        ArrayLike,
         Axis,
         AxisInt,
         T,
@@ -90,6 +98,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.arrays import ExtensionArray
 
 # "null slice"
 _NS = slice(None, None)
@@ -100,6 +109,10 @@ _one_ellipsis_message = "indexer may only contain one '...' entry"
 class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
+
+    ``IndexSlice`` is a convenience object that allows the use of natural
+    slice syntax (``start:stop``) when selecting from a :class:`MultiIndex`,
+    rather than requiring explicit ``slice()`` calls.
 
     See Also
     --------
@@ -857,7 +870,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return indexer, value
 
     @final
-    def _ensure_listlike_indexer(self, key, axis=None, value=None) -> None:
+    def _ensure_listlike_indexer(self, key, axis=None) -> None:
         """
         Ensure that a list-like of column labels are all present by adding them if
         they do not already exist.
@@ -868,8 +881,6 @@ class _LocationIndexer(NDFrameIndexerBase):
             Target labels.
         axis : key axis if known
         """
-        column_axis = 1
-
         # column only exists in 2-dimensional DataFrame
         if self.ndim != 2:
             return
@@ -879,11 +890,11 @@ class _LocationIndexer(NDFrameIndexerBase):
             # if length of key is > 1 set key to column part
             # unless axis is already specified, then go with that
             if axis is None:
-                axis = column_axis
+                axis = 1
             key = key[axis]
 
         if (
-            axis == column_axis
+            axis == 1
             and not isinstance(self.obj.columns, MultiIndex)
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
@@ -926,13 +937,54 @@ class _LocationIndexer(NDFrameIndexerBase):
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
             key = self._raise_callable_usage(key, maybe_callable)
-        indexer = self._get_setitem_indexer(key)
+        orig_obj = self.obj[:].iloc[:0].copy()  # copy to avoid extra refs
+        indexer = self._get_setitem_indexer(key)  # may alter self.obj
         self._has_valid_setitem_indexer(key)
 
         iloc: _iLocIndexer = (
             cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
         )
         iloc._setitem_with_indexer(indexer, value, self.name)
+
+        self._post_expansion_casting(orig_obj)
+
+    def _post_expansion_casting(self, orig_obj) -> None:
+        if orig_obj.shape[0] != self.obj.shape[0]:
+            # setitem-with-expansion added new rows.  Try to retain
+            #  original dtypes
+            if orig_obj.ndim == 1:
+                if orig_obj.dtype != self.obj.dtype:
+                    new_arr = infer_and_maybe_downcast(orig_obj.array, self.obj._values)
+                    new_ser = self.obj._constructor(
+                        new_arr, index=self.obj.index, name=self.obj.name
+                    )
+                    self.obj._mgr = new_ser._mgr
+            elif orig_obj.shape[1] == self.obj.shape[1]:
+                # We added rows but not columns
+                changed_dtypes = (
+                    self.obj._mgr.get_dtypes() != orig_obj._mgr.get_dtypes()
+                )
+                for i in np.flatnonzero(changed_dtypes):
+                    new_arr = infer_and_maybe_downcast(
+                        orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
+                    )
+                    self.obj.isetitem(i, new_arr)
+
+            elif orig_obj.columns.is_unique and self.obj.columns.is_unique:
+                for col in orig_obj.columns:
+                    new_dtype = self.obj[col].dtype
+                    orig_dtype = orig_obj[col].dtype
+                    if new_dtype != orig_dtype:
+                        new_arr = infer_and_maybe_downcast(
+                            orig_obj[col].array, self.obj[col]._values
+                        )
+                        self.obj[col] = new_arr
+            else:
+                # In these cases there isn't a one-to-one correspondence between
+                #  old columns and new columns, which makes casting hairy.
+                #  Punt on these for now, as there are no tests that get here
+                #  as of 2025-09-29
+                pass
 
     def _validate_key(self, key, axis: AxisInt) -> None:
         """
@@ -1063,7 +1115,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self._is_nested_tuple_indexer(tup):
             return self._getitem_nested_tuple(tup)
 
-        # we maybe be using a tuple to represent multiple dimensions here
+        # we may be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
@@ -2468,9 +2520,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif np.ndim(value) == 2:
-                # TODO: avoid np.ndim call in case it isn't an ndarray, since
-                #  that will construct an ndarray, which will be wasteful
+            elif _is_2d_value(value):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2525,25 +2575,31 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
-        # We get here with np.ndim(value) == 2, excluding DataFrame,
-        #  which goes through _setitem_with_indexer_frame_value
+        # We get here with a 2D value (array-like or list-of-lists),
+        # excluding DataFrame which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
-
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        if not is_array_like(value):
-            # cast lists to array
-            value = np.array(value, dtype=object)
-        if len(ilocs) != value.shape[1]:
+        if not isinstance(value, list) and not is_array_like(value):
+            value = np.asarray(value)
+
+        if isinstance(value, list):
+            if any(len(row) != len(ilocs) for row in value):
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+        elif value.shape[1] != len(ilocs):
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
         for i, loc in enumerate(ilocs):
-            value_col = value[:, i]
-            if is_object_dtype(value_col.dtype):
-                # casting to list so that we do type inference in setitem_single_column
-                value_col = value_col.tolist()
+            if isinstance(value, list):
+                value_col = [row[i] for row in value]
+            else:
+                value_col = value[:, i]
+                if is_object_dtype(value_col.dtype):
+                    value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(
@@ -2656,9 +2712,10 @@ class _iLocIndexer(_LocationIndexer):
                 # Columns F and G will initially be set to np.void.
                 # Here, we replace those temporary `np.void` columns with
                 # columns of the appropriate dtype, based on `value`.
-                self.obj.iloc[:, loc] = construct_1d_array_from_inferred_fill_value(
+                new_arr = construct_1d_array_from_inferred_fill_value(
                     value, len(self.obj)
                 )
+                self.obj.isetitem(loc, new_arr)
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
 
     def _setitem_single_block(self, indexer, value, name: str) -> None:
@@ -2727,27 +2784,14 @@ class _iLocIndexer(_LocationIndexer):
 
             # this preserves dtype of the value and of the object
             if not is_scalar(value):
-                new_dtype = None
+                pass
 
             elif is_valid_na_for_dtype(value, self.obj.dtype):
                 if not is_object_dtype(self.obj.dtype):
                     # Every NA value is suitable for object, no conversion needed
                     value = na_value_for_dtype(self.obj.dtype, compat=False)
 
-                new_dtype = maybe_promote(self.obj.dtype, value)[0]
-
-            elif isna(value):
-                new_dtype = None
-            elif not self.obj.empty and not is_object_dtype(self.obj.dtype):
-                # We should not cast, if we have object dtype because we can
-                # set timedeltas into object series
-                curr_dtype = self.obj.dtype
-                curr_dtype = getattr(curr_dtype, "numpy_dtype", curr_dtype)
-                new_dtype = maybe_promote(curr_dtype, value)[0]
-            else:
-                new_dtype = None
-
-            new_values = Series([value], dtype=new_dtype)._values
+            new_values = infer_and_maybe_downcast(self.obj.array, [value])
 
             if len(self.obj._values):
                 # GH#22717 handle casting compatibility that np.concatenate
@@ -3104,6 +3148,41 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return key
 
+    def _warn_if_expanding(self, key) -> None:
+        """
+        GH#48323 - Warn if .at setitem would expand the object.
+        """
+        if self.ndim == 2:
+            if not isinstance(key, tuple) or len(key) != 2:
+                return
+            check_key = key[0]
+        else:
+            check_key = key
+            if isinstance(key, tuple) and len(key) == 1:
+                check_key = key[0]
+
+        # Only check for scalar-like keys (including tuples for MultiIndex).
+        # Slices and list-likes are invalid for .at and will raise elsewhere.
+        if isinstance(check_key, slice) or is_list_like_indexer(check_key):
+            if not isinstance(check_key, tuple):
+                return
+
+        try:
+            is_expanding = check_key not in self.obj.index
+        except (TypeError, InvalidIndexError):
+            return
+
+        if is_expanding:
+            obj_type = "DataFrame" if self.ndim == 2 else "Series"
+            warnings.warn(
+                f"Setting a value on a {obj_type} via .at with a key "
+                "that does not exist in the index is deprecated "
+                "and will raise a KeyError in a future version. "
+                "Use .loc instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
     @property
     def _axes_are_unique(self) -> bool:
         # Only relevant for self.ndim == 2
@@ -3125,6 +3204,9 @@ class _AtIndexer(_ScalarAccessIndexer):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+
+        # GH#48323 - deprecate .at setitem with expansion
+        self._warn_if_expanding(key)
 
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
@@ -3201,6 +3283,13 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 )
 
         return super().__setitem__(key, value)
+
+
+def _is_2d_value(value) -> bool:
+    """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
+    if isinstance(value, list):
+        return len(value) > 0 and isinstance(value[0], (list, tuple))
+    return np.ndim(value) == 2
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
@@ -3382,3 +3471,18 @@ def check_dict_or_set_indexers(key) -> None:
         raise TypeError(
             "Passing a dict as an indexer is not supported. Use a list instead."
         )
+
+
+def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
+    new_arr = orig._cast_pointwise_result(new_arr)
+
+    dtype = orig.dtype
+    if isinstance(dtype, NumpyEADtype):
+        # error: Incompatible types in assignment (expression has
+        # type "dtype[Any]", variable has type "ExtensionDtype")
+        # [assignment]
+        dtype = dtype.numpy_dtype  # type: ignore[assignment]
+
+    if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
+        new_arr = maybe_downcast_to_dtype(new_arr, dtype)
+    return new_arr
