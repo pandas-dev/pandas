@@ -611,7 +611,12 @@ def sanitize_array(
         return data
 
     # GH63511
-    elif hasattr(data, "type") and "pyarrow" in type(data).__module__:
+    # Only consider Pyarrow-backed UUID arrays
+    elif (
+        hasattr(data, "type")
+        and "pyarrow" in type(data).__module__
+        and str(getattr(data, "type", "")) == "uuid"
+    ):
         subarr = data
         try:
             import pyarrow as pa
