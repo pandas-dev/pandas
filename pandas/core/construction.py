@@ -611,17 +611,20 @@ def sanitize_array(
         return data
 
     # GH63511
-    elif hasattr(data, "type"):
-        import pyarrow as pa
-        from pyarrow import (
-            Array,
-            ChunkedArray,
-        )
+    elif hasattr(data, "type") and "pyarrow" in type(data).__module__:
+        try:
+            import pyarrow as pa
+            from pyarrow import (
+                Array,
+                ChunkedArray,
+            )
 
-        if isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid():
-            from pandas.core.arrays.arrow import ArrowExtensionArray
+            if isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid():
+                from pandas.core.arrays.arrow import ArrowExtensionArray
 
-            return ArrowExtensionArray(data)
+                return ArrowExtensionArray(data)
+        except (ImportError, AttributeError):
+            pass
 
     elif isinstance(data, ABCExtensionArray):
         # it is already ensured above this is not a NumpyExtensionArray
