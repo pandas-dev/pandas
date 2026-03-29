@@ -572,6 +572,23 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid + 1
 
 
+cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
+    # GH#37800 Equivalent to bisect.bisect_right, companion to _bin_search.
+    # ndarray.searchsorted is not safe to use with array of tuples.
+
+    cdef:
+        Py_ssize_t mid, lo = 0, hi = len(values)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if val < PySequence_GetItem(values, mid):
+            hi = mid
+        else:
+            lo = mid + 1
+
+    return lo
+
+
 cdef class ObjectEngine(IndexEngine):
     """
     Index Engine for use with object-dtype Index, namely the base class Index.
@@ -587,6 +604,29 @@ cdef class ObjectEngine(IndexEngine):
         except TypeError as err:
             raise KeyError(val) from err
         return loc
+
+    cdef _get_loc_duplicates(self, object val):
+        # GH#37800 override to use _bin_search/_bin_search_right instead of
+        #  ndarray.searchsorted, which treats tuples as sequences of keys.
+        cdef:
+            Py_ssize_t diff, left, right
+
+        if self.is_monotonic_increasing:
+            try:
+                left = _bin_search(self.values, val)
+                right = _bin_search_right(self.values, val)
+            except TypeError:
+                raise KeyError(val)
+
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+
+        return self._maybe_get_bool_indexer(val)
 
 
 cdef class StringEngine(IndexEngine):
@@ -1169,36 +1209,12 @@ cdef class ExtensionEngine(SharedEngine):
         self.need_unique_check = True
 
     cdef _do_monotonic_check(self):
-        cdef:
-            bint is_unique
-
         values = self.values
-        if values._hasna:
-            self.monotonic_inc = 0
-            self.monotonic_dec = 0
 
-            nunique = len(values.unique())
-            self.unique = nunique == len(values)
-            self.need_unique_check = 0
-            return
-
-        try:
-            ranks = values._rank()
-
-        except TypeError:
-            self.monotonic_inc = 0
-            self.monotonic_dec = 0
-            is_unique = 0
-        else:
-            self.monotonic_inc, self.monotonic_dec, is_unique = \
-                self._call_monotonic(ranks)
+        self.monotonic_inc = values._is_monotonic_increasing
+        self.monotonic_dec = values._is_monotonic_decreasing
 
         self.need_monotonic_check = 0
-
-        # we can only be sure of uniqueness if is_unique=1
-        if is_unique:
-            self.unique = 1
-            self.need_unique_check = 0
 
     cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):

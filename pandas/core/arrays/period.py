@@ -201,16 +201,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "weekofyear",
         "weekday",
         "week",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
         "day_of_year",
         "quarter",
         "qyear",
         "days_in_month",
-        "daysinmonth",
     ]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    # GH#46768 - deprecated but still need to be accessible via .dt accessor
+    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
+    _datetimelike_ops: list[str] = (
+        _field_ops + _object_ops + _bool_ops + _deprecated_ops
+    )
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype
@@ -647,9 +648,28 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Index([6, 0, 1], dtype='int64')
         """,
     )
-    dayofweek = day_of_week
-    weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor(
+    weekday = day_of_week
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.dayofweek is deprecated and will be removed in a "
+            "future version. Use PeriodArray.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    day_of_year = _field_accessor(
         "day_of_year",
         """
         The ordinal day of the year.
@@ -671,16 +691,36 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([10, 32, 60], dtype='int64')
 
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
         >>> idx
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([365, 366, 365], dtype='int64')
         """,
     )
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.dayofyear is deprecated and will be removed in a "
+            "future version. Use PeriodArray.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
+
     quarter = _field_accessor(
         "quarter",
         """
@@ -783,7 +823,25 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Index([31, 28, 31], dtype='int64')
         """,
     )
-    daysinmonth = days_in_month
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.days_in_month` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.daysinmonth is deprecated and will be removed in a "
+            "future version. Use PeriodArray.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:

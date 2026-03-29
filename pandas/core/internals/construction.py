@@ -21,9 +21,9 @@ from pandas._libs import lib
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    construct_1d_object_array_from_listlike,
     dict_compat,
     maybe_cast_to_datetime,
-    maybe_convert_platform,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
@@ -518,10 +518,13 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
             return v
 
         v = extract_array(v, extract_numpy=True)
-        res = maybe_convert_platform(v)
+        if isinstance(v, (list, tuple, range)):
+            v = construct_1d_object_array_from_listlike(v)
+        if isinstance(v, np.ndarray) and v.dtype == object:
+            v = lib.maybe_convert_objects(v)
         # We don't do maybe_infer_objects here bc we will end up doing
         #  it column-by-column in ndarray_to_mgr
-        return res
+        return v
 
     # we could have a 1-dim or 2-dim list here
     # this is equiv of np.asarray, but does object conversion

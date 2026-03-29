@@ -22,10 +22,10 @@ import warnings
 import numpy as np
 
 from pandas._config import (
-    get_option,
     is_nan_na,
     using_string_dtype,
 )
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     NaT,
@@ -900,7 +900,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
+            for c in self.unique(level=0)[: _global_config["display"]["max_dir_items"]]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -1459,7 +1459,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and any(x is not None for x in self.names):
             attrs.append(("names", default_pprint(self.names)))
 
-        max_seq_items = get_option("display.max_seq_items") or len(self)
+        max_seq_items = _global_config["display"]["max_seq_items"] or len(self)
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
         return attrs
@@ -3101,8 +3101,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
-            Returns a new Index object with all unique elements from both the original
-            Index and the `other` Index.
+            Returns a new Index object with elements from both the original
+            Index and the ``other`` Index.
+
+            If either index contains duplicate entries, the result preserves
+            duplicates up to the maximum number of occurrences in either index.
 
         See Also
         --------
@@ -3125,6 +3128,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([1, 2, 3, 4])
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
+
+        Union with duplicate values
+
+        >>> idx1 = pd.Index([1, 2, 2, 3])
+        >>> idx2 = pd.Index([3, 3, 4])
+        >>> idx1.union(idx2)
+        Index([1, 2, 2, 3, 3, 4], dtype='int64')
 
         MultiIndex case
 
