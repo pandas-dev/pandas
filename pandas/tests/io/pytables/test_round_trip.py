@@ -494,7 +494,7 @@ def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
         options["complib"] = "blosc"
 
     with HDFStore(path, "w", **options) as store:
-        store.put("obj", obj, track_times=True)
+        store["obj"] = obj
         retrieved = store["obj"]
         comparator(retrieved, obj, **kwargs)
 

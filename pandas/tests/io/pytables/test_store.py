@@ -150,7 +150,7 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
     warning = None if using_infer_string else performance_warning
     msg = "cannot\nmap directly to c-types .* dtype='object'"
     with tm.assert_produces_warning(warning, match=msg):
-        store.put("df", df, track_times=True)
+        store["df"] = df
 
     # make a random group in hdf space
     store._handle.create_group(store._handle.root, "bah")
@@ -199,14 +199,10 @@ def test_contains(temp_hdfstore):
 
     # gh-2694: tables.NaturalNameWarning
     with tm.assert_produces_warning(tables.NaturalNameWarning, check_stacklevel=False):
-        store.put(
-            "node())",
-            DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD")),
-                index=Index([f"i-{i}" for i in range(30)]),
-            ),
-            track_times=True,
+        store["node())"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
     assert "node())" in store
 
