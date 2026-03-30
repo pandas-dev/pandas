@@ -2332,6 +2332,8 @@ def test_df_mul_array_fill_value(dtype, fill_val, axis, request):
         ).astype(dtype)
     result = df.mul(mult, axis=axis, fill_value=fill_val)
     tm.assert_frame_equal(result, expected)
+
+
 def test_sum_mixed_empty(any_string_dtype):
     # GH 64657
     # for actual string dtype, sum gives "", for object dtype we get 0
