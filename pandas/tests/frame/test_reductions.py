@@ -853,32 +853,41 @@ class TestDataFrameAnalytics:
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
+        warn = Pandas4Warning if numeric_only is None else None
         # The default
-        result = getattr(df, method)(numeric_only=numeric_only)
+        with tm.assert_produces_warning(warn, match="numeric_only"):
+            result = getattr(df, method)(numeric_only=numeric_only)
         expected = Series([unit, unit, unit], index=idx, dtype="float64")
         tm.assert_series_equal(result, expected)
 
         # min_count=1
-        result = getattr(df, method)(numeric_only=numeric_only, min_count=1)
+        with tm.assert_produces_warning(warn, match="numeric_only"):
+            result = getattr(df, method)(numeric_only=numeric_only, min_count=1)
         expected = Series([unit, unit, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count=0
-        result = getattr(df, method)(numeric_only=numeric_only, min_count=0)
+        with tm.assert_produces_warning(warn, match="numeric_only"):
+            result = getattr(df, method)(numeric_only=numeric_only, min_count=0)
         expected = Series([unit, unit, unit], index=idx, dtype="float64")
         tm.assert_series_equal(result, expected)
 
-        result = getattr(df.iloc[1:], method)(numeric_only=numeric_only, min_count=1)
+        with tm.assert_produces_warning(warn, match="numeric_only"):
+            result = getattr(df.iloc[1:], method)(
+                numeric_only=numeric_only, min_count=1
+            )
         expected = Series([unit, np.nan, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
         # min_count > 1
         df = DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
-        result = getattr(df, method)(numeric_only=numeric_only, min_count=5)
+        with tm.assert_produces_warning(warn, match="numeric_only"):
+            result = getattr(df, method)(numeric_only=numeric_only, min_count=5)
         expected = Series(result, index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
-        result = getattr(df, method)(numeric_only=numeric_only, min_count=6)
+        with tm.assert_produces_warning(warn, match="numeric_only"):
+            result = getattr(df, method)(numeric_only=numeric_only, min_count=6)
         expected = Series(result, index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
@@ -2065,7 +2074,9 @@ def test_minmax_extensionarray(method, numeric_only):
     int64_info = np.iinfo("int64")
     ser = Series([int64_info.max, None, int64_info.min], dtype=pd.Int64Dtype())
     df = DataFrame({"Int64": ser})
-    result = getattr(df, method)(numeric_only=numeric_only)
+    warn = Pandas4Warning if numeric_only is None else None
+    with tm.assert_produces_warning(warn, match="numeric_only"):
+        result = getattr(df, method)(numeric_only=numeric_only)
     expected = Series(
         [getattr(int64_info, method)],
         dtype="Int64",
