@@ -310,8 +310,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 value = np.asarray(value, dtype=object)
             else:
                 value = np.asarray(value)
-            if len(value) and (
-                not lib.is_string_array(value, skipna=True) or value.ndim > 1
+            if len(value) and not (
+                value.ndim == 1 and lib.is_string_array(value, skipna=True)
             ):
                 raise TypeError(
                     "Invalid value for dtype 'str'. Value should be a "
