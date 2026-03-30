@@ -492,12 +492,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # https://docs.python.org/3/library/re.html
                 isinstance(repl, str) and r"\g<" in repl
             )
-            or (regex and self._has_unsupported_regex(pat))
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
-
-        if regex:
-            pat, case, flags = self._preprocess_re_pattern(pat, case, flags)
 
         return ArrowStringArrayMixin._str_replace(
             self, pat, repl, n, case, flags, regex

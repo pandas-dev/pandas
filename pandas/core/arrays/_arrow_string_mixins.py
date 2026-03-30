@@ -239,11 +239,21 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
-        func = pc.replace_substring_regex if regex else pc.replace_substring
+        if regex:
+            # GH#64872 - Use Python's re.sub instead of pyarrow's
+            # replace_substring_regex to ensure consistent behavior with the
+            # python string dtype. PyArrow uses RE2 which handles zero-length
+            # regex matches differently from Python's PCRE engine.
+            compiled = re.compile(pat)
+            count = n if n >= 0 else 0
+            predicate = lambda val: compiled.sub(repl=repl, string=val, count=count)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
         pa_max_replacements = None if n < 0 else n
-        result = func(
+        result = pc.replace_substring(
             self._pa_array,
             pattern=pat,
             replacement=repl,
