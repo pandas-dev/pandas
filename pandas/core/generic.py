@@ -27,6 +27,7 @@ import warnings
 import numpy as np
 
 from pandas._config import config
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
@@ -2125,7 +2126,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if config.get_option("styler.render.repr") == "latex":
+        if _global_config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         else:
             return None
@@ -2136,8 +2137,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not a real Jupyter special repr method, but we use the same
         naming convention.
         """
-        if config.get_option("display.html.table_schema"):
-            data = self.head(config.get_option("display.max_rows"))
+        if _global_config["display"]["html"]["table_schema"]:
+            data = self.head(_global_config["display"]["max_rows"])
 
             as_json = data.to_json(orient="table")
             as_json = cast("str", as_json)
@@ -2663,7 +2664,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None = None,
+        dropna: bool | None | lib.NoDefault = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -2732,6 +2733,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Not allowed with append=True.
         dropna : bool, default False, optional
             Remove missing values.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
@@ -3559,15 +3565,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1:
             self = self.to_frame()
         if longtable is None:
-            longtable = config.get_option("styler.latex.environment") == "longtable"
+            longtable = _global_config["styler"]["latex"]["environment"] == "longtable"
         if escape is None:
-            escape = config.get_option("styler.format.escape") == "latex"
+            escape = _global_config["styler"]["format"]["escape"] == "latex"
         if multicolumn is None:
-            multicolumn = config.get_option("styler.sparse.columns")
+            multicolumn = _global_config["styler"]["sparse"]["columns"]
         if multicolumn_format is None:
-            multicolumn_format = config.get_option("styler.latex.multicol_align")
+            multicolumn_format = _global_config["styler"]["latex"]["multicol_align"]
         if multirow is None:
-            multirow = config.get_option("styler.sparse.index")
+            multirow = _global_config["styler"]["sparse"]["index"]
 
         if column_format is not None and not isinstance(column_format, str):
             raise ValueError("`column_format` must be str or unicode")
@@ -4281,6 +4287,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
                 return self._values[loc]
+
+            if not drop_level and isinstance(index, MultiIndex):
+                # GH#6507 - honor drop_level=False for fully specified keys
+                result = self.iloc[loc : loc + 1]
+                result.index = new_index
+                return result
 
             new_mgr = self._mgr.fast_xs(loc)
 
@@ -7540,6 +7552,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * When dict is used as the `to_replace` value, it is like
           key(s) in the dict are the to_replace part and
           value(s) in the dict are the value parameter.
+        * Replacement is based on equality, not identity. Since Python treats
+          ``True == 1`` and ``False == 0``, replacing one will also affect
+          the other when they share a dtype (e.g. ``object``).
 
         Examples
         --------
@@ -10072,6 +10087,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
+        cond_for_ea = cond
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
@@ -10107,7 +10123,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if axis == 0:
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other,
                                 )
                                 for i in range(self.shape[1])
@@ -10116,7 +10132,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                             # TODO: can we use a zero-copy alternative to "repeat"?
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other[i : i + 1].repeat(len(self)),
                                 )
                                 for i in range(self.shape[1])

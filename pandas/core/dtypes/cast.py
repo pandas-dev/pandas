@@ -124,26 +124,6 @@ _dtype_obj = np.dtype(object)
 NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
-def maybe_convert_platform(
-    values: list | tuple | range | np.ndarray | ExtensionArray,
-) -> ArrayLike:
-    """try to do platform conversion, allow ndarray or list here"""
-    arr: ArrayLike
-
-    if isinstance(values, (list, tuple, range)):
-        arr = construct_1d_object_array_from_listlike(values)
-    else:
-        # The caller is responsible for ensuring that we have np.ndarray
-        #  or ExtensionArray here.
-        arr = values
-
-    if arr.dtype == _dtype_obj:
-        arr = cast("np.ndarray", arr)
-        arr = lib.maybe_convert_objects(arr)
-
-    return arr
-
-
 def is_nested_object(obj: object) -> bool:
     """
     return a boolean if we have a nested object, e.g. a Series with 1 or
@@ -1744,8 +1724,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                arr = element._values if isinstance(element, ABCSeries) else element
-                if arr._hasna:
+                arr = (
+                    element._values
+                    if isinstance(element, (ABCIndex, ABCSeries))
+                    else element
+                )
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
 
@@ -1780,7 +1764,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                if element._hasna:
+                arr = (
+                    element._values
+                    if isinstance(element, (ABCIndex, ABCSeries))
+                    else element
+                )
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
@@ -1820,7 +1809,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind == "b":
                 if not isinstance(tipo, np.dtype):
                     # i.e. we have a BooleanArray
-                    if element._hasna:
+                    arr = (
+                        element._values
+                        if isinstance(element, (ABCIndex, ABCSeries))
+                        else element
+                    )
+                    if arr._hasna:  # type: ignore[union-attr]
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element

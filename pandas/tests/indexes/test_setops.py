@@ -71,33 +71,11 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2, request):
+def test_union_different_types(index_flat, index_flat2):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
     idx2 = index_flat2
-
-    if (
-        not idx1.is_unique
-        and not idx2.is_unique
-        and idx1.dtype.kind == "i"
-        and idx2.dtype.kind == "b"
-    ) or (
-        not idx2.is_unique
-        and not idx1.is_unique
-        and idx2.dtype.kind == "i"
-        and idx1.dtype.kind == "b"
-    ):
-        # Each condition had idx[1|2].is_monotonic_decreasing
-        # but failed when e.g.
-        # idx1 = Index(
-        # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
-        # )
-        # idx2 = Index([0, 0, 1, 1, 2, 2], dtype='int64')
-        mark = pytest.mark.xfail(
-            reason="GH#44000 True==1", raises=ValueError, strict=False
-        )
-        request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -117,12 +95,6 @@ def test_union_different_types(index_flat, index_flat2, request):
     ):
         warn = FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
-        mark = pytest.mark.xfail(
-            reason="Warning not produced on all builds",
-            raises=AssertionError,
-            strict=False,
-        )
-        request.applymarker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)

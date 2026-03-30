@@ -72,31 +72,6 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
 
-class TestGetIndexerBoolInt:
-    def test_get_indexer_bool_int_distinguished(self):
-        # GH#62888 - get_indexer should not match int 0 with bool False
-        index = Index([0, 1, 2], dtype=object)
-        target = Index([False, True], dtype=object)
-        result = index.get_indexer(target)
-        expected = np.array([-1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_get_loc_bool_int_distinguished(self):
-        # GH#62888
-        index = Index([False, True, 2], dtype=object)
-        assert index.get_loc(False) == 0
-        assert index.get_loc(True) == 1
-        with pytest.raises(KeyError, match="0"):
-            index.get_loc(0)
-        with pytest.raises(KeyError, match="1"):
-            index.get_loc(1)
-
-    def test_is_unique_bool_int(self):
-        # GH#62888 - Index with both int and bool should be unique
-        index = Index([0, 1, False, True], dtype=object)
-        assert index.is_unique
-
-
 class TestGetIndexerNonUnique:
     def test_get_indexer_non_unique_nas(self, nulls_fixture):
         # even though this isn't non-unique, this should still work

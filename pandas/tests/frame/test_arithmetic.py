@@ -2332,3 +2332,14 @@ def test_df_mul_array_fill_value(dtype, fill_val, axis, request):
         ).astype(dtype)
     result = df.mul(mult, axis=axis, fill_value=fill_val)
     tm.assert_frame_equal(result, expected)
+def test_sum_mixed_empty(any_string_dtype):
+    # GH 64657
+    # for actual string dtype, sum gives "", for object dtype we get 0
+    expected = Series(
+        {"col1": "" if any_string_dtype == "string" else 0, "col2": 0}, dtype=object
+    )
+    empty_df = DataFrame(columns=["col1", "col2"]).astype(
+        {"col1": any_string_dtype, "col2": int}
+    )
+    result = empty_df.sum()
+    tm.assert_series_equal(result, expected)

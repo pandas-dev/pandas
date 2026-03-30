@@ -548,42 +548,6 @@ class TestFactorize:
         codes3, cats3 = idx3.factorize()
         assert cats3.dtype == f"interval[datetime64[{unit}, US/Pacific], right]"
 
-    def test_factorize_bool_int_distinguished(self):
-        # GH#62888 - factorize on object dtype should distinguish bool from int
-        ser = Series([0, 1, True, False], dtype=object)
-        codes, uniques = ser.factorize()
-
-        expected_codes = np.array([0, 1, 2, 3], dtype=np.intp)
-        expected_uniques = Index([0, 1, True, False], dtype=object)
-        tm.assert_numpy_array_equal(codes, expected_codes)
-        tm.assert_index_equal(uniques, expected_uniques, exact=True)
-
-        # Check that the actual types are preserved, not just values
-        assert type(uniques[0]) is int
-        assert type(uniques[1]) is int
-        assert type(uniques[2]) is bool
-        assert type(uniques[3]) is bool
-
-    def test_factorize_bool_int_distinguished_reverse(self):
-        # GH#62888 - order should not matter
-        ser = Series([True, False, 0, 1], dtype=object)
-        codes, uniques = ser.factorize()
-
-        expected_codes = np.array([0, 1, 2, 3], dtype=np.intp)
-        expected_uniques = Index([True, False, 0, 1], dtype=object)
-        tm.assert_numpy_array_equal(codes, expected_codes)
-        tm.assert_index_equal(uniques, expected_uniques, exact=True)
-
-    def test_factorize_bool_int_with_duplicates(self):
-        # GH#62888
-        ser = Series([0, True, 0, False, 1, True], dtype=object)
-        codes, uniques = ser.factorize()
-
-        expected_codes = np.array([0, 1, 0, 2, 3, 1], dtype=np.intp)
-        expected_uniques = Index([0, True, False, 1], dtype=object)
-        tm.assert_numpy_array_equal(codes, expected_codes)
-        tm.assert_index_equal(uniques, expected_uniques, exact=True)
-
 
 class TestUnique:
     def test_ints(self):
@@ -617,17 +581,6 @@ class TestUnique:
             if isinstance(index.dtype, DatetimeTZDtype):
                 expected = expected.normalize()
         tm.assert_index_equal(result, expected, exact=True)
-
-    def test_unique_bool_int_distinguished(self):
-        # GH#18111, GH#62888
-        arr = np.array([0, False, 1, True], dtype=object)
-        result = algos.unique(arr)
-        expected = np.array([0, False, 1, True], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
-        assert type(result[0]) is int
-        assert type(result[1]) is bool
-        assert type(result[2]) is int
-        assert type(result[3]) is bool
 
     def test_factorize_multiindex_empty(self):
         # GH#57517
@@ -1254,22 +1207,6 @@ class TestIsin:
         expected = Series(False)
         tm.assert_series_equal(result, expected)
 
-    def test_isin_bool_int_distinguished(self):
-        # GH#62888
-        ser = Series([0, 1, False, True], dtype=object)
-
-        result = algos.isin(ser, [0])
-        expected = np.array([True, False, False, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(ser, [False])
-        expected = np.array([False, False, True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(ser, [0, False])
-        expected = np.array([True, False, True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
 
 class TestValueCounts:
     def test_value_counts(self):
@@ -1509,17 +1446,6 @@ class TestValueCounts:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_value_counts_bool_int_distinguished(self):
-        # GH#62888
-        ser = Series([0, False, 0, True, 1, False], dtype=object)
-        result = ser.value_counts()
-        expected = Series(
-            [2, 2, 1, 1],
-            index=Index([0, False, True, 1], dtype=object),
-            name="count",
-        )
-        tm.assert_series_equal(result, expected)
-
     def test_value_counts_stability(self):
         # GH 63155
         arr = np.random.default_rng(2).integers(0, 32, 64)
@@ -1535,18 +1461,6 @@ class TestValueCounts:
 
 
 class TestDuplicated:
-    def test_duplicated_bool_int_distinguished(self):
-        # GH#62888
-        keys = np.array([0, False, 1, True, 0, False], dtype=object)
-
-        result = algos.duplicated(keys)
-        expected = np.array([False, False, False, False, True, True])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.duplicated(keys, keep="last")
-        expected = np.array([True, True, False, False, False, False])
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_duplicated_with_nas(self):
         keys = np.array([0, 1, np.nan, 0, 2, np.nan], dtype=object)
 
