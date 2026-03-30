@@ -21,6 +21,7 @@ Enhancements
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed a regression in :func:`json_normalize` that caused top-level missing entries to raise a ``TypeError``. Missing entries are once again interpreted as empty records (:issue:`64188`)
+- Fixed performance regression in assigning into a string column with string data (:issue:`64530`)
 - Fixed regression in :meth:`DataFrame.convert_dtypes` resulting in corrupted result with sliced :class:`DataFrame` with mixed dtypesas input (:issue:`64702`)
 - Fixed regression in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` raising ``AssertionError`` when called with ``level=`` on a :class:`RangeIndex` (:issue:`64383`)
 - Fixed regression in :meth:`HDFStore.select` where the ``where`` clause on a datetime index silently returned empty results when the index had non-nanosecond resolution (:issue:`64310`)
