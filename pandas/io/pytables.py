@@ -41,7 +41,10 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    PY312,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
@@ -182,8 +185,14 @@ def _ensure_term(where, scope_level: int):
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
+        # Pre-3.12 the list comprehension created its own stack frame,
+        # requiring an extra +1 to reach the caller's scope. PEP 709
+        # inlined comprehensions in 3.12, removing that frame.
+        comp_adjustment = 0 if PY312 else 1
         where = [
-            Term(term, scope_level=level + 1) if maybe_expression(term) else term
+            Term(term, scope_level=level + comp_adjustment)
+            if maybe_expression(term)
+            else term
             for term in where
             if term is not None
         ]

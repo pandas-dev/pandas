@@ -15714,10 +15714,6 @@ class DataFrame(NDFrame, OpsMixin):
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
             out = out.astype(object)
-        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
-            # Even if we are object dtype, follow numpy and return
-            #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
 
         return out
 

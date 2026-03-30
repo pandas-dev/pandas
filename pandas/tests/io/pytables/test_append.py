@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -220,7 +219,7 @@ def test_append_dropna_table_option_deprecated():
             pass
 
 
-def test_append_frame_column_oriented(temp_hdfstore, request):
+def test_append_frame_column_oriented(temp_hdfstore):
     # column oriented
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -238,13 +237,6 @@ def test_append_frame_column_oriented(temp_hdfstore, request):
     tm.assert_frame_equal(expected, result)
 
     # selection on the non-indexable
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=ValueError,
-        )
-    )
     result = temp_hdfstore.select("df1", ("columns=A", "index=df.index[0:4]"))
     expected = df.reindex(columns=["A"], index=df.index[0:4])
     tm.assert_frame_equal(expected, result)
