@@ -33,6 +33,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import get_option
 from pandas.core.api import (
     DataFrame,
     Series,
@@ -1584,7 +1584,7 @@ class SQLAlchemyEngine(BaseEngine):
 def get_engine(engine: str) -> BaseEngine:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.sql.engine")
+        engine = _global_config["io"]["sql"]["engine"]
 
     if engine == "auto":
         # try engines in this order

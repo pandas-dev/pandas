@@ -26,6 +26,7 @@ import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
 )
+from pandas.util.version import Version
 
 from pandas.io.pytables import (
     HDFStore,
@@ -53,6 +54,10 @@ def test_context(temp_h5_path):
         assert type(tbl["a"]) == DataFrame
 
 
+@pytest.mark.xfail(
+    Version(tables.hdf5_version) >= Version("2"),
+    reason="track_times=False produces non-deterministic files with HDF5 >= 2",
+)
 def test_no_track_times(temp_h5_path):
     # GH 32682
     # enables to set track_times (see `pytables` `create_table` documentation)
@@ -336,11 +341,14 @@ def test_store_dropna(temp_h5_path):
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
+    msg = "The 'dropna' keyword in HDFStore.put is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
 
@@ -506,7 +514,7 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
     mydt = dt.datetime(2013, 4, 30)
     dts = date_range(mydt, periods=5, freq=bday_egypt)
 
-    s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
     temp_hdfstore.put("fixed", s)
     result = temp_hdfstore.select("fixed")

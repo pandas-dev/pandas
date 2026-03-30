@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -331,7 +333,8 @@ def test_set_value_keeps_names():
     )
     df = df.sort_index()
     assert df.index.names == ("Name", "Number")
-    df.at[("grethe", "4"), "one"] = 99.34
+    with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+        df.at[("grethe", "4"), "one"] = 99.34
     assert df.index.names == ("Name", "Number")
 
 

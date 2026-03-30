@@ -384,9 +384,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
-    @property
-    def _formatter_func(self):
-        return self._data._formatter()
+    def _formatter_func(self, val) -> str:
+        return self._data._formatter()(val)
 
     def _format_attrs(self):
         """
@@ -456,7 +455,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:  # type: ignore[override]
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -494,12 +493,26 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 # we are out of range
                 raise KeyError
 
-            # TODO: does this depend on being monotonic _increasing_?
-
-            # a monotonic (sorted) series can be sliced
+            # a monotonic increasing series can be sliced
+            #  (searchsorted requires ascending order)
             left = vals.searchsorted(unbox(t1), side="left")
             right = vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
+
+        elif self.is_monotonic_decreasing:
+            if len(self) and (
+                (t1 > self[0] and t2 > self[0]) or (t1 < self[-1] and t2 < self[-1])
+            ):
+                # we are out of range
+                raise KeyError
+
+            # searchsorted requires ascending order, so search the reversed
+            #  array and convert the indices back
+            reversed_vals = vals[::-1]
+            nvals = len(vals)
+            rev_left = reversed_vals.searchsorted(unbox(t1), side="left")
+            rev_right = reversed_vals.searchsorted(unbox(t2), side="right")
+            return slice(nvals - rev_right, nvals - rev_left)
 
         else:
             lhs_mask = vals >= unbox(t1)
@@ -889,7 +902,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            result = left._values[lslice]
+            result = left._values[lslice]  # type: ignore[assignment]
 
         return result
 
@@ -993,7 +1006,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort)._with_freq("infer")
+            return super()._union(other, sort)._with_freq("infer")  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Join Methods

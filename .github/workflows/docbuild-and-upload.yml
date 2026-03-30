@@ -24,7 +24,6 @@ on:
 
 env:
   ENV_FILE: environment.yml
-  PANDAS_CI: 1
 
 permissions: {}
 

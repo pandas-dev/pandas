@@ -36,7 +36,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY312,
-    is_ci_environment,
     is_platform_windows,
     pa_version_under14p0,
     pa_version_under19p0,
@@ -74,7 +73,7 @@ from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 def _require_timezone_database(request):
-    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
+    if is_platform_windows() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
@@ -2421,10 +2420,8 @@ def test_unsupported_dt(data):
         ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
-        ["dayofweek", 0],
         ["weekday", 0],
         ["day_of_year", 2],
-        ["dayofyear", 2],
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
@@ -2454,7 +2451,13 @@ def test_dt_properties(prop, expected):
         ],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
-    result = getattr(ser.dt, prop)
+    if prop == "weekday":
+        # GH#12816
+        warn = Pandas4Warning
+    else:
+        warn = None
+    with tm.assert_produces_warning(warn, match="weekday"):
+        result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
         exp_type = pa.date32()
@@ -2543,7 +2546,7 @@ def test_dt_is_quarter_start_end():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["days_in_month", "daysinmonth"])
+@pytest.mark.parametrize("method", ["days_in_month"])
 def test_dt_days_in_month(method):
     ser = pd.Series(
         [

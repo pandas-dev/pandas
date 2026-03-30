@@ -29,7 +29,7 @@ from typing import (
 import numpy as np
 
 from pandas._config.config import (
-    get_option,
+    _global_config,
     set_option,
 )
 
@@ -152,7 +152,7 @@ class SeriesFormatter:
         self.min_rows = min_rows
 
         if float_format is None:
-            float_format = get_option("display.float_format")
+            float_format = _global_config["display"]["float_format"]
         self.float_format = float_format
         self.dtype = dtype
         self.adj = printing.get_adjustment()
@@ -304,16 +304,16 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     """
     from pandas.io.formats import console
 
-    if get_option("display.expand_frame_repr"):
+    if _global_config["display"]["expand_frame_repr"]:
         line_width, _ = console.get_console_size()
     else:
         line_width = None
     return {
-        "max_rows": get_option("display.max_rows"),
-        "min_rows": get_option("display.min_rows"),
-        "max_cols": get_option("display.max_columns"),
-        "max_colwidth": get_option("display.max_colwidth"),
-        "show_dimensions": get_option("display.show_dimensions"),
+        "max_rows": _global_config["display"]["max_rows"],
+        "min_rows": _global_config["display"]["min_rows"],
+        "max_cols": _global_config["display"]["max_columns"],
+        "max_colwidth": _global_config["display"]["max_colwidth"],
+        "show_dimensions": _global_config["display"]["show_dimensions"],
         "line_width": line_width,
     }
 
@@ -334,16 +334,16 @@ def get_series_repr_params() -> dict[str, Any]:
     True
     """
     width, height = get_terminal_size()
-    max_rows_opt = get_option("display.max_rows")
+    max_rows_opt = _global_config["display"]["max_rows"]
     max_rows = height if max_rows_opt == 0 else max_rows_opt
-    min_rows = height if max_rows_opt == 0 else get_option("display.min_rows")
+    min_rows = height if max_rows_opt == 0 else _global_config["display"]["min_rows"]
 
     return {
         "name": True,
         "dtype": True,
         "min_rows": min_rows,
         "max_rows": max_rows,
-        "length": get_option("display.show_dimensions"),
+        "length": _global_config["display"]["show_dimensions"],
     }
 
 
@@ -521,7 +521,7 @@ class DataFrameFormatter:
 
     def _initialize_sparsify(self, sparsify: bool | None) -> bool:
         if sparsify is None:
-            return get_option("display.multi_sparse")
+            return _global_config["display"]["multi_sparse"]
         return sparsify
 
     def _initialize_formatters(
@@ -539,7 +539,7 @@ class DataFrameFormatter:
 
     def _initialize_justify(self, justify: str | None) -> str:
         if justify is None:
-            return get_option("display.colheader_justify")
+            return _global_config["display"]["colheader_justify"]
         else:
             return justify
 
@@ -1145,10 +1145,10 @@ def format_array(
         space = 12
 
     if float_format is None:
-        float_format = get_option("display.float_format")
+        float_format = _global_config["display"]["float_format"]
 
     if digits is None:
-        digits = get_option("display.precision")
+        digits = _global_config["display"]["precision"]
 
     fmt_obj = fmt_klass(
         values,
@@ -1203,9 +1203,9 @@ class _GenericArrayFormatter:
 
     def _format_strings(self) -> list[str]:
         if self.float_format is None:
-            float_format = get_option("display.float_format")
+            float_format = _global_config["display"]["float_format"]
             if float_format is None:
-                precision = get_option("display.precision")
+                precision = _global_config["display"]["precision"]
                 float_format = lambda x: _trim_zeros_single_float(
                     f"{x: .{precision:d}f}"
                 )
@@ -1393,7 +1393,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
         if self.fixed_width:
-            threshold = get_option("display.chop_threshold")
+            threshold = _global_config["display"]["chop_threshold"]
         else:
             threshold = None
 
@@ -1750,7 +1750,7 @@ def _make_fixed_width(
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = get_option("display.max_colwidth")
+    conf_max = _global_config["display"]["max_colwidth"]
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 

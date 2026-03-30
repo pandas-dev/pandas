@@ -35,6 +35,7 @@ from pandas.core.dtypes.dtypes import (
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
+        Dtype,
         DtypeObj,
         IgnoreRaise,
     )
@@ -86,8 +87,8 @@ def _astype_nansafe(
     if arr.dtype.kind in "mM":
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
-        arr = ensure_wrapped_if_datetimelike(arr)
-        res = arr.astype(dtype, copy=copy)
+        wrapped = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
+        res = wrapped.astype(dtype, copy=copy)
         return np.asarray(res)
 
     if issubclass(dtype.type, str):
@@ -119,7 +120,7 @@ def _astype_nansafe(
             #  does not require a circular import.
             tdvals = array_to_timedelta64(arr)
 
-            tda = ensure_wrapped_if_datetimelike(tdvals)
+            tda = ensure_wrapped_if_datetimelike(tdvals)  # type: ignore[no-untyped-call]
             return tda.astype(dtype, copy=False)._ndarray
 
     if dtype.name in ("datetime64", "timedelta64"):
@@ -192,7 +193,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
 
 def astype_array_safe(
-    values: ArrayLike, dtype, copy: bool = False, errors: IgnoreRaise = "raise"
+    values: ArrayLike, dtype: Dtype, copy: bool = False, errors: IgnoreRaise = "raise"
 ) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
