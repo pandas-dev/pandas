@@ -189,7 +189,7 @@ def _strptime_ampm_fallback(element: str, time_format: str) -> time:
     alt_format = time_format.replace("%I", "%H").replace("%p", "")
     parsed = datetime.strptime(base.rstrip(), alt_format.rstrip())
     hour = parsed.hour
-    if is_pm and hour != 12:
+    if is_pm and hour < 12:
         hour += 12
     elif not is_pm and hour == 12:
         hour = 0

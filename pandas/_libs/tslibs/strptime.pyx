@@ -736,6 +736,7 @@ cdef tzinfo _parse_with_format(
                     # e.g. val='01/10/2010 08:14 PM'; fmt='%m/%d/%Y %I:%M %p'
                     hour += 12
                     # TODO: the implicit `else` branch is not tested 2023-10-28
+            # TODO: the implicit `else` branch is not reached 2023-10-28; possible?
         elif parse_code == 8:
             # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             minute = int(group_val)
