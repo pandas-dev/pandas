@@ -1372,7 +1372,7 @@ def test_str_fullmatch_extra_cases(any_string_dtype, pat, case, na, exp):
 
     if any_string_dtype == "str":
         # NaN propagates as False
-        exp[-1] = False
+        exp = [*exp[:-1], False]
         expected_dtype = bool
     else:
         expected_dtype = (

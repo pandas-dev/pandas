@@ -26,6 +26,7 @@ import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
 )
+from pandas.util.version import Version
 
 from pandas.io.pytables import (
     HDFStore,
@@ -53,6 +54,10 @@ def test_context(temp_h5_path):
         assert type(tbl["a"]) == DataFrame
 
 
+@pytest.mark.xfail(
+    Version(tables.hdf5_version) >= Version("2"),
+    reason="track_times=False produces non-deterministic files with HDF5 >= 2",
+)
 def test_no_track_times(temp_h5_path):
     # GH 32682
     # enables to set track_times (see `pytables` `create_table` documentation)
@@ -110,14 +115,14 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
     store["b"] = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     store["c"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
@@ -150,8 +155,8 @@ def test_repr_get_storer(temp_hdfstore):
     # storers
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     temp_hdfstore.append("df", df)
 
@@ -167,13 +172,13 @@ def test_contains(temp_hdfstore):
     )
     store["b"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     store["foo/bar"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     assert "a" in store
     assert "b" in store
@@ -187,8 +192,8 @@ def test_contains(temp_hdfstore):
     with tm.assert_produces_warning(tables.NaturalNameWarning, check_stacklevel=False):
         store["node())"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
     assert "node())" in store
 
@@ -200,12 +205,12 @@ def test_versioning(temp_hdfstore):
     )
     store["b"] = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=20, freq="B"),
     )
     store.append("df1", df[:10])
@@ -336,11 +341,14 @@ def test_store_dropna(temp_h5_path):
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
+    msg = "The 'dropna' keyword in HDFStore.put is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
 
@@ -506,7 +514,7 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
     mydt = dt.datetime(2013, 4, 30)
     dts = date_range(mydt, periods=5, freq=bday_egypt)
 
-    s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
     temp_hdfstore.put("fixed", s)
     result = temp_hdfstore.select("fixed")
@@ -708,9 +716,7 @@ def test_coordinates_multiple_tables(temp_hdfstore):
 
     expected = concat([df1, df2], axis=1)
     expected = expected[(expected.A > 0) & (expected.B > 0)]
-    tm.assert_frame_equal(result, expected, check_freq=False)
-    # FIXME: 2021-01-18 on some (mostly windows) builds we get freq=None
-    #  but expect freq="18B"
+    tm.assert_frame_equal(result, expected)
 
 
 def test_coordinates_array_mask(temp_hdfstore):

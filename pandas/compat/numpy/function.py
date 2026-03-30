@@ -169,7 +169,7 @@ def validate_argsort_with_ascending(ascending: bool | int | None, args, kwargs) 
         ascending = True
 
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    ascending = cast(bool, ascending)
+    ascending = cast("bool", ascending)
     return ascending
 
 

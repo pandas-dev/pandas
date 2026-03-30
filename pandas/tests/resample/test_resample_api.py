@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslibs import Day
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -653,7 +654,9 @@ def test_agg_list_like_func_with_args():
     with pytest.raises(TypeError, match=msg):
         df.resample("D").agg([foo1, foo2], 3, b=3, c=4)
 
-    result = df.resample("D").agg([foo1, foo2], 3, c=4)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.resample("D").agg([foo1, foo2], 3, c=4)
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]],
         index=date_range("2020-01-01", periods=3, freq="D"),

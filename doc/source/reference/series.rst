@@ -86,6 +86,7 @@ Binary operator functions
    Series.sub
    Series.mul
    Series.div
+   Series.divmod
    Series.truediv
    Series.floordiv
    Series.mod
@@ -94,6 +95,7 @@ Binary operator functions
    Series.rsub
    Series.rmul
    Series.rdiv
+   Series.rdivmod
    Series.rtruediv
    Series.rfloordiv
    Series.rmod
@@ -569,7 +571,7 @@ Flags
 ~~~~~
 
 Flags refer to attributes of the pandas object. Properties of the dataset (like
-the date is was recorded, the URL it was accessed from, etc.) should be stored
+the date it was recorded, the URL it was accessed from, etc.) should be stored
 in :attr:`Series.attrs`.
 
 .. autosummary::

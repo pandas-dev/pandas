@@ -667,3 +667,14 @@ def test_series_apply_unpack_nested_data():
     result = ser.apply(lambda x: Series(x))
     expected = DataFrame({0: [1.0, 4.0], 1: [2.0, 5.0], 2: [3.0, 6.0], 3: [np.nan, 7]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
+def test_apply_nullable_integer_precision(dtype):
+    # GH#63903
+    large_int = 10000000000000001  # above float64 integer precision limit
+    ser = Series([large_int, None], dtype=dtype)
+
+    result = ser.apply(lambda x: x + 2 if pd.notna(x) else x)
+    expected = Series([large_int + 2, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)

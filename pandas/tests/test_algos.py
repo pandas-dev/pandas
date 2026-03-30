@@ -1057,7 +1057,7 @@ class TestIsin:
         # nan is special, because from " a is b" doesn't follow "a == b"
         # at least, isin() should follow python's "np.nan in [nan] == True"
         # casting to -> np.float64 -> another float-object somewhere on
-        # the way could lead jeopardize this behavior
+        # the way could jeopardize this behavior
         comps = np.array([np.nan], dtype=object)  # could be casted to float64
         values = [np.nan]
         expected = np.array([True])
@@ -1846,7 +1846,7 @@ class TestRank:
 
     def test_too_many_ndims(self):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
-        msg = "Array with ndim > 2 are not supported"
+        msg = "Array with ndim > 2 is not supported"
 
         with pytest.raises(TypeError, match=msg):
             algos.rank(arr)

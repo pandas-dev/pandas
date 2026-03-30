@@ -4,10 +4,6 @@ SQL-style merge routines
 
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 import datetime
 from functools import partial
 import types
@@ -17,7 +13,6 @@ from typing import (
     cast,
     final,
 )
-import uuid
 import warnings
 
 import numpy as np
@@ -29,16 +24,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    IndexLabel,
-    JoinHow,
-    MergeHow,
-    Shape,
-    Suffixes,
-    npt,
-)
 from pandas.errors import MergeError
 from pandas.util._decorators import (
     cache_readonly,
@@ -102,6 +87,22 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        IndexLabel,
+        JoinHow,
+        MergeHow,
+        Shape,
+        Suffixes,
+        npt,
+    )
+
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
@@ -428,28 +429,12 @@ def _cross_merge(
             "left_index=True"
         )
 
-    cross_col = f"_cross_{uuid.uuid4()}"
-    left = left.assign(**{cross_col: 1})
-    right = right.assign(**{cross_col: 1})
-
-    left_on = right_on = [cross_col]
-
-    res = merge(
+    return _CrossMergeOperation(
         left,
         right,
-        how="inner",
-        on=on,
-        left_on=left_on,
-        right_on=right_on,
-        left_index=left_index,
-        right_index=right_index,
-        sort=sort,
         suffixes=suffixes,
         indicator=indicator,
-        validate=validate,
-    )
-    del res[cross_col]
-    return res
+    ).get_result()
 
 
 def _groupby_and_merge(
@@ -979,7 +964,7 @@ class _MergeOperation:
         self.right = self.orig_right = _right
         self.how, self.anti_join = self._validate_how(how)
 
-        self.on = com.maybe_make_list(on)
+        self.on = com.maybe_make_list(on)  # type: ignore[assignment]
 
         self.suffixes = suffixes
         self.sort = sort or how == "outer"
@@ -1064,7 +1049,7 @@ class _MergeOperation:
         if how in {"left_anti", "right_anti"}:
             how = how.split("_")[0]  # type: ignore[assignment]
             anti_join = True
-        how = cast(JoinHow | Literal["asof"], how)
+        how = cast("JoinHow | Literal['asof']", how)
         return how, anti_join
 
     def _maybe_require_matching_dtypes(
@@ -1276,8 +1261,14 @@ class _MergeOperation:
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
     ) -> None:
-        left_has_missing = None
-        right_has_missing = None
+        # Inner joins never produce -1 (missing) in the indexers, so we can
+        # skip the potentially expensive (indexer == -1).any() scans.
+        if self.how == "inner":
+            left_has_missing = False
+            right_has_missing = False
+        else:
+            left_has_missing = None
+            right_has_missing = None
 
         assert all(isinstance(x, _known) for x in self.left_join_keys)
 
@@ -1594,16 +1585,16 @@ class _MergeOperation:
                 lk = extract_array(lk, extract_numpy=True)
                 rk = extract_array(rk, extract_numpy=True)
                 if is_lkey(lk):
-                    lk = cast(ArrayLike, lk)
+                    lk = cast("ArrayLike", lk)
                     left_keys.append(lk)
                     if is_rkey(rk):
-                        rk = cast(ArrayLike, rk)
+                        rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                         join_names.append(None)  # what to do?
                     else:
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        rk = cast(Hashable, rk)
+                        rk = cast("Hashable", rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                             join_names.append(rk)
@@ -1615,7 +1606,7 @@ class _MergeOperation:
                     if not is_rkey(rk):
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        rk = cast(Hashable, rk)
+                        rk = cast("Hashable", rk)
                         if rk is not None:
                             right_keys.append(right._get_label_or_level_values(rk))
                         else:
@@ -1624,12 +1615,12 @@ class _MergeOperation:
                         if lk is not None and lk == rk:  # FIXME: what about other NAs?
                             right_drop.append(rk)
                     else:
-                        rk = cast(ArrayLike, rk)
+                        rk = cast("ArrayLike", rk)
                         right_keys.append(rk)
                     if lk is not None:
                         # Then we're either Hashable or a wrong-length arraylike,
                         #  the latter of which will raise
-                        lk = cast(Hashable, lk)
+                        lk = cast("Hashable", lk)
                         left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
@@ -1640,21 +1631,19 @@ class _MergeOperation:
             for k in self.left_on:
                 if is_lkey(k):
                     k = extract_array(k, extract_numpy=True)
-                    k = cast(ArrayLike, k)
+                    k = cast("ArrayLike", k)
                     left_keys.append(k)
                     join_names.append(None)
                 else:
                     # Then we're either Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
-                    k = cast(Hashable, k)
+                    k = cast("Hashable", k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [
-                    lev._values.take(lev_codes)
-                    for lev, lev_codes in zip(
-                        self.right.index.levels, self.right.index.codes, strict=True
-                    )
+                    self.right.index._get_level_values(i)._values
+                    for i in range(self.right.index.nlevels)
                 ]
             else:
                 right_keys = [self.right.index._values]
@@ -1662,21 +1651,19 @@ class _MergeOperation:
             for k in self.right_on:
                 k = extract_array(k, extract_numpy=True)
                 if is_rkey(k):
-                    k = cast(ArrayLike, k)
+                    k = cast("ArrayLike", k)
                     right_keys.append(k)
                     join_names.append(None)
                 else:
                     # Then we're either Hashable or a wrong-length arraylike,
                     #  the latter of which will raise
-                    k = cast(Hashable, k)
+                    k = cast("Hashable", k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [
-                    lev._values.take(lev_codes)
-                    for lev, lev_codes in zip(
-                        self.left.index.levels, self.left.index.codes, strict=True
-                    )
+                    self.left.index._get_level_values(i)._values
+                    for i in range(self.left.index.nlevels)
                 ]
             else:
                 left_keys = [self.left.index._values]
@@ -1712,8 +1699,8 @@ class _MergeOperation:
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
             if lk_is_cat and rk_is_cat:
-                lk = cast(Categorical, lk)
-                rk = cast(Categorical, rk)
+                lk = cast("Categorical", lk)
+                rk = cast("Categorical", rk)
                 if lk._categories_match_up_to_permutation(rk):
                     continue
 
@@ -1744,14 +1731,14 @@ class _MergeOperation:
                         com_cls = ct.construct_array_type()
                         rk = com_cls._from_sequence(rk, dtype=ct, copy=False)
                     else:
-                        rk = rk.astype(ct)
+                        rk = rk.astype(ct, copy=False)
                 elif isinstance(rk.dtype, ExtensionDtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if isinstance(ct, ExtensionDtype):
                         com_cls = ct.construct_array_type()
                         lk = com_cls._from_sequence(lk, dtype=ct, copy=False)
                     else:
-                        lk = lk.astype(ct)
+                        lk = lk.astype(ct, copy=False)
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
@@ -1870,11 +1857,11 @@ class _MergeOperation:
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
-                typ = cast(Categorical, lk).categories.dtype if lk_is_cat else object
+                typ = cast("Categorical", lk).categories.dtype if lk_is_cat else object
                 self.left = self.left.copy(deep=False)
                 self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
-                typ = cast(Categorical, rk).categories.dtype if rk_is_cat else object
+                typ = cast("Categorical", rk).categories.dtype if rk_is_cat else object
                 self.right = self.right.copy(deep=False)
                 self.right[name] = self.right[name].astype(typ)
 
@@ -2245,6 +2232,57 @@ def restore_dropped_levels_multijoin(
     return join_levels, join_codes, join_names
 
 
+class _CrossMergeOperation(_MergeOperation):
+    """
+    Fast-path for cross (Cartesian product) merges.
+
+    Bypasses key extraction, factorisation, and the hash-join by computing
+    positional indexers directly with np.repeat / np.tile.
+    """
+
+    def __init__(
+        self,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
+        suffixes: Suffixes = ("_x", "_y"),
+        indicator: str | bool = False,
+    ) -> None:
+        _left = _validate_operand(left)
+        _right = _validate_operand(right)
+        self.left = self.orig_left = _left
+        self.right = self.orig_right = _right
+        self.how: JoinHow = "inner"
+        self.on = None
+        self.suffixes = suffixes
+        self.sort = False
+        self.left_index = False
+        self.right_index = False
+        self.indicator = indicator
+        self.anti_join = False
+        self.left_on: list = []
+        self.right_on: list = []
+        self.left_join_keys: list[ArrayLike] = []
+        self.right_join_keys: list[ArrayLike] = []
+        self.join_names: list[Hashable] = []
+
+        # GH#40993: raise when merging between different levels
+        if _left.columns.nlevels != _right.columns.nlevels:
+            raise MergeError(
+                "Not allowed to merge between different levels. "
+                f"({_left.columns.nlevels} levels on the left, "
+                f"{_right.columns.nlevels} on the right)"
+            )
+
+    def _get_join_indexers(
+        self,
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+        n_left = len(self.left)
+        n_right = len(self.right)
+        left_indexer = np.repeat(np.arange(n_left, dtype=np.intp), n_right)
+        right_indexer = np.tile(np.arange(n_right, dtype=np.intp), n_left)
+        return left_indexer, right_indexer
+
+
 class _OrderedMerge(_MergeOperation):
     _merge_type = "ordered_merge"
 
@@ -2392,7 +2430,7 @@ class _AsOfMerge(_OrderedMerge):
 
         # GH#29130 Check that merge keys do not have dtype object
         if not self.left_index:
-            left_on_0 = left_on[0]
+            left_on_0 = left_on[0]  # pyright: ignore[reportOptionalSubscript]
             if isinstance(left_on_0, _known):
                 lo_dtype = left_on_0.dtype
             else:
@@ -2405,7 +2443,7 @@ class _AsOfMerge(_OrderedMerge):
             lo_dtype = self.left.index.dtype
 
         if not self.right_index:
-            right_on_0 = right_on[0]
+            right_on_0 = right_on[0]  # pyright: ignore[reportOptionalSubscript]
             if isinstance(right_on_0, _known):
                 ro_dtype = right_on_0.dtype
             else:
@@ -2440,7 +2478,7 @@ class _AsOfMerge(_OrderedMerge):
                 raise MergeError("left_by and right_by must be the same length")
 
             left_on = self.left_by + list(left_on)
-            right_on = self.right_by + list(right_on)
+            right_on = self.right_by + list(right_on)  # pyright: ignore[reportOptionalOperand]
 
         return left_on, right_on
 
@@ -2629,7 +2667,7 @@ class _AsOfMerge(_OrderedMerge):
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            return func(
+            return func(  # pyright: ignore[reportOptionalCall]
                 left_values,
                 right_values,
                 left_by_values,
@@ -2640,7 +2678,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            return func(
+            return func(  # pyright: ignore[reportOptionalCall]
                 left_values,
                 right_values,
                 None,
@@ -2837,7 +2875,8 @@ def _factorize_keys(
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
-            import pyarrow.compute as pc
+
+            from pandas.compat.pyarrow import _safe_fill_null
 
             len_lk = len(lk)
             lk = lk._pa_array  # type: ignore[attr-defined]
@@ -2849,10 +2888,10 @@ def _factorize_keys(
             )
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], -1)
+                _safe_fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], -1)
+                _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),
@@ -2920,12 +2959,22 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
-    hash_join_available = how == "inner" and not sort and lk.dtype.kind in "iufb"
+    hash_join_available = (
+        how in ("inner", "left") and not sort and lk.dtype.kind in "iufb"
+    )
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
             ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
-            return lidx, ridx, -1
+            if how == "inner":
+                return lidx, ridx, -1
+            # left-outer hash join with unique right side.
+            # Preserve original left-row order: one output row per left row,
+            # ridx=-1 for unmatched rows.
+            n_left = len(lk_data)
+            ridx_full = np.full(n_left, -1, dtype=np.intp)
+            ridx_full[lidx] = ridx
+            return np.arange(n_left, dtype=np.intp), ridx_full, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)
     else:

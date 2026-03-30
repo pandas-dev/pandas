@@ -423,9 +423,7 @@ def test_can_serialize_dates(temp_h5_path):
     _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
 
 
-def test_store_hierarchical(
-    temp_h5_path, using_infer_string, multiindex_dataframe_random_data
-):
+def test_store_hierarchical(temp_h5_path, multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
     _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)

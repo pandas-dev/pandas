@@ -96,7 +96,7 @@ def assert_stat_op_calc(
     frame : DataFrame
         The object that the tests are executed on
     has_skipna : bool, default True
-        Whether the method "opname" has the kwarg "skip_na"
+        Whether the method "opname" has the kwarg "skipna"
     check_dtype : bool, default True
         Whether the dtypes of the result of "frame.opname()" and
         "alternative(frame)" should be checked.
@@ -414,7 +414,6 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
-    @pytest.mark.filterwarnings("ignore:Mismatched null-like values:FutureWarning")
     def test_stat_operators_attempt_obj_array(self, method, df, axis):
         # GH#676
         assert df.values.dtype == np.object_
@@ -923,7 +922,10 @@ class TestDataFrameAnalytics:
         # GH#46947
         df = DataFrame({"a": [1.0, 2.3, 4.4], "b": [2.2, 3, np.nan]}, dtype=float_type)
         result = df.sum(**kwargs)
-        expected = Series(expected_result).astype(float_type)
+        # GH#43929 float16 upcasts to float64 in nansum to avoid overflow
+        expected = Series(expected_result, dtype=float_type)
+        if float_type == "float16":
+            expected = expected.astype("float64")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("float_type", ["float16", "float32", "float64"])

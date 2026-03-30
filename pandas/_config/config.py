@@ -60,7 +60,6 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import F
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
@@ -69,6 +68,8 @@ if TYPE_CHECKING:
         Generator,
         Sequence,
     )
+
+    from pandas._typing import F
 
 
 class DeprecatedOption(NamedTuple):
@@ -811,7 +812,7 @@ def config_prefix(prefix: str) -> Generator[None]:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
-        return cast(F, inner)
+        return cast("F", inner)
 
     _register_option = register_option
     _get_option = get_option

@@ -17,11 +17,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    DtypeObj,
-    NDFrameT,
-    npt,
-)
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (
@@ -44,6 +39,12 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Sequence,
+    )
+
+    from pandas._typing import (
+        DtypeObj,
+        NDFrameT,
+        npt,
     )
 
     from pandas import (
@@ -95,7 +96,7 @@ def describe_ndframe(
         )
 
     result = describer.describe(percentiles=percentiles)
-    return cast(NDFrameT, result)
+    return cast("NDFrameT", result)
 
 
 class NDFrameDescriberAbstract(ABC):
@@ -172,12 +173,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             ldesc.append(describe_func(series, percentiles))
 
         col_names = reorder_columns(ldesc)
-        d = concat(
-            [x.reindex(col_names) for x in ldesc],
-            axis=1,
-            ignore_index=True,
-            sort=False,
-        )
+        d = concat(ldesc, axis=1, ignore_index=True, sort=False).reindex(col_names)
         d.columns = data.columns.copy()
         return d
 

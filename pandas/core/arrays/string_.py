@@ -14,10 +14,8 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_string_dtype,
-)
+from pandas._config import using_string_dtype
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -201,7 +199,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            storage = get_option("mode.string_storage")
+            storage = _global_config["mode"]["string_storage"]
             if storage == "auto":
                 if HAS_PYARROW:
                     storage = "pyarrow"
@@ -226,7 +224,7 @@ class StringDtype(StorageExtensionDtype):
         elif na_value is not libmissing.NA:
             raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self._storage = cast(str, storage)
+        self._storage = cast("str", storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
@@ -504,7 +502,7 @@ class BaseStringArray(ExtensionArray):
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
-                dtype=np.dtype(cast(type, dtype)),
+                dtype=np.dtype(cast("type", dtype)),
             )
 
             if not na_value_is_na:
@@ -585,7 +583,7 @@ class BaseStringArray(ExtensionArray):
                 mask.view("uint8"),
                 convert=False,
                 na_value=na_value,
-                dtype=np.dtype(cast(type, dtype)),
+                dtype=np.dtype(cast("type", dtype)),
             )
             if na_value_is_na and is_integer_dtype(dtype) and mask.any():
                 # TODO: we could alternatively do this check before map_infer_mask
@@ -957,8 +955,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 return nanops.nanany(self._ndarray, skipna=skipna)
             else:
                 return nanops.nanall(self._ndarray, skipna=skipna)
-
-        if name in ["min", "max", "argmin", "argmax", "sum"]:
+        elif name == "count":
+            return super().count()
+        elif name in ["min", "max", "argmin", "argmax", "sum"]:
             result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
             if keepdims:
                 return self._from_sequence([result], dtype=self.dtype)
@@ -1078,7 +1077,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = masked_reductions.sum(
-            values=self._ndarray, mask=self.isna(), skipna=skipna
+            values=self._ndarray,
+            mask=self.isna(),
+            skipna=skipna,
+            min_count=min_count,
+            initial="",
         )
         return self._wrap_reduction_result(axis, result)
 
@@ -1185,6 +1188,17 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         valid = ~mask
 
         if lib.is_list_like(other):
+            if not isinstance(
+                other, (list, ExtensionArray, np.ndarray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             if len(other) != len(self):
                 # prevent improper broadcasting when other is 2D
                 raise ValueError(

@@ -17,7 +17,6 @@ from typing import (
     cast,
     overload,
 )
-import unicodedata
 import warnings
 
 import numpy as np
@@ -58,7 +57,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -73,7 +75,7 @@ from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
 )
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
@@ -94,7 +96,7 @@ if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
-    from pandas.core.dtypes.dtypes import ArrowDtype
+    from pandas.compat.pyarrow import _safe_fill_null
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -248,7 +250,7 @@ def to_pyarrow_type(
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
-    ExtensionArraySupportsAnyAll,
+    ExtensionArrayNaResult,
     ArrowStringArrayMixin,
 ):
     """
@@ -470,6 +472,12 @@ class ArrowExtensionArray(
                 dtype = ArrowDtype(pa.duration("s"))
                 result = result.astype(dtype)  # type: ignore[assignment]
             return result
+
+        elif pa.types.is_timestamp(arr.type) and pa.types.is_timestamp(
+            self._pa_array.type
+        ):
+            if arr.type.tz == self._pa_array.type.tz:
+                arr = arr.cast(self._pa_array.type)
 
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
             arr = arr.cast(self._pa_array.type)
@@ -967,6 +975,20 @@ class ArrowExtensionArray(
         )
 
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+        if (
+            is_list_like(other)
+            and not isinstance(other, (np.ndarray, ExtensionArray, list))
+            and not ops.has_castable_attr(other)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} is deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         pa_type = self._pa_array.type
         other_original = other
         other = self._box_pa(other)
@@ -1327,6 +1349,9 @@ class ArrowExtensionArray(
         """
         return self._from_pyarrow_array(self._pa_array)
 
+    def count(self) -> int:
+        return len(self) - self._pa_array.null_count
+
     def dropna(self) -> Self:
         """
         Return ArrowExtensionArray without NA values.
@@ -1366,9 +1391,6 @@ class ArrowExtensionArray(
                 #   a kernel for duration types.
                 pass
 
-        # TODO: Why do we no longer need the above cases?
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
         return super()._pad_or_backfill(
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )
@@ -1440,7 +1462,7 @@ class ArrowExtensionArray(
 
         try:
             return self._from_pyarrow_array(
-                pc.fill_null(self._pa_array, fill_value=fill_value)
+                _safe_fill_null(self._pa_array, fill_value=fill_value)
             )
         except pa.ArrowNotImplementedError:
             # ArrowNotImplementedError: Function 'coalesce' has no kernel
@@ -1461,6 +1483,68 @@ class ArrowExtensionArray(
         # to False
         return np.array(result, dtype=np.bool_)
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hook for hash_pandas_object.
+
+        For string/binary types with categorize=True, uses pyarrow's
+        dictionary_encode to avoid the overhead of converting to numpy
+        and then factorizing.
+        """
+        from pandas.core.util.hashing import hash_array
+
+        pa_type = self._pa_array.type
+
+        if categorize and (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
+            # Use pyarrow's dictionary_encode instead of numpy factorize.
+            # dictionary_encode on a ChunkedArray unifies dictionaries
+            # across chunks, so we can work with the result directly.
+            encoded = pc.dictionary_encode(self._pa_array)
+            if encoded.num_chunks <= 1:
+                if encoded.num_chunks == 0:
+                    return np.array([], dtype=np.uint64)
+                encoded_arr = encoded.chunk(0)
+            else:
+                # Concatenate indices from chunks; dictionaries are unified.
+                indices_chunks = [chunk.indices for chunk in encoded.iterchunks()]
+                combined_indices = pa.concat_arrays(indices_chunks)
+                encoded_arr = pa.DictionaryArray.from_arrays(
+                    combined_indices, encoded.chunk(0).dictionary
+                )
+            dictionary = encoded_arr.dictionary.to_numpy(zero_copy_only=False)
+
+            # Hash the unique values
+            hashed = hash_array(dictionary, encoding, hash_key, categorize=False)
+
+            # Map indices to hashes, handling nulls
+            indices = encoded_arr.indices
+            null_mask = indices.is_null().to_numpy(zero_copy_only=False)
+            codes = indices.fill_null(0).to_numpy()
+
+            if len(hashed):
+                result = hashed.take(codes)
+            else:
+                result = np.zeros(len(codes), dtype=np.uint64)
+
+            if null_mask.any():
+                result[null_mask] = lib.u8max
+
+            return result
+
+        return hash_array(
+            self.to_numpy(),
+            encoding,
+            hash_key,
+            categorize,
+        )
+
     def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
@@ -1469,11 +1553,6 @@ class ArrowExtensionArray(
         -------
         values : ndarray
         na_value : pd.NA
-
-        Notes
-        -----
-        The values returned by this method are also used in
-        :func:`pandas.util.hash_pandas_object`.
         """
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
@@ -1550,7 +1629,7 @@ class ArrowExtensionArray(
             combined = encoded.combine_chunks()
             pa_indices = combined.indices
             if pa_indices.null_count > 0:
-                pa_indices = pc.fill_null(pa_indices, -1)
+                pa_indices = _safe_fill_null(pa_indices, -1)
             indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
                 np.intp, copy=False
             )
@@ -2101,7 +2180,7 @@ class ArrowExtensionArray(
                 return self._from_pyarrow_array(pa_array)
             if skipna:
                 if name == "cumsum":
-                    pa_array = pc.fill_null(pa_array, "")
+                    pa_array = _safe_fill_null(pa_array, "")
                 else:
                     # We can retain the running min/max by forward/backward filling.
                     pa_array = pc.fill_null_forward(pa_array)
@@ -2181,7 +2260,7 @@ class ArrowExtensionArray(
 
         if name == "sem":
 
-            def pyarrow_meth(data, skip_nulls, **kwargs):
+            def pyarrow_meth(data, skip_nulls, **kwargs):  # pyright: ignore[reportRedeclaration]
                 numerator = pc.stddev(data, skip_nulls=skip_nulls, **kwargs)
                 denominator = pc.sqrt_checked(pc.count(self._pa_array))
                 return pc.divide_checked(numerator, denominator)
@@ -2396,11 +2475,18 @@ class ArrowExtensionArray(
 
         if com.is_null_slice(key):
             # fast path (GH50248)
-            data = self._if_else(True, value, self._pa_array)
+            if (
+                isinstance(value, (pa.Array, pa.ChunkedArray))
+                and value.type == self._pa_array.type
+                and len(value) == len(self)
+            ):
+                data = value
+            else:
+                data = self._if_else(True, value, self._pa_array)
 
         elif is_integer(key):
             # fast path
-            key = cast(int, key)
+            key = cast("int", key)
             n = len(self)
             if key < 0:
                 key += n
@@ -2509,6 +2595,24 @@ class ArrowExtensionArray(
             result = pc.divide(result, divisor)
 
         return result
+
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        pa_array = self._pa_array
+        if pa_array.null_count > 0:
+            return False
+        if len(pa_array) <= 1:
+            return True
+        return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
 
     def _rank(
         self,
@@ -2700,10 +2804,30 @@ class ArrowExtensionArray(
         -------
         pa.Array
         """
-        try:
-            return pc.if_else(cond, left, right)
-        except pa.ArrowNotImplementedError:
-            pass
+
+        # TODO: Remove this part when pa.if_else is fixed (GH#64320)
+        def _maybe_combine(arr):
+            if not isinstance(arr, pa.ChunkedArray) or not (
+                pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type)
+            ):
+                return arr
+            if not any(c.offset != 0 for c in arr.chunks):
+                return arr
+            try:
+                return arr.combine_chunks()
+            except (pa.ArrowInvalid, pa.ArrowCapacityError, MemoryError):
+                return None
+
+        left_c, right_c = _maybe_combine(left), _maybe_combine(right)
+        if left_c is not None and right_c is not None:
+            try:
+                return pc.if_else(cond, left_c, right_c)
+            except pa.ArrowNotImplementedError:
+                pass
+        if left_c is not None:
+            left = left_c
+        if right_c is not None:
+            right = right_c
 
         def _to_numpy_and_type(value) -> tuple[np.ndarray, pa.DataType | None]:
             if isinstance(value, (pa.Array, pa.ChunkedArray)):
@@ -2815,6 +2939,15 @@ class ArrowExtensionArray(
                 ngroups=ngroups,
                 ids=ids,
                 **kwargs,
+            )
+
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
             )
 
         # maybe convert to a compatible dtype optimized for groupby
@@ -2964,9 +3097,7 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(pa.chunked_array(result))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
-        predicate = lambda val: unicodedata.normalize(form, val)
-        result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_rfind(self, sub: str, start: int = 0, end=None) -> Self:
         predicate = lambda val: val.rfind(sub, start, end)
@@ -3129,15 +3260,41 @@ class ArrowExtensionArray(
         result = pc.day_of_week(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofweek = _dt_day_of_week
-    _dt_weekday = _dt_day_of_week
+    @property
+    def _dt_dayofweek(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofweek accessor is deprecated and will be removed "
+            "in a future version. Use day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
+
+    @property
+    def _dt_weekday(self) -> Self:
+        # GH#12816
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
 
     @property
     def _dt_day_of_year(self) -> Self:
         result = pc.day_of_year(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofyear = _dt_day_of_year
+    @property
+    def _dt_dayofyear(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofyear accessor is deprecated and will be removed "
+            "in a future version. Use day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_year
 
     @property
     def _dt_hour(self) -> Self:
@@ -3212,7 +3369,15 @@ class ArrowExtensionArray(
         )
         return self._from_pyarrow_array(result)
 
-    _dt_daysinmonth = _dt_days_in_month
+    @property
+    def _dt_daysinmonth(self) -> Self:
+        warnings.warn(
+            "ArrowDtype daysinmonth accessor is deprecated and will be removed "
+            "in a future version. Use days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_days_in_month
 
     @property
     def _dt_microsecond(self) -> Self:

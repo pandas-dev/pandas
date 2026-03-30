@@ -21,7 +21,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -78,6 +77,7 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
+        Scalar,
         T,
     )
 
@@ -190,9 +190,13 @@ class PythonParser(ParserBase):
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
+            # GH#52619 - use non-backtracking structure to avoid catastrophic
+            # backtracking on cells with many comma-separated digit groups
+            # followed by non-numeric text.
             regex = (
-                rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                rf"([0-9]?(E|e)\-?[0-9]+)?$"
+                rf"^[\-\+]?(?:[0-9]+(?:{thousands}[0-9]+)*{thousands}?)?"
+                rf"({decimal}[0-9]*)?"
+                rf"((E|e)\-?[0-9]+)?$"
             )
         return re.compile(regex)
 
@@ -235,7 +239,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(list[str], lines)
+                lines_str = cast("list[str]", lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
@@ -830,7 +834,7 @@ class PythonParser(ParserBase):
         the name, not the middle of it.
         """
         # first_row will be a list, so we need to check
-        # that that list is not empty before proceeding.
+        # that the list is not empty before proceeding.
         if not first_row:
             return first_row
 
@@ -1203,7 +1207,7 @@ class PythonParser(ParserBase):
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            new_l = cast(list[Scalar], new_l)
+                            new_l = cast("list[Scalar]", new_l)
                             if len(new_l) > col_len:
                                 row_num = self.pos - (content_len - i + footers)
                                 bad_lines.append((row_num, len(new_l), "callable"))

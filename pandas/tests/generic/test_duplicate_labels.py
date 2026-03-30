@@ -152,6 +152,16 @@ class TestPreserves:
         result = pd.concat(objs, **kwargs)
         assert result.flags.allows_duplicate_labels is False
 
+    def test_concat_mixed_allows_duplicate_labels(self):
+        # GH#57431 - when any input has allows_duplicate_labels=False,
+        # the result should also have it False
+        df_no_dups = pd.DataFrame({"A": [1, 2]}).set_flags(
+            allows_duplicate_labels=False
+        )
+        df_allows_dups = pd.DataFrame({"A": [3, 4]})
+        result = pd.concat([df_no_dups, df_allows_dups], ignore_index=True)
+        assert result.flags.allows_duplicate_labels is False
+
     @pytest.mark.parametrize(
         "left, right, expected",
         [

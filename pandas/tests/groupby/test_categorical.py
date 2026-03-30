@@ -21,7 +21,7 @@ from pandas.tests.groupby import get_groupby_method_args
 
 
 def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
-    """Reindex to a cartesian production for the groupers,
+    """Reindex to a cartesian product for the groupers,
     preserving the nature (Categorical) of each grouper
     """
 
@@ -1368,9 +1368,7 @@ def test_groupby_cat_preserves_structure(observed, ordered):
     expected = df.copy()
 
     result = (
-        df.groupby("Name", observed=observed)
-        .agg(DataFrame.sum, skipna=True)
-        .reset_index()
+        df.groupby("Name", observed=observed).agg(Series.sum, skipna=True).reset_index()
     )
 
     tm.assert_frame_equal(result, expected)

@@ -25,15 +25,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.missing import NA
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    ArrayLikeT,
-    AxisInt,
-    DtypeObj,
-    TakeIndexer,
-    npt,
-)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -90,9 +81,16 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        ArrayLikeT,
+        AxisInt,
+        DtypeObj,
         ListLike,
         NumpySorter,
         NumpyValueArrayLike,
+        TakeIndexer,
+        npt,
     )
 
     from pandas import (
@@ -176,12 +174,12 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
-        return cast(np.ndarray, values)
+        return cast("np.ndarray", values)
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
         npvalues = values.view("i8")
-        npvalues = cast(np.ndarray, npvalues)
+        npvalues = cast("np.ndarray", npvalues)
         return npvalues
 
     # we have failed, return object
@@ -1093,7 +1091,7 @@ def rank(
             pct=pct,
         )
     else:
-        raise TypeError("Array with ndim > 2 are not supported.")
+        raise TypeError("Array with ndim > 2 is not supported.")
 
     return ranks
 
@@ -1292,9 +1290,9 @@ def searchsorted(
 
         if is_integer(value):
             # We know that value is int
-            value = cast(int, dtype.type(value))
+            value = cast("int", dtype.type(value))
         else:
-            value = pd_array(cast(ArrayLike, value), dtype=dtype)
+            value = pd_array(cast("ArrayLike", value), dtype=dtype)
     else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
@@ -1355,7 +1353,7 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
     if not isinstance(arr, np.ndarray):
         # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
-            if axis != 0:
+            if axis >= arr.ndim:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
             return op(arr, arr.shift(n))
         else:

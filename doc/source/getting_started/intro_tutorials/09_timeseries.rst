@@ -175,13 +175,13 @@ What is the average :math:`NO_2` concentration for each day of the week for each
 .. ipython:: python
 
     air_quality.groupby(
-        [air_quality["datetime"].dt.weekday, "location"])["value"].mean()
+        [air_quality["datetime"].dt.day_of_week, "location"])["value"].mean()
 
 Remember the split-apply-combine pattern provided by ``groupby`` from the
 :ref:`tutorial on statistics calculation <10min_tut_06_stats>`?
 Here, we want to calculate a given statistic (e.g. mean :math:`NO_2`)
 **for each weekday** and **for each measurement location**. To group on
-weekdays, we use the datetime property ``weekday`` (with Monday=0 and
+weekdays, we use the datetime property ``day_of_week`` (with Monday=0 and
 Sunday=6) of pandas ``Timestamp``, which is also accessible by the
 ``dt`` accessor. The grouping on both locations and weekdays can be done
 to split the calculation of the mean on each of these combinations.
@@ -247,7 +247,7 @@ index directly:
 
 .. ipython:: python
 
-    no_2.index.year, no_2.index.weekday
+    no_2.index.year, no_2.index.day_of_week
 
 Some other advantages are the convenient subsetting of time period or
 the adapted time scale on plots. Let’s apply this on our data.

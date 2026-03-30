@@ -383,7 +383,7 @@ Timezone handling improvements
 Rolling/expanding moments improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :func:`rolling_min`, :func:`rolling_max`, :func:`rolling_cov`, and :func:`rolling_corr`
+- ``rolling_min``, ``rolling_max``, ``rolling_cov``, and ``rolling_corr``
   now return objects with all ``NaN`` when ``len(arg) < min_periods <= window`` rather
   than raising. (This makes all rolling functions consistent in this behavior). (:issue:`7766`)
 
@@ -410,14 +410,14 @@ Rolling/expanding moments improvements
      3   NaN
      dtype: float64
 
-- :func:`rolling_max`, :func:`rolling_min`, :func:`rolling_sum`, :func:`rolling_mean`, :func:`rolling_median`,
-  :func:`rolling_std`, :func:`rolling_var`, :func:`rolling_skew`, :func:`rolling_kurt`, :func:`rolling_quantile`,
-  :func:`rolling_cov`, :func:`rolling_corr`, :func:`rolling_corr_pairwise`,
-  :func:`rolling_window`, and :func:`rolling_apply` with ``center=True`` previously would return a result of the same
+- ``rolling_max``, ``rolling_min``, ``rolling_sum``, ``rolling_mean``, ``rolling_median``,
+  ``rolling_std``, ``rolling_var``, ``rolling_skew``, ``rolling_kurt``, ``rolling_quantile``,
+  ``rolling_cov``, ``rolling_corr``, ``rolling_corr_pairwise``,
+  ``rolling_window``, and ``rolling_apply`` with ``center=True`` previously would return a result of the same
   structure as the input ``arg`` with ``NaN`` in the final ``(window-1)/2`` entries.
 
   Now the final ``(window-1)/2`` entries of the result are calculated as if the input ``arg`` were followed
-  by ``(window-1)/2`` ``NaN`` values (or with shrinking windows, in the case of :func:`rolling_apply`).
+  by ``(window-1)/2`` ``NaN`` values (or with shrinking windows, in the case of ``rolling_apply``).
   (:issue:`7925`, :issue:`8269`)
 
   Prior behavior (note final value is ``NaN``):
@@ -445,7 +445,7 @@ Rolling/expanding moments improvements
      3    5
      dtype: float64
 
-- :func:`rolling_window` now normalizes the weights properly in rolling mean mode (``mean=True``) so that
+- ``rolling_window`` now normalizes the weights properly in rolling mean mode (``mean=True``) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
   calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <window.weighted>` for further details. (:issue:`7618`)
 
@@ -479,18 +479,18 @@ Rolling/expanding moments improvements
      4       NaN
      dtype: float64
 
-- Removed ``center`` argument from all :func:`expanding_ <expanding_apply>` functions (see :ref:`list <api.functions_expanding>`),
+- Removed ``center`` argument from all ``expanding_*`` functions (see :ref:`list <api.functions_expanding>`),
   as the results produced when ``center=True`` did not make much sense. (:issue:`7925`)
 
-- Added optional ``ddof`` argument to :func:`expanding_cov` and :func:`rolling_cov`.
+- Added optional ``ddof`` argument to ``expanding_cov`` and ``rolling_cov``.
   The default value of ``1`` is backwards-compatible. (:issue:`8279`)
 
-- Documented the ``ddof`` argument to :func:`expanding_var`, :func:`expanding_std`,
-  :func:`rolling_var`, and :func:`rolling_std`. These functions' support of a
+- Documented the ``ddof`` argument to ``expanding_var``, ``expanding_std``,
+  ``rolling_var``, and ``rolling_std``. These functions' support of a
   ``ddof`` argument (with a default value of ``1``) was previously undocumented. (:issue:`8064`)
 
-- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now interpret ``min_periods`` in the same manner that the :func:`rolling_*` and :func:`expanding_*` functions do:
+- ``ewma``, ``ewmstd``, ``ewmvol``, ``ewmvar``, ``ewmcov``, and ``ewmcorr``
+  now interpret ``min_periods`` in the same manner that the ``rolling_*`` and ``expanding_*`` functions do:
   a given result entry will be ``NaN`` if the (expanding, in this case) window does not contain
   at least ``min_periods`` values. The previous behavior was to set to ``NaN`` the ``min_periods`` entries
   starting with the first non- ``NaN`` value. (:issue:`7977`)
@@ -528,13 +528,13 @@ Rolling/expanding moments improvements
      5    2.383784
      dtype: float64
 
-- :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
-  now have an optional ``adjust`` argument, just like :func:`ewma` does,
+- ``ewmstd``, ``ewmvol``, ``ewmvar``, ``ewmcov``, and ``ewmcorr``
+  now have an optional ``adjust`` argument, just like ``ewma`` does,
   affecting how the weights are calculated.
   The default value of ``adjust`` is ``True``, which is backwards-compatible.
   See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7911`)
 
-- :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
+- ``ewma``, ``ewmstd``, ``ewmvol``, ``ewmvar``, ``ewmcov``, and ``ewmcorr``
   now have an optional ``ignore_na`` argument.
   When ``ignore_na=False`` (the default), missing values are taken into account in the weights calculation.
   When ``ignore_na=True`` (which reproduces the pre-0.15.0 behavior), missing values are ignored in the weights calculation.
@@ -567,21 +567,21 @@ Rolling/expanding moments improvements
 
   .. warning::
 
-     By default (``ignore_na=False``) the :func:`ewm*` functions' weights calculation
+     By default (``ignore_na=False``) the ``ewm*`` functions' weights calculation
      in the presence of missing values is different than in pre-0.15.0 versions.
      To reproduce the pre-0.15.0 calculation of weights in the presence of missing values
      one must specify explicitly ``ignore_na=True``.
 
-- Bug in :func:`expanding_cov`, :func:`expanding_corr`, :func:`rolling_cov`, :func:`rolling_cor`, :func:`ewmcov`, and :func:`ewmcorr`
+- Bug in ``expanding_cov``, ``expanding_corr``, ``rolling_cov``, ``rolling_cor``, ``ewmcov``, and ``ewmcorr``
   returning results with columns sorted by name and producing an error for non-unique columns;
   now handles non-unique columns and returns columns in original order
   (except for the case of two DataFrames with ``pairwise=False``, where behavior is unchanged) (:issue:`7542`)
-- Bug in :func:`rolling_count` and :func:`expanding_*` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
-- Bug in :func:`rolling_apply` and :func:`expanding_apply` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
-- Bug in :func:`expanding_std` and :func:`expanding_var` for a single value producing a confusing error message (:issue:`7900`)
-- Bug in :func:`rolling_std` and :func:`rolling_var` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
+- Bug in ``rolling_count`` and ``expanding_*`` functions unnecessarily producing error message for zero-length data (:issue:`8056`)
+- Bug in ``rolling_apply`` and ``expanding_apply`` interpreting ``min_periods=0`` as ``min_periods=1`` (:issue:`8080`)
+- Bug in ``expanding_std`` and ``expanding_var`` for a single value producing a confusing error message (:issue:`7900`)
+- Bug in ``rolling_std`` and ``rolling_var`` for a single value producing ``0`` rather than ``NaN`` (:issue:`7900`)
 
-- Bug in :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, and :func:`ewmcov`
+- Bug in ``ewmstd``, ``ewmvol``, ``ewmvar``, and ``ewmcov``
   calculation of de-biasing factors when ``bias=False`` (the default).
   Previously an incorrect constant factor was used, based on ``adjust=True``, ``ignore_na=True``,
   and an infinite number of observations.
@@ -1022,7 +1022,7 @@ Other:
 
 - Added ``searchsorted`` method to ``Series`` objects (:issue:`7447`)
 
-- :func:`describe` on mixed-types DataFrames is more flexible. Type-based column filtering is now possible via the ``include``/``exclude`` arguments.
+- ``describe`` on mixed-types DataFrames is more flexible. Type-based column filtering is now possible via the ``include``/``exclude`` arguments.
   See the :ref:`docs <basics.describe>` (:issue:`8164`).
 
   .. code-block:: python
@@ -1143,7 +1143,7 @@ Other:
   numbers are passed (:issue:`7660`). See
   :ref:`Reshaping by stacking and unstacking <reshaping.stack_multiple>`.
 
-- :func:`set_names`, :func:`set_labels`, and :func:`set_levels` methods now take an optional ``level`` keyword argument to all modification of specific level(s) of a MultiIndex. Additionally :func:`set_names` now accepts a scalar string value when operating on an ``Index`` or on a specific level of a ``MultiIndex`` (:issue:`7792`)
+- ``set_names``, ``set_labels``, and ``set_levels`` methods now take an optional ``level`` keyword argument to all modification of specific level(s) of a MultiIndex. Additionally ``set_names`` now accepts a scalar string value when operating on an ``Index`` or on a specific level of a ``MultiIndex`` (:issue:`7792`)
 
   .. ipython:: python
 
