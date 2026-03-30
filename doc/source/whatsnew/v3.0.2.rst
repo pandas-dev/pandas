@@ -38,7 +38,6 @@ Bug fixes
 - Fixed bug in the :meth:`~Series.sum` method with python-backed string dtype returning incorrect value for an empty Series and ignoring the ``min_count`` argument (:issue:`64683`)
 - Fixed bug where :meth:`DataFrame.div` ignored the ``axis`` argument when used with ``level`` for MultiIndex columns (:issue:`64428`)
 
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_302.contributors:
 

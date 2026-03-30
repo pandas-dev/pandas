@@ -2274,7 +2274,7 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     tm.assert_frame_equal(result, expected)
 
 
-def test_add_mixed_empty(any_string_dtype):
+def test_sum_mixed_empty(any_string_dtype):
     # GH 64657
     # for actual string dtype, sum gives "", for object dtype we get 0
     expected = Series(
