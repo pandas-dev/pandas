@@ -530,12 +530,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_int_result(self, result):
         if self.dtype.na_value is np.nan:
+            result = result.cast(pa.int64())
             if isinstance(result, pa.Array):
                 result = result.to_numpy(zero_copy_only=False)
             else:
                 result = result.to_numpy()
-            if result.dtype == np.int32:
-                result = result.astype(np.int64)
             return result
 
         return Int64Dtype().__from_arrow__(result)
