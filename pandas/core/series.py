@@ -7005,8 +7005,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _arith_method(self, other, op) -> Series:
         if isinstance(other, Series):
-            if isinstance(self.index, MultiIndex) and isinstance(
-                other.index, MultiIndex
+            if (
+                isinstance(self.index, MultiIndex)
+                and isinstance(other.index, MultiIndex)
+                and (
+                    self.index.names != other.index.names
+                    or (self.index.values != other.index.values).any()
+                )
             ):
                 # GH#25891
                 warnings.warn(
