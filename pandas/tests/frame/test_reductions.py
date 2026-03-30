@@ -1760,9 +1760,7 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_numeric_reductions)(numeric_only=1)
 
-    def test_reductions_numeric_only_non_bool_str_raises(
-        self, frame_or_series
-    ):
+    def test_reductions_numeric_only_non_bool_str_raises(self, frame_or_series):
         # GH#53098 - string value for numeric_only should raise ValueError
         obj = frame_or_series([1, 2, 3])
         msg = 'For argument "numeric_only" expected type bool, received type str.'
