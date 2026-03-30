@@ -13,6 +13,7 @@ from typing import (
     TypeVar,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -230,6 +231,7 @@ def validate_bool_kwarg(
     arg_name: str,
     none_allowed: bool = True,
     int_allowed: bool = False,
+    deprecated: bool = False,
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
@@ -244,6 +246,9 @@ def validate_bool_kwarg(
         Whether to consider None to be a valid boolean.
     int_allowed : bool, default False
         Whether to consider integer value to be a valid boolean.
+    deprecated : bool, default False
+        Whether to emit a FutureWarning instead of raising immediately when
+        a non-bool value is passed. The value is coerced to bool.
 
     Returns
     -------
@@ -253,7 +258,7 @@ def validate_bool_kwarg(
     Raises
     ------
     ValueError
-        If the value is not a valid boolean.
+        If the value is not a valid boolean and deprecated=False.
     """
     good_value = is_bool(value)
     if none_allowed:
@@ -263,6 +268,18 @@ def validate_bool_kwarg(
         good_value = good_value or isinstance(value, int)
 
     if not good_value:
+        if deprecated:
+            # GH#53098
+            from pandas.errors import Pandas4Warning
+            from pandas.util._exceptions import find_stack_level
+
+            warnings.warn(
+                f'Passing a non-bool value for "{arg_name}" is deprecated and '
+                "will raise in a future version. Pass True or False instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            return bool(value)  # type: ignore[return-value]
         raise ValueError(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."

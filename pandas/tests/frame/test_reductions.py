@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1747,33 +1748,33 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
-    def test_reductions_numeric_only_non_bool_raises(
+    def test_reductions_numeric_only_non_bool_deprecated(
         self, request, frame_or_series, all_numeric_reductions
     ):
-        # GH#53098 - numeric_only should raise ValueError for non-bool values
+        # GH#53098 - non-bool numeric_only should emit FutureWarning
         if all_numeric_reductions == "count":
             request.applymarker(
                 pytest.mark.xfail(reason="Count does not go through _stat_function")
             )
         obj = frame_or_series([1, 2, 3])
-        msg = 'For argument "numeric_only" expected type bool, received type int.'
-        with pytest.raises(ValueError, match=msg):
+        msg = 'Passing a non-bool value for "numeric_only" is deprecated'
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(obj, all_numeric_reductions)(numeric_only=1)
 
-    def test_reductions_numeric_only_non_bool_str_raises(self, frame_or_series):
-        # GH#53098 - string value for numeric_only should raise ValueError
+    def test_reductions_numeric_only_non_bool_str_deprecated(self, frame_or_series):
+        # GH#53098 - string value for numeric_only should emit FutureWarning
         obj = frame_or_series([1, 2, 3])
-        msg = 'For argument "numeric_only" expected type bool, received type str.'
-        with pytest.raises(ValueError, match=msg):
+        msg = 'Passing a non-bool value for "numeric_only" is deprecated'
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             obj.sum(numeric_only="yes")
 
-    def test_reductions_numeric_only_valid_values(self, frame_or_series):
-        # GH#53098 - True, False, and None should still be accepted
+    def test_reductions_numeric_only_bool_values_no_warning(self, frame_or_series):
+        # GH#53098 - True and False should not emit any warning
         obj = frame_or_series([1, 2, 3])
-        # These should not raise
-        obj.sum(numeric_only=True)
-        obj.sum(numeric_only=False)
-        obj.sum(numeric_only=None)
+        with tm.assert_produces_warning(None):
+            obj.sum(numeric_only=True)
+        with tm.assert_produces_warning(None):
+            obj.sum(numeric_only=False)
 
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
