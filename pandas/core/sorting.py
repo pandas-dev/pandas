@@ -350,17 +350,6 @@ def lexsort_indexer(
         if codes_given:
             codes = cast("np.ndarray", k)
             n = codes.max() + 1 if len(codes) else 0
-
-            mask = codes == -1
-
-            if na_position == "last" and mask.any():
-                codes = np.where(mask, n, codes)
-
-            # not order means descending
-            if not order:
-                codes = np.where(mask, codes, n - codes - 1)
-
-            labels.append(codes)
         else:
             # Fast path for numeric numpy arrays: skip Categorical
             # conversion and pass values directly to np.lexsort.
@@ -384,21 +373,22 @@ def lexsort_indexer(
                     # for descending to avoid overflow with negation.
                     arr = ~arr
                 labels.append(arr)
-            else:
-                cat = Categorical(k, ordered=True)
-                codes = cat.codes
-                n = len(cat.categories)
+                continue
 
-                mask = codes == -1
+            cat = Categorical(k, ordered=True)
+            codes = cat.codes
+            n = len(cat.categories)
 
-                if na_position == "last" and mask.any():
-                    codes = np.where(mask, n, codes)
+        mask = codes == -1
 
-                # not order means descending
-                if not order:
-                    codes = np.where(mask, codes, n - codes - 1)
+        if na_position == "last" and mask.any():
+            codes = np.where(mask, n, codes)
 
-                labels.append(codes)
+        # not order means descending
+        if not order:
+            codes = np.where(mask, codes, n - codes - 1)
+
+        labels.append(codes)
 
     return np.lexsort(labels)
 

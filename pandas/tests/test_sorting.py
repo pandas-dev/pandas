@@ -7,6 +7,7 @@ import pytest
 
 from pandas import (
     NA,
+    Categorical,
     DataFrame,
     MultiIndex,
     Series,
@@ -164,7 +165,6 @@ class TestSorting:
     )
     def test_lexsort_indexer_numeric_dtypes(self, dtype, order, na_position):
         # GH#15389 - fast path for numeric dtypes should match Categorical path
-        from pandas.core.arrays import Categorical
 
         if dtype == np.bool_:
             key1 = np.array([True, False, True, False, True])
@@ -195,7 +195,6 @@ class TestSorting:
     @pytest.mark.parametrize("na_position", ["last", "first"])
     def test_lexsort_indexer_float_with_nan(self, order, na_position):
         # GH#15389 - float fast path must handle NaN placement correctly
-        from pandas.core.arrays import Categorical
 
         key1 = np.array([3.0, np.nan, 1.0, np.nan, 2.0])
         key2 = np.arange(len(key1), dtype=np.float64)
