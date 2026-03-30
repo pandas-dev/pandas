@@ -1978,9 +1978,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
         request.applymarker(
-            pytest.mark.xfail(
-                reason="MySQL can fail using TEXT without length as key", strict=False
-            )
+            pytest.mark.xfail(reason="MySQL can fail using TEXT without length as key")
         )
     elif "adbc" in conn_name:
         request.node.add_marker(

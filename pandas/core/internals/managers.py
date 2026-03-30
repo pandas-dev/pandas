@@ -14,7 +14,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -1570,9 +1570,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
         self.blocks += (block,)
 
+        # len check is a cheap O(1) short-circuit to avoid the O(n) sum
+        # and the get_option overhead on every insert call (GH#57641)
+        warn_threshold = 100
         if (
-            get_option("performance_warnings")
-            and sum(not block.is_extension for block in self.blocks) > 100
+            len(self.blocks) > warn_threshold
+            and _global_config["mode"]["performance_warnings"]
+            and sum(not block.is_extension for block in self.blocks) > warn_threshold
         ):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "

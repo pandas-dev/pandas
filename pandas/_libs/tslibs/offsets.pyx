@@ -172,7 +172,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result2 = Timestamp(result).as_unit(other.unit)
+        result = Timestamp(result)
+        result2 = result.as_unit(other.unit)
         if result == result2:
             # i.e. the conversion is non-lossy, not the case for e.g.
             #  test_milliseconds_combination
@@ -317,8 +318,11 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     if not kwds:
-        # GH 45643/45890: (historically) defaults to 1 day
-        return timedelta(days=1), False
+        # GH 45643, 45890: (historically) defaults to 1 day
+        # GH 61862: changed from timedelta to relativedelta for DST consistency
+        from dateutil.relativedelta import relativedelta
+
+        return relativedelta(days=1), True
 
     if "millisecond" in kwds:
         raise NotImplementedError(
@@ -2507,7 +2511,7 @@ cdef class BusinessDay(BusinessMixin):
     normalize : bool, default False
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
-        Time offset to apply.
+        Additional time offset applied after the business day calculation.
 
     See Also
     --------
@@ -2970,9 +2974,20 @@ cdef class BusinessHour(BusinessMixin):
         assert False
 
     @cache_readonly
-    def next_bday(self):
+    def _next_bday(self):
         """
         Used for moving to next business day.
+
+        Returns a ``BusinessDay`` or ``CustomBusinessDay`` offset of +1 or -1
+        depending on the sign of ``n``. This is used internally to advance or
+        retreat to the next or previous business day when computing business
+        hour offsets.
+
+        Returns
+        -------
+        BusinessDay or CustomBusinessDay
+            A single-day business day offset in the appropriate direction.
+
         """
         if self._n >= 0:
             nb_offset = 1
@@ -3020,9 +3035,9 @@ cdef class BusinessHour(BusinessMixin):
         else:
             is_same_sign = self._n * sign >= 0
 
-        if not self.next_bday.is_on_offset(other):
+        if not self._next_bday.is_on_offset(other):
             # today is not business day
-            other = other + sign * self.next_bday
+            other = other + sign * self._next_bday
             if is_same_sign:
                 hour, minute = earliest_start.hour, earliest_start.minute
             else:
@@ -3031,7 +3046,7 @@ cdef class BusinessHour(BusinessMixin):
             if is_same_sign:
                 if latest_start < other.time():
                     # current time is after latest starting time in today
-                    other = other + sign * self.next_bday
+                    other = other + sign * self._next_bday
                     hour, minute = earliest_start.hour, earliest_start.minute
                 else:
                     # find earliest starting time no earlier than current time
@@ -3042,7 +3057,7 @@ cdef class BusinessHour(BusinessMixin):
             else:
                 if other.time() < earliest_start:
                     # current time is before earliest starting time in today
-                    other = other + sign * self.next_bday
+                    other = other + sign * self._next_bday
                     hour, minute = latest_start.hour, latest_start.minute
                 else:
                     # find latest starting time no later than current time
@@ -3149,7 +3164,7 @@ cdef class BusinessHour(BusinessMixin):
             else:
                 skip_bd = BusinessDay(n=bd)
             # midnight business hour may not on BusinessDay
-            if not self.next_bday.is_on_offset(other):
+            if not self._next_bday.is_on_offset(other):
                 prev_open = self._prev_opening_time(other)
                 remain = other - prev_open
                 other = prev_open + skip_bd + remain
@@ -5029,7 +5044,9 @@ cdef class Week(SingleConstructorOffset):
     Weekly offset.
 
     This offset represents a duration of one or more weeks. It can optionally
-    be anchored to a specific day of the week.
+    be anchored to a specific day of the week, which represents the last day
+    of the weekly period. For example, ``W-MON`` produces weekly periods that
+    end on Monday (and start on Tuesday).
 
     Attributes
     ----------
@@ -6802,9 +6819,18 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         self._init_custom(weekmask, holidays, calendar)
 
     @cache_readonly
-    def cbday_roll(self):
+    def _cbday_roll(self):
         """
         Define default roll function to be called in apply method.
+
+        Returns ``CustomBusinessDay.rollback`` for month-end offsets and
+        ``CustomBusinessDay.rollforward`` for month-begin offsets.
+
+        Returns
+        -------
+        callable
+            The bound ``rollback`` or ``rollforward`` method of a
+            ``CustomBusinessDay`` instance.
         """
         cbday_kwds = self.kwds.copy()
         cbday_kwds["offset"] = timedelta(0)
@@ -6849,9 +6875,18 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return moff
 
     @cache_readonly
-    def month_roll(self):
+    def _month_roll(self):
         """
         Define default roll function to be called in apply method.
+
+        Returns ``MonthEnd.rollforward`` for month-end offsets and
+        ``MonthBegin.rollback`` for month-begin offsets.
+
+        Returns
+        -------
+        callable
+            The bound ``rollforward`` or ``rollback`` method of the
+            underlying ``m_offset`` instance.
         """
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -6864,14 +6899,14 @@ cdef class _CustomBusinessMonth(BusinessMixin):
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         # First move to month offset
-        cur_month_offset_date = self.month_roll(other)
+        cur_month_offset_date = self._month_roll(other)
 
         # Find this custom month offset
-        compare_date = self.cbday_roll(cur_month_offset_date)
+        compare_date = self._cbday_roll(cur_month_offset_date)
         n = roll_convention(other.day, self._n, compare_date.day)
 
         new = cur_month_offset_date + n * self.m_offset
-        result = self.cbday_roll(new)
+        result = self._cbday_roll(new)
 
         if self._offset:
             result = result + self._offset

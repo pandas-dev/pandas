@@ -1016,7 +1016,7 @@ class TestLocBaseIndependent:
         # non-unique indexer with loc slice
         # https://groups.google.com/forum/?fromgroups#!topic/pydata/zTm2No0crYs
 
-        # these are going to raise because the we are non monotonic
+        # these are going to raise because we are non monotonic
         df = DataFrame(
             {"A": [1, 2, 3, 4, 5, 6], "B": [3, 4, 5, 6, 7, 8]}, index=[0, 1, 0, 1, 2, 3]
         )
@@ -2215,6 +2215,15 @@ class TestLocSetitemWithExpansion:
         result = DataFrame(index=df.index)
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df, check_column_type=False)
+
+    def test_loc_setitem_datetimeindex_str_column_name(self):
+        # GH#47006 - string column name that could be parsed as a datetime
+        # should not be interpreted as a row indexer
+        index = DatetimeIndex(["2035-01-01 01:00:00", "2036-01-01 00:00:00"])
+        df = DataFrame(index=index)
+        df.loc[:, "110735"] = 0
+        expected = DataFrame({"110735": [0, 0]}, index=index)
+        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_ea_not_full_column(self):
         # GH#39163
@@ -3598,3 +3607,15 @@ class TestLocSeries:
         result = s[["a", "b"]]
         expected = Series([np.nan, np.nan], index=["a", "b"])
         tm.assert_series_equal(result, expected)
+
+
+def test_loc_setitem_extension_array_into_object_series():
+    # GH#42437 - assigning an ExtensionArray with array-like elements
+    # to an object-dtype Series via .loc should not raise
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pd.array([[1, 2], [3, 4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    ser = Series([None, None, None], dtype=object)
+    ser.loc[:] = arr
+    expected = Series(list(arr), dtype=object)
+    tm.assert_series_equal(ser, expected)

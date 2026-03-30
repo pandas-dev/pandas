@@ -6,6 +6,8 @@ from io import StringIO
 from typing import TYPE_CHECKING
 import warnings
 
+from pandas._config.config import _global_config
+
 from pandas._libs import lib
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -13,10 +15,7 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas import (
-    get_option,
-    option_context,
-)
+from pandas import option_context
 
 if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
@@ -91,7 +90,9 @@ def read_clipboard(
 
     # Try to decode (if needed, as "text" might already be a string here).
     try:
-        text = text.decode(kwargs.get("encoding") or get_option("display.encoding"))
+        text = text.decode(
+            kwargs.get("encoding") or _global_config["display"]["encoding"]
+        )
     except AttributeError:
         pass
 

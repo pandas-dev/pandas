@@ -313,13 +313,10 @@ def test_from_tick_reso():
     assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Day()
-    msg = (
-        "Value must be Timedelta, string, integer, float, timedelta "
-        "or convertible, not Day"
-    )
-    with pytest.raises(ValueError, match=msg):
-        # GH#41943 Day is no longer a Tick
-        Timedelta(tick)
+    td = Timedelta(tick)
+
+    assert td == Timedelta(days=1)
+    assert td.unit == "s"
 
 
 def test_construction():
@@ -778,3 +775,12 @@ def test_parsed_unit():
     # 7 digits after the decimal
     td = Timedelta("1 Day 2:03:04.0123450")
     assert td.unit == "ns"
+
+
+def test_timedelta_resolution_consistent_arg_styles():
+    # GH#33992 - Timedelta resolution should be the same regardless
+    # of whether the value is passed positionally or as a keyword
+    td_positional = Timedelta(1 / 128, "seconds")
+    td_keyword = Timedelta(seconds=1 / 128)
+    assert td_positional == td_keyword
+    assert td_positional.unit == td_keyword.unit

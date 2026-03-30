@@ -6,7 +6,10 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 from pandas import (
     CategoricalDtype,
@@ -110,9 +113,40 @@ class TestAtSetItemWithExpansion:
             else Timestamp("2017-08-05 00:00:00+0100")
         )
         result = Series(ts)
-        result.at[1] = ts
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            result.at[1] = ts
         expected = Series([ts, ts])
         tm.assert_series_equal(result, expected)
+
+    def test_at_setitem_expansion_deprecated_dataframe(self):
+        # GH#48323
+        df = DataFrame({"a": [1, 2]})
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[5, "a"] = 6
+        expected = DataFrame({"a": [1, 2, 6]}, index=[0, 1, 5])
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_setitem_expansion_deprecated_series(self):
+        # GH#48323
+        ser = Series([1, 2], index=[0, 1])
+        msg = "Setting a value on a Series via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ser.at[5] = 6
+        expected = Series([1, 2, 6], index=[0, 1, 5])
+        tm.assert_series_equal(ser, expected)
+
+    def test_at_setitem_no_warning_existing_key(self):
+        # GH#48323 - no warning for existing keys
+        df = DataFrame({"a": [1, 2]})
+        with tm.assert_produces_warning(None):
+            df.at[0, "a"] = 99
+        assert df.at[0, "a"] == 99
+
+        ser = Series([1, 2])
+        with tm.assert_produces_warning(None):
+            ser.at[0] = 99
+        assert ser.at[0] == 99
 
 
 class TestAtWithDuplicates:

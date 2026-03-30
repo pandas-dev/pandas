@@ -32,6 +32,7 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -55,7 +56,6 @@ from pandas.core.indexes.api import RangeIndex
 from pandas.io.common import (
     IOHandles,
     get_handle,
-    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -132,7 +132,7 @@ if TYPE_CHECKING:
         comment: str | None
         encoding: str | None
         encoding_errors: str | None
-        dialect: str | csv.Dialect | None
+        dialect: str | csv.Dialect | type[csv.Dialect] | None
         on_bad_lines: str
         low_memory: bool
         memory_map: bool
@@ -296,6 +296,14 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
+    if kwds.get("float_precision") is not None:
+        warnings.warn(
+            "The 'float_precision' argument is deprecated. "
+            "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
@@ -394,7 +402,7 @@ def read_csv(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -740,6 +748,10 @@ def read_csv(
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
 
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
+
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -961,7 +973,7 @@ def read_table(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -1302,6 +1314,10 @@ def read_table(
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -1740,8 +1756,7 @@ class TextFileReader(abc.Iterator):
                 # wait until regex engine integrated
                 fallback_reason = (
                     f"the '{engine}' engine does not support "
-                    "regex separators (separators > 1 char and "
-                    r"different from '\s+' are interpreted as regex)"
+                    "separators > 1 char, including regex separators"
                 )
                 engine = "python"
         elif sep is not None:
@@ -1886,21 +1901,14 @@ class TextFileReader(abc.Iterator):
             )
         if not isinstance(f, list):
             # open file here
-            is_text = True
-            mode = "r"
-            if engine == "pyarrow":
-                is_text = False
-                mode = "rb"
-            elif (
+            # The c and pyarrow engines can decode utf-8 bytes natively;
+            # wrapping in TextIOWrapper makes them slower, especially for
+            # memory_map and remote file-like objects (GH#46823).
+            is_text = engine in ("python", "python-fwf") or (
                 engine == "c"
-                and self.options.get("encoding", "utf-8") == "utf-8"
-                and isinstance(stringify_path(f), str)
-            ):
-                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
-                # the c-engine especially for memory_map=True far slower
-                is_text = False
-                if "b" not in mode:
-                    mode += "b"
+                and self.options.get("encoding", "utf-8") not in (None, "utf-8")
+            )
+            mode = "r" if is_text else "rb"
             self.handles = get_handle(
                 f,
                 mode,
@@ -2033,7 +2041,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     ----------
     data : file-like object or list
     delimiter : separator character to use
-    dialect : str or csv.Dialect instance, optional
+    dialect : str or csv.Dialect class / instance, optional
         Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
@@ -2071,6 +2079,10 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
@@ -2154,7 +2166,7 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 
 def _refine_defaults_read(
-    dialect: str | csv.Dialect | None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None,
     delimiter: str | None | lib.NoDefault,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
@@ -2266,7 +2278,9 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
+def _extract_dialect(
+    kwds: dict[str, str | csv.Dialect | type[csv.Dialect]],
+) -> csv.Dialect | type[csv.Dialect] | None:
     """
     Extract concrete csv dialect instance.
 
@@ -2300,7 +2314,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect | str) -> None:
+def _validate_dialect(dialect: csv.Dialect | type[csv.Dialect] | str) -> None:
     """
     Validate csv dialect instance.
 
@@ -2315,7 +2329,7 @@ def _validate_dialect(dialect: csv.Dialect | str) -> None:
 
 
 def _merge_with_dialect_properties(
-    dialect: csv.Dialect,
+    dialect: csv.Dialect | type[csv.Dialect],
     defaults: dict[str, Any],
 ) -> dict[str, Any]:
     """

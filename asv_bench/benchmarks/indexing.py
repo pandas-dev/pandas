@@ -581,4 +581,21 @@ class Block:
         self.df.loc[start:end, :] = True
 
 
+class LocSetitem2dValue:
+    def setup(self):
+        nrows = 10_000_000
+        # Mixed dtypes so the setitem takes the split path.
+        self.df = DataFrame(
+            {
+                "a": np.zeros(nrows),
+                "b": np.zeros(nrows, dtype=int),
+                "c": np.zeros(nrows),
+            }
+        )
+        self.value = np.random.randn(nrows, 2).tolist()
+
+    def time_loc_setitem_2d(self):
+        self.df.loc[:, ["a", "c"]] = self.value
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

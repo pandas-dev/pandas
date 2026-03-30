@@ -350,16 +350,8 @@ numpydoc_validation_exclude = {
     r"pandas\.tseries\.offsets\.Milli\.rollforward$",
     r"pandas\.tseries\.offsets\.Micro\.rollforward$",
     r"pandas\.tseries\.offsets\.Nano\.rollforward$",
-    # Offset next_bday (BusinessHour and CustomBusinessHour only)
-    r"pandas\.tseries\.offsets\.BusinessHour\.next_bday$",
-    r"pandas\.tseries\.offsets\.CustomBusinessHour\.next_bday$",
     # Easter.method
     r"pandas\.tseries\.offsets\.Easter\.method$",
-    # CustomBusinessMonth helper methods
-    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.cbday_roll$",
-    r"pandas\.tseries\.offsets\.CustomBusinessMonthEnd\.month_roll$",
-    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.cbday_roll$",
-    r"pandas\.tseries\.offsets\.CustomBusinessMonthBegin\.month_roll$",
     # ExtensionDtype base class stubs
     r"pandas\.api\.extensions\.ExtensionDtype\.construct_array_type$",
     r"pandas\.api\.extensions\.ExtensionDtype\.construct_from_string$",
@@ -387,9 +379,6 @@ numpydoc_validation_exclude = {
     r"pandas\.ExcelWriter\.supported_extensions$",
     # ExcelFile
     r"pandas\.ExcelFile\.close$",
-    # plot.__call__ (PlotAccessor)
-    r"pandas\.DataFrame\.plot\.__call__$",
-    r"pandas\.Series\.plot\.__call__$",
     # Index attributes and methods processed by autodoc but not in api.rst
     r"pandas\.Index\.nlevels$",
     r"pandas\.Index\.diff$",
@@ -423,6 +412,23 @@ numpydoc_validation_exclude = {
     r"pandas\.DatetimeIndex\.is_year_start$",
     r"pandas\.DatetimeIndex\.is_year_end$",
     r"pandas\.DatetimeIndex\.is_leap_year$",
+    # Deprecated aliases (GH#46768)
+    r"pandas\.Timestamp\.dayofweek$",
+    r"pandas\.Timestamp\.dayofyear$",
+    r"pandas\.Timestamp\.daysinmonth$",
+    r"pandas\.Period\.dayofweek$",
+    r"pandas\.Period\.dayofyear$",
+    r"pandas\.DatetimeIndex\.daysinmonth$",
+    r"pandas\.PeriodIndex\.dayofweek$",
+    r"pandas\.PeriodIndex\.dayofyear$",
+    r"pandas\.PeriodIndex\.daysinmonth$",
+    r"pandas\.Series\.dt\.dayofweek$",
+    r"pandas\.Series\.dt\.dayofyear$",
+    r"pandas\.Series\.dt\.daysinmonth$",
+    # Deprecated weekday property (GH#12816)
+    r"pandas\.Period\.weekday$",
+    r"pandas\.PeriodIndex\.weekday$",
+    r"pandas\.Series\.dt\.weekday$",
 }
 
 # matplotlib plot directive

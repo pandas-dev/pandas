@@ -1896,10 +1896,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 def _maybe_convert_platform_interval(values) -> ArrayLike:
     """
     Try to do platform conversion, with special casing for IntervalArray.
-    Wrapper around maybe_convert_platform that alters the default return
-    dtype in certain cases to be compatible with IntervalArray.  For example,
-    empty lists return with integer dtype instead of object dtype, which is
-    prohibited for IntervalArray.
+    For example, empty lists return with integer dtype instead of object dtype,
+    which is prohibited for IntervalArray.
 
     Parameters
     ----------

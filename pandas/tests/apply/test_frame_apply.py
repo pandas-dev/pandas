@@ -1866,3 +1866,17 @@ def test_agg_dist_like_and_nonunique_columns():
 def test_wrong_engine(engine_name):
     with pytest.raises(ValueError, match="Unknown engine "):
         DataFrame().apply(lambda x: x, engine=engine_name)
+
+
+def test_apply_timedelta_preserves_resolution():
+    # GH#52411 - UDFs via apply should preserve datetime resolution
+    # rather than always returning nanoseconds
+    df = DataFrame(
+        {
+            "a": Series(["2023-01-01", "2023-01-02"], dtype="datetime64[s]"),
+            "b": Series(["2023-01-02", "2023-01-03"], dtype="datetime64[s]"),
+        }
+    )
+    direct = df["a"] - df["b"]
+    applied = df.apply(lambda row: row["a"] - row["b"], axis=1)
+    assert applied.dtype == direct.dtype
