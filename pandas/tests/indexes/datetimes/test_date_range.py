@@ -1848,6 +1848,75 @@ class TestDateRangeNonTickFreq:
         ).tz_localize(tz, nonexistent="shift_forward")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "freq, start, end, expected_dates",
+        [
+            (
+                "MS",
+                "2020-02-01 15:00",
+                "2020-05-01 01:00",
+                [
+                    "2020-02-01 15:00",
+                    "2020-03-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-05-01 15:00",
+                ],
+            ),
+            (
+                "ME",
+                "2020-01-31 15:00",
+                "2020-04-30 01:00",
+                [
+                    "2020-01-31 15:00",
+                    "2020-02-29 15:00",
+                    "2020-03-31 15:00",
+                    "2020-04-30 15:00",
+                ],
+            ),
+            (
+                "QS",
+                "2020-01-01 15:00",
+                "2020-10-01 01:00",
+                [
+                    "2020-01-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-07-01 15:00",
+                    "2020-10-01 15:00",
+                ],
+            ),
+            (
+                "YS",
+                "2020-01-01 15:00",
+                "2023-01-01 01:00",
+                [
+                    "2020-01-01 15:00",
+                    "2021-01-01 15:00",
+                    "2022-01-01 15:00",
+                    "2023-01-01 15:00",
+                ],
+            ),
+            (
+                "-1MS",
+                "2020-05-01 15:00",
+                "2020-02-01 01:00",
+                [
+                    "2020-05-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-03-01 15:00",
+                    "2020-02-01 15:00",
+                ],
+            ),
+        ],
+    )
+    def test_date_range_end_time_earlier_than_start_time(
+        self, unit, freq, start, end, expected_dates
+    ):
+        # GH#35342 - end's time-of-day should not cause the last offset
+        # boundary to be excluded
+        result = date_range(start, end, freq=freq, unit=unit)
+        expected = DatetimeIndex(expected_dates, dtype=f"M8[{unit}]", freq=freq)
+        tm.assert_index_equal(result, expected)
+
 
 class TestDateRangeUnitInference:
     def test_date_range_unit_inference_matching_unit(self, unit):

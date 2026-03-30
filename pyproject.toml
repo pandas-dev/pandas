@@ -158,6 +158,7 @@ setup = ['--vsenv'] # For Windows
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
 build-verbosity = 3
+build-frontend = "pip"
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
@@ -169,7 +170,7 @@ enable = ["cpython-freethreading"]
 
 [tool.cibuildwheel.windows]
 environment = {}
-before-build = "pip install delvewheel"
+before-build = "python -m pip install delvewheel"
 # powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
@@ -192,6 +193,7 @@ select = "*pyodide*"
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
+build-frontend = "build"
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
 test-command = """
