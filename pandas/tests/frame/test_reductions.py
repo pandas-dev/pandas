@@ -1747,6 +1747,36 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    def test_reductions_numeric_only_non_bool_raises(
+        self, request, frame_or_series, all_numeric_reductions
+    ):
+        # GH#53098 - numeric_only should raise ValueError for non-bool values
+        if all_numeric_reductions == "count":
+            request.applymarker(
+                pytest.mark.xfail(reason="Count does not go through _stat_function")
+            )
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "numeric_only" expected type bool, received type int.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, all_numeric_reductions)(numeric_only=1)
+
+    def test_reductions_numeric_only_non_bool_str_raises(
+        self, frame_or_series
+    ):
+        # GH#53098 - string value for numeric_only should raise ValueError
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "numeric_only" expected type bool, received type str.'
+        with pytest.raises(ValueError, match=msg):
+            obj.sum(numeric_only="yes")
+
+    def test_reductions_numeric_only_valid_values(self, frame_or_series):
+        # GH#53098 - True, False, and None should still be accepted
+        obj = frame_or_series([1, 2, 3])
+        # These should not raise
+        obj.sum(numeric_only=True)
+        obj.sum(numeric_only=False)
+        obj.sum(numeric_only=None)
+
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = DataFrame(
