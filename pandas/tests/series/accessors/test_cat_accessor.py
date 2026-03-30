@@ -216,7 +216,7 @@ class TestCatAccessor:
             tm.assert_equal(res, exp)
 
         # GH#46768 - exclude deprecated aliases
-        _deprecated = {"dayofweek", "dayofyear", "daysinmonth"}
+        _deprecated = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
         for attr in attr_names:
             if attr in _deprecated:
                 continue

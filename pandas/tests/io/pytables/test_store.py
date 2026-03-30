@@ -514,7 +514,7 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
     mydt = dt.datetime(2013, 4, 30)
     dts = date_range(mydt, periods=5, freq=bday_egypt)
 
-    s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
     temp_hdfstore.put("fixed", s)
     result = temp_hdfstore.select("fixed")

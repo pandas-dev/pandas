@@ -410,7 +410,7 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> str | None:
-        weekdays = np.unique(self.index.weekday)
+        weekdays = np.unique(self.index.day_of_week)
         if len(weekdays) > 1:
             return None
 

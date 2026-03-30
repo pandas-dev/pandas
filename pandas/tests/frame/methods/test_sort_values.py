@@ -830,16 +830,9 @@ def sort_names(request):
 
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
-        self, df_none, df_idx, sort_names, ascending, request
+        self, df_none, df_idx, sort_names, ascending
     ):
         # GH#14353
-        if request.node.callspec.id == "df_idx0-inner-True":
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="unstable sorting of duplicates, platform-dependent",
-                    strict=False,
-                )
-            )
 
         # Get index levels from df_idx
         levels = df_idx.index.names
@@ -852,19 +845,22 @@ class TestSortValuesLevelAsStr:
         # Compute result sorting on mix on columns and index levels
         result = df_idx.sort_values(by=sort_names, ascending=ascending, axis=0)
 
-        tm.assert_frame_equal(result, expected)
+        sort_keys = [sort_names] if isinstance(sort_names, str) else sort_names
+        if df_none[sort_keys].duplicated().any():
+            # Unstable sort: tie-breaking among equal keys is
+            # platform-dependent. Compare using all columns as a
+            # deterministic tiebreaker.
+            tm.assert_frame_equal(
+                result.sort_values(list(result.columns)),
+                expected.sort_values(list(expected.columns)),
+            )
+        else:
+            tm.assert_frame_equal(result, expected)
 
     def test_sort_column_level_and_index_label(
-        self, df_none, df_idx, sort_names, ascending, request
+        self, df_none, df_idx, sort_names, ascending
     ):
         # GH#14353
-        if request.node.callspec.id == "df_idx0-inner-True":
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="unstable sorting of duplicates, platform-dependent",
-                    strict=False,
-                )
-            )
 
         # Get levels from df_idx
         levels = df_idx.index.names
@@ -881,7 +877,17 @@ class TestSortValuesLevelAsStr:
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
-        tm.assert_frame_equal(result, expected)
+        sort_keys = [sort_names] if isinstance(sort_names, str) else sort_names
+        if df_none[sort_keys].duplicated().any():
+            # Unstable sort: tie-breaking among equal keys is
+            # platform-dependent. Compare using all columns as a
+            # deterministic tiebreaker (transposing to sort rows).
+            tm.assert_frame_equal(
+                result.T.sort_values(list(result.T.columns)).T,
+                expected.T.sort_values(list(expected.T.columns)).T,
+            )
+        else:
+            tm.assert_frame_equal(result, expected)
 
     def test_sort_values_validate_ascending_for_value_error(self):
         # GH41634

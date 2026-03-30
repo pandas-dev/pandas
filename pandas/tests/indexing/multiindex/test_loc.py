@@ -1,5 +1,3 @@
-from datetime import date
-
 import numpy as np
 import pytest
 
@@ -1014,27 +1012,21 @@ def test_multindex_series_loc_with_tuple_label():
     assert result == 2
 
 
-def test_loc_datetime_date_multiindex_with_np_datetime64():
-    # GH#55969
-    # loc with np.datetime64 key on MultiIndex with datetime.date level
-    # should correctly filter on subsequent levels
-    dates = [date(2023, 11, 1), date(2023, 11, 1), date(2023, 11, 2)]
-    t1 = ["A", "B", "C"]
-    t2 = ["C", "D", "E"]
-    vals = [0.1, 0.2, 0.3]
-    df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
-    df = df.set_index(["dates", "t1", "t2"])
-
-    # Verify the index level stays object dtype with date entries
-    assert df.index.get_level_values("dates").dtype == object
-    assert all(isinstance(v, date) for v in df.index.get_level_values("dates"))
-
-    dt_key = np.datetime64("2023-11-01")
-
-    # Should return only the row matching (dt_key, "A"), not all rows for dt_key
-    result = df.loc[(dt_key, "A")]
-    expected = DataFrame(
-        {"vals": [0.1]},
-        index=Index(["C"], name="t2"),
+def test_loc_np_datetime64_key_on_object_dt64_level():
+    # GH#64689 (revert)
+    # Verify MultiIndex.loc works with np.datetime64 key on object-dtype level
+    # holding datetime64 values without the datetime64-to-date conversion.
+    mi = MultiIndex.from_arrays(
+        [
+            Index(
+                [np.datetime64("2023-01-01", "s")] * 2,
+                dtype=object,
+            ),
+            ["A", "B"],
+            ["X", "Y"],
+        ],
     )
+    df = DataFrame({"val": [1, 2]}, index=mi)
+    result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
+    expected = DataFrame({"val": [1]}, index=Index(["X"]))
     tm.assert_frame_equal(result, expected)

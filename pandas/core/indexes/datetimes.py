@@ -306,7 +306,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def weekday(self) -> Index:
-        return self._wrap_field("weekday")
+        # GH#12816
+        warnings.warn(
+            "DatetimeIndex.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
 
     @property
     def dayofweek(self) -> Index:
