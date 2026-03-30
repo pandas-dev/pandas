@@ -401,7 +401,7 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if not pc.all(pc.string_is_ascii(self._pa_array)):
+        if not pc.all(pc.string_is_ascii(self._pa_array)).as_py():
             # GH#64123 - pc.find_substring returns byte offsets instead of
             # character offsets for multi-byte UTF-8 characters, so we fall back
             # to Python str.find which correctly returns character offsets.
