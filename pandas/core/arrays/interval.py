@@ -130,7 +130,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     Parameters
     ----------
     data : array-like (1-dimensional)
-        Array-like (ndarray, :class:`DateTimeArray`, :class:`TimeDeltaArray`) containing
+        Array-like (ndarray, :class:`DatetimeArray`, :class:`TimedeltaArray`) containing
         Interval objects from which to build the IntervalArray.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both or
@@ -1896,10 +1896,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 def _maybe_convert_platform_interval(values) -> ArrayLike:
     """
     Try to do platform conversion, with special casing for IntervalArray.
-    Wrapper around maybe_convert_platform that alters the default return
-    dtype in certain cases to be compatible with IntervalArray.  For example,
-    empty lists return with integer dtype instead of object dtype, which is
-    prohibited for IntervalArray.
+    For example, empty lists return with integer dtype instead of object dtype,
+    which is prohibited for IntervalArray.
 
     Parameters
     ----------

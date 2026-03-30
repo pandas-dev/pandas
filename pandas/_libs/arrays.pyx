@@ -74,7 +74,7 @@ cdef class NDArrayBacked:
         This should round-trip:
             self == self._from_backing_data(self._ndarray)
         """
-        # TODO: re-reuse simple_new if/when it can be cpdef
+        # TODO: reuse simple_new if/when it can be cpdef
         cdef:
             NDArrayBacked obj
         obj = NDArrayBacked.__new__(type(self))

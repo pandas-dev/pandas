@@ -31,9 +31,9 @@ import numpy as np
 
 from pandas._config import (
     config,
-    get_option,
     using_string_dtype,
 )
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     lib,
@@ -48,6 +48,7 @@ from pandas.errors import (
     AttributeConflictWarning,
     ClosedFileError,
     IncompatibilityWarning,
+    Pandas4Warning,
     PerformanceWarning,
     PossibleDataLossError,
 )
@@ -233,6 +234,13 @@ with config.config_prefix("io.hdf"):
         validator=config.is_one_of_factory(["fixed", "table", None]),
     )
 
+config.deprecate_option(
+    "io.hdf.dropna_table",
+    Pandas4Warning,
+    msg="io.hdf.dropna_table option is deprecated. Use DataFrame.dropna "
+    "before writing instead.",
+)
+
 # oh the troubles to reduce import time
 _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
@@ -272,7 +280,7 @@ def to_hdf(
     index: bool = True,
     min_itemsize: int | dict[str, int] | None = None,
     nan_rep=None,
-    dropna: bool | None = None,
+    dropna: bool | None | lib.NoDefault = lib.no_default,
     data_columns: Literal[True] | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
@@ -1150,7 +1158,7 @@ class HDFStore:
         encoding=None,
         errors: str = "strict",
         track_times: bool = True,
-        dropna: bool = False,
+        dropna: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
         Store object in HDFStore.
@@ -1186,7 +1194,11 @@ class HDFStore:
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+            Minimum number of bytes reserved for object columns.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
+            Strings are stored as encoded bytes. Since some characters require multiple
+            bytes, required size may be larger than string length.
         nan_rep : str
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
@@ -1208,6 +1220,11 @@ class HDFStore:
         dropna : bool, default False, optional
             Remove missing values.
 
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
+
         See Also
         --------
         HDFStore.info : Prints detailed information on the store.
@@ -1219,8 +1236,18 @@ class HDFStore:
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
         >>> store.put("data", df)  # doctest: +SKIP
         """
+        if dropna is not lib.no_default:
+            warnings.warn(
+                "The 'dropna' keyword in HDFStore.put is deprecated and "
+                "will be removed in a future version. Use DataFrame.dropna "
+                "before writing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            dropna = False
         if format is None:
-            format = get_option("io.hdf.default_format") or "fixed"
+            format = _global_config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1309,7 +1336,7 @@ class HDFStore:
         nan_rep=None,
         chunksize: int | None = None,
         expectedrows=None,
-        dropna: bool | None = None,
+        dropna: bool | None | lib.NoDefault = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
@@ -1346,7 +1373,11 @@ class HDFStore:
         columns : default None
             This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
-            Dict of columns that specify minimum str sizes.
+            Minimum number of bytes reserved for object columns.
+            If int, all columns reserve 'min_itemsize' bytes per stored value.
+            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
+            Strings are stored as encoded bytes. Since some characters require multiple
+            bytes, required size may be larger than string length.
         nan_rep : str
             Str to use as str nan representation.
         chunksize : int or None
@@ -1356,6 +1387,12 @@ class HDFStore:
         dropna : bool, default False, optional
             Do not write an ALL nan row to the store settable
             by the option 'io.hdf.dropna_table'.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
+
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
@@ -1398,10 +1435,19 @@ class HDFStore:
                 "columns is not a supported keyword in append, try data_columns"
             )
 
-        if dropna is None:
-            dropna = get_option("io.hdf.dropna_table")
+        if dropna is not lib.no_default:
+            warnings.warn(
+                "The 'dropna' keyword in HDFStore.append is deprecated and "
+                "will be removed in a future version. Use DataFrame.dropna "
+                "before writing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            dropna = bool(dropna) if dropna is not None else False
+        else:
+            dropna = False
         if format is None:
-            format = get_option("io.hdf.default_format") or "table"
+            format = _global_config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -1429,7 +1475,7 @@ class HDFStore:
         selector,
         data_columns=None,
         axes=None,
-        dropna: bool = False,
+        dropna: bool | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> None:
         """
@@ -1447,6 +1493,11 @@ class HDFStore:
             use all columns
         dropna : if evaluates to True, drop rows from all tables if any single
                  row in each table has all NaN. Default False.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
 
         Notes
         -----
@@ -1496,6 +1547,16 @@ class HDFStore:
             data_columns = d[selector]
 
         # ensure rows are synchronized across the tables
+        if dropna is not lib.no_default:
+            warnings.warn(
+                "The 'dropna' keyword in HDFStore.append_to_multiple is "
+                "deprecated and will be removed in a future version. Use "
+                "DataFrame.dropna before writing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            dropna = False
         if dropna:
             idxs = (value[cols].dropna(how="all").index for cols in d.values())
             valid_index = next(idxs)
@@ -3271,10 +3332,6 @@ class GenericFixed(Fixed):
     def write_array(
         self, key: str, obj: AnyArrayLike, items: Index | None = None
     ) -> None:
-        # TODO: we only have a few tests that get here, the only EA
-        #  that gets passed is DatetimeArray, and we never have
-        #  both self._filters and EA
-
         value = extract_array(obj, extract_numpy=True)
 
         if key in self.group:
@@ -3295,71 +3352,79 @@ class GenericFixed(Fixed):
                 value = value.T
                 transposed = True
 
-        atom = None
-        if self._filters is not None:
-            with suppress(ValueError):
-                # get the atom for this datatype
-                atom = _tables().Atom.from_dtype(value.dtype)
-
-        if atom is not None:
-            # We only get here if self._filters is non-None and
-            #  the Atom.from_dtype call succeeded
-
-            # create an empty chunked array and fill it from value
-            if not empty_array:
-                ca = self._handle.create_carray(
-                    self.group, key, atom, value.shape, filters=self._filters
-                )
-                ca[:] = value
-
-            else:
-                self.write_array_empty(key, value)
-
-        elif value.dtype.type == np.object_:
-            # infer the type, warn if we have a non-string type here (for
-            # performance)
-            inferred_type = lib.infer_dtype(value, skipna=False)
-            if empty_array:
-                pass
-            elif inferred_type == "string":
-                pass
-            elif get_option("performance_warnings"):
-                ws = performance_doc % (inferred_type, key, items)
-                warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
-
-            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
-            vlarr.append(value)
-
-        elif lib.is_np_dtype(value.dtype, "M"):
-            self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
-        elif isinstance(value.dtype, DatetimeTZDtype):
-            # store as UTC
-            # with a zone
-
-            # error: "ExtensionArray" has no attribute "asi8"
-            self._handle.create_array(
-                self.group,
-                key,
-                value.asi8,  # type: ignore[attr-defined]
+        if isinstance(value, BaseStringArray):
+            # GH#64180: BaseStringArray must use the VLArray path.
+            # Atom.from_dtype does not handle ExtensionDtype.
+            vlarr = self._handle.create_vlarray(
+                self.group, key, _tables().ObjectAtom(), filters=self._filters
             )
-
-            node = getattr(self.group, key)
-            # error: "ExtensionArray" has no attribute "tz"
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
-            node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
-        elif lib.is_np_dtype(value.dtype, "m"):
-            self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
-        elif isinstance(value, BaseStringArray):
-            vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value.to_numpy())
             node = getattr(self.group, key)
             node._v_attrs.value_type = str(value.dtype)
-        elif empty_array:
-            self.write_array_empty(key, value)
+
         else:
-            self._handle.create_array(self.group, key, value)
+            atom = None
+            if self._filters is not None:
+                with suppress(ValueError):
+                    # get the atom for this datatype
+                    atom = _tables().Atom.from_dtype(value.dtype)
+
+            if atom is not None:
+                # We only get here if self._filters is non-None and
+                #  the Atom.from_dtype call succeeded
+
+                # create an empty chunked array and fill it from value
+                if not empty_array:
+                    ca = self._handle.create_carray(
+                        self.group, key, atom, value.shape, filters=self._filters
+                    )
+                    ca[:] = value
+
+                else:
+                    self.write_array_empty(key, value)
+
+            elif value.dtype.type == np.object_:
+                # infer the type, warn if we have a non-string type here
+                # (for performance)
+                inferred_type = lib.infer_dtype(value, skipna=False)
+                if empty_array:
+                    pass
+                elif inferred_type == "string":
+                    pass
+                elif _global_config["mode"]["performance_warnings"]:
+                    ws = performance_doc % (inferred_type, key, items)
+                    warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
+
+                vlarr = self._handle.create_vlarray(
+                    self.group, key, _tables().ObjectAtom()
+                )
+                vlarr.append(value)
+
+            elif lib.is_np_dtype(value.dtype, "M"):
+                self._handle.create_array(self.group, key, value.view("i8"))
+                getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif isinstance(value.dtype, DatetimeTZDtype):
+                # store as UTC
+                # with a zone
+
+                # error: "ExtensionArray" has no attribute "asi8"
+                self._handle.create_array(
+                    self.group,
+                    key,
+                    value.asi8,  # type: ignore[attr-defined]
+                )
+
+                node = getattr(self.group, key)
+                # error: "ExtensionArray" has no attribute "tz"
+                node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
+                node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
+            elif lib.is_np_dtype(value.dtype, "m"):
+                self._handle.create_array(self.group, key, value.view("i8"))
+                getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif empty_array:
+                self.write_array_empty(key, value)
+            else:
+                self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
 

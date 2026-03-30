@@ -1030,29 +1030,19 @@ class TestDatetimeIndex:
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
         tm.assert_index_equal(result2, expected)
 
-    def test_dti_constructor_with_non_nano_now_today(self, request):
-        # GH#55756
+    def test_dti_constructor_with_non_nano_now_today(self):
+        # GH#55756, GH#57535
         now = Timestamp.now()
         today = Timestamp.today()
         result = DatetimeIndex(["now", "today"], dtype="M8[s]")
+        now_after = Timestamp.now()
         assert result.dtype == "M8[s]"
 
-        diff0 = result[0] - now.as_unit("s")
-        diff1 = result[1] - today.as_unit("s")
-        assert diff1 >= pd.Timedelta(0), f"The difference is {diff0}"
-        assert diff0 >= pd.Timedelta(0), f"The difference is {diff0}"
-
-        # result may not exactly match [now, today] so we'll test it up to a tolerance.
-        #  (it *may* match exactly due to rounding)
-        # GH 57535
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="result may not exactly match [now, today]", strict=False
-            )
-        )
-        tolerance = pd.Timedelta(seconds=1)
-        assert diff0 < tolerance, f"The difference is {diff0}"
-        assert diff1 < tolerance, f"The difference is {diff0}"
+        # result should be between the before/after timestamps
+        assert result[0] >= now.as_unit("s")
+        assert result[0] <= now_after.as_unit("s")
+        assert result[1] >= today.as_unit("s")
+        assert result[1] <= now_after.as_unit("s")
 
     def test_dti_constructor_object_float_matches_float_dtype(self):
         # GH#55780
