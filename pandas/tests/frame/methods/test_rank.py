@@ -498,3 +498,78 @@ class TestRank:
             exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+
+class TestRankEADtype:
+    # GH#52829 - DataFrame.rank() should preserve ExtensionArray dtypes
+
+    def test_rank_nullable_int_average_preserves_float64_ea(self):
+        # GH#52829 - average method on Int64 should return Float64 (not float64)
+        import pandas as pd
+
+        df = DataFrame({"a": pd.array([3, 1, 2, None], dtype="Int64")})
+        result = df.rank()
+        expected = DataFrame({"a": pd.array([3.0, 1.0, 2.0, None], dtype="Float64")})
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_nullable_int_min_preserves_uint64_ea(self):
+        # GH#52829 - method='min' on Int64 should return UInt64 (not float64)
+        import pandas as pd
+
+        df = DataFrame({"a": pd.array([3, 1, 2, 1], dtype="Int64")})
+        result = df.rank(method="min")
+        expected = DataFrame({"a": pd.array([3, 1, 2, 1], dtype="UInt64")})
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_nullable_int_with_na_min_method(self):
+        # GH#52829 - NAs kept as NA in result
+        import pandas as pd
+
+        df = DataFrame({"a": pd.array([3, 1, None, 2], dtype="Int64")})
+        result = df.rank(method="min", na_option="keep")
+        expected = DataFrame({"a": pd.array([3, 1, None, 2], dtype="UInt64")})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "method, expected_dtype",
+        [
+            ("average", "double[pyarrow]"),
+            ("min", "uint64[pyarrow]"),
+            ("max", "uint64[pyarrow]"),
+            ("first", "uint64[pyarrow]"),
+            ("dense", "uint64[pyarrow]"),
+        ],
+    )
+    def test_rank_pyarrow_int64_preserves_ea_dtype(self, method, expected_dtype):
+        # GH#52829 - pyarrow int64 columns keep EA dtype after rank
+        pytest.importorskip("pyarrow")
+        import pandas as pd
+
+        df = DataFrame({"a": pd.array([3, 1, 2, None], dtype="int64[pyarrow]")})
+        result = df.rank(method=method)
+        assert str(result["a"].dtype) == expected_dtype
+
+    def test_rank_mixed_ea_numpy_each_preserves_own_dtype(self):
+        # GH#52829 - mixed EA + numpy columns: each col preserves its own dtype
+        import pandas as pd
+
+        df = DataFrame(
+            {
+                "ea_col": pd.array([3, 1, 2], dtype="Int64"),
+                "np_col": np.array([30.0, 10.0, 20.0]),
+            }
+        )
+        result = df.rank(method="min")
+        assert result["np_col"].dtype == np.dtype("float64")
+        assert result["ea_col"].dtype != np.dtype("float64")
+        assert str(result["ea_col"].dtype) == "UInt64"
+
+    def test_rank_duplicate_column_names_shape_preserved(self):
+        # GH#52829 - duplicate column names must not be lost
+        df = DataFrame(
+            [[3, 1], [1, 2], [2, 3]],
+            columns=Index(["a", "a"]),
+        )
+        result = df.rank()
+        assert list(result.columns) == ["a", "a"]
+        assert result.shape == (3, 2)

@@ -9591,32 +9591,58 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         def ranker(data):
             if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
+                # GH#52829 - use _mgr.apply to preserve ExtensionArray dtypes
+                def blk_func(blk_values):
+                    # Transpose numpy blocks from internal (n_items, n_rows)
+                    # to (n_rows, n_items) for algos.rank, mirroring _accum_func
+                    values = blk_values.T if hasattr(blk_values, "T") else blk_values
+                    if isinstance(values, ExtensionArray):
+                        result = values._rank(
+                            axis=axis_int,
+                            method=method,
+                            ascending=ascending,
+                            na_option=na_option,
+                            pct=pct,
+                        )
+                    else:
+                        result = algos.rank(
+                            values,
+                            axis=axis_int,
+                            method=method,
+                            ascending=ascending,
+                            na_option=na_option,
+                            pct=pct,
+                        )
+                    return result.T if hasattr(result, "T") else result
+
+                new_mgr = data._mgr.apply(blk_func)
+                return self._constructor_from_mgr(
+                    new_mgr, axes=new_mgr.axes
+                ).__finalize__(self, method="rank")
             else:
                 # i.e. Series, can dispatch to EA
                 values = data._values
 
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-            else:
-                ranks = algos.rank(
-                    values,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
+                if isinstance(values, ExtensionArray):
+                    ranks = values._rank(
+                        axis=axis_int,
+                        method=method,
+                        ascending=ascending,
+                        na_option=na_option,
+                        pct=pct,
+                    )
+                else:
+                    ranks = algos.rank(
+                        values,
+                        axis=axis_int,
+                        method=method,
+                        ascending=ascending,
+                        na_option=na_option,
+                        pct=pct,
+                    )
 
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+                ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
+                return ranks_obj.__finalize__(self, method="rank")
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
