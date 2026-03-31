@@ -804,7 +804,7 @@ class TestSeriesReductions:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df.sum(numeric_only=None)
 
-        msg2 = 'numeric_only must be a boolean, got str'
+        msg2 = "numeric_only must be a boolean, got str"
         with tm.assert_produces_warning(FutureWarning, match=msg2):
             df.sum(numeric_only="True")
 
