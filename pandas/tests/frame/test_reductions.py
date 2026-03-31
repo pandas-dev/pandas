@@ -1798,7 +1798,9 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not support operation"):
             getattr(df, all_boolean_reductions)(bool_only=False)
 
-        with tm.assert_produces_warning(FutureWarning, match="bool_only must be a boolean"):
+        with tm.assert_produces_warning(
+            FutureWarning, match="bool_only must be a boolean"
+        ):
             with pytest.raises(TypeError, match="does not support operation"):
                 getattr(df, all_boolean_reductions)(bool_only=None)
 
