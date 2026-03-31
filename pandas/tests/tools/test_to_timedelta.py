@@ -404,7 +404,7 @@ class TestTimedeltas:
     def test_to_timedelta_day_offset(self):
         # GH#64240
         result = to_timedelta(to_offset("D"))
-        expected = pd.Timedelta(1, unit="D").as_unit("s")
+        expected = pd.Timedelta(1, input_unit="D").as_unit("s")
         assert result == expected
         assert result.unit == expected.unit
 
