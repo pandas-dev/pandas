@@ -388,6 +388,19 @@ class SAS7BDATReader(SASReader):
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
 
+        self._column_convert_types: list[str | None] = []
+        for j in range(self.column_count):
+            if self._column_types[j] == b"d" and self.convert_dates:
+                fmt = self.column_formats[j]
+                if fmt in const.sas_date_formats:
+                    self._column_convert_types.append("d")
+                elif fmt in const.sas_datetime_formats:
+                    self._column_convert_types.append("s")
+                else:
+                    self._column_convert_types.append(None)
+            else:
+                self._column_convert_types.append(None)
+
     def _process_page_meta(self) -> bool:
         self._read_page_header()
         pt = [*const.page_meta_types, const.page_amd_type, const.page_mix_type]
@@ -735,11 +748,9 @@ class SAS7BDATReader(SASReader):
             if self._column_types[j] == b"d":
                 col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
                 rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
-                if self.convert_dates:
-                    if self.column_formats[j] in const.sas_date_formats:
-                        rslt[name] = _convert_datetimes(rslt[name], "d")
-                    elif self.column_formats[j] in const.sas_datetime_formats:
-                        rslt[name] = _convert_datetimes(rslt[name], "s")
+                convert_type = self._column_convert_types[j]
+                if convert_type is not None:
+                    rslt[name] = _convert_datetimes(rslt[name], convert_type)
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
