@@ -6,13 +6,12 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
