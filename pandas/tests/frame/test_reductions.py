@@ -6,6 +6,8 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -1799,7 +1801,7 @@ class TestNuisanceColumns:
             getattr(df, all_boolean_reductions)(bool_only=False)
 
         with tm.assert_produces_warning(
-            FutureWarning, match="bool_only must be a boolean"
+            Pandas4Warning, match="bool_only must be a boolean"
         ):
             with pytest.raises(TypeError, match="does not support operation"):
                 getattr(df, all_boolean_reductions)(bool_only=None)
