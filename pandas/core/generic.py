@@ -7068,6 +7068,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  0.0  3.0  0.0  4.0
 
         Note that column D is not affected since it is not present in df2.
+
+        # Example: Handling missing labels in real-world datasets (e.g., text or medical annotations)
+        >>> import pandas as pd
+        >>> data = {
+        ...     "report": [
+        ...         "Signs of pneumonia observed",
+        ...         "Normal chest x-ray",
+        ...         None,
+        ...         "Possible infection noted"
+        ...     ],
+        ...     "label": [1, 0, None, None]
+        ... }
+        >>> df = pd.DataFrame(data)
+        
+        # Identify missing labels
+        >>> df["label"].isna()
+        0    False
+        1    False
+        2     True
+        3     True
+        Name: label, dtype: bool
+        
+        # Fill missing labels with a placeholder value (-1 indicates unknown class)
+        >>> df["label"] = df["label"].fillna(-1)
+        
+        # Optionally filter out unknown labels before training a model
+        >>> df_filtered = df[df["label"] != -1]
+        >>> df_filtered
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
