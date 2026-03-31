@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -268,7 +267,7 @@ def test_select_dtypes_floats_with_nan_not_first_position(temp_hdfstore):
     tm.assert_frame_equal(expected, result)
 
 
-def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore, request):
+def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore):
     # GH 11283
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -279,13 +278,6 @@ def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore, request):
     expected = df[df["A"] > 0]
 
     temp_hdfstore.append("df", df, data_columns=True)
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=ValueError,
-        )
-    )
     np_zero = np.float64(0)  # noqa: F841
     result = temp_hdfstore.select("df", where=["A>np_zero"])
     tm.assert_frame_equal(expected, result)
@@ -602,7 +594,7 @@ def test_select_iterator_many_empty_frames(temp_hdfstore):
     assert len(results) == 0
 
 
-def test_frame_select(temp_hdfstore, request):
+def test_frame_select(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
@@ -618,13 +610,6 @@ def test_frame_select(temp_hdfstore, request):
     crit2 = "columns=['A', 'D']"
     crit3 = "columns=A"
 
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=TypeError,
-        )
-    )
     result = temp_hdfstore.select("frame", [crit1, crit2])
     expected = df.loc[date:, ["A", "D"]]
     tm.assert_frame_equal(result, expected)
@@ -640,7 +625,7 @@ def test_frame_select(temp_hdfstore, request):
         index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df_time", df)
-    msg = "day is out of range for month: 0"
+    msg = "day (is out of range for month|0 must be in range)"
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.select("df_time", "index>0")
 

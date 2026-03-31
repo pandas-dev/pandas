@@ -794,6 +794,15 @@ def to_datetime(
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
 
+        .. note::
+
+            When using ``format``, any datetime components not present in the
+            format string default to ``1900-01-01 00:00:00``, consistent with
+            Python's :meth:`datetime.datetime.strptime` behavior. For example,
+            ``to_datetime(["1", "2"], format="%d")`` returns dates in January 1900.
+            The ``origin`` parameter does not affect string parsing via ``format``;
+            it only applies to numeric input interpreted through ``unit``.
+
     exact : bool, default True
         Control how `format` is used:
 
@@ -804,12 +813,14 @@ def to_datetime(
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
-        integer or float number. This will be based off the origin.
+        integer or float number. This will be based off the ``origin``.
         Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
         the number of milliseconds to the unix epoch start.
+        Only applicable to numeric input; has no effect when ``format``
+        is specified.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
-        of units (defined by `unit`) since this reference date.
+        of units (defined by ``unit``) since this reference date.
 
         - If :const:`'unix'` (or POSIX) time; origin is set to 1970-01-01.
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
@@ -819,6 +830,12 @@ def to_datetime(
           string), origin is set to Timestamp identified by origin.
         - If a float or integer, origin is the difference
           (in units determined by the ``unit`` argument) relative to 1970-01-01.
+
+        .. note::
+
+            This parameter only affects numeric input used with ``unit``.
+            It does not affect string parsing via ``format``. See the ``format``
+            parameter for how defaults are handled during string parsing.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing

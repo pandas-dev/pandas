@@ -30,7 +30,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -3448,19 +3447,6 @@ class MultiIndex(Index):
         zipped = zip(tup, self.levels, self.codes, strict=True)
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
-
-            # GH#55969: convert np.datetime64[D] to Python datetime.date for
-            # proper containment check against object-dtype Index.
-            # Only for day resolution; finer units would lose time info.
-            if (
-                isinstance(lab, np.datetime64)
-                and lev.dtype == object
-                and np.datetime_data(lab.dtype)[0] == "D"
-            ):
-                try:
-                    lab = Timestamp(lab).date()
-                except (ValueError, OverflowError):
-                    pass
 
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):

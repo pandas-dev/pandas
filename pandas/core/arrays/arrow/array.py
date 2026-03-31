@@ -615,7 +615,7 @@ class ArrowExtensionArray(
                 )
             ):
                 # See https://github.com/apache/arrow/issues/35289
-                value = value.tolist()
+                value = np.asarray(value, dtype=object)
             elif copy and is_array_like(value):
                 # pa array should not get updated when numpy array is updated
                 value = value.copy()
@@ -3260,15 +3260,41 @@ class ArrowExtensionArray(
         result = pc.day_of_week(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofweek = _dt_day_of_week
-    _dt_weekday = _dt_day_of_week
+    @property
+    def _dt_dayofweek(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofweek accessor is deprecated and will be removed "
+            "in a future version. Use day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
+
+    @property
+    def _dt_weekday(self) -> Self:
+        # GH#12816
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
 
     @property
     def _dt_day_of_year(self) -> Self:
         result = pc.day_of_year(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofyear = _dt_day_of_year
+    @property
+    def _dt_dayofyear(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofyear accessor is deprecated and will be removed "
+            "in a future version. Use day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_year
 
     @property
     def _dt_hour(self) -> Self:
@@ -3343,7 +3369,15 @@ class ArrowExtensionArray(
         )
         return self._from_pyarrow_array(result)
 
-    _dt_daysinmonth = _dt_days_in_month
+    @property
+    def _dt_daysinmonth(self) -> Self:
+        warnings.warn(
+            "ArrowDtype daysinmonth accessor is deprecated and will be removed "
+            "in a future version. Use days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_days_in_month
 
     @property
     def _dt_microsecond(self) -> Self:

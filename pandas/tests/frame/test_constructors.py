@@ -841,7 +841,7 @@ class TestDataFrameConstructors:
 
         result = DataFrame(data)
         expected = DataFrame({k: list(v) for k, v in data.items()})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_of_ranges(self):
         # GH 26356
@@ -1404,18 +1404,18 @@ class TestDataFrameConstructors:
         columns = ["num", "str"]
         result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, "a"], [2, "b"]], columns=columns)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
         result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([list(range(10)), list(range(10))])
         result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_range(self):
         # GH26342
@@ -1462,7 +1462,7 @@ class TestDataFrameConstructors:
         gen = ([i, "a"] for i in range(10))
         result = DataFrame(gen)
         expected = DataFrame({0: range(10), 1: "a"})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dicts(self):
         result = DataFrame([{}])
@@ -1555,7 +1555,7 @@ class TestDataFrameConstructors:
         idx = Index(range(3))
         df = DataFrame({"a": 0}, index=idx)
         expected = DataFrame({"a": [0, 0, 0]}, index=idx)
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_Series_copy_bug(self, float_frame):
         df = DataFrame(float_frame["A"], index=float_frame.index, columns=["A"])

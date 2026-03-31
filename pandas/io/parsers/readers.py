@@ -32,6 +32,7 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -294,6 +295,14 @@ def _read(
 
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
+
+    if kwds.get("float_precision") is not None:
+        warnings.warn(
+            "The 'float_precision' argument is deprecated. "
+            "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
@@ -738,6 +747,10 @@ def read_csv(
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -1301,6 +1314,10 @@ def read_table(
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -2062,6 +2079,10 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)

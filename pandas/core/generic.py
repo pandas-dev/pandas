@@ -2664,7 +2664,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool = True,
         min_itemsize: int | dict[str, int] | None = None,
         nan_rep=None,
-        dropna: bool | None = None,
+        dropna: bool | None | lib.NoDefault = lib.no_default,
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
@@ -2733,6 +2733,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Not allowed with append=True.
         dropna : bool, default False, optional
             Remove missing values.
+
+            .. deprecated:: 3.1.0
+                The ``dropna`` keyword is deprecated and will be removed in a
+                future version. Use :meth:`DataFrame.dropna` before writing
+                instead.
         data_columns : list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
@@ -7547,6 +7552,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         * When dict is used as the `to_replace` value, it is like
           key(s) in the dict are the to_replace part and
           value(s) in the dict are the value parameter.
+        * Replacement is based on equality, not identity. Since Python treats
+          ``True == 1`` and ``False == 0``, replacing one will also affect
+          the other when they share a dtype (e.g. ``object``).
 
         Examples
         --------
@@ -10079,6 +10087,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH#21947 we have an empty DataFrame/Series, could be object-dtype
             cond = cond.astype(bool)
 
+        cond_for_ea = cond
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
@@ -10114,7 +10123,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         if axis == 0:
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other,
                                 )
                                 for i in range(self.shape[1])
@@ -10123,7 +10132,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                             # TODO: can we use a zero-copy alternative to "repeat"?
                             res_cols = [
                                 self.iloc[:, i]._where(
-                                    cond.iloc[:, i],
+                                    cond_for_ea.iloc[:, i],
                                     other[i : i + 1].repeat(len(self)),
                                 )
                                 for i in range(self.shape[1])
