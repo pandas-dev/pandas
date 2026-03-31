@@ -18,7 +18,7 @@ Fixed regressions
 .. _whatsnew_303.bug_fixes:
 
 Bug fixes
-^^^^^^^^^
+~~~~~~~~~
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
