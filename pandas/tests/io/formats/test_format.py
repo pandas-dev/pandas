@@ -285,6 +285,31 @@ class TestDataFrameFormatting:
         )
         assert "..." not in str(df)
 
+    def test_repr_truncation_accounts_for_dot_separator(self, monkeypatch):
+        # GH#32461 - repr should not exceed terminal width after inserting
+        # the " ..." separator column during horizontal truncation.
+        # Width 82 hits the boundary where the unfixed code overflows by 4
+        # because the " ..." separator column (4 chars + 1 adjoin spacing)
+        # was not budgeted.
+        terminal_width = 82
+        monkeypatch.setattr(
+            "pandas.io.formats.string.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+
+        ncols = 20
+        df = DataFrame(
+            {
+                f"col_{idx:02d}": np.random.default_rng(2).standard_normal(3)
+                for idx in range(ncols)
+            }
+        )
+
+        with option_context("display.width", terminal_width, "display.max_columns", 0):
+            result = repr(df)
+            for line in result.split("\n"):
+                assert len(line) <= terminal_width
+
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
         # determine size of truncation (...) column
