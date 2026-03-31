@@ -162,7 +162,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in :meth:`Index.fillna` raising ``TypeError`` when filling with a tuple value (e.g. on object-dtype or :class:`CategoricalIndex` with tuple categories) (:issue:`37681`)
 -
 
 Datetimelike
