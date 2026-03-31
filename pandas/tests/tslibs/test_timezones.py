@@ -22,6 +22,7 @@ from pandas import (
     Timestamp,
     date_range,
 )
+import pandas._testing as tm
 
 
 @pytest.mark.single_cpu
@@ -211,8 +212,6 @@ def test_zoneinfo_utc_to_local_post_2037():
             for hour in range(24)
         ]
     )
-    import pandas._testing as tm
-
     tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
 
 
