@@ -270,8 +270,8 @@ cdef object _load_zoneinfo_transition_data(str key):
     else:
         file_obj = _zoneinfo_common.load_tzdata(key)
 
-    with file_obj as f:
-        return _zoneinfo_common.load_data(f)
+    with file_obj as fd:
+        return _zoneinfo_common.load_data(fd)
 
 
 cdef object _get_future_transitions(str tz_str, int64_t last_hist_utc):
