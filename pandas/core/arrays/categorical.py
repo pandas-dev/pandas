@@ -502,6 +502,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         else:
+            if (
+                isinstance(values, ExtensionArray)
+                and values.dtype != dtype.categories.dtype
+            ):
+                # GH#62051 convert values to the categories' dtype before
+                # matching, e.g. ArrowEA date32 -> datetime64[s]
+                try:
+                    values = values.astype(dtype.categories.dtype)
+                except (TypeError, ValueError):
+                    pass
             codes = _get_codes_for_values(values, dtype.categories)
 
         if null_mask.any():
