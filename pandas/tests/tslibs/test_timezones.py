@@ -210,7 +210,8 @@ def test_zoneinfo_utc_to_local_post_2037():
         [
             datetime(2040, 7, 1, hour, tzinfo=timezone.utc).astimezone(tz).hour
             for hour in range(24)
-        ]
+        ],
+        dtype=np.int32,
     )
     tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
 
