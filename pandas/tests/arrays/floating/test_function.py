@@ -234,3 +234,54 @@ def test_floating_array_mean_skipna_with_nan(request, using_nan_is_na):
         mark = pytest.mark.xfail(reason="NaN not yet distinguished from NA")
         request.applymarker(mark)
         assert np.isnan(result)
+
+
+def test_isna_with_nan_value(using_nan_is_na):
+    # GH#53887, GH#60106, GH#61758
+    # NaN produced via division-by-zero in a FloatingArray;
+    # isna should detect it only when NaN is treated as NA.
+    ser = pd.Series([1.0, 0.0], dtype="Float64") / pd.Series(
+        [1.0, 0.0], dtype="Float64"
+    )
+    result = ser.isna()
+    if using_nan_is_na:
+        expected = pd.Series([False, True])
+    else:
+        expected = pd.Series([False, False])
+    tm.assert_series_equal(result, expected)
+
+
+def test_fillna_div_by_zero_int64(using_nan_is_na):
+    # GH#39926
+    df = pd.DataFrame({"A": [0], "B": [0]}).astype("Int64")
+    df["C"] = df["A"] / df["B"]
+    result = df.fillna(0)
+    if using_nan_is_na:
+        expected = pd.DataFrame(
+            {
+                "A": pd.array([0], dtype="Int64"),
+                "B": pd.array([0], dtype="Int64"),
+                "C": pd.array([0.0], dtype="Float64"),
+            }
+        )
+    else:
+        expected = pd.DataFrame(
+            {
+                "A": pd.array([0], dtype="Int64"),
+                "B": pd.array([0], dtype="Int64"),
+                "C": pd.array([np.nan], dtype="Float64"),
+            }
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_nunique_div_by_zero(using_nan_is_na):
+    # GH#54876
+    ser = pd.Series([np.nan, 0], dtype="Float64") / 0
+    result = ser.nunique()
+    if using_nan_is_na:
+        # Both values are NA, excluded by default -> 0 unique
+        assert result == 0
+    else:
+        # NaN from 0/0 is a value, not NA -> 1 unique (NaN)
+        assert result == 1

@@ -7,8 +7,6 @@ import time
 import numpy as np
 import pytest
 
-from pandas.compat import PY312
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -341,11 +339,14 @@ def test_store_dropna(temp_h5_path):
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
+    msg = "The 'dropna' keyword in HDFStore.put is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
 
@@ -511,7 +512,7 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
     mydt = dt.datetime(2013, 4, 30)
     dts = date_range(mydt, periods=5, freq=bday_egypt)
 
-    s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
     temp_hdfstore.put("fixed", s)
     result = temp_hdfstore.select("fixed")
@@ -856,20 +857,13 @@ def test_start_stop_fixed(temp_hdfstore):
     df.iloc[8:10, -2] = np.nan
 
 
-def test_select_filter_corner(temp_hdfstore, request):
+def test_select_filter_corner(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
     temp_hdfstore.put("frame", df, format="table")
 
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=ValueError,
-        )
-    )
     crit = "columns=df.columns[:75]"
     result = temp_hdfstore.select("frame", [crit])
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75]])

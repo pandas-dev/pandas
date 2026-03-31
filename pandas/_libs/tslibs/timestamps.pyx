@@ -238,8 +238,42 @@ cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    dayofweek = _Timestamp.day_of_week
-    dayofyear = _Timestamp.day_of_year
+
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Timestamp.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "Timestamp.dayofweek is deprecated and will be removed in a "
+            "future version. Use Timestamp.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Timestamp.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "Timestamp.dayofyear is deprecated and will be removed in a "
+            "future version. Use Timestamp.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
 
     _docstring_min = """
     Returns the minimum bound possible for Timestamp.
@@ -3730,7 +3764,27 @@ default 'raise'
 
 # Aliases
 Timestamp.weekofyear = Timestamp.week
-Timestamp.daysinmonth = Timestamp.days_in_month
+
+
+def _daysinmonth_fget(self):
+    """
+    Return the number of days in the month.
+
+    .. deprecated:: 3.1.0
+        Use :attr:`Timestamp.days_in_month` instead.
+    """
+    from pandas.errors import Pandas4Warning
+
+    warnings.warn(
+        "Timestamp.daysinmonth is deprecated and will be removed in a "
+        "future version. Use Timestamp.days_in_month instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return self.days_in_month
+
+
+Timestamp.daysinmonth = property(_daysinmonth_fget)
 
 
 # ----------------------------------------------------------------------
