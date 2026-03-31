@@ -317,7 +317,11 @@ cdef object _get_future_transitions(str tz_str, int64_t last_hist_utc):
             break
         if not year_trans:
             break
-        start_utc, end_utc = year_trans
+        # transitions() returns wall-clock times, not UTC.
+        # DST start is in standard time, DST end is in DST time.
+        start_wall, end_wall = year_trans
+        start_utc = start_wall - std_off
+        end_utc = end_wall - dst_off
         if start_utc > last_hist_utc:
             result.append((start_utc, dst_off))
         if end_utc > last_hist_utc:

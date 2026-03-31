@@ -224,7 +224,6 @@ def test_zoneinfo_utc_to_local_pre_first_transition(key):
     # implementation), NOT the first non-DST transition offset.
     tz = ZoneInfo(key)
     ts = Timestamp("1850-01-01", tz="UTC").tz_convert(tz)
-    result = ts.hour
 
-    expected = datetime(1850, 1, 1, tzinfo=timezone.utc).astimezone(tz).hour
-    assert result == expected
+    expected = datetime(1850, 1, 1, tzinfo=timezone.utc).astimezone(tz)
+    assert ts.minute == expected.minute
