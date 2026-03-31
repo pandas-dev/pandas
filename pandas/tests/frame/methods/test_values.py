@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     NaT,
@@ -221,6 +222,23 @@ class TestDataFrameValues:
 
         values = mixed_int_frame[["C"]].values
         assert values.dtype == np.uint8
+
+    def test_values_consistent_na_nullable_float(self, using_nan_is_na):
+        # GH#61856 - .values should give consistent NA/NaN regardless of
+        # whether other columns force object dtype
+        ser = Series([1, pd.NA], dtype=pd.Float64Dtype())
+        df = DataFrame({"A": ser, "B": ["foo", "bar"]})
+
+        float_only = df[["A"]].values[1, 0]
+        mixed = df.values[1, 0]
+        if using_nan_is_na:
+            # Default: both should be NaN (but this is the known-inconsistent path)
+            assert isinstance(float_only, float) and np.isnan(float_only)
+            assert mixed is pd.NA
+        else:
+            # With distinguish_nan_and_na: both should be pd.NA
+            assert float_only is pd.NA
+            assert mixed is pd.NA
 
 
 class TestPrivateValues:

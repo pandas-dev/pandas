@@ -211,6 +211,36 @@ def test_series_from_float(data, using_nan_is_na):
     tm.assert_series_equal(result, expected)
 
 
+def test_nan_not_coerced_to_na(using_nan_is_na):
+    # GH#61617 - NaN from arithmetic should not be coerced to NA
+    arr = pd.array([0, pd.NA])
+    result = pd.Series(arr) / 0
+    if using_nan_is_na:
+        # Default: NaN is coerced to NA
+        assert result[0] is pd.NA
+    else:
+        # With distinguish_nan_and_na: NaN stays as NaN
+        assert np.isnan(result[0])
+    # The NA entry should always remain NA
+    assert result[1] is pd.NA
+
+
+def test_nan_and_na_distinct_in_construction(using_nan_is_na):
+    # GH#61617 - constructing a FloatingArray with both NaN and NA
+    # should preserve the distinction when distinguish_nan_and_na is set
+    result = pd.array([1.0, np.nan, pd.NA], dtype="Float64")
+    if using_nan_is_na:
+        # Default: NaN coerced to NA, both become NA
+        assert result[1] is pd.NA
+        assert result[2] is pd.NA
+    else:
+        # With distinguish_nan_and_na: NaN is a value, NA is missing
+        assert np.isnan(result[1])
+        assert result[2] is pd.NA
+        assert not result._mask[1]
+        assert result._mask[2]
+
+
 def test_from_arrow_nan_vs_none(using_nan_is_na):
     # GH#55668
     pyarrow = pytest.importorskip("pyarrow")
