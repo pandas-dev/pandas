@@ -2485,7 +2485,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#43999 - deprecation of observed=False
                 observed=False,
             ).transform("sum")
-            result_series = result_series.div(indexed_group_size)
+            result_series /= indexed_group_size
 
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
@@ -5620,7 +5620,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if to_coerce:
                 shifted = shifted.astype(dict.fromkeys(to_coerce, "float32"))
 
-        return obj.sub(shifted)
+        return obj - shifted
 
     @final
     def pct_change(
@@ -5723,7 +5723,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         filled = getattr(self, op)(limit=0)
         fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
         shifted = fill_grp.shift(periods=periods, freq=freq)
-        return (filled.div(shifted)) - 1
+        return (filled / shifted) - 1
 
     @final
     def head(self, n: int = 5) -> NDFrameT:
