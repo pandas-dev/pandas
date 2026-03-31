@@ -502,16 +502,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
 
         else:
-            if (
-                isinstance(values, ExtensionArray)
-                and values.dtype != dtype.categories.dtype
-            ):
-                # GH#62051 convert values to the categories' dtype before
-                # matching, e.g. ArrowEA date32 -> datetime64[s]
-                try:
-                    values = values.astype(dtype.categories.dtype)
-                except (TypeError, ValueError):
-                    pass
             codes = _get_codes_for_values(values, dtype.categories)
 
         if null_mask.any():
@@ -3073,6 +3063,15 @@ def _get_codes_for_values(
     """
     codes = categories.get_indexer_for(values)
     wrong = (codes == -1) & ~isna(values)
+    if wrong.all() and isinstance(getattr(values, "dtype", None), ArrowDtype):
+        # GH#62051 e.g. ArrowEA date32 vs datetime64[s] categories
+        try:
+            values = values.astype(categories.dtype)
+        except (TypeError, ValueError):
+            pass
+        else:
+            codes = categories.get_indexer_for(values)
+            wrong = (codes == -1) & ~isna(values)
     if wrong.any():
         warnings.warn(
             "Constructing a Categorical with a dtype and values containing "

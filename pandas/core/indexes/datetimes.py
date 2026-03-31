@@ -878,12 +878,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             import pyarrow as pa
 
             pa_dtype = dtype.pyarrow_dtype
-            if pa.types.is_timestamp(pa_dtype):
-                if (pa_dtype.tz is None) ^ (self.tz is None):
-                    return False
-            elif self.tz is not None:
-                # GH#62051 date types (date32, date64) are tz-naive,
-                # only comparable with tz-naive DatetimeIndex
+            if not pa.types.is_timestamp(pa_dtype):
+                # GH#62051 date types (date32, date64) are not
+                # comparable with DatetimeIndex
+                return False
+            if (pa_dtype.tz is None) ^ (self.tz is None):
                 return False
             return True
 
