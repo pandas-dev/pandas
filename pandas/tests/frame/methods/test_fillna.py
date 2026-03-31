@@ -85,7 +85,8 @@ class TestFillNA:
         assert (result.loc[result.index[5:20], "foo"] == "bar").all()
 
         # GH#45153 filling string column with int is deprecated
-        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+        warn = Pandas4Warning if using_infer_string else None
+        with tm.assert_produces_warning(warn, match="fill value"):
             result = mf.fillna(value=0)
         assert (result.loc[result.index[-10:], "A"] == 0).all()
         assert (result.loc[result.index[5:20], "foo"] == 0).all()
