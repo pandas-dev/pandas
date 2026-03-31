@@ -11653,13 +11653,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        if not is_bool(bool_only):
-            warnings.warn(
-                f"bool_only must be a boolean, got {type(bool_only).__name__}. "
-                "This will raise a ValueError in a future version.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
 
         if self.ndim > 1 and axis is None:
             # Reduce along one dimension then the other, to simplify DataFrame._reduce
