@@ -11637,6 +11637,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | bool:
         nv.validate_logical_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        if not is_bool(bool_only):
+            warnings.warn(
+                f"bool_only must be a boolean, got {type(bool_only).__name__}. "
+                "This will raise a ValueError in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         if self.ndim > 1 and axis is None:
             # Reduce along one dimension then the other, to simplify DataFrame._reduce
@@ -11770,10 +11777,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if numeric_only is not None:
-            validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
-        elif numeric_only is None:
-            raise ValueError("numeric_only must be a boolean, got None")
+        if not is_bool(numeric_only):
+            warnings.warn(
+                f"numeric_only must be a boolean, got {type(numeric_only).__name__}. "
+                "This will raise a ValueError in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11832,10 +11842,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if numeric_only is not None:
-            validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
-        elif numeric_only is None:
-            raise ValueError("numeric_only must be a boolean, got None")
+        if not is_bool(numeric_only):
+            warnings.warn(
+                f"numeric_only must be a boolean, got {type(numeric_only).__name__}. "
+                "This will raise a ValueError in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
@@ -11940,10 +11953,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if numeric_only is not None:
-            validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
-        elif numeric_only is None:
-            raise ValueError("numeric_only must be a boolean, got None")
+        if not is_bool(numeric_only):
+            warnings.warn(
+                f"numeric_only must be a boolean, got {type(numeric_only).__name__}. "
+                "This will raise a ValueError in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func,
