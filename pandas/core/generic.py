@@ -11641,7 +11641,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 f"bool_only must be a boolean, got {type(bool_only).__name__}. "
                 "This will raise a ValueError in a future version.",
-                FutureWarning,
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        if not is_bool(bool_only):
+            warnings.warn(
+                f"bool_only must be a boolean, got {type(bool_only).__name__}. "
+                "This will raise a ValueError in a future version.",
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -11781,7 +11788,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 f"numeric_only must be a boolean, got {type(numeric_only).__name__}. "
                 "This will raise a ValueError in a future version.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -11846,7 +11853,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 f"numeric_only must be a boolean, got {type(numeric_only).__name__}. "
                 "This will raise a ValueError in a future version.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -11957,7 +11964,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 f"numeric_only must be a boolean, got {type(numeric_only).__name__}. "
                 "This will raise a ValueError in a future version.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
