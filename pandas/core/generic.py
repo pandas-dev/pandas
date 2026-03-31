@@ -10499,7 +10499,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not all(is_bool_dtype(blk.dtype) for blk in cond._mgr.blocks):
                 raise ValueError(na_msg)
         elif isinstance(cond, ABCSeries):
-            if not is_bool_dtype(cond):
+            if not is_bool_dtype(cond.dtype):
                 raise ValueError(na_msg)
 
         return self._where(
