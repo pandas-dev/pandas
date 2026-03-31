@@ -355,6 +355,12 @@ def unique(values):
     Index.unique : Return unique values from an Index.
     Series.unique : Return unique values of Series object.
 
+    Notes 
+    --------
+    For object-dtype inputs, boolean and integer values are not
+    distinguished. For example, ``True`` and ``1`` are treated as
+    equivalent values.
+
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
@@ -700,6 +706,9 @@ def factorize(
     Notes
     -----
     Reference :ref:`the user guide <reshaping.factorize>` for more examples.
+    For object-dtype inputs, boolean and integer values are not
+    distinguished. For example, ``True`` and ``1`` are treated as
+    equivalent values.
 
     Examples
     --------
