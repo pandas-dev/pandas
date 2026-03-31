@@ -137,26 +137,18 @@ class NumpyExtensionArray(
     ) -> NumpyExtensionArray:
         if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
+        if dtype is not None:
+            dtype = np.dtype(dtype)  # type: ignore[arg-type]
 
-        if dtype is not None and np.dtype(dtype).kind in "iu":  # type: ignore[arg-type]
+        if dtype is not None and dtype.kind in "iu":
             # GH#41724 - validate NaN before casting float -> int
             result = np.asarray(scalars)
             if np.issubdtype(result.dtype, np.floating):
-                result = astype_float_to_int_nansafe(
-                    result,
-                    np.dtype(dtype),  # type: ignore[arg-type]
-                    copy=copy,
-                )
+                result = astype_float_to_int_nansafe(result, dtype, copy=copy)
             else:
-                result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+                result = np.asarray(scalars, dtype=dtype)
         else:
-            # error: Argument "dtype" to "asarray" has incompatible type
-            # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]],
-            # Type[object], None]"; expected "Union[dtype[Any], None, type,
-            # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DTypeDict,
-            # Tuple[Any, Any]]]"
-            result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+            result = np.asarray(scalars, dtype=dtype)
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")
