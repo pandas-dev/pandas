@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
-from pandas.compat import WASM
 from pandas.compat.numpy import np_version_gt2_2
 
 from pandas import Index
@@ -166,7 +165,7 @@ class TestMixedResolutionDatetime64:
     # should respect the invariant x == y => hash(x) == hash(y)
 
     _xfail_np_hash = pytest.mark.xfail(
-        not np_version_gt2_2 or WASM,
+        not np_version_gt2_2,
         reason="numpy < 2.2 violates hash invariant for mixed-resolution datetime64",
     )
 
