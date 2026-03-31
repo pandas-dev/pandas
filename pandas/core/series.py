@@ -7008,9 +7008,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if (
                 isinstance(self.index, MultiIndex)
                 and isinstance(other.index, MultiIndex)
-                and (
-                    self.index.names != other.index.names
-                    or (self.index.values != other.index.values).any()
+                and not (
+                    self.index.equals(other.index)
+                    or self.index.isin(other.index).all()
+                    or other.index.isin(self.index).all()
                 )
             ):
                 # GH#25891
