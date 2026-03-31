@@ -163,6 +163,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :meth:`CategoricalIndex.union` and :meth:`CategoricalIndex.intersection` giving incorrect results when the two indexes have the same unordered categories in different orders (:issue:`55335`)
 - Bug in :meth:`Index.fillna` raising ``TypeError`` when filling with a tuple value (e.g. on object-dtype or :class:`CategoricalIndex` with tuple categories) (:issue:`37681`)
 -
 

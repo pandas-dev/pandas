@@ -5085,6 +5085,12 @@ class Index(IndexOpsMixin, PandasObject):
         #  not zero-copy.
         # TODO: exclude RangeIndex (which allocates memory)?
         #  Doing so seems to break test_concat_datetime_timezone
+        if isinstance(self, ABCCategoricalIndex) and not self.ordered:
+            # For unordered CategoricalIndex, dtype equality does not
+            # guarantee matching category order across indexes. Since libjoin
+            # operates on codes, mismatched category order leads to incorrect
+            # results. GH#55335
+            return False
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
 
     # --------------------------------------------------------------------
