@@ -13,6 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
+from pandas.errors import LossySetitemError
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import (
@@ -23,6 +24,7 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     maybe_downcast_to_dtype,
+    np_can_hold_element,
 )
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -160,6 +162,36 @@ class NumpyExtensionArray(
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
+
+    def _validate_setitem_value(self, value):
+        dtype = self._ndarray.dtype
+        if lib.is_scalar(value) and isna(value):
+            # Allow NA values (None, np.nan, etc.) for dtypes that support
+            # them (e.g. float); numpy will handle the conversion.
+            return value
+
+        if isinstance(value, type(self)):
+            value = value._ndarray
+
+        try:
+            return np_can_hold_element(dtype, value)
+        except LossySetitemError as err:
+            raise TypeError(f"Invalid value '{value!s}' for dtype '{dtype}'") from err
+        except NotImplementedError:
+            # np_can_hold_element doesn't handle all dtypes (e.g. "U"),
+            # fall back to no validation for those.
+            return value
+
+    def searchsorted(
+        self,
+        value: NpDtype | npt.NDArray[np.generic],
+        side: Literal["left", "right"] = "left",
+        sorter: npt.NDArray[np.intp] | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        # Override to skip _validate_setitem_value; numpy's searchsorted
+        # handles type coercion correctly and we don't want to reject
+        # e.g. float values when searching an integer array.
+        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         result = super()._cast_pointwise_result(values)
