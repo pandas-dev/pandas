@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from collections import (
-    Counter,
     abc,
-    defaultdict,
 )
 import csv
 from io import StringIO
@@ -12,7 +10,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     Literal,
     cast,
     final,
@@ -658,11 +655,11 @@ class PythonParser(ParserBase):
                             existing=existing,
                         )
                     )
-                    result = [None] * len(this_columns)
+                    result = list(this_columns)
                     for new_pos, orig_pos in enumerate(col_loop_order):
                         old_col = this_columns[orig_pos]
                         new_col = deduped[new_pos]
-                        result[orig_pos] = new_col
+                        result[orig_pos] = cast("Scalar | None", new_col)
                         if (
                             old_col != new_col
                             and self.dtype is not None
@@ -672,7 +669,7 @@ class PythonParser(ParserBase):
                         ):
                             self.dtype.update({new_col: self.dtype.get(old_col)})
                     this_columns = result
-                    
+
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but it's not in our
                     # format so save in the buffer, and create a blank extra

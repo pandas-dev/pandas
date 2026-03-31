@@ -12,6 +12,7 @@ from collections.abc import (
     Hashable,
     Mapping,
     Sequence,
+    Set as AbstractSet,
 )
 import dataclasses
 import functools
@@ -1300,7 +1301,7 @@ def is_potential_multi_index(
 def dedup_names(
     names: Sequence[Hashable],
     is_potential_multiindex: bool,
-    existing: set[Hashable] | None = None,
+    existing: AbstractSet[Hashable] | None = None,
 ) -> Sequence[Hashable]:
     """
     Rename column names if duplicates exist.
