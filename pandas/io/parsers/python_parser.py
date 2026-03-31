@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import (
+    Counter,
     abc,
     defaultdict,
 )
@@ -639,39 +640,39 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    counts: DefaultDict = defaultdict(int)
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
                     col_loop_order = [
                         i
                         for i in range(len(this_columns))
                         if i not in this_unnamed_cols
-                    ] + this_unnamed_cols
-
-                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
-                    for i in col_loop_order:
-                        col = this_columns[i]
-                        old_col = col
-                        cur_count = counts[col]
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_columns:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts[col]
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-                        this_columns[i] = col
-                        counts[col] = cur_count + 1
+                    ] + list(this_unnamed_cols)
+                    existing = set(this_columns)
+                    reordered = [this_columns[i] for i in col_loop_order]
+                    deduped = list(
+                        dedup_names(
+                            reordered,
+                            is_potential_multiindex=is_potential_multi_index(
+                                reordered, self.index_col
+                            ),
+                            existing=existing,
+                        )
+                    )
+                    result = [None] * len(this_columns)
+                    for new_pos, orig_pos in enumerate(col_loop_order):
+                        old_col = this_columns[orig_pos]
+                        new_col = deduped[new_pos]
+                        result[orig_pos] = new_col
+                        if (
+                            old_col != new_col
+                            and self.dtype is not None
+                            and is_dict_like(self.dtype)
+                            and self.dtype.get(old_col) is not None
+                            and self.dtype.get(new_col) is None
+                        ):
+                            self.dtype.update({new_col: self.dtype.get(old_col)})
+                    this_columns = result
+                    
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but it's not in our
                     # format so save in the buffer, and create a blank extra

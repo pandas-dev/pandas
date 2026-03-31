@@ -1298,13 +1298,25 @@ def is_potential_multi_index(
 
 
 def dedup_names(
-    names: Sequence[Hashable], is_potential_multiindex: bool
+    names: Sequence[Hashable],
+    is_potential_multiindex: bool,
+    existing: set[Hashable] | None = None,
 ) -> Sequence[Hashable]:
     """
     Rename column names if duplicates exist.
 
     Currently the renaming is done by appending a period and an autonumeric,
     but a custom pattern may be supported in the future.
+
+    Parameters
+    ----------
+    names : sequence of Hashable
+        Column names to deduplicate.
+    is_potential_multiindex : bool
+        Whether the names may form a MultiIndex.
+    existing : set of Hashable, optional
+        Names already present in the original header. When provided, a
+        candidate suffix is skipped if it collides with any name in this set.
 
     Examples
     --------
@@ -1316,6 +1328,7 @@ def dedup_names(
 
     for i, col in enumerate(names):
         cur_count = counts[col]
+        col_base = col
 
         while cur_count > 0:
             counts[col] = cur_count + 1
@@ -1326,7 +1339,13 @@ def dedup_names(
                 col = (*col[:-1], f"{col[-1]}.{cur_count}")
             else:
                 col = f"{col}.{cur_count}"
-            cur_count = counts[col]
+
+            if existing is not None and col in existing:
+                cur_count += 1
+                col = col_base
+            else:
+                col_base = col
+                cur_count = counts[col]
 
         names[i] = col
         counts[col] = cur_count + 1
