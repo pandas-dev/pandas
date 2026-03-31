@@ -51,6 +51,8 @@ if TYPE_CHECKING:
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
+        NumpySorter,
+        NumpyValueArrayLike,
         Scalar,
         TakeIndexer,
         npt,
@@ -58,6 +60,7 @@ if TYPE_CHECKING:
 
     from pandas import Index
     from pandas.arrays import StringArray
+    from pandas.core.arrays.base import ExtensionArray
 
 
 @set_module("pandas.arrays")
@@ -184,14 +187,14 @@ class NumpyExtensionArray(
 
     def searchsorted(
         self,
-        value: NpDtype | npt.NDArray[np.generic],
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: npt.NDArray[np.intp] | None = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         # Override to skip _validate_setitem_value; numpy's searchsorted
         # handles type coercion correctly and we don't want to reject
         # e.g. float values when searching an integer array.
-        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+        return self._ndarray.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         result = super()._cast_pointwise_result(values)
