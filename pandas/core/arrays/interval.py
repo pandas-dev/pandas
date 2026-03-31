@@ -1041,6 +1041,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         filled : IntervalArray with NA/NaN filled
         """
+        if copy is False:
+            raise NotImplementedError
         if limit is not None:
             raise ValueError("limit must be None")
 
