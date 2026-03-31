@@ -1651,23 +1651,21 @@ class EABackedBlock(Block):
         inplace: bool = False,
     ) -> list[Block]:
         if not self._can_hold_element(value):
-            # GH#45153 incompatible value will be cast to object dtype,
-            #  deprecated in favor of raising.
-            new_dtype = find_result_type(self.values.dtype, value)
-            if new_dtype == np.dtype(object):
-                if self._can_hold_na:
-                    mask = isna(self.values)
-                    _, noop = validate_putmask(self.values, mask)
-                    if not noop:
-                        warnings.warn(
-                            f"'{type(value).__name__}' is not supported as a "
-                            f"fill value for {self.dtype} dtype. In a future "
-                            f"version, calling fillna with an incompatible "
-                            f"value will raise. Use "
-                            f"ser.where(ser.notna(), value) as an alternative.",
-                            Pandas4Warning,
-                            stacklevel=find_stack_level(),
-                        )
+            # GH#45153 fillna with incompatible value requiring any dtype
+            #  casting is deprecated in favor of raising.
+            if self._can_hold_na:
+                mask = isna(self.values)
+                _, noop = validate_putmask(self.values, mask)
+                if not noop:
+                    warnings.warn(
+                        f"'{type(value).__name__}' is not supported as a "
+                        f"fill value for {self.dtype} dtype. In a future "
+                        f"version, calling fillna with an incompatible "
+                        f"value will raise. Use "
+                        f"ser.where(ser.notna(), value) as an alternative.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
         return super().fillna(value=value, limit=limit, inplace=inplace)
 
     @final

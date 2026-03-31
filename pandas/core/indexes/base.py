@@ -2862,16 +2862,15 @@ class Index(IndexOpsMixin, PandasObject):
             if is_ea_or_datetimelike_dtype(self.dtype) and not can_hold_element(
                 self._values, value
             ):
-                # GH#45153 casting to object is deprecated for EA-backed types
-                new_dtype = find_result_type(self.dtype, value)
-                if new_dtype == np.dtype(object):
-                    warnings.warn(
-                        f"'{type(value).__name__}' is not supported as a fill "
-                        f"value for {self.dtype} dtype. In a future version, "
-                        f"calling fillna with an incompatible value will raise.",
-                        Pandas4Warning,
-                        stacklevel=find_stack_level(),
-                    )
+                # GH#45153 fillna with incompatible value requiring any
+                #  dtype casting is deprecated for EA-backed types.
+                warnings.warn(
+                    f"'{type(value).__name__}' is not supported as a fill "
+                    f"value for {self.dtype} dtype. In a future version, "
+                    f"calling fillna with an incompatible value will raise.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             result = self.putmask(self._isnan, value)
             # no need to care metadata other than name
             # because it can't have freq if it has NaTs

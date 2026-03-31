@@ -331,8 +331,11 @@ class TestSeriesFillNA:
         ser[0] = NaT
         ser2 = ser.copy()
 
-        res = ser.fillna(item)
-        res2 = ser2.fillna(Series(vec))
+        # GH#45153 filling with mismatched resolution requires casting
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res = ser.fillna(item)
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res2 = ser2.fillna(Series(vec))
 
         if scalar:
             tm.assert_series_equal(res, expected)
@@ -359,8 +362,11 @@ class TestSeriesFillNA:
         ser[0] = NaT
         ser2 = ser.copy()
 
-        res = ser.fillna(item)
-        res2 = ser2.fillna(Series(vec))
+        # GH#45153 filling with mismatched resolution requires casting
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res = ser.fillna(item)
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res2 = ser2.fillna(Series(vec))
 
         if scalar:
             tm.assert_series_equal(res, expected)

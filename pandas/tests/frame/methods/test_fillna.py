@@ -879,8 +879,10 @@ def test_fillna_out_of_bounds_datetime():
     df.iloc[0, 0] = None
 
     msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
-    with pytest.raises(OutOfBoundsDatetime, match=msg):
-        df.fillna(Timestamp("0001-01-01"))
+    # GH#45153 the Pandas4Warning fires before the OutOfBoundsDatetime
+    with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            df.fillna(Timestamp("0001-01-01"))
 
 
 def test_fillna_dtype_preservation_after_apply():
