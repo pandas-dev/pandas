@@ -9,25 +9,23 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        AxisInt,
-        Scalar,
-    )
+    from pandas._typing import Scalar
 
 
-def shift(
-    values: np.ndarray, periods: int, axis: AxisInt, fill_value: Scalar
-) -> np.ndarray:
+def shift(values: np.ndarray, periods: int, fill_value: Scalar) -> np.ndarray:
     new_values = values
 
     if periods == 0 or values.size == 0:
         return new_values.copy()
 
+    # Always shift along the last axis.
+    axis = new_values.ndim - 1
+
     # make sure array sent to np.roll is c_contiguous
     f_ordered = values.flags.f_contiguous
     if f_ordered:
         new_values = new_values.T
-        axis = new_values.ndim - axis - 1
+        axis = 0
 
     if new_values.size:
         new_values = np.roll(

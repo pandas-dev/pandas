@@ -530,7 +530,9 @@ class AbstractMethodError(NotImplementedError):
     AbstractMethodError: This classmethod must be defined in the concrete class Foo
     """
 
-    def __init__(self, class_instance, methodtype: str = "method") -> None:
+    def __init__(
+        self, class_instance: type | object, methodtype: str = "method"
+    ) -> None:
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(
@@ -540,7 +542,7 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self) -> str:
-        if self.methodtype == "classmethod":
+        if isinstance(self.class_instance, type):
             name = self.class_instance.__name__
         else:
             name = type(self.class_instance).__name__

@@ -205,11 +205,23 @@ def _get_ax_freq(ax: Axes):
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     if isinstance(freq, BaseOffset):
+        n = freq.n
         freqstr = freq.rule_code
     else:
-        freqstr = to_offset(freq, is_period=True).rule_code
+        offset = to_offset(freq, is_period=True)
+        n = offset.n
+        freqstr = offset.rule_code
 
-    return get_period_alias(freqstr)
+    alias = get_period_alias(freqstr)
+    if alias is None:
+        return None
+    # Don't apply multiplier for business days — Period[B] is deprecated
+    # and the special-case BDay handling doesn't support multiplied freq.
+    if alias == "B":
+        return alias
+    if n != 1:
+        return f"{n}{alias}"
+    return alias
 
 
 def _get_freq(ax: Axes, series: Series):
@@ -254,7 +266,7 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
-            return index[:1].is_normalized
+            return index[:1].is_normalized  # type: ignore[attr-defined]
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
         return period.to_timestamp().tz_localize(index.tz) == index[0]

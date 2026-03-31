@@ -190,9 +190,13 @@ class PythonParser(ParserBase):
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
+            # GH#52619 - use non-backtracking structure to avoid catastrophic
+            # backtracking on cells with many comma-separated digit groups
+            # followed by non-numeric text.
             regex = (
-                rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                rf"([0-9]?(E|e)\-?[0-9]+)?$"
+                rf"^[\-\+]?(?:[0-9]+(?:{thousands}[0-9]+)*{thousands}?)?"
+                rf"({decimal}[0-9]*)?"
+                rf"((E|e)\-?[0-9]+)?$"
             )
         return re.compile(regex)
 
@@ -830,7 +834,7 @@ class PythonParser(ParserBase):
         the name, not the middle of it.
         """
         # first_row will be a list, so we need to check
-        # that that list is not empty before proceeding.
+        # that the list is not empty before proceeding.
         if not first_row:
             return first_row
 

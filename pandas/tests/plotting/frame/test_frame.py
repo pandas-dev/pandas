@@ -1519,6 +1519,15 @@ class TestDataFramePlots:
         with pytest.raises(TypeError, match=msg):
             df.plot(kind=kind)
 
+    @pytest.mark.parametrize("kind", ["hist", "box"])
+    def test_plot_hist_box_non_unique_columns_raises(self, kind):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df.columns = ["a", "a"]
+
+        msg = "plotting requires unique column names"
+        with pytest.raises(ValueError, match=msg):
+            getattr(df.plot, kind)()
+
     @pytest.mark.parametrize(
         "kind", [*list(plotting.PlotAccessor._common_kinds), "area"]
     )
@@ -1879,6 +1888,9 @@ class TestDataFramePlots:
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in dot:RuntimeWarning"
+    )
     def test_errorbar_with_partial_columns_dti(self):
         df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
         df_err = DataFrame(
@@ -1899,6 +1911,9 @@ class TestDataFramePlots:
         ax = _check_plot_works(df.plot, yerr=err)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in dot:RuntimeWarning"
+    )
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_timeseries(self, kind):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
@@ -2614,7 +2629,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_no_warning(self):
         # GH 55138
-        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        # TODO(4.0): this can be removed once Period[B] deprecation is enforced
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),

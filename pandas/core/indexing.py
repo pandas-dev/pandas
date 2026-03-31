@@ -26,8 +26,10 @@ from pandas.errors import (
     IndexingError,
     InvalidIndexError,
     LossySetitemError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_msg
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -107,6 +109,10 @@ _one_ellipsis_message = "indexer may only contain one '...' entry"
 class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
+
+    ``IndexSlice`` is a convenience object that allows the use of natural
+    slice syntax (``start:stop``) when selecting from a :class:`MultiIndex`,
+    rather than requiring explicit ``slice()`` calls.
 
     See Also
     --------
@@ -955,14 +961,14 @@ class _LocationIndexer(NDFrameIndexerBase):
                     self.obj._mgr = new_ser._mgr
             elif orig_obj.shape[1] == self.obj.shape[1]:
                 # We added rows but not columns
-                for i in range(orig_obj.shape[1]):
-                    new_dtype = self.obj.dtypes.iloc[i]
-                    orig_dtype = orig_obj.dtypes.iloc[i]
-                    if new_dtype != orig_dtype:
-                        new_arr = infer_and_maybe_downcast(
-                            orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
-                        )
-                        self.obj.isetitem(i, new_arr)
+                changed_dtypes = (
+                    self.obj._mgr.get_dtypes() != orig_obj._mgr.get_dtypes()
+                )
+                for i in np.flatnonzero(changed_dtypes):
+                    new_arr = infer_and_maybe_downcast(
+                        orig_obj.iloc[:, i].array, self.obj.iloc[:, i]._values
+                    )
+                    self.obj.isetitem(i, new_arr)
 
             elif orig_obj.columns.is_unique and self.obj.columns.is_unique:
                 for col in orig_obj.columns:
@@ -1109,7 +1115,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self._is_nested_tuple_indexer(tup):
             return self._getitem_nested_tuple(tup)
 
-        # we maybe be using a tuple to represent multiple dimensions here
+        # we may be using a tuple to represent multiple dimensions here
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
@@ -2514,9 +2520,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif np.ndim(value) == 2:
-                # TODO: avoid np.ndim call in case it isn't an ndarray, since
-                #  that will construct an ndarray, which will be wasteful
+            elif _is_2d_value(value):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2571,25 +2575,31 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_single_column(loc, value, pi)
 
     def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
-        # We get here with np.ndim(value) == 2, excluding DataFrame,
-        #  which goes through _setitem_with_indexer_frame_value
+        # We get here with a 2D value (array-like or list-of-lists),
+        # excluding DataFrame which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
-
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
-        if not is_array_like(value):
-            # cast lists to array
-            value = np.array(value, dtype=object)
-        if len(ilocs) != value.shape[1]:
+        if not isinstance(value, list) and not is_array_like(value):
+            value = np.asarray(value)
+
+        if isinstance(value, list):
+            if any(len(row) != len(ilocs) for row in value):
+                raise ValueError(
+                    "Must have equal len keys and value when setting with an ndarray"
+                )
+        elif value.shape[1] != len(ilocs):
             raise ValueError(
                 "Must have equal len keys and value when setting with an ndarray"
             )
 
         for i, loc in enumerate(ilocs):
-            value_col = value[:, i]
-            if is_object_dtype(value_col.dtype):
-                # casting to list so that we do type inference in setitem_single_column
-                value_col = value_col.tolist()
+            if isinstance(value, list):
+                value_col = [row[i] for row in value]
+            else:
+                value_col = value[:, i]
+                if is_object_dtype(value_col.dtype):
+                    value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
     def _setitem_with_indexer_frame_value(
@@ -3138,6 +3148,41 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return key
 
+    def _warn_if_expanding(self, key) -> None:
+        """
+        GH#48323 - Warn if .at setitem would expand the object.
+        """
+        if self.ndim == 2:
+            if not isinstance(key, tuple) or len(key) != 2:
+                return
+            check_key = key[0]
+        else:
+            check_key = key
+            if isinstance(key, tuple) and len(key) == 1:
+                check_key = key[0]
+
+        # Only check for scalar-like keys (including tuples for MultiIndex).
+        # Slices and list-likes are invalid for .at and will raise elsewhere.
+        if isinstance(check_key, slice) or is_list_like_indexer(check_key):
+            if not isinstance(check_key, tuple):
+                return
+
+        try:
+            is_expanding = check_key not in self.obj.index
+        except (TypeError, InvalidIndexError):
+            return
+
+        if is_expanding:
+            obj_type = "DataFrame" if self.ndim == 2 else "Series"
+            warnings.warn(
+                f"Setting a value on a {obj_type} via .at with a key "
+                "that does not exist in the index is deprecated "
+                "and will raise a KeyError in a future version. "
+                "Use .loc instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
     @property
     def _axes_are_unique(self) -> bool:
         # Only relevant for self.ndim == 2
@@ -3159,6 +3204,9 @@ class _AtIndexer(_ScalarAccessIndexer):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+
+        # GH#48323 - deprecate .at setitem with expansion
+        self._warn_if_expanding(key)
 
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
@@ -3235,6 +3283,13 @@ class _iAtIndexer(_ScalarAccessIndexer):
                 )
 
         return super().__setitem__(key, value)
+
+
+def _is_2d_value(value) -> bool:
+    """Check if value is 2-dimensional, avoiding np.asarray for plain lists."""
+    if isinstance(value, list):
+        return len(value) > 0 and isinstance(value[0], (list, tuple))
+    return np.ndim(value) == 2
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:

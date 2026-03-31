@@ -643,7 +643,7 @@ class PyTablesExpr(expr.Expr):
 
 
 class TermValue:
-    """hold a term value the we use to construct a condition/filter"""
+    """hold a term value that we use to construct a condition/filter"""
 
     def __init__(self, value, converted, kind: str) -> None:
         assert isinstance(kind, str), kind

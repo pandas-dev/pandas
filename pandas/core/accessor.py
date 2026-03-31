@@ -301,6 +301,9 @@ def register_dataframe_accessor(name: str) -> Callable[[TypeT], TypeT]:
     """
     Register a custom accessor on DataFrame objects.
 
+    Use as a decorator to add a custom namespace accessor to DataFrame,
+    allowing domain-specific methods to be called via ``df.<name>``.
+
     Parameters
     ----------
     name : str
@@ -374,6 +377,9 @@ def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
     """
     Register a custom accessor on Series objects.
 
+    Use as a decorator to add a custom namespace accessor to Series,
+    allowing domain-specific methods to be called via ``ser.<name>``.
+
     Parameters
     ----------
     name : str
@@ -442,6 +448,9 @@ def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
 def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     """
     Register a custom accessor on Index objects.
+
+    Use as a decorator to add a custom namespace accessor to Index,
+    allowing domain-specific methods to be called via ``idx.<name>``.
 
     Parameters
     ----------

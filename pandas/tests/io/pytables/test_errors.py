@@ -209,7 +209,7 @@ def test_to_hdf_multiindex_extension_dtype(idx, temp_h5_path):
         df.to_hdf(temp_h5_path, key="df")
 
 
-def test_unsuppored_hdf_file_error(datapath):
+def test_unsupported_hdf_file_error(datapath):
     # GH 9539
     data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
     message = (

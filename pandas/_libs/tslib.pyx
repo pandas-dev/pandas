@@ -501,6 +501,8 @@ cpdef array_to_datetime(
     return result, tz_out
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def array_to_datetime_with_tz(
     ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso
 ):

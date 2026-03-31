@@ -367,7 +367,7 @@ def _get_filepath_or_buffer(
         and encoding in ["utf-16", "utf-32"]
     ):
         warnings.warn(
-            f"{compression} will not write the byte order mark for {encoding}",
+            f"{compression_method} will not write the byte order mark for {encoding}",
             UnicodeWarning,
             stacklevel=find_stack_level(),
         )
@@ -846,7 +846,14 @@ def get_handle(
                 handles.append(handle)
                 zip_names = handle.buffer.namelist()
                 if len(zip_names) == 1:
-                    handle = handle.buffer.open(zip_names.pop())
+                    # Read the entire zip entry into memory rather than
+                    # returning a streaming ZipExtFile via .open(). On
+                    # Python <3.12, ZipExtFile has poor buffering that
+                    # causes O(n²) performance with pickle.load() and
+                    # other consumers that issue many small reads
+                    # (GH#59279). Can be reverted to .open() once the
+                    # minimum Python version is 3.12.
+                    handle = BytesIO(handle.buffer.read(zip_names.pop()))
                 elif not zip_names:
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
@@ -1117,7 +1124,7 @@ class _IOWrapper:
     # and writable. If we have a read-only buffer, we shouldn't need writable and vice
     # versa. Some buffers, are seek/read/writ-able but they do not have the "-able"
     # methods, e.g., tempfile.SpooledTemporaryFile.
-    # If a buffer does not have the above "-able" methods, we simple assume they are
+    # If a buffer does not have the above "-able" methods, we simply assume they are
     # seek/read/writ-able.
     def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
@@ -1243,7 +1250,7 @@ def _is_binary_mode(handle: FilePath | BaseBuffer, mode: str) -> bool:
 
 @functools.lru_cache
 def _get_binary_io_classes() -> tuple[type, ...]:
-    """IO classes that that expect bytes"""
+    """IO classes that expect bytes"""
     binary_classes: tuple[type, ...] = (BufferedIOBase, RawIOBase)
 
     # python-zstandard doesn't use any of the builtin base classes; instead we
