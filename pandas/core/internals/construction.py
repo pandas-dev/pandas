@@ -809,6 +809,20 @@ def to_arrays(
         arr, columns = _list_of_series_to_arrays(data, columns)
     else:
         # last ditch effort
+        # GH#23985, GH#49593: if all rows are arrays with a uniform
+        # dtype, construct columns directly to preserve that dtype
+        # (e.g. timedelta64, pyarrow, Int64, Categorical)
+        row_dtypes = {row.dtype for row in data if hasattr(row, "dtype")}
+        if len(row_dtypes) == 1 and all(hasattr(row, "dtype") for row in data):
+            common_dtype = row_dtypes.pop()
+            ncols = len(data[0])
+            arrays = [
+                pd_array([row[col_idx] for row in data], dtype=common_dtype)
+                for col_idx in range(ncols)
+            ]
+            columns = _validate_or_indexify_columns(arrays, columns)
+            return arrays, columns
+
         data = [tuple(x) for x in data]
         arr = _list_to_arrays(data)
 
