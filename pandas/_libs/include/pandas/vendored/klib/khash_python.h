@@ -219,26 +219,31 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-static inline int pandas_is_NA(PyObject *o) {
-  PyObject *module = NULL;
-  PyObject *type_na = NULL;
-  int result = -1;
+// GH#57052
+static PyTypeObject *pandas_na_type = NULL;
 
-  if (NULL == (module = PyImport_ImportModule("pandas._libs.missing"))) {
-    goto end;
+// this function assumes PyErr_Occurred is checked further up the call stack
+static inline int pandas_is_NA(PyTypeObject *t) {
+  PyObject *module = NULL;
+  PyObject *na_type = NULL;
+
+  if (NULL == pandas_na_type) {
+    if (NULL == (module = PyImport_ImportModule("pandas._libs.missing"))) {
+      goto end;
+    }
+    if (NULL == (na_type = PyObject_GetAttrString(module, "NAType"))) {
+      goto end;
+    }
+    if (0 == PyType_Check(na_type)) {
+      goto end;
+    }
+    pandas_na_type = (PyTypeObject *)na_type;
   }
-  if (NULL == (type_na = PyObject_GetAttrString(module, "NAType"))) {
-    goto end;
-  }
-  result = PyObject_IsInstance(o, type_na);
 
 end:
+  Py_XDECREF(na_type);
   Py_XDECREF(module);
-  Py_XDECREF(type_na);
-  if (PyErr_Occurred() != NULL) {
-    PyErr_Clear();
-  }
-  return result > 0;
+  return t == pandas_na_type;
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
@@ -248,7 +253,10 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (a == b) {
     return 1;
   }
-  if (Py_TYPE(a) == Py_TYPE(b)) {
+
+  PyTypeObject *a_type = Py_TYPE(a);
+  PyTypeObject *b_type = Py_TYPE(b);
+  if (a_type == b_type) {
     // special handling for some built-in types which could have NaNs
     // as we would like to have them equivalent, but the usual
     // PyObject_RichCompareBool would return False
@@ -264,7 +272,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     }
     // frozenset isn't yet supported
   }
-  if (pandas_is_NA(a) || pandas_is_NA(b)) {
+  if (pandas_is_NA(a_type) || pandas_is_NA(b_type)) {
     // GH#57052: PyObject_RichCompareBool would raise
     // because comparing anything to pd.NA returns pd.NA
     return 0;
