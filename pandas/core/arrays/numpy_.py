@@ -138,14 +138,17 @@ class NumpyExtensionArray(
         if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
 
-        result = np.asarray(scalars)
-        if (
-            dtype is not None
-            and np.issubdtype(result.dtype, np.floating)
-            and np.dtype(dtype).kind in "iu"
-        ):
+        if dtype is not None and np.dtype(dtype).kind in "iu":  # type: ignore[arg-type]
             # GH#41724 - validate NaN before casting float -> int
-            result = astype_float_to_int_nansafe(result, np.dtype(dtype), copy=copy)
+            result = np.asarray(scalars)
+            if np.issubdtype(result.dtype, np.floating):
+                result = astype_float_to_int_nansafe(
+                    result,
+                    np.dtype(dtype),
+                    copy=copy,  # type: ignore[arg-type]
+                )
+            else:
+                result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
         else:
             # error: Argument "dtype" to "asarray" has incompatible type
             # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]],
