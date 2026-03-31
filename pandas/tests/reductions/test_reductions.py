@@ -7,6 +7,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -800,12 +802,12 @@ class TestSeriesReductions:
     def test_numeric_only_invalid_type(self):
         # GH 53098
         df = DataFrame({"x": [1], "y": [4]})
-        msg = "numeric_only must be a boolean, got None"
-        with pytest.raises(ValueError, match=msg):
+        msg = "numeric_only must be a boolean, got NoneType"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.sum(numeric_only=None)
 
-        msg2 = 'For argument "numeric_only" expected type bool, received type str.'
-        with pytest.raises(ValueError, match=msg2):
+        msg2 = 'numeric_only must be a boolean, got str'
+        with tm.assert_produces_warning(Pandas4Warning, match=msg2):
             df.sum(numeric_only="True")
 
     def test_numpy_argmin(self):
