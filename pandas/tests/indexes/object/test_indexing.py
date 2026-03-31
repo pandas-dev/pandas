@@ -5,7 +5,7 @@ import pytest
 
 from pandas._libs.missing import is_matching_na
 from pandas.compat import WASM
-from pandas.compat.numpy import np_version_gt2
+from pandas.compat.numpy import np_version_gt2_2
 
 from pandas import Index
 import pandas._testing as tm
@@ -166,8 +166,8 @@ class TestMixedResolutionDatetime64:
     # should respect the invariant x == y => hash(x) == hash(y)
 
     _xfail_np_hash = pytest.mark.xfail(
-        not np_version_gt2 or WASM,
-        reason="numpy < 2 violates hash invariant for mixed-resolution datetime64",
+        not np_version_gt2_2 or WASM,
+        reason="numpy < 2.2 violates hash invariant for mixed-resolution datetime64",
     )
 
     @pytest.fixture
