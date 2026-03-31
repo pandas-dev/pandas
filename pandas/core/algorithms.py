@@ -355,7 +355,7 @@ def unique(values):
     Index.unique : Return unique values from an Index.
     Series.unique : Return unique values of Series object.
 
-    Notes 
+    Notes
     --------
     For object-dtype inputs, boolean and integer values are not
     distinguished. For example, ``True`` and ``1`` are treated as
