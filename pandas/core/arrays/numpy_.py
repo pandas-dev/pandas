@@ -144,8 +144,8 @@ class NumpyExtensionArray(
             if np.issubdtype(result.dtype, np.floating):
                 result = astype_float_to_int_nansafe(
                     result,
-                    np.dtype(dtype),
-                    copy=copy,  # type: ignore[arg-type]
+                    np.dtype(dtype),  # type: ignore[arg-type]
+                    copy=copy,
                 )
             else:
                 result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
