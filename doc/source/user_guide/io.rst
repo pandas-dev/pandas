@@ -251,7 +251,7 @@ skip_blank_lines : boolean, default ``True``
 Datetime handling
 +++++++++++++++++
 
-parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
+parse_dates : boolean or list of ints or names, default ``False``.
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
@@ -786,9 +786,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    # These are Python datetime objects
    df.index
 
-It is often the case that we may want to store date and time data separately,
-or store various date fields separately. The ``parse_dates`` keyword can be
-used to specify columns to parse the dates and/or times.
+The ``parse_dates`` keyword can be used to specify columns to parse as dates.
 
 
 .. note::
