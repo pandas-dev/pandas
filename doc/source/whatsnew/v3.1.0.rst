@@ -337,6 +337,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
+- Bug in :meth:`DatetimeIndex.to_period` where anchored offsets ``YS``, ``BYS``, ``QS``, ``BQS``, ``BYE``, and ``BQE`` produced incorrect period frequencies, losing the month anchor (:issue:`36939`)
 - Bug in :meth:`Period.strftime` where unknown format directives (e.g. ``"%Q"``) silently produced platform-dependent output and crashed the Python process on Windows; an ``Invalid format string`` ``ValueError`` is now raised on all platforms (:issue:`53562`)
 -
 

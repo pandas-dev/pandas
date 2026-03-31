@@ -58,12 +58,16 @@ if TYPE_CHECKING:
 # --------------------------------------------------------------------
 # Offset related functions
 
-_need_suffix = ["QS", "BQE", "BQS", "YS", "BYE", "BYS"]
+_need_suffix = ["QS", "BQS", "YS", "BYS"]
 
+_period_alias = {"QS": "Q", "BQS": "Q", "YS": "Y", "BYS": "Y"}
 for _prefix in _need_suffix:
-    for _m in MONTHS:
+    for _idx, _m in enumerate(MONTHS):
         key = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
+        # Start offsets need month shifted back by one:
+        # e.g. YS-APR (year starting April) -> Y-MAR (year ending March)
+        _end_month = MONTHS[_idx - 1]  # MONTHS[-1] == "DEC" for JAN, which is correct
+        OFFSET_TO_PERIOD_FREQSTR[key] = f"{_period_alias[_prefix]}-{_end_month}"
 
 for _prefix in ["Y", "Q"]:
     for _m in MONTHS:
