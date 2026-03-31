@@ -203,12 +203,6 @@ class TestJSONArray(base.ExtensionTests):
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
 
-    @pytest.mark.xfail(
-        reason="combine for JSONArray not supported - "
-        "may pass depending on random data",
-        strict=False,
-        raises=AssertionError,
-    )
     def test_combine_first(self, data):
         super().test_combine_first(data)
 
@@ -218,6 +212,14 @@ class TestJSONArray(base.ExtensionTests):
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
         super().test_where_series(data, na_value)
+
+    @pytest.mark.xfail(reason="Can't compare dicts.")
+    def test_is_monotonic_increasing(self, data_for_sorting):
+        super().test_is_monotonic_increasing(data_for_sorting)
+
+    @pytest.mark.xfail(reason="Can't compare dicts.")
+    def test_is_monotonic_decreasing(self, data_for_sorting):
+        super().test_is_monotonic_decreasing(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):

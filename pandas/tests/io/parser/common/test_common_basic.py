@@ -376,7 +376,7 @@ def test_ignore_leading_whitespace(all_parsers):
     data = " a b c\n 1 2 3\n 4 5 6\n 7 8 9"
 
     if parser.engine == "pyarrow":
-        msg = "the 'pyarrow' engine does not support regex separators"
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), sep=r"\s+")
         return
@@ -546,7 +546,7 @@ A,B,C
         data = data.replace(",", "  ")
 
         if parser.engine == "pyarrow":
-            msg = "the 'pyarrow' engine does not support regex separators"
+            msg = "the 'pyarrow' engine does not support separators > 1 char"
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(
                     StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines
@@ -599,7 +599,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     # see gh-6607
     parser = all_parsers
     if parser.engine == "pyarrow":
-        msg = "the 'pyarrow' engine does not support regex separators"
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), sep=r"\s+")
         return

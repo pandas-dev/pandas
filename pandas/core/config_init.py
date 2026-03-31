@@ -43,7 +43,7 @@ use_bottleneck_doc = """
 def use_bottleneck_cb(key: str) -> None:
     from pandas.core import nanops
 
-    nanops.set_use_bottleneck(cf.get_option(key))
+    nanops.set_use_bottleneck(cf._global_config["compute"]["use_bottleneck"])
 
 
 use_numexpr_doc = """
@@ -57,7 +57,7 @@ use_numexpr_doc = """
 def use_numexpr_cb(key: str) -> None:
     from pandas.core.computation import expressions
 
-    expressions.set_use_numexpr(cf.get_option(key))
+    expressions.set_use_numexpr(cf._global_config["compute"]["use_numexpr"])
 
 
 use_numba_doc = """
@@ -71,7 +71,7 @@ use_numba_doc = """
 def use_numba_cb(key: str) -> None:
     from pandas.core.util import numba_
 
-    numba_.set_use_numba(cf.get_option(key))
+    numba_.set_use_numba(cf._global_config["compute"]["use_numba"])
 
 
 with cf.config_prefix("compute"):
@@ -290,7 +290,7 @@ pc_memory_usage_doc = """
 def table_schema_cb(key: str) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
-    enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf._global_config["display"]["html"]["table_schema"])
 
 
 def is_terminal() -> bool:
@@ -651,7 +651,7 @@ def register_converter_cb(key: str) -> None:
         register_matplotlib_converters,
     )
 
-    if cf.get_option(key):
+    if cf._global_config["plotting"]["matplotlib"]["register_converters"]:
         register_matplotlib_converters()
     else:
         deregister_matplotlib_converters()

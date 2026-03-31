@@ -743,6 +743,38 @@ class TestDateRanges:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2020-06-01", "2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("left", ["2020-06-01", "2020-06-02", "2020-06-03"]),
+            ("right", ["2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("neither", ["2020-06-02", "2020-06-03"]),
+        ],
+    )
+    def test_inclusive_with_periods_and_start(self, inclusive, expected_values):
+        # GH#46331 - inclusive should filter endpoints even when
+        # only start+periods is provided (end is not specified)
+        result = date_range(start="2020-06-01", periods=4, inclusive=inclusive)
+        expected = DatetimeIndex(expected_values, freq="D")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2020-06-01", "2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("left", ["2020-06-01", "2020-06-02", "2020-06-03"]),
+            ("right", ["2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("neither", ["2020-06-02", "2020-06-03"]),
+        ],
+    )
+    def test_inclusive_with_periods_and_end(self, inclusive, expected_values):
+        # GH#46331 - inclusive should filter endpoints even when
+        # only end+periods is provided (start is not specified)
+        result = date_range(end="2020-06-04", periods=4, inclusive=inclusive)
+        expected = DatetimeIndex(expected_values, freq="D")
+        tm.assert_index_equal(result, expected)
+
     def test_freq_dateoffset_with_relateivedelta_nanos(self):
         # GH 46877
         freq = DateOffset(hours=10, days=57, nanoseconds=3)
@@ -1814,6 +1846,75 @@ class TestDateRangeNonTickFreq:
         expected = date_range(
             "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
         ).tz_localize(tz, nonexistent="shift_forward")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq, start, end, expected_dates",
+        [
+            (
+                "MS",
+                "2020-02-01 15:00",
+                "2020-05-01 01:00",
+                [
+                    "2020-02-01 15:00",
+                    "2020-03-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-05-01 15:00",
+                ],
+            ),
+            (
+                "ME",
+                "2020-01-31 15:00",
+                "2020-04-30 01:00",
+                [
+                    "2020-01-31 15:00",
+                    "2020-02-29 15:00",
+                    "2020-03-31 15:00",
+                    "2020-04-30 15:00",
+                ],
+            ),
+            (
+                "QS",
+                "2020-01-01 15:00",
+                "2020-10-01 01:00",
+                [
+                    "2020-01-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-07-01 15:00",
+                    "2020-10-01 15:00",
+                ],
+            ),
+            (
+                "YS",
+                "2020-01-01 15:00",
+                "2023-01-01 01:00",
+                [
+                    "2020-01-01 15:00",
+                    "2021-01-01 15:00",
+                    "2022-01-01 15:00",
+                    "2023-01-01 15:00",
+                ],
+            ),
+            (
+                "-1MS",
+                "2020-05-01 15:00",
+                "2020-02-01 01:00",
+                [
+                    "2020-05-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-03-01 15:00",
+                    "2020-02-01 15:00",
+                ],
+            ),
+        ],
+    )
+    def test_date_range_end_time_earlier_than_start_time(
+        self, unit, freq, start, end, expected_dates
+    ):
+        # GH#35342 - end's time-of-day should not cause the last offset
+        # boundary to be excluded
+        result = date_range(start, end, freq=freq, unit=unit)
+        expected = DatetimeIndex(expected_dates, dtype=f"M8[{unit}]", freq=freq)
         tm.assert_index_equal(result, expected)
 
 

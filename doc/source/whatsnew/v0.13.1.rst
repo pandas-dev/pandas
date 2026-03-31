@@ -15,7 +15,7 @@ Highlights include:
 
 - Added ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes.
 - Will intelligently limit display precision for datetime/timedelta formats.
-- Enhanced Panel :meth:`~pandas.Panel.apply` method.
+- Enhanced Panel ``Panel.apply`` method.
 - Suggested tutorials in new :ref:`Tutorials<tutorials>` section.
 - Our pandas ecosystem is growing, We now feature related projects in a new `ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ section.
 - Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added.
@@ -224,7 +224,7 @@ Enhancements
 
       pd.MultiIndex.from_product([shades, colors], names=["shade", "color"])
 
-- Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply>`.
+- Panel ``Panel.apply`` will work on non-ufuncs. See :ref:`the docs<basics.apply>`.
 
   .. code-block:: ipython
 
@@ -322,7 +322,7 @@ Enhancements
 
       [5 rows x 4 columns]
 
-- Panel :meth:`~pandas.Panel.apply` operating on cross-sectional slabs. (:issue:`1148`)
+- Panel ``Panel.apply`` operating on cross-sectional slabs. (:issue:`1148`)
 
   .. code-block:: ipython
 

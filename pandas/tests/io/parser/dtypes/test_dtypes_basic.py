@@ -9,7 +9,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    Pandas4Warning,
+    ParserWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -246,14 +249,18 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
         request.applymarker(
             pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
         )
-    df = parser.read_csv(
-        StringIO(value),
-        float_precision=float_precision,
-        sep="|",
-        thousands=thousands,
-        decimal=",",
-        header=None,
-    )
+    warn = Pandas4Warning if float_precision is not None else None
+    with tm.assert_produces_warning(
+        warn, match="float_precision", check_stacklevel=False
+    ):
+        df = parser.read_csv(
+            StringIO(value),
+            float_precision=float_precision,
+            sep="|",
+            thousands=thousands,
+            decimal=",",
+            header=None,
+        )
     val = df.iloc[0, 0]
     assert val == numeric_decimal[1]
 
@@ -266,13 +273,17 @@ def test_skip_whitespace(c_parser_only, float_precision):
 2\t 1\t
 2\t 1.2 \t
 """
-    df = c_parser_only.read_csv(
-        StringIO(DATA),
-        float_precision=float_precision,
-        sep="\t",
-        header=0,
-        dtype={1: np.float64},
-    )
+    warn = Pandas4Warning if float_precision is not None else None
+    with tm.assert_produces_warning(
+        warn, match="float_precision", check_stacklevel=False
+    ):
+        df = c_parser_only.read_csv(
+            StringIO(DATA),
+            float_precision=float_precision,
+            sep="\t",
+            header=0,
+            dtype={1: np.float64},
+        )
     tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
