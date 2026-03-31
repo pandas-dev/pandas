@@ -7008,6 +7008,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if (
                 isinstance(self.index, MultiIndex)
                 and isinstance(other.index, MultiIndex)
+                and self.index.nlevels == other.index.nlevels
                 and not (
                     self.index.equals(other.index)
                     or self.index.isin(other.index).all()
