@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas import (
     Categorical,
@@ -30,7 +33,9 @@ class TestFillNA:
         df.columns = ["A", "A", "A"]
         orig = df[:]
 
-        df.fillna({"A": 2}, inplace=True)
+        # GH#45153 filling datetime with int is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            df.fillna({"A": 2}, inplace=True)
         # The first and third columns can be set inplace, while the second cannot.
 
         expected = DataFrame(
@@ -79,7 +84,9 @@ class TestFillNA:
         ).all()
         assert (result.loc[result.index[5:20], "foo"] == "bar").all()
 
-        result = mf.fillna(value=0)
+        # GH#45153 filling string column with int is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = mf.fillna(value=0)
         assert (result.loc[result.index[-10:], "A"] == 0).all()
         assert (result.loc[result.index[5:20], "foo"] == 0).all()
 
@@ -348,7 +355,9 @@ class TestFillNA:
             },
             index=date_range("20130110", periods=3),
         )
-        result = df.fillna("?")
+        # GH#45153 filling datetime with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna("?")
         expected = DataFrame(
             {
                 "A": [-1, -2, "?"],

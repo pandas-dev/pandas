@@ -1,3 +1,5 @@
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Index,
     NaT,
@@ -26,7 +28,9 @@ class TestFillNA:
             ],
             dtype=object,
         )
-        result = idx.fillna("x")
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = idx.fillna("x")
         tm.assert_index_equal(result, exp)
 
         exp = Index(
@@ -37,5 +41,7 @@ class TestFillNA:
             ],
             dtype=object,
         )
-        result = idx.fillna(Period("2011-01-01", freq="D"))
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = idx.fillna(Period("2011-01-01", freq="D"))
         tm.assert_index_equal(result, exp)
