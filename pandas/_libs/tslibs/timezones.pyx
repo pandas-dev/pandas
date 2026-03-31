@@ -4,6 +4,9 @@ from datetime import (
     timezone,
 )
 import zoneinfo
+import zoneinfo._common as _zoneinfo_common
+import zoneinfo._tzpath as _zoneinfo_tzpath
+from zoneinfo._zoneinfo import _parse_tz_str as _zoneinfo_parse_tz_str
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -208,6 +211,8 @@ cdef object tz_cache_key(tzinfo tz):
                              "of passing a timezone object. See "
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
+    elif is_zoneinfo(tz):
+        return "zoneinfo/" + tz.key
     else:
         return None
 
@@ -255,6 +260,71 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
             last_std_offset = tti.offset
         new_trans[i] = trans - last_std_offset
     return new_trans
+
+
+cdef object _load_zoneinfo_transition_data(str key):
+    """Load raw transition data for a ZoneInfo timezone from the TZ database."""
+    file_path = _zoneinfo_tzpath.find_tzfile(key)
+    if file_path is not None:
+        file_obj = open(file_path, "rb")
+    else:
+        file_obj = _zoneinfo_common.load_tzdata(key)
+
+    with file_obj as f:
+        return _zoneinfo_common.load_data(f)
+
+
+cdef object _get_future_transitions(str tz_str, int64_t last_hist_utc):
+    """
+    Generate future DST transitions from the POSIX TZ string rules.
+
+    Parameters
+    ----------
+    tz_str : str
+        POSIX TZ string (e.g. "PST8PDT,M3.2.0,M11.1.0").
+    last_hist_utc : int64_t
+        UTC timestamp (seconds) of the last historical transition.
+
+    Returns
+    -------
+    list of (int64_t, int64_t)
+        Pairs of (utc_timestamp_seconds, utcoffset_seconds) for each
+        future transition, sorted by timestamp.
+    """
+    rule = _zoneinfo_parse_tz_str(tz_str)
+    if not hasattr(rule, "transitions"):
+        # Fixed-offset POSIX rule (no DST), no future transitions.
+        return []
+
+    cdef:
+        int std_off = int(rule.std.utcoff.total_seconds())
+        int dst_off = int(rule.dst.utcoff.total_seconds())
+        int64_t start_utc, end_utc
+        int start_year
+        list result = []
+
+    try:
+        start_year = datetime.fromtimestamp(
+            last_hist_utc, timezone.utc
+        ).year
+    except (OSError, OverflowError, ValueError):
+        start_year = 1970
+
+    for year in range(start_year, 2100):
+        try:
+            year_trans = rule.transitions(year)
+        except (ValueError, OverflowError):
+            break
+        if not year_trans:
+            break
+        start_utc, end_utc = year_trans
+        if start_utc > last_hist_utc:
+            result.append((start_utc, dst_off))
+        if end_utc > last_hist_utc:
+            result.append((end_utc, std_off))
+
+    result.sort()
+    return result
 
 
 @cython.wraparound(False)
@@ -340,6 +410,68 @@ cdef object get_dst_info(tzinfo tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
+        elif is_zoneinfo(tz):
+            zi_trans_idx, zi_trans_utc, zi_utcoff, _, _, tz_str = (
+                _load_zoneinfo_transition_data(tz.key)
+            )
+            ntr = len(zi_trans_utc)
+
+            # Historical transition times and offsets
+            if ntr > 0:
+                zi_utcoff_arr = np.array(zi_utcoff, dtype=np.int64)
+                zi_trans_idx_arr = np.array(zi_trans_idx, dtype=np.intp)
+                hist_trans = (
+                    np.array(zi_trans_utc, dtype=np.int64) * 1_000_000_000
+                )
+                hist_deltas = (
+                    zi_utcoff_arr[zi_trans_idx_arr] * 1_000_000_000
+                )
+            else:
+                hist_trans = np.array([], dtype=np.int64)
+                hist_deltas = np.array([], dtype=np.int64)
+
+            # Future transitions from POSIX TZ string rules
+            if tz_str:
+                last_hist = zi_trans_utc[-1] if ntr > 0 else 0
+                future = _get_future_transitions(
+                    tz_str.decode(), last_hist
+                )
+            else:
+                future = []
+
+            if future:
+                fut_trans = np.array(
+                    [ts for ts, _ in future], dtype=np.int64
+                ) * 1_000_000_000
+                fut_deltas = np.array(
+                    [off for _, off in future], dtype=np.int64
+                ) * 1_000_000_000
+                hist_trans = np.concatenate([hist_trans, fut_trans])
+                hist_deltas = np.concatenate([hist_deltas, fut_deltas])
+
+            if len(hist_trans) == 0:
+                # Fixed-offset timezone (e.g. Etc/GMT+5, GMT)
+                trans = np.array([NPY_NAT + 1], dtype=np.int64)
+                deltas = np.array(
+                    [int(zi_utcoff[0]) * 1_000_000_000], dtype=np.int64
+                )
+                typ = "fixed"
+            else:
+                # Prepend sentinel and "before" offset.
+                # utcoff[0] matches the C implementation of ZoneInfo
+                # (see find_ttinfo in CPython's _zoneinfo.c), which
+                # returns _ttinfos[0] for timestamps before the
+                # first transition.
+                trans = np.empty(len(hist_trans) + 1, dtype=np.int64)
+                trans[0] = NPY_NAT + 1
+                trans[1:] = hist_trans
+
+                deltas = np.empty(len(hist_deltas) + 1, dtype=np.int64)
+                deltas[0] = int(zi_utcoff[0]) * 1_000_000_000
+                deltas[1:] = hist_deltas
+
+                typ = "zoneinfo"
+
         else:
             # static tzinfo, we can get here with pytz.StaticTZInfo
             #  which are not caught by treat_tz_as_pytz
