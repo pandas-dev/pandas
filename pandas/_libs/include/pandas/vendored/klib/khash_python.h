@@ -220,14 +220,14 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
 }
 
 // GH#57052
-static PyTypeObject *pandas_na_type = NULL;
+static PyTypeObject *khash_python_pandas_na_type = NULL;
 
 // this function assumes PyErr_Occurred is checked further up the call stack
 static inline int pandas_is_NA(PyTypeObject *t) {
   PyObject *module = NULL;
   PyObject *na_type = NULL;
 
-  if (NULL == pandas_na_type) {
+  if (NULL == khash_python_pandas_na_type) {
     if (NULL == (module = PyImport_ImportModule("pandas._libs.missing"))) {
       goto end;
     }
@@ -237,13 +237,13 @@ static inline int pandas_is_NA(PyTypeObject *t) {
     if (0 == PyType_Check(na_type)) {
       goto end;
     }
-    pandas_na_type = (PyTypeObject *)na_type;
+    khash_python_pandas_na_type = (PyTypeObject *)na_type;
   }
 
 end:
   Py_XDECREF(na_type);
   Py_XDECREF(module);
-  return t == pandas_na_type;
+  return t == khash_python_pandas_na_type;
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
