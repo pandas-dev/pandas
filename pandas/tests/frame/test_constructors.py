@@ -24,6 +24,7 @@ import pytest
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -2143,6 +2144,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no("pyarrow")
     def test_constructor_list_of_ea_preserves_dtype(self):
         # GH#49593 uniform EA dtypes should be preserved
         arrs = [
