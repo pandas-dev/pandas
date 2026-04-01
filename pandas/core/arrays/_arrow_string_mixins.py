@@ -240,20 +240,24 @@ class ArrowStringArrayMixin:
             )
 
         if regex:
-            # GH#64872 - Use Python's re.sub instead of pyarrow's
-            # replace_substring_regex to ensure consistent behavior with the
-            # python string dtype. PyArrow uses RE2 which handles zero-length
-            # regex matches differently from Python's PCRE engine.
+            # GH#64872 - PyArrow uses RE2 which handles zero-length regex
+            # matches differently from Python's PCRE engine. Only fall back
+            # to the slower Python re.sub path when the pattern can actually
+            # produce zero-length matches (where RE2 and PCRE diverge).
             compiled = re.compile(pat)
-            count = n if n >= 0 else 0
-            predicate = lambda val: compiled.sub(repl=repl, string=val, count=count)
-            result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
+            if compiled.match("") is not None:
+                count = n if n >= 0 else 0
+                predicate = lambda val: compiled.sub(
+                    repl=repl, string=val, count=count
+                )
+                result = self._apply_elementwise(predicate)
+                return self._from_pyarrow_array(pa.chunked_array(result))
 
+        func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
         pa_max_replacements = None if n < 0 else n
-        result = pc.replace_substring(
+        result = func(
             self._pa_array,
             pattern=pat,
             replacement=repl,

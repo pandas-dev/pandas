@@ -10,6 +10,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Series,
+    StringDtype,
     _testing as tm,
 )
 from pandas.tests.strings import (
@@ -719,11 +720,26 @@ def test_replace_named_groups_regex_swap(
 )
 @pytest.mark.parametrize("use_compile", [True, False])
 def test_replace_named_groups_regex_swap_expected_fail(
-    any_string_dtype, repl, use_compile
+    any_string_dtype, repl, use_compile, request
 ):
     # GH#57636
-    error_type = re.error
-    error_msg = "invalid group reference"
+    if (
+        not use_compile
+        and r"\g" not in repl
+        and isinstance(any_string_dtype, StringDtype)
+        and any_string_dtype.storage == "pyarrow"
+    ):
+        # calls pyarrow method directly
+        if repl == r"\20":
+            mark = pytest.mark.xfail(reason="PyArrow interprets as group + literal")
+            request.applymarker(mark)
+
+        pa = pytest.importorskip("pyarrow")
+        error_type = pa.ArrowInvalid
+        error_msg = r"only has \d parenthesized subexpressions"
+    else:
+        error_type = re.error
+        error_msg = "invalid group reference"
 
     pattern = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
     if use_compile:
@@ -743,12 +759,12 @@ def test_replace_named_groups_regex_swap_expected_fail(
 )
 def test_pyarrow_ambiguous_group_references(pyarrow_string_dtype, pattern, repl):
     # GH#62653
-    # GH#64872 - pyarrow now uses Python's re.sub for consistency, so \20 is
-    # interpreted as group 20 (not group 2 + literal "0") and raises an error
+    # pyarrow (RE2) interprets \20 as group 2 + literal "0"
     ser = Series(["One Two Three", "Foo Bar Baz"], dtype=pyarrow_string_dtype)
 
-    with pytest.raises(re.error, match="invalid group reference"):
-        ser.str.replace(pattern, repl, regex=True)
+    result = ser.str.replace(pattern, repl, regex=True)
+    expected = Series(["Two0", "Bar0"], dtype=pyarrow_string_dtype)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -994,9 +1010,12 @@ def test_replace_end_of_string(any_string_dtype):
 
     # with dollar sign
     result = ser.str.replace("bar$", "x", regex=True)
-    # GH#64872 - pyarrow now uses Python's re.sub for consistency,
-    # so $ matches before or after an ending newline for all backends
-    expected = Series(["baz", "x", "bars", "x\n"], dtype=any_string_dtype)
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        # pyarrow (RE2) only matches $ at the very end of the line
+        expected = Series(["baz", "x", "bars", "bar\n"], dtype=any_string_dtype)
+    else:
+        # python matches $ before or after an ending newline
+        expected = Series(["baz", "x", "bars", "x\n"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
     # with \Z (ensure this is translated to \z for pyarrow)
