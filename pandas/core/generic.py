@@ -4447,6 +4447,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> ser.get("2014-02-10", "[unknown]")
         '[unknown]'
+
+        When passing a list of keys, all keys must be present. If any key
+        is missing, the ``default`` value is returned instead of a partial result.
+
+        >>> ser = pd.Series(["a", "b", "c"], index=[1, 2, 3])
+        >>> ser.get([1, 2])
+        1    a
+        2    b
+        dtype: str
+        >>> ser.get([1, 2, -1]) is None
+        True
         """
         try:
             return self[key]
