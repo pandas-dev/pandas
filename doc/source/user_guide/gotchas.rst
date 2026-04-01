@@ -338,8 +338,6 @@ overflow without raising an error:
 
 .. ipython:: python
 
-   import numpy as np
-
    series = pd.Series([406, 372, 496, 41, 63, 118, 311, 271, 431, 95, 57, 52])
    series.dtype
 
