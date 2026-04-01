@@ -13,11 +13,14 @@ from typing import (
     TypeVar,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -268,11 +271,6 @@ def validate_bool_kwarg(
 
     if not good_value:
         if deprecated:
-            import warnings
-
-            from pandas.errors import Pandas4Warning
-            from pandas.util._exceptions import find_stack_level
-
             warnings.warn(
                 f"Passing a non-bool value for {arg_name} is deprecated and "
                 "will raise in a future version. "
