@@ -18,14 +18,10 @@ jobs:
     runs-on: ubuntu-24.04
     if: github.repository_owner == 'pandas-dev'
     steps:
-      - name: Authorize gh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >
-          gh auth login
-          --scopes repo
       - name: Clean closed pull request caches
         if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >
           gh cache delete
           --all
@@ -33,6 +29,8 @@ jobs:
           --succeed-on-no-caches
       - name: Clean all caches
         if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: >
           gh cache delete
           --all
