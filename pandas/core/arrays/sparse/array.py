@@ -594,7 +594,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 if fill_value is NaT:
                     # Can't put pd.NaT in a datetime64[ns]
                     unit = np.datetime_data(self.sp_values.dtype)[0]
-                    fill_value = np.datetime64("NaT", unit)
+                    fill_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
