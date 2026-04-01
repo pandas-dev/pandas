@@ -3066,7 +3066,7 @@ def _get_codes_for_values(
     if wrong.all() and isinstance(getattr(values, "dtype", None), ArrowDtype):
         # GH#62051 e.g. ArrowEA date32 vs datetime64[s] categories
         try:
-            values = values.astype(categories.dtype)
+            values = cast("ExtensionArray", values).astype(categories.dtype)
         except (TypeError, ValueError):
             pass
         else:
