@@ -168,9 +168,11 @@ def _get_timedelta_string_reso(label: str) -> Resolution:
 
     finest = Resolution.RESO_DAY
 
-    for unit_str in units:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+    # TODO(4.0): Remove once deprecated unit aliases in parse_timedelta_unit
+    #  are enforced (e.g. "S" -> "s", "H" -> "h").
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        for unit_str in units:
             try:
                 canonical = parse_timedelta_unit(unit_str)
             except ValueError:
