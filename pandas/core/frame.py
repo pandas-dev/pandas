@@ -5535,7 +5535,7 @@ class DataFrame(NDFrame, OpsMixin):
             change input DataFrame (though pandas doesn't check it).
             If the values are not callable, (e.g. a Series, scalar, or array),
             they are simply assigned.
-            
+
             When a Series is passed, its values are aligned by index label
             rather than by position. If the Series index does not match the
             DataFrame index, the result will contain NaN values for missing labels.
