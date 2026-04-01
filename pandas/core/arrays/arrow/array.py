@@ -1000,6 +1000,8 @@ class ArrowExtensionArray(
         ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
+                if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
+                    return self._from_pyarrow_array(pa.nulls(len(self._pa_array), type=pa_type))
                 try:
                     if op is operator.add:
                         result = pc.binary_join_element_wise(self._pa_array, other, sep)
