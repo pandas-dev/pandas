@@ -360,8 +360,8 @@ correct result:
 
 This behavior comes from NumPy and affects all integer arithmetic operations
 (addition, subtraction, multiplication, etc.), not just :meth:`~Series.prod`. See the
-`NumPy documentation on integer overflow <https://numpy.org/doc/stable/reference/generated/numpy.iinfo.html>`__
-for more details on the ranges of each integer type.
+`NumPy documentation on overflow errors <https://numpy.org/doc/stable/user/basics.types.html#overflow-errors>`__
+for more details.
 
 If your computation may exceed ``int64`` range, you can convert to ``float64`` first
 (at the cost of precision for very large values) or use Python's built-in integers
