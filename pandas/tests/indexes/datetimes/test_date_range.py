@@ -1422,7 +1422,7 @@ class TestDateRangeNonNano:
 
         exp = np.arange(
             start.astype("M8[s]").view("i8"),
-            (end + 1).astype("M8[s]").view("i8"),
+            (end + np.timedelta64(1, "D")).astype("M8[s]").view("i8"),
             24 * 3600,
         ).view("M8[s]")
 

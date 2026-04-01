@@ -464,8 +464,6 @@ filterwarnings = [
   "ignore:More than 20 figures have been opened:RuntimeWarning",
   "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
-  # Numpy nightly: generic timedelta64 deprecation triggered internally by numpy
-  "ignore:Using 'generic' unit for NumPy timedelta:DeprecationWarning",
   # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
   "ignore:Plugin file tracers",
   # Raised by coverage in freethreading

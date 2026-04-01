@@ -135,6 +135,9 @@ class TestIntervalArithmetic:
     @pytest.mark.parametrize(
         "delta", [Timedelta(days=7), timedelta(7), np.timedelta64(7, "D")]
     )
+    @pytest.mark.filterwarnings(
+        "ignore:Using 'generic' unit for NumPy timedelta:DeprecationWarning"
+    )
     def test_numeric_interval_add_timedelta_raises(self, interval, delta):
         # https://github.com/pandas-dev/pandas/issues/32023
         msg = "|".join(

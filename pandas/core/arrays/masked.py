@@ -1042,7 +1042,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
-            result[mask] = result.dtype.type("NaT")
+            unit = np.datetime_data(result.dtype)[0]
+            result[mask] = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             if not isinstance(result, TimedeltaArray):
                 return TimedeltaArray._simple_new(result, dtype=result.dtype)
