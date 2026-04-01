@@ -393,7 +393,7 @@ def test_0x00_control_byte(datapath):
 
 
 def test_amd_page(datapath):
-    # GH 60809
+    # GH#60809
     # SAS files with 'amd' (amendment) pages contain amended metadata
     # (e.g. column text) that is referenced by subheaders on earlier pages.
     # Without the fix this raises IndexError: list index out of range
