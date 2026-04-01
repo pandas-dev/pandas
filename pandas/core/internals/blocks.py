@@ -782,7 +782,8 @@ class Block(PandasObject, libinternals.Block):
             # replace_regex mutates values in-place, we must ensure the
             # block's data is independent.
             block = self.astype(np.dtype(object))
-            block = block._maybe_copy(inplace=True)
+            if astype_is_view(self.dtype, np.dtype(object)):
+                block = block._maybe_copy(inplace=True)
         else:
             block = self._maybe_copy(inplace)
 

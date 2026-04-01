@@ -69,11 +69,12 @@ def test_replace_regex_inplace():
     assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
 
-def test_replace_regex_non_inplace_does_not_mutate_original():
+@pytest.mark.parametrize("dtype", ["object", "string[python]"])
+def test_replace_regex_non_inplace_does_not_mutate_original(dtype):
     # GH#57733 - replace_regex with non-string value triggers astype to object,
     # which for StringArray (backed by object ndarray) returned a view, causing
     # in-place mutation of the original
-    df = DataFrame({"b": list("ab..")})
+    df = DataFrame({"b": list("ab..")}, dtype=dtype)
     df_orig = df.copy()
     result = df.replace([r"\s*\.\s*", "b"], 0, regex=True)
 
