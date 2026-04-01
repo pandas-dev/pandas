@@ -684,7 +684,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             na_value = np.nan
         elif dtype.kind == "M":
-            na_value = np.datetime64("NaT")
+            na_value = np.datetime64("NaT", np.datetime_data(dtype)[0])
         else:
             na_value = lib.no_default
 

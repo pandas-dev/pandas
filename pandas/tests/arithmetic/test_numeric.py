@@ -331,7 +331,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             Timedelta(hours=31).to_pytimedelta(),
             Timedelta(hours=31).to_timedelta64(),
             Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
-            np.timedelta64("NaT"),
+            np.timedelta64("NaT", "ns"),
             np.timedelta64("NaT", "D"),
             pd.offsets.Minute(3),
             pd.offsets.Second(0),
