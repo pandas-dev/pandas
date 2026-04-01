@@ -430,7 +430,8 @@ def read_csv(
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, and an ``__iter__`` method, such as
         a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
@@ -1001,7 +1002,8 @@ def read_table(
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, and an ``__iter__`` method, such as
         a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
@@ -1515,7 +1517,8 @@ def read_fwf(
     ----------
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a text ``read()`` function.The string could be a URL.
+        object implementing a text ``read()`` function that accepts an optional
+        size argument, and an ``__iter__`` method. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.

@@ -573,9 +573,9 @@ def read_json(
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handle (e.g. via builtin ``open`` function)
-        or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method
+        and an ``__iter__`` method, such as a file handle (e.g. via builtin
+        ``open`` function) or ``StringIO``.
 
     orient : str, optional
         Indication of expected JSON string format.
