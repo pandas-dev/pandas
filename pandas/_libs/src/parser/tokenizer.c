@@ -623,11 +623,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
-#define IS_CARRIAGE(c) (c == carriage_symbol)
+#define IS_CARRIAGE(c) (has_carriage && c == carriage_symbol)
 
-#define IS_COMMENT_CHAR(c) (c == comment_symbol)
+#define IS_COMMENT_CHAR(c) (has_comment && c == comment_symbol)
 
-#define IS_ESCAPE_CHAR(c) (c == escape_symbol)
+#define IS_ESCAPE_CHAR(c) (has_escape && c == escape_symbol)
 
 #define IS_SKIPPABLE_SPACE(c)                                                  \
   ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
@@ -680,13 +680,12 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
   const int delim_whitespace = self->delim_whitespace;
   const char delimiter = self->delimiter;
 
-  // 1000 is something that couldn't fit in "char"
-  // thus comparing a char to it would always be "false"
-  const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
-  const int comment_symbol =
-      (self->commentchar != '\0') ? self->commentchar : 1000;
-  const int escape_symbol =
-      (self->escapechar != '\0') ? self->escapechar : 1000;
+  const char carriage_symbol = '\r';
+  const int has_carriage = (self->lineterminator == '\0');
+  const char comment_symbol = self->commentchar;
+  const int has_comment = (self->commentchar != '\0');
+  const char escape_symbol = self->escapechar;
+  const int has_escape = (self->escapechar != '\0');
   const int has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
                         self->skip_first_N_rows >= 0);
 
@@ -707,18 +706,15 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
   uint8_t breaks_field_scan[256] = {0};
   uint8_t index;
 
-  // For char-typed values, use memcpy to reinterpret as uint8_t index.
-  // For int-typed sentinels (carriage_symbol, escape_symbol, comment_symbol)
-  // that use 1000 for "disabled", we guard with < 256 and cast instead,
-  // since sizeof(int) != sizeof(uint8_t).
-
   memcpy(&index, &lineterminator, sizeof(lineterminator));
   breaks_field_scan[index] |= 0x1;
-  if (carriage_symbol < 256) {
-    breaks_field_scan[(uint8_t)carriage_symbol] |= 0x1;
+  if (has_carriage) {
+    memcpy(&index, &carriage_symbol, sizeof(carriage_symbol));
+    breaks_field_scan[index] |= 0x1;
   }
-  if (escape_symbol < 256) {
-    breaks_field_scan[(uint8_t)escape_symbol] |= 0x1 | 0x2;
+  if (has_escape) {
+    memcpy(&index, &escape_symbol, sizeof(escape_symbol));
+    breaks_field_scan[index] |= 0x1 | 0x2;
   }
   if (!delim_whitespace) {
     memcpy(&index, &delimiter, sizeof(delimiter));
@@ -731,8 +727,9 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
     memcpy(&index, &tab, sizeof(tab));
     breaks_field_scan[index] |= 0x1;
   }
-  if (comment_symbol < 256) {
-    breaks_field_scan[(uint8_t)comment_symbol] |= 0x1;
+  if (has_comment) {
+    memcpy(&index, &comment_symbol, sizeof(comment_symbol));
+    breaks_field_scan[index] |= 0x1;
   }
   if (self->quoting != QUOTE_NONE) {
     memcpy(&index, &self->quotechar, sizeof(self->quotechar));
