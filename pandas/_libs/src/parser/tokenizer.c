@@ -681,13 +681,13 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
   const char delimiter = self->delimiter;
 
   const char carriage_symbol = '\r';
-  const int has_carriage = (self->lineterminator == '\0');
+  const bool has_carriage = (self->lineterminator == '\0');
   const char comment_symbol = self->commentchar;
-  const int has_comment = (self->commentchar != '\0');
+  const bool has_comment = (self->commentchar != '\0');
   const char escape_symbol = self->escapechar;
-  const int has_escape = (self->escapechar != '\0');
-  const int has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
-                        self->skip_first_N_rows >= 0);
+  const bool has_escape = (self->escapechar != '\0');
+  const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
+                         self->skip_first_N_rows >= 0);
 
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
