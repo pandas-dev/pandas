@@ -333,6 +333,7 @@ def test_string_dtype_error_message():
     with pytest.raises(ValueError, match=msg):
         StringDtype("bla")
 
+
 def test_arrow_str_add_pd_na():
     # GH#64968 Arrow-backed str arrays should return NA when added to pd.NA
     pytest.importorskip("pyarrow")
