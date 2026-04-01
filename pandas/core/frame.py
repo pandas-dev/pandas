@@ -16762,7 +16762,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame (if level specified)
+        Series
             Unbiased standard error of the mean over requested axis.
 
         See Also
