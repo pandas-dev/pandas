@@ -401,6 +401,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
         Py_ssize_t i, xi, yi, N, K
@@ -547,17 +548,18 @@ def get_fill_indexer(const uint8_t[:] mask, limit=None):
 
     last_valid = -1  # haven't yet seen anything non-NA
 
-    for i in range(N):
-        if not mask[i]:
-            indexer[i] = i
-            last_valid = i
-            fill_count = 0
-        else:
-            if fill_count < lim:
-                indexer[i] = last_valid
+    with nogil:
+        for i in range(N):
+            if not mask[i]:
+                indexer[i] = i
+                last_valid = i
+                fill_count = 0
             else:
-                indexer[i] = -1
-            fill_count += 1
+                if fill_count < lim:
+                    indexer[i] = last_valid
+                else:
+                    indexer[i] = -1
+                fill_count += 1
 
     return indexer
 
@@ -590,36 +592,37 @@ def pad(
 
     cur = old[0]
 
-    while j <= nright - 1 and new[j] < cur:
-        j += 1
+    with nogil(numeric_object_t is not object):
+        while j <= nright - 1 and new[j] < cur:
+            j += 1
 
-    while True:
-        if j == nright:
-            break
+        while True:
+            if j == nright:
+                break
 
-        if i == nleft - 1:
-            while j < nright:
+            if i == nleft - 1:
+                while j < nright:
+                    if new[j] == cur:
+                        indexer[j] = i
+                    elif new[j] > cur and fill_count < lim:
+                        indexer[j] = i
+                        fill_count += 1
+                    j += 1
+                break
+
+            next_val = old[i + 1]
+
+            while j < nright and cur <= new[j] < next_val:
                 if new[j] == cur:
                     indexer[j] = i
-                elif new[j] > cur and fill_count < lim:
+                elif fill_count < lim:
                     indexer[j] = i
                     fill_count += 1
                 j += 1
-            break
 
-        next_val = old[i + 1]
-
-        while j < nright and cur <= new[j] < next_val:
-            if new[j] == cur:
-                indexer[j] = i
-            elif fill_count < lim:
-                indexer[j] = i
-                fill_count += 1
-            j += 1
-
-        fill_count = 0
-        i += 1
-        cur = next_val
+            fill_count = 0
+            i += 1
+            cur = next_val
 
     return indexer
 
@@ -641,19 +644,20 @@ def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
 
     lim = validate_limit(N, limit)
 
-    val = values[0]
-    prev_mask = mask[0]
-    for i in range(N):
-        if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-            mask[i] = prev_mask
-        else:
-            fill_count = 0
-            val = values[i]
-            prev_mask = mask[i]
+    with nogil(numeric_object_t is not object):
+        val = values[0]
+        prev_mask = mask[0]
+        for i in range(N):
+            if mask[i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
+                values[i] = val
+                mask[i] = prev_mask
+            else:
+                fill_count = 0
+                val = values[i]
+                prev_mask = mask[i]
 
 
 @cython.boundscheck(False)
@@ -672,19 +676,20 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 
     lim = validate_limit(N, limit)
 
-    for j in range(K):
-        fill_count = 0
-        val = values[j, 0]
-        for i in range(N):
-            if mask[j, i]:
-                if fill_count >= lim or i == 0:
-                    continue
-                fill_count += 1
-                values[j, i] = val
-                mask[j, i] = False
-            else:
-                fill_count = 0
-                val = values[j, i]
+    with nogil(numeric_object_t is not object):
+        for j in range(K):
+            fill_count = 0
+            val = values[j, 0]
+            for i in range(N):
+                if mask[j, i]:
+                    if fill_count >= lim or i == 0:
+                        continue
+                    fill_count += 1
+                    values[j, i] = val
+                    mask[j, i] = False
+                else:
+                    fill_count = 0
+                    val = values[j, i]
 
 
 @cython.boundscheck(False)
@@ -739,36 +744,37 @@ def backfill(
 
     cur = old[nleft - 1]
 
-    while j >= 0 and new[j] > cur:
-        j -= 1
+    with nogil(numeric_object_t is not object):
+        while j >= 0 and new[j] > cur:
+            j -= 1
 
-    while True:
-        if j < 0:
-            break
+        while True:
+            if j < 0:
+                break
 
-        if i == 0:
-            while j >= 0:
+            if i == 0:
+                while j >= 0:
+                    if new[j] == cur:
+                        indexer[j] = i
+                    elif new[j] < cur and fill_count < lim:
+                        indexer[j] = i
+                        fill_count += 1
+                    j -= 1
+                break
+
+            prev = old[i - 1]
+
+            while j >= 0 and prev < new[j] <= cur:
                 if new[j] == cur:
                     indexer[j] = i
                 elif new[j] < cur and fill_count < lim:
                     indexer[j] = i
                     fill_count += 1
                 j -= 1
-            break
 
-        prev = old[i - 1]
-
-        while j >= 0 and prev < new[j] <= cur:
-            if new[j] == cur:
-                indexer[j] = i
-            elif new[j] < cur and fill_count < lim:
-                indexer[j] = i
-                fill_count += 1
-            j -= 1
-
-        fill_count = 0
-        i -= 1
-        cur = prev
+            fill_count = 0
+            i -= 1
+            cur = prev
 
     return indexer
 
@@ -1058,6 +1064,7 @@ def rank_1d(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
