@@ -28,7 +28,10 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+)
 
 from pandas.core import (
     arraylike,
@@ -167,19 +170,21 @@ class NumpyExtensionArray(
         return cls(result)
 
     def _validate_setitem_value(self, value):
-        dtype = self._ndarray.dtype
-        if lib.is_scalar(value) and isna(value):
-            # Allow NA values (None, np.nan, etc.) for dtypes that support
-            # them (e.g. float); numpy will handle the conversion.
-            return value
-
         if isinstance(value, type(self)):
             value = value._ndarray
 
+        # Match Block._standardize_fill_value behavior
+        if self._ndarray.dtype.kind != "O" and is_valid_na_for_dtype(
+            value, self._ndarray.dtype
+        ):
+            value = self.dtype.na_value
+
         try:
-            return np_can_hold_element(dtype, value)
+            return np_can_hold_element(self._ndarray.dtype, value)
         except LossySetitemError as err:
-            raise TypeError(f"Invalid value '{value!s}' for dtype '{dtype}'") from err
+            raise TypeError(
+                f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+            ) from err
         except NotImplementedError:
             # np_can_hold_element doesn't handle all dtypes (e.g. "U"),
             # fall back to no validation for those.
@@ -191,9 +196,9 @@ class NumpyExtensionArray(
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        # Override to skip _validate_setitem_value; numpy's searchsorted
-        # handles type coercion correctly and we don't want to reject
-        # e.g. float values when searching an integer array.
+        # Parent's searchsorted calls _validate_setitem_value, which is
+        # too strict for search (e.g. rejects float into int). Delegate
+        # directly to numpy which handles cross-dtype searches correctly.
         return self._ndarray.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
