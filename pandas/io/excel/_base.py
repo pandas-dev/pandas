@@ -215,9 +215,9 @@ def read_excel(
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method
-        and an ``__iter__`` method, such as a file handle (e.g. via builtin
-        ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method,
+        such as a file handle (e.g. via builtin ``open`` function)
+        or ``StringIO``.
 
     sheet_name : str, int, list, or None, default 0
         Strings are used for sheet names. Integers are used in zero-indexed
