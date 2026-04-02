@@ -750,7 +750,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
   const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
   const uint8x16_t vcr =
-      (carriage_symbol < 256) ? vdupq_n_u8((uint8_t)carriage_symbol) : vterm;
+      has_carriage ? vdupq_n_u8((uint8_t)carriage_symbol) : vterm;
   const uint8x16_t vquote = (self->quoting != QUOTE_NONE)
                                 ? vdupq_n_u8((uint8_t)self->quotechar)
                                 : vterm;
@@ -764,7 +764,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const __m128i vdelim = _mm_set1_epi8((char)delimiter);
   const __m128i vterm = _mm_set1_epi8((char)lineterminator);
   const __m128i vcr =
-      (carriage_symbol < 256) ? _mm_set1_epi8((char)carriage_symbol) : vterm;
+      has_carriage ? _mm_set1_epi8((char)carriage_symbol) : vterm;
   const __m128i vquote = (self->quoting != QUOTE_NONE)
                              ? _mm_set1_epi8((char)self->quotechar)
                              : vterm;
