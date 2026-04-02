@@ -170,8 +170,7 @@ extensions in ``pandas/_libs/``.
 
    This option is intended for contributors who need to step through C or
    Cython extension code using a debugger. For Python-only changes or
-   documentation fixes, use :ref:`conda tributing-conda>` or
-   :ref:`pip tributing-pip>` instead.
+   documentation fixes, use conda or pip instead (see options 1 and 2 above).
 
 **Step 1:** Pull the pre-built image from DockerHub:
 
