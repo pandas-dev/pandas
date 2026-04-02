@@ -9,6 +9,7 @@ import numpy as np
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     DataFrame,
     Index,
     concat,
@@ -447,6 +448,12 @@ class ReadCSVCategorical(BaseIO):
 
     def time_convert_direct(self, engine):
         read_csv(self.fname, engine=engine, dtype="category")
+
+    def time_convert_known_categories(self, engine):
+        # GH#17743
+        cats = ["aaaaaaaa", "bbbbbbb", "cccccccc", "dddddddd", "eeeeeeee"]
+        dtype = {col: CategoricalDtype(cats) for col in ["a", "b", "c"]}
+        read_csv(self.fname, engine=engine, dtype=dtype)
 
 
 class ReadCSVParseDates(StringIORewind):

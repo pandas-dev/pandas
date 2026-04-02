@@ -95,6 +95,7 @@ from pandas._libs.khash cimport (
 
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -1113,8 +1114,36 @@ cdef class TextReader:
                              kh_str_starts_t *na_hashset,
                              set na_fset, bint raise_on_invalid):
         if isinstance(dtype, CategoricalDtype):
-            # TODO: I suspect that _categorical_convert could be
-            # optimized when dtype is an instance of CategoricalDtype
+            if dtype.categories is not None:
+                # GH#17743: try optimized path for known categories.
+                # Convert categories to str and match against raw CSV tokens.
+                # For string/integer categories str() matches CSV text exactly.
+                # For other types (datetime, float, bool) it may not match,
+                # in which case we fall through to the general path.
+                codes, na_count, not_found_count = _categorical_convert_known(
+                    self.parser, i, start, end, na_filter, na_hashset,
+                    dtype.categories)
+                if not_found_count == 0 or (
+                    dtype.categories.dtype == object
+                ):
+                    # Either all values matched, or categories are strings
+                    # (so unmatched values are genuinely unexpected).
+                    if not_found_count > 0:
+                        warnings.warn(
+                            "Constructing a Categorical with a dtype and "
+                            "values containing non-null entries not in that "
+                            "dtype's categories is deprecated and will raise "
+                            "in a future version.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
+                    array_type = dtype.construct_array_type()
+                    cat = array_type._simple_new(codes, dtype=dtype)
+                    return cat, na_count
+
+                # Fall through: non-string type where str() didn't match
+                # all CSV tokens (e.g. datetime, float edge cases).
+
             codes, cats, na_count = _categorical_convert(
                 self.parser, i, start, end, na_filter, na_hashset)
 
@@ -1572,6 +1601,71 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
     kh_destroy_str(table)
     return np.asarray(codes), result, na_count
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _categorical_convert_known(parser_t *parser, int64_t col,
+                                int64_t line_start, int64_t line_end,
+                                bint na_filter,
+                                kh_str_starts_t *na_hashset,
+                                categories):
+    """Convert column data into codes using pre-specified categories.
+
+    When categories are known ahead of time, we build the hash table from
+    the categories directly and map parsed values to category codes in a
+    single pass, avoiding the factorize-then-recode steps.
+    """
+    cdef:
+        int na_count = 0
+        int not_found_count = 0
+        Py_ssize_t i, num_cats, lines
+        coliter_t it
+        const char *word = NULL
+
+        int64_t NA = -1
+        int64_t[::1] codes
+
+        int ret = 0
+        kh_str_t *table
+        khiter_t k
+
+    lines = line_end - line_start
+    codes = np.empty(lines, dtype=np.int64)
+
+    num_cats = len(categories)
+    # Keep references to encoded category strings to prevent GC
+    # while the hash table holds pointers to their buffers.
+    cat_bytes_list = [str(cat).encode("utf-8") for cat in categories]
+
+    # Build hash table: encoded category string -> category index
+    table = kh_init_str()
+    for i in range(num_cats):
+        k = kh_put_str(table, PyBytes_AsString(cat_bytes_list[i]), &ret)
+        table.vals[k] = <int64_t>i
+
+    with nogil:
+        coliter_setup(&it, parser, col, line_start)
+
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+
+            if na_filter:
+                if kh_get_str_starts_item(na_hashset, word):
+                    na_count += 1
+                    codes[i] = NA
+                    continue
+
+            k = kh_get_str(table, word)
+            if k != table.n_buckets:
+                codes[i] = table.vals[k]
+            else:
+                # Value not in known categories
+                not_found_count += 1
+                codes[i] = NA
+
+    kh_destroy_str(table)
+    return np.asarray(codes), na_count, not_found_count
 
 
 # -> ndarray[f'|S{width}']
