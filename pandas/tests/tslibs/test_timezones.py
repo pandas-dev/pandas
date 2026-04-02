@@ -6,8 +6,10 @@ from datetime import (
 import subprocess
 import sys
 import textwrap
+from zoneinfo import ZoneInfo
 
 import dateutil.tz
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
@@ -16,7 +18,11 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import is_platform_windows
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+    date_range,
+)
+import pandas._testing as tm
 
 
 @pytest.mark.single_cpu
@@ -173,7 +179,7 @@ def test_maybe_get_tz_invalid_types():
 
 @pytest.mark.parametrize("tz_name", ["UTC", "GMT", "Etc/GMT+1", "Etc/GMT-5"])
 def test_zoneinfo_fixed_offset(tz_name):
-    # GH#64363 - is_fixed_offset should return True for fixed-offset ZoneInfo timezones
+    # GH#64363
     zoneinfo = pytest.importorskip("zoneinfo")
     tz = zoneinfo.ZoneInfo(tz_name)
     assert timezones.is_fixed_offset(tz)
@@ -199,3 +205,33 @@ def test_maybe_get_tz_offset_only():
 
     tz = timezones.maybe_get_tz("UTC-02:45")
     assert tz == timezone(-timedelta(hours=2, minutes=45))
+
+
+def test_zoneinfo_utc_to_local_post_2037():
+    # GH#64363 - verify that ZoneInfo DST transitions after 2037
+    # (generated from POSIX TZ string rules) produce correct local times.
+    tz = ZoneInfo("US/Pacific")
+    utc_times = date_range("2040-07-01", periods=24, freq="h", tz="UTC")
+    local = utc_times.tz_convert(tz)
+
+    expected_hours = np.array(
+        [
+            datetime(2040, 7, 1, hour, tzinfo=timezone.utc).astimezone(tz).hour
+            for hour in range(24)
+        ],
+        dtype=np.int32,
+    )
+    tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
+
+
+@pytest.mark.parametrize("key", ["US/Eastern", "Africa/Lusaka", "Asia/Qyzylorda"])
+def test_zoneinfo_utc_to_local_pre_first_transition(key):
+    # GH#64363 - verify that ZoneInfo offsets before the first historical
+    # transition (LMT era) match what ZoneInfo itself returns. The "before"
+    # offset must be utcoff[0] from the TZ data (matching CPython's C
+    # implementation), NOT the first non-DST transition offset.
+    tz = ZoneInfo(key)
+    ts = Timestamp("1850-01-01", tz="UTC").tz_convert(tz)
+
+    expected = datetime(1850, 1, 1, tzinfo=timezone.utc).astimezone(tz)
+    assert ts.minute == expected.minute
