@@ -1488,6 +1488,22 @@ class ScatterPlot(PlanePlot):
             #  Doesn't happen in any tests 2023-11-09
         else:
             norm = self.norm
+            if norm is None:
+                # GH#64980: matplotlib's colorbar._process_values() calls
+                # nonsingular() on the norm, which modifies the shared norm
+                # object in-place. When all c values are identical (vmin==vmax),
+                # nonsingular expands the range, changing scatter colors.
+                # Explicitly setting vmin/vmax prevents this side effect.
+                try:
+                    c_arr = np.asarray(c_values, dtype=float)
+                    vmin = float(np.nanmin(c_arr))
+                    vmax = float(np.nanmax(c_arr))
+                    if np.isfinite(vmin) and np.isfinite(vmax):
+                        if vmin == vmax:
+                            vmax = vmin + 1
+                        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+                except (TypeError, ValueError):
+                    pass
         return norm, cmap
 
     def _get_colorbar(self, c_values, c_is_column: bool) -> bool:
