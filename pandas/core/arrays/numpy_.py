@@ -582,16 +582,9 @@ class NumpyExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        if na_value is not lib.no_default:
-            mask = self.isna()
-            if mask.any():
-                result = self._ndarray.copy()
-                result[mask] = na_value
-            else:
-                result = self._ndarray
-                if not copy and self._readonly:
-                    result = result.view()
-                    result.flags.writeable = False
+        if na_value is not lib.no_default and (mask := self.isna()).any():
+            result = self._ndarray.copy()
+            result[mask] = na_value
         else:
             result = self._ndarray
             if not copy and self._readonly:
