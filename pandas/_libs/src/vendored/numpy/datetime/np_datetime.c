@@ -113,9 +113,7 @@ void add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes) {
  * The March-1 epoch trick places the leap day at the end of the year,
  * eliminating special cases for February.
  *
- * Uses overflow-checked arithmetic for the final computation because
- * npy_int64 year values can push era far outside 32-bit range, unlike
- * Hinnant's original which returns `era * 146097 + doe - 719468` directly.
+ * Uses overflow-checked arithmetic to detect out-of-range inputs.
  */
 npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
   npy_int64 y = dts->year - (dts->month <= 2);
