@@ -1936,7 +1936,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # Otherwise we just need to check that the user-passed freq
             #  doesn't conflict with the one we already have.
             freq = to_offset(freq)
-            _validate_inferred_freq(freq, self._freq)
+            if freq != self._freq:
+                # GH#61086 freq may be equivalent but not equal (e.g.
+                # QS-FEB vs QS-MAY), so validate against the actual data.
+                type(self)._validate_frequency(self, freq, **validate_kwds)
+            self._freq = freq
 
     @final
     @classmethod
