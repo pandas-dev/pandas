@@ -728,7 +728,7 @@ class TestDateRanges:
         tm.assert_index_equal(result, expected)
 
     def test_range_where_start_equal_end(self, inclusive_endpoints_fixture):
-        # GH 43394
+        # GH#43394, GH#55293
         start = "2021-09-02"
         end = "2021-09-02"
         result = date_range(
@@ -736,11 +736,30 @@ class TestDateRanges:
         )
 
         both_range = date_range(start=start, end=end, freq="D", inclusive="both")
-        if inclusive_endpoints_fixture == "neither":
-            expected = both_range[1:-1]
-        elif inclusive_endpoints_fixture in ("left", "right", "both"):
+        if inclusive_endpoints_fixture == "both":
             expected = both_range[:]
+        else:
+            # (a, a], [a, a), and (a, a) are all empty
+            expected = both_range[1:-1]
 
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2021-09-02"]),
+            ("left", []),
+            ("right", []),
+            ("neither", []),
+        ],
+    )
+    def test_start_equal_end_inclusive(self, inclusive, expected_values):
+        # GH#55293 - when start == end, only inclusive="both" should
+        # return the singleton; left, right, and neither should all be empty
+        result = date_range(
+            start="2021-09-02", end="2021-09-02", freq="D", inclusive=inclusive
+        )
+        expected = DatetimeIndex(expected_values, dtype="datetime64[us]", freq="D")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
