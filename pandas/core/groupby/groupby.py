@@ -5706,8 +5706,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
-        # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
-        #  GH#23918 is fixed
+        # GH#23918: the vectorized path below shifts the combined result's
+        #  index, so values from different groups can bleed into each other
+        #  during alignment. Use the per-group slow path instead.
         if freq is not None:
             f = lambda x: x.pct_change(
                 periods=periods,
