@@ -25,6 +25,12 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.missing import NA
+from pandas._libs.tslibs import (
+    NaTType,
+    Period,
+    Timedelta,
+    Timestamp,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -1219,6 +1225,63 @@ def take(
 # ------------ #
 
 
+def validate_searchsorted_value(
+    arr_dtype: np.dtype, value: NumpyValueArrayLike | ExtensionArray
+) -> None:
+    """
+    Check that value is compatible with arr_dtype for searchsorted.
+
+    Raises TypeError for incompatible types like datetime64/timedelta64/str
+    values searched against numeric/bool arrays.
+
+    Everything allowed by _validate_setitem_value is allowed here, but
+    searchsorted is strictly more permissive because it only requires
+    comparability, not storability. For example, a non-round float like
+    1.5 can be searchsorted against an integer array but cannot be set
+    into one, and a datetime64[ns] value can be searchsorted against a
+    datetime64[s] array even though it would lose precision on setitem.
+    DatetimeLikeArrayMixin subclasses already validate via
+    _validate_setitem_value in NDArrayBackedExtensionArray.searchsorted.
+    This function covers the paths that lack a _validate_setitem_value
+    implementation: numpy-backed Series/Index (via algorithms.searchsorted),
+    NumpyExtensionArray, BaseMaskedArray, and ArrowExtensionArray.
+    """
+    if arr_dtype.kind not in "iufb":
+        return
+
+    if isinstance(value, (np.datetime64, np.timedelta64, str, bytes)):
+        raise TypeError(
+            f"searchsorted requires compatible dtype or scalar, "
+            f"got {type(value).__name__}"
+        )
+
+    if isinstance(value, (Timestamp, Timedelta, Period, NaTType)):
+        raise TypeError(
+            f"searchsorted requires compatible dtype or scalar, "
+            f"got {type(value).__name__}"
+        )
+
+    if isinstance(value, np.ndarray):
+        if value.dtype.kind in "mMUS":
+            raise TypeError(
+                f"searchsorted requires compatible dtype or scalar, got {value.dtype}"
+            )
+    elif isinstance(value, ABCExtensionArray):
+        if value.dtype.kind in "mM":
+            raise TypeError(
+                f"searchsorted requires compatible dtype or scalar, got {value.dtype}"
+            )
+    elif is_list_like(value):
+        _value = np.asarray(value)
+        if _value.dtype.kind in "mMUS":
+            raise TypeError(
+                f"searchsorted requires compatible dtype or scalar, got {_value.dtype}"
+            )
+        # lists of pandas objects result in object dtype; check first element
+        if _value.dtype == object and len(_value) > 0:
+            validate_searchsorted_value(arr_dtype, _value.ravel()[0])
+
+
 def searchsorted(
     arr: ArrayLike,
     value: NumpyValueArrayLike | ExtensionArray,
@@ -1269,6 +1332,9 @@ def searchsorted(
     """
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
+
+    if isinstance(arr, np.ndarray):
+        validate_searchsorted_value(arr.dtype, value)
 
     if (
         isinstance(arr, np.ndarray)

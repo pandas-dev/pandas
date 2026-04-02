@@ -3,12 +3,15 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    Index,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
+from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
 
 class TestSeriesSearchSorted:
@@ -75,3 +78,88 @@ class TestSeriesSearchSorted:
         msg = "Value must be 1-D array-like or scalar, DataFrame is not supported"
         with pytest.raises(ValueError, match=msg):
             ser.searchsorted(vals)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            np.timedelta64(1, "ns"),
+            np.datetime64("2020-01-01"),
+            Timedelta("1 day"),
+            Timestamp("2020-01-01"),
+            pd.NaT,
+            pd.Period("2020", "D"),
+            "foo",
+            np.array([1, 2], dtype="timedelta64[ns]"),
+            np.array(["2020-01-01"], dtype="datetime64[ns]"),
+            np.array(["a", "b"]),
+            [Timestamp("2020-01-01")],
+            [Timedelta("1 day")],
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["int64", "float64", "uint8", "bool"])
+    def test_searchsorted_numeric_incompatible_dtype(self, dtype, value):
+        ser = Series([1, 2, 3], dtype=dtype)
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            ser.searchsorted(value)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            np.timedelta64(1, "ns"),
+            np.datetime64("2020-01-01"),
+            Timedelta("1 day"),
+            Timestamp("2020-01-01"),
+            pd.NaT,
+            "foo",
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+    def test_searchsorted_nullable_numeric_incompatible_dtype(self, dtype, value):
+        data = [False, False, True] if dtype == "boolean" else [1, 2, 3]
+        ser = Series(data, dtype=dtype)
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            ser.searchsorted(value)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            np.timedelta64(1, "ns"),
+            np.datetime64("2020-01-01"),
+            Timedelta("1 day"),
+            Timestamp("2020-01-01"),
+            pd.NaT,
+            "foo",
+        ],
+    )
+    def test_searchsorted_arrow_numeric_incompatible_dtype(self, value):
+        pytest.importorskip("pyarrow")
+        ser = Series([1, 2, 3], dtype="int64[pyarrow]")
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            ser.searchsorted(value)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            np.timedelta64(1, "ns"),
+            np.datetime64("2020-01-01"),
+            Timedelta("1 day"),
+            Timestamp("2020-01-01"),
+            pd.NaT,
+            "foo",
+        ],
+    )
+    def test_searchsorted_numpy_ea_incompatible_dtype(self, value):
+        # NumpyExtensionArray path
+        nea = NumpyExtensionArray(np.array([1, 2, 3]))
+        msg = "searchsorted requires compatible dtype or scalar"
+        with pytest.raises(TypeError, match=msg):
+            nea.searchsorted(value)
+
+    @pytest.mark.parametrize("dtype", ["int64", "float64", "uint8"])
+    def test_searchsorted_numeric_with_index(self, dtype):
+        # Ensure valid numeric types still work through Index path
+        idx = Index([1, 2, 3], dtype=dtype)
+        assert idx.searchsorted(2) == 1

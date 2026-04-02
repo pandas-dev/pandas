@@ -39,6 +39,7 @@ from pandas.core import (
     nanops,
     ops,
 )
+from pandas.core.algorithms import validate_searchsorted_value
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -63,7 +64,7 @@ if TYPE_CHECKING:
 
     from pandas import Index
     from pandas.arrays import StringArray
-    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.arrays import ExtensionArray
 
 
 @set_module("pandas.arrays")
@@ -334,6 +335,15 @@ class NumpyExtensionArray(
             # Primarily for subclasses
             fill_value = self.dtype.na_value
         return fill_value
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        validate_searchsorted_value(self._ndarray.dtype, value)
+        return super().searchsorted(value, side=side, sorter=sorter)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
         if self.dtype.kind in "iub":
