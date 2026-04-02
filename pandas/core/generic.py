@@ -4676,7 +4676,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         for axis, labels in axes.items():
             if labels is not None:
-                obj = obj._drop_axis(labels, axis, level=level, errors=errors)
+                obj = obj._drop_axis(
+                    labels, axis, level=level, errors=errors, only_slice=True
+                )
 
         if inplace:
             self._update_inplace(obj)
