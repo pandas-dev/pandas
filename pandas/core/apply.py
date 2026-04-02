@@ -879,7 +879,7 @@ class NDFrameApply(Apply):
         # Compute reductions per dtype group to preserve per-column dtypes.
         # Using to_frame().T for each result avoids the slow
         # DataFrame(list-of-Series) construction path.
-        groups = obj.columns.groupby(obj.dtypes)
+        groups = obj.columns.groupby(obj.dtypes)  # type: ignore[arg-type]
         pieces = []
         for dtype in groups:
             cols = groups[dtype]
