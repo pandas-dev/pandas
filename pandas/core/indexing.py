@@ -987,15 +987,15 @@ class _LocationIndexer(NDFrameIndexerBase):
 
             elif self.obj.columns.is_unique:
                 # Added rows and columns
-                for idx in range(len(orig_dtypes)):
-                    new_dtype = new_dtypes[idx]
-                    orig_dtype = orig_dtypes[idx]
+                for col_idx in range(len(orig_dtypes)):
+                    new_dtype = new_dtypes[col_idx]
+                    orig_dtype = orig_dtypes[col_idx]
                     if new_dtype != orig_dtype:
                         orig_arr = pd_array([], dtype=orig_dtype)
                         new_arr = infer_and_maybe_downcast(
-                            orig_arr, self.obj.iloc[:, idx]._values
+                            orig_arr, self.obj.iloc[:, col_idx]._values
                         )
-                        self.obj.isetitem(idx, new_arr)
+                        self.obj.isetitem(col_idx, new_arr)
             else:
                 # In these cases there isn't a one-to-one correspondence between
                 #  old columns and new columns, which makes casting hairy.
