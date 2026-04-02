@@ -218,7 +218,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     pa_arr = pc.utf8_capitalize(pa_arr)
             else:
                 result = lib.ensure_string_array(
-                    result, copy=copy, convert_na_value=False
+                    result, copy=copy, convert_na_value=False, skipna=False
                 )
                 pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
         elif isinstance(scalars, ArrowExtensionArray):
