@@ -1206,6 +1206,20 @@ def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
         dtype, _ = infer_dtype_from(right)
         new_dtype = find_common_type([left_dtype, dtype])
 
+        # GH#61671: for datetime64/timedelta64, find_common_type picks the
+        # highest resolution (e.g. ns over us), but this may have too narrow
+        # a range for the value. If the inferred dtype has lower resolution
+        # (wider range), prefer it so the value can be represented.
+        if (
+            new_dtype == left_dtype
+            and isinstance(new_dtype, np.dtype)
+            and new_dtype.kind in "mM"
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == new_dtype.kind
+            and dtype != new_dtype
+        ):
+            new_dtype = dtype
+
     return new_dtype
 
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 
 import numpy as np
@@ -738,4 +739,12 @@ def test_replace_from_index():
     idx = pd.Index(["a", "b", "c"], dtype="string[pyarrow]")
     expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
     result = pd.Series(idx).replace({"z": "b", "a": "d"})
+    tm.assert_series_equal(result, expected)
+
+
+def test_replace_datetime_out_of_bounds_for_ns():
+    # GH#61671
+    ser = pd.Series([np.nan], dtype="datetime64[ns]")
+    result = ser.replace(np.nan, datetime(3000, 1, 1))
+    expected = pd.Series([pd.Timestamp("3000-01-01")], dtype="datetime64[us]")
     tm.assert_series_equal(result, expected)

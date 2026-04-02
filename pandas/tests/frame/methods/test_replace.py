@@ -1470,6 +1470,13 @@ class TestDataFrameReplace:
             expected = ser
         tm.assert_series_equal(result, expected)
 
+    def test_replace_datetime_out_of_bounds_for_ns(self):
+        # GH#61671
+        df = DataFrame([np.nan], dtype="datetime64[ns]")
+        result = df.replace(np.nan, datetime(3000, 1, 1))
+        expected = DataFrame([Timestamp("3000-01-01")], dtype="datetime64[us]")
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
