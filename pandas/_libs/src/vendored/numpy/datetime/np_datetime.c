@@ -107,17 +107,24 @@ void add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes) {
 /*
  * Calculates the days offset from the 1970 epoch.
  *
- * Uses Hinnant's algorithm for loop-free, nearly branchless conversion.
+ * Adapted from Hinnant's days_from_civil algorithm (public domain).
+ * See: https://howardhinnant.github.io/date_algorithms.html#days_from_civil
+ *
  * The March-1 epoch trick places the leap day at the end of the year,
  * eliminating special cases for February.
- * See: https://howardhinnant.github.io/date_algorithms.html
+ *
+ * Uses overflow-checked arithmetic for the final computation because
+ * npy_int64 year values can push era far outside 32-bit range, unlike
+ * Hinnant's original which returns `era * 146097 + doe - 719468` directly.
  */
 npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
   npy_int64 y = dts->year - (dts->month <= 2);
   npy_int64 era = (y >= 0 ? y : y - 399) / 400;
   uint32_t yoe = (uint32_t)(y - era * 400); /* [0, 399] */
-  uint32_t mp = (uint32_t)(dts->month > 2 ? dts->month - 3 : dts->month + 9);
-  uint32_t doy = (153 * mp + 2) / 5 + (uint32_t)dts->day - 1;
+  uint32_t doy =
+      (153 * (uint32_t)(dts->month > 2 ? dts->month - 3 : dts->month + 9) + 2) /
+          5 +
+      (uint32_t)dts->day - 1;                           /* [0, 365] */
   uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; /* [0, 146096] */
 
   npy_int64 days;
@@ -171,50 +178,48 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
  * Fills in the year, month, day in 'dts' based on the days
  * offset from 1970.
  *
- * Uses the Neri-Schneider algorithm for branchless, loop-free conversion
- * via Euclidean Affine Functions that replace integer divisions with
- * multiply-shift operations.
- *
- * Algorithm from: Neri C, Schneider L. "Euclidean Affine Functions and their
- * Application to Calendar Algorithms." Software: Practice and Experience.
- * 2023;53(4):937-970. doi:10.1002/spe.3172
- *
- * Ported from algorithms/neri_schneider.hpp (MIT license) in:
+ * Adapted from neri_schneider.hpp::to_date (MIT license) in:
  * https://github.com/cassioneri/eaf
  * SPDX-FileCopyrightText: 2022 Cassio Neri <cassio.neri@gmail.com>
  * SPDX-FileCopyrightText: 2022 Lorenz Schneider <schneider@em-lyon.com>
+ *
+ * Algorithm: Neri C, Schneider L. "Euclidean Affine Functions and their
+ * Application to Calendar Algorithms." Software: Practice and Experience.
+ * 2023;53(4):937-970. doi:10.1002/spe.3172
  *
  * Falls back to the classical algorithm for dates beyond ~32K years
  * before epoch or ~2.9M years after (effectively never reached in practice).
  */
 void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts) {
   /* Neri-Schneider valid range: [-12699422, 1061042401] (~year -32800..2906945)
-   * Constants derived with shift parameter s = 82. */
+   * s = 82, K = 719468 + 146097 * s, L = 400 * s. */
   if (days >= -12699422LL && days <= 1061042401LL) {
-    const uint32_t K = 12699422u; /* 719468 + 146097 * 82 */
-    const uint32_t L = 32800u;    /* 400 * 82 */
+    const uint32_t K = 12699422u;
+    const uint32_t L = 32800u;
 
+    /* Rata die shift. */
     uint32_t N = (uint32_t)(int32_t)days + K;
 
-    /* Step 1: Century decomposition */
+    /* Century. */
     uint32_t N_1 = 4 * N + 3;
-    uint32_t C = N_1 / 146097u;
-    uint32_t N_C = N_1 % 146097u / 4;
+    uint32_t C = N_1 / 146097;
+    uint32_t N_C = N_1 % 146097 / 4;
 
-    /* Step 2: Year within century (EAF: 2939745 = ceil(2^32 / 1461)) */
+    /* Year. */
     uint32_t N_2 = 4 * N_C + 3;
-    uint64_t P_2 = (uint64_t)2939745u * N_2;
-    uint32_t Z = (uint32_t)(P_2 >> 32);
-    uint32_t N_Y = (uint32_t)P_2 / 2939745u / 4;
+    uint64_t P_2 = (uint64_t)2939745 * N_2;
+    uint32_t Z = (uint32_t)(P_2 / 4294967296);
+    uint32_t N_Y = (uint32_t)(P_2 % 4294967296) / 2939745 / 4;
 
-    /* Step 3: Month and day (EAF: 2141 = floor(2^16 * 5 / 153)) */
+    /* Month and day. */
     uint32_t N_3 = 2141 * N_Y + 197913;
-    uint32_t M = N_3 >> 16;
-    uint32_t D = (N_3 & 0xFFFF) / 2141;
+    uint32_t M = N_3 / 65536;
+    uint32_t D = N_3 % 65536 / 2141;
 
-    /* Step 4: Convert from March-based to January-based calendar */
+    /* Map from March-based to January-based calendar. */
     uint32_t J = N_Y >= 306;
-    dts->year = (npy_int64)((int32_t)(100 * C + Z - L) + (int32_t)J);
+    uint32_t Y = 100 * C + Z;
+    dts->year = (npy_int64)((int32_t)(Y - L) + (int32_t)J);
     dts->month = (npy_int32)(J ? M - 12 : M);
     dts->day = (npy_int32)(D + 1);
     return;
