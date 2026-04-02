@@ -948,6 +948,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         new_parr = self.asfreq(freq, how=how)
 
+        if base < 6000:
+            # GH#59371: periodarr_to_dt64arr hardcodes is_end=True for
+            #  freq < FR_DAY in get_unix_date, ignoring how="start".
+            #  Convert to the daily base first so the fast path is used.
+            ts_base = new_parr._dtype._get_to_timestamp_base()
+            ts_dtype = PeriodDtypeBase(ts_base, 1)
+            new_parr = new_parr.asfreq(ts_dtype._freqstr, how=how)
+            base = ts_base
+
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit

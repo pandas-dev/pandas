@@ -141,6 +141,35 @@ class TestToTimestamp:
         result = index.to_timestamp()
         assert result[0] == Timestamp("1/1/2012")
 
+    def test_to_timestamp_explicit_freq_start(self):
+        # GH#59371 - to_timestamp with explicit freq should respect how="start"
+        pi = period_range("2000", periods=3, freq="M")
+        result = pi.to_timestamp("M")
+        expected = DatetimeIndex(
+            ["2000-01-01", "2000-02-01", "2000-03-01"],
+            dtype="M8[us]",
+            freq="MS",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_to_timestamp_explicit_freq_start_quarterly(self):
+        # GH#59371
+        pi = period_range("2000", periods=4, freq="Q")
+        result = pi.to_timestamp("M")
+        expected = DatetimeIndex(
+            ["2000-01-01", "2000-04-01", "2000-07-01", "2000-10-01"],
+            dtype="M8[us]",
+            freq="QS-OCT",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_to_timestamp_explicit_freq_start_scalar(self):
+        # GH#59371 - scalar Period.to_timestamp should also be fixed
+        per = PeriodIndex(["2000-01"], freq="M")[0]
+        result = per.to_timestamp("M")
+        expected = Timestamp("2000-01-01")
+        assert result == expected
+
 
 def test_ms_to_timestamp_error_message():
     # https://github.com/pandas-dev/pandas/issues/58974#issuecomment-2164265446

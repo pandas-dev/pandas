@@ -2175,6 +2175,15 @@ cdef class _Period(PeriodMixin):
 
         val = self.asfreq(freq, how)
 
+        if base < FR_DAY:
+            # GH#59371: period_ordinal_to_dt64 hardcodes is_end=True for
+            #  freq < FR_DAY in get_unix_date, ignoring how="start".
+            #  Convert to the daily base first so the fast path is used.
+            freq_code = val._dtype._get_to_timestamp_base()
+            dtype = PeriodDtypeBase(freq_code, 1)
+            val = val.asfreq(dtype._freqstr, how)
+            base = freq_code
+
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
         return Timestamp(dt64, unit=unit)
 
