@@ -6834,10 +6834,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([1, 2, 3], index=idx)
         >>> s2 = s2.to_timestamp(freq="M")
         >>> s2
-        2023-01-31    1
-        2024-01-31    2
-        2025-01-31    3
-        Freq: YE-JAN, dtype: int64
+        2023-01-01    1
+        2024-01-01    2
+        2025-01-01    3
+        Freq: YS-JAN, dtype: int64
         """
         self._check_copy_deprecation(copy)
         if not isinstance(self.index, PeriodIndex):

@@ -133,10 +133,14 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "12/31/1990", freq=f"Y-{month}")
         warn = FutureWarning if period == "B" else None
         msg = r"PeriodDtype\[B\] is deprecated"
+        # GH#59371: to_timestamp now respects how="start", so the offset
+        # used for asfreq must match the convention
+        _start_offsets = {"ME": "MS", "QE": "QS"}
+        ts_offset = _start_offsets.get(offset, offset) if conv == "start" else offset
         with tm.assert_produces_warning(warn, match=msg):
             result = getattr(ts.resample(period, convention=conv), meth)()
             expected = result.to_timestamp(period, how=conv)
-            expected = expected.asfreq(offset, meth).to_period()
+            expected = expected.asfreq(ts_offset, meth).to_period()
         tm.assert_series_equal(result, expected)
 
     def test_basic_downsample(self, simple_period_range_series):
@@ -217,10 +221,16 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=freq)
         warn = FutureWarning if period == "B" else None
         msg = r"PeriodDtype\[B\] is deprecated"
+        # GH#59371: to_timestamp now respects how="start", so the offset
+        # used for asfreq must match the convention
+        _start_offsets = {"ME": "MS"}
+        ts_offset = (
+            _start_offsets.get(offset, offset) if convention == "start" else offset
+        )
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(period, convention=convention).ffill()
             expected = result.to_timestamp(period, how=convention)
-            expected = expected.asfreq(offset, "ffill").to_period()
+            expected = expected.asfreq(ts_offset, "ffill").to_period()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("target", ["D", "B"])
@@ -889,8 +899,9 @@ class TestPeriodIndex:
         pi = period_range("19910905 12:00", "19910909 1:00", freq="h")
         ser = Series(np.arange(len(pi)), index=pi)
         result = ser.resample("M").mean()
+        # GH#59371: to_timestamp("M") now gives start-of-month timestamps
         result = result.to_timestamp("M")
-        expected = ser.to_timestamp().resample("ME").mean()
+        expected = ser.to_timestamp().resample("MS").mean()
         # TODO: is non-tick the relevant characteristic? (GH 33815)
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
