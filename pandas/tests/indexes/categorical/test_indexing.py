@@ -365,7 +365,7 @@ class TestContains:
         assert None in obj
         assert pd.NaT in obj
         assert np.datetime64("NaT") in obj
-        assert np.timedelta64("NaT") not in obj
+        assert np.timedelta64("NaT", "ns") not in obj
 
         obj2 = CategoricalIndex(tdi)
         if unwrap:
@@ -375,7 +375,7 @@ class TestContains:
         assert None in obj2
         assert pd.NaT in obj2
         assert np.datetime64("NaT") not in obj2
-        assert np.timedelta64("NaT") in obj2
+        assert np.timedelta64("NaT", "ns") in obj2
 
         obj3 = CategoricalIndex(pi)
         if unwrap:
@@ -385,7 +385,7 @@ class TestContains:
         assert None in obj3
         assert pd.NaT in obj3
         assert np.datetime64("NaT") not in obj3
-        assert np.timedelta64("NaT") not in obj3
+        assert np.timedelta64("NaT", "ns") not in obj3
 
     @pytest.mark.parametrize(
         "item, expected",

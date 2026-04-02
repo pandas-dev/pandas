@@ -780,7 +780,7 @@ def is_integer_dtype(arr_or_dtype) -> bool:
     False
     >>> is_integer_dtype(pd.Series([1, 2]))
     True
-    >>> is_integer_dtype(np.array([], dtype=np.timedelta64))
+    >>> is_integer_dtype(np.array([], dtype="m8[ns]"))
     False
     >>> is_integer_dtype(pd.Index([1, 2.0]))  # float
     False
@@ -847,7 +847,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     False
     >>> is_signed_integer_dtype(pd.Series([1, 2]))
     True
-    >>> is_signed_integer_dtype(np.array([], dtype=np.timedelta64))
+    >>> is_signed_integer_dtype(np.array([], dtype="m8[ns]"))
     False
     >>> is_signed_integer_dtype(pd.Index([1, 2.0]))  # float
     False
@@ -1146,7 +1146,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
     True
-    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8"))
     False
     """
     return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
@@ -1287,7 +1287,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
     True
     >>> is_numeric_dtype(pd.Index([1, 2.0]))
     True
-    >>> is_numeric_dtype(np.array([], dtype=np.timedelta64))
+    >>> is_numeric_dtype(np.array([], dtype="m8[ns]"))
     False
     """
     return _is_dtype_type(

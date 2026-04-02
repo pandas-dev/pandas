@@ -342,14 +342,17 @@ NaT   4"""
         df2 = DataFrame({"dt": Categorical(dt), "p": Categorical(p)})
         assert repr(df2) == exp
 
-    @pytest.mark.parametrize("arg", [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize(
+        "nat",
+        [np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")],
+    )
     @pytest.mark.parametrize(
         "box, expected",
         [[Series, "0    NaT\ndtype: object"], [DataFrame, "     0\n0  NaT"]],
     )
-    def test_repr_np_nat_with_object(self, arg, box, expected):
+    def test_repr_np_nat_with_object(self, nat, box, expected):
         # GH 25445
-        result = repr(box([arg("NaT")], dtype=object))
+        result = repr(box([nat], dtype=object))
         assert result == expected
 
     def test_frame_datetime64_pre1900_repr(self):

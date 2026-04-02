@@ -850,7 +850,9 @@ class TestInference:
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
-        exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[s]")
+        exp = np.array(
+            [np.timedelta64("NaT", "s"), np.timedelta64(1, "s")], dtype="m8[s]"
+        )
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
@@ -1339,10 +1341,10 @@ class TestTypeInference:
         "arr",
         [
             np.array(
-                [np.timedelta64("nat"), np.datetime64("2011-01-02")], dtype=object
+                [np.timedelta64("NaT", "ns"), np.datetime64("2011-01-02")], dtype=object
             ),
             np.array(
-                [np.datetime64("2011-01-02"), np.timedelta64("nat")], dtype=object
+                [np.datetime64("2011-01-02"), np.timedelta64("NaT", "ns")], dtype=object
             ),
             np.array([np.datetime64("2011-01-01"), Timestamp("2011-01-02")]),
             np.array([Timestamp("2011-01-02"), np.datetime64("2011-01-01")]),
@@ -1512,21 +1514,25 @@ class TestTypeInference:
             arr = np.array([pd.NaT, n, np.datetime64("nat"), n])
             assert lib.infer_dtype(arr, skipna=False) == "datetime64"
 
-        arr = np.array([np.timedelta64("nat")], dtype=object)
+        arr = np.array([np.timedelta64("NaT", "ns")], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "timedelta"
 
         for n in [np.nan, pd.NaT, None]:
-            arr = np.array([n, np.timedelta64("nat"), n])
+            arr = np.array([n, np.timedelta64("NaT", "ns"), n])
             assert lib.infer_dtype(arr, skipna=False) == "timedelta"
 
-            arr = np.array([pd.NaT, n, np.timedelta64("nat"), n])
+            arr = np.array([pd.NaT, n, np.timedelta64("NaT", "ns"), n])
             assert lib.infer_dtype(arr, skipna=False) == "timedelta"
 
         # datetime / timedelta mixed
-        arr = np.array([pd.NaT, np.datetime64("nat"), np.timedelta64("nat"), np.nan])
+        arr = np.array(
+            [pd.NaT, np.datetime64("nat"), np.timedelta64("NaT", "ns"), np.nan]
+        )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
-        arr = np.array([np.timedelta64("nat"), np.datetime64("nat")], dtype=object)
+        arr = np.array(
+            [np.timedelta64("NaT", "ns"), np.datetime64("nat")], dtype=object
+        )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
     def test_is_datetimelike_array_all_nan_nat_like(self):
@@ -1535,12 +1541,14 @@ class TestTypeInference:
         assert lib.is_datetime64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
-        arr = np.array([np.nan, pd.NaT, np.timedelta64("nat")])
+        arr = np.array([np.nan, pd.NaT, np.timedelta64("NaT", "ns")])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
-        arr = np.array([np.nan, pd.NaT, np.datetime64("nat"), np.timedelta64("nat")])
+        arr = np.array(
+            [np.nan, pd.NaT, np.datetime64("nat"), np.timedelta64("NaT", "ns")]
+        )
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
