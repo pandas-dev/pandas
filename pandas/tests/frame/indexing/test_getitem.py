@@ -55,7 +55,7 @@ class TestGetitem:
         )
 
         result = df[offsets[0]]
-        expected = Series([0, 7], index=[0, 1], name=offsets[0])
+        expected = df.iloc[:, 0]
         tm.assert_series_equal(result, expected)
 
     def test_getitem_list_of_labels_categoricalindex_cols(self):
