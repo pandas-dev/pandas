@@ -2649,12 +2649,17 @@ class _iLocIndexer(_LocationIndexer):
                 item = self.obj.columns[loc]
                 if item in value:
                     sub_indexer[1] = item
+                    ser = value[item]
                     val = self._align_series(
                         tuple(sub_indexer),
-                        value[item],
+                        ser,
                         multiindex_indexer,
-                        using_cow=True,
                     )
+                    # If _align_series did not need to reindex, pass the
+                    # original Series so that _setitem_single_column can
+                    # preserve CoW ref tracking through isetitem.
+                    if val is ser._values:
+                        val = ser
                 else:
                     val = np.nan
 
@@ -2870,8 +2875,7 @@ class _iLocIndexer(_LocationIndexer):
         indexer,
         ser: Series,
         multiindex_indexer: bool = False,
-        using_cow: bool = False,
-    ):
+    ) -> ArrayLike | Series:
         """
         Parameters
         ----------
@@ -2949,9 +2953,7 @@ class _iLocIndexer(_LocationIndexer):
                     else:
                         new_ix = Index(new_ix)
                     if not len(new_ix) or ser.index.equals(new_ix):
-                        if using_cow:
-                            return ser
-                        return ser._values.copy()
+                        return ser._values
 
                     return ser.reindex(new_ix)._values
 
@@ -2965,6 +2967,7 @@ class _iLocIndexer(_LocationIndexer):
 
         elif is_integer(indexer) and self.ndim == 1:
             if is_object_dtype(self.obj.dtype):
+                # Store the Series as a scalar element in object-dtype Series
                 return ser
             ax = self.obj._get_axis(0)
 
