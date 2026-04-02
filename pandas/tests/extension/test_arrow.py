@@ -3845,6 +3845,17 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         assert np.isnan(ser[2])
 
 
+def test_np_isnan_pyarrow(using_nan_is_na):
+    # GH#62506
+    ser = pd.Series([-1, 0, None], dtype="Int64[pyarrow]") ** 0.5
+    result = np.isnan(ser)
+    if using_nan_is_na:
+        expected = pd.Series([True, False, True], dtype="bool[pyarrow]")
+    else:
+        expected = pd.Series([True, False, pd.NA], dtype="bool[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_pow_with_all_na_float():
     # GH#62520
 
