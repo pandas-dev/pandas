@@ -2343,7 +2343,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
-    def _get_values_repr(self) -> str:
+    def _get_formatted_values(self) -> list[str]:
+        """Return formatted string representations of values."""
         from pandas.io.formats import format as fmt
 
         assert len(self) > 0
@@ -2356,10 +2357,29 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             na_rep="NaN",
             quoting=QUOTE_NONNUMERIC,
         )
+        return [val.strip() for val in fmt_values]
 
-        fmt_values = [i.strip() for i in fmt_values]
-        joined = ", ".join(fmt_values)
-        result = "[" + joined + "]"
+    @staticmethod
+    def _format_values_line(fmt_values: list[str], max_width: int) -> str:
+        """Format a list of values into a bracketed, width-respecting string."""
+        if max_width == 0:
+            return "[" + ", ".join(fmt_values) + "]"
+
+        result = "["
+        cur_col_len = 1  # account for the opening bracket
+        start = True
+        for val in fmt_values:
+            if not start:
+                if cur_col_len + 2 + len(val) > max_width:
+                    result += ",\n "
+                    cur_col_len = 1  # 1 space indent
+                else:
+                    result += ", "
+                    cur_col_len += 2
+            result += val
+            cur_col_len += len(val)
+            start = False
+        result += "]"
         return result
 
     def __repr__(self) -> str:
@@ -2369,17 +2389,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         footer = self._get_repr_footer()
         length = len(self)
         max_len = 10
+
+        width, _ = get_terminal_size()
+        max_width = _global_config["display"]["width"] or width
+        if console.in_ipython_frontend():
+            max_width = 0
+
         if length > max_len:
             # In long cases we do not display all entries, so we add Length
             #  information to the __repr__.
             num = max_len // 2
-            head = self[:num]._get_values_repr()
-            tail = self[-(max_len - num) :]._get_values_repr()
-            body = f"{head[:-1]}, ..., {tail[1:]}"
+            head_vals = self[:num]._get_formatted_values()
+            tail_vals = self[-(max_len - num) :]._get_formatted_values()
+            all_vals = [*head_vals, "...", *tail_vals]
+            body = self._format_values_line(all_vals, max_width)
             length_info = f"Length: {len(self)}"
             result = f"{body}\n{length_info}\n{footer}"
         elif length > 0:
-            body = self._get_values_repr()
+            fmt_values = self._get_formatted_values()
+            body = self._format_values_line(fmt_values, max_width)
             result = f"{body}\n{footer}"
         else:
             # In the empty case we use a comma instead of newline to get
