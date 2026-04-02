@@ -10,7 +10,7 @@ runs:
     - name: Install ${{ inputs.environment }}
       uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
       with:
-        pixi-version: v0.65.0
+        pixi-version: v0.66.0
         log-level: vv
         manifest-path: pixi.toml
         environments: ${{ inputs.environment }}
