@@ -324,14 +324,28 @@ class TestDataFrameColor:
         cmap = ListedColormap(["blue", "red"])
 
         _, ax_no_cb = plt.subplots()
-        df.plot("x", "x", kind="scatter", c=df["c"], colormap=cmap, colorbar=False,
-                ax=ax_no_cb)
+        df.plot(
+            "x",
+            "x",
+            kind="scatter",
+            c=df["c"],
+            colormap=cmap,
+            colorbar=False,
+            ax=ax_no_cb,
+        )
         ax_no_cb.get_figure().canvas.draw()
         colors_no_cb = ax_no_cb.collections[-1].get_facecolor()
 
         _, ax_with_cb = plt.subplots()
-        df.plot("x", "x", kind="scatter", c=df["c"], colormap=cmap, colorbar=True,
-                ax=ax_with_cb)
+        df.plot(
+            "x",
+            "x",
+            kind="scatter",
+            c=df["c"],
+            colormap=cmap,
+            colorbar=True,
+            ax=ax_with_cb,
+        )
         ax_with_cb.get_figure().canvas.draw()
         colors_with_cb = ax_with_cb.collections[-1].get_facecolor()
 
