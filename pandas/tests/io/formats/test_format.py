@@ -1923,15 +1923,14 @@ class TestGenericArrayFormatter:
         assert res[1] == " [[False, True], [True, False]]"
 
 
-class TestDisplayPrecisionObjectIndex:
-    def test_precision_float_in_object_index(self):
-        # GH#25919 - display.precision not honored for float values in object index
-        float_val = 0.55555555
-        df = DataFrame([float_val, "foo"], index=[float_val, "foo"])
-        with option_context("display.precision", 3):
-            result = repr(df)
-        assert "0.556" in result
-        assert "0.55555555" not in result
+def test_precision_float_in_object_index():
+    # GH#25919 - display.precision not honored for float values in object index
+    float_val = 0.55555555
+    df = DataFrame([float_val, "foo"], index=[float_val, "foo"])
+    with option_context("display.precision", 3):
+        result = repr(df)
+    assert "0.556" in result
+    assert "0.55555555" not in result
 
 
 def _three_digit_exp():
