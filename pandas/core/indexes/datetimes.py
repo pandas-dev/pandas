@@ -306,11 +306,24 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def weekday(self) -> Index:
-        return self._wrap_field("weekday")
+        # GH#12816
+        warnings.warn(
+            "DatetimeIndex.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
 
     @property
     def dayofweek(self) -> Index:
-        return self._wrap_field("dayofweek")
+        warnings.warn(
+            "DatetimeIndex.dayofweek is deprecated and will be removed in a "
+            "future version. Use DatetimeIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
 
     @property
     def day_of_week(self) -> Index:
@@ -318,7 +331,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def dayofyear(self) -> Index:
-        return self._wrap_field("dayofyear")
+        warnings.warn(
+            "DatetimeIndex.dayofyear is deprecated and will be removed in a "
+            "future version. Use DatetimeIndex.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_year")
 
     @property
     def day_of_year(self) -> Index:
@@ -334,7 +353,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def daysinmonth(self) -> Index:
-        return self._wrap_field("daysinmonth")
+        warnings.warn(
+            "DatetimeIndex.daysinmonth is deprecated and will be removed in a "
+            "future version. Use DatetimeIndex.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("days_in_month")
 
     @property
     def microsecond(self) -> Index:

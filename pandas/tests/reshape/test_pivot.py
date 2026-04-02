@@ -1842,11 +1842,11 @@ class TestPivotTable:
         ts = Series(np.arange(len(rng)), index=rng)
 
         result = pivot_table(
-            DataFrame(ts), index=ts.index.year, columns=ts.index.dayofyear
+            DataFrame(ts), index=ts.index.year, columns=ts.index.day_of_year
         )
         result.columns = result.columns.droplevel(0)
 
-        doy = np.asarray(ts.index.dayofyear)
+        doy = np.asarray(ts.index.day_of_year)
 
         expected = {}
         for y in ts.index.year.unique().values:

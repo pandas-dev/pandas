@@ -2811,7 +2811,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.fillna(0)
         Index([0.0, 0.0, 3.0], dtype='float64')
         """
-        if not is_scalar(value):
+        if is_list_like(value, allow_sets=False) and not isinstance(value, tuple):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
@@ -5708,6 +5708,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(values, np.ndarray):
             converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+            if isinstance(converted, tuple):
+                # GH#37681 np.putmask unpacks tuples, so wrap in an
+                #  object array to ensure the tuple is treated as a scalar
+                fill_arr = np.empty(1, dtype=object)
+                fill_arr[0] = converted
+                converted = fill_arr
             np.putmask(values, mask, converted)  # pyright: ignore[reportArgumentType]
 
         else:

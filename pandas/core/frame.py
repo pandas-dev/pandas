@@ -1683,6 +1683,10 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         data : dict
             Of the form {field : array-like} or {field : dict}.
+
+            .. deprecated:: 3.1.0
+                Passing a non-dict to ``from_dict`` is deprecated.
+                Use the :class:`DataFrame` constructor instead.
         orient : {'columns', 'index', 'tight'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
@@ -1754,6 +1758,13 @@ class DataFrame(NDFrame, OpsMixin):
            c   2  4
         """
         index: list | Index | None = None
+        if not isinstance(data, dict):
+            warnings.warn(
+                f"Passing a {type(data).__name__} to DataFrame.from_dict is "
+                "deprecated. Use the DataFrame constructor instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
@@ -2805,7 +2816,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
-        engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
+        engine: Literal["auto", "pyarrow", "fastparquet"]
+        | lib.NoDefault = lib.no_default,
         compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -2833,6 +2845,12 @@ class DataFrame(NDFrame, OpsMixin):
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
             behavior is to try 'pyarrow', falling back to 'fastparquet' if
             'pyarrow' is unavailable.
+
+            .. deprecated:: 3.1.0
+                The ``'fastparquet'`` and ``'auto'`` engine options are
+                deprecated. Use ``'pyarrow'`` or do not pass ``engine``
+                to use the default.
+
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
             Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
@@ -4663,9 +4681,15 @@ class DataFrame(NDFrame, OpsMixin):
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
-                for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
-                    self[col] = value[col_droplevel]
-                return
+                if not cols_droplevel.equals(cols):
+                    # Levels were actually dropped, so we can safely use
+                    # key-based indexing without re-entering this method.
+                    for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
+                        self[col] = value[col_droplevel]
+                    return
+                # If cols_droplevel == cols (key matched all levels),
+                # fall through to positional isetitem to avoid
+                # infinite recursion (GH#53498).
 
             if is_scalar(cols):
                 self[cols] = value[value.columns[0]]
@@ -9346,31 +9370,40 @@ class DataFrame(NDFrame, OpsMixin):
         blockwise.
         """
         rvalues = series._values
-        if not isinstance(rvalues, np.ndarray):
-            # TODO(EA2D): no need to special-case with 2D EAs
-            if lib.is_np_dtype(rvalues.dtype, "mM"):
-                # i.e. DatetimeArray[tznaive] or TimedeltaArray
-                # We can losslessly+cheaply cast to ndarray
-                rvalues = np.asarray(rvalues)
+        if lib.is_np_dtype(rvalues.dtype):
+            # We can losslessly+cheaply cast to ndarray
+            # i.e. ndarray or dt64[naive], td64
+            # TODO(EA2D): no need to special case with 2D EAs
+            rvalues = np.asarray(rvalues)
+
+            if axis == 0:
+                rvalues = rvalues.reshape(-1, 1)
             else:
-                return series
+                rvalues = rvalues.reshape(1, -1)
 
-        if axis == 0:
-            rvalues = rvalues.reshape(-1, 1)
+            rvalues = np.broadcast_to(rvalues, self.shape)
+            # pass dtype to avoid doing inference
+            # copy=False is safe because this is a temporary DataFrame used only
+            # as the right operand in blockwise arithmetic.
+            df = self._constructor(
+                rvalues,
+                index=self.index,
+                columns=self.columns,
+                dtype=rvalues.dtype,
+                copy=False,
+            )
+        # GH#61581
+        elif axis == 0:
+            df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
         else:
-            rvalues = rvalues.reshape(1, -1)
-
-        rvalues = np.broadcast_to(rvalues, self.shape)
-        # pass dtype to avoid doing inference.
-        # copy=False is safe because this is a temporary DataFrame used only
-        # as the right operand in blockwise arithmetic.
-        return self._constructor(
-            rvalues,
-            index=self.index,
-            columns=self.columns,
-            dtype=rvalues.dtype,
-            copy=False,
-        ).__finalize__(series)
+            nrows = self.shape[0]
+            df = DataFrame(
+                {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
+                dtype=rvalues.dtype,
+            )
+        df.index = self.index
+        df.columns = self.columns
+        return df.__finalize__(series)
 
     def _flex_arith_method(
         self, other, op, *, axis: Axis = "columns", level=None, fill_value=None
@@ -9379,11 +9412,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._should_reindex_frame_op(other, op, axis, fill_value, level):
             return self._arith_method_with_reindex(other, op)
-
-        if isinstance(other, Series) and fill_value is not None:
-            # TODO: We could allow this in cases where we end up going
-            #  through the DataFrame path
-            raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
         other = ops.maybe_prepare_scalar_for_op(other, self.shape)
         self, other = self._align_for_op(other, axis, flex=True, level=level)
@@ -15690,10 +15718,6 @@ class DataFrame(NDFrame, OpsMixin):
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
             out = out.astype(object)
-        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
-            # Even if we are object dtype, follow numpy and return
-            #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
 
         return out
 
@@ -16738,7 +16762,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame (if level specified)
+        Series
             Unbiased standard error of the mean over requested axis.
 
         See Also

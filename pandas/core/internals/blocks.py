@@ -777,7 +777,13 @@ class Block(PandasObject, libinternals.Block):
         if not (
             self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
         ):
+            # GH#57733 - astype to object may return a block sharing memory
+            # with self (e.g. StringArray backed by object ndarray). Since
+            # replace_regex mutates values in-place, we must ensure the
+            # block's data is independent.
             block = self.astype(np.dtype(object))
+            if astype_is_view(self.dtype, np.dtype(object)):
+                block = block._maybe_copy(inplace=True)
         else:
             block = self._maybe_copy(inplace)
 

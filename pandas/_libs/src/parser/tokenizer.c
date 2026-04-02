@@ -623,11 +623,11 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 #define IS_QUOTE(c) ((c == self->quotechar && self->quoting != QUOTE_NONE))
 
 // don't parse '\r' with a custom line terminator
-#define IS_CARRIAGE(c) (c == carriage_symbol)
+#define IS_CARRIAGE(c) (has_carriage && c == carriage_symbol)
 
-#define IS_COMMENT_CHAR(c) (c == comment_symbol)
+#define IS_COMMENT_CHAR(c) (has_comment && c == comment_symbol)
 
-#define IS_ESCAPE_CHAR(c) (c == escape_symbol)
+#define IS_ESCAPE_CHAR(c) (has_escape && c == escape_symbol)
 
 #define IS_SKIPPABLE_SPACE(c)                                                  \
   ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
@@ -680,15 +680,14 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
   const int delim_whitespace = self->delim_whitespace;
   const char delimiter = self->delimiter;
 
-  // 1000 is something that couldn't fit in "char"
-  // thus comparing a char to it would always be "false"
-  const int carriage_symbol = (self->lineterminator == '\0') ? '\r' : 1000;
-  const int comment_symbol =
-      (self->commentchar != '\0') ? self->commentchar : 1000;
-  const int escape_symbol =
-      (self->escapechar != '\0') ? self->escapechar : 1000;
-  const int has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
-                        self->skip_first_N_rows >= 0);
+  const char carriage_symbol = '\r';
+  const bool has_carriage = (self->lineterminator == '\0');
+  const char comment_symbol = self->commentchar;
+  const bool has_comment = (self->commentchar != '\0');
+  const char escape_symbol = self->escapechar;
+  const bool has_escape = (self->escapechar != '\0');
+  const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
+                         self->skip_first_N_rows >= 0);
 
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
@@ -699,6 +698,43 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
 
   char *stream = self->stream + self->stream_len;
   uint64_t slen = self->stream_len;
+
+  // Lookup table marking characters that force a state-machine transition
+  // during bulk scanning in IN_FIELD and IN_QUOTED_FIELD.
+  // Bit 0 (0x1): breaks scan in an unquoted field.
+  // Bit 1 (0x2): breaks scan in a quoted field.
+  uint8_t breaks_field_scan[256] = {0};
+  uint8_t index;
+
+  memcpy(&index, &lineterminator, sizeof(lineterminator));
+  breaks_field_scan[index] |= 0x1;
+  if (has_carriage) {
+    memcpy(&index, &carriage_symbol, sizeof(carriage_symbol));
+    breaks_field_scan[index] |= 0x1;
+  }
+  if (has_escape) {
+    memcpy(&index, &escape_symbol, sizeof(escape_symbol));
+    breaks_field_scan[index] |= 0x1 | 0x2;
+  }
+  if (!delim_whitespace) {
+    memcpy(&index, &delimiter, sizeof(delimiter));
+    breaks_field_scan[index] |= 0x1;
+  } else {
+    // Mirrors IS_DELIMITER's use of isblank(), which matches ' ' and '\t'.
+    char space = ' ', tab = '\t';
+    memcpy(&index, &space, sizeof(space));
+    breaks_field_scan[index] |= 0x1;
+    memcpy(&index, &tab, sizeof(tab));
+    breaks_field_scan[index] |= 0x1;
+  }
+  if (has_comment) {
+    memcpy(&index, &comment_symbol, sizeof(comment_symbol));
+    breaks_field_scan[index] |= 0x1;
+  }
+  if (self->quoting != QUOTE_NONE) {
+    memcpy(&index, &self->quotechar, sizeof(self->quotechar));
+    breaks_field_scan[index] |= 0x2;
+  }
 
   TRACE(("%s\n", buf));
 
@@ -948,6 +984,15 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       } else {
         // normal character - save in field
         PUSH_CHAR(c);
+
+        // Bulk scan: copy remaining ordinary characters directly,
+        // bypassing the per-char state machine overhead.
+        while (i + 1 < self->datalen &&
+               !(breaks_field_scan[(uint8_t)*buf] & 0x1)) {
+          *stream++ = *buf++;
+          slen++;
+          i++;
+        }
       }
       break;
 
@@ -967,6 +1012,15 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
       } else {
         // normal character - save in field
         PUSH_CHAR(c);
+
+        // Bulk scan: copy remaining ordinary characters directly,
+        // bypassing the per-char state machine overhead.
+        while (i + 1 < self->datalen &&
+               !(breaks_field_scan[(uint8_t)*buf] & 0x2)) {
+          *stream++ = *buf++;
+          slen++;
+          i++;
+        }
       }
       break;
 

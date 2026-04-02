@@ -32,6 +32,7 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -295,6 +296,14 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
+    if kwds.get("float_precision") is not None:
+        warnings.warn(
+            "The 'float_precision' argument is deprecated. "
+            "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
@@ -418,6 +427,10 @@ def read_csv(
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
@@ -739,6 +752,10 @@ def read_csv(
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
 
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
+
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -985,6 +1002,10 @@ def read_table(
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
@@ -1302,6 +1323,10 @@ def read_table(
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
 
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
+
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -1502,6 +1527,10 @@ def read_fwf(
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to] ).
@@ -2062,6 +2091,10 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)

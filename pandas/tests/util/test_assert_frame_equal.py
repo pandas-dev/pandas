@@ -416,6 +416,17 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
 
 
+def test_assert_frame_equal_int_near_bounds():
+    # GH#40719 - integer comparisons near int64 bounds should be exact by default
+    min_val = np.iinfo(np.int64).min
+    df1 = DataFrame({"B": [min_val]}, dtype=np.int64)
+    df2 = DataFrame({"B": [min_val + 1]}, dtype=np.int64)
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="B"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+
+
 @pytest.mark.parametrize("na_value", [pd.NA, np.nan, None])
 def test_assert_frame_equal_nested_df_na(na_value):
     # GH#43022

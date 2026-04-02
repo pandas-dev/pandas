@@ -263,19 +263,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "minute",
         "second",
         "weekday",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
         "day_of_year",
         "quarter",
         "days_in_month",
-        "daysinmonth",
         "microsecond",
         "nanosecond",
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
+    # GH#46768 - deprecated but still need to be accessible via .dt accessor
+    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + ["unit", "freq", "tz"]
+        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "freq", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -1948,14 +1947,13 @@ default 'raise'
 
     See Also
     --------
-    Series.dt.dayofweek : Alias.
     Series.dt.weekday : Alias.
     Series.dt.day_name : Returns the name of the day of the week.
 
     Examples
     --------
     >>> s = pd.date_range('2016-12-31', '2017-01-08', freq='D').to_series()
-    >>> s.dt.dayofweek
+    >>> s.dt.day_of_week
     2016-12-31    5
     2017-01-01    6
     2017-01-02    0
@@ -1968,8 +1966,44 @@ default 'raise'
     Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
-    dayofweek = day_of_week
-    weekday = day_of_week
+
+    @property
+    def weekday(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
+        # GH#12816
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            f"{type(self).__name__}.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeIndex.day_of_week or "
+            "Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "DatetimeArray.dayofweek is deprecated and will be removed in a "
+            "future version. Use DatetimeArray.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
 
     day_of_year = _field_accessor(
         "dayofyear",
@@ -1995,7 +2029,7 @@ default 'raise'
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
         dtype: datetime64[us, UTC]
-        >>> s.dt.dayofyear
+        >>> s.dt.day_of_year
         0    1
         1   32
         dtype: int32
@@ -2004,11 +2038,29 @@ default 'raise'
 
         >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
         ...                         "2/1/2020 11:00:00+00:00"])
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([1, 32], dtype='int32')
         """,
     )
-    dayofyear = day_of_year
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "DatetimeArray.dayofyear is deprecated and will be removed in a "
+            "future version. Use DatetimeArray.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
+
     quarter = _field_accessor(
         "quarter",
         "q",
@@ -2076,13 +2128,31 @@ default 'raise'
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
         dtype: datetime64[us, UTC]
-        >>> s.dt.daysinmonth
+        >>> s.dt.days_in_month
         0    31
         1    29
         dtype: int32
         """,
     )
-    daysinmonth = days_in_month
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.days_in_month` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "DatetimeArray.daysinmonth is deprecated and will be removed in a "
+            "future version. Use DatetimeArray.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month
+
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
 
@@ -3133,6 +3203,19 @@ def _generate_range(
             start = offset.rollforward(start)  # type: ignore[assignment]
         else:
             start = offset.rollback(start)  # type: ignore[assignment]
+
+    # GH#35342: For offsets that preserve start's time-of-day (e.g. MonthBegin,
+    # QuarterBegin), adjust end to use the same time so that the boundary
+    # comparison doesn't incorrectly exclude the last offset boundary.
+    if start is not None and end is not None:
+        start_tod: Timedelta = start - start.normalize()
+        if (
+            start_tod
+            # Check if the offset preserves start's time-of-day
+            and (offset._apply(start) - offset._apply(start).normalize()) == start_tod
+        ):
+            if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
+                end = end.normalize() + start_tod
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
