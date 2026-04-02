@@ -171,6 +171,14 @@ def test_maybe_get_tz_invalid_types():
         timezones.maybe_get_tz(Timestamp("2021-01-01", tz="UTC"))
 
 
+@pytest.mark.parametrize("tz_name", ["UTC", "GMT", "Etc/GMT+1", "Etc/GMT-5"])
+def test_zoneinfo_fixed_offset(tz_name):
+    # GH#64363 - is_fixed_offset should return True for fixed-offset ZoneInfo timezones
+    zoneinfo = pytest.importorskip("zoneinfo")
+    tz = zoneinfo.ZoneInfo(tz_name)
+    assert timezones.is_fixed_offset(tz)
+
+
 def test_maybe_get_tz_offset_only():
     # see gh-36004
 

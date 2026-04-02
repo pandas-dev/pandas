@@ -3,6 +3,7 @@ from datetime import (
     timezone,
 )
 import zoneinfo
+from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -237,8 +238,7 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
-        from zoneinfo._zoneinfo import ZoneInfo as ZoneInfoPy
-        tz_py = ZoneInfoPy(tz.key)
+        tz_py = _ZoneInfo(tz.key)
         has_future_dst = (
             hasattr(tz_py, "_tz_after")
             and tz_py._tz_after is not None
@@ -346,8 +346,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         list trans_utc, deltas_seconds, future_trans
         int year, last_year, std_offset, dst_offset
 
-    from zoneinfo._zoneinfo import ZoneInfo as ZoneInfoPy
-    tz_py = ZoneInfoPy(tz.key)
+    tz_py = _ZoneInfo(tz.key)
 
     has_future_dst = (
         hasattr(tz_py, "_tz_after")
@@ -368,6 +367,11 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     deltas_seconds = [int(info.utcoff.total_seconds()) for info in tz_py._ttinfos]
 
     if has_future_dst:
+        # ZoneInfo's _trans_utc only contains historical data (typically up to
+        # the late 1990s for many timezones). POSIX TZ rules stored in _tz_after
+        # are required to generate transitions for current and future dates.
+        # Without this block, DST-observing timezones like Europe/Amsterdam
+        # would return incorrect offsets for any date after ~1996.
         tz_after = tz_py._tz_after
         std_offset = int(tz_after.std.utcoff.total_seconds())
         dst_offset = int(tz_after.dst.utcoff.total_seconds())
