@@ -2,6 +2,7 @@ import collections
 import re
 import warnings
 
+from pandas._libs.tslibs.offsets import Day
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -450,6 +451,9 @@ def array_to_timedelta64(
                 ival = delta_to_nanoseconds(item, reso=creso)
 
             elif isinstance(item, str):
+                if type(item) is not str:
+                    # GH#48974 np.str_ object
+                    item = str(item)
                 if (
                     (len(item) > 0 and item[0] == "P")
                     or (len(item) > 1 and item[:2] == "-P")
@@ -513,6 +517,14 @@ def array_to_timedelta64(
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
+
+            elif isinstance(item, Day):
+                # GH#64240: support Day offsets in list-like conversion
+                ival = item.n * 86400
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_s
+                state.update_creso(item_reso)
+                if infer_reso:
+                    creso = state.creso
 
             else:
                 raise TypeError(f"Invalid type for timedelta scalar: {type(item)}")
@@ -2276,6 +2288,11 @@ class Timedelta(_Timedelta):
                 except (OverflowError, OutOfBoundsDatetime) as err:
                     raise OutOfBoundsTimedelta(value) from err
             return cls._from_value_and_reso(new_value, reso=new_reso)
+
+        elif isinstance(value, Day):
+            # GH#64240
+            new_value = value.n * 86400
+            return cls._from_value_and_reso(new_value, NPY_DATETIMEUNIT.NPY_FR_s)
 
         elif is_tick_object(value):
             new_reso = get_supported_reso(value._creso)

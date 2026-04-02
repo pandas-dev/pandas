@@ -176,7 +176,7 @@ class TestSeriesIsIn:
         expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
     @pytest.mark.parametrize(
         "data,values,expected",
         [
@@ -191,27 +191,6 @@ class TestSeriesIsIn:
     def test_isin_masked_types(self, dtype, data, values, expected):
         # GH#42405
         ser = Series(data, dtype=dtype)
-
-        result = ser.isin(values)
-        expected = Series(expected, dtype="boolean")
-
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "data,values,expected",
-        [
-            # GH#62888: bool values no longer match int values
-            ([0, 1, 0], [1], [False, False, False]),
-            ([0, 1, 0], [1, pd.NA], [False, False, False]),
-            ([0, pd.NA, 0], [1, 0], [False, False, False]),
-            ([0, 1, pd.NA], [1, pd.NA], [False, False, True]),
-            ([0, 1, pd.NA], [1, np.nan], [False, False, False]),
-            ([0, pd.NA, pd.NA], [np.nan, pd.NaT, None], [False, False, False]),
-        ],
-    )
-    def test_isin_masked_boolean(self, data, values, expected):
-        # GH#42405, GH#62888
-        ser = Series(data, dtype="boolean")
 
         result = ser.isin(values)
         expected = Series(expected, dtype="boolean")

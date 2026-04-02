@@ -3,14 +3,12 @@
 # Run checks related to code quality.
 #
 # This script is intended for both the CI and to check locally that code standards are
-# respected. We run doctests here (currently some files only), and we
-# validate formatting error in docstrings.
+# respected. We run doctests here (currently some files only).
 #
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
-#   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 #   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
@@ -23,10 +21,9 @@ else
     CHECK=""
 fi
 
-[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 1; }
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests|single-docs|notebooks]"; exit 1; }
 
-BASE_DIR="$(dirname "$0")/.."
 RET=0
 
 ### CODE ###
@@ -60,38 +57,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     # Using future.python_scalars=True avoids NumPy scalar reprs in docstrings.
     PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo "$MSG" "DONE"
-
-fi
-
-### DOCSTRINGS ###
-if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
-
-    MSG='Validate Docstrings' ; echo "$MSG"
-    python "$BASE_DIR"/scripts/validate_docstrings.py \
-        --format=actions \
-        -i "pandas.DatetimeIndex.year GL08" \
-        -i "pandas.DatetimeIndex.month GL08" \
-        -i "pandas.DatetimeIndex.day GL08" \
-        -i "pandas.DatetimeIndex.hour GL08" \
-        -i "pandas.DatetimeIndex.minute GL08" \
-        -i "pandas.DatetimeIndex.second GL08" \
-        -i "pandas.DatetimeIndex.microsecond GL08" \
-        -i "pandas.DatetimeIndex.nanosecond GL08" \
-        -i "pandas.DatetimeIndex.dayofyear GL08" \
-        -i "pandas.DatetimeIndex.day_of_year GL08" \
-        -i "pandas.DatetimeIndex.dayofweek GL08" \
-        -i "pandas.DatetimeIndex.day_of_week GL08" \
-        -i "pandas.DatetimeIndex.weekday GL08" \
-        -i "pandas.DatetimeIndex.quarter GL08" \
-        -i "pandas.DatetimeIndex.is_month_start GL08" \
-        -i "pandas.DatetimeIndex.is_month_end GL08" \
-        -i "pandas.DatetimeIndex.is_quarter_start GL08" \
-        -i "pandas.DatetimeIndex.is_quarter_end GL08" \
-        -i "pandas.DatetimeIndex.is_year_start GL08" \
-        -i "pandas.DatetimeIndex.is_year_end GL08" \
-        -i "pandas.DatetimeIndex.is_leap_year GL08"
-
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
 

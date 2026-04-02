@@ -26,14 +26,17 @@ from typing import (
 import warnings
 import zipfile
 
-from pandas._config import config
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
 )
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     set_module,
 )
@@ -209,6 +212,10 @@ def read_excel(
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
@@ -493,7 +500,7 @@ def read_excel(
         )
 
     try:
-        data = io.parse(
+        data = io._reader.parse(
             sheet_name=sheet_name,
             header=header,
             names=names,
@@ -1172,7 +1179,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer")
+                    engine = _global_config["io"]["excel"][ext]["writer"]
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1603,6 +1610,7 @@ class ExcelFile:
 
                 if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
                     ext = "xls"
+                    engine = "xlrd"
 
             if ext is None:
                 ext = inspect_excel_format(
@@ -1614,9 +1622,10 @@ class ExcelFile:
                         "an engine manually."
                     )
 
-            engine = config.get_option(f"io.excel.{ext}.reader")
-            if engine == "auto":
-                engine = get_default_engine(ext, mode="reader")
+            if engine is None:
+                engine = _global_config["io"]["excel"][ext]["reader"]
+                if engine == "auto":
+                    engine = get_default_engine(ext, mode="reader")
 
         assert engine is not None
         self.engine = engine
@@ -1654,6 +1663,9 @@ class ExcelFile:
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
         Parse specified sheet(s) into a DataFrame.
+
+        .. deprecated:: 3.1.0
+            Use :func:`pd.read_excel` instead.
 
         Equivalent to read_excel(ExcelFile, ...)  See the read_excel
         docstring for more info on accepted parameters.
@@ -1781,6 +1793,12 @@ class ExcelFile:
         >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP
         """
+        warnings.warn(
+            # GH#58247
+            f"{type(self).__name__}.parse is deprecated. Use pd.read_excel instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self._reader.parse(
             sheet_name=sheet_name,
             header=header,

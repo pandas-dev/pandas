@@ -251,7 +251,7 @@ skip_blank_lines : boolean, default ``True``
 Datetime handling
 +++++++++++++++++
 
-parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
+parse_dates : boolean or list of ints or names, default ``False``.
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
@@ -786,9 +786,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    # These are Python datetime objects
    df.index
 
-It is often the case that we may want to store date and time data separately,
-or store various date fields separately. The ``parse_dates`` keyword can be
-used to specify columns to parse the dates and/or times.
+The ``parse_dates`` keyword can be used to specify columns to parse as dates.
 
 
 .. note::
@@ -943,6 +941,10 @@ opened in text or binary mode.
 Specifying method for floating-point conversion
 '''''''''''''''''''''''''''''''''''''''''''''''
 
+.. deprecated:: 3.1.0
+   The ``float_precision`` parameter is deprecated. All float precision
+   modes now use the same converter.
+
 The parameter ``float_precision`` can be specified in order to use
 a specific floating-point converter during parsing with the C engine.
 The options are the ordinary converter, the high-precision converter, and
@@ -959,17 +961,6 @@ writing to a file). For example:
            engine="c",
            float_precision=None,
        )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(
-           StringIO(data),
-           engine="c",
-           float_precision="high",
-       )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
-       - float(val)
    )
 
 
@@ -4080,7 +4071,15 @@ similar to how ``read_csv`` and ``to_csv`` work.
    os.remove("store_tl.h5")
 
 
-HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
+HDFStore will by default not drop rows that are all missing. To drop all-NaN
+rows before writing, use :meth:`DataFrame.dropna` before calling
+:meth:`~DataFrame.to_hdf`.
+
+.. deprecated:: 3.1.0
+   The ``dropna`` keyword in :meth:`~DataFrame.to_hdf`, :meth:`HDFStore.put`,
+   :meth:`HDFStore.append`, and :meth:`HDFStore.append_to_multiple`, and the
+   ``io.hdf.dropna_table`` option are deprecated. Use :meth:`DataFrame.dropna`
+   before writing instead.
 
 
 .. ipython:: python
@@ -4097,8 +4096,8 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
    pd.read_hdf("file.h5", "df_with_missing")
 
-   df_with_missing.to_hdf(
-       "file.h5", key="df_with_missing", format="table", mode="w", dropna=True
+   df_with_missing.dropna(how="all").to_hdf(
+       "file.h5", key="df_with_missing", format="table", mode="w"
    )
    pd.read_hdf("file.h5", "df_with_missing")
 
@@ -5249,7 +5248,7 @@ more columns in the output file. For example, this code:
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
-    df.to_parquet("test.parquet", engine="pyarrow")
+    df.to_parquet("test.parquet")
 
 creates a parquet file with *three* columns (``a``, ``b``, and
 ``__index_level_0__`` when using the ``pyarrow`` engine, or ``index``, ``a``,
@@ -5292,7 +5291,7 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
-    df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)
+    df.to_parquet(path="test", partition_cols=["a"], compression=None)
 
 The ``path`` specifies the parent directory to which data will be saved.
 The ``partition_cols`` are the column names by which the dataset will be partitioned.

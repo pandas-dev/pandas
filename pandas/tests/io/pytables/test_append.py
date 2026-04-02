@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY312
 
 import pandas as pd
 from pandas import (
@@ -180,7 +179,7 @@ def test_append_some_nans(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore["df3"], df3, check_index_type=True)
 
 
-def test_append_all_nans(temp_hdfstore, using_infer_string):
+def test_append_all_nans(temp_hdfstore):
     df = DataFrame(
         {
             "A1": np.random.default_rng(2).standard_normal(20),
@@ -190,84 +189,37 @@ def test_append_all_nans(temp_hdfstore, using_infer_string):
     )
     df.loc[0:15, :] = np.nan
 
+    msg_append = "The 'dropna' keyword in HDFStore.append is deprecated"
+
     # nan some entire rows (dropna=True)
-    temp_hdfstore.append("df", df[:10], dropna=True)
-    temp_hdfstore.append("df", df[10:], dropna=True)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg_append):
+        temp_hdfstore.append("df", df[:10], dropna=True)
+        temp_hdfstore.append("df", df[10:], dropna=True)
     tm.assert_frame_equal(temp_hdfstore["df"], df[-4:], check_index_type=True)
 
     # nan some entire rows (dropna=False)
-    temp_hdfstore.append("df2", df[:10], dropna=False)
-    temp_hdfstore.append("df2", df[10:], dropna=False)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg_append):
+        temp_hdfstore.append("df2", df[:10], dropna=False)
+        temp_hdfstore.append("df2", df[10:], dropna=False)
     tm.assert_frame_equal(temp_hdfstore["df2"], df, check_index_type=True)
 
-    # tests the option io.hdf.dropna_table
-    with pd.option_context("io.hdf.dropna_table", False):
-        temp_hdfstore.append("df3", df[:10])
-        temp_hdfstore.append("df3", df[10:])
-        tm.assert_frame_equal(temp_hdfstore["df3"], df)
-
-    with pd.option_context("io.hdf.dropna_table", True):
-        temp_hdfstore.append("df4", df[:10])
-        temp_hdfstore.append("df4", df[10:])
-        tm.assert_frame_equal(temp_hdfstore["df4"], df[-4:])
-
-        # nan some entire rows (string are still written!)
-        df = DataFrame(
-            {
-                "A1": np.random.default_rng(2).standard_normal(20),
-                "A2": np.random.default_rng(2).standard_normal(20),
-                "B": "foo",
-                "C": "bar",
-            },
-            index=np.arange(20),
-        )
-
-        df.loc[0:15, :] = np.nan
-
-        temp_hdfstore.remove("df")
-        temp_hdfstore.append("df", df[:10], dropna=True)
-        temp_hdfstore.append("df", df[10:], dropna=True)
-        result = temp_hdfstore["df"]
-        expected = df
-        if using_infer_string:
-            # TODO: Test is incorrect when not using_infer_string.
-            #       Should take the last 4 rows uncondiationally.
-            expected = expected[-4:]
-        tm.assert_frame_equal(result, expected, check_index_type=True)
-
-        temp_hdfstore.remove("df2")
-        temp_hdfstore.append("df2", df[:10], dropna=False)
-        temp_hdfstore.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(temp_hdfstore["df2"], df, check_index_type=True)
-
-        # nan some entire rows (but since we have dates they are still
-        # written!)
-        df = DataFrame(
-            {
-                "A1": np.random.default_rng(2).standard_normal(20),
-                "A2": np.random.default_rng(2).standard_normal(20),
-                "B": "foo",
-                "C": "bar",
-                "D": Timestamp("2001-01-01").as_unit("ns"),
-                "E": Timestamp("2001-01-02").as_unit("ns"),
-            },
-            index=np.arange(20),
-        )
-
-        df.loc[0:15, :] = np.nan
-
-        temp_hdfstore.remove("df")
-        temp_hdfstore.append("df", df[:10], dropna=True)
-        temp_hdfstore.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(temp_hdfstore["df"], df, check_index_type=True)
-
-        temp_hdfstore.remove("df2")
-        temp_hdfstore.append("df2", df[:10], dropna=False)
-        temp_hdfstore.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(temp_hdfstore["df2"], df, check_index_type=True)
+    # without dropna keyword, all rows are kept (default behavior)
+    temp_hdfstore.append("df3", df[:10])
+    temp_hdfstore.append("df3", df[10:])
+    tm.assert_frame_equal(temp_hdfstore["df3"], df)
 
 
-def test_append_frame_column_oriented(temp_hdfstore, request):
+def test_append_dropna_table_option_deprecated():
+    # GH#32038 io.hdf.dropna_table option is deprecated
+    msg = "io.hdf.dropna_table option is deprecated"
+    with tm.assert_produces_warning(
+        pd.errors.Pandas4Warning, match=msg, check_stacklevel=False
+    ):
+        with pd.option_context("io.hdf.dropna_table", True):
+            pass
+
+
+def test_append_frame_column_oriented(temp_hdfstore):
     # column oriented
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -285,13 +237,6 @@ def test_append_frame_column_oriented(temp_hdfstore, request):
     tm.assert_frame_equal(expected, result)
 
     # selection on the non-indexable
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=ValueError,
-        )
-    )
     result = temp_hdfstore.select("df1", ("columns=A", "index=df.index[0:4]"))
     expected = df.reindex(columns=["A"], index=df.index[0:4])
     tm.assert_frame_equal(expected, result)
@@ -895,10 +840,12 @@ def test_append_to_multiple_dropna(temp_hdfstore):
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
+    msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
     # dropna=True should guarantee rows are synchronized
-    temp_hdfstore.append_to_multiple(
-        {"df1": ["A", "B"], "df2": None}, df, selector="df1", dropna=True
-    )
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        temp_hdfstore.append_to_multiple(
+            {"df1": ["A", "B"], "df2": None}, df, selector="df1", dropna=True
+        )
     result = temp_hdfstore.select_as_multiple(["df1", "df2"])
     expected = df.dropna()
     tm.assert_frame_equal(result, expected, check_index_type=True)
@@ -917,19 +864,19 @@ def test_append_to_multiple_dropna_false(temp_hdfstore):
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
-    with pd.option_context("io.hdf.dropna_table", True):
-        # dropna=False shouldn't synchronize row indexes
+    depr_msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
+    # dropna=False shouldn't synchronize row indexes
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=depr_msg):
         temp_hdfstore.append_to_multiple(
-            {"df1a": ["A", "B"], "df2a": None}, df, selector="df1a", dropna=False
+            {"df1a": ["A", "B"], "df2a": None},
+            df,
+            selector="df1a",
+            dropna=False,
         )
 
-        msg = "all tables must have exactly the same nrows!"
-        with pytest.raises(ValueError, match=msg):
-            temp_hdfstore.select_as_multiple(["df1a", "df2a"])
-
-        assert not temp_hdfstore.select("df1a").index.equals(
-            temp_hdfstore.select("df2a").index
-        )
+    # Both tables keep all rows (no dropping)
+    result = temp_hdfstore.select_as_multiple(["df1a", "df2a"])
+    tm.assert_frame_equal(result, df)
 
 
 def test_append_to_multiple_min_itemsize(temp_hdfstore):

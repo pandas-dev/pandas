@@ -22,10 +22,10 @@ import warnings
 import numpy as np
 
 from pandas._config import (
-    get_option,
     is_nan_na,
     using_string_dtype,
 )
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     NaT,
@@ -40,6 +40,7 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
+from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
     Timestamp,
     tz_compare,
@@ -898,7 +899,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[: get_option("display.max_dir_items")]
+            for c in self.unique(level=0)[: _global_config["display"]["max_dir_items"]]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -1457,7 +1458,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and any(x is not None for x in self.names):
             attrs.append(("names", default_pprint(self.names)))
 
-        max_seq_items = get_option("display.max_seq_items") or len(self)
+        max_seq_items = _global_config["display"]["max_seq_items"] or len(self)
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
         return attrs
@@ -2141,7 +2142,22 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if isinstance(level, int):
+        is_level_na = cast("bool", isna(level))
+        is_name_na = cast("bool", isna(self.name))
+        if is_level_na and is_name_na:
+            if is_matching_na(level, self.name):
+                return
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+        elif is_level_na:
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        if is_integer(level):
+            if is_integer(self.name) and level == self.name:
+                return
             if level < 0 and level != -1:
                 raise IndexError(
                     "Too many levels: Index has only 1 level, "
@@ -2151,6 +2167,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
+            return
         elif level != self.name:
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
@@ -2793,7 +2810,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.fillna(0)
         Index([0.0, 0.0, 3.0], dtype='float64')
         """
-        if not is_scalar(value):
+        if is_list_like(value, allow_sets=False) and not isinstance(value, tuple):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
@@ -3083,8 +3100,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
-            Returns a new Index object with all unique elements from both the original
-            Index and the `other` Index.
+            Returns a new Index object with elements from both the original
+            Index and the ``other`` Index.
+
+            If either index contains duplicate entries, the result preserves
+            duplicates up to the maximum number of occurrences in either index.
 
         See Also
         --------
@@ -3107,6 +3127,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx2 = pd.Index([1, 2, 3, 4])
         >>> idx1.union(idx2)
         Index(['a', 'b', 'c', 'd', 1, 2, 3, 4], dtype='object')
+
+        Union with duplicate values
+
+        >>> idx1 = pd.Index([1, 2, 2, 3])
+        >>> idx2 = pd.Index([3, 3, 4])
+        >>> idx1.union(idx2)
+        Index([1, 2, 2, 3, 3, 4], dtype='int64')
 
         MultiIndex case
 
@@ -5680,6 +5707,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(values, np.ndarray):
             converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+            if isinstance(converted, tuple):
+                # GH#37681 np.putmask unpacks tuples, so wrap in an
+                #  object array to ensure the tuple is treated as a scalar
+                fill_arr = np.empty(1, dtype=object)
+                fill_arr[0] = converted
+                converted = fill_arr
             np.putmask(values, mask, converted)  # pyright: ignore[reportArgumentType]
 
         else:
@@ -8298,7 +8331,11 @@ def get_values_for_csv(
             mask = isna(values)
 
             if not quoting:
-                values = values.astype(str)
+                if isinstance(values, ExtensionArray) and values.ndim == 2:
+                    # e.g. test_to_csv_2d_float_ea
+                    values = np.asarray(values.to_numpy(), dtype=str)
+                else:
+                    values = values.astype(str)
             else:
                 values = np.array(values, dtype="object")
 

@@ -910,6 +910,14 @@ class TestTimestampConstructors:
         expected = Timestamp(datetime(2013, 1, 1), tz=timezone(timedelta(hours=9)))
         assert result == expected
 
+    def test_comma_separated_fractional_seconds(self):
+        # GH#59256 - comma as decimal separator should parse correctly
+        ts_comma = Timestamp("2024-06-17T18:57:43,567")
+        ts_dot = Timestamp("2024-06-17T18:57:43.567")
+        assert ts_comma == ts_dot
+        assert ts_comma.unit == ts_dot.unit
+        assert ts_comma.microsecond == 567000
+
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
@@ -1095,6 +1103,17 @@ def test_non_nano_value():
     # check that the suggested workaround actually works
     result = ts.asm8.view("i8")
     assert result == -52_700_112_000 * 10**6
+
+
+def test_timestamp_constructor_np_str():
+    # GH#48974 np.str_ should not break Timestamp construction
+    result = Timestamp(np.str_("2023-01-01"))
+    expected = Timestamp("2023-01-01")
+    assert result == expected
+
+    result = Timestamp(np.str_("2023-01-01 12:34:56"))
+    expected = Timestamp("2023-01-01 12:34:56")
+    assert result == expected
 
 
 @pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])

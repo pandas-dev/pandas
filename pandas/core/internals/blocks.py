@@ -544,7 +544,7 @@ class Block(PandasObject, libinternals.Block):
         for blk in blks:
             # Determine dtype column by column
             sub_blks = (
-                [blk] if blk.ndim == 1 or self.shape[0] == 1 else list(blk._split())
+                [blk] if blk.ndim == 1 or blk.shape[0] == 1 else list(blk._split())
             )
             dtypes = [
                 convert_dtypes(
@@ -558,7 +558,7 @@ class Block(PandasObject, libinternals.Block):
                 )
                 for b in sub_blks
             ]
-            if all(dtype == self.dtype for dtype in dtypes):
+            if all(dtype == blk.dtype for dtype in dtypes):
                 # Avoid block splitting if no dtype changes
                 rbs.append(blk.copy(deep=False))
                 continue
@@ -777,7 +777,13 @@ class Block(PandasObject, libinternals.Block):
         if not (
             self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
         ):
+            # GH#57733 - astype to object may return a block sharing memory
+            # with self (e.g. StringArray backed by object ndarray). Since
+            # replace_regex mutates values in-place, we must ensure the
+            # block's data is independent.
             block = self.astype(np.dtype(object))
+            if astype_is_view(self.dtype, np.dtype(object)):
+                block = block._maybe_copy(inplace=True)
         else:
             block = self._maybe_copy(inplace)
 

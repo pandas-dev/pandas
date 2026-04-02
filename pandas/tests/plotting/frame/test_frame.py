@@ -1519,6 +1519,15 @@ class TestDataFramePlots:
         with pytest.raises(TypeError, match=msg):
             df.plot(kind=kind)
 
+    @pytest.mark.parametrize("kind", ["hist", "box"])
+    def test_plot_hist_box_non_unique_columns_raises(self, kind):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df.columns = ["a", "a"]
+
+        msg = "plotting requires unique column names"
+        with pytest.raises(ValueError, match=msg):
+            getattr(df.plot, kind)()
+
     @pytest.mark.parametrize(
         "kind", [*list(plotting.PlotAccessor._common_kinds), "area"]
     )
@@ -1633,7 +1642,6 @@ class TestDataFramePlots:
     @pytest.mark.parametrize(
         "kwargs, expected",
         [
-            ({}, "BuGn"),  # default cmap
             ({"colormap": "cubehelix"}, "cubehelix"),
             ({"cmap": "YlGn"}, "YlGn"),
         ],
@@ -1648,6 +1656,19 @@ class TestDataFramePlots:
         )
         ax = df.plot.hexbin(x="A", y="B", **kwargs)
         assert ax.collections[0].cmap.name == expected
+
+    def test_hexbin_cmap_default_follows_rcparams(self):
+        # GH#31871 hexbin should respect rcParams["image.cmap"] when no
+        # colormap is specified by the user
+        df = DataFrame(
+            {
+                "A": np.random.default_rng(2).uniform(size=20),
+                "B": np.random.default_rng(2).uniform(size=20),
+            }
+        )
+        with mpl.rc_context({"image.cmap": "plasma"}):
+            ax = df.plot.hexbin(x="A", y="B")
+        assert ax.collections[0].cmap.name == "plasma"
 
     def test_pie_df_err(self):
         df = DataFrame(
