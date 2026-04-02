@@ -4676,9 +4676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         for axis, labels in axes.items():
             if labels is not None:
-                obj = obj._drop_axis(
-                    labels, axis, level=level, errors=errors, only_slice=True
-                )
+                obj = obj._drop_axis(labels, axis, level=level, errors=errors)
 
         if inplace:
             self._update_inplace(obj)
@@ -4693,7 +4691,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis,
         level=None,
         errors: IgnoreRaise = "raise",
-        only_slice: bool = False,
     ) -> Self:
         """
         Drop labels from specified axis. Used in the ``drop`` method
@@ -4707,8 +4704,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For MultiIndex
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
-        only_slice : bool, default False
-            Whether indexing along columns should be view-only.
 
         """
         axis_num = self._get_axis_number(axis)
@@ -4764,7 +4759,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indexer,
             axis=bm_axis,
             allow_dups=True,
-            only_slice=only_slice,
+            only_slice=True,
         )
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         if self.ndim == 1:
