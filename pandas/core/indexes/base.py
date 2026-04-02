@@ -872,11 +872,11 @@ class Index(IndexOpsMixin, PandasObject):
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         if target_values.dtype == bool:  # type: ignore[union-attr]
-            return libindex.BoolEngine(target_values)  # type: ignore[arg-type]
+            return libindex.BoolEngine(target_values)
         elif target_values.dtype == np.complex64:  # type: ignore[union-attr]
-            return libindex.Complex64Engine(target_values)  # type: ignore[arg-type]
+            return libindex.Complex64Engine(target_values)
         elif target_values.dtype == np.complex128:  # type: ignore[union-attr]
-            return libindex.Complex128Engine(target_values)  # type: ignore[arg-type]
+            return libindex.Complex128Engine(target_values)
         elif needs_i8_conversion(dtype):
             # We need to keep M8/m8 dtype when initializing the Engine,
             #  but don't want to change _get_engine_target bc it is used
@@ -885,7 +885,7 @@ class Index(IndexOpsMixin, PandasObject):
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
         elif isinstance(dtype, StringDtype):
-            return libindex.StringObjectEngine(target_values, dtype.na_value)  # type: ignore[arg-type]
+            return libindex.StringObjectEngine(target_values, dtype.na_value)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
