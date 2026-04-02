@@ -258,6 +258,27 @@ def test_join_dtypes_all_nan(any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+def test_join_multiindex_with_nan_level(join_type):
+    # GH#60908
+    midx = MultiIndex.from_arrays(
+        [
+            [np.nan, 81, 81, 82, 82],
+            [np.nan, np.nan, np.nan, np.nan, np.nan],
+            [np.nan, "2018-06-01", "2018-07-01", "2018-07-01", "2018-08-01"],
+        ],
+        names=["foo", "bar", "date"],
+    )
+    idx = Index([81, 82, 83], name="foo")
+    s1 = Series([np.nan, 25.0, 22.5, 20.8, 21.6], index=midx)
+    s2 = Series([28.3, 25.3, 22.2], index=idx)
+    result = s1.subtract(s2)
+    expected = Series(
+        [np.nan, -3.3, -5.8, -4.5, -3.7],
+        index=midx,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_join_index_levels():
     # GH#53093
     midx = MultiIndex.from_tuples([("a", "2019-02-01"), ("a", "2019-02-01")])
