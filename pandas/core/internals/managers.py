@@ -108,20 +108,23 @@ if TYPE_CHECKING:
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
 
-def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
+def interleaved_dtype(dtypes: list[DtypeObj] | Generator[DtypeObj, None, None]) -> DtypeObj | None:
     """
     Find the common dtype for `blocks`.
 
     Parameters
     ----------
-    blocks : List[DtypeObj]
+    dtypes : list[DtypeObj] or Generator[DtypeObj]
 
     Returns
     -------
     dtype : np.dtype, ExtensionDtype, or None
         None is returned when `blocks` is empty.
     """
-    if not len(dtypes):
+    if not isinstance(dtypes, list):
+        dtypes = list(dtypes)
+
+    if not dtypes:
         return None
 
     return find_common_type(dtypes)
@@ -337,7 +340,9 @@ class BaseBlockManager(PandasObject):
         return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
-        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
+        dtypes = np.fromiter(
+            (blk.dtype for blk in self.blocks), dtype=object, count=len(self.blocks)
+        )
         return dtypes.take(self.blknos)
 
     @property
@@ -1031,7 +1036,7 @@ class BaseBlockManager(PandasObject):
         if fill_value is None or fill_value is np.nan:
             fill_value = np.nan
             # GH45857 avoid unnecessary upcasting
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            dtype = interleaved_dtype(blk.dtype for blk in self.blocks)
             if dtype is not None and np.issubdtype(dtype.type, np.floating):
                 fill_value = dtype.type(fill_value)
 
@@ -1161,7 +1166,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # repeated fast_xs calls
         dtype = self._interleaved_dtype
         if dtype is None:
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            dtype = interleaved_dtype(blk.dtype for blk in self.blocks)
             self._interleaved_dtype = dtype
 
         n = len(self)
@@ -1897,7 +1902,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = self._interleaved_dtype  # type: ignore[assignment]
             if dtype is None:
                 dtype = interleaved_dtype(  # type: ignore[assignment]
-                    [blk.dtype for blk in self.blocks]
+                    blk.dtype for blk in self.blocks
                 )
                 self._interleaved_dtype = dtype
 
@@ -1952,13 +1957,23 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return self._is_consolidated
 
     def _consolidate_check(self) -> None:
-        if len(self.blocks) == 1:
+        if len(self.blocks) <= 1:
             # fastpath
             self._is_consolidated = True
             self._known_consolidated = True
             return
-        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
-        self._is_consolidated = len(dtypes) == len(set(dtypes))
+
+        dtypes: set[DtypeObj] = set()
+        for blk in self.blocks:
+            if not blk._can_consolidate:
+                continue
+            if blk.dtype in dtypes:
+                self._is_consolidated = False
+                self._known_consolidated = True
+                return
+            dtypes.add(blk.dtype)
+
+        self._is_consolidated = True
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
