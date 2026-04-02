@@ -200,6 +200,7 @@ class NumpyExtensionArray(
         # Parent's searchsorted calls _validate_setitem_value, which is
         # too strict for search (e.g. rejects float into int). Delegate
         # directly to numpy which handles cross-dtype searches correctly.
+        validate_searchsorted_value(self._ndarray.dtype, value)
         return self._ndarray.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -335,15 +336,6 @@ class NumpyExtensionArray(
             # Primarily for subclasses
             fill_value = self.dtype.na_value
         return fill_value
-
-    def searchsorted(
-        self,
-        value: NumpyValueArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter | None = None,
-    ) -> npt.NDArray[np.intp] | np.intp:
-        validate_searchsorted_value(self._ndarray.dtype, value)
-        return super().searchsorted(value, side=side, sorter=sorter)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
         if self.dtype.kind in "iub":
