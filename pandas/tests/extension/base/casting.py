@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -78,7 +79,10 @@ class BaseCastingTests:
         result = data.to_numpy()
         tm.assert_equal(result, expected)
 
-        result = pd.Series(data).to_numpy()
+        warns_perf = expected.dtype == np.object_ and data.dtype.kind == "M"
+        warn = PerformanceWarning if warns_perf else None
+        with tm.assert_produces_warning(warn):
+            result = pd.Series(data).to_numpy()
         tm.assert_equal(result, expected)
 
     def test_astype_empty_dataframe(self, dtype):

@@ -14,8 +14,11 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
+
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -28,8 +31,12 @@ from pandas._typing import (
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    PerformanceWarning,
+)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -683,7 +690,21 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if isinstance(self.dtype, ExtensionDtype):
-            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+            result = self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+            if (
+                dtype is None
+                and result.dtype == np.dtype(object)
+                and self.dtype.kind == "M"
+                and _global_config["mode"]["performance_warnings"]
+            ):
+                warnings.warn(
+                    f"to_numpy() defaulted to object dtype because {self.dtype}"
+                    " could not be converted to a NumPy dtype. Specify an "
+                    "explicit dtype to silence this warning.",
+                    PerformanceWarning,
+                    stacklevel=find_stack_level(),
+                )
+            return result
         elif kwargs:
             bad_keys = next(iter(kwargs.keys()))
             raise TypeError(

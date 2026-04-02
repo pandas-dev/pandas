@@ -353,6 +353,7 @@ def test_array_multiindex_raises():
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array, using_nan_is_na):
     if not using_nan_is_na and arr[-1] is pd.NA:
         expected = np.array([0, pd.NA], dtype=object)
@@ -418,6 +419,7 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
     assert np.shares_memory(arr, result) is False
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 @pytest.mark.parametrize("as_series", [True, False])
 def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
