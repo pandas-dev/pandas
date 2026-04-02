@@ -157,6 +157,61 @@ should already exist.
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
 
+.. _contributing-docker:
+
+Option 3: using Docker (for Cython/C extension debugging)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas ships a Docker image that provides an isolated environment with a
+debug build of CPython and ``gdb``, which is required for debugging Cython
+extensions in ``pandas/_libs/``.
+
+.. note::
+
+   This option is intended for contributors who need to step through C or
+   Cython extension code using a debugger. For Python-only changes or
+   documentation fixes, use :ref:`conda tributing-conda>` or
+   :ref:`pip tributing-pip>` instead.
+
+**Step 1:** Pull the pre-built image from DockerHub:
+
+.. code-block:: sh
+
+   docker pull pandas/pandas-debug
+
+Alternatively, build the image locally from the root of the cloned
+pandas repository:
+
+.. code-block:: sh
+
+   docker build . -t pandas/pandas-debug -f tooling/debug/Dockerfile.pandas-debug
+
+**Step 2:** Run the container interactively with your local pandas source
+mounted into the container:
+
+.. code-block:: sh
+
+   docker run -it --rm \
+       -v $(pwd):/pandas \
+       -w /pandas \
+       pandas/pandas-debug bash
+
+**Step 3:** Inside the container, install pandas in editable debug mode:
+
+.. code-block:: sh
+
+   python3 -m pip install -ve . --no-build-isolation -Csetup-args="-Dbuildtype=debug"
+
+You can now use ``gdb`` with the Cython debugger extension to set
+breakpoints inside ``.pyx`` source files and step through the compiled
+C extension code line by line.
+
+.. note::
+
+   pandas core developers with DockerHub write access can push an updated
+   image via ``docker push pandas/pandas-debug``. The Dockerfile source is
+   located at ``tooling/debug/Dockerfile.pandas-debug``.
+
 Step 3: build and install pandas
 --------------------------------
 
