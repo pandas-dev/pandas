@@ -2859,15 +2859,16 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
-            if is_ea_or_datetimelike_dtype(self.dtype) and not can_hold_element(
-                self._values, value
+            if not can_hold_element(self._values, value) and not is_valid_na_for_dtype(
+                value, self.dtype
             ):
                 # GH#45153 fillna with incompatible value requiring any
-                #  dtype casting is deprecated for EA-backed types.
+                #  dtype casting is deprecated.
                 warnings.warn(
                     f"'{type(value).__name__}' is not supported as a fill "
                     f"value for {self.dtype} dtype. In a future version, "
-                    f"calling fillna with an incompatible value will raise.",
+                    f"calling fillna with an incompatible value will raise. "
+                    f"Explicitly cast to a common dtype before filling.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )

@@ -17,7 +17,6 @@ from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_extension_array_dtype
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -529,12 +528,9 @@ class TestFillnaSeriesCoercion(CoercionBase):
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
         """test coercion triggered by fillna"""
         target = original.copy()
-        # GH#45153 filling EA-backed types with incompatible value is deprecated
+        # GH#45153 filling with incompatible value requiring casting is deprecated
         warn = None
-        if expected_dtype == object and (
-            is_extension_array_dtype(target.dtype)
-            or getattr(target.dtype, "kind", None) in ("m", "M")
-        ):
+        if expected_dtype != target.dtype:
             warn = Pandas4Warning
         with tm.assert_produces_warning(warn, match="fill value"):
             res = target.fillna(value)

@@ -106,7 +106,9 @@ class TestFillNA:
             [["a", "a", np.nan, "a"], ["b", "b", np.nan, "b"], ["c", "c", np.nan, "c"]]
         )
 
-        result = df.fillna({2: "foo"})
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna({2: "foo"})
         expected = DataFrame(
             [["a", "a", "foo", "a"], ["b", "b", "foo", "b"], ["c", "c", "foo", "c"]]
         )
@@ -114,7 +116,8 @@ class TestFillNA:
         expected[2] = expected[2].astype("object")
         tm.assert_frame_equal(result, expected)
 
-        result = df.fillna({2: "foo"}, inplace=True)
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna({2: "foo"}, inplace=True)
         assert result is df
         tm.assert_frame_equal(df, expected)
 
@@ -313,7 +316,9 @@ class TestFillNA:
 
         # empty block
         df = DataFrame(index=range(3), columns=["A", "B"], dtype="float64")
-        result = df.fillna("nan")
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna("nan")
         expected = DataFrame("nan", dtype="object", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
@@ -321,7 +326,10 @@ class TestFillNA:
     def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
         expected = df.replace(np.nan, val)
-        result = df.fillna(val)
+        # GH#45153 filling with incompatible value is deprecated
+        warn = Pandas4Warning if isinstance(val, str) else None
+        with tm.assert_produces_warning(warn, match="fill value"):
+            result = df.fillna(val)
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_datetime_columns(self):
@@ -335,7 +343,9 @@ class TestFillNA:
             },
             index=date_range("20130110", periods=3),
         )
-        result = df.fillna("?")
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = df.fillna("?")
         expected = DataFrame(
             {
                 "A": [-1, -2, "?"],

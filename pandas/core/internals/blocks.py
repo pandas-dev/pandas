@@ -1368,6 +1368,21 @@ class Block(PandasObject, libinternals.Block):
         if noop:
             return [self.copy(deep=False)]
 
+        if not self._can_hold_element(value) and not is_valid_na_for_dtype(
+            value, self.dtype
+        ):
+            # GH#45153 fillna with incompatible value requiring any
+            #  dtype casting is deprecated.
+            warnings.warn(
+                f"'{type(value).__name__}' is not supported as a "
+                f"fill value for {self.dtype} dtype. In a future "
+                f"version, calling fillna with an incompatible "
+                f"value will raise. Explicitly cast to a common "
+                f"dtype before filling.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         if limit is not None:
             mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
@@ -1643,30 +1658,6 @@ class EABackedBlock(Block):
     """
 
     values: ExtensionArray
-
-    def fillna(
-        self,
-        value,
-        limit: int | None = None,
-        inplace: bool = False,
-    ) -> list[Block]:
-        if not self._can_hold_element(value):
-            # GH#45153 fillna with incompatible value requiring any dtype
-            #  casting is deprecated in favor of raising.
-            if self._can_hold_na:
-                mask = isna(self.values)
-                _, noop = validate_putmask(self.values, mask)
-                if not noop:
-                    warnings.warn(
-                        f"'{type(value).__name__}' is not supported as a "
-                        f"fill value for {self.dtype} dtype. In a future "
-                        f"version, calling fillna with an incompatible "
-                        f"value will raise. Use "
-                        f"ser.where(ser.notna(), value) as an alternative.",
-                        Pandas4Warning,
-                        stacklevel=find_stack_level(),
-                    )
-        return super().fillna(value=value, limit=limit, inplace=inplace)
 
     @final
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
