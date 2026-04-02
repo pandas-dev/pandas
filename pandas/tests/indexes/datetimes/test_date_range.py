@@ -1055,6 +1055,19 @@ class TestGenRangeGeneration:
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            offsets.LastWeekOfMonth(1),
+            offsets.FY5253(1),
+        ],
+    )
+    def test_generate_range_periods1_no_n0_error(self, freq):
+        # GH#41563 - offsets that disallow n=0 should not raise
+        # when periods=1 (which computes 0 * offset internally)
+        result = date_range("2018-04-01", periods=1, freq=freq)
+        assert len(result) == 1
+
     dt1, dt2 = "2017-01-01", "2017-01-01"
     tz1, tz2 = "US/Eastern", "Europe/London"
 

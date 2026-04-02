@@ -3225,12 +3225,20 @@ def _generate_range(
     if end is None:
         # error: No overload variant of "__radd__" of "BaseOffset" matches
         # argument type "None"
-        end = start + (periods - 1) * offset  # type: ignore[operator]
+        # GH#41563 avoid 0 * offset for offsets where n=0 is not allowed
+        if periods == 1:
+            end = start
+        else:
+            end = start + (periods - 1) * offset  # type: ignore[operator]
 
     if start is None:
         # error: No overload variant of "__radd__" of "BaseOffset" matches
         # argument type "None"
-        start = end - (periods - 1) * offset  # type: ignore[operator]
+        # GH#41563 avoid 0 * offset for offsets where n=0 is not allowed
+        if periods == 1:
+            start = end
+        else:
+            start = end - (periods - 1) * offset  # type: ignore[operator]
 
     start = cast("Timestamp", start)
     end = cast("Timestamp", end)
