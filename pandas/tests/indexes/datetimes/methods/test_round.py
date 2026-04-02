@@ -12,6 +12,14 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndexRound:
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    def test_round_dst_ambiguous(self, method):
+        # GH#55864
+        index = date_range("2023-10-28", "2023-10-30", freq="30min", tz="Europe/Vienna")
+        result = getattr(index, method)("1min")
+        expected = index
+        tm.assert_index_equal(result, expected)
+
     def test_round_daily(self):
         dti = date_range("20130101 09:10:11", periods=5)
         result = dti.round("D")

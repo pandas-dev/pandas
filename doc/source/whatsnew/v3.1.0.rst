@@ -210,6 +210,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :class:`DatetimeIndex` addition with a :class:`DateOffset` that has only timedelta components (e.g. ``DateOffset(hours=-2)``) raising ``ValueError`` near DST transitions, while scalar :class:`Timestamp` addition worked correctly (:issue:`28610`)
+- Bug in :meth:`DatetimeIndex.round`, :meth:`DatetimeIndex.floor`, and :meth:`DatetimeIndex.ceil` raising ``AmbiguousTimeError`` for tz-aware indexes spanning a DST fall-back transition, even though the timestamps were unambiguous (:issue:`55864`)
 -
 
 Numeric

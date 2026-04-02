@@ -355,9 +355,11 @@ class TestSeriesDatetimeValues:
         expected.iloc[0:2] = pd.NaT
         tm.assert_series_equal(result, expected)
 
-        # raise
-        with tm.external_error_raised(ValueError):
-            getattr(df1.date.dt, method)("h", ambiguous="raise")
+        # GH#55864: ambiguous="raise" (the default) now resolves using the
+        # original UTC offsets instead of raising
+        result = getattr(df1.date.dt, method)("h", ambiguous="raise")
+        expected = df1["date"]
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "method, ts_str, freq",

@@ -2170,6 +2170,20 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             self = cast("DatetimeArray", self)
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
+
+            # GH#55864: When rounding tz-aware timestamps near a DST
+            # fall-back, the rounded local times may be ambiguous. Use the
+            # original UTC offsets to resolve: DST has the larger offset.
+            if isinstance(ambiguous, str) and ambiguous == "raise":
+                offsets = naive.asi8 - self.asi8
+                notna_mask = self.asi8 != iNaT
+                valid_offsets = offsets[notna_mask]
+                if (
+                    len(valid_offsets) > 0
+                    and valid_offsets.min() != valid_offsets.max()
+                ):
+                    ambiguous = offsets > valid_offsets.min()
+
             return result.tz_localize(
                 self.tz, ambiguous=ambiguous, nonexistent=nonexistent
             )
