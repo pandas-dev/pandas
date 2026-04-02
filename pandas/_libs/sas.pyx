@@ -411,7 +411,7 @@ cdef class Parser:
         self.parser._current_row_in_file_index = self.current_row_in_file_index
 
     cdef uint16_t read_uint16(self, int offset):
-        cdef uint16_t val
+        cdef uint16_t val = 0
         assert offset + 2 <= self.cached_page_len, "Out of bounds read"
         memcpy(&val, &self.cached_page[offset], sizeof(uint16_t))
         if self.need_byteswap:
