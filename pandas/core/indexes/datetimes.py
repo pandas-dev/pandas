@@ -1388,6 +1388,8 @@ def date_range(
     inclusive: IntervalClosedType = "both",
     *,
     unit: TimeUnit | None = None,
+    ambiguous: TimeAmbiguous = "raise",
+    nonexistent: TimeNonexistent = "raise",
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1433,6 +1435,32 @@ def date_range(
         resolution of the three that are provided.
 
         .. versionadded:: 2.0.0
+    ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        When clocks moved backward due to DST, ambiguous times may arise.
+        For example in Central European Time (UTC+01), when going from 03:00
+        DST to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
+        and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
+        dictates how ambiguous times should be handled.
+
+        - 'infer' will attempt to infer fall dst-transition hours based on
+          order
+        - bool-ndarray where True signifies a DST time, False signifies a
+          non-DST time (note that this flag is only applicable for ambiguous
+          times)
+        - 'NaT' will return NaT where there are ambiguous times
+        - 'raise' will raise a ValueError if there are ambiguous times.
+    nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+    default 'raise'
+        A nonexistent time does not exist in a particular timezone
+        where clocks moved forward due to DST.
+
+        - 'shift_forward' will shift the nonexistent time forward to the
+          closest existing time
+        - 'shift_backward' will shift the nonexistent time backward to the
+          closest existing time
+        - 'NaT' will return NaT where there are nonexistent times
+        - timedelta objects will shift nonexistent times by the timedelta
+        - 'raise' will raise a ValueError if there are nonexistent times.
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1626,6 +1654,8 @@ def date_range(
         freq=freq,
         tz=tz,
         normalize=normalize,
+        ambiguous=ambiguous,
+        nonexistent=nonexistent,
         inclusive=inclusive,
         unit=unit,
         **kwargs,
