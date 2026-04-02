@@ -1895,7 +1895,8 @@ def test_datetime_indexer_consistency_pyarrow_date32():
 
     # Make sure we don't treat Arrow date as timestamp
     dtype = ser.dtype.pyarrow_dtype
-    assert not (pa.types.is_timestamp(dtype) and not pa.types.is_date(dtype))
+    assert pa.types.is_date(dtype)
+    assert not pa.types.is_timestamp(dtype)
 
     with pytest.raises(KeyError):
         dti.get_loc(ser[0])
