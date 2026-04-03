@@ -95,13 +95,8 @@ typedef uint8_t v4u8
 
 #ifdef PANDAS_HAS_SIMD
 /* Vector select: returns (mask ? a : b) where mask is all-ones or all-zeros */
-#  if defined(__clang__)
-#    define v_select(mask, a, b) ((mask) ? (a) : (b))
-#  else
-// gcc doesn't have vectorized ternary operators when compiling C files.
-#    define v_select(mask, a, b)                                               \
-      ((v4d)(((v4si)(mask) & (v4si)(a)) | (~(v4si)(mask) & (v4si)(b))))
-#  endif // defined(__clang__)
+#  define v_select(mask, a, b)                                                 \
+    ((v4d)(((v4si)(mask) & (v4si)(a)) | (~(v4si)(mask) & (v4si)(b))))
 
 PANDAS_SIMD_TARGETS
 Moments accumulate_moments_simd(size_t n, const double *values, int skipna,
@@ -116,6 +111,7 @@ Moments accumulate_moments_simd(size_t n, const double *values, int skipna,
 
   v4d v_one = {1.0, 1.0, 1.0, 1.0};
   v4d v_zero = {0.0, 0.0, 0.0, 0.0};
+  v4si v_zerosi = {0, 0, 0, 0};
   v4d v_nan = {NAN, NAN, NAN, NAN};
 
   size_t i = 0;
@@ -126,7 +122,7 @@ Moments accumulate_moments_simd(size_t n, const double *values, int skipna,
       v4u8 mask_vec = *(v4u8 *)(mask + i);
       v4si mask_si = __builtin_convertvector(mask_vec, v4si);
       // replace val with NAN where mask is 1.
-      v_val = v_select(mask_si != 0, v_nan, v_val);
+      v_val = v_select(mask_si != v_zerosi, v_nan, v_val);
     }
 
     // skip_mask is 1.0 if we should skip, 0.0 otherwise
