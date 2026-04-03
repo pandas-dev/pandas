@@ -846,30 +846,72 @@ class ArrowExtensionArray(
         return self._pa_array
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        if (
-            method == "__call__"
-            and ufunc is np.isnan
-            and not is_nan_na()
-            and type(self) is ArrowExtensionArray
-        ):
+        if not is_nan_na() and type(self) is ArrowExtensionArray:
             # GH#62506 - when distinguish_nan_and_na is True,
             # default_array_ufunc converts to numpy via np.asarray which
-            # produces object dtype that np.isnan can't handle.
-            # Use pyarrow compute instead.
-            pa_type = self._pa_array.type
-            if (
-                pa.types.is_integer(pa_type)
-                or pa.types.is_floating(pa_type)
-                or pa.types.is_decimal(pa_type)
-                or pa.types.is_duration(pa_type)
+            # produces object dtype that most ufuncs can't handle.
+            # Replicate ExtensionArray.__array_ufunc__ but convert with
+            # na_value=np.nan (float, not object) in the default fallback,
+            # then re-mask NA positions in the result.
+            from pandas.core.dtypes.generic import (
+                ABCDataFrame,
+                ABCIndex,
+                ABCSeries,
+            )
+
+            from pandas.core import arraylike
+
+            if any(
+                isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame))
+                for other in inputs
             ):
-                return type(self)(pc.is_nan(self._pa_array))
+                return NotImplemented
+
+            result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
+            if "out" in kwargs:
+                return arraylike.dispatch_ufunc_with_out(
+                    self, ufunc, method, *inputs, **kwargs
+                )
+
+            if method == "reduce":
+                result = arraylike.dispatch_reduction_ufunc(
+                    self, ufunc, method, *inputs, **kwargs
+                )
+                if result is not NotImplemented:
+                    return result
+
+            # Default: convert to numpy with NaN for NA instead of
+            # object dtype, run the ufunc, then re-mask.
+            mask = self.isna()
+            new_inputs = [
+                self.to_numpy(na_value=np.nan) if x is self else x for x in inputs
+            ]
+            result = getattr(ufunc, method)(*new_inputs, **kwargs)
+
+            if isinstance(result, tuple):
+                return tuple(
+                    self._wrap_and_remask_ufunc_result(res, mask) for res in result
+                )
+            return self._wrap_and_remask_ufunc_result(result, mask)
 
         # Need to wrap np.array results GH#62800
         result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
         if type(self) is ArrowExtensionArray:
             # Exclude ArrowStringArray
             return type(self)._from_sequence(result)
+        return result
+
+    def _wrap_and_remask_ufunc_result(
+        self, result: np.ndarray, mask: npt.NDArray[np.bool_]
+    ) -> ArrowExtensionArray:
+        result = type(self)._from_sequence(result)
+        if mask.any():
+            result[mask] = result.dtype.na_value
         return result
 
     def __array__(

@@ -3845,15 +3845,23 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         assert np.isnan(ser[2])
 
 
-def test_np_isnan_pyarrow(using_nan_is_na):
-    # GH#62506
-    ser = pd.Series([-1, 0, None], dtype="Int64[pyarrow]") ** 0.5
-    result = np.isnan(ser)
-    if using_nan_is_na:
-        expected = pd.Series([True, False, True], dtype="bool[pyarrow]")
-    else:
+def test_np_ufunc_pyarrow_distinguish_nan_na():
+    # GH#62506 - ufuncs on pyarrow arrays with distinguish_nan_and_na=True
+    # should work instead of raising TypeError from object dtype conversion.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1.0, float("nan"), None], dtype="double[pyarrow]")
+
+        result = np.isnan(ser)
+        expected = pd.Series([False, True, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.isfinite(ser)
         expected = pd.Series([True, False, pd.NA], dtype="bool[pyarrow]")
-    tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
+
+        result = np.sqrt(pd.Series([1.0, 4.0, None], dtype="double[pyarrow]"))
+        expected = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(result, expected)
 
 
 def test_pow_with_all_na_float():
