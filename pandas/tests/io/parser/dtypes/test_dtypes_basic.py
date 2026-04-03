@@ -562,7 +562,12 @@ y,2
     result = parser.read_csv(StringIO(data))
 
     expected = DataFrame(
-        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
+        {
+            "a": pd.Series(
+                ["x", "y", None if parser.engine == "pyarrow" else np.nan], dtype=dtype
+            ),
+            "b": [1, 2, 3],
+        },
         columns=pd.Index(["a", "b"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)

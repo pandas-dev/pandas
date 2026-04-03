@@ -1216,10 +1216,7 @@ class TestParquetPyArrow(Base):
         table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
         pq.write_table(table, temp_file)
         result = read_parquet(temp_file)
-        expected = pd.DataFrame(
-            data={"a": [None, "b", "c"]},
-            dtype=pd.StringDtype(na_value=np.nan),
-        )
+        expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
     # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)

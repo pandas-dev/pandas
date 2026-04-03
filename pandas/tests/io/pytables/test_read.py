@@ -284,7 +284,7 @@ def test_read_hdf_series_mode_r(temp_h5_path, format):
 
 def test_read_infer_string(temp_h5_path):
     # GH#54431
-    df = DataFrame({"a": ["a", "b", None]})
+    df = DataFrame({"a": ["a", "b", np.nan]})
     df.to_hdf(temp_h5_path, key="data", format="table")
     result = read_hdf(temp_h5_path, key="data", mode="r")
     tm.assert_frame_equal(result, df)
