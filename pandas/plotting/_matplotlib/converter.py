@@ -12,6 +12,7 @@ from typing import (
     Any,
     cast,
 )
+import warnings
 
 import matplotlib as mpl
 import matplotlib.dates as mdates
@@ -29,6 +30,7 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     periods_per_day,
 )
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -363,7 +365,9 @@ class DatetimeConverter(mdates.DateConverter):
             except Exception:
                 pass
 
-            values = mdates.date2num(values)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", PerformanceWarning)
+                values = mdates.date2num(values)
 
         return values
 
