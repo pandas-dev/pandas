@@ -48,7 +48,6 @@ class TestDatetime64ArrayLikeComparisons:
     #  DataFrame/Series/DatetimeIndex/DatetimeArray.  Ideally all comparison
     #  tests will eventually end up here.
 
-    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_compare_zerodim(self, tz_naive_fixture, box_with_array):
         # Test comparison with zero-dimensional array is unboxed
         tz = tz_naive_fixture

@@ -246,7 +246,6 @@ class TestSetOps:
                 first.union([1, 2, 3])
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -273,7 +272,6 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_symmetric_difference(self, index, using_infer_string, request):
         if (
             using_infer_string
