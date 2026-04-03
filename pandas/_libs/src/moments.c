@@ -18,6 +18,63 @@ static inline int omp_get_thread_num(void) { return 0; }
 static inline int omp_get_num_threads(void) { return 1; }
 #endif // _OPENMP
 
+static inline void moments_add_valuem(Moments *moments, double val,
+                                      int max_moment) {
+  double delta = val - moments->mean;
+  moments->n++;
+  double n = (double)moments->n;
+  double delta_n = delta / n;
+  double term1 = delta * delta_n * (n - 1.0);
+
+  if (max_moment >= 4) {
+    moments->m4 +=
+        delta_n *
+        (-4.0 * moments->m3 +
+         delta_n * (6.0 * moments->m2 + term1 * (n * n - 3.0 * n + 3.0)));
+  }
+  if (max_moment >= 3) {
+    moments->m3 += delta_n * (term1 * (n - 2.0) - 3.0 * moments->m2);
+  }
+  moments->m2 += term1;
+  moments->mean += delta_n;
+}
+
+Moments moments_merge(Moments a, Moments b, int max_moment) {
+
+  if (a.n == 0) {
+    return b;
+  }
+  if (b.n == 0) {
+    return a;
+  }
+
+  Moments result;
+
+  result.n = a.n + b.n;
+  double n_a = (double)a.n;
+  double n_b = (double)b.n;
+  double delta = b.mean - a.mean;
+  double delta_n = delta / (double)result.n;
+  double term1 = delta * delta_n * n_a * n_b;
+
+  if (max_moment >= 4) {
+    result.m4 =
+        a.m4 + b.m4 +
+        delta_n * (4.0 * (n_a * b.m3 - n_b * a.m3) +
+                   delta_n * (6.0 * (n_a * n_a * b.m2 + n_b * n_b * a.m2) +
+                              term1 * (n_a * n_a - n_a * n_b + n_b * n_b)));
+  }
+  if (max_moment >= 3) {
+    result.m3 =
+        a.m3 + b.m3 +
+        delta_n * (3.0 * (n_a * b.m2 - n_b * a.m2) + term1 * (n_a - n_b));
+  }
+  result.m2 = a.m2 + b.m2 + term1;
+  result.mean = a.mean + delta_n * n_b;
+
+  return result;
+}
+
 #ifndef __has_attribute
 #  define __has_attribute(x) 0
 #endif // __has_attribute
@@ -53,10 +110,9 @@ typedef uint8_t v4u8
       ((v4d)(((v4si)(mask) & (v4si)(a)) | (~(v4si)(mask) & (v4si)(b))))
 #  endif // defined(__clang__)
 
-PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
-                                                    size_t n, int skipna,
-                                                    const uint8_t *mask,
-                                                    int max_moment) {
+PANDAS_SIMD_TARGETS
+Moments accumulate_moments_simd(size_t n, const double *values, int skipna,
+                                const uint8_t *mask, int max_moment) {
   v4d v_mean = {0.0, 0.0, 0.0, 0.0};
   v4d v_m2 = {0.0, 0.0, 0.0, 0.0};
   v4d v_m3 = {0.0, 0.0, 0.0, 0.0};
@@ -114,17 +170,16 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
     v_mean += v_delta_n;
   }
 
-  double n_arr[4], mean_arr[4], m2_arr[4], m3_arr[4], m4_arr[4];
-  *(v4d *)n_arr = v_n;
+  double n_arrd[4], mean_arr[4], m2_arr[4], m3_arr[4], m4_arr[4];
+  *(v4d *)n_arrd = v_n;
   *(v4d *)mean_arr = v_mean;
   *(v4d *)m2_arr = v_m2;
   *(v4d *)m3_arr = v_m3;
   *(v4d *)m4_arr = v_m4;
 
-  Moments moments_arr[4];
+  int64_t n_arr[4];
   for (int j = 0; j < 4; j++) {
-    moments_arr[j] = (Moments){(int64_t)n_arr[j], mean_arr[j], m2_arr[j],
-                               m3_arr[j], m4_arr[j]};
+    n_arr[j] = (int64_t)n_arrd[j];
   }
 
   // Distribute remaining values across chunks
@@ -134,7 +189,16 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
       val = NAN;
     if (skipna && isnan(val))
       continue;
-    moments_add_value(&moments_arr[i % 4], val, max_moment);
+    moments_add_value(val, &n_arr[i % 4], &mean_arr[i % 4], &m2_arr[i % 4],
+                      &m3_arr[i % 4], &m4_arr[i % 4], max_moment);
+  }
+  Moments moments_arr[4];
+  for (int j = 0; j < 4; j++) {
+    moments_arr[j] = (Moments){.n = n_arr[j],
+                               .mean = mean_arr[j],
+                               .m2 = m2_arr[j],
+                               .m3 = m3_arr[j],
+                               .m4 = m4_arr[j]};
   }
 
   // pairwise merge for numerical stability
@@ -148,7 +212,7 @@ PANDAS_SIMD_TARGETS Moments accumulate_moments_simd(const double *values,
 
 /* --- Scalar Fallback Implementation --- */
 
-Moments accumulate_moments_scalar_block(const double *values, size_t n,
+Moments accumulate_moments_scalar_block(size_t n, const double *values,
                                         int skipna, const uint8_t *mask,
                                         int max_moment) {
   Moments moments = {0};
@@ -158,26 +222,28 @@ Moments accumulate_moments_scalar_block(const double *values, size_t n,
       val = NAN;
     if (skipna && isnan(val))
       continue;
-    moments_add_value(&moments, val, max_moment);
+    moments_add_valuem(&moments, val, max_moment);
   }
   return moments;
 }
 
 /* --- Accumulation Dispatch (Choose SIMD or Scalar) --- */
 
-Moments accumulate_moments_dispatch(const double *values, size_t n, int skipna,
+Moments accumulate_moments_dispatch(size_t n, const double *values, int skipna,
                                     const uint8_t *mask, int max_moment) {
 #if defined(PANDAS_HAS_SIMD)
-  return accumulate_moments_simd(values, n, skipna, mask, max_moment);
+  return accumulate_moments_simd(n, values, skipna, mask, max_moment);
 #endif // defined(PANDAS_HAS_SIMD)
-  return accumulate_moments_scalar_block(values, n, skipna, mask, max_moment);
+  return accumulate_moments_scalar_block(n, values, skipna, mask, max_moment);
 }
 
 /* --- Moments 1D Accumulator Implementation --- */
 
-Moments accumulate_moments_scalar(const double *values, size_t n, int skipna,
-                                  const uint8_t *mask, int max_moment) {
-  Moments result = {0};
+void accumulate_moments_scalar(size_t n, const double *values, bool skipna,
+                               const uint8_t *mask, int64_t *nobs, double *mean,
+                               double *m2, double *m3, double *m4,
+                               int max_moment) {
+  Moments acc = {0};
 
 #ifdef _OPENMP
 #  pragma omp parallel if (n > 10000)
@@ -190,16 +256,34 @@ Moments accumulate_moments_scalar(const double *values, size_t n, int skipna,
     size_t end = tid == num_threads - 1 ? n : ((tid + 1) * n) / num_threads;
 
     Moments moments_local =
-        accumulate_moments_dispatch(values + start, end - start, skipna,
+        accumulate_moments_dispatch(end - start, values + start, skipna,
                                     mask ? mask + start : NULL, max_moment);
 
 #ifdef _OPENMP
 #  pragma omp critical
 #endif
     {
-      result = moments_merge(result, moments_local, max_moment);
+      acc = moments_merge(acc, moments_local, max_moment);
     }
   }
 
-  return result;
+  Moments tmp =
+      (Moments){.n = *nobs, .mean = *mean, .m2 = *m2, .m3 = 0.0, .m4 = 0.0};
+  if (max_moment >= 4) {
+    tmp.m4 = *m4;
+  }
+  if (max_moment >= 3) {
+    tmp.m3 = *m3;
+  }
+  Moments result = moments_merge(tmp, acc, max_moment);
+
+  if (max_moment >= 4) {
+    *m4 = result.m4;
+  }
+  if (max_moment >= 3) {
+    *m3 = result.m3;
+  }
+  *m2 = result.m2;
+  *mean = result.mean;
+  *nobs = result.n;
 }

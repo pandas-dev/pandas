@@ -10,7 +10,6 @@ from libc.math cimport (
     sqrt,
 )
 from libc.stdlib cimport (
-    calloc,
     free,
     malloc,
 )
@@ -35,7 +34,6 @@ cnp.import_array()
 
 from pandas._libs cimport util
 from pandas._libs.algos cimport (
-    Moments,
     calc_kurt,
     calc_skew,
     get_rank_nan_fill_val,
@@ -1025,18 +1023,23 @@ def group_skew(
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
-        Moments* ms
+        float64_t[:, ::1] mean, M2, M3
         float64_t val
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    mean = np.zeros((<object>out).shape, dtype=np.float64)
+    # M2, and M3 correspond to 2nd and 3rd central moments
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+
     N, K = (<object>values).shape
-    ms = <Moments *>calloc(<size_t>ngroups * <size_t>K, sizeof(Moments))
-    if ms is NULL:
-        raise MemoryError()
 
     out[:, :] = 0.0
 
@@ -1057,15 +1060,14 @@ def group_skew(
                 if skipna and (isnan(val) or _treat_as_na(val, False)):
                     continue
 
-                moments_add_value(&ms[lab * K + j], val, 3)
+                moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
+                                  &M3[lab, j], NULL, 3)
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_skew(ms[i * K + j])
+                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
                 if result_mask is not None and isnan(out[i, j]):
                     result_mask[i, j] = 1
-
-    free(ms)
 
 
 @cython.wraparound(False)
@@ -1083,18 +1085,24 @@ def group_kurt(
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
-        Moments* ms
+        float64_t[:, ::1] mean, M2, M3, M4
         float64_t val
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    mean = np.zeros((<object>out).shape, dtype=np.float64)
+    # M2, M3 and M4 correspond to 2nd, 3rd and 4th Central Moments
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+    M4 = np.zeros((<object>out).shape, dtype=np.float64)
+
     N, K = (<object>values).shape
-    ms = <Moments *>calloc(<size_t>ngroups * <size_t>K, sizeof(Moments))
-    if ms is NULL:
-        raise MemoryError()
 
     out[:, :] = 0.0
 
@@ -1115,15 +1123,14 @@ def group_kurt(
                 if skipna and (isnan(val) or _treat_as_na(val, False)):
                     continue
 
-                moments_add_value(&ms[lab * K + j], val, 4)
+                moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
+                                  &M3[lab, j], &M4[lab, j], 4)
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_kurt(ms[i * K + j])
+                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
                 if result_mask is not None and isnan(out[i, j]):
                     result_mask[i, j] = 1
-
-    free(ms)
 
 
 @cython.wraparound(False)
