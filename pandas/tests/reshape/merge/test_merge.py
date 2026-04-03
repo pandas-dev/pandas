@@ -657,7 +657,7 @@ class TestMerge:
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
         df2 = DataFrame({"i1": [0], "i3": [0]})
-        result = df1.join(df2, on="i1", rsuffix="_")
+        result = df1.join(df2, on="i1", suffixes=("", "_"))
         expected = (
             DataFrame(
                 {
@@ -678,7 +678,7 @@ class TestMerge:
     def test_merge_nan_right2(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
         df2 = DataFrame({"i1": [0], "i3": [0.7]})
-        result = df1.join(df2, rsuffix="_", on="i1")
+        result = df1.join(df2, suffixes=("", "_"), on="i1")
         expected = DataFrame(
             {
                 "i1": {0: 0, 1: 1},
@@ -729,7 +729,7 @@ class TestMerge:
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 
-        result = lhs.join(rhs, rsuffix="r", how="left")
+        result = lhs.join(rhs, suffixes=("", "r"), how="left")
         expected = DataFrame(
             {
                 "0": Series([td, td], index=list("AB")),

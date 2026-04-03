@@ -325,7 +325,7 @@ class TestJoin:
         )
 
         # overlap
-        joined = df1.join(df2, lsuffix="_one", rsuffix="_two")
+        joined = df1.join(df2, suffixes=("_one", "_two"))
         expected_columns = [
             "A_one",
             "B_one",
@@ -613,7 +613,7 @@ class TestJoin:
         index = pd.period_range("2016-01-01", periods=16, freq="M")
         df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
         df2 = concat([df, df])
-        result = df.join(df2, how="inner", rsuffix="_df2")
+        result = df.join(df2, how="inner", suffixes=("", "_df2"))
         expected = DataFrame(
             np.tile(np.arange(16, dtype=np.int64).repeat(2).reshape(-1, 1), 2),
             columns=["pnum", "pnum_df2"],
@@ -640,7 +640,7 @@ class TestJoin:
         cn = grouped.count()
 
         # it works!
-        mn.join(cn, rsuffix="_right")
+        mn.join(cn, suffixes=("", "_right"))
 
     def test_join_many(self):
         df = DataFrame(
@@ -759,7 +759,7 @@ class TestJoin:
         )
 
         expected = concat([df, df], axis=1)
-        result = df.join(df, rsuffix="_2")
+        result = df.join(df, suffixes=("", "_2"))
         result.columns = expected.columns
         tm.assert_frame_equal(result, expected)
 
@@ -993,7 +993,7 @@ def test_join_cross(input_col, output_cols):
     # GH#5401
     left = DataFrame({"a": [1, 3]})
     right = DataFrame({input_col: [3, 4]})
-    result = left.join(right, how="cross", lsuffix="_x", rsuffix="_y")
+    result = left.join(right, how="cross", suffixes=("_x", "_y"))
     expected = DataFrame({output_cols[0]: [1, 1, 3, 3], output_cols[1]: [3, 4, 3, 4]})
     tm.assert_frame_equal(result, expected)
 
@@ -1046,7 +1046,7 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
             "value": [3, 4, 5],
         }
     ).set_index(["first", "second"])
-    result = left.join(right, lsuffix="_left", rsuffix="_right")
+    result = left.join(right, suffixes=("_left", "_right"))
 
     expected = DataFrame(
         {
