@@ -421,7 +421,8 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
 
 
 @pytest.mark.parametrize(
-    "val,expected", [(np.nan, NaT), (NaT, np.nan), (np.timedelta64("NaT"), np.nan)]
+    "val,expected",
+    [(np.nan, NaT), (NaT, np.nan), (np.timedelta64("NaT", "ns"), np.nan)],
 )
 def test_nat_rfloordiv_timedelta(val, expected):
     # see gh-#18846

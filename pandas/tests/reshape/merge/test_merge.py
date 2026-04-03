@@ -725,7 +725,7 @@ class TestMerge:
     def test_join_append_timedeltas2(self):
         # timedelta64 issues with join/merge
         # GH 5695
-        td = np.timedelta64(300000000)
+        td = np.timedelta64(300000000, "ns")
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 

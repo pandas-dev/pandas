@@ -209,8 +209,8 @@ class TestTimedelta64ArrayComparisons:
                 [
                     np.timedelta64(2, "D"),
                     np.timedelta64(2, "D"),
-                    np.timedelta64("nat"),
-                    np.timedelta64("nat"),
+                    np.timedelta64("NaT", "ns"),
+                    np.timedelta64("NaT", "ns"),
                     np.timedelta64(1, "D") + np.timedelta64(2, "s"),
                     np.timedelta64(5, "D") + np.timedelta64(3, "s"),
                 ]
@@ -561,8 +561,8 @@ class TestTimedelta64ArithmeticUnsorted:
         rng = pd.date_range("2013", "2014")
         s = Series(rng)
         result1 = rng - offsets.Hour(1)
-        result2 = DatetimeIndex(s - np.timedelta64(100000000))
-        result3 = rng - np.timedelta64(100000000)
+        result2 = DatetimeIndex(s - np.timedelta64(100000000, "ns"))
+        result3 = rng - np.timedelta64(100000000, "ns")
         result4 = DatetimeIndex(s - offsets.Hour(1))
 
         assert result1.freq == rng.freq
@@ -1292,7 +1292,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(result, -expected)
         assert_dtype(result, "timedelta64[ns]")
 
-    @pytest.mark.parametrize("tdnat", [np.timedelta64("NaT"), NaT])
+    @pytest.mark.parametrize("tdnat", [np.timedelta64("NaT", "us"), NaT])
     def test_td64arr_add_sub_td64_nat(self, box_with_array, tdnat):
         # GH#18808, GH#23320 special handling for timedelta64("NaT")
         box = box_with_array
@@ -1721,7 +1721,7 @@ class TestTimedeltaArraylikeMulDivOps:
         rng = timedelta_range("1 days", "10 days")
         rng = tm.box_expected(rng, box)
 
-        other = np.timedelta64("NaT")
+        other = np.timedelta64("NaT", "ns")
 
         expected = np.array([np.nan] * 10)
         expected = tm.box_expected(expected, xbox)

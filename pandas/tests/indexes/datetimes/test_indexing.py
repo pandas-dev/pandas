@@ -479,7 +479,7 @@ class TestGetLoc:
         assert index.get_loc(np.datetime64("NaT")) == 1
 
         with pytest.raises(KeyError, match="NaT"):
-            index.get_loc(np.timedelta64("NaT"))
+            index.get_loc(np.timedelta64("NaT", "ns"))
 
     @pytest.mark.parametrize("key", [pd.Timedelta(0), pd.Timedelta(1), timedelta(0)])
     def test_get_loc_timedelta_invalid_key(self, key):

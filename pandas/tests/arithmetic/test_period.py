@@ -1261,7 +1261,7 @@ class TestPeriodIndexArithmetic:
     def test_parr_add_sub_td64_nat(self, box_with_array, transpose):
         # GH#23320 special handling for timedelta64("NaT")
         pi = period_range("1994-04-01", periods=9, freq="19D")
-        other = np.timedelta64("NaT")
+        other = np.timedelta64("NaT", "ns")
         expected = PeriodIndex(["NaT"] * 9, freq="19D")
 
         obj = tm.box_expected(pi, box_with_array, transpose=transpose)

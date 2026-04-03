@@ -790,7 +790,7 @@ class TestTimestampConstructors:
             Timestamp(Timestamp.min._value * 2)
 
     def test_out_of_bounds_value(self):
-        one_us = np.timedelta64(1).astype("timedelta64[us]")
+        one_us = np.timedelta64(1, "ns").astype("timedelta64[us]")
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
