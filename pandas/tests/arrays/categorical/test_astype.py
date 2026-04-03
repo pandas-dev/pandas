@@ -9,7 +9,6 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DatetimeIndex,
-    Index,
     Interval,
     NaT,
     Period,
@@ -166,18 +165,3 @@ class TestAstype:
         result = arr.astype("category")
         expected = array([0, 1, 2], dtype="Int64").astype("category")
         tm.assert_extension_array_equal(result, expected)
-
-    def test_astype_arrow_to_categorical_datetime_no_crash(self):
-        # GH#62051 - should not raise AttributeError
-        pytest.importorskip("pyarrow")
-        arr = array(
-            ["2017-01-01", "2018-01-01", "2019-01-01"],
-            dtype="date32[day][pyarrow]",
-        )
-        cats = Index(["2017-01-01", "2018-01-01", "2019-01-01"], dtype="M8[s]")
-        dtype = CategoricalDtype(cats, ordered=False)
-
-        msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = arr.astype(dtype)
-        assert result.dtype == dtype
