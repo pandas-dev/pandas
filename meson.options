@@ -1,5 +1,0 @@
-option(
-    'openmp',
-    type: 'feature',
-    description: 'Parallelization with OpenMP',
-)

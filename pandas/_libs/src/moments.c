@@ -11,13 +11,6 @@ The full license is in the LICENSE file, distributed with this software.
 #include <math.h>
 #include <stdint.h>
 
-#ifdef _OPENMP
-#  include <omp.h>
-#else
-static inline int omp_get_thread_num(void) { return 0; }
-static inline int omp_get_num_threads(void) { return 1; }
-#endif // _OPENMP
-
 static inline void moments_add_valuem(Moments *moments, double val,
                                       int max_moment) {
   double delta = val - moments->mean;
@@ -243,29 +236,10 @@ void accumulate_moments_scalar(size_t n, const double *values, bool skipna,
                                const uint8_t *mask, int64_t *nobs, double *mean,
                                double *m2, double *m3, double *m4,
                                int max_moment) {
-  Moments acc = {0};
-
-#ifdef _OPENMP
-#  pragma omp parallel if (n > 10000)
-#endif
-  {
-    size_t tid = (size_t)omp_get_thread_num();
-    size_t num_threads = (size_t)omp_get_num_threads();
-
-    size_t start = (tid * n) / num_threads;
-    size_t end = tid == num_threads - 1 ? n : ((tid + 1) * n) / num_threads;
-
-    Moments moments_local =
-        accumulate_moments_dispatch(end - start, values + start, skipna,
-                                    mask ? mask + start : NULL, max_moment);
-
-#ifdef _OPENMP
-#  pragma omp critical
-#endif
-    {
-      acc = moments_merge(acc, moments_local, max_moment);
-    }
-  }
+  // PERF: It's possible to parallelize moment reductions
+  // and call `moments_merge` to join the results.
+  Moments acc =
+      accumulate_moments_dispatch(n, values, skipna, mask, max_moment);
 
   Moments tmp =
       (Moments){.n = *nobs, .mean = *mean, .m2 = *m2, .m3 = 0.0, .m4 = 0.0};

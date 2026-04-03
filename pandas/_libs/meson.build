@@ -56,8 +56,6 @@ fast_float_dep = fast_float.get_variable('fast_float_dep')
 
 subdir('tslibs')
 
-openmp_dep = dependency('OpenMP', required: get_option('openmp'))
-
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
@@ -68,7 +66,7 @@ libs_sources = {
             _algos_common_helper,
             _algos_take_helper,
         ],
-        'deps': [_khash_primitive_helper_dep, m_dep, openmp_dep],
+        'deps': [_khash_primitive_helper_dep, m_dep],
     },
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx'], 'deps': [m_dep]},
