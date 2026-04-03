@@ -1479,6 +1479,7 @@ class ScatterPlot(PlanePlot):
         else:
             cmap = None
 
+        norm: mpl.colors.Normalize | None
         if color_by_categorical and cmap is not None:
             n_cats = len(self.data[c].cat.categories)
             cmap = mpl.colors.ListedColormap([cmap(i) for i in range(cmap.N)])
