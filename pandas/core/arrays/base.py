@@ -3118,7 +3118,7 @@ class ExtensionOpsMixin:
             ("__rdivmod__", roperator.rdivmod),
         ]
         for op_name, op_func in arithmetic_ops:
-            if op_name not in cls.__dict__:
+            if op_name not in vars(cls):
                 setattr(cls, op_name, cls._create_arithmetic_method(op_func))
 
     @classmethod
@@ -3136,7 +3136,7 @@ class ExtensionOpsMixin:
             ("__ge__", operator.ge),
         ]
         for op_name, op_func in comparison_ops:
-            if op_name not in cls.__dict__:
+            if op_name not in vars(cls):
                 setattr(cls, op_name, cls._create_comparison_method(op_func))
 
     @classmethod
@@ -3154,7 +3154,7 @@ class ExtensionOpsMixin:
             ("__rxor__", roperator.rxor),
         ]
         for op_name, op_func in logical_ops:
-            if op_name not in cls.__dict__:
+            if op_name not in vars(cls):
                 setattr(cls, op_name, cls._create_logical_method(op_func))
 
 
