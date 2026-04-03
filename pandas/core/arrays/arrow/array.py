@@ -909,10 +909,10 @@ class ArrowExtensionArray(
     def _wrap_and_remask_ufunc_result(
         self, result: np.ndarray, mask: npt.NDArray[np.bool_]
     ) -> ArrowExtensionArray:
-        result = type(self)._from_sequence(result)
+        arr = type(self)._from_sequence(result)
         if mask.any():
-            result[mask] = result.dtype.na_value
-        return result
+            arr[mask] = arr.dtype.na_value
+        return arr
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
