@@ -136,25 +136,37 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         An ordered ndarray[int64_t]
     """
     cdef:
-        Py_ssize_t i, n = len(arr)
+        Py_ssize_t i, n = len(arr), num_uniques = 0
         int64_t val
         khiter_t k
         kh_int64_t *table
         int ret = 0
-        list uniques = []
+        int64_t *uniques = NULL
         ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
     kh_resize_int64(table, 10)
+
+    # n - 1 is the max possible number of unique deltas
+    if n > 1:
+        uniques = <int64_t*>malloc((n - 1) * sizeof(int64_t))
+        if uniques is NULL:
+            kh_destroy_int64(table)
+            raise MemoryError()
+
     for i in range(n - 1):
         val = arr[i + 1] - arr[i]
         k = kh_get_int64(table, val)
         if k == table.n_buckets:
             kh_put_int64(table, val, &ret)
-            uniques.append(val)
+            uniques[num_uniques] = val
+            num_uniques += 1
     kh_destroy_int64(table)
 
-    result = np.array(uniques, dtype=np.int64)
+    result = np.empty(num_uniques, dtype=np.int64)
+    if num_uniques > 0:
+        memcpy(cnp.PyArray_DATA(result), uniques, num_uniques * sizeof(int64_t))
+    free(uniques)
     result.sort()
     return result
 
@@ -859,8 +871,6 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
                 is_monotonic_dec = 0
                 break
             if not is_monotonic_inc and not is_monotonic_dec:
-                is_monotonic_inc = 0
-                is_monotonic_dec = 0
                 break
             prev = cur
 
@@ -1038,7 +1048,6 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == "top")
-    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1047,7 +1056,9 @@ def rank_1d(
     if check_labels:
         order.append(labels)
 
-    np.putmask(masked_vals, mask, nan_fill_val)
+    if check_mask:
+        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
+        np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
     masked_vals_memview = masked_vals
 
