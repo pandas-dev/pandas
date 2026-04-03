@@ -1,15 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
-    DatetimeIndex,
     Series,
     Timedelta,
-    date_range,
 )
 import pandas._testing as tm
 
@@ -58,41 +55,3 @@ def test_astype_ea_int_to_td_ts():
     result = ser.astype("M8[ns]")
     expected = Series([1, Timedelta("nat")], dtype="M8[ns]")
     tm.assert_series_equal(result, expected)
-
-
-class TestToNumpyPerformanceWarning:
-    # GH#62309
-    def test_to_numpy_tz_aware_warns(self):
-        # to_numpy() without dtype on tz-aware data should warn
-        dti = date_range("2024-01-01", periods=5, freq="h", tz="UTC")
-        ser = Series(dti)
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            result = ser.to_numpy()
-        assert result.dtype == np.dtype(object)
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            result = DatetimeIndex(dti).to_numpy()
-        assert result.dtype == np.dtype(object)
-
-    def test_to_numpy_tz_aware_explicit_dtype_no_warn(self):
-        # Specifying dtype explicitly should not warn
-        dti = date_range("2024-01-01", periods=5, freq="h", tz="UTC")
-        ser = Series(dti)
-
-        with tm.assert_produces_warning(None):
-            result = ser.to_numpy(dtype="datetime64[ns]")
-        assert result.dtype == np.dtype("datetime64[ns]")
-
-        with tm.assert_produces_warning(None):
-            result = ser.to_numpy(dtype=object)
-        assert result.dtype == np.dtype(object)
-
-    def test_to_numpy_tz_naive_no_warn(self):
-        # tz-naive datetime data should not warn
-        dti = date_range("2024-01-01", periods=5, freq="h")
-        ser = Series(dti)
-
-        with tm.assert_produces_warning(None):
-            result = ser.to_numpy()
-        assert result.dtype.kind == "M"

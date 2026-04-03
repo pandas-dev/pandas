@@ -2645,17 +2645,19 @@ This method can convert between different timezone-aware dtypes.
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   By converting to an object array of Timestamps, it preserves the time zone
-   information. For example, when converting back to a Series:
-
-   .. ipython:: python
-
-      pd.Series(s_aware.to_numpy())
-
-   However, if you want an actual NumPy ``datetime64`` array (with the values
-   converted to UTC) instead of an array of objects, you can specify the
-   ``dtype`` argument:
+   This object-dtype default is significantly slower and more memory-intensive
+   than a native ``datetime64`` array. For better performance, pass an explicit
+   ``dtype``:
 
    .. ipython:: python
 
       s_aware.to_numpy(dtype="datetime64[us]")
+
+   This converts to UTC and drops the timezone, returning a native
+   ``datetime64`` array. If you need to preserve per-element timezone
+   information (e.g. when converting back to a Series), use
+   ``dtype=object`` explicitly:
+
+   .. ipython:: python
+
+      pd.Series(s_aware.to_numpy(dtype=object))

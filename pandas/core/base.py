@@ -14,11 +14,8 @@ from typing import (
     final,
     overload,
 )
-import warnings
 
 import numpy as np
-
-from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -31,12 +28,8 @@ from pandas._typing import (
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
-from pandas.errors import (
-    AbstractMethodError,
-    PerformanceWarning,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -664,6 +657,17 @@ class IndexOpsMixin(OpsMixin):
         datetime64[ns, tz] ndarray[object] (Timestamps)
         ================== ================================
 
+        For timezone-aware datetime data, calling ``to_numpy()`` without
+        specifying ``dtype`` produces an object-dtype array of
+        :class:`Timestamp` objects. This is significantly slower and uses
+        more memory than a native ``datetime64`` array. To avoid this,
+        pass an explicit ``dtype``:
+
+        - ``dtype="datetime64[ns]"`` converts to UTC and drops the
+          timezone, returning a native ``datetime64[ns]`` array.
+        - ``dtype=object`` explicitly requests Timestamp objects when
+          you need to preserve per-element timezone information.
+
         Examples
         --------
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
@@ -690,21 +694,7 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if isinstance(self.dtype, ExtensionDtype):
-            result = self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
-            if (
-                dtype is None
-                and result.dtype == np.dtype(object)
-                and self.dtype.kind == "M"
-                and _global_config["mode"]["performance_warnings"]
-            ):
-                warnings.warn(
-                    f"to_numpy() defaulted to object dtype because {self.dtype}"
-                    " could not be converted to a NumPy dtype. Specify an "
-                    "explicit dtype to silence this warning.",
-                    PerformanceWarning,
-                    stacklevel=find_stack_level(),
-                )
-            return result
+            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
             bad_keys = next(iter(kwargs.keys()))
             raise TypeError(
