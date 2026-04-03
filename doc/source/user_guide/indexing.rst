@@ -60,6 +60,20 @@ of multi-axis indexing.
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
+ Non-inclusive slicing with DatetimeIndex
+---------------------------------------
+
+Label-based slicing using `.loc` includes both the start and end labels. This differs from standard Python slicing, where the end is typically excluded.
+
+If you need non-inclusive slicing (i.e., include the start but exclude the end), you can use lower-level index methods:
+
+>>> ts = pd.Series(range(10), index=pd.date_range("2000-01-01", periods=10))
+>>> lo = ts.index.get_slice_bound("2000-01-04", "left", "loc")
+>>> hi = ts.index.get_slice_bound("2000-01-10", "left", "loc")
+>>> ts.iloc[lo:hi]
+
+This approach provides finer control over slice boundaries.
+
 * ``.iloc`` is primarily integer position based (from ``0`` to
   ``length-1`` of the axis), but may also be used with a boolean
   array.  ``.iloc`` will raise ``IndexError`` if a requested
