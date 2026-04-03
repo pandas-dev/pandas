@@ -347,6 +347,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        bint no_nans
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -356,6 +357,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    no_nans = np.asarray(mask).all()
 
     with nogil:
         for xi in range(K):
@@ -363,18 +365,32 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 # Welford's method for the variance-calculation
                 # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
                 nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+
+                if no_nans:
+                    nobs = N
+                    for i in range(N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
+                        meanx += 1. / (i + 1) * dx
+                        meany += 1. / (i + 1) * dy
                         ssqdmx += (vx - meanx) * dx
                         ssqdmy += (vy - meany) * dy
                         covxy += (vx - meanx) * dy
+                else:
+                    for i in range(N):
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx += 1. / nobs * dx
+                            meany += 1. / nobs * dy
+                            ssqdmx += (vx - meanx) * dx
+                            ssqdmy += (vy - meany) * dy
+                            covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
