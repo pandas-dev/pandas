@@ -2337,8 +2337,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 cur_col_len = len(levheader) + 1  # header + a whitespace
             elif not start:
                 levstring += sep
-                cur_col_len += len(val)
+                cur_col_len += sep_len
             levstring += val
+            cur_col_len += len(val)
             start = False
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
