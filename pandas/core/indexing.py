@@ -949,8 +949,10 @@ class _LocationIndexer(NDFrameIndexerBase):
         # slice and copy every block.
         if self.obj.ndim == 1:
             orig_dtype_info = self.obj.dtype
+            orig_columns = None
         else:
             orig_dtype_info = self.obj._mgr.get_dtypes().copy()
+            orig_columns = self.obj.columns
 
         iloc: _iLocIndexer = (
             cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
@@ -958,9 +960,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         iloc._setitem_with_indexer(indexer, value, self.name)
 
         if self.obj.shape[0] != orig_nrows:
-            self._post_expansion_casting(orig_dtype_info)
+            self._post_expansion_casting(orig_dtype_info, orig_columns)
 
-    def _post_expansion_casting(self, orig_dtype_info) -> None:
+    def _post_expansion_casting(self, orig_dtype_info, orig_columns) -> None:
         # setitem-with-expansion added new rows.  Try to retain
         #  original dtypes
         if self.obj.ndim == 1:
@@ -985,17 +987,17 @@ class _LocationIndexer(NDFrameIndexerBase):
                     )
                     self.obj.isetitem(idx, new_arr)
 
-            elif self.obj.columns.is_unique:
-                # Added rows and columns
-                for col_idx in range(len(orig_dtypes)):
-                    new_dtype = new_dtypes[col_idx]
-                    orig_dtype = orig_dtypes[col_idx]
+            elif orig_columns.is_unique and self.obj.columns.is_unique:
+                # Added rows and columns; iterate by label since positional
+                # correspondence between orig and new is not guaranteed.
+                for col, orig_dtype in zip(orig_columns, orig_dtypes, strict=True):
+                    new_dtype = self.obj[col].dtype
                     if new_dtype != orig_dtype:
                         orig_arr = pd_array([], dtype=orig_dtype)
                         new_arr = infer_and_maybe_downcast(
-                            orig_arr, self.obj.iloc[:, col_idx]._values
+                            orig_arr, self.obj[col]._values
                         )
-                        self.obj.isetitem(col_idx, new_arr)
+                        self.obj[col] = new_arr
             else:
                 # In these cases there isn't a one-to-one correspondence between
                 #  old columns and new columns, which makes casting hairy.
