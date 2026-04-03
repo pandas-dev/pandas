@@ -29,7 +29,7 @@ typedef struct {
   double m4;
 } Moments;
 
-static inline void moments_add_value(double val, long *nobs, double *mean,
+static inline void moments_add_value(double val, int64_t *nobs, double *mean,
                                      double *m2, double *m3, double *m4,
                                      int max_moment) {
   double delta = val - *mean;
@@ -53,7 +53,7 @@ Moments moments_merge(Moments a, Moments b, int max_moment);
 
 /// Compute central moments until `max_moment` using `n` elements from `values`.
 void accumulate_moments_scalar(size_t n, const double *values, bool skipna,
-                               const uint8_t *mask, long *nobs, double *mean,
+                               const uint8_t *mask, int64_t *nobs, double *mean,
                                double *m2, double *m3, double *m4,
                                int max_moment);
 #ifdef __cplusplus
