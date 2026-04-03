@@ -170,9 +170,9 @@ Moments accumulate_moments_simd(size_t n, const double *values, int skipna,
   *(v4d *)m3_arr = v_m3;
   *(v4d *)m4_arr = v_m4;
 
-  int64_t n_arr[4];
+  long n_arr[4];
   for (int j = 0; j < 4; j++) {
-    n_arr[j] = (int64_t)n_arrd[j];
+    n_arr[j] = (long)n_arrd[j];
   }
 
   // Distribute remaining values across chunks
@@ -187,7 +187,7 @@ Moments accumulate_moments_simd(size_t n, const double *values, int skipna,
   }
   Moments moments_arr[4];
   for (int j = 0; j < 4; j++) {
-    moments_arr[j] = (Moments){.n = n_arr[j],
+    moments_arr[j] = (Moments){.n = (uint64_t)n_arr[j],
                                .mean = mean_arr[j],
                                .m2 = m2_arr[j],
                                .m3 = m3_arr[j],
@@ -233,7 +233,7 @@ Moments accumulate_moments_dispatch(size_t n, const double *values, int skipna,
 /* --- Moments 1D Accumulator Implementation --- */
 
 void accumulate_moments_scalar(size_t n, const double *values, bool skipna,
-                               const uint8_t *mask, int64_t *nobs, double *mean,
+                               const uint8_t *mask, long *nobs, double *mean,
                                double *m2, double *m3, double *m4,
                                int max_moment) {
   // PERF: It's possible to parallelize moment reductions
@@ -241,8 +241,8 @@ void accumulate_moments_scalar(size_t n, const double *values, bool skipna,
   Moments acc =
       accumulate_moments_dispatch(n, values, skipna, mask, max_moment);
 
-  Moments tmp =
-      (Moments){.n = *nobs, .mean = *mean, .m2 = *m2, .m3 = 0.0, .m4 = 0.0};
+  Moments tmp = (Moments){
+      .n = (uint64_t)*nobs, .mean = *mean, .m2 = *m2, .m3 = 0.0, .m4 = 0.0};
   if (max_moment >= 4) {
     tmp.m4 = *m4;
   }
@@ -259,5 +259,8 @@ void accumulate_moments_scalar(size_t n, const double *values, bool skipna,
   }
   *m2 = result.m2;
   *mean = result.mean;
-  *nobs = result.n;
+  // FIXME: This conversion may overflow.
+  //        Using `long` because the type used in Cython is `np.int64_t`,
+  //        which is aliased to `long`.
+  *nobs = (long)result.n;
 }
