@@ -1497,12 +1497,13 @@ class ScatterPlot(PlanePlot):
                 # Explicitly setting vmin/vmax prevents this side effect.
                 try:
                     c_arr = np.asarray(c_values, dtype=float)
-                    vmin = float(np.nanmin(c_arr))
-                    vmax = float(np.nanmax(c_arr))
-                    if np.isfinite(vmin) and np.isfinite(vmax):
-                        if vmin == vmax:
-                            vmax = vmin + 1
-                        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+                    if c_arr.ndim == 1:
+                        vmin = float(np.nanmin(c_arr))
+                        vmax = float(np.nanmax(c_arr))
+                        if np.isfinite(vmin) and np.isfinite(vmax):
+                            if vmin == vmax:
+                                vmax = vmin + 1
+                            norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
                 except (TypeError, ValueError):
                     pass
         return norm, cmap
