@@ -70,7 +70,6 @@ from pandas.core.algorithms import (
     map_array,
     mode,
     take,
-    validate_searchsorted_value,
 )
 from pandas.core.array_algos import (
     masked_accumulations,
@@ -1331,7 +1330,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        validate_searchsorted_value(self._data.dtype, value)
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.

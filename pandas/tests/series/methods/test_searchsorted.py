@@ -114,43 +114,6 @@ class TestSeriesSearchSorted:
             "foo",
         ],
     )
-    @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
-    def test_searchsorted_nullable_numeric_incompatible_dtype(self, dtype, value):
-        data = [False, False, True] if dtype == "boolean" else [1, 2, 3]
-        ser = Series(data, dtype=dtype)
-        msg = "searchsorted requires compatible dtype or scalar"
-        with pytest.raises(TypeError, match=msg):
-            ser.searchsorted(value)
-
-    @pytest.mark.parametrize(
-        "value",
-        [
-            np.timedelta64(1, "ns"),
-            np.datetime64("2020-01-01"),
-            Timedelta("1 day"),
-            Timestamp("2020-01-01"),
-            pd.NaT,
-            "foo",
-        ],
-    )
-    def test_searchsorted_arrow_numeric_incompatible_dtype(self, value):
-        pytest.importorskip("pyarrow")
-        ser = Series([1, 2, 3], dtype="int64[pyarrow]")
-        msg = "searchsorted requires compatible dtype or scalar"
-        with pytest.raises(TypeError, match=msg):
-            ser.searchsorted(value)
-
-    @pytest.mark.parametrize(
-        "value",
-        [
-            np.timedelta64(1, "ns"),
-            np.datetime64("2020-01-01"),
-            Timedelta("1 day"),
-            Timestamp("2020-01-01"),
-            pd.NaT,
-            "foo",
-        ],
-    )
     def test_searchsorted_numpy_ea_incompatible_dtype(self, value):
         # NumpyExtensionArray path
         nea = NumpyExtensionArray(np.array([1, 2, 3]))

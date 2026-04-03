@@ -196,7 +196,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in :meth:`Series.searchsorted` with numeric or boolean dtype failing to raise ``TypeError`` for incompatible value types like ``timedelta64``, ``datetime64``, or ``str``, returning incorrect results instead (:issue:`XXXXX`)
+- Bug in :meth:`Series.searchsorted` with numeric or boolean dtype failing to raise ``TypeError`` for incompatible value types like ``timedelta64``, ``datetime64``, or ``str``, returning incorrect results instead (:issue:`65015`)
 - Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 - Fixed bug in :meth:`Series.mean` and :meth:`Series.sum` (and their :class:`DataFrame` counterparts) overflowing for ``float16`` dtypes instead of upcasting to ``float64`` (:issue:`43929`)

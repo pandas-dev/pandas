@@ -69,10 +69,7 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.algorithms import (
-    map_array,
-    validate_searchsorted_value,
-)
+from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
@@ -1725,8 +1722,6 @@ class ArrowExtensionArray(
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        if isinstance(self.dtype, ArrowDtype):
-            validate_searchsorted_value(self.dtype.numpy_dtype, value)
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.
