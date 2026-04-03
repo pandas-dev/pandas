@@ -258,12 +258,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         Examples
         --------
-        >>> arr = pd.array(["b", "a", "c"], dtype="str")
+        >>> arr = pd.array(["b", "a", "c"], dtype="string[python]")
         >>> arr.sort()
         >>> arr
         <StringArray>
         ['a', 'b', 'c']
-        Length: 3, dtype: str
+        Length: 3, dtype: string
         """
         sort_indices = self.argsort(
             ascending=ascending, kind=kind, na_position=na_position

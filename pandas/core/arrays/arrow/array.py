@@ -1415,12 +1415,12 @@ class ArrowExtensionArray(
 
         Examples
         --------
-        >>> arr = pd.array(["b", "a", "c"], dtype="str[pyarrow]")
+        >>> arr = pd.array(["b", "a", "c"], dtype="string[pyarrow]")
         >>> arr.sort()
         >>> arr
         <ArrowStringArray>
         ['a', 'b', 'c']
-        Length: 3, dtype: str
+        Length: 3, dtype: string
         """
         sort_indices = self.argsort(
             ascending=ascending, kind=kind, na_position=na_position
