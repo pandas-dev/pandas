@@ -265,7 +265,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         ['a', 'b', 'c']
         Length: 3, dtype: str
         """
-        sort_indices = self.argsort(ascending=ascending, kind=kind, na_position=na_position)
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
         self._ndarray[:] = self._ndarray[sort_indices]
 
     @classmethod

@@ -1422,7 +1422,9 @@ class ArrowExtensionArray(
         ['a', 'b', 'c']
         Length: 3, dtype: str
         """
-        sort_indices = self.argsort(ascending=ascending, kind=kind, na_position=na_position)
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
         sorted_array = self.take(sort_indices)
         self._pa_array = sorted_array._pa_array
 
