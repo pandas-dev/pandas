@@ -5547,7 +5547,8 @@ class DataFrame(NDFrame, OpsMixin):
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
             If the values are not callable, (e.g. a Series, scalar, or array),
-            they are simply assigned.
+            they are simply assigned. Series are aligned by their indexes,
+            while other array-like values are assigned positionally.
 
         Returns
         -------
@@ -5582,9 +5583,24 @@ class DataFrame(NDFrame, OpsMixin):
         Berkeley    25.0    77.0
 
         Alternatively, the same behavior can be achieved by directly
-        referencing an existing Series or sequence:
+        referencing an existing Series:
 
         >>> df.assign(temp_f=df["temp_c"] * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
+
+        When assigning a Series, its values are aligned by index:
+
+        >>> temp_f = pd.Series([77.0, 212.0], index=["Berkeley", "Oslo"])
+        >>> df.assign(temp_f=temp_f)
+                  temp_c  temp_f
+        Portland    17.0     NaN
+        Berkeley    25.0    77.0
+
+        Other array-like values are assigned by position:
+
+        >>> df.assign(temp_f=[62.6, 77.0])
                   temp_c  temp_f
         Portland    17.0    62.6
         Berkeley    25.0    77.0
