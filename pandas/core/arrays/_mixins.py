@@ -62,6 +62,7 @@ if TYPE_CHECKING:
         ScalarIndexer,
         SequenceIndexer,
         Shape,
+        SortKind,
         TakeIndexer,
         npt,
     )
@@ -230,6 +231,42 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def unique(self) -> Self:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
+
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        """
+        Sort the array in-place.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether to sort in ascending order.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If 'first', put NaN values at the beginning.
+            If 'last', put NaN values at the end.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> arr = pd.array(["b", "a", "c"], dtype="str")
+        >>> arr.sort()
+        >>> arr
+        <StringArray>
+        ['a', 'b', 'c']
+        Length: 3, dtype: str
+        """
+        sort_indices = self.argsort(ascending=ascending, kind=kind, na_position=na_position)
+        self._ndarray[:] = self._ndarray[sort_indices]
 
     @classmethod
     def _concat_same_type(

@@ -650,3 +650,41 @@ def test_numpy_random_permute(dtype, box):
     result = rng.permutation(arr)
     assert isinstance(result, np.ndarray)
     assert sorted(result.tolist()) == ["a", "bb", "ccc"]
+
+
+def test_sort_inplace(dtype):
+    arr = pd.array(["Bob", "Alice", "Charlie"], dtype=dtype)
+    result = arr.sort()
+    assert result is None
+    expected = pd.array(["Alice", "Bob", "Charlie"], dtype=dtype)
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_sort_descending(dtype):
+    arr = pd.array(["Bob", "Alice", "Charlie"], dtype=dtype)
+    arr.sort(ascending=False)
+    expected = pd.array(["Charlie", "Bob", "Alice"], dtype=dtype)
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_sort_with_na(dtype):
+    na = pd.NA if dtype.na_value is pd.NA else np.nan
+    arr = pd.array(["Bob", na, "Alice"], dtype=dtype)
+    arr.sort(na_position="last")
+    expected = pd.array(["Alice", "Bob", na], dtype=dtype)
+    tm.assert_extension_array_equal(arr, expected)
+
+    arr2 = pd.array(["Bob", na, "Alice"], dtype=dtype)
+    arr2.sort(na_position="first")
+    expected2 = pd.array([na, "Alice", "Bob"], dtype=dtype)
+    tm.assert_extension_array_equal(arr2, expected2)
+
+
+def test_sort_unique_result(dtype):
+    entries = [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]
+    df = pd.DataFrame(entries)
+    with pd.option_context("mode.string_storage", dtype.storage):
+        unique_names = df["name"].astype(dtype).unique()
+    unique_names.sort()
+    expected = pd.array(["Alice", "Bob"], dtype=dtype)
+    tm.assert_extension_array_equal(unique_names, expected)

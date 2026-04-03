@@ -1389,6 +1389,43 @@ class ArrowExtensionArray(
         np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        """
+        Sort the array in-place.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether to sort in ascending order.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If 'first', put NaN values at the beginning.
+            If 'last', put NaN values at the end.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        >>> arr = pd.array(["b", "a", "c"], dtype="str[pyarrow]")
+        >>> arr.sort()
+        >>> arr
+        <ArrowStringArray>
+        ['a', 'b', 'c']
+        Length: 3, dtype: str
+        """
+        sort_indices = self.argsort(ascending=ascending, kind=kind, na_position=na_position)
+        sorted_array = self.take(sort_indices)
+        self._pa_array = sorted_array._pa_array
+
     def _argmin_max(self, skipna: bool, method: str) -> int:
         if self._pa_array.length() in (0, self._pa_array.null_count) or (
             self._hasna and not skipna
