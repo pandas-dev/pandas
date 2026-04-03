@@ -50,6 +50,7 @@ VERSIONS = {
     "sqlalchemy": "2.0.36",
     "tables": "3.10.1",
     "tabulate": "0.9.0",
+    "universal-pathlib": "0.3.9",
     "xarray": "2024.10.0",
     "xlrd": "2.0.1",
     "xlsxwriter": "3.2.0",

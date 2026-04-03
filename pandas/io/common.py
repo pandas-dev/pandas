@@ -281,6 +281,23 @@ def urlopen(*args: Any, **kwargs: Any) -> Any:
     return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
 
 
+def is_pathlib_abc_path(obj: object) -> bool:
+    """
+    Returns true if object is a pathlib_abc ReadablePath or WritablePath.
+    """
+    if hasattr(obj, "__vfspath__"):
+        try:
+            from pathlib_abc import (
+                ReadablePath,
+                WritablePath,
+            )
+        except ImportError:
+            pass
+        else:
+            return isinstance(obj, (ReadablePath, WritablePath))
+    return False
+
+
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
     """
     Returns true if the given URL looks like
@@ -342,6 +359,15 @@ def _get_filepath_or_buffer(
 
     Returns the dataclass IOArgs.
     """
+    # early conversion of pathlib-abc-like objects to buffer
+    if is_pathlib_abc_path(filepath_or_buffer):
+        from pathlib_abc import vfsopen
+
+        if compression is not None:
+            # vfsopen defaults to text but compression handling expects binary mode
+            mode = mode.replace("t", "") + ("" if "b" in mode else "b")
+        filepath_or_buffer = vfsopen(filepath_or_buffer, mode=mode)
+
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
     # handle compression dict
