@@ -437,6 +437,15 @@ class Block(PandasObject, libinternals.Block):
         """
         new_dtype = find_result_type(self.values.dtype, other)
         if new_dtype == self.dtype:
+            if lib.is_np_dtype(new_dtype, "mM"):
+                # GH#61671 e.g. datetime64[ns] column and a replacement value
+                # outside ns range. find_common_type picked the highest
+                # resolution which can't represent the value.
+                raise OutOfBoundsDatetime(
+                    f"Incompatible (high-resolution) value for "
+                    f"dtype='{self.dtype}'. "
+                    "Explicitly cast before operating."
+                )
             # GH#52927 avoid RecursionError
             raise AssertionError(
                 "Something has gone wrong, please report a bug at "

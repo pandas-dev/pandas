@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1473,9 +1474,8 @@ class TestDataFrameReplace:
     def test_replace_datetime_out_of_bounds_for_ns(self):
         # GH#61671
         df = DataFrame([np.nan], dtype="datetime64[ns]")
-        result = df.replace(np.nan, datetime(3000, 1, 1))
-        expected = DataFrame([Timestamp("3000-01-01")], dtype="datetime64[us]")
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+            df.replace(np.nan, datetime(3000, 1, 1))
 
 
 class TestDataFrameReplaceRegex:

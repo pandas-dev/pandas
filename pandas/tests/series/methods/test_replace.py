@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -745,6 +746,5 @@ def test_replace_from_index():
 def test_replace_datetime_out_of_bounds_for_ns():
     # GH#61671
     ser = pd.Series([np.nan], dtype="datetime64[ns]")
-    result = ser.replace(np.nan, datetime(3000, 1, 1))
-    expected = pd.Series([pd.Timestamp("3000-01-01")], dtype="datetime64[us]")
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+        ser.replace(np.nan, datetime(3000, 1, 1))

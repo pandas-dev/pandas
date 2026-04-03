@@ -2158,10 +2158,9 @@ def test_find_result_type_floats(right, result):
 @pytest.mark.parametrize(
     "right,result",
     [
-        # GH#61671 - out-of-bounds for ns, needs wider range (us)
-        (datetime(3000, 1, 1), np.dtype("datetime64[us]")),
-        # in-range value still infers as us (Python datetime resolution)
-        (datetime(2020, 1, 1), np.dtype("datetime64[us]")),
+        # GH#61671 - find_common_type picks highest resolution (ns)
+        (datetime(3000, 1, 1), np.dtype("datetime64[ns]")),
+        (datetime(2020, 1, 1), np.dtype("datetime64[ns]")),
         # np.datetime64 with explicit ns resolution stays ns
         (np.datetime64("2020-01-01", "ns"), np.dtype("datetime64[ns]")),
     ],
