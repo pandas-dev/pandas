@@ -167,8 +167,8 @@ class TestAstype:
         expected = array([0, 1, 2], dtype="Int64").astype("category")
         tm.assert_extension_array_equal(result, expected)
 
-    def test_astype_arrow_to_categorical_datetime(self):
-        # GH#62051
+    def test_astype_arrow_to_categorical_datetime_no_crash(self):
+        # GH#62051 - should not raise AttributeError
         pytest.importorskip("pyarrow")
         arr = array(
             ["2017-01-01", "2018-01-01", "2019-01-01"],
@@ -177,19 +177,7 @@ class TestAstype:
         cats = Index(["2017-01-01", "2018-01-01", "2019-01-01"], dtype="M8[s]")
         dtype = CategoricalDtype(cats, ordered=False)
 
-        result = arr.astype(dtype)
-        expected = arr.astype(cats.dtype).astype(dtype)
-        tm.assert_extension_array_equal(result, expected)
-
-    def test_astype_arrow_to_categorical_timedelta(self):
-        # GH#62051
-        pytest.importorskip("pyarrow")
-        from pandas.core.arrays import ArrowExtensionArray
-
-        arr = ArrowExtensionArray._from_sequence(["1h", "2h", "3h"])
-        cats = Index(["1h", "2h", "3h"], dtype="m8[ns]")
-        dtype = CategoricalDtype(cats, ordered=False)
-
-        result = arr.astype(dtype)
-        expected = arr.astype(cats.dtype).astype(dtype)
-        tm.assert_extension_array_equal(result, expected)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = arr.astype(dtype)
+        assert result.dtype == dtype

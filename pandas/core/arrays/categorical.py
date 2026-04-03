@@ -3063,15 +3063,6 @@ def _get_codes_for_values(
     """
     codes = categories.get_indexer_for(values)
     wrong = (codes == -1) & ~isna(values)
-    if wrong.all() and isinstance(getattr(values, "dtype", None), ArrowDtype):
-        # GH#62051 e.g. ArrowEA date32 vs datetime64[s] categories
-        try:
-            values = cast("ExtensionArray", values).astype(categories.dtype)
-        except (TypeError, ValueError):
-            pass
-        else:
-            codes = categories.get_indexer_for(values)
-            wrong = (codes == -1) & ~isna(values)
     if wrong.any():
         warnings.warn(
             "Constructing a Categorical with a dtype and values containing "
