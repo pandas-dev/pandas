@@ -61,8 +61,8 @@ of multi-axis indexing.
   See more at :ref:`Selection by Label <indexing.label>`.
 
 
- Non-inclusive slicing with DatetimeIndex
----------------------------------------
+Non-inclusive slicing with DatetimeIndex
+----------------------------------------
 
 Label-based slicing using ``.loc`` includes both the start and end labels. This differs from standard Python slicing, where the end is typically excluded.
 
@@ -74,6 +74,7 @@ If you need non-inclusive slicing (i.e., include the start but exclude the end),
 >>> ts.iloc[lo:hi]
 
 This approach provides finer control over slice boundaries.
+
 
 
 * ``.iloc`` is primarily integer position based (from ``0`` to
