@@ -90,6 +90,7 @@ if TYPE_CHECKING:
         ArrayLike,
         Axis,
         AxisInt,
+        DtypeObj,
         T,
         npt,
     )
@@ -951,7 +952,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             orig_dtype_info = self.obj.dtype
             orig_columns = None
         else:
-            orig_dtype_info = self.obj._mgr.get_dtypes().copy()
+            orig_dtype_info = self.obj._mgr.get_dtypes()
             orig_columns = self.obj.columns
 
         iloc: _iLocIndexer = (
@@ -962,19 +963,25 @@ class _LocationIndexer(NDFrameIndexerBase):
         if self.obj.shape[0] != orig_nrows:
             self._post_expansion_casting(orig_dtype_info, orig_columns)
 
-    def _post_expansion_casting(self, orig_dtype_info, orig_columns) -> None:
+    def _post_expansion_casting(
+        self,
+        orig_dtype_info: DtypeObj | npt.NDArray[np.object_],
+        orig_columns: Index | None,
+    ) -> None:
         # setitem-with-expansion added new rows.  Try to retain
         #  original dtypes
         if self.obj.ndim == 1:
-            orig_dtype = orig_dtype_info
-            if orig_dtype != self.obj.dtype:
-                orig_arr = pd_array([], dtype=orig_dtype)
+            assert not isinstance(orig_dtype_info, np.ndarray)
+            if orig_dtype_info != self.obj.dtype:
+                orig_arr = pd_array([], dtype=orig_dtype_info)
                 new_arr = infer_and_maybe_downcast(orig_arr, self.obj._values)
                 new_ser = self.obj._constructor(
                     new_arr, index=self.obj.index, name=self.obj.name
                 )
                 self.obj._mgr = new_ser._mgr
         else:
+            assert isinstance(orig_dtype_info, np.ndarray)
+            assert orig_columns is not None
             orig_dtypes = orig_dtype_info
             new_dtypes = self.obj._mgr.get_dtypes()
             if len(orig_dtypes) == len(new_dtypes):
