@@ -1331,7 +1331,7 @@ Storing Attributes to a group node
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore("test.h5")
-   store.put("df", df)
+   store["df"] = df
 
    # you can store an arbitrary Python object via pickle
    store.get_storer("df").attrs.my_attribute = {"A": 10}

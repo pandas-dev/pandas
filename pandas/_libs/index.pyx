@@ -548,28 +548,16 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # This is equivalent to the stdlib's bisect.bisect_left
 
     cdef:
-        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
-        object pval
-
-    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
-        return len(values)
+        Py_ssize_t mid, lo = 0, hi = len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = PySequence_GetItem(values, mid)
-        if val < pval:
-            hi = mid
-        elif val > pval:
+        if PySequence_GetItem(values, mid) < val:
             lo = mid + 1
         else:
-            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
-                mid -= 1
-            return mid
+            hi = mid
 
-    if val <= PySequence_GetItem(values, mid):
-        return mid
-    else:
-        return mid + 1
+    return lo
 
 
 cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
