@@ -670,7 +670,7 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
-static int tokenize_bytes(parser_t *self, size_t line_limit,
+static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
 
@@ -1187,7 +1187,7 @@ static int parser_handle_eof(parser_t *self) {
     return 0;
 }
 
-int parser_consume_rows(parser_t *self, size_t nrows) {
+int parser_consume_rows(parser_t *self, uint64_t nrows) {
   if (nrows > self->lines) {
     nrows = self->lines;
   }
@@ -1344,7 +1344,7 @@ int parser_trim_buffers(parser_t *self) {
   all : tokenize all the data vs. certain number of rows
  */
 
-static int _tokenize_helper(parser_t *self, size_t nrows, int all,
+static int _tokenize_helper(parser_t *self, uint64_t nrows, int all,
                             const char *encoding_errors) {
   int status = 0;
   const uint64_t start_lines = self->lines;
@@ -1393,12 +1393,13 @@ static int _tokenize_helper(parser_t *self, size_t nrows, int all,
   return status;
 }
 
-int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) {
+int tokenize_nrows(parser_t *self, uint64_t nrows,
+                   const char *encoding_errors) {
   return _tokenize_helper(self, nrows, 0, encoding_errors);
 }
 
 int tokenize_all_rows(parser_t *self, const char *encoding_errors) {
-  return _tokenize_helper(self, -1, 1, encoding_errors);
+  return _tokenize_helper(self, 0, 1, encoding_errors);
 }
 
 /*
