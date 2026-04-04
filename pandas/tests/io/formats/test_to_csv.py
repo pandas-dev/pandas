@@ -424,6 +424,13 @@ $1$,$2$
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected_utf8
 
+    def test_to_csv_roundtrip_with_newline_in_field(self, temp_file):
+        # GH#22497 - embedded newlines in field values should survive roundtrip
+        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
+
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
