@@ -111,7 +111,7 @@ Deprecations
 - Deprecated the ``weekday`` property on :class:`DatetimeIndex`, :class:`.DatetimeArray`, :class:`PeriodIndex`, :class:`.PeriodArray`, and :class:`Period`. Use ``day_of_week`` instead. ``Timestamp.weekday()`` remains a method consistent with :meth:`datetime.datetime.weekday` (:issue:`12816`)
 - Deprecated the ``xlrd`` and ``pyxlsb`` engines in :func:`read_excel`. Use ``engine="calamine"`` instead (:issue:`56542`)
 - Deprecated the default value of ``exact`` in :func:`assert_index_equal`; in a future version this will default to ``True`` instead of "equiv" (:issue:`57436`)
-- Deprecated the special casing for sequences of Python ``date`` objects in ``DatetimeIndex.get_indexer`` and related indexing logic.Indexing a ``DatetimeIndex`` with Python ``date`` objects now behaves consistently with other types. (:issue:`62158`)
+- Deprecated the special casing for sequences of Python ``date`` objects in ``DatetimeIndex.get_indexer`` and related indexing logic; in a future version, this will behave consistently with other types when indexing with Python ``date`` objects. (:issue:`62158`)
 -
 
 .. ---------------------------------------------------------------------------
