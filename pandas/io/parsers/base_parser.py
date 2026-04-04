@@ -787,7 +787,7 @@ def date_converter(
         return str_objs
 
     if isinstance(result, DatetimeIndex):
-        arr = result.to_numpy(dtype=object)
+        arr = result.to_numpy()
         arr.flags.writeable = True
         return arr
     return result._values
