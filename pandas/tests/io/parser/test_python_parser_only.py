@@ -648,7 +648,7 @@ def test_memory_map_multichar_sep(python_parser_only, tmp_path):
     # TypeError about mixing string patterns and bytes-like objects
     parser = python_parser_only
     path = tmp_path / "test.csv"
-    path.write_text("key1 - value1\nkey2 - value2\nkey3 - value3\n")
+    path.write_text("key1 - value1\nkey2 - value2\nkey3 - value3\n", encoding="utf-8")
 
     result = parser.read_csv(
         path, header=None, sep=" - ", names=["key", "value"], memory_map=True
