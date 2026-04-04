@@ -130,6 +130,25 @@ def test_constructor_with_timedelta_window(window):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "window",
+    [
+        "-5h",
+        "0s",
+        timedelta(hours=-5),
+        timedelta(0),
+        Timedelta("-5h"),
+        Timedelta(0),
+    ],
+)
+def test_constructor_rejects_nonpositive_datetimelike_window(window):
+    ser = Series([1, 2], index=date_range("2025-01-01", periods=2))
+
+    msg = "window must be a positive timedelta or offset"
+    with pytest.raises(ValueError, match=msg):
+        ser.rolling(window).sum()
+
+
 @pytest.mark.parametrize("window", [timedelta(days=3), Timedelta(days=3), "3D"])
 def test_constructor_timedelta_window_and_minperiods(window, raw):
     # GH 15305
