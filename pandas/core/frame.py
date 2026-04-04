@@ -2038,8 +2038,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        data : structured ndarray, iterable of tuples or dicts
+        data : structured ndarray, iterable of tuples or dicts, or dict
             Structured input data.
+
+            .. deprecated:: 3.1.0
+                Passing a dict is deprecated. Use the DataFrame constructor
+                or :meth:`DataFrame.from_dict` instead.
+
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2111,6 +2116,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise TypeError(
                 "Passing a DataFrame to DataFrame.from_records is not supported. Use "
                 "set_index and/or drop to modify the DataFrame instead.",
+            )
+
+        if isinstance(data, dict):
+            warnings.warn(
+                "Passing a dict to DataFrame.from_records is deprecated. "
+                "Use the DataFrame constructor or DataFrame.from_dict instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
             )
 
         result_index = None

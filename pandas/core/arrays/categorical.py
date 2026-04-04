@@ -381,7 +381,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> Self:
         # NB: This is not _quite_ as simple as the "usual" _simple_new
         codes = coerce_indexer_dtype(codes, dtype.categories)
-        dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+        if dtype.ordered is None:
+            dtype = CategoricalDtype._from_fastpath(dtype.categories, ordered=False)
         return super()._simple_new(codes, dtype)
 
     def __init__(
@@ -509,7 +510,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+        if dtype.ordered is None:
+            dtype = CategoricalDtype._from_fastpath(dtype.categories, ordered=False)
         arr = coerce_indexer_dtype(codes, dtype.categories)
         super().__init__(arr, dtype)
 

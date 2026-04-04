@@ -44,11 +44,17 @@ def test_downcast_conversion_empty(any_real_numpy_dtype):
     tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
 
-@pytest.mark.parametrize("klass", [np.datetime64, np.timedelta64])
-def test_datetime_likes_nan(klass):
+@pytest.mark.parametrize(
+    "klass, nat",
+    [
+        (np.datetime64, np.datetime64("NaT", "ns")),
+        (np.timedelta64, np.timedelta64("NaT", "ns")),
+    ],
+)
+def test_datetime_likes_nan(klass, nat):
     dtype = np.dtype(klass.__name__ + "[ns]")
     arr = np.array([1, 2, np.nan])
 
-    exp = np.array([1, 2, klass("NaT")], dtype)
+    exp = np.array([1, 2, nat], dtype)
     res = maybe_downcast_to_dtype(arr, dtype)
     tm.assert_numpy_array_equal(res, exp)

@@ -4192,7 +4192,7 @@ everything in the sub-store and **below**, so be *careful*.
 
 .. ipython:: python
 
-   store.put("foo/bar/bah", df)
+   store.put("foo/bar/bah", df, track_times=False)
    store.append("food/orange", df)
    store.append("food/apple", df)
    store

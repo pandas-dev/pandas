@@ -843,17 +843,19 @@ class Index(IndexOpsMixin, PandasObject):
         self,
     ) -> libindex.IndexEngine | libindex.ExtensionEngine | libindex.MaskedIndexEngine:
         # For base class (object dtype) we get ObjectEngine
+        dtype = self.dtype
         target_values = self._get_engine_target()
 
-        if isinstance(self._values, ArrowExtensionArray) and self.dtype.kind in "Mm":
+        if isinstance(dtype, ArrowDtype) and dtype.kind in "Mm":
             import pyarrow as pa
 
-            pa_type = self._values._pa_array.type
+            values = self._values
+            pa_type = values._pa_array.type  # type: ignore[union-attr]
             if pa.types.is_timestamp(pa_type):
-                target_values = self._values._to_datetimearray()
+                target_values = values._to_datetimearray()  # type: ignore[union-attr]
                 return libindex.DatetimeEngine(target_values._ndarray)
             elif pa.types.is_duration(pa_type):
-                target_values = self._values._to_timedeltaarray()
+                target_values = values._to_timedeltaarray()  # type: ignore[union-attr]
                 return libindex.TimedeltaEngine(target_values._ndarray)
 
         if isinstance(target_values, ExtensionArray):
@@ -866,24 +868,23 @@ class Index(IndexOpsMixin, PandasObject):
             elif self._engine_type is libindex.ObjectEngine:
                 return libindex.ExtensionEngine(target_values)
 
-        target_values = cast("np.ndarray", target_values)
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         if target_values.dtype == bool:
-            return libindex.BoolEngine(target_values)
+            return libindex.BoolEngine(target_values)  # type: ignore[arg-type]
         elif target_values.dtype == np.complex64:
-            return libindex.Complex64Engine(target_values)
+            return libindex.Complex64Engine(target_values)  # type: ignore[arg-type]
         elif target_values.dtype == np.complex128:
-            return libindex.Complex128Engine(target_values)
-        elif needs_i8_conversion(self.dtype):
+            return libindex.Complex128Engine(target_values)  # type: ignore[arg-type]
+        elif needs_i8_conversion(dtype):
             # We need to keep M8/m8 dtype when initializing the Engine,
             #  but don't want to change _get_engine_target bc it is used
             #  elsewhere
             # error: Item "ExtensionArray" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"  [union-attr]
             target_values = self._data._ndarray  # type: ignore[union-attr]
-        elif is_string_dtype(self.dtype) and not is_object_dtype(self.dtype):
-            return libindex.StringObjectEngine(target_values, self.dtype.na_value)  # type: ignore[union-attr]
+        elif isinstance(dtype, StringDtype):
+            return libindex.StringObjectEngine(target_values, dtype.na_value)
 
         # error: Argument 1 to "ExtensionEngine" has incompatible type
         # "ndarray[Any, Any]"; expected "ExtensionArray"
@@ -3283,9 +3284,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             result = lvals
 
-        if not self.is_monotonic_increasing or not other.is_monotonic_increasing:
-            # if both are monotonic then result should already be sorted
-            result = _maybe_try_sort(result, sort)
+        result = _maybe_try_sort(result, sort)
 
         return result
 
@@ -3901,6 +3900,13 @@ class Index(IndexOpsMixin, PandasObject):
                 tgt_values = target._get_engine_target()
 
             indexer = self._engine.get_indexer(tgt_values)  # pyright: ignore[reportArgumentType]
+
+        if method is not None and target._can_hold_na and not target._is_multi:
+            # GH#32572 NaT/NaN in the target should not be matched
+            #  by pad/backfill/nearest
+            na_mask = target._isnan
+            if na_mask.any():
+                indexer[na_mask] = -1
 
         return ensure_platform_int(indexer)
 
@@ -4589,16 +4595,34 @@ class Index(IndexOpsMixin, PandasObject):
         if (
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
-            and self._can_use_libjoin
-            and other._can_use_libjoin
             and (self.is_unique or other.is_unique)
         ):
-            try:
-                return self._join_monotonic(other, how=how)
-            except TypeError:
-                # object dtype; non-comparable objects
-                pass
-        elif not self.is_unique or not other.is_unique:
+            if self._can_use_libjoin and other._can_use_libjoin:
+                if self.equals(other):
+                    ret_index = other if how == "right" else self
+                    return ret_index, None, None
+                try:
+                    return self._join_monotonic(other, how=how)
+                except TypeError:
+                    # object dtype; non-comparable objects
+                    pass
+            elif isinstance(self, ABCRangeIndex):
+                # RangeIndex._join_monotonic doesn't use libjoin;
+                #  it uses pure-Python range operations.
+                try:
+                    return self._join_monotonic(other, how=how)
+                except (TypeError, NotImplementedError):
+                    pass
+
+        if (
+            self.equals(other)
+            and (self.is_unique or other.is_unique)
+            and (not sort or self.is_monotonic_increasing)
+        ):
+            ret_index = other if how == "right" else self
+            return ret_index, None, None
+
+        if not self.is_unique or not other.is_unique:
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
@@ -4958,13 +4982,6 @@ class Index(IndexOpsMixin, PandasObject):
         assert other.dtype == self.dtype
         assert self._can_use_libjoin and other._can_use_libjoin
 
-        if self.equals(other):
-            # This is a convenient place for this check, but its correctness
-            #  does not depend on monotonicity, so it could go earlier
-            #  in the calling method.
-            ret_index = other if how == "right" else self
-            return ret_index, None, None
-
         ridx: npt.NDArray[np.intp] | None
         lidx: npt.NDArray[np.intp] | None
 
@@ -5079,12 +5096,16 @@ class Index(IndexOpsMixin, PandasObject):
                 )
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
-        #  which negates the performance benefit of libjoin
-        # Subclasses should override to return False if _get_join_target is
-        #  not zero-copy.
-        # TODO: exclude RangeIndex (which allocates memory)?
-        #  Doing so seems to break test_concat_datetime_timezone
-        return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
+        #  which negates the performance benefit of libjoin.
+        # Also exclude RangeIndex which allocates memory in _get_join_target,
+        #  negating the performance benefit of the fastpath.
+        if isinstance(self, ABCCategoricalIndex) and not self.ordered:
+            # For unordered CategoricalIndex, dtype equality does not
+            # guarantee matching category order across indexes. Since libjoin
+            # operates on codes, mismatched category order leads to incorrect
+            # results. GH#55335
+            return False
+        return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex, ABCRangeIndex))
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -5262,17 +5283,17 @@ class Index(IndexOpsMixin, PandasObject):
                 return vals._ndarray.view("i8")
         if (
             type(self) is Index
-            and isinstance(self._values, ExtensionArray)
-            and not isinstance(self._values, BaseMaskedArray)
+            and isinstance(vals, ExtensionArray)
+            and not isinstance(vals, BaseMaskedArray)
             and not (
-                isinstance(self._values, ArrowExtensionArray)
+                isinstance(vals, ArrowExtensionArray)
                 and is_numeric_dtype(self.dtype)
                 # Exclude decimal
                 and self.dtype.kind != "O"
             )
         ):
             # TODO(ExtensionIndex): remove special-case, just use self._values
-            return self._values.astype(object)
+            return vals.astype(object)
         return vals
 
     @final
@@ -5293,7 +5314,6 @@ class Index(IndexOpsMixin, PandasObject):
             # "mM" cases will go through _get_engine_target and cast to i8
             return self._values.to_numpy()
 
-        # TODO: exclude ABCRangeIndex case here as it copies
         target = self._get_engine_target()
         if not isinstance(target, np.ndarray):
             raise ValueError("_can_use_libjoin should return False.")
