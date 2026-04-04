@@ -114,6 +114,36 @@ xarray = ">=2024.10.0"
 [feature.benchmarks.dependencies]
 asv = ">=0.6.1"
 
+[feature.documentation.dependencies]
+gitpython = "*" # obtain contributors from git for whatsnew
+ipykernel = "*" # used in doc/source/user_guide/style.ipynb
+ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
+nbconvert = ">=7.11.0"
+nbformat = "*" # used in doc/source/user_guide/style.ipynb
+nbsphinx = "*"
+numpydoc = "*"
+pandoc = "*"
+sphinx = "*"
+sphinx-design = "*"
+sphinx-copybutton = "*"
+
+[feature.documentation.pypi-dependencies]
+# temporary installed with pip with custom patch until released
+# https://github.com/pydata/pydata-sphinx-theme/issues/2176
+pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+
+[feature.website.dependencies]
+feedparser = "*"
+jinja2 = "*"
+jupyterlite-core = "*"
+jupyterlite-pyodide-kernel = "*"
+markdown = "*"
+packaging = "*"
+pygments = "*" # Code highlighting
+pytest = "*"
+pyyaml = "*"
+requests = "*"
+
 [environments]
 py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
@@ -126,6 +156,8 @@ numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
+documentation = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "documentation"]}
+website = { features = ["py313", "website"] }
 
 
 [tasks]
@@ -184,4 +216,40 @@ cmd = [
   "--durations=30",
   "--python=same",
   "--show-stderr",
+]
+
+[tasks.ci-build-documentation]
+args = [
+  { "arg" = "doc_type", "choices" = ["html", "zip_html"] }
+]
+cmd = [
+  "python",
+  "doc/make.py",
+  "--warnings-are-errors",
+  "{{ doc_type }}"
+]
+
+[tasks.ci-test-website]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "web",
+]
+
+[tasks.ci-build-website]
+cmd = [
+  "python",
+  "web/pandas_web.py",
+  "web/pandas",
+  "--target-path=web/build"
+]
+
+[tasks.ci-build-interactive_terminal]
+cmd = [
+  "python",
+  "-m",
+  "jupyter",
+  "lite",
+  "build",
 ]

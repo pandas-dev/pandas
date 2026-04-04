@@ -22,8 +22,9 @@ on:
         type: boolean
         default: false
 
-env:
-  ENV_FILE: environment.yml
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
 
 permissions: {}
 
@@ -38,10 +39,6 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
       cancel-in-progress: true
-
-    defaults:
-      run:
-        shell: bash -el {0}
 
     steps:
     - name: Set pandas version
@@ -83,33 +80,53 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
-
-    - name: Build Pandas
-      uses: ./.github/actions/build_pandas
-
-    - name: Extra installs
-      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
-      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: website documentation
 
     - name: Test website
-      run: python -m pytest web/
+      run: |
+        pixi run \
+          --environment website \
+          ci-test-website
 
     - name: Build website
-      run: python web/pandas_web.py web/pandas --target-path=web/build
+      run: |
+        pixi run \
+          --environment website \
+          ci-build-website
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment documentation \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
+
     - name: Build documentation
-      run: doc/make.py --warnings-are-errors
+      run: |
+        pixi run \
+          --environment documentation \
+          ci-build-documentation \
+          html
 
     - name: Build the interactive terminal
       working-directory: web/interactive_terminal
-      run: jupyter lite build
+      run: |
+        pixi run \
+          --environment website \
+          ci-build-interactive_terminal
 
     - name: Build documentation zip
-      run: doc/make.py zip_html
+      run: |
+        pixi run \
+          --environment documentation \
+          ci-build-documentation \
+          zip_html
 
     - name: Install ssh key
       run: |
