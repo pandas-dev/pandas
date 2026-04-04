@@ -7581,8 +7581,7 @@ class DataFrame(NDFrame, OpsMixin):
         thresh : int, optional
             Require that many non-NA values. Cannot be combined with how.
         subset : column label or iterable of labels, optional
-            Labels along other axis to consider, e.g. if you are dropping rows
-            these would be a list of columns to include.
+            Specifies which columns to consider. Only these columns will be checked for missing values.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default ``False``
