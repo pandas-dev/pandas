@@ -1396,32 +1396,6 @@ class ArrowExtensionArray(
         kind: SortKind = "quicksort",
         na_position: str = "last",
     ) -> None:
-        """
-        Sort the array in-place.
-
-        Parameters
-        ----------
-        ascending : bool, default True
-            Whether to sort in ascending order.
-        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-            Sorting algorithm.
-        na_position : {'first', 'last'}, default 'last'
-            If 'first', put NaN values at the beginning.
-            If 'last', put NaN values at the end.
-
-        Returns
-        -------
-        None
-
-        Examples
-        --------
-        >>> arr = pd.array(["b", "a", "c"], dtype="string[pyarrow]")
-        >>> arr.sort()
-        >>> arr
-        <ArrowStringArray>
-        ['a', 'b', 'c']
-        Length: 3, dtype: string
-        """
         sort_indices = self.argsort(
             ascending=ascending, kind=kind, na_position=na_position
         )
