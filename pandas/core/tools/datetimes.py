@@ -1046,6 +1046,13 @@ def to_datetime(
         arg = _adjust_to_origin(arg, origin, unit)
         if origin != "julian":
             # GH#63419 _adjust_to_origin returned the final datetime result
+            if utc:
+                if isinstance(arg, Timestamp):
+                    arg = arg.tz_localize("utc")
+                elif isinstance(arg, ABCSeries):
+                    arg = arg.dt.tz_localize("utc")
+                elif hasattr(arg, "tz_localize"):
+                    arg = arg.tz_localize("utc")  # type: ignore[union-attr]
             return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
