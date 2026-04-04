@@ -925,7 +925,7 @@ cdef class TextReader:
             end = min(start + rows, self.parser.lines)
 
         num_cols = -1
-        for i in range(self.parser.lines):
+        for i in range(<int64_t>self.parser.lines):
             num_cols = (num_cols < self.parser.line_fields[i]) * \
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
