@@ -4963,26 +4963,21 @@ class Index(IndexOpsMixin, PandasObject):
             new_levels = list(left.levels)
             new_levels[level] = new_level
 
-            # Distinguish NaN entries (old_codes == -1) from entries whose
-            # level value is not present in the new level after the join
-            # (new_lev_codes == -1 but old_codes != -1).  Only drop the
-            # latter; NaN entries should be preserved.
-            not_found_mask = (old_codes != -1) & (new_lev_codes == -1)
-
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 left_indexer = cast("np.ndarray", left_indexer)
-                if not_found_mask.any():
-                    keep = ~not_found_mask
+                # Distinguish NaN entries (old_codes == -1) from entries
+                # whose level value is not present in the new level after
+                # the join (new_lev_codes == -1 but old_codes != -1).
+                # Only drop the latter; NaN entries should be preserved
+                # (GH#60908).
+                mask = (old_codes != -1) & (new_lev_codes == -1)
+                if mask.any():
+                    keep = ~mask
                     new_codes = [lab[keep] for lab in new_codes]
                     left_indexer = left_indexer[keep]
 
             elif level == 0:  # outer most level, take the fast route
-                if not_found_mask.any():
-                    keep = ~not_found_mask
-                    new_codes = [lab[keep] for lab in new_codes]
-                    new_lev_codes = new_lev_codes[keep]
-
                 max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
                 ngroups = 1 + max_new_lev
                 left_indexer, counts = libalgos.groupsort_indexer(
@@ -4994,18 +4989,18 @@ class Index(IndexOpsMixin, PandasObject):
                 new_codes = [lab[left_indexer] for lab in new_codes]
 
             else:  # sort the leaves
-                if not_found_mask.any():
-                    keep = ~not_found_mask
-                    new_codes = [lab[keep] for lab in new_codes]
-                    new_lev_codes = new_lev_codes[keep]
+                mask = new_lev_codes != -1
+                mask_all = mask.all()
+                if not mask_all:
+                    new_codes = [lab[mask] for lab in new_codes]
 
                 left_indexer = _get_leaf_sorter(new_codes[: level + 1])
                 new_codes = [lab[left_indexer] for lab in new_codes]
 
                 # left_indexers are w.r.t masked frame.
                 # reverse to original frame!
-                if not_found_mask.any():
-                    left_indexer = keep.nonzero()[0][left_indexer]
+                if not mask_all:
+                    left_indexer = mask.nonzero()[0][left_indexer]
 
             join_index = MultiIndex(
                 levels=new_levels,
