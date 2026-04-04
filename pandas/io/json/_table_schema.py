@@ -34,7 +34,11 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Interval,
+    IntervalDtype,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -140,6 +144,8 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
 
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
+    elif isinstance(dtype, IntervalDtype):
+        field["extDtype"] = str(dtype)
     elif isinstance(dtype, PeriodDtype):
         field["freq"] = dtype.freq.freqstr
     elif isinstance(dtype, DatetimeTZDtype):
@@ -373,12 +379,25 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     table = ujson_loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
-    df = DataFrame(table["data"], columns=col_order)[col_order]
 
     dtypes = {
         field["name"]: convert_json_field_to_pandas_type(field)
         for field in table["schema"]["fields"]
     }
+
+    interval_cols = {
+        field["name"]
+        for field in table["schema"]["fields"]
+        if isinstance(dtypes.get(field["name"]), IntervalDtype)
+    }
+    if interval_cols:
+        for row in table["data"]:
+            for col in interval_cols:
+                d = row[col]
+                if isinstance(d, dict):
+                    row[col] = Interval(d["left"], d["right"], closed=d["closed"])
+
+    df = DataFrame(table["data"], columns=col_order)[col_order]
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():
