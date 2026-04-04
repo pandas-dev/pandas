@@ -1038,3 +1038,19 @@ def test_multiindex_union_mutation_safety():
 
     mi1.names = ["changed1", "changed2"]
     assert result.names == ["x", "y"]
+
+
+def test_union_disjoint_monotonic_sorted():
+    # GH#54646 - union of two disjoint monotonic-increasing Index objects
+    # should be sorted when sort is not False, even though both inputs are
+    # individually monotonic.
+    idx1 = Index([5, 6, 7])
+    idx2 = Index([1, 2, 3])
+
+    result = idx1.union(idx2, sort=None)
+    expected = Index([1, 2, 3, 5, 6, 7])
+    tm.assert_index_equal(result, expected)
+
+    result_false = idx1.union(idx2, sort=False)
+    expected_false = Index([5, 6, 7, 1, 2, 3])
+    tm.assert_index_equal(result_false, expected_false)

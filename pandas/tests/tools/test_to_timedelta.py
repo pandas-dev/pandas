@@ -240,7 +240,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_on_missing_values(self):
         # GH5438
-        timedelta_NaT = np.timedelta64("NaT")
+        timedelta_NaT = np.timedelta64("NaT", "ns")
 
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
@@ -256,12 +256,12 @@ class TestTimedeltas:
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
-        assert actual._value == np.timedelta64("NaT").astype("int64")
+        assert actual._value == np.timedelta64("NaT", "ns").astype("int64")
 
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_list(self, val):
         actual = to_timedelta([val])
-        assert actual[0]._value == np.timedelta64("NaT").astype("int64")
+        assert actual[0]._value == np.timedelta64("NaT", "ns").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077

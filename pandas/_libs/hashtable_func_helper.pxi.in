@@ -73,7 +73,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
             else:
                 table.vals[k] += 1
     {{else}}
-    kh_resize_{{ttype}}(table, n // 10)
+    kh_resize_{{ttype}}(table, n)
 
     for i in range(n):
         val = {{to_c_type}}(values[i])

@@ -658,8 +658,6 @@ class TermValue:
                 return str(self.converted)
             return f'"{self.converted}"'
         elif self.kind == "float":
-            # python 2 str(float) is not always
-            # round-trippable so use repr()
             return repr(self.converted)
         return str(self.converted)
 

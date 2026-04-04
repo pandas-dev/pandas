@@ -657,7 +657,7 @@ class TestDatetimeArray:
             1,
             np.int64(1),
             1.0,
-            np.timedelta64("NaT"),
+            np.timedelta64("NaT", "ns"),
             pd.Timedelta(days=2),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,

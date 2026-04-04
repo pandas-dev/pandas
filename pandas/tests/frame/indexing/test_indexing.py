@@ -1132,7 +1132,7 @@ class TestDataFrameIndexing:
         df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
         df.loc[:, "D"] = np.array([4 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
-        df["F"] = np.timedelta64("NaT")
+        df["F"] = np.timedelta64("NaT", "ns")
         df.loc[df.index[:-1], "F"] = np.array([6 * one_hour] * 3, dtype="m8[ns]")
         df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3, unit="ns")
         df["H"] = np.datetime64("NaT")
@@ -1917,7 +1917,7 @@ class TestSetitemValidation:
         "1.0",
         pd.NaT,
         np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.timedelta64("NaT", "ns"),
     ]
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
