@@ -514,9 +514,15 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        str, Series or Index
-            If `others` is None, `str` is returned, otherwise a `Series/Index`
-            (same type as caller) of objects is returned.
+        str or Series
+            If `others` is None, `str` is returned, otherwise a Series
+            of objects is returned.
+
+            .. note::
+                When called on an Index, the result is always a Series
+                (not an Index), because the Index is internally converted
+                to a Series for alignment purposes. To obtain an Index
+                result, call ``.to_series().str.cat(...).index``.
 
         See Also
         --------
@@ -598,6 +604,16 @@ class StringMethods(NoNewAttributesMixin):
         0    aa
         4    -e
         2    -c
+        dtype: str
+
+        When calling ``.str.cat()`` on an Index with `others`, the result
+        is a Series (not an Index), because the Index is converted internally:
+
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.str.cat(["x", "y", "z"], sep="-")
+        a    a-x
+        b    b-y
+        c    c-z
         dtype: str
 
         For more examples, see :ref:`here <text.concatenate>`.
