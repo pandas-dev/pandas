@@ -2326,21 +2326,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
-        levstring = ""
+        parts: list[str] = []
         start = True
         cur_col_len = len(levheader)  # header
         sep_len, sep = (3, " < ") if self.ordered else (2, ", ")
         linesep = f"{sep.rstrip()}\n"  # remove whitespace
         for val in category_strs:
             if max_width != 0 and cur_col_len + sep_len + len(val) > max_width:
-                levstring += linesep + (" " * (len(levheader) + 1))
+                parts.append(linesep + (" " * (len(levheader) + 1)))
                 cur_col_len = len(levheader) + 1  # header + a whitespace
             elif not start:
-                levstring += sep
+                parts.append(sep)
                 cur_col_len += sep_len
-            levstring += val
+            parts.append(val)
             cur_col_len += len(val)
             start = False
+        levstring = "".join(parts)
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
@@ -2366,22 +2367,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if max_width == 0:
             return "[" + ", ".join(fmt_values) + "]"
 
-        result = "["
+        parts = ["["]
         cur_col_len = 1  # account for the opening bracket
         start = True
         for val in fmt_values:
             if not start:
                 if cur_col_len + 2 + len(val) > max_width:
-                    result += ",\n "
+                    parts.append(",\n ")
                     cur_col_len = 1  # 1 space indent
                 else:
-                    result += ", "
+                    parts.append(", ")
                     cur_col_len += 2
-            result += val
+            parts.append(val)
             cur_col_len += len(val)
             start = False
-        result += "]"
-        return result
+        parts.append("]")
+        return "".join(parts)
 
     def __repr__(self) -> str:
         """
