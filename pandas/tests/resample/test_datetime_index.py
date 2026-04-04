@@ -2227,3 +2227,47 @@ def test_resample_day_origin_offset(tz):
     result = ser.resample("7D", origin=origin).sum()
     expected = ser.resample("168h", origin=origin).sum()
     tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_D_closed_right_no_extra_bin():
+    # GH#62200: resample("D", closed="right") should not produce an extra
+    # trailing empty bin when last value falls exactly on a Day boundary.
+    index = date_range("2000-05-13", "2000-05-15", freq="h")
+    ser = Series(range(len(index)), index=index)
+
+    result_d = ser.resample("D", closed="right").count()
+    result_24h = ser.resample("24h", closed="right").count()
+
+    expected = Series(
+        [1, 24, 24],
+        index=date_range("2000-05-12", periods=3, freq="D"),
+    )
+    tm.assert_series_equal(result_d, expected)
+    tm.assert_series_equal(result_24h, expected, check_freq=False)
+
+
+def test_resample_D_closed_right_label_right_no_extra_bin():
+    # GH#62200: original reproducer with label="right" and closed="right"
+    index = date_range("1-1-2000", "2-15-2000", freq="h").union(
+        date_range("4-15-2000", "5-15-2000", freq="h")
+    )
+    ser = Series(range(len(index)), index=index)
+    result_d = ser.resample("D", label="right", closed="right").count()
+    result_24h = ser.resample("24h", label="right", closed="right").count()
+
+    assert len(result_d) == len(result_24h)
+    tm.assert_series_equal(result_d, result_24h, check_freq=False)
+
+
+def test_resample_D_closed_right_not_on_boundary():
+    # GH#62200: when last value is NOT on a Day boundary, the trailing
+    # bin should still be present.
+    index = date_range("2000-05-13", "2000-05-15 12:00", freq="h")
+    ser = Series(range(len(index)), index=index)
+
+    result = ser.resample("D", closed="right").count()
+    expected = Series(
+        [1, 24, 24, 12],
+        index=date_range("2000-05-12", periods=4, freq="D"),
+    )
+    tm.assert_series_equal(result, expected)
