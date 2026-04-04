@@ -367,6 +367,35 @@ def merge(
     2   bar      7
     3   bar      8
     """
+    """
+
+    >>> df1 = pd.DataFrame({"key": ["A", "B", "C"], "val1": [1, 2, 3]})
+    >>> df2 = pd.DataFrame({"key": ["A", "B", "D"], "val2": [4, 5, 6]})
+
+    >>> pd.merge(df1, df2, on="key", how="inner")
+        key  val1  val2
+    0   A     1     4
+    1   B     2     5
+
+    >>> pd.merge(df1, df2, on="key", how="left")
+        key  val1  val2
+    0   A     1   4.0
+    1   B     2   5.0
+    2   C     3   NaN
+
+    >>> pd.merge(df1, df2, on="key", how="right")
+        key  val1  val2
+    0   A   1.0     4
+    1   B   2.0     5
+    2   D   NaN     6
+
+    >>> pd.merge(df1, df2, on="key", how="outer")
+        key  val1  val2
+    0   A   1.0   4.0
+    1   B   2.0   5.0
+    2   C   3.0   NaN
+    3   D   NaN   6.0
+    """
     left_df = _validate_operand(left)
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
