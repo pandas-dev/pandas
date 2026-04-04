@@ -9877,25 +9877,50 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         _right: DataFrame | Series
         if axis is not None:
             axis = self._get_axis_number(axis)
-        if isinstance(other, ABCDataFrame):
-            left, _right, join_index = self._align_frame(
-                other,
-                join=join,
-                axis=axis,
-                level=level,
-                fill_value=fill_value,
-            )
 
-        elif isinstance(other, ABCSeries):
-            left, _right, join_index = self._align_series(
-                other,
-                join=join,
-                axis=axis,
-                level=level,
-                fill_value=fill_value,
-            )
-        else:  # pragma: no cover
-            raise TypeError(f"unsupported type: {type(other)}")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", category=Pandas4Warning)
+
+            if isinstance(other, ABCDataFrame):
+                left, _right, join_index = self._align_frame(
+                    other,
+                    join=join,
+                    axis=axis,
+                    level=level,
+                    fill_value=fill_value,
+                )
+
+            elif isinstance(other, ABCSeries):
+                left, _right, join_index = self._align_series(
+                    other,
+                    join=join,
+                    axis=axis,
+                    level=level,
+                    fill_value=fill_value,
+                )
+            else:  # pragma: no cover
+                raise TypeError(f"unsupported type: {type(other)}")
+
+        for warning_msg in caught:
+            if "datetime.date" in str(warning_msg.message):
+                # GH#XXXXX - re-issue with a message appropriate for
+                #  alignment operations
+                warnings.warn(
+                    "Alignment of a DataFrame/Series with a DatetimeIndex "
+                    "and a DataFrame/Series with an object-dtype Index of "
+                    "datetime.date objects is deprecated. Convert the "
+                    "datetime.date Index to DatetimeIndex using "
+                    "pd.to_datetime before performing this operation.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn_explicit(
+                    warning_msg.message,
+                    warning_msg.category,
+                    warning_msg.filename,
+                    warning_msg.lineno,
+                )
 
         right = cast("NDFrameT", _right)
         if self.ndim == 1 or axis == 0:

@@ -210,8 +210,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         freq
     """
 
-    # _infer_matches -> which infer_dtype strings are close enough to our own
-    _infer_matches: tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
@@ -684,7 +682,31 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if hasattr(value, "dtype") and value.dtype == object:
             # `array` below won't do inference if value is an Index or Series.
             #  so do so here.  in the Index case, inferred_type may be cached.
-            if lib.infer_dtype(value) in self._infer_matches:
+            arr = np.asarray(value)
+            flat = arr.ravel() if arr.ndim != 1 else arr
+            converted = lib.maybe_convert_objects(
+                flat, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
+            converted = ensure_wrapped_if_datetimelike(converted)
+            if isinstance(converted, type(self)):
+                try:
+                    value = type(self)._from_sequence(value)
+                except (ValueError, TypeError) as err:
+                    if allow_object:
+                        return value
+                    msg = self._validation_error_message(value, True)
+                    raise TypeError(msg) from err
+            elif lib.infer_dtype(value) == "date":
+                # GH#XXXXX
+                warnings.warn(
+                    "Inferring datetime64 from data containing datetime.date "
+                    "objects is deprecated. In a future version, these will "
+                    "be left as object dtype. Use "
+                    "pd.to_datetime to explicitly convert "
+                    "to datetime64.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
                 try:
                     value = type(self)._from_sequence(value)
                 except (ValueError, TypeError) as err:
