@@ -175,6 +175,7 @@ from pandas.io.formats.printing import (
     PrettyDict,
     default_pprint,
     format_object_summary,
+    get_adjustment,
     pprint_thing,
 )
 
@@ -1409,9 +1410,51 @@ class Index(IndexOpsMixin, PandasObject):
         klass_name = type(self).__name__
         data = self._format_data()
         attrs = self._format_attrs()
-        attrs_str = [f"{k}={v}" for k, v in attrs]
-        prepr = ", ".join(attrs_str)
 
+        display_width = _global_config["display"]["width"] or 80
+        indent = len(klass_name) + 1  # length of "ClassName("
+        indent_str = " " * indent
+
+        # Determine the length of the line where attrs start
+        if "\n" in data:
+            last_line = data.rsplit("\n", 1)[-1]
+            line_len = len(last_line)
+        else:
+            line_len = indent + len(data)
+
+        adj = get_adjustment()
+
+        # Build the attrs portion with width-aware wrapping.
+        # Reserve 1 char for trailing comma when not the last attr.
+        parts: list[str_t] = []
+        num_attrs = len(attrs)
+        for attr_idx, (key, val) in enumerate(attrs):
+            attr = f"{key}={val}"
+            attr_len = adj.len(attr)
+            comma = 1 if attr_idx < num_attrs - 1 else 0
+            if not parts:
+                # First attr: wrap onto new line if it won't fit on the
+                # current line (which already contains data)
+                if line_len + attr_len + comma > display_width:
+                    parts.append("\n" + indent_str + attr)
+                    line_len = indent + attr_len
+                else:
+                    parts.append(attr)
+                    line_len += attr_len
+            else:
+                sep = ", "
+                if line_len + len(sep) + attr_len + comma > display_width:
+                    parts.append(",\n" + indent_str + attr)
+                    line_len = indent + attr_len
+                else:
+                    parts.append(sep + attr)
+                    line_len += len(sep) + attr_len
+
+        prepr = "".join(parts)
+        if prepr.startswith("\n"):
+            # First attr wrapped to a new line; strip trailing whitespace
+            # from the data portion (e.g. trailing ", " separator)
+            data = data.rstrip()
         return f"{klass_name}({data}{prepr})"
 
     def _formatter_func(self, val: object) -> str_t:
