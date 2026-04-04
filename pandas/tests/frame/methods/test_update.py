@@ -259,3 +259,22 @@ class TestDataFrameUpdate:
         expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]}, dtype=object)
 
         tm.assert_frame_equal(other, expected)
+
+    def test_update_mismatched_index_dtype(self):
+        # GH#19905 - update silently does nothing when index dtypes differ
+        df_int = DataFrame(
+            {"col": ["foo", "bar", np.nan]},
+            index=[1, 2, 3]
+        )
+        df_obj = DataFrame(
+            {"col": [np.nan, np.nan, "baz"]},
+            index=["1", "2", "3"]
+        )
+        with tm.assert_produces_warning(FutureWarning, match="Index dtype mismatch"):
+            df_int.update(df_obj)
+        # no rows match due to dtype mismatch, so df_int should be unchanged
+        expected = DataFrame(
+            {"col": ["foo", "bar", np.nan]},
+            index=[1, 2, 3]
+        )
+        tm.assert_frame_equal(df_int, expected)

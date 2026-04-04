@@ -12430,6 +12430,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         index_intersection = other.index.intersection(self.index)
         if index_intersection.empty:
+            if self.index.dtype != other.index.dtype:
+                warnings.warn(
+                    "The index of the calling DataFrame and the index of `other` "
+                    "have different dtypes. No update was performed. "
+                    f"Caller index dtype: {self.index.dtype}, "
+                    f"other index dtype: {other.index.dtype}. "
+                    "Cast the index to the same dtype before calling update().",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             return
         other = other.reindex(index_intersection)
         this_data = self.loc[index_intersection]
