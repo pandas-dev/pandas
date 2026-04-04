@@ -66,14 +66,12 @@ Non-inclusive slicing with DatetimeIndex
 
 Label-based slicing using ``.loc`` includes both the start and end labels. This differs from standard Python slicing, where the end is typically excluded.
 
-If you need non-inclusive slicing (i.e., include the start but exclude the end), you can use lower-level index methods such as ``get_slice_bound``:
+If you need non-inclusive slicing (i.e., include the start but exclude the end), you can use boolean indexing with ``.loc``:
 
 >>> ts = pd.Series(range(10), index=pd.date_range("2000-01-01", periods=10))
->>> lo = ts.index.get_slice_bound("2000-01-04", "left", "loc")
->>> hi = ts.index.get_slice_bound("2000-01-10", "left", "loc")
->>> ts.iloc[lo:hi]
+>>> ts.loc[(ts.index >= "2000-01-04") & (ts.index < "2000-01-10")]
 
-This approach provides finer control over slice boundaries.
+This approach allows excluding the end label while filtering based on index values.
 
 
 
