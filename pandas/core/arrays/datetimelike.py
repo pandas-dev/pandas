@@ -692,8 +692,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 if (
                     self.dtype.kind in "mM"
                     and not allow_object
-                    and self.unit != converted.unit
-                ):  # type: ignore[attr-defined]
+                    and self.unit != converted.unit  # type: ignore[attr-defined]
+                ):
                     converted = converted.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
                 if arr.ndim != 1:
                     converted = converted.reshape(arr.shape)
@@ -709,13 +709,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
-                try:
-                    value = type(self)._from_sequence(value)
-                except (ValueError, TypeError) as err:
-                    if allow_object:
-                        return value
-                    msg = self._validation_error_message(value, True)
-                    raise TypeError(msg) from err
+                value = type(self)._from_sequence(value)
 
         if isinstance(value, list):
             value = construct_1d_object_array_from_listlike(value)
