@@ -164,7 +164,7 @@ cmd = [
 
 [tasks.ci-asv]
 cmd = [
-  "pushd",
+  "cd",
   "asv_bench",
   "&&",
   "asv",
@@ -178,5 +178,4 @@ cmd = [
   "--durations=30",
   "--python=same",
   "--show-stderr",
-  "popd",
 ]
