@@ -9903,7 +9903,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         for warning_msg in caught:
             if "datetime.date" in str(warning_msg.message):
-                # GH#XXXXX - re-issue with a message appropriate for
+                # GH#65056 - re-issue with a message appropriate for
                 #  alignment operations
                 warnings.warn(
                     "Alignment of a DataFrame/Series with a DatetimeIndex "

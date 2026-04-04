@@ -689,15 +689,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             )
             converted = ensure_wrapped_if_datetimelike(converted)
             if isinstance(converted, type(self)):
-                try:
-                    value = type(self)._from_sequence(value)
-                except (ValueError, TypeError) as err:
-                    if allow_object:
-                        return value
-                    msg = self._validation_error_message(value, True)
-                    raise TypeError(msg) from err
-            elif lib.infer_dtype(value) == "date":
-                # GH#XXXXX
+                if (
+                    self.dtype.kind in "mM"
+                    and not allow_object
+                    and self.unit != converted.unit
+                ):  # type: ignore[attr-defined]
+                    converted = converted.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
+                if arr.ndim != 1:
+                    converted = converted.reshape(arr.shape)
+                return converted
+            elif self.dtype.kind == "M" and lib.infer_dtype(value) == "date":
+                # GH#65056
                 warnings.warn(
                     "Inferring datetime64 from data containing datetime.date "
                     "objects is deprecated. In a future version, these will "

@@ -297,16 +297,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
-            should_try = False
             if other.dtype == object:
                 converted = lib.maybe_convert_objects(
                     np.asarray(other), convert_non_numeric=True
                 )
                 converted = ensure_wrapped_if_datetimelike(converted)
                 if isinstance(converted, type(self._data)):
-                    should_try = True
-                elif lib.infer_dtype(other) == "date":
-                    # GH#XXXXX
+                    other = type(self)._simple_new(converted)
+                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                    # GH#65056
                     warnings.warn(
                         "Inferring datetime64 from data containing "
                         "datetime.date objects is deprecated. In a future "
@@ -315,7 +314,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                         Pandas4Warning,
                         stacklevel=find_stack_level(),
                     )
-                    should_try = True
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
             elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
                 cat_vals = np.asarray(other.categories)
@@ -327,12 +329,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 else:
                     converted = ensure_wrapped_if_datetimelike(cat_vals)
                 if isinstance(converted, type(self._data)):
-                    should_try = True
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
                 elif (
-                    cat_vals.dtype == object
+                    self.dtype.kind == "M"
+                    and cat_vals.dtype == object
                     and lib.infer_dtype(other.categories) == "date"
                 ):
-                    # GH#XXXXX
+                    # GH#65056
                     warnings.warn(
                         "Inferring datetime64 from data containing "
                         "datetime.date objects is deprecated. In a "
@@ -342,17 +348,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                         Pandas4Warning,
                         stacklevel=find_stack_level(),
                     )
-                    should_try = True
-
-            if should_try:
-                try:
-                    other = type(self)(other)
-                except (ValueError, TypeError, OverflowError):
-                    # e.g.
-                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                    #  OverflowError -> Index([very_large_timedeltas])
-                    return False
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
 
         if type(self) != type(other):
             return False
