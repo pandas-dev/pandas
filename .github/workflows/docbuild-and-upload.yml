@@ -83,34 +83,34 @@ jobs:
     - name: Create virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
       with:
-        environment: website documentation
+        environment: docs-and-web
+
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
 
     - name: Test website
       run: |
         pixi run \
-          --environment website \
+          --environment docs-and-web \
           ci-test-website
 
     - name: Build website
       run: |
         pixi run \
-          --environment website \
+          --environment docs-and-web \
           ci-build-website
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build pandas
-      run: |
-        pixi run \
-          --environment documentation \
-          build-pandas \
-          --editable \
-          -Csetup-args="--werror"
-
     - name: Build documentation
       run: |
         pixi run \
-          --environment documentation \
+          --environment docs-and-web \
           ci-build-documentation \
           html
 
@@ -118,13 +118,13 @@ jobs:
       working-directory: web/interactive_terminal
       run: |
         pixi run \
-          --environment website \
+          --environment docs-and-web \
           ci-build-interactive_terminal
 
     - name: Build documentation zip
       run: |
         pixi run \
-          --environment documentation \
+          --environment docs-and-web \
           ci-build-documentation \
           zip_html
 
