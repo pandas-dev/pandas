@@ -639,12 +639,10 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return table.select("thead tr")
 
     def _parse_tbody_tr(self, table):
-        #HTML spec: at most one of these lists has content
-        tbody=table.find("tbody")
-        if tbody:
-            return tbody.find_all("tr",recursive=False)
-        else:
-            return table.find_all("tr",recursive=False)
+        tbody = table.find("tbody")
+        from_tbody = tbody.find_all("tr", recursive=False) if tbody else []
+        from_root = table.find_all("tr", recursive=False)
+        return from_tbody + from_root
         
 
     def _parse_tfoot_tr(self, table):
