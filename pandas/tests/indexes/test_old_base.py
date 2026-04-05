@@ -361,7 +361,7 @@ class TestBase:
 
         result = index.argsort()
         expected = np.array(index).argsort()
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_numpy_argsort(self, index):
         result = np.argsort(index)
@@ -847,7 +847,7 @@ class TestBase:
         if idx.dtype.kind in ["i", "u"]:
             res = ~idx
             expected = Index(~idx.values, name=idx.name)
-            tm.assert_index_equal(res, expected)
+            tm.assert_index_equal(res, expected, exact="equiv")
 
             # check that we are matching Series behavior
             res2 = ~Series(idx)

@@ -103,6 +103,10 @@ def read_feather(
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, gs and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.feather``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     columns : sequence, default None
         If not provided, all columns are read.
     use_threads : bool, default True
@@ -117,7 +121,7 @@ def read_feather(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior

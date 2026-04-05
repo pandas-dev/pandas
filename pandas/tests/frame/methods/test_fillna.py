@@ -7,6 +7,7 @@ from pandas import (
     Categorical,
     DataFrame,
     DatetimeIndex,
+    MultiIndex,
     NaT,
     PeriodIndex,
     Series,
@@ -14,6 +15,7 @@ from pandas import (
     Timestamp,
     date_range,
     to_datetime,
+    to_numeric,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
@@ -21,6 +23,7 @@ from pandas.tests.frame.common import _check_mixed_float
 
 class TestFillNA:
     def test_fillna_dict_inplace_nonunique_columns(self):
+        # GH#38966
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
         )
@@ -725,6 +728,20 @@ class TestFillNA:
         )
         tm.assert_frame_equal(pdf.fillna({("x", "b"): -2, "x": -1}), expected)
 
+    def test_fillna_multiindex_with_duplicate_columns(self):
+        # GH#53498
+        data = [[np.nan, 2, 3], [4, np.nan, 6], [7, 8, np.nan]]
+        df = DataFrame(
+            data,
+            columns=MultiIndex.from_tuples([("x", "a"), ("x", "a"), ("y", "b")]),
+        )
+        result = df.fillna({("x", "a"): 0})
+        expected = DataFrame(
+            [[0.0, 2.0, 3.0], [4.0, 0.0, 6.0], [7.0, 8.0, np.nan]],
+            columns=MultiIndex.from_tuples([("x", "a"), ("x", "a"), ("y", "b")]),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def test_fillna_nonconsolidated_frame():
     # https://github.com/pandas-dev/pandas/issues/36495
@@ -854,3 +871,16 @@ def test_fillna_out_of_bounds_datetime():
     msg = "Cannot cast 0001-01-01 00:00:00 to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
         df.fillna(Timestamp("0001-01-01"))
+
+
+def test_fillna_dtype_preservation_after_apply():
+    # GH#14407 - fillna after apply should preserve dtypes correctly
+    # (block splitting should occur for mixed-dtype results)
+    df = DataFrame(
+        {"c1": list("ABC"), "c2": list("123"), "c3": [1.5, 2.5, 3.5], "c4": [0, 1, 2]}
+    )
+    result = df.apply(lambda x: to_numeric(x, errors="coerce")).fillna(df)
+    assert result["c1"].dtype == object
+    assert result["c2"].dtype == np.int64
+    assert result["c3"].dtype == np.float64
+    assert result["c4"].dtype == np.int64

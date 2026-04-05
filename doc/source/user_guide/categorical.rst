@@ -702,7 +702,7 @@ of length "1".
     df.at["h", "cats"]  # returns a string
 
 .. note::
-    The is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
+    This is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
     returns a single value ``factor``.
 
 To get a single value ``Series`` of type ``category``, you pass in a list with
@@ -889,7 +889,7 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
-using the ``ignore_ordered=True`` argument.
+using the ``ignore_order=True`` argument.
 
 .. ipython:: python
 

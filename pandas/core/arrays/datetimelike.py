@@ -23,7 +23,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos,
@@ -79,6 +79,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
+    Pandas4Warning,
     PerformanceWarning,
 )
 from pandas.util._decorators import (
@@ -756,6 +757,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             other = other._ndarray
         return other
 
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+        # Fast path: single-pass Cython using iNaT sentinel. GH#42147
+        if lib.is_scalar(value):
+            if not self._hasna:
+                return self.copy() if copy else self[:]
+            try:
+                validated = self._validate_setitem_value(value)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if copy:
+                    new_ndarray = self._ndarray.copy()
+                else:
+                    if self._readonly:
+                        raise ValueError("Cannot modify read-only array")
+                    new_ndarray = self._ndarray
+
+                arr_i8 = new_ndarray.view("i8")
+                fill_i8 = np.array(validated, dtype=new_ndarray.dtype).view("i8")[()]
+                algos.scalar_fillna_inplace(
+                    arr_i8, fill_i8, is_datetimelike=True, limit=limit
+                )
+
+                return type(self)._simple_new(new_ndarray, dtype=self.dtype)
+
+        return super().fillna(value, limit=limit, copy=copy)
+
     # ------------------------------------------------------------------
     # Additional array methods
     #  These are not part of the EA API, but we implement them because
@@ -809,8 +837,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
-            # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
-            values = values.as_unit(self.unit)  # type: ignore[attr-defined]
+            # Cast to the higher resolution to avoid silently truncating
+            #  finer-resolution values, which could lead to false matches.
+            self, values = self._ensure_matching_resos(values)
 
         try:
             # error: Argument 1 to "_check_compatible_with" of "DatetimeLikeArrayMixin"
@@ -987,6 +1016,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
             # TODO: handle 2D-like listlikes
             return op(self.ravel(), other.ravel()).reshape(self.shape)
+
+        if is_list_like(other):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} is deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
         try:
             other = self._validate_comparison_value(other)
@@ -1371,7 +1413,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
-        if get_option("performance_warnings"):
+        if _global_config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
                 f"{type(self).__name__} not vectorized.",

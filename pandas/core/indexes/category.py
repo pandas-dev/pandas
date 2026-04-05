@@ -329,7 +329,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> ci_ordered.equals(ci2_ordered)
         False
         """
-        if self.is_(other):
+        if self.is_(other):  # type: ignore[arg-type]
             return True
 
         if not isinstance(other, Index):
@@ -345,9 +345,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @property
-    def _formatter_func(self):
-        return self.categories._formatter_func
+    def _formatter_func(self, val) -> str:
+        return self.categories._formatter_func(val)
 
     def _format_attrs(self):
         """
