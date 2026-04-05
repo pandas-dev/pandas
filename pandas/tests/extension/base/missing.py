@@ -131,6 +131,7 @@ class BaseMissingTests:
 
         # by default fillna(copy=True), then this works fine
         res_copy = data.fillna(fill_value, copy=True)
+        assert res_copy[0] == fill_value
         tm.assert_extension_array_equal(data, data_missing)
 
         if self._respects_fillna_copy_false:
@@ -140,6 +141,7 @@ class BaseMissingTests:
         else:
             # EAs that do not respect the copy keyword, copy=False is ignored
             res_no_copy = data.fillna(fill_value, copy=False)
+            assert res_no_copy[0] == fill_value
             tm.assert_extension_array_equal(res_no_copy, res_copy)
             tm.assert_extension_array_equal(data, data_missing)
 

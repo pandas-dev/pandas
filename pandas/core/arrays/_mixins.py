@@ -362,7 +362,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 new_values = self.copy()
             else:
                 new_values = self[:]
-            new_values[mask] = value
+            if self.dtype.kind == "O" and isinstance(value, tuple):
+                # Ensure tuple values are treated as scalars for masked assignment.
+                # Otherwise NumPy may interpret the tuple as a sequence.
+                fill_values = np.empty(
+                    np.asarray(mask, dtype=np.bool_).sum(), dtype=object
+                )
+                fill_values[:] = [value]
+                new_values[mask] = fill_values
+            else:
+                new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
             self._validate_setitem_value(value)

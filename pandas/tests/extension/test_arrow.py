@@ -273,15 +273,14 @@ def data_for_twos(data):
 class TestArrowArray(base.ExtensionTests):
     _respects_fillna_copy_false = False
 
-    def test_fillna_readonly(self, data_missing):
+    def test_fillna_readonly(self, data_missing, monkeypatch):
         pa_dtype = data_missing.dtype.pyarrow_dtype
         if pa.types.is_duration(pa_dtype):
-            pytest.skip(
-                "duration types fall back to super().fillna and respect "
-                "copy=False, unlike other Arrow dtypes"
-            )
-
-        super().test_fillna_readonly(data_missing)
+            with monkeypatch.context() as m:
+                m.setattr(self, "_respects_fillna_copy_false", False)
+                super().test_fillna_readonly(data_missing)
+        else:
+            super().test_fillna_readonly(data_missing)
 
     def _construct_for_combine_add(self, left, right):
         dtype = left.dtype
