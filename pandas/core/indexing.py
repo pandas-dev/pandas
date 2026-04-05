@@ -1863,7 +1863,39 @@ class _LocIndexer(_LocationIndexer):
                 locs = labels.get_locs(key)
                 indexer: list[slice | npt.NDArray[np.intp]] = [slice(None)] * self.ndim
                 indexer[axis] = locs
-                return self.obj.iloc[tuple(indexer)]
+                result = self.obj.iloc[tuple(indexer)]
+
+                # GH#18631 Drop levels that were indexed with scalars,
+                # but only when the key has no slices or bool indexers.
+                # Dropping scalar levels in the presence of slices would
+                # be correct in principle, but many internal operations
+                # (e.g. stack/unstack) rely on the current behavior.
+                has_slice_or_mask = any(
+                    isinstance(k, slice) or com.is_bool_indexer(k) for k in key
+                )
+                if not has_slice_or_mask:
+                    levels_to_drop = []
+                    for idx, k in enumerate(key):
+                        if not is_list_like(k):
+                            levels_to_drop.append(idx)
+                        elif isinstance(k, tuple):
+                            # GH#27591 A tuple might be a single label
+                            # in this level rather than a sequence of labels
+                            try:
+                                labels.levels[idx].get_loc(k)
+                                levels_to_drop.append(idx)
+                            except KeyError:
+                                pass
+                    if levels_to_drop:
+                        if len(levels_to_drop) >= labels.nlevels:
+                            # All levels are scalar-indexed; reduce
+                            # dimensionality instead of droplevel (which
+                            # cannot remove every level).
+                            result = result._ixs(0, axis=axis)
+                        else:
+                            result = result.droplevel(levels_to_drop, axis=axis)
+
+                return result
 
         # fall thru to straight lookup
         self._validate_key(key, axis)

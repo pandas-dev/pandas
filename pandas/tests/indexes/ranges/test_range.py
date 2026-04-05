@@ -72,6 +72,18 @@ class TestRangeIndex:
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)
 
+    def test_repr_wraps_at_display_width(self):
+        # GH#11552
+        idx = RangeIndex(100, name="my_long_index_name")
+
+        with pd.option_context("display.width", 40):
+            result = repr(idx)
+        expected = (
+            "RangeIndex(start=0, stop=100, step=1,\n"
+            "           name='my_long_index_name')"
+        )
+        assert result == expected
+
     def test_insert(self):
         idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
