@@ -7582,9 +7582,10 @@ class DataFrame(NDFrame, OpsMixin):
         thresh : int, optional
             Require that many non-NA values. Cannot be combined with how.
         subset : column label or iterable of labels, optional
-            Specifies labels to consider along the opposite axis. For example, 
-            when axis=0 (dropping rows), subset refers to columns to check; 
-            when axis=1 (dropping columns), subset refers to row labels.
+            Specifies labels to consider along the opposite axis. For example,
+            when ``axis=0`` (dropping rows), ``subset`` refers to columns to
+            check; when ``axis=1`` (dropping columns), ``subset`` refers to row
+            labels.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
         ignore_index : bool, default ``False``
