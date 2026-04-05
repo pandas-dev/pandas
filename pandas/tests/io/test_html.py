@@ -1679,3 +1679,46 @@ class TestReadHtml:
         result = flavor_read_html(StringIO(data))[0]
         expected = DataFrame({"Codes": ["41651,65125,17328,02872,49459,79208,ABCDE"]})
         tm.assert_frame_equal(result, expected)
+
+    def test_read_html_nested_table_thead_not_included(self):
+        from io import StringIO
+
+        html = """
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <table id="descendant">
+                                <thead>
+                                    <tr>
+                                        <th>A</th>
+                                        <th>B</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>1</td>
+                                        <td>2</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        """
+
+        result = read_html(
+            StringIO(html),
+            flavor="bs4",
+            attrs={"id": "descendant"},
+        )[0]
+
+        expected = DataFrame({"A": [1], "B": [2]})
+
+        tm.assert_frame_equal(result, expected)
