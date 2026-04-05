@@ -456,7 +456,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
         pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ],
 )
-@pytest.mark.parametrize("cond_type", [["series", "list", "numpy"]])
+@pytest.mark.parametrize("cond_type", ["series", "list", "numpy"])
 def test_where_na(dtype, cond_type):
     series = Series([None, 1, 2, None, 3, 4, None], dtype=dtype)
     expected = Series([None, 1, 2, None, -99, -99, None], dtype=dtype)
