@@ -260,7 +260,6 @@ class TestDataFrameUpdate:
 
         tm.assert_frame_equal(other, expected)
 
-    from pandas.errors import PandasFutureWarning
     def test_update_mismatched_index_dtype(self):
         # GH#19905 - update silently does nothing when index dtypes differ
         df_int = DataFrame(
@@ -271,7 +270,9 @@ class TestDataFrameUpdate:
             {"col": [np.nan, np.nan, "baz"]},
             index=["1", "2", "3"]
         )
-        with tm.assert_produces_warning(PandasFutureWarning, match="Index dtype mismatch"):
+        with tm.assert_produces_warning(
+            UserWarning, match="Index dtype mismatch"
+        ):
             df_int.update(df_obj)
         # no rows match due to dtype mismatch, so df_int should be unchanged
         expected = DataFrame(
