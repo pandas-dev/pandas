@@ -718,6 +718,7 @@ def factorize(
 
     return codes, unique
 
+
 def value_counts_internal(
     values,
     sort: bool = True,
