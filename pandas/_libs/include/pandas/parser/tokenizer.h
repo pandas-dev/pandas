@@ -36,13 +36,6 @@ See LICENSE for the license
  *  functions.
  */
 
-// #define VERBOSE
-#if defined(VERBOSE)
-#  define TRACE(X) printf X;
-#else
-#  define TRACE(X)
-#endif // VERBOSE
-
 #define PARSER_OUT_OF_MEMORY -1
 
 /*
