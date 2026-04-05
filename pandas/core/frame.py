@@ -1980,6 +1980,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         You can specify the return orientation.
 
+        >>> df.to_dict("list")
+        {'col1': [1, 2], 'col2': [0.5, 0.75]}
+
         >>> df.to_dict("series")
         {'col1': row1    1
                  row2    2
