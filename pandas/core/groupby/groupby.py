@@ -5706,24 +5706,29 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if fill_method is not None:
             raise ValueError(f"fill_method must be None; got {fill_method=}.")
 
-        # GH#23918: the vectorized path below shifts the combined result's
-        #  index, so values from different groups can bleed into each other
-        #  during alignment. Use the per-group slow path instead.
-        if freq is not None:
-            f = lambda x: x.pct_change(
-                periods=periods,
-                freq=freq,
-                axis=0,
-            )
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
-
         if fill_method is None:  # GH30463
             op = "ffill"
         else:
             op = fill_method
         filled = getattr(self, op)(limit=0)
+
+        if freq is not None:
+            # GH#23918: shift(freq=...) moves the index, not the values.
+            #  When groups are recombined, shifted indices from one group can
+            #  align with another group during division. Use a MultiIndex
+            #  keyed by (group_code, index_value) to make lookups group-aware.
+            codes = self._grouper.codes_info
+            target_index = filled.index.shift(-periods, freq)
+            mi = MultiIndex.from_arrays([codes, filled.index])
+            target_mi = MultiIndex.from_arrays([codes, target_index])
+            denominator = filled.copy()
+            denominator.index = mi
+            denominator = denominator.reindex(target_mi)
+            denominator.index = filled.index
+            return (filled / denominator) - 1
+
         fill_grp = filled.groupby(self._grouper.codes, group_keys=self.group_keys)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
+        shifted = fill_grp.shift(periods=periods)
         return (filled / shifted) - 1
 
     @final

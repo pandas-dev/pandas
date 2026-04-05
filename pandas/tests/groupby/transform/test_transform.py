@@ -889,13 +889,15 @@ def test_pad_stable_sorting(fill_method):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("freq", [None, "D"])
 @pytest.mark.parametrize("periods", [1, -1])
-def test_pct_change(frame_or_series, periods):
-    # GH 21200, 21621, 30463
+def test_pct_change(frame_or_series, freq, periods):
+    # GH 21200, 21621, 30463, 23918
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ["a", "b"]
     key_v = np.repeat(keys, len(vals))
-    df = DataFrame({"key": key_v, "vals": vals * 2})
+    idx = date_range("2020-01-01", periods=len(key_v), freq="D")
+    df = DataFrame({"key": key_v, "vals": vals * 2}, index=idx)
 
     df_g = df
     grp = df_g.groupby(df.key)
@@ -909,7 +911,7 @@ def test_pct_change(frame_or_series, periods):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(periods=periods)
+    result = gb.pct_change(periods=periods, freq=freq)
     tm.assert_equal(result, expected)
 
 
