@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -1327,13 +1328,44 @@ class Block(PandasObject, libinternals.Block):
 
         if not self._can_hold_na:
             # can short-circuit the isna call
-            noop = True
-        else:
-            mask = isna(self.values)
-            mask, noop = validate_putmask(self.values, mask)
+            return [self.copy(deep=False)]
 
+        # Fast path: single-pass Cython for scalar fill values on
+        # float and object dtypes with limit or inplace. Avoids
+        # mask allocation and cumsum computation. GH#42147
+        if (
+            is_scalar(value)
+            and self.dtype
+            in (np.dtype("float64"), np.dtype("float32"), np.dtype("object"))
+            and (limit is not None or inplace)
+        ):
+            values = cast("np.ndarray", self.values)
+            try:
+                casted = np_can_hold_element(values.dtype, value)
+            except (LossySetitemError, NotImplementedError):
+                pass
+            else:
+                copy, refs = self._get_refs_and_copy(inplace)
+                new_values = values.copy() if copy else values
+
+                if new_values.ndim == 1:
+                    filled = libalgos.scalar_fillna_inplace(
+                        new_values, casted, limit=limit
+                    )
+                else:
+                    filled = libalgos.scalar_fillna_2d_inplace(
+                        new_values, casted, limit=limit
+                    )
+
+                if filled == 0:
+                    return [self.copy(deep=False)]
+
+                return [self.make_block_same_class(new_values, refs=refs)]
+
+        # Standard path: generate mask, then apply via putmask/where
+        mask = isna(self.values)
+        mask, noop = validate_putmask(self.values, mask)
         if noop:
-            # we can't process the value, but nothing to do
             return [self.copy(deep=False)]
 
         if limit is not None:

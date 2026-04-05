@@ -89,7 +89,7 @@ jobs:
       contents: read
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash -euox pipefail {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -102,18 +102,21 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: "asv"
 
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment asv \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
 
     - name: Run ASV benchmarks
-      run: |
-        cd asv_bench
-        asv machine --yes
-        asv run --quick --dry-run --durations=30 --python=same --show-stderr
+      run: pixi run --environment asv ci-asv
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt

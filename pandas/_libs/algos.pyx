@@ -722,6 +722,125 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def scalar_fillna_inplace(
+    numeric_object_t[:] values,
+    numeric_object_t fill_val,
+    uint8_t[:] mask=None,
+    bint is_datetimelike=False,
+    limit=None,
+) -> Py_ssize_t:
+    """
+    Fill NA values in `values` with `fill_val` in a single pass.
+
+    NA detection strategy (in priority order):
+    - If `mask` is provided, NA positions are read from the mask and
+      filled entries are cleared.
+    - If `is_datetimelike` is True (int64 values), NA is ``NPY_NAT``.
+    - For object dtype, NA is detected via ``checknull``.
+    - For other numeric dtypes, NA is detected via NaN-check.
+
+    Parameters
+    ----------
+    values : 1D memoryview, modified in-place
+    fill_val : scalar fill value (same fused type as values)
+    mask : optional uint8 memoryview indicating NA positions, modified in-place
+    is_datetimelike : bool, default False
+        True if `values` contains datetime-like entries (int64 with
+        NPY_NAT sentinel).
+    limit : int or None
+        Maximum number of NA values to fill. If None, fill all.
+
+    Returns
+    -------
+    Py_ssize_t
+        Number of values filled.
+    """
+    cdef:
+        Py_ssize_t i, N, filled = 0
+        int lim
+        bint isna_val, uses_mask = mask is not None
+
+    N = len(values)
+    if N == 0:
+        return 0
+
+    lim = validate_limit(N, limit)
+
+    with nogil(numeric_object_t is not object):
+        for i in range(N):
+            if uses_mask:
+                isna_val = mask[i]
+            elif numeric_object_t is object:
+                isna_val = checknull(values[i])
+            elif numeric_object_t is int64_t and is_datetimelike:
+                isna_val = values[i] == NPY_NAT
+            else:
+                isna_val = values[i] != values[i]
+            if isna_val:
+                if filled >= lim:
+                    break
+                filled += 1
+                values[i] = fill_val
+                if uses_mask:
+                    mask[i] = 0
+
+    return filled
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def scalar_fillna_2d_inplace(
+    numeric_object_t[:, :] values,
+    numeric_object_t fill_val,
+    limit=None,
+) -> Py_ssize_t:
+    """
+    Fill NA values in 2D `values` with `fill_val` in a single pass.
+
+    The limit is applied per-column (axis=1 of block values).
+
+    Parameters
+    ----------
+    values : 2D memoryview (K, N), modified in-place
+    fill_val : scalar fill value
+    limit : int or None
+
+    Returns
+    -------
+    Py_ssize_t
+        Total number of values filled.
+    """
+    cdef:
+        Py_ssize_t i, j, K, N, filled = 0
+        int lim, col_fill_count
+        bint isna_val
+
+    K, N = (<object>values).shape
+    if N == 0 or K == 0:
+        return 0
+
+    lim = validate_limit(N, limit)
+
+    with nogil(numeric_object_t is not object):
+        for j in range(K):
+            col_fill_count = 0
+            for i in range(N):
+                if numeric_object_t is object:
+                    isna_val = checknull(values[j, i])
+                else:
+                    isna_val = values[j, i] != values[j, i]
+                if isna_val:
+                    if col_fill_count >= lim:
+                        continue
+                    col_fill_count += 1
+                    values[j, i] = fill_val
+                    filled += 1
+
+    return filled
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def backfill(
     const numeric_object_t[:] old,
     const numeric_object_t[:] new,
