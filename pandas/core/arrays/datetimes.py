@@ -49,6 +49,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import RelativeDeltaOffset
+from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -1410,8 +1411,8 @@ default 'raise'
         >>> idx.month_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
-        if using_string_dtype() and locale is None:
-            return self._month_name_arrow()  # type: ignore[return-value]
+        if using_string_dtype() and locale is None and HAS_PYARROW:
+            return self._month_name_arrow()
 
         values = self._local_timestamps()
 
@@ -1496,8 +1497,8 @@ default 'raise'
         >>> idx.day_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
-        if using_string_dtype() and locale is None:
-            return self._day_name_arrow()  # type: ignore[return-value]
+        if using_string_dtype() and locale is None and HAS_PYARROW:
+            return self._day_name_arrow()
 
         values = self._local_timestamps()
 
