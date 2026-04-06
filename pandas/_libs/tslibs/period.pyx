@@ -2560,9 +2560,18 @@ cdef class _Period(PeriodMixin):
         >>> per.end_time.day_of_week
         2
         """
-        # Docstring is a duplicate from day_of_week. Reusing docstrings with
-        # Appender doesn't work for properties in Cython files, and setting
-        # the __doc__ attribute is also not possible.
+        # GH#12816
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.weekday is deprecated and will be removed "
+            "in a future version. Use Period.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.day_of_week
 
     @property
@@ -2834,6 +2843,14 @@ cdef class _Period(PeriodMixin):
         formatted = period_format(self.ordinal, base)
         value = str(formatted)
         return value
+
+    def __format__(self, fmt: str) -> str:
+        # GH#48536
+        if not isinstance(fmt, str):
+            raise TypeError(f"must be str, not {type(fmt).__name__}")
+        if len(fmt) != 0:
+            return self.strftime(fmt)
+        return str(self)
 
     def __setstate__(self, state):
         self._freq = state[1]

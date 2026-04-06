@@ -311,7 +311,12 @@ class TestDatetimeIndexOps:
 
         # non boolean accessors -> return Index
         for accessor in DatetimeArray._field_ops:
-            res = getattr(dti, accessor)
+            if accessor == "weekday":
+                # GH#12816 weekday is deprecated
+                with tm.assert_produces_warning(Pandas4Warning, match="weekday"):
+                    res = getattr(dti, accessor)
+            else:
+                res = getattr(dti, accessor)
             assert len(res) == 365
             assert isinstance(res, Index)
             assert res.name == "name"

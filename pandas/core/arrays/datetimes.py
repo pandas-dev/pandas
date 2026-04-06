@@ -547,7 +547,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 i8values = i8values.astype("i8")
 
         if start == end:
-            if not left_inclusive and not right_inclusive:
+            if not left_inclusive or not right_inclusive:
                 i8values = i8values[1:-1]
         else:
             start_i8 = (
@@ -1966,7 +1966,26 @@ default 'raise'
     Freq: D, dtype: int32
     """
     day_of_week = _field_accessor("day_of_week", "dow", _dayofweek_doc)
-    weekday = day_of_week
+
+    @property
+    def weekday(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
+        # GH#12816
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            f"{type(self).__name__}.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeIndex.day_of_week or "
+            "Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
 
     @property
     def dayofweek(self):
@@ -3185,20 +3204,41 @@ def _generate_range(
         else:
             start = offset.rollback(start)  # type: ignore[assignment]
 
+    # GH#35342: For offsets that preserve start's time-of-day (e.g. MonthBegin,
+    # QuarterBegin), adjust end to use the same time so that the boundary
+    # comparison doesn't incorrectly exclude the last offset boundary.
+    if start is not None and end is not None:
+        start_tod: Timedelta = start - start.normalize()
+        if (
+            start_tod
+            # Check if the offset preserves start's time-of-day
+            and (offset._apply(start) - offset._apply(start).normalize()) == start_tod
+        ):
+            if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
+                end = end.normalize() + start_tod
+
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
         end = None
         periods = 0
 
     if end is None:
-        # error: No overload variant of "__radd__" of "BaseOffset" matches
-        # argument type "None"
-        end = start + (periods - 1) * offset  # type: ignore[operator]
+        # GH#41563 avoid 0 * offset for offsets where n=0 is not allowed
+        if periods == 1:
+            end = start
+        else:
+            # error: No overload variant of "__radd__" of "BaseOffset" matches
+            # argument type "None"
+            end = start + (periods - 1) * offset  # type: ignore[operator]
 
     if start is None:
-        # error: No overload variant of "__radd__" of "BaseOffset" matches
-        # argument type "None"
-        start = end - (periods - 1) * offset  # type: ignore[operator]
+        # GH#41563 avoid 0 * offset for offsets where n=0 is not allowed
+        if periods == 1:
+            start = end
+        else:
+            # error: No overload variant of "__radd__" of "BaseOffset" matches
+            # argument type "None"
+            start = end - (periods - 1) * offset  # type: ignore[operator]
 
     start = cast("Timestamp", start)
     end = cast("Timestamp", end)

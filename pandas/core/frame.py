@@ -2038,8 +2038,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        data : structured ndarray, iterable of tuples or dicts
+        data : structured ndarray, iterable of tuples or dicts, or dict
             Structured input data.
+
+            .. deprecated:: 3.1.0
+                Passing a dict is deprecated. Use the DataFrame constructor
+                or :meth:`DataFrame.from_dict` instead.
+
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
             input labels to use.
@@ -2111,6 +2116,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise TypeError(
                 "Passing a DataFrame to DataFrame.from_records is not supported. Use "
                 "set_index and/or drop to modify the DataFrame instead.",
+            )
+
+        if isinstance(data, dict):
+            warnings.warn(
+                "Passing a dict to DataFrame.from_records is deprecated. "
+                "Use the DataFrame constructor or DataFrame.from_dict instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
             )
 
         result_index = None
@@ -4310,6 +4323,29 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _getitem_multilevel(self, key):
         # self.columns is a MultiIndex
+        assert isinstance(self.columns, MultiIndex)
+        if isinstance(key, tuple) and any(
+            isinstance(k, (slice, list, np.ndarray)) for k in key
+        ):
+            # Tuple key contains slices or lists, e.g. df[:, "t1"] which gives
+            # key=(slice(None), "t1"), or df[["A", "B"], "t1"] which gives
+            # key=(["A", "B"], "t1"). Use get_locs which handles
+            # per-level slicing and list selection (GH#26511)
+            loc = self.columns.get_locs(key)
+            new_columns = self.columns[loc]
+            # Drop levels where a specific label was given (not slices/lists),
+            # consistent with how df["A"] drops the level used for selection
+            levels_to_drop = [
+                idx
+                for idx, k in enumerate(key)
+                if not isinstance(k, (slice, list, np.ndarray))
+            ]
+            if levels_to_drop:
+                new_columns = new_columns.droplevel(levels_to_drop)
+            result = self.iloc[:, loc]
+            result.columns = new_columns
+            return result
+
         loc = self.columns.get_loc(key)
         if isinstance(loc, (slice, np.ndarray)):
             new_columns = self.columns[loc]
@@ -4464,7 +4500,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         When assigning a Series to a DataFrame column, pandas aligns the Series
-        by index labels, not by position. This means:
+        by index labels, not by position. In effect, the Series is reindexed to
+        the DataFrame's index before assignment. This means:
 
         * Values from the Series are matched to DataFrame rows by index label
         * If a Series index label doesn't exist in the DataFrame index, it's ignored
@@ -9370,31 +9407,40 @@ class DataFrame(NDFrame, OpsMixin):
         blockwise.
         """
         rvalues = series._values
-        if not isinstance(rvalues, np.ndarray):
-            # TODO(EA2D): no need to special-case with 2D EAs
-            if lib.is_np_dtype(rvalues.dtype, "mM"):
-                # i.e. DatetimeArray[tznaive] or TimedeltaArray
-                # We can losslessly+cheaply cast to ndarray
-                rvalues = np.asarray(rvalues)
+        if lib.is_np_dtype(rvalues.dtype):
+            # We can losslessly+cheaply cast to ndarray
+            # i.e. ndarray or dt64[naive], td64
+            # TODO(EA2D): no need to special case with 2D EAs
+            rvalues = np.asarray(rvalues)
+
+            if axis == 0:
+                rvalues = rvalues.reshape(-1, 1)
             else:
-                return series
+                rvalues = rvalues.reshape(1, -1)
 
-        if axis == 0:
-            rvalues = rvalues.reshape(-1, 1)
+            rvalues = np.broadcast_to(rvalues, self.shape)
+            # pass dtype to avoid doing inference
+            # copy=False is safe because this is a temporary DataFrame used only
+            # as the right operand in blockwise arithmetic.
+            df = self._constructor(
+                rvalues,
+                index=self.index,
+                columns=self.columns,
+                dtype=rvalues.dtype,
+                copy=False,
+            )
+        # GH#61581
+        elif axis == 0:
+            df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
         else:
-            rvalues = rvalues.reshape(1, -1)
-
-        rvalues = np.broadcast_to(rvalues, self.shape)
-        # pass dtype to avoid doing inference.
-        # copy=False is safe because this is a temporary DataFrame used only
-        # as the right operand in blockwise arithmetic.
-        return self._constructor(
-            rvalues,
-            index=self.index,
-            columns=self.columns,
-            dtype=rvalues.dtype,
-            copy=False,
-        ).__finalize__(series)
+            nrows = self.shape[0]
+            df = DataFrame(
+                {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
+                dtype=rvalues.dtype,
+            )
+        df.index = self.index
+        df.columns = self.columns
+        return df.__finalize__(series)
 
     def _flex_arith_method(
         self, other, op, *, axis: Axis = "columns", level=None, fill_value=None
@@ -9403,11 +9449,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._should_reindex_frame_op(other, op, axis, fill_value, level):
             return self._arith_method_with_reindex(other, op)
-
-        if isinstance(other, Series) and fill_value is not None:
-            # TODO: We could allow this in cases where we end up going
-            #  through the DataFrame path
-            raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
         other = ops.maybe_prepare_scalar_for_op(other, self.shape)
         self, other = self._align_for_op(other, axis, flex=True, level=level)
@@ -15714,10 +15755,6 @@ class DataFrame(NDFrame, OpsMixin):
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
             out = out.astype(object)
-        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
-            # Even if we are object dtype, follow numpy and return
-            #  float64, see test_apply_funcs_over_empty
-            out = out.astype(np.float64)
 
         return out
 
@@ -16762,7 +16799,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame (if level specified)
+        Series
             Unbiased standard error of the mean over requested axis.
 
         See Also

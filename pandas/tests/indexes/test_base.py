@@ -1372,9 +1372,8 @@ class TestIndex:
 
 
 class TestMixedIntIndex:
-    # Mostly the tests from common.py for which the results differ
-    # in py2 and py3 because ints and strings are uncomparable in py3
-    # (GH 13514)
+    # (GH 13514) tests for mixed int/str indexes where ints and strings
+    # are not comparable
     @pytest.fixture
     def simple_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])

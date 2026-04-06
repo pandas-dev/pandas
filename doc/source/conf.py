@@ -425,6 +425,10 @@ numpydoc_validation_exclude = {
     r"pandas\.Series\.dt\.dayofweek$",
     r"pandas\.Series\.dt\.dayofyear$",
     r"pandas\.Series\.dt\.daysinmonth$",
+    # Deprecated weekday property (GH#12816)
+    r"pandas\.Period\.weekday$",
+    r"pandas\.PeriodIndex\.weekday$",
+    r"pandas\.Series\.dt\.weekday$",
 }
 
 # matplotlib plot directive
