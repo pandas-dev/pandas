@@ -45,6 +45,19 @@ class TestGetitem:
         ts = df["1/1/2000"]
         tm.assert_series_equal(ts, df.iloc[:, 0])
 
+    def test_getitem_dateoffset_columns(self):
+        # GH#20948 - indexing DataFrame with DateOffset columns
+        offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+        df = DataFrame(
+            np.arange(14).reshape(2, 7),
+            index=[0, 1],
+            columns=Index(offsets),
+        )
+
+        result = df[offsets[0]]
+        expected = df.iloc[:, 0]
+        tm.assert_series_equal(result, expected)
+
     def test_getitem_list_of_labels_categoricalindex_cols(self):
         # GH#16115
         cats = Categorical([Timestamp("12-31-1999"), Timestamp("12-31-2000")])

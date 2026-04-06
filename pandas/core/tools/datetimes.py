@@ -751,7 +751,7 @@ def to_datetime(
         - If :const:`True` parses dates with the year first, e.g.
           :const:`"10/11/12"` is parsed as :const:`2010-11-12`.
         - If both `dayfirst` and `yearfirst` are :const:`True`, `yearfirst` is
-          preceded (same as :mod:`dateutil`).
+          preceded (same as ``dateutil``).
 
         .. warning::
 

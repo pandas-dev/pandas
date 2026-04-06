@@ -10,6 +10,7 @@ from pandas.util.version import Version
 _np_version = np.__version__
 _nlv = Version(_np_version)
 np_version_gt2 = _nlv >= Version("2.0.0")
+np_version_gt2_2 = _nlv >= Version("2.2.0")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.26.0"
 
