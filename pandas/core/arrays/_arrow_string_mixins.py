@@ -239,7 +239,14 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
-        if regex and re.match(pat, "") is not None:
+        try:
+            is_zero_length = regex and re.match(pat, "") is not None
+        except re.error:
+            # RE2-only patterns (e.g. \p{Lu}, \z) can't be parsed by Python's
+            # re module - let PyArrow handle them directly.
+            is_zero_length = False
+
+        if is_zero_length:
             # GH#64872 - PyArrow uses RE2 which handles zero-length regex
             # matches differently from Python's PCRE engine. Fall back to
             # Python re.sub for patterns that can match zero-length strings.
