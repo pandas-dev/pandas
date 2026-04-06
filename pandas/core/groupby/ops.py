@@ -1038,6 +1038,7 @@ class BaseGrouper:
         segment_sizes = np.diff(np.append(group_starts, comp_ids.size))
 
         # avoid overflow, matching _get_cython_vals
+        work_dtype: np.dtype
         if how == "mean":
             work_dtype = np.dtype(np.float64)
         elif how in ("sum", "prod") and orig_dtype.kind in "ib":
@@ -1084,19 +1085,18 @@ class BaseGrouper:
             result = np.zeros(out_shape, dtype=out_dtype)
         elif how == "prod":
             result = np.ones(out_shape, dtype=out_dtype)
+        # int/bool min/max: fill with dtype extreme; empty groups
+        # will be converted to NaN below
+        elif out_dtype.kind == "b":
+            result = np.full(out_shape, how == "min", dtype=out_dtype)
         else:
-            # int/bool min/max: fill with dtype extreme; empty groups
-            # will be converted to NaN below
-            if out_dtype.kind == "b":
-                fill = how == "min"  # True for min, False for max
-            else:
-                info = np.iinfo(out_dtype)
-                fill = info.max if how == "min" else info.min
+            info = np.iinfo(out_dtype)
+            fill = info.max if how == "min" else info.min
             result = np.full(out_shape, fill, dtype=out_dtype)
 
-        idx = [slice(None)] * len(out_shape)
-        idx[axis] = segment_ids
-        result[tuple(idx)] = seg
+        indexer: list[Any] = [slice(None)] * len(out_shape)
+        indexer[axis] = segment_ids
+        result[tuple(indexer)] = seg
 
         # see _call_cython_op for the min_count logic
         if how in ("sum", "prod"):
@@ -1111,9 +1111,9 @@ class BaseGrouper:
             if empty_mask.any():
                 if result.dtype.kind in "iu":
                     result = result.astype(np.float64)
-                idx = [slice(None)] * result.ndim
-                idx[axis] = empty_mask
-                result[tuple(idx)] = np.nan
+                indexer2: list[Any] = [slice(None)] * result.ndim
+                indexer2[axis] = empty_mask
+                result[tuple(indexer2)] = np.nan
 
         result = maybe_downcast_to_dtype(result, res_dtype)
 
