@@ -76,7 +76,10 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
     reverse_indexer = np.empty(len(c.categories), dtype=np.intp)
     reverse_indexer[take_codes] = np.arange(len(take_codes))
 
-    new_codes = np.where(c.codes >= 0, reverse_indexer[np.maximum(c.codes, 0)], -1)
+    mask = c.codes >= 0
+    new_codes = np.full_like(c.codes, fill_value=-1)
+    if mask.any():
+        new_codes[mask] = reverse_indexer[c.codes[mask]]
 
     new_cats = c.categories.take(take_codes)
     dtype = CategoricalDtype(new_cats, ordered=c.ordered)
