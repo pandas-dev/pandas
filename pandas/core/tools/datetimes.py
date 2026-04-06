@@ -602,8 +602,7 @@ def _adjust_to_origin(arg, origin, unit):
 
     Returns
     -------
-    datetime or date(s) adjusted ndarray or scalar
-        Return type depends on if :param:`origin` is :const:`"julian"`.
+    DatetimeArray, ndarray, or scalar of adjusted date(s)
     """
     if origin == "julian":
         original = arg
@@ -649,7 +648,11 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        arg = offset + to_timedelta(arg, unit=unit)
+
+        if not isinstance(arg, int):
+            arg = offset + to_timedelta(arg, unit=unit)._values
+        else:
+            arg = offset + to_timedelta(arg, unit=unit)
     return arg
 
 
@@ -1053,7 +1056,10 @@ def to_datetime(
                     arg = arg.dt.tz_localize("utc")
                 elif hasattr(arg, "tz_localize"):
                     arg = arg.tz_localize("utc")  # type: ignore[union-attr]
-            return arg  # type: ignore[return-value]
+            if is_list_like(arg):
+                return DatetimeIndex(arg)
+            else:
+                return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
         _convert_listlike_datetimes,
