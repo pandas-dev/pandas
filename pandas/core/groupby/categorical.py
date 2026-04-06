@@ -6,7 +6,6 @@ from pandas.core.algorithms import unique1d
 from pandas.core.arrays.categorical import (
     Categorical,
     CategoricalDtype,
-    recode_for_categories,
 )
 
 
@@ -51,33 +50,34 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         if sort:
             take_codes = np.sort(take_codes)
 
-        # we recode according to the uniques
-        categories = c.categories.take(take_codes)
-        codes = recode_for_categories(c.codes, c.categories, categories, copy=False)
-
-        # return a new categorical that maps our new codes
-        # and categories
-        dtype = CategoricalDtype(categories, ordered=c.ordered)
-        return Categorical._simple_new(codes, dtype=dtype)
-
-    # Already sorted according to c.categories; all is fine
-    if sort:
+    elif sort:
+        # Already sorted according to c.categories; all is fine
         return c
 
-    # sort=False should order groups in as-encountered order (GH-8868)
-
-    # GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
-    # GH 38140: exclude nan from indexer for categories
-    unique_notnan_codes = unique1d(c.codes[c.codes != -1])
-    if sort:
-        unique_notnan_codes = np.sort(unique_notnan_codes)
-    if (num_cat := len(c.categories)) > len(unique_notnan_codes):
-        # GH 13179: All categories need to be present, even if missing from the data
-        missing_codes = np.setdiff1d(
-            np.arange(num_cat), unique_notnan_codes, assume_unique=True
-        )
-        take_codes = np.concatenate((unique_notnan_codes, missing_codes))
     else:
-        take_codes = unique_notnan_codes
+        # sort=False should order groups in as-encountered order (GH-8868)
 
-    return Categorical(c, c.categories.take(take_codes))
+        # GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
+        # GH 38140: exclude nan from indexer for categories
+        unique_notnan_codes = unique1d(c.codes[c.codes != -1])
+        if (num_cat := len(c.categories)) > len(unique_notnan_codes):
+            # GH 13179: All categories need to be present, even if missing
+            # from the data
+            missing_codes = np.setdiff1d(
+                np.arange(num_cat), unique_notnan_codes, assume_unique=True
+            )
+            take_codes = np.concatenate((unique_notnan_codes, missing_codes))
+        else:
+            take_codes = unique_notnan_codes
+
+    # GH#48749: Remap codes using direct array indexing instead of
+    # hash-based recode_for_categories / Categorical constructor,
+    # which use get_indexer_for (hash table lookup).
+    reverse_indexer = np.empty(len(c.categories), dtype=np.intp)
+    reverse_indexer[take_codes] = np.arange(len(take_codes))
+
+    new_codes = np.where(c.codes >= 0, reverse_indexer[np.maximum(c.codes, 0)], -1)
+
+    new_cats = c.categories.take(take_codes)
+    dtype = CategoricalDtype(new_cats, ordered=c.ordered)
+    return Categorical._simple_new(new_codes, dtype=dtype)
