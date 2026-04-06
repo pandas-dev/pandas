@@ -4,8 +4,14 @@ import pytest
 
 import pandas as pd
 from pandas.core.arrays import ArrowExtensionArray
+from pandas.compat.pyarrow import pa_version_under18p0
 
 pa = pytest.importorskip("pyarrow")
+
+pytestmark = pytest.mark.skipif(
+    pa_version_under18p0, 
+    reason="pa.uuid() not available before pyarrow 18.0.0"
+)
 
 
 def test_uuid_keeps_dtype_verify() -> None:
