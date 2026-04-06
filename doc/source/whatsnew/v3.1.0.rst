@@ -143,6 +143,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.fillna` and :meth:`Series.fillna` with scalar fill value for float, object, nullable, and datetime-like dtypes (:issue:`42147`)
 - Performance improvement in :meth:`DataFrame.from_records` when passing a 2D :class:`numpy.ndarray` (:issue:`22025`)
 - Performance improvement in :meth:`DataFrame.insert` when the number of blocks is small (:issue:`57641`)
+- Performance improvement in :meth:`DataFrame.unstack` and :meth:`Series.unstack` when the :class:`MultiIndex` is already sorted and the unstacked level is the last level (:issue:`??`)
 - Performance improvement in :meth:`DataFrame.loc` with non-unique masked index (:issue:`56759`)
 - Performance improvement in :meth:`DataFrame.query` and :meth:`DataFrame.eval` when the :class:`DataFrame` contains :class:`PeriodDtype` or :class:`IntervalDtype` columns (:issue:`35247`)
 - Performance improvement in :meth:`DataFrame.rank` and :meth:`Series.rank` by skipping unnecessary ``putmask`` for non-nullable dtypes (:issue:`64857`)
