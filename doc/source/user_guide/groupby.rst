@@ -1643,7 +1643,7 @@ We now find the prices per store/product.
 
    (
        df.groupby(["Store", "Product"])
-       .pipe(lambda grp: grp.Revenue.sum().div(grp.Quantity.sum()))
+       .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
        .unstack()
        .round(2)
    )

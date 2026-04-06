@@ -1548,7 +1548,7 @@ Here is an example of one way to plot the min/max range using asymmetrical error
    maxs = gp3.max()
 
    # errors should be positive, and defined in the order of lower, upper
-   errors = [[means[c].div(mins[c]), maxs[c].div(means[c])] for c in df3.columns]
+   errors = [[means[c] - mins[c], maxs[c] - means[c]] for c in df3.columns]
 
    # Plot
    fig, ax = plt.subplots()

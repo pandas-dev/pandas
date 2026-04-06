@@ -257,7 +257,7 @@ Now, to find prices per store/product, we can simply do:
 .. ipython:: python
 
    (df.groupby(['Store', 'Product'])
-      .pipe(lambda grp: grp.Revenue.sum().div(grp.Quantity.sum()))
+      .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
       .unstack().round(2))
 
 See the :ref:`documentation <groupby.pipe>` for more.
