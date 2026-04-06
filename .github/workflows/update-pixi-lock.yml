@@ -13,6 +13,8 @@ jobs:
   update_lock_file:
     runs-on: ubuntu-24.04
     if: github.repository_owner == 'pandas-dev'
+    permissions:
+      pull-requests: write
 
     steps:
     - name: Checkout
@@ -34,8 +36,6 @@ jobs:
     # or use https://github.com/prefix-dev/pixi/issues/5813
     - name: Create pull request
       uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
-      permissions:
-        pull-requests: write
       with:
         commit-message: Update pixi.lock
         # author same as default committer for this action
