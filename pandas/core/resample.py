@@ -2264,25 +2264,17 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         """
         ax = self.ax
 
-        if is_subperiod(ax.freq, self.freq):
-            # Downsampling
-            return self._groupby_and_aggregate(how, **kwargs)
-        elif is_superperiod(ax.freq, self.freq):
-            if how == "ohlc":
-                # GH #13083
-                # upsampling to subperiods is handled as an asfreq, which works
-                # for pure aggregating/reducing methods
-                # OHLC reduces along the time dimension, but creates multiple
-                # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how)
-            return self.asfreq()
-        elif ax.freq == self.freq:
-            return self.asfreq()
+        if not (
+            is_subperiod(ax.freq, self.freq)
+            or is_superperiod(ax.freq, self.freq)
+            or ax.freq == self.freq
+        ):
+            raise IncompatibleFrequency(
+                f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
+                "as they are not sub or super periods"
+            )
 
-        raise IncompatibleFrequency(
-            f"Frequency {ax.freq} cannot be resampled to {self.freq}, "
-            "as they are not sub or super periods"
-        )
+        return self._groupby_and_aggregate(how, **kwargs)
 
     def _upsample(self, method, limit: int | None = None, fill_value=None):
         """

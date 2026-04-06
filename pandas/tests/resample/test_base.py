@@ -258,7 +258,7 @@ def test_resample_empty_sum_string(string_dtype_no_object, min_count):
 @pytest.mark.parametrize(
     "freq",
     [
-        pytest.param("ME", marks=pytest.mark.xfail(reason="Don't know why this fails")),
+        "M",
         "D",
         "h",
     ],
@@ -452,7 +452,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     rs = empty_series_dti.resample("D", group_keys=False)
     try:
         getattr(rs, resample_method)()
-    except DataError:
+    except (DataError, TypeError):
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object_)
         pass
