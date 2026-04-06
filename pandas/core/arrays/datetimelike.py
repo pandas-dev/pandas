@@ -757,6 +757,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             other = other._ndarray
         return other
 
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+        # Fast path: single-pass Cython using iNaT sentinel. GH#42147
+        if lib.is_scalar(value):
+            if not self._hasna:
+                return self.copy() if copy else self[:]
+            try:
+                validated = self._validate_setitem_value(value)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if copy:
+                    new_ndarray = self._ndarray.copy()
+                else:
+                    if self._readonly:
+                        raise ValueError("Cannot modify read-only array")
+                    new_ndarray = self._ndarray
+
+                arr_i8 = new_ndarray.view("i8")
+                fill_i8 = np.array(validated, dtype=new_ndarray.dtype).view("i8")[()]
+                algos.scalar_fillna_inplace(
+                    arr_i8, fill_i8, is_datetimelike=True, limit=limit
+                )
+
+                return type(self)._simple_new(new_ndarray, dtype=self.dtype)
+
+        return super().fillna(value, limit=limit, copy=copy)
+
     # ------------------------------------------------------------------
     # Additional array methods
     #  These are not part of the EA API, but we implement them because

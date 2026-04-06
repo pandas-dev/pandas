@@ -66,6 +66,7 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
 )
 import pandas.core.algorithms as algos
@@ -81,6 +82,7 @@ from pandas.core.construction import (
     extract_array,
 )
 from pandas.core.indexes.api import default_index
+from pandas.core.indexes.base import maybe_sequence_to_range
 from pandas.core.sorting import (
     get_group_index,
     is_int64_overflow_possible,
@@ -2027,6 +2029,16 @@ class _MergeOperation:
             )
 
 
+def _maybe_promote_to_rangeindex(idx: Index) -> Index:
+    if idx.is_monotonic_increasing and idx.is_unique and idx.dtype.kind in "iu":
+        values = idx._values
+        if isinstance(values, np.ndarray):
+            result = maybe_sequence_to_range(values)
+            if isinstance(result, range):
+                return RangeIndex(result, name=idx.name)
+    return idx
+
+
 def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
@@ -2093,10 +2105,41 @@ def get_join_indexers(
         and (left.is_unique or right.is_unique)
     ):
         _, lidx, ridx = left.join(right, how=how, return_indexers=True, sort=sort)
+    elif not sort and how in ("left", "right"):
+        lk: ArrayLike
+        rk: ArrayLike
+        if how == "left" and not isinstance(right, RangeIndex):
+            right = _maybe_promote_to_rangeindex(right)
+        elif how == "right" and not isinstance(left, RangeIndex):
+            left = _maybe_promote_to_rangeindex(left)
+        if how == "left":
+            lk = left._values
+            if (
+                isinstance(lk, np.ndarray)
+                and isinstance(right, RangeIndex)
+                and lk.dtype.kind in "iu"
+            ):
+                ridx = right.get_indexer(lk)
+                lidx = None
+            else:
+                rk = right._values
+                lidx, ridx = get_join_indexers_non_unique(lk, rk, sort, how)
+        else:
+            rk = right._values
+            if (
+                isinstance(rk, np.ndarray)
+                and isinstance(left, RangeIndex)
+                and rk.dtype.kind in "iu"
+            ):
+                lidx = left.get_indexer(rk)
+                ridx = None
+            else:
+                lk = left._values
+                lidx, ridx = get_join_indexers_non_unique(lk, rk, sort, how)
     else:
-        lidx, ridx = get_join_indexers_non_unique(
-            left._values, right._values, sort, how
-        )
+        lk = left._values
+        rk = right._values
+        lidx, ridx = get_join_indexers_non_unique(lk, rk, sort, how)
 
     if lidx is not None and is_range_indexer(lidx, len(left)):
         lidx = None

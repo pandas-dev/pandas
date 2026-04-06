@@ -14,6 +14,7 @@ from pandas._libs.tslibs.np_datetime import (
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:Using 'generic' unit:DeprecationWarning")
 def test_is_unitless():
     dtype = np.dtype("M8[ns]")
     assert not is_unitless(dtype)
