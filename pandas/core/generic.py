@@ -4334,7 +4334,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             slobj = indexer
         return self._slice(slobj)
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Self:
+    def _slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> Self:
         """
         Construct a slice of this container.
 
