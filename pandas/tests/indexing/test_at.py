@@ -15,12 +15,28 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
 )
 import pandas._testing as tm
+
+
+def test_at_dateoffset_columns():
+    # GH#20948 - .at with DateOffset columns
+    offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+    df = DataFrame(index=[0, 1], columns=Index(offsets))
+
+    # read access
+    result = df.at[0, offsets[0]]
+    assert result is np.nan
+
+    # write access
+    df.at[0, offsets[0]] = 1
+    assert df.at[0, offsets[0]] == 1
 
 
 def test_at_timezone():

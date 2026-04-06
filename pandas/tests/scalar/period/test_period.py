@@ -830,6 +830,13 @@ class TestPeriodMethods:
         p = Period("nat", freq="M")
         assert repr(NaT) in repr(p)
 
+    def test_format(self):
+        # GH#48536
+        period = Period("2000-1-1 12:34:12", freq="s")
+        assert f"{period:%Y-%m-%d %H:%M:%S}" == "2000-01-01 12:34:12"
+        assert f"{period}" == str(period)
+        assert format(period, "%Y-%m") == "2000-01"
+
     def test_strftime(self):
         # GH#3363
         p = Period("2000-1-1 12:34:12", freq="s")

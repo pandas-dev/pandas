@@ -321,6 +321,7 @@ def to_hdf(
             errors=errors,
             encoding=encoding,
             dropna=dropna,
+            track_times=False,
         )
 
     if isinstance(path_or_buf, HDFStore):
@@ -631,7 +632,7 @@ class HDFStore:
         return self.get(key)
 
     def __setitem__(self, key: str, value) -> None:
-        self.put(key, value)
+        self.put(key, value, track_times=False)
 
     def __delitem__(self, key: str) -> int | None:
         return self.remove(key)
@@ -1166,7 +1167,7 @@ class HDFStore:
         data_columns: Literal[True] | list[str] | None = None,
         encoding=None,
         errors: str = "strict",
-        track_times: bool = True,
+        track_times: bool | lib.NoDefault = lib.no_default,
         dropna: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
@@ -1226,6 +1227,12 @@ class HDFStore:
             Parameter is propagated to 'create_table' method of 'PyTables'.
             If set to False it enables to have the same h5 files (same hashes)
             independent on creation time.
+
+            .. deprecated:: 3.1.0
+                The default value of ``track_times`` will change from ``True``
+                to ``False`` in a future version. Pass ``track_times=False``
+                explicitly to silence this warning and get deterministic
+                HDF5 files.
         dropna : bool, default False, optional
             Remove missing values.
 
@@ -1258,6 +1265,16 @@ class HDFStore:
         if format is None:
             format = _global_config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
+        if track_times is lib.no_default:
+            warnings.warn(
+                "The default value of 'track_times' in HDFStore.put will "
+                "change from True to False in a future version. Pass "
+                "track_times=False explicitly to silence this warning and "
+                "get deterministic HDF5 files.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            track_times = True
         self._write_to_group(
             key,
             value,
@@ -1817,7 +1834,7 @@ class HDFStore:
                         encoding=s.encoding,
                     )
                 else:
-                    new_store.put(k, data, encoding=s.encoding)
+                    new_store.put(k, data, encoding=s.encoding, track_times=False)
 
         return new_store
 
@@ -3824,6 +3841,7 @@ class Table(Fixed):
             encoding=self.encoding,
             errors=self.errors,
             nan_rep=self.nan_rep,
+            track_times=False,
         )
 
     def read_metadata(self, key: str):
