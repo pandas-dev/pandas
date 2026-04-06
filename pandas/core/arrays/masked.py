@@ -1990,8 +1990,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if not self._hasna:
             return self._data.any()
 
+        # _hasna is True, so self._mask is guaranteed non-None
+        self_mask = self._mask
+        assert self_mask is not None
         values = self._data.copy()
-        np.putmask(values, self._mask, self.dtype._falsey_value)
+        np.putmask(values, self_mask, self.dtype._falsey_value)
         result = values.any(axis=axis)
 
         if isinstance(result, np.ndarray):
@@ -1999,7 +2002,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = np.zeros(result.shape, dtype=bool)
             else:
                 # Kleene logic: False | NA = NA, True | NA = True
-                mask = ~result & self._mask.any(axis=axis)
+                mask = ~result & self_mask.any(axis=axis)
             return self._maybe_mask_result(result, mask)
 
         if skipna:
@@ -2087,8 +2090,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if not self._hasna:
             return self._data.all(axis=axis)  # type: ignore[return-value]
 
+        # _hasna is True, so self._mask is guaranteed non-None
+        self_mask = self._mask
+        assert self_mask is not None
         values = self._data.copy()
-        np.putmask(values, self._mask, self.dtype._truthy_value)
+        np.putmask(values, self_mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
 
         if isinstance(result, np.ndarray):
@@ -2096,13 +2102,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = np.zeros(result.shape, dtype=bool)
             else:
                 # Kleene logic: True & NA = NA, False & NA = False
-                mask = result & self._mask.any(axis=axis)
+                mask = result & self_mask.any(axis=axis)
             return self._maybe_mask_result(result, mask)
 
         if skipna:
-            return result  # type: ignore[return-value]
+            return result
         elif not result or len(self) == 0:
-            return result  # type: ignore[return-value]
+            return result
         else:
             return self.dtype.na_value
 
