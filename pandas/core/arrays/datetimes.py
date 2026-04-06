@@ -1410,6 +1410,9 @@ default 'raise'
         >>> idx.month_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
+        if using_string_dtype() and locale is None:
+            return self._month_name_arrow()  # type: ignore[return-value]
+
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
@@ -1424,6 +1427,17 @@ default 'raise'
 
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
+
+    def _month_name_arrow(self):
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        from pandas._libs.tslibs.ccalendar import MONTHS_FULL
+
+        pa_months = pa.array(MONTHS_FULL, type=pa.large_string())
+        pa_ts = self._to_local_pa_timestamp()
+        result = pc.take(pa_months, pc.month(pa_ts))
+        return self._from_pyarrow_string_array(result)
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
@@ -1482,6 +1496,9 @@ default 'raise'
         >>> idx.day_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
+        if using_string_dtype() and locale is None:
+            return self._day_name_arrow()  # type: ignore[return-value]
+
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
@@ -1489,7 +1506,6 @@ default 'raise'
         )
         result = self._maybe_mask_results(result, fill_value=None)
         if using_string_dtype():
-            # TODO: no tests that check for dtype of result as of 2024-08-15
             from pandas import (
                 StringDtype,
                 array as pd_array,
@@ -1497,6 +1513,33 @@ default 'raise'
 
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
+
+    def _day_name_arrow(self):
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        from pandas._libs.tslibs.ccalendar import DAYS_FULL
+
+        pa_days = pa.array(DAYS_FULL, type=pa.large_string())
+        pa_ts = self._to_local_pa_timestamp()
+        result = pc.take(pa_days, pc.day_of_week(pa_ts))
+        return self._from_pyarrow_string_array(result)
+
+    def _to_local_pa_timestamp(self):
+        """Convert to a pyarrow TimestampArray with local timestamps."""
+        import pyarrow as pa
+
+        values = self._local_timestamps()
+        mask = self._isnan
+        return pa.array(values, mask=mask, type=pa.timestamp(self.unit))
+
+    @staticmethod
+    def _from_pyarrow_string_array(pa_arr):
+        """Wrap a pyarrow StringArray in an ArrowStringArray with StringDtype."""
+        from pandas import StringDtype
+        from pandas.core.arrays.string_arrow import ArrowStringArray
+
+        return ArrowStringArray(pa_arr, dtype=StringDtype(na_value=np.nan))
 
     @property
     def time(self) -> npt.NDArray[np.object_]:
