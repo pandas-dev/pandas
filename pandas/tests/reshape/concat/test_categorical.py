@@ -275,3 +275,114 @@ class TestCategoricalConcat:
         result = pd.concat((df1, df2))
         expected = DataFrame({"A": [1, 2, 3, 4]}, index=c3)
         tm.assert_frame_equal(result, expected)
+
+
+class TestConcatUnionCategories:
+    """Tests for pd.concat with union_categories=True (GH#14177)."""
+
+    def test_series_different_categories(self):
+        # GH#14177
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+        s2 = Series(Categorical(["b", "c"], categories=["b", "c"]))
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"]),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_series_same_categories(self):
+        # Same categories should still work with union_categories=True
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+        s2 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", "a", "b"], categories=["a", "b"]),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_different_categories(self):
+        # GH#14177
+        df1 = DataFrame({"x": Categorical(["a", "b"], categories=["a", "b"])})
+        df2 = DataFrame({"x": Categorical(["b", "c"], categories=["b", "c"])})
+        result = pd.concat([df1, df2], ignore_index=True, union_categories=True)
+        expected = DataFrame(
+            {"x": Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"])},
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_default_false_preserves_existing_behavior(self):
+        # union_categories=False (default) should not preserve categorical
+        # dtype when categories differ
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+        s2 = Series(Categorical(["b", "c"], categories=["b", "c"]))
+        result = pd.concat([s1, s2], ignore_index=True)
+        assert result.dtype != "category"
+
+    def test_mixed_categorical_noncategorical(self):
+        # When mixing categorical and non-categorical, keyword has no effect
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+        s2 = Series(["b", "c"])
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        # Should fall through to existing behavior
+        assert result.dtype != "category"
+
+    def test_ordered_same_order_subset_categories(self):
+        # Ordered categoricals with compatible categories
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+        s2 = Series(Categorical(["a"], categories=["a", "b"], ordered=True))
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", "a"], categories=["a", "b"], ordered=True),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_ordered_incompatible_raises(self):
+        # Ordered categoricals with different categories should raise
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+        s2 = Series(Categorical(["b", "c"], categories=["b", "c"], ordered=True))
+        with tm.external_error_raised(TypeError):
+            pd.concat([s1, s2], ignore_index=True, union_categories=True)
+
+    def test_integer_categories(self):
+        s1 = Series(Categorical([1, 2], categories=[1, 2]))
+        s2 = Series(Categorical([2, 3], categories=[2, 3]))
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical([1, 2, 2, 3], categories=[1, 2, 3]),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_datetime_categories(self):
+        cat1 = Categorical(
+            pd.to_datetime(["2020-01-01", "2020-01-02"]),
+            categories=pd.to_datetime(["2020-01-01", "2020-01-02"]),
+        )
+        cat2 = Categorical(
+            pd.to_datetime(["2020-01-02", "2020-01-03"]),
+            categories=pd.to_datetime(["2020-01-02", "2020-01-03"]),
+        )
+        s1 = Series(cat1)
+        s2 = Series(cat2)
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        assert result.dtype == "category"
+        assert len(result.cat.categories) == 3
+
+    def test_dataframe_multiple_categorical_columns(self):
+        # Multiple columns, each categorical with different categories
+        df1 = DataFrame(
+            {
+                "x": Categorical(["a", "b"], categories=["a", "b"]),
+                "y": Categorical([1, 2], categories=[1, 2]),
+            }
+        )
+        df2 = DataFrame(
+            {
+                "x": Categorical(["c"], categories=["b", "c"]),
+                "y": Categorical([3], categories=[2, 3]),
+            }
+        )
+        result = pd.concat([df1, df2], ignore_index=True, union_categories=True)
+        assert result["x"].dtype == "category"
+        assert set(result["x"].cat.categories) == {"a", "b", "c"}
+        assert result["y"].dtype == "category"
+        assert set(result["y"].cat.categories) == {1, 2, 3}
