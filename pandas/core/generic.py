@@ -4303,6 +4303,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
+        elif isinstance(loc, slice) and self.ndim == 1:
+            # GH#38650: bypass iloc dispatch and pass new_index
+            # directly to avoid redundantly slicing the index
+            # in the manager path.
+            result = self._slice(loc, new_index=new_index)
         else:
             result = self.iloc[loc]
             result.index = new_index

@@ -3715,12 +3715,51 @@ class MultiIndex(Index):
             If level does not exist or all levels were dropped, the exception
             has to be handled outside.
             """
-            new_index = self[indexer]
+            if not levels:
+                # No levels to drop, just slice
+                return self[indexer]
 
-            for i in sorted(levels, reverse=True):
-                new_index = new_index._drop_level_numbers([i])
+            # Combine indexing and level-dropping into a single step
+            # to avoid creating an intermediate MultiIndex.
+            drop_set = set(levels)
+            kept = [i for i in range(self.nlevels) if i not in drop_set]
 
-            return new_index
+            if not kept:
+                raise ValueError(
+                    f"Cannot remove {len(levels)} levels from an index with "
+                    f"{self.nlevels} levels: at least one level must be left."
+                )
+
+            new_codes = [self.codes[i][indexer] for i in kept]
+            new_names = [self.names[i] for i in kept]
+
+            if len(kept) == 1:
+                lev = self.levels[kept[0]]
+                codes = new_codes[0]
+
+                if len(lev) == 0:
+                    if len(codes) == 0:
+                        result = lev[:0]
+                    else:
+                        res_values = algos.take(lev._values, codes, allow_fill=True)
+                        result = lev._constructor._simple_new(
+                            res_values, name=new_names[0]
+                        )
+                else:
+                    mask = codes == -1
+                    result = lev.take(codes)
+                    if mask.any():
+                        result = result.putmask(mask, np.nan)
+                    result._name = new_names[0]
+                return result
+            else:
+                new_levels = [self.levels[i] for i in kept]
+                return MultiIndex(
+                    levels=new_levels,
+                    codes=new_codes,
+                    names=new_names,
+                    verify_integrity=False,
+                )
 
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
