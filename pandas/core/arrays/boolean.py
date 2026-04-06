@@ -199,7 +199,7 @@ def coerce_to_array(
     if isinstance(values, BooleanArray):
         if mask is not None:
             raise ValueError("cannot pass mask for BooleanArray input")
-        values, mask = values._data, values._mask
+        values, mask = values._data, values._get_mask()
         if copy:
             values = values.copy()
             mask = mask.copy()
@@ -396,7 +396,7 @@ class BooleanArray(BaseMaskedArray):
         mask = None
 
         if isinstance(other, BooleanArray):
-            other, mask = other._data, other._mask
+            other, mask = other._data, other._get_mask()
         elif is_list_like(other):
             if not isinstance(
                 other, (list, ExtensionArray, np.ndarray)
@@ -427,12 +427,12 @@ class BooleanArray(BaseMaskedArray):
             raise ValueError("Lengths must match")
 
         if op.__name__ in {"or_", "ror_"}:
-            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_or(self._data, other, self._get_mask(), mask)
         elif op.__name__ in {"and_", "rand_"}:
-            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_and(self._data, other, self._get_mask(), mask)
         else:
             # i.e. xor, rxor
-            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_xor(self._data, other, self._get_mask(), mask)
 
         # i.e. BooleanArray
         return self._maybe_mask_result(result, mask)
@@ -441,7 +441,7 @@ class BooleanArray(BaseMaskedArray):
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
         data = self._data
-        mask = self._mask
+        mask = self._get_mask()
         if name in ("cummin", "cummax"):
             op = getattr(masked_accumulations, name)
             data, mask = op(data, mask, skipna=skipna, **kwargs)

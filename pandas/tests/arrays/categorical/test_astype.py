@@ -160,8 +160,8 @@ class TestAstype:
 
     def test_astype_category_readonly_mask_values(self):
         # GH#53658
-        arr = array([0, 1, 2], dtype="Int64")
+        arr = array([0, 1, None], dtype="Int64")
         arr._mask.flags["WRITEABLE"] = False
         result = arr.astype("category")
-        expected = array([0, 1, 2], dtype="Int64").astype("category")
+        expected = array([0, 1, None], dtype="Int64").astype("category")
         tm.assert_extension_array_equal(result, expected)

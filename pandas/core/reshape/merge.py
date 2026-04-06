@@ -2986,8 +2986,8 @@ def _factorize_keys(
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
-        lk_data, lk_mask = lk._data, lk._mask
-        rk_data, rk_mask = rk._data, rk._mask
+        lk_data, lk_mask = lk._data, lk._get_mask()
+        rk_data, rk_mask = rk._data, rk._get_mask()
     elif isinstance(lk, ArrowExtensionArray):
         assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes

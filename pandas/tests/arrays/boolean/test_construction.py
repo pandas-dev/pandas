@@ -24,8 +24,10 @@ def test_boolean_array_constructor():
     with pytest.raises(TypeError, match="values should be boolean numpy array"):
         BooleanArray(values.astype(int), mask)
 
-    with pytest.raises(TypeError, match="mask should be boolean numpy array"):
-        BooleanArray(values, None)
+    # GH#30435 None mask is now valid (means no NAs)
+    result = BooleanArray(values, None)
+    expected = BooleanArray(values.copy(), np.zeros(4, dtype=bool))
+    tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(ValueError, match="values.shape must match mask.shape"):
         BooleanArray(values.reshape(1, -1), mask)

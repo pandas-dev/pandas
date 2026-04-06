@@ -150,7 +150,7 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
 
     cls = dtype_cls().construct_array_type()
     if isinstance(values, cls):
-        values, mask = values._data, values._mask
+        values, mask = values._data, values._get_mask()
         if dtype is not None:
             values = values.astype(dtype.numpy_dtype, copy=False)
 

@@ -69,5 +69,7 @@ def test_equals_nan_vs_na(using_nan_is_na):
 
     # with mask[1] = True, the only difference is data[1], which should
     #  not matter for equals
-    mask[1] = True
+    # GH#30435 Use __setitem__ to set the NA value rather than mutating
+    # the mask directly, since the mask may be None when all-False.
+    left[1] = pd.NA
     assert left.equals(right)

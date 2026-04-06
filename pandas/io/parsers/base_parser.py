@@ -550,12 +550,13 @@ class ParserBase:
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
             elif isinstance(result, BaseMaskedArray):
-                if result._mask.all():
+                result_mask = result._get_mask()
+                if result_mask.all():
                     # We want an arrow null array here
                     result = ArrowExtensionArray(pa.array([None] * len(result)))
                 else:
                     result = ArrowExtensionArray(
-                        pa.array(result._data, mask=result._mask)
+                        pa.array(result._data, mask=result_mask)
                     )
             else:
                 result = ArrowExtensionArray(

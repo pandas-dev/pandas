@@ -91,9 +91,14 @@ def test_not_c_contiguous_mask(groupby_func):
     if groupby_func == "corrwith":
         # corrwith is deprecated
         return
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}, dtype="Int64", index=[0, 1, 2])
+    # GH#30435 Use NA values to ensure the mask is materialized (not None)
+    df = DataFrame(
+        {"a": [1, 1, 2], "b": pd.array([3, pd.NA, 5], dtype="Int64")},
+        index=[0, 1, 2],
+    )
     reversed = DataFrame(
-        {"a": [2, 1, 1], "b": [5, 4, 3]}, dtype="Int64", index=[2, 1, 0]
+        {"a": [2, 1, 1], "b": pd.array([5, pd.NA, 3], dtype="Int64")},
+        index=[2, 1, 0],
     )[::-1]
     assert not reversed["b"].array._mask.flags["C_CONTIGUOUS"]
     args = get_groupby_method_args(groupby_func, df)

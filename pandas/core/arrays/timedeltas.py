@@ -1114,7 +1114,7 @@ def sequence_to_td64ns(
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
         if isinstance(data.dtype, ExtensionDtype):
-            mask = data._mask
+            mask = data._get_mask()
             data = data._data
         else:
             mask = np.isnan(data)

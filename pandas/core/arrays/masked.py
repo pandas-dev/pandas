@@ -132,33 +132,65 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
-    _mask: npt.NDArray[np.bool_]
+    _mask: npt.NDArray[np.bool_] | None
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
+    def _simple_new(
+        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | None
+    ) -> Self:
         result = BaseMaskedArray.__new__(cls)
         result._data = values
         result._mask = mask
         return result
 
     def __init__(
-        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+        self,
+        values: np.ndarray,
+        mask: npt.NDArray[np.bool_] | None,
+        copy: bool = False,
     ) -> None:
         # values is supposed to already be validated in the subclass
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'pd.array' function instead"
-            )
-        if values.shape != mask.shape:
-            raise ValueError("values.shape must match mask.shape")
+        if mask is not None:
+            if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+                raise TypeError(
+                    "mask should be boolean numpy array. Use "
+                    "the 'pd.array' function instead"
+                )
+            if values.shape != mask.shape:
+                raise ValueError("values.shape must match mask.shape")
+
+            if not mask.any():
+                mask = None
+            elif copy:
+                mask = mask.copy()
 
         if copy:
             values = values.copy()
-            mask = mask.copy()
 
         self._data = values
         self._mask = mask
+
+    def _ensure_mask(self) -> npt.NDArray[np.bool_]:
+        """
+        Ensure _mask is a numpy array, materializing from None if needed.
+
+        Use this when the mask needs to be mutated (e.g. __setitem__).
+        """
+        if self._mask is None:
+            self._mask = np.zeros(self._data.shape, dtype=bool)
+        return self._mask
+
+    def _get_mask(self) -> npt.NDArray[np.bool_]:
+        """
+        Return the mask as a numpy array without storing.
+
+        Use this for read-only access when a numpy array is needed
+        (e.g. passing to reduction functions).
+        """
+        mask = self._mask
+        if mask is not None:
+            return mask
+        return np.zeros(self._data.shape, dtype=bool)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
@@ -218,12 +250,20 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
 
-        newmask = self._mask[item]
-        if is_bool(newmask):
-            # This is a scalar indexing
-            if newmask:
-                return self.dtype.na_value
-            return self._data[item]
+        mask = self._mask
+        if mask is not None:
+            newmask = mask[item]
+            if is_bool(newmask):
+                # This is a scalar indexing
+                if newmask:
+                    return self.dtype.na_value
+                return self._data[item]
+        else:
+            newmask = None
+            newdata = self._data[item]
+            if np.ndim(newdata) == 0:
+                # Scalar indexing — no NAs when mask is None
+                return newdata
 
         result = self._simple_new(self._data[item], newmask)
         if getitem_returns_view(self, item):
@@ -240,7 +280,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> Self:
         mask = self._mask
 
-        if mask.any():
+        if mask is not None and mask.any():
             func = missing.get_fill_func(method, ndim=self.ndim)
 
             npvalues = self._data.T
@@ -311,7 +351,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         [0, 0, 2, 3, 0, 0]
         Length: 6, dtype: Int64
         """
-        mask = self._mask
+        mask = self._get_mask()
 
         # Fast path: single-pass Cython for scalar fill values. GH#42147
         # Skip when fill value is itself NA — filling NAs with NA is a no-op,
@@ -425,17 +465,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if is_valid_na_for_dtype(value, self.dtype) and not (
                 lib.is_float(value) and not is_nan_na()
             ):
-                self._mask[key] = True
+                self._ensure_mask()[key] = True
             else:
                 value = self._validate_setitem_value(value)
                 self._data[key] = value
-                self._mask[key] = False
+                if self._mask is not None:
+                    self._mask[key] = False
             return
 
         value, mask = self._coerce_to_array(value, dtype=self.dtype)
 
         self._data[key] = value
-        self._mask[key] = mask
+        if self._mask is not None or mask.any():
+            self._ensure_mask()[key] = mask
 
     def __contains__(self, key) -> bool:
         if isna(key) and key is not self.dtype.na_value:
@@ -443,7 +485,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if lib.is_float(key) and is_nan_na():
                 key = self.dtype.na_value
             elif self._data.dtype.kind == "f" and lib.is_float(key):
-                return bool((np.isnan(self._data) & ~self._mask).any())
+                return bool((np.isnan(self._data) & ~self._get_mask()).any())
 
         return bool(super().__contains__(key))
 
@@ -454,7 +496,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     yield val
             else:
                 na_value = self.dtype.na_value
-                for isna_, val in zip(self._mask, self._data, strict=True):
+                mask = self._mask
+                # _hasna is True so _mask is not None
+                assert mask is not None
+                for isna_, val in zip(mask, self._data, strict=True):
                     if isna_:
                         yield na_value
                     else:
@@ -476,38 +521,49 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def swapaxes(self, axis1, axis2) -> Self:
         data = self._data.swapaxes(axis1, axis2)
-        mask = self._mask.swapaxes(axis1, axis2)
+        mask = self._mask
+        if mask is not None:
+            mask = mask.swapaxes(axis1, axis2)
         return self._simple_new(data, mask)
 
     def delete(self, loc, axis: AxisInt = 0) -> Self:
         data = np.delete(self._data, loc, axis=axis)
-        mask = np.delete(self._mask, loc, axis=axis)
+        mask = self._mask
+        if mask is not None:
+            mask = np.delete(mask, loc, axis=axis)
         return self._simple_new(data, mask)
 
     def reshape(self, *args, **kwargs) -> Self:
         data = self._data.reshape(*args, **kwargs)
-        mask = self._mask.reshape(*args, **kwargs)
+        mask = self._mask
+        if mask is not None:
+            mask = mask.reshape(*args, **kwargs)
         return self._simple_new(data, mask)
 
     def ravel(self, *args, **kwargs) -> Self:
         # TODO: need to make sure we have the same order for data/mask
         data = self._data.ravel(*args, **kwargs)
-        mask = self._mask.ravel(*args, **kwargs)
-        return type(self)(data, mask)
+        mask = self._mask
+        if mask is not None:
+            mask = mask.ravel(*args, **kwargs)
+        return self._simple_new(data, mask)
 
     def shift(self, periods: int = 1, fill_value=None) -> Self:
         # NB: shift is always along axis=self.ndim-1
         if fill_value is None:
             new_data = shift(self._data, periods, 0)
-            new_mask = shift(self._mask, periods, True)
+            new_mask = shift(self._get_mask(), periods, True)
         else:
             new_data = shift(self._data, periods, fill_value)
-            new_mask = shift(self._mask, periods, False)
+            new_mask = shift(self._get_mask(), periods, False)
         return type(self)(new_data, new_mask)
 
     @property
     def T(self) -> Self:
-        return self._simple_new(self._data.T, self._mask.T)
+        mask = self._mask
+        if mask is not None:
+            mask = mask.T
+        return self._simple_new(self._data.T, mask)
 
     def round(self, decimals: int = 0, *args, **kwargs):
         """
@@ -539,22 +595,34 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values = np.round(self._data, decimals=decimals, **kwargs)
 
         # Usually we'll get same type as self, but ndarray[bool] casts to float
-        return self._maybe_mask_result(values, self._mask.copy())
+        mask = self._mask
+        if mask is not None:
+            mask = mask.copy()
+        return self._maybe_mask_result(values, mask)
 
     # ------------------------------------------------------------------
     # Unary Methods
 
     def __invert__(self) -> Self:
-        return self._simple_new(~self._data, self._mask.copy())
+        mask = self._mask
+        if mask is not None:
+            mask = mask.copy()
+        return self._simple_new(~self._data, mask)
 
     def __neg__(self) -> Self:
-        return self._simple_new(-self._data, self._mask.copy())
+        mask = self._mask
+        if mask is not None:
+            mask = mask.copy()
+        return self._simple_new(-self._data, mask)
 
     def __pos__(self) -> Self:
         return self.copy()
 
     def __abs__(self) -> Self:
-        return self._simple_new(abs(self._data), self._mask.copy())
+        mask = self._mask
+        if mask is not None:
+            mask = mask.copy()
+        return self._simple_new(abs(self._data), mask)
 
     # ------------------------------------------------------------------
 
@@ -647,7 +715,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 data = self._data.astype(dtype)
-            data[self._mask] = na_value
+            data[self._get_mask()] = na_value
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -712,7 +780,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
+            mask = self._mask
+            if mask is not None and data is not self._data:
+                mask = mask.copy()
             cls = dtype.construct_array_type()
             return cls(data, mask, copy=False)
 
@@ -804,7 +874,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         inputs2 = []
         for x in inputs:
             if isinstance(x, BaseMaskedArray):
-                mask |= x._mask
+                if x._mask is not None:
+                    mask |= x._mask
                 inputs2.append(x._data)
             else:
                 inputs2.append(x)
@@ -843,7 +914,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return tuple(reconstruct(x) for x in result)
         elif method == "reduce":
             # e.g. np.add.reduce; test_ufunc_reduce_raises
-            if self._mask.any():
+            if self._hasna:
                 return self._na_value
             return result
         else:
@@ -855,28 +926,42 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         import pyarrow as pa
 
-        return pa.array(self._data, mask=self._mask, type=type)
+        return pa.array(self._data, mask=self._get_mask(), type=type)
 
     @property
     def _hasna(self) -> bool:
-        # Note: this is expensive right now! The hope is that we can
-        # make this faster by having an optional mask, but not have to change
-        # source code using it..
-
-        return bool(self._mask.any())
+        # GH#30435 O(1) when mask is None (no NAs), otherwise falls back
+        # to O(n) check for cases where mask was mutated to all-False.
+        mask = self._mask
+        if mask is None:
+            return False
+        return bool(mask.any())
 
     def _propagate_mask(
         self, mask: npt.NDArray[np.bool_] | None, other
     ) -> npt.NDArray[np.bool_]:
+        self_mask = self._mask
         if mask is None:
-            mask = self._mask.copy()  # TODO: need test for BooleanArray needing a copy
+            if self_mask is not None:
+                mask = self_mask.copy()
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
-                mask = mask | True
-            elif is_list_like(other) and len(other) == len(mask):
-                mask = mask | isna(other)
-        else:
-            mask = self._mask | mask
+                if mask is None:
+                    mask = np.ones(self._data.shape, dtype=bool)
+                else:
+                    mask = mask | True
+            elif is_list_like(other) and len(other) == len(self._data):
+                other_na = isna(other)
+                if self_mask is not None:
+                    mask = mask | other_na
+                elif other_na.any():
+                    mask = other_na
+                else:
+                    mask = np.zeros(self._data.shape, dtype=bool)
+            elif mask is None:
+                mask = np.zeros(self._data.shape, dtype=bool)
+        elif self_mask is not None:
+            mask = self_mask | mask
         return mask
 
     def _arith_method(self, other, op):
@@ -976,7 +1061,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if op_name == "pow":
             # 1 ** x is 1.
-            mask = np.where((self._data == 1) & ~self._mask, False, mask)
+            self_mask = self._get_mask()
+            mask = np.where((self._data == 1) & ~self_mask, False, mask)
             # x ** 0 is 1.
             if omask is not None:
                 mask = np.where((other == 0) & ~omask, False, mask)
@@ -990,7 +1076,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             elif other is not libmissing.NA:
                 mask = np.where(other == 1, False, mask)
             # x ** 0 is 1.
-            mask = np.where((self._data == 0) & ~self._mask, False, mask)
+            self_mask = self._get_mask()
+            mask = np.where((self._data == 0) & ~self_mask, False, mask)
 
         return self._maybe_mask_result(result, mask)
 
@@ -1052,13 +1139,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return BooleanArray(result, mask, copy=False)
 
     def _maybe_mask_result(
-        self, result: np.ndarray | tuple[np.ndarray, np.ndarray], mask: np.ndarray
+        self,
+        result: np.ndarray | tuple[np.ndarray, np.ndarray],
+        mask: np.ndarray | None,
     ):
         """
         Parameters
         ----------
         result : array-like or tuple[array-like]
-        mask : array-like bool
+        mask : array-like bool or None
         """
         if isinstance(result, tuple):
             # i.e. divmod
@@ -1072,7 +1161,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             from pandas.core.arrays import FloatingArray
 
             if is_nan_na():
-                mask[np.isnan(result)] = True
+                nan_mask = np.isnan(result)
+                if nan_mask.any():
+                    if mask is None:
+                        mask = nan_mask
+                    else:
+                        mask = mask | nan_mask
 
             return FloatingArray(result, mask, copy=False)
 
@@ -1086,7 +1180,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             from pandas.core.arrays import TimedeltaArray
 
             unit = np.datetime_data(result.dtype)[0]
-            result[mask] = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
+            if mask is not None:
+                result[mask] = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             if not isinstance(result, TimedeltaArray):
                 return TimedeltaArray._simple_new(result, dtype=result.dtype)
@@ -1099,14 +1194,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return IntegerArray(result, mask, copy=False)
 
         elif result.dtype == object:
-            result[mask] = self.dtype.na_value
+            if mask is not None:
+                result[mask] = self.dtype.na_value
             return result
         else:
-            result[mask] = np.nan
+            if mask is not None:
+                result[mask] = np.nan
             return result
 
     def isna(self) -> np.ndarray:
-        return self._mask.copy()
+        mask = self._mask
+        if mask is not None:
+            return mask.copy()
+        return np.zeros(self._data.shape, dtype=bool)
 
     @property
     def _na_value(self):
@@ -1114,7 +1214,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @property
     def nbytes(self) -> int:
-        return self._data.nbytes + self._mask.nbytes
+        mask_bytes = self._mask.nbytes if self._mask is not None else 0
+        return self._data.nbytes + mask_bytes
 
     @classmethod
     def _concat_same_type(
@@ -1123,8 +1224,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         data = np.concatenate([x._data for x in to_concat], axis=axis)
-        mask = np.concatenate([x._mask for x in to_concat], axis=axis)
-        return cls(data, mask)
+        if any(x._mask is not None for x in to_concat):
+            mask = np.concatenate([x._get_mask() for x in to_concat], axis=axis)
+        else:
+            mask = None
+        return cls._simple_new(data, mask)
 
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool
@@ -1132,7 +1236,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         hashed_array = hash_array(
             self._data, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
-        hashed_array[self.isna()] = hash(self.dtype.na_value)
+        if self._hasna:
+            hashed_array[self.isna()] = hash(self.dtype.na_value)
         return hashed_array
 
     def take(
@@ -1157,7 +1262,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         mask = take(
-            self._mask, indexer, fill_value=True, allow_fill=allow_fill, axis=axis
+            self._get_mask(), indexer, fill_value=True, allow_fill=allow_fill, axis=axis
         )
 
         # if we are filling
@@ -1188,14 +1293,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             # For now, NA does not propagate so set result according to presence of NA,
             # see https://github.com/pandas-dev/pandas/pull/38379 for some discussion
-            result[self._mask] = values_have_NA
+            result[self._get_mask()] = values_have_NA
 
         mask = np.zeros(self._data.shape, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
     def copy(self) -> Self:
         data = self._data.copy()
-        mask = self._mask.copy()
+        mask = self._mask
+        if mask is not None:
+            mask = mask.copy()
         return self._simple_new(data, mask)
 
     @overload
@@ -1207,7 +1314,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         if dtype is not None:
             return super().view(dtype)
-        result = self._simple_new(self._data[:], self._mask[:])
+        mask = self._mask
+        if mask is not None:
+            mask = mask[:]
+        result = self._simple_new(self._data[:], mask)
         result._readonly = self._readonly
         return result
 
@@ -1260,11 +1370,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_option in ["top", "bottom"]:
             mask = np.zeros(self.shape, dtype=bool)
         else:
-            mask = self._mask.copy()
+            mask = self._get_mask().copy()
 
         if method != "average" and not pct:
-            if na_option not in ["top", "bottom"]:
-                result[self._mask] = 0  # avoid warning on casting
+            if na_option not in ["top", "bottom"] and self._hasna:
+                result[self._get_mask()] = 0  # avoid warning on casting
             result = result.astype("uint64", copy=False)
             from pandas.core.arrays import IntegerArray
 
@@ -1304,7 +1414,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         array([False,  True, False, False,  True])
         """
         values = self._data
-        mask = self._mask
+        mask = self._get_mask()
         return algos.duplicated(values, keep=keep, mask=mask)
 
     def unique(self) -> Self:
@@ -1315,7 +1425,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         -------
         uniques : BaseMaskedArray
         """
-        uniques, mask = algos.unique_with_mask(self._data, self._mask)
+        uniques, mask = algos.unique_with_mask(self._data, self._get_mask())
         return self._simple_new(uniques, mask)
 
     def searchsorted(
@@ -1427,7 +1537,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         PeriodIndex(['2014-01', '2014-02', '2014-03'], dtype='period[M]')
         """
         arr = self._data
-        mask = self._mask
+        mask = self._get_mask()
 
         # Use a sentinel for na; recode and add NA to uniques if necessary below
         codes, uniques = factorize_array(arr, use_na_sentinel=True, mask=mask)
@@ -1516,7 +1626,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         from pandas.arrays import IntegerArray
 
         keys, value_counts, na_counter = algos.value_counts_arraylike(
-            self._data, dropna=dropna, mask=self._mask
+            self._data, dropna=dropna, mask=self._get_mask()
         )
         mask_index = np.zeros((len(value_counts),), dtype=np.bool_)
         mask = mask_index.copy()
@@ -1535,7 +1645,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(arr, index=index, name="count", copy=False)
 
     def _mode(self, dropna: bool = True) -> Self:
-        result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result, res_mask = mode(self._data, dropna=dropna, mask=self._get_mask())
         result = type(self)(result, res_mask)
         return result[result.argsort()]
 
@@ -1582,11 +1692,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # GH#44382 if e.g. self[1] is np.nan and other[1] is pd.NA, we are NOT
         #  equal.
-        if not np.array_equal(self._mask, other._mask):
+        if not np.array_equal(self._get_mask(), other._get_mask()):
             return False
 
-        left = self._data[~self._mask]
-        right = other._data[~other._mask]
+        left = self._data[~self._get_mask()]
+        right = other._data[~other._get_mask()]
         return array_equivalent(left, right, strict_nan=True, dtype_equal=True)
 
     def _quantile(
@@ -1602,7 +1712,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         res = quantile_with_mask(
             self._data,
-            mask=self._mask,
+            mask=self._get_mask(),
             # TODO(GH#40932): na_value_for_dtype(self.dtype.numpy_dtype)
             #  instead of np.nan
             fill_value=np.nan,
@@ -1641,7 +1751,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             # median, skew, kurt, sem
             data = self._data
-            mask = self._mask
+            mask = self._get_mask()
             op = getattr(nanops, f"nan{name}")
             axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
@@ -1666,9 +1776,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if isinstance(result, np.ndarray):
             if skipna:
                 # we only retain mask for all-NA rows/columns
-                mask = self._mask.all(axis=axis)
+                mask = self._get_mask().all(axis=axis)
             else:
-                mask = self._mask.any(axis=axis)
+                mask = self._get_mask().any(axis=axis)
 
             return self._maybe_mask_result(result, mask)
         return result
@@ -1711,7 +1821,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         result = masked_reductions.sum(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             min_count=min_count,
             axis=axis,
@@ -1732,7 +1842,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         result = masked_reductions.prod(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             min_count=min_count,
             axis=axis,
@@ -1745,7 +1855,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_mean((), kwargs)
         result = masked_reductions.mean(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             axis=axis,
         )
@@ -1757,7 +1867,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
         result = masked_reductions.var(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             axis=axis,
             ddof=ddof,
@@ -1770,7 +1880,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_stat_ddof_func((), kwargs, fname="std")
         result = masked_reductions.std(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             axis=axis,
             ddof=ddof,
@@ -1781,7 +1891,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             axis=axis,
         )
@@ -1791,13 +1901,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             self._data,
-            self._mask,
+            self._get_mask(),
             skipna=skipna,
             axis=axis,
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def count(self) -> np.int64:
+        if self._mask is None:
+            return np.int64(len(self._data))
         return (~self._mask).sum()
 
     @overload
@@ -1875,6 +1987,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         nv.validate_any((), kwargs)
 
+        if not self._hasna:
+            return self._data.any()
+
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
         result = values.any(axis=axis)
@@ -1889,7 +2004,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if skipna:
             return result
-        elif result or len(self) == 0 or not self._mask.any():
+        elif result or len(self) == 0:
             return result
         else:
             return self.dtype.na_value
@@ -1969,6 +2084,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         nv.validate_all((), kwargs)
 
+        if not self._hasna:
+            return self._data.all(axis=axis)  # type: ignore[return-value]
+
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
@@ -1982,9 +2100,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._maybe_mask_result(result, mask)
 
         if skipna:
-            return result
-        elif not result or len(self) == 0 or not self._mask.any():
-            return result
+            return result  # type: ignore[return-value]
+        elif not result or len(self) == 0:
+            return result  # type: ignore[return-value]
         else:
             return self.dtype.na_value
 
@@ -2007,14 +2125,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.dtype.kind == "f":
             if copy:
                 data = self._data.copy()
-                mask = self._mask.copy()
+                mask = self._get_mask().copy()
             else:
                 data = self._data
-                mask = self._mask
+                mask = self._get_mask()
         elif self.dtype.kind in "iu":
             copy = True
             data = self._data.astype("f8")
-            mask = self._mask.copy()
+            mask = self._get_mask().copy()
         else:
             raise NotImplementedError(
                 f"interpolate is not implemented for dtype={self.dtype}"
@@ -2044,7 +2162,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
         data = self._data
-        mask = self._mask
+        mask = self._get_mask()
 
         op = getattr(masked_accumulations, name)
         data, mask = op(data, mask, skipna=skipna, **kwargs)
@@ -2070,7 +2188,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
-        mask = self._mask
+        mask = self._get_mask()
         if op.kind != "aggregate":
             result_mask = mask.copy()
         else:
@@ -2124,7 +2242,7 @@ def transpose_homogeneous_masked_arrays(
         ),
     )
 
-    masks = [arr._mask.reshape(1, -1) for arr in masked_arrays]
+    masks = [arr._get_mask().reshape(1, -1) for arr in masked_arrays]
     transposed_masks = np.concatenate(
         masks, axis=0, out=np.empty_like(transposed_values, dtype=bool)
     )

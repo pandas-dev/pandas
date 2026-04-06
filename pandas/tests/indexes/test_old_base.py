@@ -285,10 +285,16 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._data, result._values._data, check_same="same"
                 )
-                assert np.shares_memory(index._values._mask, result._values._mask)
-                tm.assert_numpy_array_equal(
-                    index._values._mask, result._values._mask, check_same="same"
-                )
+                # GH#30435 mask can be None when there are no NAs
+                if index._values._mask is not None:
+                    assert np.shares_memory(index._values._mask, result._values._mask)
+                    tm.assert_numpy_array_equal(
+                        index._values._mask,
+                        result._values._mask,
+                        check_same="same",
+                    )
+                else:
+                    assert result._values._mask is None
             elif (
                 isinstance(index.dtype, StringDtype) and index.dtype.storage == "python"
             ):

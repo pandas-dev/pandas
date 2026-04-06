@@ -403,7 +403,7 @@ class PandasColumn(Column):
             return buffer, dtype
 
         if isinstance(self._col.dtype, BaseMaskedDtype):
-            mask = self._col.array._mask  # type: ignore[attr-defined]
+            mask = self._col.array._get_mask()  # type: ignore[attr-defined]
             buffer = PandasBuffer(mask)
             dtype = (DtypeKind.BOOL, 8, ArrowCTypes.BOOL, Endianness.NATIVE)
             return buffer, dtype

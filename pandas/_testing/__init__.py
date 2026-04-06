@@ -526,9 +526,12 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
         # By convention, we'll say these share memory if they share *either*
         #  the _data or the _mask
-        return np.shares_memory(left._data, right._data) or np.shares_memory(
-            left._mask, right._mask
-        )
+        shares_data = np.shares_memory(left._data, right._data)
+        if left._mask is not None and right._mask is not None:
+            shares_mask = np.shares_memory(left._mask, right._mask)
+        else:
+            shares_mask = False
+        return shares_data or shares_mask
 
     if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
         arr = left._mgr.blocks[0].values

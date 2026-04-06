@@ -768,12 +768,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         na_value = dtype.na_value
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
-            na_values = scalars._mask
+            na_values = scalars._get_mask()
             result = scalars._data
             result = lib.ensure_string_array(
                 result, copy=copy, convert_na_value=False, skipna=False
             )
-            result[na_values] = na_value
+            if na_values.any():
+                result[na_values] = na_value
 
         else:
             if lib.is_pyarrow_array(scalars):

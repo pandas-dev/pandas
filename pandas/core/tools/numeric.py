@@ -217,7 +217,7 @@ def to_numeric(
     # save mask to reconstruct the full array after casting
     mask: npt.NDArray[np.bool_] | None = None
     if isinstance(values, BaseMaskedArray):
-        mask = values._mask
+        mask = values._get_mask()
         values = values._data[~mask]
 
     values_dtype = getattr(values, "dtype", None)
