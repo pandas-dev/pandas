@@ -1896,6 +1896,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 def _maybe_convert_platform_interval(values) -> ArrayLike:
     """
     Try to do platform conversion, with special casing for IntervalArray.
+
     For example, empty lists return with integer dtype instead of object dtype,
     which is prohibited for IntervalArray.
 
@@ -1913,7 +1914,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
-        # This will raise later, but we avoid passing to maybe_convert_platform
+        # This will raise later
         return values
     elif isinstance(getattr(values, "dtype", None), CategoricalDtype):
         values = np.asarray(values)

@@ -219,6 +219,10 @@ def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     # and the special-case BDay handling doesn't support multiplied freq.
     if alias == "B":
         return alias
+    # Use abs(n) because the sign only indicates traversal direction
+    # (e.g. descending DatetimeIndex infers freq "-1D"), not period span.
+    # GH#64819
+    n = abs(n)
     if n != 1:
         return f"{n}{alias}"
     return alias

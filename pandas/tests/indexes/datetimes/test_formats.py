@@ -108,8 +108,9 @@ class TestDatetimeIndexRendering:
             (
                 ["2012-01-01 00:00:00", "2012-01-01 01:00:00"],
                 "60min",
-                "DatetimeIndex(['2012-01-01 00:00:00', '2012-01-01 01:00:00'], "
-                "dtype='datetime64[ns]', freq='60min')",
+                "DatetimeIndex(['2012-01-01 00:00:00', "
+                "'2012-01-01 01:00:00'],\n"
+                "              dtype='datetime64[ns]', freq='60min')",
             ),
             (
                 ["2012-01-01"],
@@ -123,6 +124,16 @@ class TestDatetimeIndexRendering:
         dti = DatetimeIndex(dates, freq).as_unit(unit)
         actual_repr = repr(dti)
         assert actual_repr == expected_repr.replace("[ns]", f"[{unit}]")
+
+    def test_dti_repr_wraps_at_display_width(self):
+        # GH#11552
+        dti = pd.date_range("2011-01-01", periods=3, freq="D", name="dates")
+        result = repr(dti)
+        expected = (
+            "DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],\n"
+            "              dtype='datetime64[us]', name='dates', freq='D')"
+        )
+        assert result == expected
 
     def test_dti_representation(self, unit):
         idxs = []

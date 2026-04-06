@@ -74,8 +74,10 @@ class TestNonNano:
 
         assert (dti == dta).all()
 
-        res = getattr(dta, field)
-        expected = getattr(dti._data, field)
+        warn = Pandas4Warning if field == "weekday" else None
+        with tm.assert_produces_warning(warn, match="weekday is deprecated"):
+            res = getattr(dta, field)
+            expected = getattr(dti._data, field)
         tm.assert_numpy_array_equal(res, expected)
 
     def test_normalize(self, unit):
@@ -655,7 +657,7 @@ class TestDatetimeArray:
             1,
             np.int64(1),
             1.0,
-            np.timedelta64("NaT"),
+            np.timedelta64("NaT", "ns"),
             pd.Timedelta(days=2),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,

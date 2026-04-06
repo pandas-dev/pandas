@@ -55,6 +55,7 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
+from pandas._libs.tslibs.offsets import FY5253Mixin
 from pandas._libs.tslibs.timedeltas import get_unit_for_round
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
@@ -756,6 +757,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             self._check_compatible_with(other)
             other = other._ndarray
         return other
+
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
+        # Fast path: single-pass Cython using iNaT sentinel. GH#42147
+        if lib.is_scalar(value):
+            if not self._hasna:
+                return self.copy() if copy else self[:]
+            try:
+                validated = self._validate_setitem_value(value)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if copy:
+                    new_ndarray = self._ndarray.copy()
+                else:
+                    if self._readonly:
+                        raise ValueError("Cannot modify read-only array")
+                    new_ndarray = self._ndarray
+
+                arr_i8 = new_ndarray.view("i8")
+                fill_i8 = np.array(validated, dtype=new_ndarray.dtype).view("i8")[()]
+                algos.scalar_fillna_inplace(
+                    arr_i8, fill_i8, is_datetimelike=True, limit=limit
+                )
+
+                return type(self)._simple_new(new_ndarray, dtype=self.dtype)
+
+        return super().fillna(value, limit=limit, copy=copy)
 
     # ------------------------------------------------------------------
     # Additional array methods
@@ -1936,7 +1964,33 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # Otherwise we just need to check that the user-passed freq
             #  doesn't conflict with the one we already have.
             freq = to_offset(freq)
-            _validate_inferred_freq(freq, self._freq)
+            if freq != self._freq:
+                # GH#61086 freq may be equivalent but not equal (e.g.
+                # QS-FEB vs QS-MAY), so validate against the actual data.
+                if len(self) == 0:
+                    pass
+                elif len(self) == 1:
+                    if not freq.is_on_offset(self[0]):
+                        raise ValueError(
+                            f"Inferred frequency {self._freq} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
+                elif self[0] + freq == self[1]:
+                    # For standard offsets, the step is a deterministic
+                    # function of the date, so agreement on one step proves
+                    # equivalence. For Custom/FY5253 offsets, external
+                    # state (holidays, 52/53-week patterns) could cause
+                    # later steps to diverge, so we validate fully.
+                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
+                        type(self)._validate_frequency(self, freq, **validate_kwds)
+                else:
+                    raise ValueError(
+                        f"Inferred frequency {self._freq} from passed "
+                        "values does not conform to passed frequency "
+                        f"{freq.freqstr}"
+                    )
+            self._freq = freq
 
     @final
     @classmethod

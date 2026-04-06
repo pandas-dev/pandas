@@ -56,12 +56,11 @@ jobs:
 
         if [[ -n "$INPUT_VERSION" ]]; then
           PANDAS_VERSION="$INPUT_VERSION"
+          echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
         elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
-        else
-          PANDAS_VERSION=""
+          echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
         fi
-        echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
 
         if [[ "$EVENT_NAME" == "push" && -n "$PANDAS_VERSION" ]]; then
           PUBLISH_PROD="true"
@@ -125,15 +124,15 @@ jobs:
 
     - name: Upload web
       run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: false # github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/dev
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: false # github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload prod docs
       run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${{ env.PANDAS_VERSION }}
-      if: ${{ env.PUBLISH_PROD == 'true' }}
+      if: false # ${{ env.PUBLISH_PROD == 'true' }}
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
