@@ -15724,7 +15724,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#51474: block-wise axis=1 reduction avoiding expensive
                 # transpose for numpy-backed and 2D EA blocks.
                 if (
-                    name in ("sum", "prod", "min", "max", "any", "all")
+                    name in ("sum", "prod", "min", "max", "any", "all", "mean")
                     and len(df._mgr.blocks) > 1
                     and all(
                         (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
@@ -15800,7 +15800,7 @@ class DataFrame(NDFrame, OpsMixin):
             # "_UFunc_Nin2_Nout1[Literal['logical_and'], Literal[20],
             # Literal[True]]")
             ufunc = np.logical_or  # type: ignore[assignment]
-        elif name == "sum":
+        elif name in ("sum", "mean"):
             result = None
             ufunc = np.add  # type: ignore[assignment]
         elif name == "prod":
@@ -15818,7 +15818,9 @@ class DataFrame(NDFrame, OpsMixin):
         for block in self._mgr.blocks:
             vals = block.values
             if name in ("min", "max"):
-                middle = ufunc.reduce(vals, axis=0)
+                middle = ufunc.reduce(vals, axis=0)  # type: ignore[arg-type]
+            elif name == "mean":
+                middle = nanops.nansum(vals, axis=0, skipna=skipna, min_count=0)  # type: ignore[arg-type]
             elif name in ("sum", "prod"):
                 # min_count=0 here so each block produces a result;
                 # the actual min_count threshold is applied across
@@ -15831,9 +15833,9 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 result = ufunc(result, middle)
 
-        # Handle min_count for sum/prod
-        if name in ("sum", "prod"):
-            if min_count > 0 and result is not None:
+        # Handle min_count for sum/prod, and compute mean from sum/count
+        if name in ("sum", "prod", "mean"):
+            if (min_count > 0 or name == "mean") and result is not None:
                 non_null_count = np.zeros(len(self), dtype=np.intp)
                 for block in self._mgr.blocks:
                     vals = block.values
@@ -15842,11 +15844,17 @@ class DataFrame(NDFrame, OpsMixin):
                         non_null_count += vals.shape[0]
                     else:
                         non_null_count += vals.shape[0] - isna(vals).sum(axis=0)
-                null_mask = non_null_count < min_count
-                if null_mask.any():
-                    if result.dtype.kind not in "fc":
-                        result = result.astype("float64")
+                if name == "mean":
+                    null_mask = non_null_count == 0
+                    result = result.astype("float64")
+                    result[~null_mask] /= non_null_count[~null_mask]
                     result[null_mask] = np.nan
+                else:
+                    null_mask = non_null_count < min_count
+                    if null_mask.any():
+                        if result.dtype.kind not in "fc":
+                            result = result.astype("float64")
+                        result[null_mask] = np.nan
 
         assert result is not None
         res_ser = self._constructor_sliced(result, index=self.index, copy=False)
