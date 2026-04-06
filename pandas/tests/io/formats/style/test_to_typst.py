@@ -94,3 +94,33 @@ def test_concat_chain(styler):
     )"""
     )
     assert result == expected
+
+
+def test_hidden_columns(styler):
+    result = styler.hide(axis="columns", subset=["B"]).to_typst()
+    expected = dedent(
+        """\
+    #table(
+      columns: 3,
+      [], [A], [C],
+
+      [0], [0], [ab],
+      [1], [1], [cd],
+    )"""
+    )
+    assert result == expected
+
+
+def test_hidden_index_and_columns(styler):
+    result = styler.hide(axis="index").hide(axis="columns", subset=["B"]).to_typst()
+    expected = dedent(
+        """\
+    #table(
+      columns: 2,
+      [A], [C],
+
+      [0], [ab],
+      [1], [cd],
+    )"""
+    )
+    assert result == expected
