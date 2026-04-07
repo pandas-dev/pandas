@@ -19,6 +19,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed a bug in :meth:`Series.to_json` where ExtensionArray implementations of ``_values_for_json`` were ignored, sometimes producing non-serializable object arrays (:issue:`65047`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
