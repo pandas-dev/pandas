@@ -25,7 +25,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 #include <stdlib.h>
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
 #  define PANDAS_HAS_NEON
 #  include <arm_neon.h>
 #elif defined(__SSE2__) || defined(_M_X64) ||                                  \
@@ -727,6 +727,16 @@ static inline size_t fast_scan_quoted_sse(const char *data, size_t len,
 
 #endif
 
+// Unified dispatch macros so call sites don't need to repeat
+// NEON-vs-SSE2 #ifdefs.
+#ifdef PANDAS_HAS_NEON
+#  define fast_scan_simd fast_scan_neon
+#  define fast_scan_quoted_simd fast_scan_quoted_neon
+#elif defined(PANDAS_HAS_SSE2)
+#  define fast_scan_simd fast_scan_sse
+#  define fast_scan_quoted_simd fast_scan_quoted_sse
+#endif
+
 static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
@@ -1065,27 +1075,14 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-#ifdef PANDAS_HAS_NEON
+        // SIMD bulk scan: process 16 bytes at a time, copying
+        // normal characters directly without state-machine overhead.
+#if defined(PANDAS_HAS_NEON) || defined(PANDAS_HAS_SSE2)
         if (!self->delim_whitespace) {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
-            size_t skip = fast_scan_neon(buf, remaining, vdelim, vterm, vcr,
+            size_t skip = fast_scan_simd(buf, remaining, vdelim, vterm, vcr,
                                          vquote, vescape, vcomment);
-            if (skip > 0) {
-              memcpy(stream, buf, skip);
-              stream += skip;
-              slen += skip;
-              buf += skip;
-              i += skip;
-            }
-          }
-        }
-#elif defined(PANDAS_HAS_SSE2)
-        if (!self->delim_whitespace) {
-          size_t remaining = self->datalen - (i + 1);
-          if (remaining >= 16) {
-            size_t skip = fast_scan_sse(buf, remaining, vdelim, vterm, vcr,
-                                        vquote, vescape, vcomment);
             if (skip > 0) {
               memcpy(stream, buf, skip);
               stream += skip;
@@ -1124,28 +1121,14 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-        // Inside a quoted field, only quote and escape are special.
-        // Use a lighter SIMD scan that checks fewer characters.
-#ifdef PANDAS_HAS_NEON
+        // SIMD bulk scan for quoted fields: only quote and escape
+        // chars are special, so use a lighter scan.
+#if defined(PANDAS_HAS_NEON) || defined(PANDAS_HAS_SSE2)
         {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
             size_t skip =
-                fast_scan_quoted_neon(buf, remaining, vquote, vescape);
-            if (skip > 0) {
-              memcpy(stream, buf, skip);
-              stream += skip;
-              slen += skip;
-              buf += skip;
-              i += skip;
-            }
-          }
-        }
-#elif defined(PANDAS_HAS_SSE2)
-        {
-          size_t remaining = self->datalen - (i + 1);
-          if (remaining >= 16) {
-            size_t skip = fast_scan_quoted_sse(buf, remaining, vquote, vescape);
+                fast_scan_quoted_simd(buf, remaining, vquote, vescape);
             if (skip > 0) {
               memcpy(stream, buf, skip);
               stream += skip;
