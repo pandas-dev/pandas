@@ -1619,7 +1619,9 @@ function takes a number of arguments. Only the first is required.
 * ``path_or_buf``: A string path to the file to write or a file object.  If a file object it must be opened with ``newline=''``
 * ``sep`` : Field delimiter for the output file (default ",")
 * ``na_rep``: A string representation of a missing value (default '')
-* ``float_format``: Format string for floating point numbers
+* ``float_format``: Format string for floating point numbers (e.g., ``"%.2f"`` for
+  2 decimal places, or ``"%.17g"`` for full precision). See the note below about
+  floating point precision.
 * ``columns``: Columns to write (default None)
 * ``header``: Whether to write out the column names (default True)
 * ``index``: whether to write row (index) names (default True)
@@ -1637,6 +1639,38 @@ function takes a number of arguments. Only the first is required.
   appropriate (default None)
 * ``chunksize``: Number of rows to write at a time
 * ``date_format``: Format string for datetime objects
+
+.. note::
+   When writing floating point numbers to CSV, some precision may be lost due to
+   the conversion from binary floating point representation to decimal string format.
+   This is a limitation of the CSV format and IEEE 754 floating point representation,
+   not pandas specifically.
+
+   If you need to preserve full floating point precision when writing to CSV, use the
+   ``float_format`` parameter with a high-precision format string. For example, to
+   preserve up to 17 significant digits (sufficient for round-tripping 64-bit floats):
+
+   .. code-block:: python
+
+      df.to_csv("output.csv", float_format="%.17g")
+
+   The ``%.17g`` format ensures that the decimal representation has enough precision
+   to recover the original binary floating point value when read back. For more control,
+   you can also use ``float_format="{0:.15f}".format`` to specify a fixed number of
+   decimal places.
+
+   .. ipython:: python
+
+      import numpy as np
+      df = pd.DataFrame({"a": [123456789012345.6]})
+      df.to_csv("test_low_precision.csv")
+      df_low = pd.read_csv("test_low_precision.csv")
+      print(f"Original: {df['a'][0]}")
+      print(f"After round-trip (default): {df_low['a'][0]}")
+
+      df.to_csv("test_high_precision.csv", float_format="%.17g")
+      df_high = pd.read_csv("test_high_precision.csv")
+      print(f"After round-trip (high precision): {df_high['a'][0]}")
 
 Writing a formatted string
 ++++++++++++++++++++++++++
