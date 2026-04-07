@@ -648,12 +648,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-
-        td = to_timedelta(arg, unit=unit)
-        if hasattr(td, "_values"):
-            arg = offset + td._values
-        else:
-            arg = offset + td
+        arg = offset + extract_array(to_timedelta(arg, unit=unit))
     return arg
 
 
