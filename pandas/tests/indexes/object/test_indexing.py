@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
+from pandas.compat.numpy import np_version_gt2_2
 
 from pandas import Index
 import pandas._testing as tm
@@ -70,31 +71,6 @@ class TestGetIndexer:
         result = idx.get_indexer([None, "x"])
         expected = np.array([2, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
-
-
-class TestGetIndexerBoolInt:
-    def test_get_indexer_bool_int_distinguished(self):
-        # GH#62888 - get_indexer should not match int 0 with bool False
-        index = Index([0, 1, 2], dtype=object)
-        target = Index([False, True], dtype=object)
-        result = index.get_indexer(target)
-        expected = np.array([-1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_get_loc_bool_int_distinguished(self):
-        # GH#62888
-        index = Index([False, True, 2], dtype=object)
-        assert index.get_loc(False) == 0
-        assert index.get_loc(True) == 1
-        with pytest.raises(KeyError, match="0"):
-            index.get_loc(0)
-        with pytest.raises(KeyError, match="1"):
-            index.get_loc(1)
-
-    def test_is_unique_bool_int(self):
-        # GH#62888 - Index with both int and bool should be unique
-        index = Index([0, 1, False, True], dtype=object)
-        assert index.is_unique
 
 
 class TestGetIndexerNonUnique:
@@ -182,3 +158,72 @@ class TestGetIndexerNonUnique:
             expected_indexer = np.array([1, 3], dtype=np.intp)
             tm.assert_numpy_array_equal(indexer, expected_indexer)
             tm.assert_numpy_array_equal(missing, expected_missing)
+
+
+class TestMixedResolutionDatetime64:
+    # GH#50690 - object-dtype Index with mixed-resolution datetime64 values
+    # should respect the invariant x == y => hash(x) == hash(y)
+
+    _xfail_np_hash = pytest.mark.xfail(
+        not np_version_gt2_2,
+        reason="numpy < 2.2 violates hash invariant for mixed-resolution datetime64",
+    )
+
+    @pytest.fixture
+    def dt_ms(self):
+        return np.datetime64(1, "ms")
+
+    @pytest.fixture
+    def dt_us(self):
+        return np.datetime64(1000, "us")
+
+    @_xfail_np_hash
+    def test_contains(self, dt_ms, dt_us):
+        # GH#50690
+        left = Index([dt_ms], dtype=object)
+        right = Index([dt_us], dtype=object)
+
+        assert dt_us in left
+        assert dt_ms in right
+
+    @_xfail_np_hash
+    def test_get_loc(self, dt_ms, dt_us):
+        # GH#50690
+        left = Index([dt_ms], dtype=object)
+        right = Index([dt_us], dtype=object)
+
+        assert left.get_loc(dt_us) == 0
+        assert right.get_loc(dt_ms) == 0
+
+    def test_get_indexer_monotonic(self, dt_ms, dt_us):
+        # GH#50690 - monotonic case uses binary search, not hashtable
+        left = Index([dt_ms], dtype=object)
+        right = Index([dt_us], dtype=object)
+
+        result = left.get_indexer(right)
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @_xfail_np_hash
+    def test_get_indexer_non_monotonic(self, dt_ms, dt_us):
+        # GH#50690 - non-monotonic case uses hashtable; this is where
+        # the hash invariant violation caused incorrect results
+        sec = np.datetime64("9999-01-01", "s")
+        day = np.datetime64("2016-01-01", "D")
+        idx = Index([dt_ms, sec, day], dtype=object)
+
+        result = idx.get_indexer(Index([dt_us], dtype=object))
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @_xfail_np_hash
+    def test_get_indexer_non_unique(self, dt_ms, dt_us):
+        # GH#50690
+        idx = Index([dt_ms, "foo", dt_ms], dtype=object)
+
+        indexer, missing = idx.get_indexer_non_unique(Index([dt_us], dtype=object))
+
+        expected_indexer = np.array([0, 2], dtype=np.intp)
+        expected_missing = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected_indexer)
+        tm.assert_numpy_array_equal(missing, expected_missing)

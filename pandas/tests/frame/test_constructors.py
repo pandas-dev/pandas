@@ -24,6 +24,7 @@ import pytest
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -841,7 +842,7 @@ class TestDataFrameConstructors:
 
         result = DataFrame(data)
         expected = DataFrame({k: list(v) for k, v in data.items()})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_of_ranges(self):
         # GH 26356
@@ -1404,18 +1405,18 @@ class TestDataFrameConstructors:
         columns = ["num", "str"]
         result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, "a"], [2, "b"]], columns=columns)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
         result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([list(range(10)), list(range(10))])
         result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_range(self):
         # GH26342
@@ -1462,7 +1463,7 @@ class TestDataFrameConstructors:
         gen = ([i, "a"] for i in range(10))
         result = DataFrame(gen)
         expected = DataFrame({0: range(10), 1: "a"})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dicts(self):
         result = DataFrame([{}])
@@ -1555,7 +1556,7 @@ class TestDataFrameConstructors:
         idx = Index(range(3))
         df = DataFrame({"a": 0}, index=idx)
         expected = DataFrame({"a": [0, 0, 0]}, index=idx)
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_Series_copy_bug(self, float_frame):
         df = DataFrame(float_frame["A"], index=float_frame.index, columns=["A"])
@@ -2127,6 +2128,39 @@ class TestDataFrameConstructors:
         #  dtype=exp_dtype.
         tm.assert_frame_equal(df, expected)
 
+    def test_constructor_list_of_timedeltaindex_with_nat(self):
+        # GH#23985 NaT in TimedeltaIndex should not be cast to datetime64
+        tdi = pd.TimedeltaIndex(["1 Day", "NaT"])
+        result = DataFrame([tdi])
+        expected = DataFrame([[Timedelta("1 Day"), pd.NaT]], dtype="timedelta64[us]")
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_datetimeindex_with_nat(self):
+        # GH#23985
+        dti = DatetimeIndex(["2020-01-01", "NaT"])
+        result = DataFrame([dti])
+        expected = DataFrame(
+            [[Timestamp("2020-01-01"), pd.NaT]], dtype="datetime64[us]"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_constructor_list_of_ea_preserves_dtype(self):
+        # GH#49593 uniform EA dtypes should be preserved
+        arrs = [
+            pd.array([1, 2, 3], dtype="int64[pyarrow]"),
+            pd.array([4, 5, 6], dtype="int64[pyarrow]"),
+        ]
+        result = DataFrame(arrs)
+        expected = DataFrame(
+            {
+                0: pd.array([1, 4], dtype="int64[pyarrow]"),
+                1: pd.array([2, 5], dtype="int64[pyarrow]"),
+                2: pd.array([3, 6], dtype="int64[pyarrow]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_for_list_with_dtypes(self, using_infer_string):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
@@ -2299,10 +2333,13 @@ class TestDataFrameConstructors:
     def test_construct_from_1item_list_of_categorical(self):
         # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
         #  Categorical special case
-        # ndim != 1
+        # pre-3.1 this lost the Categorical dtype, going through object
+        #  inference; GH#49593 preserves uniform EA dtypes
         cat = Categorical(list("abc"))
         df = DataFrame([cat])
-        expected = DataFrame([cat.astype(object)])
+        expected = DataFrame(
+            {idx: Categorical([val], dtype=cat.dtype) for idx, val in enumerate(cat)}
+        )
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):

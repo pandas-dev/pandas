@@ -26,7 +26,7 @@ from typing import (
 import warnings
 import zipfile
 
-from pandas._config import config
+from pandas._config.config import _global_config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -212,6 +212,10 @@ def read_excel(
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
@@ -1175,7 +1179,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = config.get_option(f"io.excel.{ext}.writer")
+                    engine = _global_config["io"]["excel"][ext]["writer"]
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1619,7 +1623,7 @@ class ExcelFile:
                     )
 
             if engine is None:
-                engine = config.get_option(f"io.excel.{ext}.reader")
+                engine = _global_config["io"]["excel"][ext]["reader"]
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="reader")
 

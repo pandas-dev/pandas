@@ -296,6 +296,12 @@ class TestTSPlot:
         ser = ser.iloc[[0, 3, 5, 6]]
         _check_plot_works(ser.plot)
 
+    def test_line_plot_descending_datetime_index(self):
+        # GH#64819 - descending DatetimeIndex (negative inferred freq) should plot
+        idx = date_range("2020-01-03", periods=3, freq="-1D")
+        df = DataFrame([0.5, 1, 2], index=idx)
+        _check_plot_works(df.plot)
+
     def test_fake_inferred_business(self):
         _, ax = mpl.pyplot.subplots()
         rng = date_range("2001-1-1", "2001-1-10")

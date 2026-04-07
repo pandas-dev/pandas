@@ -144,7 +144,7 @@ class TestNLargestNSmallest:
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_nlargest_n_duplicate_index(self, n, order, request):
+    def test_nlargest_n_duplicate_index(self, n, order):
         # GH#13412
 
         df = pd.DataFrame(
@@ -157,16 +157,6 @@ class TestNLargestNSmallest:
 
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False, kind="stable").head(n)
-        if (order == ["a"] and n in (1, 2, 3, 4)) or ((order == ["a", "b"]) and n == 5):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=(
-                        "pandas default unstable sorting of duplicates"
-                        "issue with numpy>=1.25 with AVX instructions"
-                    ),
-                    strict=False,
-                )
-            )
         tm.assert_frame_equal(result, expected)
 
     def test_nlargest_duplicate_keep_all_ties(self):
