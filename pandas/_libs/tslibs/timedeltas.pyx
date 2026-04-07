@@ -2341,30 +2341,23 @@ class Timedelta(_Timedelta):
     @cython.cdivision(True)
     def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, nanos
             ndarray[int64_t] arr
-            _Timedelta td_ns
 
-        unit = get_unit_for_round(freq, self._creso)
-        if unit == 0:
-            unit = get_unit_for_round(freq, NPY_FR_ns)
-            if unit == 0:
+        from pandas._libs.tslibs.offsets import to_offset
+
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
                 raise ValueError("Division by zero in rounding")
-            td_ns = (<_Timedelta>self)._as_creso(NPY_FR_ns, round_ok=True)
-            arr = np.array([td_ns._value], dtype="i8")
-            try:
-                result = round_nsint64(arr, mode, unit)[0]
-            except OverflowError as err:
-                raise OutOfBoundsTimedelta(
-                    f"Cannot round {self} to freq={freq} without overflow"
-                ) from err
-            return (<_Timedelta>Timedelta._from_value_and_reso(
-                result, NPY_FR_ns
-            ))._as_creso((<_Timedelta>self)._creso, round_ok=True)
+
+            # e.g. self.unit == "s" and sub-second freq
+            return self
 
         arr = np.array([self._value], dtype="i8")
         try:
-            result = round_nsint64(arr, mode, unit)[0]
+            result = round_nsint64(arr, mode, nanos)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
                 f"Cannot round {self} to freq={freq} without overflow"
