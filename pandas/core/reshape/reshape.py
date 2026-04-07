@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._config.config import _global_config
 
+from pandas._libs import lib
 import pandas._libs.reshape as libreshape
 from pandas.errors import (
     Pandas4Warning,
@@ -219,8 +220,7 @@ class _Unstacker:
         ):
             return True
         indexer, _ = self._indexer_and_to_sort
-        nvalues = len(self.index)
-        return len(indexer) == nvalues and (indexer == np.arange(nvalues)).all()
+        return lib.is_range_indexer(indexer, len(self.index))
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         if self._indexer_is_identity:
