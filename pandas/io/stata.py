@@ -2130,6 +2130,10 @@ def read_stata(
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.dta``.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
         By file-like object, we refer to objects with a ``read()`` method,
@@ -2717,7 +2721,7 @@ class StataWriter(StataParser):
         # Check date conversion, and fix key if needed
         if self._convert_dates:
             for c, o in zip(columns, original_columns, strict=True):
-                if c != o:
+                if c != o and o in self._convert_dates:
                     self._convert_dates[c] = self._convert_dates[o]
                     del self._convert_dates[o]
 

@@ -313,13 +313,10 @@ def test_from_tick_reso():
     assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Day()
-    msg = (
-        "Value must be Timedelta, string, integer, float, timedelta "
-        "or convertible, not Day"
-    )
-    with pytest.raises(ValueError, match=msg):
-        # GH#41943 Day is no longer a Tick
-        Timedelta(tick)
+    td = Timedelta(tick)
+
+    assert td == Timedelta(days=1)
+    assert td.unit == "s"
 
 
 def test_construction():
@@ -543,9 +540,10 @@ def test_construction_out_of_bounds_td64ns(val, unit):
         td.as_unit("ns")
 
     # But just back in bounds and we are OK
-    assert Timedelta(td64 - 1) == td64 - 1
+    one = np.timedelta64(1, unit)
+    assert Timedelta(td64 - one) == td64 - one
 
-    td64 *= -1
+    td64 = np.timedelta64(-val, unit)
     assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
     td2 = Timedelta(td64)
@@ -554,7 +552,7 @@ def test_construction_out_of_bounds_td64ns(val, unit):
         td2.as_unit("ns")
 
     # But just back in bounds and we are OK
-    assert Timedelta(td64 + 1) == td64 + 1
+    assert Timedelta(td64 + one) == td64 + one
 
 
 @pytest.mark.parametrize(
@@ -572,7 +570,8 @@ def test_construction_out_of_bounds_td64s(val, unit):
         Timedelta(td64)
 
     # But just back in bounds and we are OK
-    assert Timedelta(td64 - 10**9) == td64 - 10**9
+    offset = np.timedelta64(10**9, unit)
+    assert Timedelta(td64 - offset) == td64 - offset
 
 
 @pytest.mark.parametrize(

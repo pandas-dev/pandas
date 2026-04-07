@@ -352,7 +352,7 @@ SciPy sparse matrix from/to SparseDataFrame
 pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
 See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
 
-All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
+All sparse formats are supported, but matrices that are not in ``COOrdinate`` format will be converted, copying data as needed.
 
 .. code-block:: python
 

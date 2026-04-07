@@ -1928,18 +1928,18 @@ def test_str_fullmatch(pat, case, na, exp):
 
 
 @pytest.mark.parametrize(
-    "sub, start, end, exp, exp_type",
+    "sub, start, end, exp",
     [
-        ["ab", 0, None, [0, None], pa.int32()],
-        ["bc", 1, 3, [1, None], pa.int64()],
-        ["ab", 1, 3, [-1, None], pa.int64()],
-        ["ab", -3, -3, [-1, None], pa.int64()],
+        ["ab", 0, None, [0, None]],
+        ["bc", 1, 3, [1, None]],
+        ["ab", 1, 3, [-1, None]],
+        ["ab", -3, -3, [-1, None]],
     ],
 )
-def test_str_find(sub, start, end, exp, exp_type):
+def test_str_find(sub, start, end, exp):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
-    expected = pd.Series(exp, dtype=ArrowDtype(exp_type))
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2420,10 +2420,8 @@ def test_unsupported_dt(data):
         ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
-        ["dayofweek", 0],
         ["weekday", 0],
         ["day_of_year", 2],
-        ["dayofyear", 2],
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
@@ -2453,7 +2451,13 @@ def test_dt_properties(prop, expected):
         ],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
-    result = getattr(ser.dt, prop)
+    if prop == "weekday":
+        # GH#12816
+        warn = Pandas4Warning
+    else:
+        warn = None
+    with tm.assert_produces_warning(warn, match="weekday"):
+        result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
         exp_type = pa.date32()
@@ -2542,7 +2546,7 @@ def test_dt_is_quarter_start_end():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["days_in_month", "daysinmonth"])
+@pytest.mark.parametrize("method", ["days_in_month"])
 def test_dt_days_in_month(method):
     ser = pd.Series(
         [

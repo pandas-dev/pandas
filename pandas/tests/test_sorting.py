@@ -7,6 +7,7 @@ import pytest
 
 from pandas import (
     NA,
+    Categorical,
     DataFrame,
     MultiIndex,
     Series,
@@ -149,6 +150,83 @@ class TestSorting:
         keys = [[np.nan] * 5 + list(range(100)) + [np.nan] * 5]
         result = lexsort_indexer(keys, orders=order, na_position=na_position)
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
+
+    @pytest.mark.parametrize("order", [True, False])
+    @pytest.mark.parametrize("na_position", ["last", "first"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            np.float64,
+            np.float32,
+            np.int64,
+            np.uint64,
+            np.bool_,
+        ],
+    )
+    def test_lexsort_indexer_numeric_dtypes(self, dtype, order, na_position):
+        # GH#15389 - fast path for numeric dtypes should match Categorical path
+
+        if dtype == np.bool_:
+            key1 = np.array([True, False, True, False, True])
+        else:
+            key1 = np.array([3, 1, 5, 2, 4], dtype=dtype)
+        key2 = np.arange(len(key1), dtype=np.int64)
+        keys = [key1, key2]
+
+        result = lexsort_indexer(keys, orders=order, na_position=na_position)
+
+        # Compare with Categorical-based reference implementation
+        labels = []
+        for key, ord_ in zip(reversed(keys), [order, order], strict=True):
+            cat = Categorical(key, ordered=True)
+            codes = cat.codes
+            num_categories = len(cat.categories)
+            mask = codes == -1
+            if na_position == "last" and mask.any():
+                codes = np.where(mask, num_categories, codes)
+            if not ord_:
+                codes = np.where(mask, codes, num_categories - codes - 1)
+            labels.append(codes)
+        expected = np.lexsort(labels)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("order", [True, False])
+    @pytest.mark.parametrize("na_position", ["last", "first"])
+    def test_lexsort_indexer_float_with_nan(self, order, na_position):
+        # GH#15389 - float fast path must handle NaN placement correctly
+
+        key1 = np.array([3.0, np.nan, 1.0, np.nan, 2.0])
+        key2 = np.arange(len(key1), dtype=np.float64)
+        keys = [key1, key2]
+
+        result = lexsort_indexer(keys, orders=order, na_position=na_position)
+
+        labels = []
+        for key, ord_ in zip(reversed(keys), [order, order], strict=True):
+            cat = Categorical(key, ordered=True)
+            codes = cat.codes
+            num_categories = len(cat.categories)
+            mask = codes == -1
+            if na_position == "last" and mask.any():
+                codes = np.where(mask, num_categories, codes)
+            if not ord_:
+                codes = np.where(mask, codes, num_categories - codes - 1)
+            labels.append(codes)
+        expected = np.lexsort(labels)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_lexsort_indexer_int_descending_overflow(self):
+        # GH#15389 - int64 min value must not overflow during descending sort
+        key1 = np.array([2, np.iinfo(np.int64).min, 1, 0], dtype=np.int64)
+        key2 = np.arange(len(key1), dtype=np.int64)
+
+        result = lexsort_indexer([key1, key2], orders=False, na_position="last")
+
+        # Descending: 2, 1, 0, int64_min
+        expected = np.array([0, 2, 3, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "ascending, na_position, exp",

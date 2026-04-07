@@ -24,6 +24,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     IndexSlice,
@@ -61,15 +62,29 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     tm.assert_frame_equal(df.notna(), ~expected)
 
 
-def test_loc_dtype():
-    # GH 60600
+@pytest.mark.parametrize("key", [[1, 2], slice(1, 3)])
+def test_loc_dtype(key):
+    # GH 60600, # GH 63071
     df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
-    result = df.loc[0, [1, 2]]
+    result = df.loc[0, key]
     expected = Series([1.0, 2.0], index=[1, 2], dtype=float, name=0)
     tm.assert_series_equal(result, expected)
 
 
 class TestLoc:
+    def test_loc_dateoffset_columns(self):
+        # GH#20948 - .loc with DateOffset columns
+        offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+        df = DataFrame(index=[0, 1], columns=Index(offsets))
+
+        # read access
+        result = df.loc[0, offsets[0]]
+        assert result is np.nan
+
+        # write access
+        df.loc[0, offsets[0]] = 1
+        assert df.loc[0, offsets[0]] == 1
+
     def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
         df = DataFrame(["1", "2", None], columns=["a"], dtype=object)
@@ -3130,12 +3145,15 @@ def test_loc_getitem_multiindex_tuple_level():
     #  of labels
     result = df.loc[:, (lev1[0], lev2[0], lev3[0])]
 
-    # TODO: i think this actually should drop levels
-    expected = df.iloc[:, :1]
-    tm.assert_frame_equal(result, expected)
+    # GH#18631 all three levels are scalar-indexed so all are dropped;
+    # the tuple (0, 1) is a scalar label in level y, not a sequence of labels.
+    # df.loc[:, full_key] should match df[full_key]
+    expected_loc = df[(lev1[0], lev2[0], lev3[0])]
+    tm.assert_series_equal(result, expected_loc)
 
+    expected_xs = df.iloc[:, :1]
     alt = df.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=1)
-    tm.assert_frame_equal(alt, expected)
+    tm.assert_frame_equal(alt, expected_xs)
 
     # same thing on a Series
     ser = df.iloc[0]

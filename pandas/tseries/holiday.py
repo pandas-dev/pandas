@@ -334,7 +334,7 @@ class Holiday:
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
                 np.isin(
-                    holiday_dates.dayofweek,
+                    holiday_dates.day_of_week,
                     self.days_of_week,
                 ).ravel()
             ]

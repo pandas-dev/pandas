@@ -172,7 +172,8 @@ def apply_wraps(func):
 
         result = func(self, other)
 
-        result2 = Timestamp(result).as_unit(other.unit)
+        result = Timestamp(result)
+        result2 = result.as_unit(other.unit)
         if result == result2:
             # i.e. the conversion is non-lossy, not the case for e.g.
             #  test_milliseconds_combination
@@ -317,8 +318,11 @@ _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
 
 cdef _determine_offset(kwds):
     if not kwds:
-        # GH 45643/45890: (historically) defaults to 1 day
-        return timedelta(days=1), False
+        # GH 45643, 45890: (historically) defaults to 1 day
+        # GH 61862: changed from timedelta to relativedelta for DST consistency
+        from dateutil.relativedelta import relativedelta
+
+        return relativedelta(days=1), True
 
     if "millisecond" in kwds:
         raise NotImplementedError(
@@ -2507,7 +2511,7 @@ cdef class BusinessDay(BusinessMixin):
     normalize : bool, default False
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
-        Time offset to apply.
+        Additional time offset applied after the business day calculation.
 
     See Also
     --------
@@ -3110,8 +3114,6 @@ cdef class BusinessHour(BusinessMixin):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
-        # used for detecting edge condition
-        nanosecond = getattr(other, "nanosecond", 0)
         # reset timezone and nanosecond
         # other may be a Timestamp, thus not use replace
         other = datetime(
@@ -3188,11 +3190,7 @@ cdef class BusinessHour(BusinessMixin):
             while bhour_remain != timedelta(0):
                 # business hour left in this business time interval
                 bhour = self._next_opening_time(other) - other
-                if (
-                    bhour_remain > bhour
-                    or bhour_remain == bhour
-                    and nanosecond != 0
-                ):
+                if bhour_remain >= bhour:
                     # finish adjusting if possible
                     other += bhour_remain
                     bhour_remain = timedelta(0)
@@ -5040,7 +5038,9 @@ cdef class Week(SingleConstructorOffset):
     Weekly offset.
 
     This offset represents a duration of one or more weeks. It can optionally
-    be anchored to a specific day of the week.
+    be anchored to a specific day of the week, which represents the last day
+    of the weekly period. For example, ``W-MON`` produces weekly periods that
+    end on Monday (and start on Tuesday).
 
     Attributes
     ----------

@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
 
@@ -1132,7 +1131,7 @@ class TestDataFrameIndexing:
         df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
         df.loc[:, "D"] = np.array([4 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
-        df["F"] = np.timedelta64("NaT")
+        df["F"] = np.timedelta64("NaT", "ns")
         df.loc[df.index[:-1], "F"] = np.array([6 * one_hour] * 3, dtype="m8[ns]")
         df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3, unit="ns")
         df["H"] = np.datetime64("NaT")
@@ -1190,22 +1189,30 @@ class TestDataFrameIndexing:
             df[df > 0.3] = 1
 
     def test_type_error_multiindex(self):
-        # See gh-12218
+        # See gh-12218, GH#26511
         mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index(range(2), name="i")
         )
-        with pytest.raises(InvalidIndexError, match="slice"):
-            dg[:, 0]
 
+        # GH#26511: dg[:, 0] now works, selecting sub-column 0 across all
+        # top-level columns, with the selected level dropped
         index = Index(range(2), name="i")
+        result = dg[:, 0]
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=Index(["x", "y"]),
+            index=index,
+        )
+        tm.assert_frame_equal(result, expected)
+
         columns = MultiIndex(
             levels=[["x", "y"], [0, 1]], codes=[[0, 1], [0, 0]], names=[None, "c"]
         )
-        expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
+        expected_loc = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
 
         result = dg.loc[:, (slice(None), 0)]
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected_loc)
 
         name = ("x", 0)
         index = Index(range(2), name="i")
@@ -1407,11 +1414,8 @@ class TestDataFrameIndexing:
         indexer_tuple = namedtuple("Indexer", df.index.names)
         idxr = indexer_tuple(first="A", second=["a", "b"])
         result = df.loc[idxr, :]
-        expected = DataFrame(
-            index=MultiIndex.from_tuples(
-                [("A", "a"), ("A", "b")], names=["first", "second"]
-            )
-        )
+        # GH#18631 scalar-indexed level "first" is dropped
+        expected = DataFrame(index=Index(["a", "b"], name="second"))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("indexer", [["a"], "a"])
@@ -1917,7 +1921,7 @@ class TestSetitemValidation:
         "1.0",
         pd.NaT,
         np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.timedelta64("NaT", "ns"),
     ]
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
