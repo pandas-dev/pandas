@@ -575,14 +575,6 @@ class StructAccessor(ArrowAccessor):
 
                 # If this field is also a struct, recurse
                 if pa.types.is_struct(field_arr.type):
-                    # Create a temporary series to recurse into
-                    temp_series = Series(
-                        field_arr,
-                        dtype=ArrowDtype(field_arr.type),
-                        index=self._data.index,
-                        name=full_name,
-                    )
-                    # Get accessor for nested struct and recurse
                     results.extend(
                         _get_fields_recursive(
                             field_arr,
