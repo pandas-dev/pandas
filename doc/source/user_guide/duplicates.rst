@@ -202,3 +202,17 @@ operations.
    propagate the ``allows_duplicate_labels`` value. In future versions
    it is expected that every method taking or returning one or more
    DataFrame or Series objects will propagate ``allows_duplicate_labels``.
+Practical Example: Removing Duplicate Rows
+
+In real-world datasets, duplicate rows are common and often need to be removed before analysis. The example below demonstrates how to remove duplicate rows using ``drop_duplicates``.
+
+.. ipython:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame({
+       "A": [1, 1, 2],
+       "B": [3, 3, 4]
+   })
+
+   df.drop_duplicates()
