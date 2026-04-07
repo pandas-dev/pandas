@@ -131,6 +131,157 @@ def test_struct_accessor_explode():
     tm.assert_frame_equal(actual, expected)
 
 
+def test_struct_accessor_explode_recursive():
+    # Test for issue #64915 - recursive flattening of nested structs
+    index = Index([0, 1, 2])
+    ser = Series(
+        [
+            {"version": 1, "project": "pandas", "bar": {"a": [1, 2, 3], "b": 10}},
+            {"version": 2, "project": "pandas", "bar": {"a": [1, 2], "b": 20}},
+            {"version": 1, "project": "numpy", "bar": {"a": [1], "b": 30}},
+        ],
+        dtype=ArrowDtype(
+            pa.struct(
+                [
+                    ("version", pa.int64()),
+                    ("project", pa.string()),
+                    (
+                        "bar",
+                        pa.struct(
+                            [
+                                ("a", pa.list_(pa.int64())),
+                                ("b", pa.int64()),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        ),
+        index=index,
+    )
+
+    # Test recursive=True flattens nested structs
+    actual = ser.struct.explode(recursive=True)
+    expected = DataFrame(
+        {
+            "version": Series([1, 2, 1], index=index, dtype=ArrowDtype(pa.int64())),
+            "project": Series(
+                ["pandas", "pandas", "numpy"], index=index, dtype=ArrowDtype(pa.string())
+            ),
+            "bar_a": Series(
+                [[1, 2, 3], [1, 2], [1]], index=index, dtype=ArrowDtype(pa.list_(pa.int64()))
+            ),
+            "bar_b": Series([10, 20, 30], index=index, dtype=ArrowDtype(pa.int64())),
+        },
+    )
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_struct_accessor_explode_recursive_separator():
+    # Test custom separator
+    index = Index([0, 1])
+    ser = Series(
+        [
+            {"bar": {"a": 1, "b": "x"}},
+            {"bar": {"a": 2, "b": "y"}},
+        ],
+        dtype=ArrowDtype(
+            pa.struct(
+                [
+                    (
+                        "bar",
+                        pa.struct(
+                            [
+                                ("a", pa.int64()),
+                                ("b", pa.string()),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        ),
+        index=index,
+    )
+
+    # Default separator "_"
+    actual_default = ser.struct.explode(recursive=True)
+    assert list(actual_default.columns) == ["bar_a", "bar_b"]
+
+    # Custom separator "."
+    actual_dot = ser.struct.explode(recursive=True, separator=".")
+    assert list(actual_dot.columns) == ["bar.a", "bar.b"]
+
+    # Custom separator "/"
+    actual_slash = ser.struct.explode(recursive=True, separator="/")
+    assert list(actual_slash.columns) == ["bar/a", "bar/b"]
+
+
+def test_struct_accessor_explode_recursive_deeply_nested():
+    # Test deeply nested structs (3 levels)
+    index = Index([0, 1])
+    ser = Series(
+        [
+            {"a": {"b": {"c": 1, "d": "x"}}},
+            {"a": {"b": {"c": 2, "d": "y"}}},
+        ],
+        dtype=ArrowDtype(
+            pa.struct(
+                [
+                    (
+                        "a",
+                        pa.struct(
+                            [
+                                (
+                                    "b",
+                                    pa.struct(
+                                        [
+                                            ("c", pa.int64()),
+                                            ("d", pa.string()),
+                                        ]
+                                    ),
+                                ),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        ),
+        index=index,
+    )
+
+    actual = ser.struct.explode(recursive=True)
+    expected = DataFrame(
+        {
+            "a_b_c": Series([1, 2], index=index, dtype=ArrowDtype(pa.int64())),
+            "a_b_d": Series(["x", "y"], index=index, dtype=ArrowDtype(pa.string())),
+        },
+    )
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_struct_accessor_explode_recursive_empty():
+    # Test recursive explode on empty series
+    ser = Series(
+        [],
+        dtype=ArrowDtype(
+            pa.struct(
+                [
+                    ("a", pa.int64()),
+                    (
+                        "b",
+                        pa.struct([("c", pa.string())]),
+                    ),
+                ]
+            )
+        ),
+    )
+
+    actual = ser.struct.explode(recursive=True)
+    expected = DataFrame(index=Index([], dtype="object"))
+    assert list(actual.columns) == []
+    tm.assert_frame_equal(actual, expected)
+
+
 @pytest.mark.parametrize(
     "invalid",
     [

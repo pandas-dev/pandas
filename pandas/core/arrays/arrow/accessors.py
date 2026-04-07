@@ -477,12 +477,18 @@ class StructAccessor(ArrowAccessor):
             name=name,
         )
 
-    def explode(self) -> DataFrame:
+    def explode(self, recursive: bool = False, separator: str = "_") -> DataFrame:
         """
         Extract all child fields of a struct as a DataFrame.
 
-        Each child field of the struct becomes a column in the resulting
-        DataFrame, with column names matching the struct field names.
+        Parameters
+        ----------
+        recursive : bool, default False
+            If True, recursively flatten nested struct fields, joining
+            field names with the specified separator.
+        separator : str, default "_"
+            The separator to use when joining nested field names.
+            Only used when ``recursive=True``.
 
         Returns
         -------
@@ -512,10 +518,95 @@ class StructAccessor(ArrowAccessor):
         0        1  pandas
         1        2  pandas
         2        1   numpy
-        """
-        from pandas import concat
 
-        pa_type = self._pa_array.type
-        return concat(
-            [self.field(i) for i in range(pa_type.num_fields)], axis="columns"
+        For nested structs, use ``recursive=True``:
+
+        >>> nested_type = pa.struct([
+        ...     ("version", pa.int64()),
+        ...     ("bar", pa.struct([("a", pa.int64()), ("b", pa.string())])),
+        ... ])
+        >>> s_nested = pd.Series(
+        ...     [
+        ...         {"version": 1, "bar": {"a": 10, "b": "x"}},
+        ...         {"version": 2, "bar": {"a": 20, "b": "y"}},
+        ...     ],
+        ...     dtype=pd.ArrowDtype(nested_type),
+        ... )
+        >>> s_nested.struct.explode(recursive=True)
+           version  bar_a bar_b
+        0        1     10     x
+        1        2     20     y
+        """
+        from pandas import (
+            ArrowDtype,
+            DataFrame,
+            Series,
+            concat,
         )
+
+        if not recursive:
+            pa_type = self._pa_array.type
+            return concat(
+                [self.field(i) for i in range(pa_type.num_fields)], axis="columns"
+            )
+
+        # Recursive flattening
+        def _get_fields_recursive(
+            pa_array: pa.ChunkedArray | pa.Array,
+            prefix: str = "",
+        ) -> list[tuple[str, Series]]:
+            """
+            Recursively get all fields from struct type.
+
+            Returns a list of (name, series) tuples where name is the
+            fully qualified field name (with prefix) and series is the
+            extracted data.
+            """
+            results: list[tuple[str, Series]] = []
+            pa_type = pa_array.type
+
+            for i in range(pa_type.num_fields):
+                field = pa_type.field(i)
+                field_name = field.name
+                full_name = f"{prefix}{separator}{field_name}" if prefix else field_name
+
+                # Extract the field data
+                field_arr = pc.struct_field(pa_array, i)
+
+                # If this field is also a struct, recurse
+                if pa.types.is_struct(field_arr.type):
+                    # Create a temporary series to recurse into
+                    temp_series = Series(
+                        field_arr,
+                        dtype=ArrowDtype(field_arr.type),
+                        index=self._data.index,
+                        name=full_name,
+                    )
+                    # Get accessor for nested struct and recurse
+                    results.extend(
+                        _get_fields_recursive(
+                            field_arr,
+                            prefix=full_name if prefix else field_name,
+                        )
+                    )
+                else:
+                    results.append(
+                        (
+                            full_name,
+                            Series(
+                                field_arr,
+                                dtype=ArrowDtype(field_arr.type),
+                                index=self._data.index,
+                                name=full_name,
+                            ),
+                        )
+                    )
+
+            return results
+
+        fields = _get_fields_recursive(self._pa_array)
+        if not fields:
+            return DataFrame(index=self._data.index)
+
+        names, series_list = zip(*fields)
+        return concat(series_list, axis="columns", keys=names)
