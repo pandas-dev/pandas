@@ -2346,6 +2346,7 @@ class Timedelta(_Timedelta):
 
         from pandas._libs.tslibs.offsets import to_offset
 
+        freq_arg = freq
         freq = to_offset(freq, is_period=False)
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
@@ -2360,7 +2361,7 @@ class Timedelta(_Timedelta):
             result = round_nsint64(arr, mode, nanos)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
-                f"Cannot round {self} to freq={freq} without overflow"
+                f"Cannot round {self} to freq={freq_arg} without overflow"
             ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 
