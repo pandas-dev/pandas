@@ -1,3 +1,4 @@
+cimport cython
 from datetime import (
     timedelta,
     timezone,
@@ -239,6 +240,25 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 0
     elif is_zoneinfo(tz):
         tz_py = _ZoneInfo(tz.key)
+        offsets = set()
+        if hasattr(tz_py, "_ttinfos"):
+            for info in tz_py._ttinfos:
+                offsets.add(int(info.utcoff.total_seconds()))
+        if hasattr(tz_py, "_tti_before"):
+            offsets.add(int(tz_py._tti_before.utcoff.total_seconds()))
+        if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
+            tz_after = tz_py._tz_after
+            if hasattr(tz_after, "std"):
+                offsets.add(int(tz_after.std.utcoff.total_seconds()))
+                offsets.add(int(tz_after.dst.utcoff.total_seconds()))
+            elif hasattr(tz_after, "utcoff"):
+                offsets.add(int(tz_after.utcoff.total_seconds()))
+                if hasattr(tz_after, "dstoff"):
+                    offsets.add(
+                        int((tz_after.utcoff + tz_after.dstoff).total_seconds())
+                    )
+        if len(offsets) == 1:
+            return 1
         has_future_dst = (
             hasattr(tz_py, "_tz_after")
             and tz_py._tz_after is not None
@@ -267,6 +287,8 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i
@@ -347,6 +369,26 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
 
     tz_py = _ZoneInfo(tz.key)
+
+    offsets = set()
+    if hasattr(tz_py, "_ttinfos"):
+        offsets.update(int(info.utcoff.total_seconds()) for info in tz_py._ttinfos)
+    if hasattr(tz_py, "_tti_before"):
+        offsets.add(int(tz_py._tti_before.utcoff.total_seconds()))
+    if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
+        tz_after = tz_py._tz_after
+        if hasattr(tz_after, "std"):
+            offsets.add(int(tz_after.std.utcoff.total_seconds()))
+            offsets.add(int(tz_after.dst.utcoff.total_seconds()))
+        elif hasattr(tz_after, "utcoff"):
+            offsets.add(int(tz_after.utcoff.total_seconds()))
+            if hasattr(tz_after, "dstoff"):
+                offsets.add(int((tz_after.utcoff + tz_after.dstoff).total_seconds()))
+    if len(offsets) == 1:
+        fixed_offset_seconds = offsets.pop()
+        trans = np.array([NPY_NAT + 1], dtype=np.int64)
+        deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
+        return trans, deltas, True
 
     has_future_dst = (
         hasattr(tz_py, "_tz_after")
@@ -539,7 +581,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
 
 def tz_standardize(tz: tzinfo) -> tzinfo:
     """
-    If the passed tz is a pytz timezone object, "normalize" it to the a
+    If the passed tz is a pytz timezone object, "normalize" it to a
     consistent version
 
     Parameters
