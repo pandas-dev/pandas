@@ -1538,9 +1538,10 @@ default 'raise'
     def _wrap_pa_str_result(pa_arr):
         """Wrap a pyarrow StringArray in an ArrowStringArray with StringDtype."""
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringArray
 
-        return ArrowStringArray(pa_arr, dtype=StringDtype(na_value=np.nan))
+        dtype = StringDtype(na_value=np.nan)
+        cls = dtype.construct_array_type()
+        return cls(pa_arr, dtype=dtype)
 
     @property
     def time(self) -> npt.NDArray[np.object_]:
