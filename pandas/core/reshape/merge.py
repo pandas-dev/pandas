@@ -2030,7 +2030,7 @@ class _MergeOperation:
 
 
 def _maybe_promote_to_rangeindex(idx: Index) -> Index:
-    if idx.is_monotonic_increasing and idx.is_unique and idx.dtype.kind in "iu":
+    if idx.dtype.kind in "iu" and idx.is_monotonic_increasing and idx.is_unique:
         values = idx._values
         if isinstance(values, np.ndarray):
             result = maybe_sequence_to_range(values)
