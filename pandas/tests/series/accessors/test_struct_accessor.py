@@ -304,14 +304,15 @@ def test_struct_accessor_explode_recursive_bytes_field():
             ),
         ]
     )
-    ser = Series(
+    # Use pa.array to construct data with bytes keys matching the schema
+    data = pa.array(
         [
-            {"bytes_field": 1, "nested": {b"bytes_nested": "x"}},
-            {"bytes_field": 2, "nested": {b"bytes_nested": "y"}},
+            {b"bytes_field": 1, "nested": {b"bytes_nested": "x"}},
+            {b"bytes_field": 2, "nested": {b"bytes_nested": "y"}},
         ],
-        dtype=ArrowDtype(arrow_type),
-        index=index,
+        type=arrow_type,
     )
+    ser = Series(data, dtype=ArrowDtype(arrow_type), index=index)
 
     actual = ser.struct.explode(recursive=True)
     # bytes field names should be decoded to str
@@ -325,6 +326,20 @@ def test_struct_accessor_explode_recursive_bytes_field():
         },
     )
     tm.assert_frame_equal(actual, expected)
+
+
+def test_struct_accessor_explode_recursive_separator_validation():
+    # Test that separator parameter is validated
+    ser = Series(
+        [{"a": {"b": 1}}],
+        dtype=ArrowDtype(pa.struct([("a", pa.struct([("b", pa.int64())]))])),
+    )
+
+    with pytest.raises(TypeError, match="'separator' must be a string"):
+        ser.struct.explode(recursive=True, separator=None)
+
+    with pytest.raises(TypeError, match="'separator' must be a string"):
+        ser.struct.explode(recursive=True, separator=123)
 
 
 @pytest.mark.parametrize(

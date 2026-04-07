@@ -546,8 +546,17 @@ class StructAccessor(ArrowAccessor):
 
         if not recursive:
             pa_type = self._pa_array.type
+            if pa_type.num_fields == 0:
+                return DataFrame(index=self._data.index)
             return concat(
                 [self.field(i) for i in range(pa_type.num_fields)], axis="columns"
+            )
+
+        # Validate separator
+        if not isinstance(separator, str):
+            raise TypeError(
+                f"'separator' must be a string when recursive=True, got "
+                f"{type(separator).__name__}"
             )
 
         # Recursive flattening
@@ -618,13 +627,11 @@ class StructAccessor(ArrowAccessor):
                     names.append(full_name)
             return names
 
-        # Get the flattened field names from the type (handles empty case)
-        pa_type = self._pa_array.type
-        all_field_names = _get_field_names_recursive(pa_type)
-
         fields = _get_fields_recursive(self._pa_array)
         if not fields:
-            # Empty series - return DataFrame with correct columns but no rows
+            # No leaf fields - compute column names from schema for empty result
+            pa_type = self._pa_array.type
+            all_field_names = _get_field_names_recursive(pa_type)
             return DataFrame(index=self._data.index, columns=all_field_names)
 
         _, series_list = zip(*fields)
