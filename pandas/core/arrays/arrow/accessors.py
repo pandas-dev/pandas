@@ -608,5 +608,5 @@ class StructAccessor(ArrowAccessor):
         if not fields:
             return DataFrame(index=self._data.index)
 
-        names, series_list = zip(*fields)
-        return concat(series_list, axis="columns", keys=names)
+        _, series_list = zip(*fields)
+        return concat(series_list, axis="columns")
