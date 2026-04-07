@@ -5,6 +5,7 @@ from io import (
     StringIO,
 )
 import json
+from numbers import Integral
 import os
 import sys
 import uuid
@@ -31,8 +32,74 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
 
 from pandas.io.json import ujson_dumps
+
+
+class _JSONDtype(ExtensionDtype):
+    name = "json-ext"
+    type = object
+    kind = "O"
+    na_value = None
+
+    @classmethod
+    def construct_array_type(cls):
+        return _JSONArray
+
+
+class _JSONArray(ExtensionArray):
+    def __init__(self, data) -> None:
+        self._data = list(data)
+
+    @property
+    def dtype(self):
+        return _JSONDtype()
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, item):
+        if isinstance(item, Integral):
+            return self._data[item]
+        return type(self)(self._data[item])
+
+    def isna(self):
+        return np.zeros(len(self._data), dtype=bool)
+
+    def copy(self):
+        return type(self)(self._data.copy())
+
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return cls(list(scalars))
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls(list(values))
+
+    def take(self, indices, allow_fill: bool = False, fill_value=None):
+        if allow_fill:
+            fill_value = self.dtype.na_value if fill_value is None else fill_value
+            data = [
+                fill_value if index == -1 else self._data[index] for index in indices
+            ]
+        else:
+            data = [self._data[index] for index in indices]
+        return type(self)(data)
+
+    @property
+    def nbytes(self):
+        return sum(sys.getsizeof(item) for item in self._data)
+
+    def __array__(self, dtype=None):
+        return np.array(["array"] * len(self._data), dtype=object)
+
+    def _values_for_json(self) -> np.ndarray:
+        return np.array(["json"] * len(self._data), dtype=object)
 
 
 def test_literal_json_raises():
@@ -2152,6 +2219,13 @@ class TestPandasContainer:
         # JSON keys should be all non-callable non-underscore attributes, see GH-42768
         series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
         assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
+
+    def test_series_to_json_uses_values_for_json(self):
+        # GH#65047
+        arr = _JSONArray(["a", "b"])
+
+        result = Series(arr).to_json()
+        assert json.loads(result) == {"0": "json", "1": "json"}
 
     @pytest.mark.parametrize(
         "data,expected",
