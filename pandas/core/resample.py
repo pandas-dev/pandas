@@ -2459,7 +2459,11 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        if not isinstance(freq, (Tick, Day)):
+        # GH#44996: for tz-naive Day freq, origin/offset take effect
+        # (Day is routed through the Tick path in _get_timestamp_range_edges).
+        _index_tz = getattr(getattr(obj, "index", None), "tz", None)
+        _day_tz_naive = isinstance(freq, Day) and _index_tz is None
+        if not isinstance(freq, Tick) and not _day_tz_naive:
             if offset is not None:
                 warnings.warn(
                     "The 'offset' keyword does not take effect when resampling "
@@ -2945,7 +2949,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, (Tick, Day)):
+    if isinstance(freq, Tick) or (isinstance(freq, Day) and first.tz is None):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2955,15 +2959,8 @@ def _get_timestamp_range_edges(
             origin = Timestamp("1970-01-01", tz=index_tz)
 
         if isinstance(freq, Day):
-            # GH#44996: Day is not a Tick, but for resampling purposes it
-            # should produce the same bins as the equivalent Hour offset.
-            # _adjust_dates_anchored assumes fixed-duration freq, so we
-            # strip tz (to avoid DST issues) and convert Day(n) -> Hour(24*n).
-            if index_tz is not None:
-                first = first.tz_localize(None)
-                last = last.tz_localize(None)
-                if isinstance(origin, Timestamp) and origin.tz is not None:
-                    origin = origin.tz_localize(None)
+            # GH#44996: tz-naive Day should produce the same bins as the
+            # equivalent Hour offset.
             freq = Hour(24 * freq.n)
 
         first, last = _adjust_dates_anchored(
