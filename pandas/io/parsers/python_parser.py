@@ -648,7 +648,9 @@ class PythonParser(ParserBase):
                         if i not in this_unnamed_cols
                     ] + this_unnamed_cols
 
-                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
+                    # This logic is similar to (but not close enough to
+                    # de-duplicate as of 2026-03-31) pandas.io.common.dedup_names
+                    # (see #50371)
                     for i in col_loop_order:
                         col = this_columns[i]
                         old_col = col
@@ -1322,7 +1324,6 @@ class PythonParser(ParserBase):
 
                             if next_row is not None:
                                 new_rows.append(next_row)
-                        len_new_rows = len(new_rows)
 
                 except StopIteration:
                     len_new_rows = len(new_rows)

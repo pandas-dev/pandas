@@ -412,6 +412,23 @@ numpydoc_validation_exclude = {
     r"pandas\.DatetimeIndex\.is_year_start$",
     r"pandas\.DatetimeIndex\.is_year_end$",
     r"pandas\.DatetimeIndex\.is_leap_year$",
+    # Deprecated aliases (GH#46768)
+    r"pandas\.Timestamp\.dayofweek$",
+    r"pandas\.Timestamp\.dayofyear$",
+    r"pandas\.Timestamp\.daysinmonth$",
+    r"pandas\.Period\.dayofweek$",
+    r"pandas\.Period\.dayofyear$",
+    r"pandas\.DatetimeIndex\.daysinmonth$",
+    r"pandas\.PeriodIndex\.dayofweek$",
+    r"pandas\.PeriodIndex\.dayofyear$",
+    r"pandas\.PeriodIndex\.daysinmonth$",
+    r"pandas\.Series\.dt\.dayofweek$",
+    r"pandas\.Series\.dt\.dayofyear$",
+    r"pandas\.Series\.dt\.daysinmonth$",
+    # Deprecated weekday property (GH#12816)
+    r"pandas\.Period\.weekday$",
+    r"pandas\.PeriodIndex\.weekday$",
+    r"pandas\.Series\.dt\.weekday$",
 }
 
 # matplotlib plot directive

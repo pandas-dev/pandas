@@ -1835,8 +1835,47 @@ cdef class _Period(PeriodMixin):
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
 
-    dayofweek = _Period.day_of_week
-    dayofyear = _Period.day_of_year
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Period.day_of_week` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.dayofweek is deprecated and will be removed in a "
+            "future version. Use Period.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Period.day_of_year` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.dayofyear is deprecated and will be removed in a "
+            "future version. Use Period.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
 
     def __cinit__(self, int64_t ordinal, PeriodDtypeBase dtype):
         self._ordinal = ordinal
@@ -2493,38 +2532,47 @@ cdef class _Period(PeriodMixin):
         See Also
         --------
         Period.dayofweek : Day of the week the period lies in.
-        Period.weekday : Alias of Period.dayofweek.
+        Period.weekday : Alias of Period.day_of_week.
         Period.day : Day of the month.
-        Period.dayofyear : Day of the year.
+        Period.day_of_year : Day of the year.
 
         Examples
         --------
         >>> per = pd.Period('2017-12-31 22:00', 'h')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
         >>> per = pd.Period('2017-12-31 22:00', '4h')
-        >>> per.dayofweek
+        >>> per.day_of_week
         6
-        >>> per.start_time.dayofweek
+        >>> per.start_time.day_of_week
         6
 
         For periods with a frequency higher than days, the last day of the
         period is returned.
 
         >>> per = pd.Period('2018-01', 'M')
-        >>> per.dayofweek
+        >>> per.day_of_week
         2
-        >>> per.end_time.dayofweek
+        >>> per.end_time.day_of_week
         2
         """
-        # Docstring is a duplicate from dayofweek. Reusing docstrings with
-        # Appender doesn't work for properties in Cython files, and setting
-        # the __doc__ attribute is also not possible.
-        return self.dayofweek
+        # GH#12816
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.weekday is deprecated and will be removed "
+            "in a future version. Use Period.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
 
     @property
     def day_of_year(self) -> int:
@@ -2671,8 +2719,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the total number of days of the month that this period falls on.
 
-        This value depends on the month and whether the year is a leap year.
-        This is an alias for :attr:`days_in_month`.
+        .. deprecated:: 3.1.0
+            Use :attr:`Period.days_in_month` instead.
 
         Returns
         -------
@@ -2681,14 +2729,25 @@ cdef class _Period(PeriodMixin):
         See Also
         --------
         Period.days_in_month : Return the days of the month.
-        Period.dayofyear : Return the day of the year.
+        Period.day_of_year : Return the day of the year.
 
         Examples
         --------
         >>> p = pd.Period("2018-03-11", freq='h')
-        >>> p.daysinmonth
+        >>> p.days_in_month
         31
         """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.daysinmonth is deprecated and will be removed in a "
+            "future version. Use Period.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.days_in_month
 
     @property
@@ -2784,6 +2843,14 @@ cdef class _Period(PeriodMixin):
         formatted = period_format(self.ordinal, base)
         value = str(formatted)
         return value
+
+    def __format__(self, fmt: str) -> str:
+        # GH#48536
+        if not isinstance(fmt, str):
+            raise TypeError(f"must be str, not {type(fmt).__name__}")
+        if len(fmt) != 0:
+            return self.strftime(fmt)
+        return str(self)
 
     def __setstate__(self, state):
         self._freq = state[1]

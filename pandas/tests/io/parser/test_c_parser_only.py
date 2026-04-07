@@ -20,6 +20,7 @@ import pytest
 
 from pandas.compat import WASM
 from pandas.errors import (
+    Pandas4Warning,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
@@ -174,13 +175,25 @@ def test_precise_conversion(c_parser_only, num):
     # 25 decimal digits of precision
     text = f"a\n{num:.25}"
 
-    normal_val = float(
-        parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
-    )
-    precise_val = float(parser.read_csv(StringIO(text), float_precision="high")["a"][0])
-    roundtrip_val = float(
-        parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
-    )
+    depr_msg = "float_precision"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        normal_val = float(
+            parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
+        )
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        precise_val = float(
+            parser.read_csv(StringIO(text), float_precision="high")["a"][0]
+        )
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        roundtrip_val = float(
+            parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
+        )
     actual_val = Decimal(text[2:])
 
     normal_errors.append(error(normal_val, actual_val))
@@ -442,7 +455,10 @@ def test_read_nrows_large(c_parser_only):
 def test_float_precision_round_trip_with_text(c_parser_only):
     # see gh-15140
     parser = c_parser_only
-    df = parser.read_csv(StringIO("a"), header=None, float_precision="round_trip")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="float_precision", check_stacklevel=False
+    ):
+        df = parser.read_csv(StringIO("a"), header=None, float_precision="round_trip")
     tm.assert_frame_equal(df, DataFrame({0: ["a"]}))
 
 
@@ -645,13 +661,17 @@ def test_1000_sep_with_decimal(
     parser = c_parser_only
     expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
 
-    result = parser.read_csv(
-        StringIO(data),
-        sep="|",
-        thousands=thousands,
-        decimal=decimal,
-        float_precision=float_precision,
-    )
+    warn = Pandas4Warning if float_precision is not None else None
+    with tm.assert_produces_warning(
+        warn, match="float_precision", check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data),
+            sep="|",
+            thousands=thousands,
+            decimal=decimal,
+            float_precision=float_precision,
+        )
     tm.assert_frame_equal(result, expected)
 
 
@@ -660,15 +680,25 @@ def test_float_precision_options(c_parser_only):
     parser = c_parser_only
     s = "foo\n243.164\n"
     df = parser.read_csv(StringIO(s))
-    df2 = parser.read_csv(StringIO(s), float_precision="high")
+    depr_msg = "float_precision"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        df2 = parser.read_csv(StringIO(s), float_precision="high")
 
     tm.assert_frame_equal(df, df2)
 
     # "legacy" now uses the same precise converter as "high"
-    df3 = parser.read_csv(StringIO(s), float_precision="legacy")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        df3 = parser.read_csv(StringIO(s), float_precision="legacy")
     tm.assert_frame_equal(df, df3)
 
     msg = "Unrecognized float_precision option: junk"
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(s), float_precision="junk")
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=depr_msg, check_stacklevel=False
+        ):
+            parser.read_csv(StringIO(s), float_precision="junk")

@@ -21,6 +21,8 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
 
+from pandas.tseries.frequencies import to_offset
+
 
 class TestTimedeltas:
     def test_to_timedelta_mixed_unit_strings(self):
@@ -238,7 +240,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_on_missing_values(self):
         # GH5438
-        timedelta_NaT = np.timedelta64("NaT")
+        timedelta_NaT = np.timedelta64("NaT", "ns")
 
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
@@ -254,12 +256,12 @@ class TestTimedeltas:
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
-        assert actual._value == np.timedelta64("NaT").astype("int64")
+        assert actual._value == np.timedelta64("NaT", "ns").astype("int64")
 
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_list(self, val):
         actual = to_timedelta([val])
-        assert actual[0]._value == np.timedelta64("NaT").astype("int64")
+        assert actual[0]._value == np.timedelta64("NaT", "ns").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
@@ -377,6 +379,20 @@ class TestTimedeltas:
             to_timedelta(should_fail2, unit="D")
         with pytest.raises(OutOfBoundsTimedelta, match=scalar_msg2):
             pd.Timedelta(should_fail2[1], unit="D")
+
+    def test_to_timedelta_day_offset(self):
+        # GH#64240
+        result = to_timedelta(to_offset("D"))
+        expected = pd.Timedelta(1, unit="D").as_unit("s")
+        assert result == expected
+        assert result.unit == expected.unit
+
+    def test_to_timedelta_day_offset_list(self):
+        # GH#64240
+        offsets = [to_offset("D"), to_offset("2D")]
+        result = to_timedelta(offsets)
+        expected = to_timedelta(["1D", "2D"]).as_unit("s")
+        tm.assert_index_equal(result, expected)
 
     def test_float_to_timedelta_raise_oob_ns(self):
         value = np.float64(2**63)

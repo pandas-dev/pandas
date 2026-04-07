@@ -16,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -239,11 +239,11 @@ class Styler(StylerRenderer):
         )
 
         # validate ordered args
-        thousands = thousands or get_option("styler.format.thousands")
-        decimal = decimal or get_option("styler.format.decimal")
-        na_rep = na_rep or get_option("styler.format.na_rep")
-        escape = escape or get_option("styler.format.escape")
-        formatter = formatter or get_option("styler.format.formatter")
+        thousands = thousands or _global_config["styler"]["format"]["thousands"]
+        decimal = decimal or _global_config["styler"]["format"]["decimal"]
+        na_rep = na_rep or _global_config["styler"]["format"]["na_rep"]
+        escape = escape or _global_config["styler"]["format"]["escape"]
+        formatter = formatter or _global_config["styler"]["format"]["formatter"]
         # precision is handled by superclass as default for performance
 
         self.format(
@@ -376,12 +376,12 @@ class Styler(StylerRenderer):
         Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
         default if an object is returned at the end of a cell.
         """
-        if get_option("styler.render.repr") == "html":
+        if _global_config["styler"]["render"]["repr"] == "html":
             return self.to_html()
         return None
 
     def _repr_latex_(self) -> str | None:
-        if get_option("styler.render.repr") == "latex":
+        if _global_config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         return None
 
@@ -1248,7 +1248,9 @@ class Styler(StylerRenderer):
                 overwrite=False,
             )
 
-        hrules = get_option("styler.latex.hrules") if hrules is None else hrules
+        hrules = (
+            _global_config["styler"]["latex"]["hrules"] if hrules is None else hrules
+        )
         if hrules:
             obj.set_table_styles(
                 [
@@ -1269,12 +1271,16 @@ class Styler(StylerRenderer):
             obj.set_caption(caption)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = _global_config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
-        environment = environment or get_option("styler.latex.environment")
-        multicol_align = multicol_align or get_option("styler.latex.multicol_align")
-        multirow_align = multirow_align or get_option("styler.latex.multirow_align")
+            sparse_columns = _global_config["styler"]["sparse"]["columns"]
+        environment = environment or _global_config["styler"]["latex"]["environment"]
+        multicol_align = (
+            multicol_align or _global_config["styler"]["latex"]["multicol_align"]
+        )
+        multirow_align = (
+            multirow_align or _global_config["styler"]["latex"]["multirow_align"]
+        )
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
@@ -1287,7 +1293,7 @@ class Styler(StylerRenderer):
         )
 
         encoding = (
-            (encoding or get_option("styler.render.encoding"))
+            (encoding or _global_config["styler"]["render"]["encoding"])
             if isinstance(buf, str)  # i.e. a filepath
             else encoding
         )
@@ -1388,9 +1394,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = _global_config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = _global_config["styler"]["sparse"]["columns"]
 
         text = obj._render_typst(
             sparse_columns=sparse_columns,
@@ -1552,9 +1558,9 @@ class Styler(StylerRenderer):
             obj.set_table_attributes(table_attributes)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = _global_config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = _global_config["styler"]["sparse"]["columns"]
 
         if bold_headers:
             obj.set_table_styles(
@@ -1571,7 +1577,7 @@ class Styler(StylerRenderer):
             max_rows=max_rows,
             max_cols=max_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding or get_option("styler.render.encoding"),
+            encoding=encoding or _global_config["styler"]["render"]["encoding"],
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -1672,9 +1678,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = _global_config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = _global_config["styler"]["sparse"]["columns"]
 
         text = obj._render_string(
             sparse_columns=sparse_columns,

@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -437,6 +438,15 @@ class Block(PandasObject, libinternals.Block):
         """
         new_dtype = find_result_type(self.values.dtype, other)
         if new_dtype == self.dtype:
+            if lib.is_np_dtype(new_dtype, "mM"):
+                # GH#61671 e.g. datetime64[ns] column and a replacement value
+                # outside ns range. find_common_type picked the highest
+                # resolution which can't represent the value.
+                raise OutOfBoundsDatetime(
+                    f"Incompatible (high-resolution) value for "
+                    f"dtype='{self.dtype}'. "
+                    "Explicitly cast before operating."
+                )
             # GH#52927 avoid RecursionError
             raise AssertionError(
                 "Something has gone wrong, please report a bug at "
@@ -777,7 +787,13 @@ class Block(PandasObject, libinternals.Block):
         if not (
             self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
         ):
+            # GH#57733 - astype to object may return a block sharing memory
+            # with self (e.g. StringArray backed by object ndarray). Since
+            # replace_regex mutates values in-place, we must ensure the
+            # block's data is independent.
             block = self.astype(np.dtype(object))
+            if astype_is_view(self.dtype, np.dtype(object)):
+                block = block._maybe_copy(inplace=True)
         else:
             block = self._maybe_copy(inplace)
 
@@ -1312,13 +1328,44 @@ class Block(PandasObject, libinternals.Block):
 
         if not self._can_hold_na:
             # can short-circuit the isna call
-            noop = True
-        else:
-            mask = isna(self.values)
-            mask, noop = validate_putmask(self.values, mask)
+            return [self.copy(deep=False)]
 
+        # Fast path: single-pass Cython for scalar fill values on
+        # float and object dtypes with limit or inplace. Avoids
+        # mask allocation and cumsum computation. GH#42147
+        if (
+            is_scalar(value)
+            and self.dtype
+            in (np.dtype("float64"), np.dtype("float32"), np.dtype("object"))
+            and (limit is not None or inplace)
+        ):
+            values = cast("np.ndarray", self.values)
+            try:
+                casted = np_can_hold_element(values.dtype, value)
+            except (LossySetitemError, NotImplementedError):
+                pass
+            else:
+                copy, refs = self._get_refs_and_copy(inplace)
+                new_values = values.copy() if copy else values
+
+                if new_values.ndim == 1:
+                    filled = libalgos.scalar_fillna_inplace(
+                        new_values, casted, limit=limit
+                    )
+                else:
+                    filled = libalgos.scalar_fillna_2d_inplace(
+                        new_values, casted, limit=limit
+                    )
+
+                if filled == 0:
+                    return [self.copy(deep=False)]
+
+                return [self.make_block_same_class(new_values, refs=refs)]
+
+        # Standard path: generate mask, then apply via putmask/where
+        mask = isna(self.values)
+        mask, noop = validate_putmask(self.values, mask)
         if noop:
-            # we can't process the value, but nothing to do
             return [self.copy(deep=False)]
 
         if limit is not None:

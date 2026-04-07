@@ -14,7 +14,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config
 
 from pandas._libs import (
     algos as libalgos,
@@ -1575,7 +1575,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         warn_threshold = 100
         if (
             len(self.blocks) > warn_threshold
-            and get_option("performance_warnings")
+            and _global_config["mode"]["performance_warnings"]
             and sum(not block.is_extension for block in self.blocks) > warn_threshold
         ):
             warnings.warn(
