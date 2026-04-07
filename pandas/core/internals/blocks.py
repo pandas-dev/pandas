@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
+    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -437,6 +438,15 @@ class Block(PandasObject, libinternals.Block):
         """
         new_dtype = find_result_type(self.values.dtype, other)
         if new_dtype == self.dtype:
+            if lib.is_np_dtype(new_dtype, "mM"):
+                # GH#61671 e.g. datetime64[ns] column and a replacement value
+                # outside ns range. find_common_type picked the highest
+                # resolution which can't represent the value.
+                raise OutOfBoundsDatetime(
+                    f"Incompatible (high-resolution) value for "
+                    f"dtype='{self.dtype}'. "
+                    "Explicitly cast before operating."
+                )
             # GH#52927 avoid RecursionError
             raise AssertionError(
                 "Something has gone wrong, please report a bug at "
@@ -544,7 +554,7 @@ class Block(PandasObject, libinternals.Block):
         for blk in blks:
             # Determine dtype column by column
             sub_blks = (
-                [blk] if blk.ndim == 1 or self.shape[0] == 1 else list(blk._split())
+                [blk] if blk.ndim == 1 or blk.shape[0] == 1 else list(blk._split())
             )
             dtypes = [
                 convert_dtypes(
@@ -558,7 +568,7 @@ class Block(PandasObject, libinternals.Block):
                 )
                 for b in sub_blks
             ]
-            if all(dtype == self.dtype for dtype in dtypes):
+            if all(dtype == blk.dtype for dtype in dtypes):
                 # Avoid block splitting if no dtype changes
                 rbs.append(blk.copy(deep=False))
                 continue
@@ -777,7 +787,13 @@ class Block(PandasObject, libinternals.Block):
         if not (
             self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
         ):
+            # GH#57733 - astype to object may return a block sharing memory
+            # with self (e.g. StringArray backed by object ndarray). Since
+            # replace_regex mutates values in-place, we must ensure the
+            # block's data is independent.
             block = self.astype(np.dtype(object))
+            if astype_is_view(self.dtype, np.dtype(object)):
+                block = block._maybe_copy(inplace=True)
         else:
             block = self._maybe_copy(inplace)
 
@@ -1048,33 +1064,19 @@ class Block(PandasObject, libinternals.Block):
         fill_value : int
             Only used in ExtensionBlock._unstack
         new_placement : np.ndarray[np.intp]
-        allow_fill : bool
         needs_masking : np.ndarray[bool]
+            Only used in ExtensionBlock._unstack
 
         Returns
         -------
         blocks : list of Block
             New blocks of unstacked values.
-        mask : array-like of bool
-            The mask of columns of `blocks` we should keep.
         """
-        new_values, mask = unstacker.get_new_values(
-            self.values.T, fill_value=fill_value
-        )
-
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values, placement=bp)]
-        return blocks, mask
+        blocks = [new_block_2d(new_values.T, placement=bp)]
+        return blocks
 
     # ---------------------------------------------------------------------
 
@@ -1326,13 +1328,44 @@ class Block(PandasObject, libinternals.Block):
 
         if not self._can_hold_na:
             # can short-circuit the isna call
-            noop = True
-        else:
-            mask = isna(self.values)
-            mask, noop = validate_putmask(self.values, mask)
+            return [self.copy(deep=False)]
 
+        # Fast path: single-pass Cython for scalar fill values on
+        # float and object dtypes with limit or inplace. Avoids
+        # mask allocation and cumsum computation. GH#42147
+        if (
+            is_scalar(value)
+            and self.dtype
+            in (np.dtype("float64"), np.dtype("float32"), np.dtype("object"))
+            and (limit is not None or inplace)
+        ):
+            values = cast("np.ndarray", self.values)
+            try:
+                casted = np_can_hold_element(values.dtype, value)
+            except (LossySetitemError, NotImplementedError):
+                pass
+            else:
+                copy, refs = self._get_refs_and_copy(inplace)
+                new_values = values.copy() if copy else values
+
+                if new_values.ndim == 1:
+                    filled = libalgos.scalar_fillna_inplace(
+                        new_values, casted, limit=limit
+                    )
+                else:
+                    filled = libalgos.scalar_fillna_2d_inplace(
+                        new_values, casted, limit=limit
+                    )
+
+                if filled == 0:
+                    return [self.copy(deep=False)]
+
+                return [self.make_block_same_class(new_values, refs=refs)]
+
+        # Standard path: generate mask, then apply via putmask/where
+        mask = isna(self.values)
+        mask, noop = validate_putmask(self.values, mask)
         if noop:
-            # we can't process the value, but nothing to do
             return [self.copy(deep=False)]
 
         if limit is not None:
@@ -1418,15 +1451,13 @@ class Block(PandasObject, libinternals.Block):
     def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
         # only reached with ndim == 2
-        # TODO(EA2D): transpose will be unnecessary with 2D EAs
-        new_values = algos.diff(self.values.T, n, axis=0).T
+        new_values = algos.diff(self.values, n, axis=self.values.ndim - 1)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
         """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        axis = self.ndim - 1
 
         # Note: periods is never 0 here, as that is handled at the top of
         #  NDFrame.shift.  If that ever changes, we can do a check for periods=0
@@ -1465,7 +1496,7 @@ class Block(PandasObject, libinternals.Block):
 
         else:
             values = cast("np.ndarray", self.values)
-            new_values = shift(values, periods, axis, casted)
+            new_values = shift(values, periods, casted)
             return [self.make_block_same_class(new_values)]
 
     @final
@@ -1621,9 +1652,7 @@ class EABackedBlock(Block):
         Dispatches to underlying ExtensionArray and re-boxes in an
         ExtensionBlock.
         """
-        # Transpose since EA.shift is always along axis=0, while we want to shift
-        #  along rows.
-        new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
+        new_values = self.values.shift(periods=periods, fill_value=fill_value)
         return [self.make_block_same_class(new_values)]
 
     @final
@@ -1658,9 +1687,14 @@ class EABackedBlock(Block):
 
         values = self.values
         if values.ndim == 2:
-            # TODO(GH#45419): string[pyarrow] tests break if we transpose
-            #  unconditionally
-            values = values.T
+            # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
+            #  instead of transposing values, since EA.T may not be a view.
+            if not isinstance(indexer, tuple):
+                indexer = (indexer, slice(None))
+            if len(indexer) == 2:
+                indexer = indexer[::-1]
+            if isinstance(value, np.ndarray) and value.ndim == 2:
+                value = value.T
         check_setitem_lengths(indexer, value, values)
 
         try:
@@ -1767,7 +1801,9 @@ class EABackedBlock(Block):
         self = self._maybe_copy(inplace=True)
         values = self.values
         if values.ndim == 2:
-            values = values.T
+            # GH#45419 Transpose the mask to storage layout instead of
+            #  transposing values, since EA.T may not be a view.
+            mask = mask.T
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -2103,14 +2139,7 @@ class ExtensionBlock(EABackedBlock):
         # a `take` on the actual values.
 
         # Caller is responsible for ensuring self.shape[-1] == len(unstacker.index)
-        new_values, mask = unstacker.arange_result
-
-        # Note: these next two lines ensure that
-        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
-        #  which the calling function needs in order to pass verify_integrity=False
-        #  to the BlockManager constructor
-        new_values = new_values.T[mask]
-        new_placement = new_placement[mask]
+        new_values = unstacker.arange_result
 
         # needs_masking[i] calculated once in BlockManager.unstack tells
         #  us if there are any -1s in the relevant indices.  When False,
@@ -2126,10 +2155,10 @@ class ExtensionBlock(EABackedBlock):
                 ndim=2,
             )
             for i, (indices, place) in enumerate(
-                zip(new_values, new_placement, strict=True)
+                zip(new_values.T, new_placement, strict=True)
             )
         ]
-        return blocks, mask
+        return blocks
 
 
 class NumpyBlock(Block):
