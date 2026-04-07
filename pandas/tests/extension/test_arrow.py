@@ -2017,6 +2017,24 @@ def test_str_get(i, exp):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "i, exp",
+    [
+        [1, ["b", "e", None]],
+        [-1, ["c", "e", None]],
+        [2, ["c", None, None]],
+        [-3, ["a", None, None]],
+        [4, [None, None, None]],
+    ],
+)
+def test_str_getitem(i, exp):
+    # GH 65112
+    ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str[i]
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.xfail(
     reason="TODO: StringMethods._validate should support Arrow list types",
     raises=AttributeError,
@@ -2047,6 +2065,23 @@ def test_str_join_string_type():
 def test_str_slice(start, stop, step, exp):
     ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.slice(start, stop, step)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, exp",
+    [
+        [None, 2, None, ["ab", None]],
+        [None, 2, 1, ["ab", None]],
+        [1, 3, 1, ["bc", None]],
+        (None, None, -1, ["dcba", None]),
+    ],
+)
+def test_str_getitem_range(start, stop, step, exp):
+    # GH 65112
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str[slice(start, stop, step)]
     expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
