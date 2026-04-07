@@ -1141,6 +1141,8 @@ class ArrowExtensionArray(
         ):  # Moved to the top to prevent interpreting UUID object through dtype logic
             # GH#63511 uuid.UUID not hashable, convert to bytes for the check
             key = key.bytes
+            if self._pa_array.type != pa.uuid():
+                return (self._pa_array == key).any().as_py()
             # IMPORTANT: avoid dtype.kind logic for None
         if (
             key is None
