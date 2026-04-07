@@ -568,6 +568,9 @@ class StructAccessor(ArrowAccessor):
             for i in range(pa_type.num_fields):
                 field = pa_type.field(i)
                 field_name = field.name
+                # Handle bytes field names by converting to str
+                if isinstance(field_name, bytes):
+                    field_name = field_name.decode("utf-8")
                 full_name = f"{prefix}{separator}{field_name}" if prefix else field_name
 
                 # Extract the field data
@@ -596,9 +599,33 @@ class StructAccessor(ArrowAccessor):
 
             return results
 
+        def _get_field_names_recursive(pa_type: pa.StructType, prefix: str = "") -> list[str]:
+            """Get field names from struct type without data (for empty arrays)."""
+            names: list[str] = []
+            for i in range(pa_type.num_fields):
+                field = pa_type.field(i)
+                field_name = field.name
+                # Handle bytes field names by converting to str
+                if isinstance(field_name, bytes):
+                    field_name = field_name.decode("utf-8")
+                full_name = f"{prefix}{separator}{field_name}" if prefix else field_name
+
+                if pa.types.is_struct(field.type):
+                    names.extend(
+                        _get_field_names_recursive(field.type, full_name if prefix else field_name)
+                    )
+                else:
+                    names.append(full_name)
+            return names
+
+        # Get the flattened field names from the type (handles empty case)
+        pa_type = self._pa_array.type
+        all_field_names = _get_field_names_recursive(pa_type)
+
         fields = _get_fields_recursive(self._pa_array)
         if not fields:
-            return DataFrame(index=self._data.index)
+            # Empty series - return DataFrame with correct columns but no rows
+            return DataFrame(index=self._data.index, columns=all_field_names)
 
         _, series_list = zip(*fields)
         return concat(series_list, axis="columns")

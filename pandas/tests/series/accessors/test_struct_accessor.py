@@ -287,6 +287,46 @@ def test_struct_accessor_explode_recursive_empty():
     tm.assert_frame_equal(actual, expected)
 
 
+def test_struct_accessor_explode_recursive_bytes_field():
+    # Test that bytes field names are properly handled (converted to str)
+    index = Index([0, 1])
+    # Arrow supports bytes as field names
+    arrow_type = pa.struct(
+        [
+            (b"bytes_field", pa.int64()),  # bytes field name
+            (
+                "nested",
+                pa.struct(
+                    [
+                        (b"bytes_nested", pa.string()),  # bytes in nested struct
+                    ]
+                ),
+            ),
+        ]
+    )
+    ser = Series(
+        [
+            {"bytes_field": 1, "nested": {b"bytes_nested": "x"}},
+            {"bytes_field": 2, "nested": {b"bytes_nested": "y"}},
+        ],
+        dtype=ArrowDtype(arrow_type),
+        index=index,
+    )
+
+    actual = ser.struct.explode(recursive=True)
+    # bytes field names should be decoded to str
+    assert list(actual.columns) == ["bytes_field", "nested_bytes_nested"]
+    expected = DataFrame(
+        {
+            "bytes_field": Series([1, 2], index=index, dtype=ArrowDtype(pa.int64())),
+            "nested_bytes_nested": Series(
+                ["x", "y"], index=index, dtype=ArrowDtype(pa.string())
+            ),
+        },
+    )
+    tm.assert_frame_equal(actual, expected)
+
+
 @pytest.mark.parametrize(
     "invalid",
     [
