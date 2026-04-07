@@ -1078,6 +1078,7 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        # GH#61940: pathlib.Path true division with Arrow string columns.
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
