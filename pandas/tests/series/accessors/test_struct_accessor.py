@@ -277,8 +277,13 @@ def test_struct_accessor_explode_recursive_empty():
     )
 
     actual = ser.struct.explode(recursive=True)
-    expected = DataFrame(index=Index([], dtype="object"))
-    assert list(actual.columns) == []
+    expected = DataFrame(
+        {
+            "a": Series([], dtype=ArrowDtype(pa.int64())),
+            "b_c": Series([], dtype=ArrowDtype(pa.string())),
+        },
+        index=Index([], dtype="object"),
+    )
     tm.assert_frame_equal(actual, expected)
 
 
