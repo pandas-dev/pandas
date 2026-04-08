@@ -31,7 +31,7 @@ import warnings
 import numpy as np
 from numpy import ma
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos as libalgos,
@@ -884,7 +884,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Check length against max_rows.
         """
-        max_rows = _global_config["display"]["max_rows"]
+        max_rows = config["display"]["max_rows"]
         return len(self) <= max_rows
 
     def _repr_fits_horizontal_(self) -> bool:
@@ -893,7 +893,7 @@ class DataFrame(NDFrame, OpsMixin):
         options width and max_columns.
         """
         width, height = console.get_console_size()
-        max_columns = _global_config["display"]["max_columns"]
+        max_columns = config["display"]["max_columns"]
         nb_columns = len(self.columns)
 
         # exceed max columns
@@ -907,14 +907,11 @@ class DataFrame(NDFrame, OpsMixin):
         if width is None or not console.in_interactive_session():
             return True
 
-        if (
-            _global_config["display"]["width"] is not None
-            or console.in_ipython_frontend()
-        ):
+        if config["display"]["width"] is not None or console.in_ipython_frontend():
             # check at least the column row for excessive width
             max_rows = 1
         else:
-            max_rows = _global_config["display"]["max_rows"]
+            max_rows = config["display"]["max_rows"]
 
         # when auto-detecting, so width=None and not in ipython front end
         # check whether repr fits horizontal by actually checking
@@ -941,7 +938,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         True if the repr should show the info view.
         """
-        info_repr_option = _global_config["display"]["large_repr"] == "info"
+        info_repr_option = config["display"]["large_repr"] == "info"
         return info_repr_option and not (
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
@@ -972,12 +969,12 @@ class DataFrame(NDFrame, OpsMixin):
             val = val.replace(">", r"&gt;", 1)
             return f"<pre>{val}</pre>"
 
-        if _global_config["display"]["notebook_repr_html"]:
-            max_rows = _global_config["display"]["max_rows"]
-            min_rows = _global_config["display"]["min_rows"]
-            max_cols = _global_config["display"]["max_columns"]
-            show_dimensions = _global_config["display"]["show_dimensions"]
-            show_floats = _global_config["display"]["float_format"]
+        if config["display"]["notebook_repr_html"]:
+            max_rows = config["display"]["max_rows"]
+            min_rows = config["display"]["min_rows"]
+            max_cols = config["display"]["max_columns"]
+            show_dimensions = config["display"]["show_dimensions"]
+            show_floats = config["display"]["float_format"]
 
             formatter = fmt.DataFrameFormatter(
                 self,

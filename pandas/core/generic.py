@@ -26,8 +26,8 @@ import warnings
 
 import numpy as np
 
-from pandas._config import config
-from pandas._config.config import _global_config
+import pandas._config.config as cf
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
@@ -2126,7 +2126,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns a LaTeX representation for a particular object.
         Mainly for use with nbconvert (jupyter notebook conversion to pdf).
         """
-        if _global_config["styler"]["render"]["repr"] == "latex":
+        if config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         else:
             return None
@@ -2137,8 +2137,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not a real Jupyter special repr method, but we use the same
         naming convention.
         """
-        if _global_config["display"]["html"]["table_schema"]:
-            data = self.head(_global_config["display"]["max_rows"])
+        if config["display"]["html"]["table_schema"]:
+            data = self.head(config["display"]["max_rows"])
 
             as_json = data.to_json(orient="table")
             as_json = cast("str", as_json)
@@ -2630,7 +2630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        config.is_nonnegative_int(indent)
+        cf.is_nonnegative_int(indent)
         indent = indent or 0
 
         return json.to_json(
@@ -3565,15 +3565,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if self.ndim == 1:
             self = self.to_frame()
         if longtable is None:
-            longtable = _global_config["styler"]["latex"]["environment"] == "longtable"
+            longtable = config["styler"]["latex"]["environment"] == "longtable"
         if escape is None:
-            escape = _global_config["styler"]["format"]["escape"] == "latex"
+            escape = config["styler"]["format"]["escape"] == "latex"
         if multicolumn is None:
-            multicolumn = _global_config["styler"]["sparse"]["columns"]
+            multicolumn = config["styler"]["sparse"]["columns"]
         if multicolumn_format is None:
-            multicolumn_format = _global_config["styler"]["latex"]["multicol_align"]
+            multicolumn_format = config["styler"]["latex"]["multicol_align"]
         if multirow is None:
-            multirow = _global_config["styler"]["sparse"]["index"]
+            multirow = config["styler"]["sparse"]["index"]
 
         if column_format is not None and not isinstance(column_format, str):
             raise ValueError("`column_format` must be str or unicode")
