@@ -1541,7 +1541,7 @@ default 'raise'
 
         dtype = StringDtype(na_value=np.nan)
         cls = dtype.construct_array_type()
-        return cls(pa_arr, dtype=dtype)
+        return cls(pa_arr, dtype=dtype)  # type: ignore[call-arg]
 
     @property
     def time(self) -> npt.NDArray[np.object_]:
