@@ -131,3 +131,17 @@ class TestAstype:
         arr3 = SparseArray(values, dtype=dtype)
         result3 = arr3.astype("int64")
         tm.assert_numpy_array_equal(result3, expected)
+
+    def test_astype_dt64_to_sparse_int64_fill_value(self):
+        # GH#49631 converting to "Sparse[int64]" (string) should convert
+        # the NaT fill_value to iNaT, not silently replace it with 0
+        values = np.array(["NaT", "2016-01-02", "2016-01-03"], dtype="M8[ns]")
+        arr = SparseArray(values)
+
+        result = arr.astype("Sparse[int64]")
+        iNaT = np.iinfo(np.int64).min
+        expected = SparseArray(
+            values.astype("int64"),
+            dtype=SparseDtype("int64", fill_value=iNaT),
+        )
+        tm.assert_sp_array_equal(result, expected)

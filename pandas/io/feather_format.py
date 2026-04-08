@@ -103,6 +103,10 @@ def read_feather(
         object implementing a binary ``read()`` function. The string could be a URL.
         Valid URL schemes include http, ftp, s3, gs and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.feather``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     columns : sequence, default None
         If not provided, all columns are read.
     use_threads : bool, default True

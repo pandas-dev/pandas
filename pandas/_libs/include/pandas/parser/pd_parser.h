@@ -33,10 +33,10 @@ typedef struct {
   int (*parser_add_skiprow)(parser_t *, int64_t);
   void (*parser_set_skipfirstnrows)(parser_t *, int64_t);
   void (*parser_set_default_options)(parser_t *);
-  int (*parser_consume_rows)(parser_t *, size_t);
+  int (*parser_consume_rows)(parser_t *, uint64_t);
   int (*parser_trim_buffers)(parser_t *);
   int (*tokenize_all_rows)(parser_t *, const char *);
-  int (*tokenize_nrows)(parser_t *, size_t, const char *);
+  int (*tokenize_nrows)(parser_t *, uint64_t, const char *);
   int64_t (*str_to_int64)(const char *, int *, char);
   uint64_t (*str_to_uint64)(uint_state *, const char *, int *, char);
   double (*precise_xstrtod)(const char *, char **, char, char, char, int, int *,

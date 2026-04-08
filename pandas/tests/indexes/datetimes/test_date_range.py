@@ -728,7 +728,7 @@ class TestDateRanges:
         tm.assert_index_equal(result, expected)
 
     def test_range_where_start_equal_end(self, inclusive_endpoints_fixture):
-        # GH 43394
+        # GH#43394, GH#55293
         start = "2021-09-02"
         end = "2021-09-02"
         result = date_range(
@@ -736,11 +736,30 @@ class TestDateRanges:
         )
 
         both_range = date_range(start=start, end=end, freq="D", inclusive="both")
-        if inclusive_endpoints_fixture == "neither":
-            expected = both_range[1:-1]
-        elif inclusive_endpoints_fixture in ("left", "right", "both"):
+        if inclusive_endpoints_fixture == "both":
             expected = both_range[:]
+        else:
+            # (a, a], [a, a), and (a, a) are all empty
+            expected = both_range[1:-1]
 
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2021-09-02"]),
+            ("left", []),
+            ("right", []),
+            ("neither", []),
+        ],
+    )
+    def test_start_equal_end_inclusive(self, inclusive, expected_values):
+        # GH#55293 - when start == end, only inclusive="both" should
+        # return the singleton; left, right, and neither should all be empty
+        result = date_range(
+            start="2021-09-02", end="2021-09-02", freq="D", inclusive=inclusive
+        )
+        expected = DatetimeIndex(expected_values, dtype="datetime64[us]", freq="D")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1054,6 +1073,19 @@ class TestGenRangeGeneration:
         )
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            offsets.LastWeekOfMonth(1),
+            offsets.FY5253(1),
+        ],
+    )
+    def test_generate_range_periods1_no_n0_error(self, freq):
+        # GH#41563 - offsets that disallow n=0 should not raise
+        # when periods=1 (which computes 0 * offset internally)
+        result = date_range("2018-04-01", periods=1, freq=freq)
+        assert len(result) == 1
 
     dt1, dt2 = "2017-01-01", "2017-01-01"
     tz1, tz2 = "US/Eastern", "Europe/London"
@@ -1422,7 +1454,7 @@ class TestDateRangeNonNano:
 
         exp = np.arange(
             start.astype("M8[s]").view("i8"),
-            (end + 1).astype("M8[s]").view("i8"),
+            (end + np.timedelta64(1, "D")).astype("M8[s]").view("i8"),
             24 * 3600,
         ).view("M8[s]")
 

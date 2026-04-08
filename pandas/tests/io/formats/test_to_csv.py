@@ -53,6 +53,14 @@ class TestToCSV:
         df.to_csv(temp_file)
         tm.assert_frame_equal(pd.read_csv(temp_file, index_col=0), df)
 
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+    def test_to_csv_utf16_encoding(self, encoding, temp_file):
+        # GH#10755
+        df = DataFrame({"col": ["abc", "déf", "日本語"]})
+        df.to_csv(temp_file, encoding=encoding)
+        result = pd.read_csv(temp_file, index_col=0, encoding=encoding)
+        tm.assert_frame_equal(result, df)
+
     def test_to_csv_quotechar(self, temp_file):
         df = DataFrame({"col": [1, 2]})
         expected = """\
@@ -423,6 +431,13 @@ $1$,$2$
         df.to_csv(temp_file, encoding="utf-8")
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected_utf8
+
+    def test_to_csv_roundtrip_with_newline_in_field(self, temp_file):
+        # GH#22497 - embedded newlines in field values should survive roundtrip
+        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
 
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
