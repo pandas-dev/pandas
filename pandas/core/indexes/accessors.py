@@ -12,7 +12,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._libs import lib
 from pandas.errors import Pandas4Warning
@@ -250,16 +249,16 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         from pandas import DataFrame
 
         arr = cast("ArrowExtensionArray", self._parent.array)
+
         seconds = arr._to_timedeltaarray().components.seconds
+        seconds_array = type(arr)._from_sequence(seconds, dtype=arr._dt_days.dtype)
 
         components_df = DataFrame(
             {
                 "days": arr._dt_days,
                 "hours": arr._dt_hours,
                 "minutes": arr._dt_minutes,
-                "seconds": arr._from_pyarrow_array(
-                    pa.array(seconds, from_pandas=True, type=pa.int32())
-                ),
+                "seconds": seconds_array,
                 "milliseconds": arr._dt_milliseconds,
                 "microseconds": arr._dt_microseconds,
                 "nanoseconds": arr._dt_nanoseconds,
