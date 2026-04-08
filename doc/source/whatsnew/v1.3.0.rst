@@ -352,7 +352,7 @@ Preserve dtypes in :meth:`DataFrame.combine_first`
 
 *New behavior*:
 
-.. ipython:: python
+.. ipython::
 
    combined.dtypes
 
