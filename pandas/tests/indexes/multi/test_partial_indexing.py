@@ -41,8 +41,8 @@ def test_partial_string_matching_single_index(df):
         df_swap = df_swap.sort_index()
         just_a = df_swap.loc["a"]
         result = just_a.loc["2016-01-01"]
+        # GH#62926, GH#10552 - scalar "a" on level 1 is now auto-dropped
         expected = df.loc[IndexSlice[:, "a"], :].iloc[0:2]
-        expected.index = expected.index.droplevel(1)
         tm.assert_frame_equal(result, expected)
 
 

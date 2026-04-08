@@ -871,6 +871,7 @@ def test_timestamp_multiindex_indexer():
         ]
     )
     df = DataFrame({"foo": np.arange(len(idx))}, idx)
+    # GH#62926, GH#10552 - scalar "x" on level 1 is now auto-dropped
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
     qidx = MultiIndex.from_product(
         [
@@ -880,7 +881,6 @@ def test_timestamp_multiindex_indexer():
                 freq="h",
                 name="date",
             ),
-            ["x"],
             [3],
         ]
     )

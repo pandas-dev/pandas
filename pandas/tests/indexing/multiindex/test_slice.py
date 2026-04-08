@@ -86,8 +86,9 @@ class TestMultiIndexSlicers:
         expected = df.iloc[[0, 3]]
         tm.assert_frame_equal(result, expected)
 
+        # GH#62926, GH#10552 - scalar level 1 (=1) is now auto-dropped
         result = df.loc[(slice(None), 1), :]
-        expected = df.iloc[[0, 3]]
+        expected = df.iloc[[0, 3]].droplevel("two")
         tm.assert_frame_equal(result, expected)
 
         # columns
@@ -97,7 +98,7 @@ class TestMultiIndexSlicers:
 
         # both
         result = df.loc[(slice(None), 1), (slice(None), ["foo"])]
-        expected = df.iloc[[0, 3], [1, 3]]
+        expected = df.iloc[[0, 3], [1, 3]].droplevel("two")
         tm.assert_frame_equal(result, expected)
 
         result = df.loc["A", "a"]
@@ -179,17 +180,23 @@ class TestMultiIndexSlicers:
             .sort_index()
         )
         assert not df.index.is_unique
-        expected = (
+        # GH#62926, GH#10552 - scalar level 2 (=1) is now auto-dropped
+        expected_dropped = (
+            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "D": [1, 3]})
+            .set_index(["A", "B"])
+            .sort_index()
+        )
+        result = df.loc[(slice(None), slice(None), 1), :]
+        tm.assert_frame_equal(result, expected_dropped)
+
+        # this is equivalent of an xs expression with drop_level=False
+        expected_kept = (
             DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
             .set_index(["A", "B", "C"])
             .sort_index()
         )
-        result = df.loc[(slice(None), slice(None), 1), :]
-        tm.assert_frame_equal(result, expected)
-
-        # this is equivalent of an xs expression
         result = df.xs(1, level=2, drop_level=False)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected_kept)
 
         df = (
             DataFrame(
@@ -204,14 +211,14 @@ class TestMultiIndexSlicers:
             .sort_index()
         )
         assert not df.index.is_unique
-        expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
-            .set_index(["A", "B", "C"])
+        expected_dropped = (
+            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "D": [1, 3]})
+            .set_index(["A", "B"])
             .sort_index()
         )
         result = df.loc[(slice(None), slice(None), 1), :]
         assert not result.index.is_unique
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected_dropped)
 
         # GH12896
         # numpy-implementation dependent bug
@@ -285,6 +292,8 @@ class TestMultiIndexSlicers:
         ]
         tm.assert_frame_equal(result, expected)
 
+        # GH#62926, GH#10552 - scalar level 1 (=1) is now auto-dropped
+        expected_dropped = expected.droplevel("frequency")
         result = df.loc[
             (
                 slice(
@@ -294,7 +303,7 @@ class TestMultiIndexSlicers:
             ),
             slice("A", "B"),
         ]
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected_dropped)
 
         # with strings
         result = df.loc[
@@ -306,7 +315,7 @@ class TestMultiIndexSlicers:
         result = df.loc[
             (idx["2012-01-01 12:12:12":"2012-01-03 12:12:12"], 1), idx["A", "B"]
         ]
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected_dropped)
 
     def test_multiindex_slicers_edges(self):
         # GH 8132
@@ -444,9 +453,9 @@ class TestMultiIndexSlicers:
             df.loc["A1", ("a", slice("foo"))]
 
         # GH 16734: not sorted, but no real slicing
-        tm.assert_frame_equal(
-            df.loc["A1", (slice(None), "foo")], df.loc["A1"].iloc[:, [0, 2]]
-        )
+        # GH#62926, GH#10552 - scalar "foo" on column level 1 is now auto-dropped
+        expected_col_dropped = df.loc["A1"].iloc[:, [0, 2]].droplevel("lvl1", axis=1)
+        tm.assert_frame_equal(df.loc["A1", (slice(None), "foo")], expected_col_dropped)
 
         df = df.sort_index(axis=1)
 

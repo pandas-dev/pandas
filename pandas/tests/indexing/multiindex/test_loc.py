@@ -6,6 +6,7 @@ from pandas.errors import IndexingError
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -650,6 +651,7 @@ def test_loc_period_string_indexing():
 
 def test_loc_datetime_mask_slicing():
     # GH 16699
+    # GH#62926, GH#10552 - scalar level 0 is now dropped
     dt_idx = pd.to_datetime(["2017-05-04", "2017-05-05"])
     m_idx = MultiIndex.from_product([dt_idx, dt_idx], names=["Idx1", "Idx2"])
     df = DataFrame(
@@ -659,9 +661,8 @@ def test_loc_datetime_mask_slicing():
     expected = Series(
         [3],
         name="C1",
-        index=MultiIndex.from_tuples(
-            [(pd.Timestamp("2017-05-04"), pd.Timestamp("2017-05-05"))],
-            names=["Idx1", "Idx2"],
+        index=DatetimeIndex(
+            [pd.Timestamp("2017-05-05")], dtype="datetime64[us]", name="Idx2"
         ),
     )
     tm.assert_series_equal(result, expected)
@@ -737,7 +738,8 @@ def test_getitem_str_slice():
     )
     df2 = df.set_index(["ticker", "time"]).sort_index()
 
-    res = df2.loc[("AAPL", slice("2016-05-25 13:30:00")), :].droplevel(0)
+    # GH#62926, GH#10552 - scalar level 0 ("AAPL") is now auto-dropped
+    res = df2.loc[("AAPL", slice("2016-05-25 13:30:00")), :]
     expected = df2.loc["AAPL"].loc[slice("2016-05-25 13:30:00"), :]
     tm.assert_frame_equal(res, expected)
 

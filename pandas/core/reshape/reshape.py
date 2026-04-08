@@ -1092,7 +1092,15 @@ def stack_reshape(
                 next(gen) if k in set_levels else slice(None)
                 for k in range(frame.columns.nlevels)
             )
-            data = frame.loc[:, column_indexer]
+            if len(level) < frame.columns.nlevels:
+                # Mixed scalar/slice key: use get_locs + iloc to avoid
+                # auto-dropping scalar-keyed levels (GH#62926, GH#10552).
+                # Level dropping is handled explicitly below.
+                locs = frame.columns.get_locs(column_indexer)
+                data = frame.iloc[:, locs]
+            else:
+                # All-scalar key: .loc handles dimension reduction correctly
+                data = frame.loc[:, column_indexer]
 
         if len(level) < frame.columns.nlevels:
             data.columns = data.columns._drop_level_numbers(drop_levnums)

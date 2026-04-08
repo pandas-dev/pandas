@@ -43,10 +43,38 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_310.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_310.notable_bug_fixes.multiindex_level_dropping:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:meth:`DataFrame.loc` and :meth:`Series.loc` now drop scalar-keyed levels from :class:`MultiIndex` even when other levels use slices
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when indexing a :class:`MultiIndex` with a mix of scalar and
+non-scalar (slice, list, boolean mask) keys, no levels were dropped from the
+result — even for the scalar-keyed levels. This was inconsistent with how
+scalar-only indexing worked, and required users to manually call
+:meth:`~MultiIndex.droplevel` afterward. Now scalar-keyed levels are always
+dropped, regardless of what other levels use (:issue:`10552`, :issue:`62926`).
+
+*Previous behavior*:
+
+.. code-block:: python
+
+    >>> mi = pd.MultiIndex.from_product([[1, 2], ["a", "b"]], names=["A", "B"])
+    >>> df = pd.DataFrame({"val": range(4)}, index=mi)
+    >>> df.loc[(1, slice(None)), :].index
+    MultiIndex([(1, 'a'),
+                (1, 'b')],
+               names=['A', 'B'])
+
+*New behavior*:
+
+.. code-block:: python
+
+    >>> df.loc[(1, slice(None)), :].index
+    Index(['a', 'b'], dtype='object', name='B')
+
+Code that previously called ``.droplevel()`` after such indexing operations
+may now need to be updated, as the level is already dropped.
 
 .. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
 
@@ -257,6 +285,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` with a :class:`MultiIndex` where scalar-keyed levels were not dropped when other levels used slices or boolean masks (:issue:`10552`, :issue:`62926`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 -

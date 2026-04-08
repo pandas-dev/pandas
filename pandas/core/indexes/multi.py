@@ -3639,6 +3639,86 @@ class MultiIndex(Index):
 
         return _maybe_to_slice(loc) if len(loc) != stop - start else slice(start, stop)
 
+    def _levels_to_drop(
+        self,
+        key: tuple,
+        result_index: MultiIndex | None = None,
+        strict: bool = False,
+    ) -> list[int]:
+        """
+        Given a tuple key with one element per level, return the level
+        numbers that should be dropped — those indexed by a scalar label.
+
+        A level is scalar-keyed when its key element is not a slice, list,
+        boolean mask, or ndarray. A tuple element that matches a single
+        label in its level (GH#27591) is treated as scalar.
+
+        Parameters
+        ----------
+        key : tuple
+            Tuple key with one element per level.
+        result_index : MultiIndex, optional
+            The result's index after selection. Only used when strict=True.
+        strict : bool, default False
+            If False (simple rule): always drop scalar-keyed levels.
+            If True (strict rule): only drop a scalar-keyed level when
+            doing so would leave a unique remaining index in result_index
+            (i.e., the scalar is "reducible").
+
+        Returns
+        -------
+        list[int]
+        """
+        candidates = []
+        for idx, k in enumerate(key):
+            if isinstance(k, slice) or com.is_bool_indexer(k):
+                continue
+            elif isinstance(k, tuple):
+                # GH#27591 tuple might be a single label in this level
+                try:
+                    self.levels[idx].get_loc(k)
+                    candidates.append(idx)
+                except KeyError:
+                    pass
+            elif is_list_like(k):
+                continue
+            elif (
+                isinstance(k, str)
+                and self.levels[idx]._supports_partial_string_indexing
+            ):
+                # Partial string indexing on datetime-like levels may match
+                # multiple entries (e.g. "2016-01-02" matches all hours that
+                # day). Only treat as scalar if it's an exact match.
+                check = self.levels[idx].get_loc(k)
+                if is_integer(check):
+                    candidates.append(idx)
+            else:
+                candidates.append(idx)
+
+        if not candidates or not strict:
+            return candidates
+
+        # Strict mode: only drop levels where doing so preserves uniqueness.
+        # Fast path: unique MI guarantees all scalar-keyed levels are reducible.
+        if self.is_unique:
+            return candidates
+
+        # Slow path: check each candidate individually.
+        if result_index is None:
+            return candidates
+
+        result = []
+        for level_num in candidates:
+            try:
+                dropped = result_index.droplevel(level_num)
+            except ValueError:
+                # Can't drop the last level — caller handles all-levels case
+                result.append(level_num)
+                continue
+            if dropped.is_unique:
+                result.append(level_num)
+        return result
+
     def get_loc_level(self, key, level: IndexLabel = 0, drop_level: bool = True):
         """
         Get location and sliced index for requested label(s)/level(s).

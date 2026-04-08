@@ -775,7 +775,11 @@ class TestDataFrameReshape:
         df = DataFrame([[2010, "a", "I"], [2011, "b", "II"]], columns=["A", "B", "C"])
 
         ind = df.set_index(["A", "B", "C"], drop=False)
-        selection = ind.loc[(slice(None), slice(None), "I"), cols]
+        # Use iloc to avoid auto-dropping level "C" (GH#62926);
+        # the test is about unstack behavior, not level-dropping.
+        key = (slice(None), slice(None), "I")
+        locs = ind.index.get_locs(key)
+        selection = ind.iloc[locs][cols]
         result = selection.unstack()
 
         expected = ind.iloc[[0]][cols]

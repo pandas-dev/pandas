@@ -1206,13 +1206,9 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
-        columns = MultiIndex(
-            levels=[["x", "y"], [0, 1]], codes=[[0, 1], [0, 0]], names=[None, "c"]
-        )
-        expected_loc = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
-
+        # GH#62926, GH#10552 - scalar level 1 (=0) is also auto-dropped via .loc
         result = dg.loc[:, (slice(None), 0)]
-        tm.assert_frame_equal(result, expected_loc)
+        tm.assert_frame_equal(result, expected)
 
         name = ("x", 0)
         index = Index(range(2), name="i")
