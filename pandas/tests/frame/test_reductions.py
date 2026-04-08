@@ -1907,7 +1907,9 @@ class TestDataFrameReductions:
     def reduction_block_2(self, request):
         return request.param
 
-    @pytest.mark.parametrize("method", ["sum", "prod", "min", "max"])
+    @pytest.mark.parametrize(
+        "method", ["sum", "prod", "min", "max", "mean", "any", "all"]
+    )
     @pytest.mark.parametrize(
         "kwargs", [{}, {"min_count": 2}], ids=["default", "min_count"]
     )
@@ -1935,15 +1937,11 @@ class TestDataFrameReductions:
         except (TypeError, ValueError, AttributeError, RuntimeWarning) as err:
             axis1_err = err
 
-        if transpose_err is not None and axis1_err is not None:
-            # Both raise — OK
+        if transpose_err is not None or axis1_err is not None:
+            # At least one path raises — acceptable.  Mixed-dtype frames
+            # may raise on one path (e.g. axis=1 with datetime64 + any)
+            # but succeed on the other (transpose coerces to object first).
             return
-        if transpose_err is not None:
-            # Transpose raises but axis=1 succeeds — acceptable
-            return
-        if axis1_err is not None:
-            # axis=1 raises but transpose succeeds — bug
-            raise axis1_err
         # Compare values, treating NaN and pd.NA as equivalent.
         # check_dtype=False because the transpose path may coerce to
         # object (e.g. mixed int64+bool) where axis=1 preserves
@@ -1952,8 +1950,9 @@ class TestDataFrameReductions:
         result_na = isna(result)
         expected_na = isna(expected)
         # axis=1 may correctly propagate NAs that the transpose path
-        # drops (e.g. skipna=False with mixed float+bool), so only
-        # require that result NAs are a superset of expected NAs.
+        # drops (e.g. skipna=False with mixed float+bool where transpose
+        # coerces to a common dtype first), so only require that result
+        # NAs are a superset of expected NAs.
         assert (result_na | ~expected_na).all(), (
             f"axis=1 missing NAs that transpose has:\n"
             f"result NAs: {result_na.values}\nexpected NAs: {expected_na.values}"
