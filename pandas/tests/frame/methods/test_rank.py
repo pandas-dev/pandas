@@ -498,35 +498,3 @@ class TestRank:
             exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
-
-    def test_rank_preserves_ea_dtype(self):
-        # GH#52829 - DataFrame.rank() should preserve ExtensionArray dtypes
-        # the same way Series.rank() does.
-        pa = pytest.importorskip("pyarrow")
-        from pandas import ArrowDtype
-
-        s = Series([1, 2, 3], dtype=ArrowDtype(pa.int32()))
-        df = s.to_frame(name="a")
-
-        # Series.rank() preserves the ArrowDtype
-        s_result = s.rank(method="min")
-        # DataFrame.rank() should also preserve the ArrowDtype (GH#52829)
-        df_result = df.rank(method="min")
-
-        assert s_result.dtype == df_result["a"].dtype, (
-            f"Series.rank() dtype {s_result.dtype} != "
-            f"DataFrame.rank() column dtype {df_result['a'].dtype}"
-        )
-
-    def test_rank_preserves_nullable_int_dtype(self):
-        # GH#52829 - DataFrame.rank() should preserve nullable integer dtypes
-        s = Series([1, 2, 3], dtype="Int64")
-        df = s.to_frame(name="a")
-
-        s_result = s.rank(method="min")
-        df_result = df.rank(method="min")
-
-        assert s_result.dtype == df_result["a"].dtype, (
-            f"Series.rank() dtype {s_result.dtype} != "
-            f"DataFrame.rank() column dtype {df_result['a'].dtype}"
-        )

@@ -310,7 +310,6 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Fixed bug in :meth:`DataFrame.rank` where :class:`ExtensionArray` dtypes (e.g. ``ArrowDtype``, nullable ``Int64``) were silently converted to ``float64`` instead of being preserved, unlike the consistent behavior of :meth:`Series.rank` (:issue:`52829`).
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 
