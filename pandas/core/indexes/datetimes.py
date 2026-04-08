@@ -166,7 +166,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order. Requires that the timestamps are monotonically increasing.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -552,7 +552,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1456,7 +1456,7 @@ def date_range(
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order. Requires that the timestamps are monotonically increasing.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
