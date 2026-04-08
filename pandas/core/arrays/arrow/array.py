@@ -852,7 +852,14 @@ class ArrowExtensionArray(
         return self._pa_array
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        if not is_nan_na() and type(self) is ArrowExtensionArray:
+        if (
+            not is_nan_na()
+            and type(self) is ArrowExtensionArray
+            and (
+                pa.types.is_floating(self._pa_array.type)
+                or pa.types.is_integer(self._pa_array.type)
+            )
+        ):
             # GH#62506 - when distinguish_nan_and_na is True,
             # default_array_ufunc converts to numpy via np.asarray which
             # produces object dtype that most ufuncs can't handle.
