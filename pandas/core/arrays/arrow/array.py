@@ -61,10 +61,16 @@ from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     DatetimeTZDtype,
 )
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     algorithms as algos,
+    arraylike,
     missing,
     ops,
     roperator,
@@ -853,14 +859,6 @@ class ArrowExtensionArray(
             # Replicate ExtensionArray.__array_ufunc__ but convert with
             # na_value=np.nan (float, not object) in the default fallback,
             # then re-mask NA positions in the result.
-            from pandas.core.dtypes.generic import (
-                ABCDataFrame,
-                ABCIndex,
-                ABCSeries,
-            )
-
-            from pandas.core import arraylike
-
             if any(
                 isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame))
                 for other in inputs
@@ -909,10 +907,7 @@ class ArrowExtensionArray(
     def _wrap_and_remask_ufunc_result(
         self, result: np.ndarray, mask: npt.NDArray[np.bool_]
     ) -> ArrowExtensionArray:
-        arr = type(self)._from_sequence(result)
-        if mask.any():
-            arr[mask] = arr.dtype.na_value
-        return arr
+        return type(self)(pa.array(result, mask=mask, from_pandas=False))
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
