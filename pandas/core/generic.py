@@ -9599,8 +9599,47 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         def ranker(data):
             if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
+                if axis_int == 0:
+                    # GH#52829 - when ranking along axis=0 (the default,
+                    # ranking each column independently), use _mgr.apply so
+                    # that ExtensionArray dtypes are preserved instead of being
+                    # cast to numpy float64 via data.values.
+                    #
+                    # Blocks are stored in transposed (ncols, nrows) layout, so
+                    # for numpy blocks and 2-D EAs (e.g. DatetimeArray) we
+                    # transpose, rank along axis=0 (rows), then transpose back.
+                    # 1-D EAs (e.g. ArrowExtensionArray, IntegerArray) are
+                    # stored flat so their _rank(axis=0) is correct as-is.
+                    def _rank_block(blk_values):
+                        if isinstance(blk_values, ExtensionArray) and blk_values.ndim == 1:
+                            # 1-D EAs can rank in-place preserving dtype.
+                            return blk_values._rank(
+                                axis=0,
+                                method=method,
+                                ascending=ascending,
+                                na_option=na_option,
+                                pct=pct,
+                            )
+                        # numpy blocks and 2-D EAs are (ncols, nrows);
+                        # transpose so axis=0 corresponds to within each column.
+                        transposed = blk_values.T
+                        ranked = algos.rank(
+                            transposed,
+                            axis=0,
+                            method=method,
+                            ascending=ascending,
+                            na_option=na_option,
+                            pct=pct,
+                        )
+                        return ranked.T
+
+                    new_mgr = data._mgr.apply(_rank_block)
+                    ranks_obj = data._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+                    return ranks_obj.__finalize__(self, method="rank")
+                else:
+                    # axis=1: must consolidate to 2D ndarray since ranking
+                    # across columns cannot be done column-by-column.
+                    values = data.values
             else:
                 # i.e. Series, can dispatch to EA
                 values = data._values
