@@ -898,11 +898,10 @@ class ArrowExtensionArray(
             ]
             result = getattr(ufunc, method)(*new_inputs, **kwargs)
 
+            remask = functools.partial(pa.array, mask=mask, from_pandas=False)
             if isinstance(result, tuple):
-                return tuple(
-                    self._wrap_and_remask_ufunc_result(res, mask) for res in result
-                )
-            return self._wrap_and_remask_ufunc_result(result, mask)
+                return tuple(type(self)(remask(res)) for res in result)
+            return type(self)(remask(result))
 
         # Need to wrap np.array results GH#62800
         result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
@@ -910,11 +909,6 @@ class ArrowExtensionArray(
             # Exclude ArrowStringArray
             return type(self)._from_sequence(result)
         return result
-
-    def _wrap_and_remask_ufunc_result(
-        self, result: np.ndarray, mask: npt.NDArray[np.bool_]
-    ) -> ArrowExtensionArray:
-        return type(self)(pa.array(result, mask=mask, from_pandas=False))
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
