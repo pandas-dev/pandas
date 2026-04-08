@@ -981,7 +981,6 @@ def test_resample_dst_midnight_last_nonexistent():
     result = ts.resample("7D").sum()
     tm.assert_series_equal(result, expected)
 
-
 def test_resample_daily_anchored(unit):
     rng = date_range("1/1/2000 0:00:00", periods=10000, freq="min").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)

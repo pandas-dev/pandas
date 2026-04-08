@@ -2963,9 +2963,29 @@ def _get_timestamp_range_edges(
             unit=unit,
         )
     else:
-        first = first.normalize()
-        last = last.normalize()
+        # first = first.normalize()
+        # last = last.normalize()
 
+        # if closed == "left":
+        #     first = Timestamp(freq.rollback(first))
+        # else:
+        #     first = Timestamp(first - freq)
+
+        # last = Timestamp(last + freq)
+
+        # Check if tz-aware and convert to tz-naive for comparison, then convert back
+        if first.tz is not None:
+            first = first.tz_localize(None)
+            first = first.normalize()
+        else:
+            first = first.normalize()
+        
+        if last.tz is not None:
+            last = last.tz_localize(None)
+            last = last.normalize()
+        else:
+            last = last.normalize()
+        
         if closed == "left":
             first = Timestamp(freq.rollback(first))
         else:
@@ -2974,7 +2994,6 @@ def _get_timestamp_range_edges(
         last = Timestamp(last + freq)
 
     return first, last
-
 
 def _get_period_range_edges(
     first: Period,
