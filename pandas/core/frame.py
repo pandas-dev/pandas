@@ -1,3 +1,4 @@
+
 """
 DataFrame
 ---------
@@ -12171,6 +12172,19 @@ class DataFrame(NDFrame, OpsMixin):
         other_columns = other.columns
 
         this, other = self.align(other)
+        # warn only when no overlap AND dtype mismatch
+        if (
+            index_intersection.empty
+            and self.index.dtype != other.index.dtype
+        ):
+            import warnings
+            warnings.warn(
+                "DataFrame.update: no matching indices found (possible dtype mismatch)",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        other = other.reindex_like(self)
         new_index = this.index
 
         if other.empty and len(new_index) == len(self.index):
@@ -12453,6 +12467,19 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("Update not allowed with duplicate indexes on other.")
 
         index_intersection = other.index.intersection(self.index)
+
+        # warn only when no overlap AND dtype mismatch
+        if (
+            index_intersection.empty
+            and self.index.dtype != other.index.dtype
+        ):
+            import warnings
+            warnings.warn(
+                "DataFrame.update: no matching indices found (possible dtype mismatch)",
+                UserWarning,
+                stacklevel=2,
+            )
+
         if index_intersection.empty:
             return
         other = other.reindex(index_intersection)

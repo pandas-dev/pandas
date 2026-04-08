@@ -259,3 +259,13 @@ class TestDataFrameUpdate:
         expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]}, dtype=object)
 
         tm.assert_frame_equal(other, expected)
+
+import pytest
+import pandas as pd
+
+def test_update_warns_on_mismatched_index_types():
+    df1 = pd.DataFrame({"A": [1]}, index=[1])
+    df2 = pd.DataFrame({"A": [2]}, index=["1"])
+
+    with pytest.warns(UserWarning):
+        df1.update(df2)
