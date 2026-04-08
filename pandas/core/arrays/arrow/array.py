@@ -3185,7 +3185,7 @@ class ArrowExtensionArray(
     def _dt_seconds(self) -> Self:
         return self._from_pyarrow_array(
             pa.array(
-                self._to_timedeltaarray().components.seconds,
+                self._to_timedeltaarray().seconds,
                 from_pandas=True,
                 type=pa.int32(),
             )

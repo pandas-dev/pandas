@@ -20,6 +20,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Fixed :attr:`Series.dt.seconds` for PyArrow-backed durations to return seconds modulo one day, matching NumPy-backed timedeltas (:issue:`63283`).
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
 

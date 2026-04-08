@@ -2978,6 +2978,30 @@ def test_dt_to_pytimedelta():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_dt_seconds_duration():
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=1, hours=2),
+            pd.Timedelta(hours=5, minutes=30),
+            pd.Timedelta(minutes=45, seconds=15),
+        ],
+        dtype=ArrowDtype(pa.duration("us")),
+    )
+
+    result = ser.dt.seconds
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([7200, 19800, 2715], type=pa.int32()))
+    )
+    tm.assert_series_equal(result, expected)
+
+    components_seconds = ser.dt.components["seconds"]
+    expected_components = pd.Series(
+        ArrowExtensionArray(pa.array([0, 0, 15], type=pa.int32())),
+        name="seconds",
+    )
+    tm.assert_series_equal(components_seconds, expected_components)
+
+
 def test_dt_components():
     # GH 52284
     ser = pd.Series(
