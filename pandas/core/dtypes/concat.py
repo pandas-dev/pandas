@@ -83,7 +83,8 @@ def concat_compat(
     if union_categories and all(
         isinstance(x.dtype, CategoricalDtype) for x in to_concat
     ):
-        return to_concat[0]._concat_same_type(to_concat)
+        eas = cast("Sequence[ExtensionArray]", to_concat)
+        return eas[0]._concat_same_type(eas)
 
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
