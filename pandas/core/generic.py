@@ -9611,7 +9611,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # 1-D EAs (e.g. ArrowExtensionArray, IntegerArray) are
                     # stored flat so their _rank(axis=0) is correct as-is.
                     def _rank_block(blk_values):
-                        if isinstance(blk_values, ExtensionArray) and blk_values.ndim == 1:
+                        if (
+                            isinstance(blk_values, ExtensionArray)
+                            and blk_values.ndim == 1
+                        ):
                             # 1-D EAs can rank in-place preserving dtype.
                             return blk_values._rank(
                                 axis=0,

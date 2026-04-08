@@ -175,6 +175,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
+- Fixed bug in :func:`api.types.infer_dtype` where the ``skipna`` parameter was ignored for :class:`Period` and :class:`Interval` values; with ``skipna=False``, arrays containing ``NaN``/``NaT``/``None`` now correctly return ``"mixed"`` instead of ``"period"``/``"interval"`` (:issue:`64196`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
 Categorical
@@ -309,8 +310,8 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 - Fixed bug in :meth:`DataFrame.rank` where :class:`ExtensionArray` dtypes (e.g. ``ArrowDtype``, nullable ``Int64``) were silently converted to ``float64`` instead of being preserved, unlike the consistent behavior of :meth:`Series.rank` (:issue:`52829`).
+- Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 
 Styler

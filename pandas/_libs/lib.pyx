@@ -1808,7 +1808,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "period"
 
     elif isinstance(val, Interval):
-        if is_interval_array(values):
+        if is_interval_array(values, skipna=skipna):
             return "interval"
 
     cnp.PyArray_ITER_RESET(it)
@@ -2258,7 +2258,8 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
                 # mismatched freqs
                 return False
         elif checknull_with_nat(val):
-            pass
+            if not skipna:
+                return False
         else:
             # Not a Period or NaT-like
             return False
@@ -2272,7 +2273,7 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
 # Note: only python-exposed for tests
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef bint is_interval_array(ndarray values):
+cpdef bint is_interval_array(ndarray values, bint skipna=True):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
     """
@@ -2319,7 +2320,8 @@ cpdef bint is_interval_array(ndarray values):
             else:
                 raise ValueError(val)
         elif util.is_nan(val) or val is None:
-            pass
+            if not skipna:
+                return False
         else:
             return False
 

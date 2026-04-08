@@ -1417,7 +1417,9 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        assert lib.infer_dtype(values, skipna=skipna) == "period"
+        # GH#64196 - skipna=False should return "mixed" when NaT is present
+        expected = "period" if skipna else "mixed"
+        assert lib.infer_dtype(values, skipna=skipna) == expected
 
         # periods but mixed freq
         values = klass(
@@ -1451,6 +1453,28 @@ class TestTypeInference:
 
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
+
+    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan, None])
+    def test_infer_dtype_period_skipna_false(self, na_value):
+        # GH#64196 - skipna=False should not ignore NA values for Period
+        arr = np.array([Period("2011-01", freq="D"), na_value], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([na_value, Period("2011-01", freq="D")], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+    @pytest.mark.parametrize("na_value", [np.nan, None])
+    def test_infer_dtype_interval_skipna_false(self, na_value):
+        # GH#64196 - skipna=False should not ignore NA values for Interval
+        arr = np.array([Interval(0, 1), na_value], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([na_value, Interval(0, 1)], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        # skipna=True should still return "interval"
+        arr = np.array([Interval(0, 1), na_value], dtype=object)
+        assert lib.infer_dtype(arr, skipna=True) == "interval"
 
     @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
     def test_infer_dtype_numeric_with_na(self, na_value):
