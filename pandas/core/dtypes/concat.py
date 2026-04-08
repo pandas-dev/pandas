@@ -80,12 +80,10 @@ def concat_compat(
     -------
     a single array, preserving the combined dtypes
     """
-    if union_categories:
-        from pandas.core.arrays import Categorical
-
-        if all(isinstance(x, Categorical) for x in to_concat):
-            to_concat_cats = cast("Sequence[Categorical]", to_concat)
-            return Categorical._concat_same_type(to_concat_cats)
+    if union_categories and all(
+        isinstance(x.dtype, CategoricalDtype) for x in to_concat
+    ):
+        return to_concat[0]._concat_same_type(to_concat)
 
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!

@@ -230,11 +230,11 @@ def concat(
             for more details.
 
     union_categories : bool, default False
-        If True and all values for a given column are
-        :class:`~pandas.Categorical`, the resulting column will preserve
-        categorical dtype with the union of the categories, rather than
-        casting to the underlying dtype. Has no effect when concatenating
-        mixed Categorical and non-Categorical data.
+        If True and all values for a given column have categorical dtype,
+        the resulting column will preserve categorical dtype with the
+        union of the categories, rather than casting to the underlying
+        dtype. Has no effect when concatenating mixed categorical and
+        non-categorical data.
 
         .. versionadded:: 3.1.0
 
