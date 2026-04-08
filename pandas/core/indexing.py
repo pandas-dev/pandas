@@ -2873,8 +2873,8 @@ class _iLocIndexer(_LocationIndexer):
                 # no columns and scalar
                 raise ValueError("cannot set a frame with no defined columns")
 
-            if isinstance(self.obj.index, MultiIndex) and not isinstance(
-                indexer, tuple
+            if isinstance(self.obj.index, MultiIndex) and not (
+                isinstance(indexer, tuple) and len(indexer) == self.obj.index.nlevels
             ):
                 # GH#17024 scalar key on MultiIndex is ambiguous and
                 # currently flattens the MultiIndex. Deprecate in favor
