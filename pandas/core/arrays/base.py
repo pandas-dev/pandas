@@ -3119,17 +3119,10 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in arithmetic_ops:
             existing = getattr(cls, op_name, None)
-            if (
-                existing is None
-                or getattr(existing, "_is_mixin_injected", False)
-                or any(
-                    getattr(base, op_name, None) is existing
-                    for base in (ExtensionArray, arraylike.OpsMixin)
-                )
-            ):
-                method = cls._create_arithmetic_method(op_func)
-                method._is_mixin_injected = True
-                setattr(cls, op_name, method)
+            if existing is getattr(
+                ExtensionArray, op_name, None
+            ) or existing is getattr(arraylike.OpsMixin, op_name, None):
+                setattr(cls, op_name, cls._create_arithmetic_method(op_func))
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -3147,17 +3140,10 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in comparison_ops:
             existing = getattr(cls, op_name, None)
-            if (
-                existing is None
-                or getattr(existing, "_is_mixin_injected", False)
-                or any(
-                    getattr(base, op_name, None) is existing
-                    for base in (ExtensionArray, arraylike.OpsMixin)
-                )
-            ):
-                method = cls._create_comparison_method(op_func)
-                method._is_mixin_injected = True
-                setattr(cls, op_name, method)
+            if existing is getattr(
+                ExtensionArray, op_name, None
+            ) or existing is getattr(arraylike.OpsMixin, op_name, None):
+                setattr(cls, op_name, cls._create_comparison_method(op_func))
 
     @classmethod
     def _create_logical_method(cls, op):
@@ -3175,17 +3161,10 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in logical_ops:
             existing = getattr(cls, op_name, None)
-            if (
-                existing is None
-                or getattr(existing, "_is_mixin_injected", False)
-                or any(
-                    getattr(base, op_name, None) is existing
-                    for base in (ExtensionArray, arraylike.OpsMixin)
-                )
-            ):
-                method = cls._create_logical_method(op_func)
-                method._is_mixin_injected = True
-                setattr(cls, op_name, method)
+            if existing is getattr(
+                ExtensionArray, op_name, None
+            ) or existing is getattr(arraylike.OpsMixin, op_name, None):
+                setattr(cls, op_name, cls._create_logical_method(op_func))
 
 
 @set_module("pandas.api.extensions")
