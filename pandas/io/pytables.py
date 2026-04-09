@@ -30,10 +30,10 @@ import warnings
 import numpy as np
 
 from pandas._config import (
-    config,
     using_string_dtype,
 )
-from pandas._config.config import _global_config
+import pandas._config.config as cf
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -234,16 +234,16 @@ format_doc: Final = """
     put will default to 'fixed' and append will default to 'table'
 """
 
-with config.config_prefix("io.hdf"):
-    config.register_option("dropna_table", False, dropna_doc, validator=config.is_bool)
-    config.register_option(
+with cf.config_prefix("io.hdf"):
+    cf.register_option("dropna_table", False, dropna_doc, validator=cf.is_bool)
+    cf.register_option(
         "default_format",
         None,
         format_doc,
-        validator=config.is_one_of_factory(["fixed", "table", None]),
+        validator=cf.is_one_of_factory(["fixed", "table", None]),
     )
 
-config.deprecate_option(
+cf.deprecate_option(
     "io.hdf.dropna_table",
     Pandas4Warning,
     msg="io.hdf.dropna_table option is deprecated. Use DataFrame.dropna "
@@ -1263,7 +1263,7 @@ class HDFStore:
         else:
             dropna = False
         if format is None:
-            format = _global_config["io"]["hdf"]["default_format"] or "fixed"
+            format = config["io"]["hdf"]["default_format"] or "fixed"
         format = self._validate_format(format)
         if track_times is lib.no_default:
             warnings.warn(
@@ -1473,7 +1473,7 @@ class HDFStore:
         else:
             dropna = False
         if format is None:
-            format = _global_config["io"]["hdf"]["default_format"] or "table"
+            format = config["io"]["hdf"]["default_format"] or "table"
         format = self._validate_format(format)
         self._write_to_group(
             key,
@@ -3417,7 +3417,7 @@ class GenericFixed(Fixed):
                     pass
                 elif inferred_type == "string":
                     pass
-                elif _global_config["mode"]["performance_warnings"]:
+                elif config["mode"]["performance_warnings"]:
                     ws = performance_doc % (inferred_type, key, items)
                     warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
