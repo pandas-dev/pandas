@@ -51,9 +51,6 @@ python = "3.14.*"
 [feature.py313-freethreading.dependencies]
 python-freethreading = "3.13.*"
 
-
-
-
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
