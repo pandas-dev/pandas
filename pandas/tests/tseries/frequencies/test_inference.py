@@ -72,27 +72,26 @@ def test_infer_freq_range(periods, freq):
         assert frequencies.infer_freq(index) == gen.freqstr
     else:
         inf_freq = frequencies.infer_freq(index)
-        # GH#44745 - infer_freq now uses the first date's month as anchor
-        is_mar_range = inf_freq == "QE-MAR" and gen.freqstr in (
+        is_dec_range = inf_freq == "QE-DEC" and gen.freqstr in (
             "QE",
             "QE-DEC",
             "QE-SEP",
             "QE-JUN",
             "QE-MAR",
         )
-        is_feb_range = inf_freq == "QE-FEB" and gen.freqstr in (
+        is_nov_range = inf_freq == "QE-NOV" and gen.freqstr in (
             "QE-NOV",
             "QE-AUG",
             "QE-MAY",
             "QE-FEB",
         )
-        is_jan_range = inf_freq == "QE-JAN" and gen.freqstr in (
+        is_oct_range = inf_freq == "QE-OCT" and gen.freqstr in (
             "QE-OCT",
             "QE-JUL",
             "QE-APR",
             "QE-JAN",
         )
-        assert is_mar_range or is_feb_range or is_jan_range
+        assert is_dec_range or is_nov_range or is_oct_range
 
 
 def test_raise_if_period_index():
@@ -205,7 +204,7 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
     list(
         {
             "YS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
-            "QE-JAN": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
+            "QE-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
             "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
             "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
@@ -229,16 +228,13 @@ def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
     "freq,expected",
     [
         ("6MS", "2QS-JAN"),
-        ("QS-JAN", "QS-JAN"),
-        ("QS-APR", "QS-JAN"),
-        ("QE-JAN", "QE-JAN"),
-        ("QE-APR", "QE-JAN"),
-        ("BQS-JAN", "BQS-JAN"),
-        ("BQE-JAN", "BQE-JAN"),
+        ("2QS-JAN", "2QS-JAN"),
+        ("2QE-JAN", "2QE-JAN"),
+        ("2BQS-JAN", "2BQS-JAN"),
     ],
 )
 def test_infer_freq_quarterly_anchor(freq, expected):
-    # GH#44745 - quarterly anchor should match first date's month
+    # GH#44745 - multi-quarter anchor should match first date's month
     idx = date_range("2000-01-01", periods=8, freq=freq)
     result = frequencies.infer_freq(DatetimeIndex(idx.values))
     assert result == expected
