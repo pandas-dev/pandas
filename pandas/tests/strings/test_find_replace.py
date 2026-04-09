@@ -964,6 +964,23 @@ def test_replace_regex(any_string_dtype):
 
 
 @pytest.mark.parametrize("regex", [True, False])
+@pytest.mark.parametrize(
+    "repl, expected_data",
+    [
+        ("", ["abcd", np.nan, ""]),
+        ("X", ["XaXbXcXdX", np.nan, ""]),
+    ],
+)
+def test_replace_empty_pattern(any_string_dtype, regex, repl, expected_data):
+    # GH#64941 - str.replace with empty pattern should not hang
+    # and should match Python's str.replace / re.sub behavior
+    ser = Series(["abcd", np.nan, ""], dtype=any_string_dtype)
+    result = ser.str.replace("", repl, regex=regex)
+    expected = Series(expected_data, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("regex", [True, False])
 def test_replace_regex_single_character(regex, any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/24809, enforced in 2.0
     # GH 24804

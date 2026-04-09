@@ -493,6 +493,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 isinstance(repl, str) and r"\g<" in repl
             )
             or (regex and self._has_unsupported_regex(pat))
+            or (isinstance(pat, str) and pat == "")
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
