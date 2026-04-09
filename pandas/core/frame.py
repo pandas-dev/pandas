@@ -15718,9 +15718,6 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
-                dtype = find_common_type(
-                    [block.values.dtype for block in df._mgr.blocks]
-                )
                 # GH#51474: block-wise axis=1 reduction avoiding expensive
                 # transpose for numpy-backed and 2D EA blocks.
                 if (
@@ -15743,6 +15740,9 @@ class DataFrame(NDFrame, OpsMixin):
                         skipna=skipna,
                         min_count=kwds.get("min_count", 0),
                     )
+                dtype = find_common_type(
+                    [block.values.dtype for block in df._mgr.blocks]
+                )
                 if isinstance(dtype, ExtensionDtype):
                     # GH 54341: fastpath for EA-backed axis=1 reductions
                     # This flattens the frame into a single 1D array while keeping
