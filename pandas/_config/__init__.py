@@ -49,5 +49,7 @@ def is_nan_na() -> bool:
 
 
 def using_infer_freq_offset() -> bool | None:
-    _mode_options = _global_config["future"]
+    from pandas._config.config import _global_config as config
+
+    _mode_options = config["future"]
     return _mode_options["infer_freq_returns_offset"]
