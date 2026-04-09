@@ -2076,6 +2076,22 @@ def non_reducing_slice(slice_: Subset):
         else:
             return isinstance(part, slice) or is_list_like(part)
 
+    def _wrap_mi_scalars(part):
+        """
+        For a MultiIndex tuple key that contains a mix of slices/lists and
+        scalars, wrap the scalar elements in lists so that .loc doesn't
+        drop those levels.
+        """
+        if not isinstance(part, tuple):
+            return part
+        new_parts = []
+        for elem in part:
+            if isinstance(elem, slice) or is_list_like(elem):
+                new_parts.append(elem)
+            else:
+                new_parts.append([elem])
+        return tuple(new_parts)
+
     if not is_list_like(slice_):
         if not isinstance(slice_, slice):
             # a 1-d slice, like df.loc[1]
@@ -2086,7 +2102,10 @@ def non_reducing_slice(slice_: Subset):
     else:
         # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
         # "__iter__" (not iterable) -> is specifically list_like in conditional
-        slice_ = [p if pred(p) else [p] for p in slice_]  # type: ignore[union-attr]
+        slice_ = [  # type: ignore[union-attr]
+            _wrap_mi_scalars(p) if pred(p) else [p]
+            for p in slice_  # type: ignore[union-attr]
+        ]
     return tuple(slice_)
 
 
