@@ -5450,7 +5450,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        blk_dtypes = self._mgr.get_unique_dtypes()
         if (
             np.object_ in include
             and str not in include

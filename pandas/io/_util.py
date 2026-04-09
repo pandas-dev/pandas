@@ -231,8 +231,11 @@ def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
 
 def _normalize_timezone_index(index: pd.Index) -> pd.Index:
     if isinstance(index, pd.MultiIndex):
-        levels = [_normalize_timezone_index(level) for level in index.levels]
-        return index.set_levels(levels)
+        if any(isinstance(level.dtype, pd.DatetimeTZDtype) for level in index.levels):
+            levels = [_normalize_timezone_index(level) for level in index.levels]
+            return index.set_levels(levels)
+
+        return index
 
     if isinstance(index.dtype, pd.DatetimeTZDtype):
         normalized_tz = _normalize_pytz_timezone(index.dtype.tz)
@@ -243,6 +246,13 @@ def _normalize_timezone_index(index: pd.Index) -> pd.Index:
 
 
 def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    PyArrow uses pytz by default for timezones, but pandas uses
+    zoneinfo / datetime.timezone since pandas 3.0.
+
+    TODO: Starting with pyarrow 25, it will use zoneinfo by default, and then
+    this normalization can be skipped (https://github.com/apache/arrow/pull/49694).
+    """
     if pytz is not None:
         # Convert any pytz timezones to zoneinfo / fixed offset timezones
         if any(
@@ -258,4 +268,5 @@ def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
     df.index = _normalize_timezone_index(df.index)
     df.columns = _normalize_timezone_index(df.columns)
+
     return df
