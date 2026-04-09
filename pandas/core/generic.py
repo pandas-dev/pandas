@@ -6976,6 +6976,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self:
         """
         Fill NA/NaN values with `value`.
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
 
         This method replaces missing values with a specified value.
 
