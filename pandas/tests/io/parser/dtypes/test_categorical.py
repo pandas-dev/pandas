@@ -279,11 +279,7 @@ def test_categorical_coerces_datetime(all_parsers):
     data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
     expected = DataFrame({"b": Categorical(dtype["b"].categories)})
 
-    # pyarrow parser returns datetime.date objects, triggering the deprecation
-    warn = Pandas4Warning if parser.engine == "pyarrow" else None
-    msg = "Inferring datetime64 from data containing datetime.date objects"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 
@@ -294,11 +290,7 @@ def test_categorical_coerces_timestamp(all_parsers):
     data = "b\n2014-01-01\n2014-01-01"
     expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
 
-    # pyarrow parser returns datetime.date objects, triggering the deprecation
-    warn = Pandas4Warning if parser.engine == "pyarrow" else None
-    msg = "Inferring datetime64 from data containing datetime.date objects"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 
