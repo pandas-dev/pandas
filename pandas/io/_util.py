@@ -211,21 +211,19 @@ def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
     if timezones.is_utc(tz):
         return timezones.maybe_get_tz("UTC")
 
+    if tz.zone is not None:
+        try:
+            return timezones.maybe_get_tz(tz.zone)
+        except Exception:
+            # some pytz timezones might not be available for zoneinfo
+            pass
+
     if timezones.is_fixed_offset(tz):
         # Convert pytz fixed offset to datetime.timezone
         try:
             offset = tz.utcoffset(None)
-            if offset is not None:
-                return dt.timezone(offset)
+            return dt.timezone(offset)
         except Exception:
-            pass
-
-    zone = timezones.get_timezone(tz)
-    if isinstance(zone, str):
-        try:
-            return timezones.maybe_get_tz(zone)
-        except Exception:
-            # some pytz timezones might not be available for zoneinfo
             pass
 
     return tz
