@@ -18,6 +18,15 @@ pip = ">=26"
 # Required dependencies
 python-dateutil = ">=2.8.2"
 
+[feature.numpy21.dependencies]
+numpy = "2.1"
+
+[feature.numpy22.dependencies]
+numpy = "2.2"
+
+[feature.numpy23.dependencies]
+numpy = "2.3"
+
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
 
@@ -42,6 +51,9 @@ python = "3.14.*"
 [feature.py313-freethreading.dependencies]
 python-freethreading = "3.13.*"
 
+
+
+
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
@@ -60,6 +72,15 @@ qtpy = ">=2.4.2"
 
 [feature.pyarrow.dependencies]
 pyarrow = ">=13.0.0"
+
+[feature.pyarrow20.dependencies]
+pyarrow = "20"
+
+[feature.pyarrow21.dependencies]
+pyarrow = "21"
+
+[feature.pyarrow22.dependencies]
+pyarrow = "22"
 
 [feature.pyarrow-nightly.pypi-dependencies]
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -115,9 +136,9 @@ xarray = ">=2024.10.0"
 asv = ">=0.6.1"
 
 [environments]
-py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py313 = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow20", "optional-dependencies"] }
+py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
+py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
 py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
