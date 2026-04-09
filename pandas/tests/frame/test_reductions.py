@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2491,29 +2492,29 @@ def test_numeric_only_validates_bool():
 
     # _stat_function family: mean, min, max, median, skew, kurt
     for method in ["mean", "min", "max", "median", "skew", "kurt"]:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=1)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=None)
 
     # _stat_function_ddof family: std, var, sem
     for method in ["std", "var", "sem"]:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=1)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=None)
 
     # _min_count_stat_function family: sum, prod
     for method in ["sum", "prod"]:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=1)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=None)
 
     # Valid boolean values must still work (regression guard)

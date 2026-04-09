@@ -11791,7 +11791,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Passing non-boolean values for 'numeric_only' is deprecated and "
                 "will raise in a future version of pandas.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -11856,7 +11856,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Passing non-boolean values for 'numeric_only' is deprecated and "
                 "will raise in a future version of pandas.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -11967,7 +11967,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "Passing non-boolean values for 'numeric_only' is deprecated and "
                 "will raise in a future version of pandas.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
