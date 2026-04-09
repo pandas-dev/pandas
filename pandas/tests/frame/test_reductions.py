@@ -2239,33 +2239,33 @@ def test_mean_nullable_int_axis_1():
 def test_numeric_only_validates_bool():
     # GH#53098
     df = DataFrame({"A": [1, 2, 3], "B": [1.0, 2.0, 3.0], "C": ["x", "y", "z"]})
-    msg = "numeric_only accepts only Boolean values"
+    msg = "Passing non-boolean values for 'numeric_only' is deprecated"
 
     # _stat_function family: mean, min, max, median, skew, kurt
     for method in ["mean", "min", "max", "median", "skew", "kurt"]:
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only=1)
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only="yes")
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only=None)
 
     # _stat_function_ddof family: std, var, sem
     for method in ["std", "var", "sem"]:
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only=1)
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only="yes")
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only=None)
 
     # _min_count_stat_function family: sum, prod
     for method in ["sum", "prod"]:
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only=1)
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only="yes")
-        with pytest.raises(ValueError, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             getattr(df, method)(numeric_only=None)
 
     # Valid boolean values must still work (regression guard)

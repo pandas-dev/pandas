@@ -11788,7 +11788,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if not is_bool(numeric_only):
-            raise ValueError("numeric_only accepts only Boolean values")
+            warnings.warn(
+                "Passing non-boolean values for 'numeric_only' is deprecated and "
+                "will raise in a future version of pandas.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11848,7 +11853,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if not is_bool(numeric_only):
-            raise ValueError("numeric_only accepts only Boolean values")
+            warnings.warn(
+                "Passing non-boolean values for 'numeric_only' is deprecated and "
+                "will raise in a future version of pandas.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
@@ -11954,7 +11964,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
         if not is_bool(numeric_only):
-            raise ValueError("numeric_only accepts only Boolean values")
+            warnings.warn(
+                "Passing non-boolean values for 'numeric_only' is deprecated and "
+                "will raise in a future version of pandas.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func,
