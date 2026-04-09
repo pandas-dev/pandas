@@ -7,7 +7,6 @@ are initialized.
 """
 
 __all__ = [
-    "cf",
     "describe_option",
     "detect_console_encoding",
     "get_option",
