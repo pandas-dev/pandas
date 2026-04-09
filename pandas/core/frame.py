@@ -5477,6 +5477,18 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
+    def _select_dtypes_indices(self, dtype_class) -> np.ndarray:
+        """
+        Return the indices of the columns of a given dtype.
+
+        Currently only works given a class, so mostly useful for ExtensionDtypes.
+        """
+
+        def predicate(arr: ArrayLike) -> bool:
+            return isinstance(arr.dtype, dtype_class)
+
+        return self._mgr._get_data_subset_indices(predicate)
+
     def insert(
         self,
         loc: int,
