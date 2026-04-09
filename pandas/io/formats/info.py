@@ -7,7 +7,7 @@ from abc import (
 import sys
 from typing import TYPE_CHECKING
 
-from pandas._config import get_option
+from pandas._config.config import _global_config
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
@@ -94,7 +94,7 @@ def _initialize_memory_usage(
 ) -> bool | str:
     """Get memory usage based on inputs and display options."""
     if memory_usage is None:
-        memory_usage = get_option("display.memory_usage")
+        memory_usage = _global_config["display"]["memory_usage"]
     return memory_usage
 
 
@@ -364,7 +364,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
     @property
     def max_rows(self) -> int:
         """Maximum info rows to be displayed."""
-        return get_option("display.max_info_rows")
+        return _global_config["display"]["max_info_rows"]
 
     @property
     def exceeds_info_cols(self) -> bool:
@@ -383,7 +383,7 @@ class _DataFrameInfoPrinter(_InfoPrinterAbstract):
 
     def _initialize_max_cols(self, max_cols: int | None) -> int:
         if max_cols is None:
-            return get_option("display.max_info_columns")
+            return _global_config["display"]["max_info_columns"]
         return max_cols
 
     def _initialize_show_counts(self, show_counts: bool | None) -> bool:

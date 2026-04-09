@@ -209,3 +209,23 @@ def test_series_from_float(data, using_nan_is_na):
     expected = pd.Series(data)
     result = pd.Series(np.array(data).tolist(), dtype=str(dtype))
     tm.assert_series_equal(result, expected)
+
+
+def test_from_arrow_nan_vs_none(using_nan_is_na):
+    # GH#55668
+    pyarrow = pytest.importorskip("pyarrow")
+    arr = pyarrow.array([1.0, float("NaN"), None, float("+inf")])
+    # Use __from_arrow__ directly which is the canonical Arrow->masked path
+    result = Float64Dtype().__from_arrow__(arr)
+    ser = pd.Series(result)
+    if using_nan_is_na:
+        # Both NaN and None become NA
+        assert ser.isna()[1]
+        assert ser.isna()[2]
+    else:
+        # NaN is preserved as a value, None becomes NA
+        assert not ser.isna()[1]
+        assert np.isnan(ser.iloc[1])
+        assert ser.isna()[2]
+    # inf is always preserved
+    assert ser.iloc[3] == np.inf

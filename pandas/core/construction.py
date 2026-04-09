@@ -32,7 +32,6 @@ from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
-    maybe_convert_platform,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -190,6 +189,14 @@ def array(
     <NumpyExtensionArray>
     ['a', 'b']
     Length: 2, dtype: str32
+
+    pandas converts entries of a multidimensional sequence (excluding NumPy arrays)
+    to its string representation if the ``dtype`` is a string data type.
+
+    >>> pd.array([[1], [2], [3]], dtype="str")
+    <ArrowStringArray>
+    ['[1]', '[2]', '[3]']
+    Length: 3, dtype: str
 
     Finally, Pandas has arrays that mostly overlap with NumPy
 
@@ -537,7 +544,6 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
-        dtype = cast("np.dtype", dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
@@ -683,18 +689,12 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy)
 
         else:
-            subarr = maybe_convert_platform(data)
-            if subarr.dtype == object:
-                subarr = cast("np.ndarray", subarr)
-                subarr = lib.maybe_convert_objects(
-                    subarr,
-                    # Here we do not convert numeric dtypes, as if we wanted that,
-                    #  numpy would have done it for us.
-                    convert_numeric=False,
-                    convert_non_numeric=True,
-                    convert_to_nullable_dtype=False,
-                    dtype_if_all_nat=np.dtype("M8[s]"),
-                )
+            subarr = construct_1d_object_array_from_listlike(data)
+            subarr = lib.maybe_convert_objects(
+                subarr,
+                convert_non_numeric=True,
+                dtype_if_all_nat=np.dtype("M8[s]"),
+            )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
@@ -758,6 +758,9 @@ def _sanitize_ndim(
             raise ValueError(
                 f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
             )
+        elif allow_2d and isinstance(result, ABCExtensionArray):
+            # e.g. test_2d_ea_with_dtype_cast
+            return result
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. NumpyEADtype("O")
 

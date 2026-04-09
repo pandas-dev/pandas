@@ -71,33 +71,11 @@ def test_union_same_types(index):
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2, request):
+def test_union_different_types(index_flat, index_flat2):
     # This test only considers combinations of indices
     # GH 23525
     idx1 = index_flat
     idx2 = index_flat2
-
-    if (
-        not idx1.is_unique
-        and not idx2.is_unique
-        and idx1.dtype.kind == "i"
-        and idx2.dtype.kind == "b"
-    ) or (
-        not idx2.is_unique
-        and not idx1.is_unique
-        and idx2.dtype.kind == "i"
-        and idx1.dtype.kind == "b"
-    ):
-        # Each condition had idx[1|2].is_monotonic_decreasing
-        # but failed when e.g.
-        # idx1 = Index(
-        # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
-        # )
-        # idx2 = Index([0, 0, 1, 1, 2, 2], dtype='int64')
-        mark = pytest.mark.xfail(
-            reason="GH#44000 True==1", raises=ValueError, strict=False
-        )
-        request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -117,12 +95,6 @@ def test_union_different_types(index_flat, index_flat2, request):
     ):
         warn = FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
-        mark = pytest.mark.xfail(
-            reason="Warning not produced on all builds",
-            raises=AssertionError,
-            strict=False,
-        )
-        request.applymarker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -1066,3 +1038,19 @@ def test_multiindex_union_mutation_safety():
 
     mi1.names = ["changed1", "changed2"]
     assert result.names == ["x", "y"]
+
+
+def test_union_disjoint_monotonic_sorted():
+    # GH#54646 - union of two disjoint monotonic-increasing Index objects
+    # should be sorted when sort is not False, even though both inputs are
+    # individually monotonic.
+    idx1 = Index([5, 6, 7])
+    idx2 = Index([1, 2, 3])
+
+    result = idx1.union(idx2, sort=None)
+    expected = Index([1, 2, 3, 5, 6, 7])
+    tm.assert_index_equal(result, expected)
+
+    result_false = idx1.union(idx2, sort=False)
+    expected_false = Index([5, 6, 7, 1, 2, 3])
+    tm.assert_index_equal(result_false, expected_false)
