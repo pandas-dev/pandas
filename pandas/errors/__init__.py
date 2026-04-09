@@ -625,16 +625,10 @@ class InvalidIndexError(Exception):
 
     Examples
     --------
-    >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
-    >>> df = pd.DataFrame([[1, 1, 2, 2], [3, 3, 4, 4]], columns=idx)
-    >>> df
-        x       y
-        0   1   0   1
-    0   1   1   2   2
-    1   3   3   4   4
-    >>> df[:, 0]
+    >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> df[("a", slice(None))]
     Traceback (most recent call last):
-    InvalidIndexError: (slice(None, None, None), 0)
+    InvalidIndexError: ('a', slice(None, None, None))
     """
 
 

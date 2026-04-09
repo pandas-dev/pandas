@@ -106,7 +106,7 @@ def test_integer_overflow_bug(all_parsers, sep):
     data = "65248E10 11\n55555E55 22\n"
     parser = all_parsers
     if parser.engine == "pyarrow" and sep != " ":
-        msg = "the 'pyarrow' engine does not support regex separators"
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), header=None, sep=sep)
         return

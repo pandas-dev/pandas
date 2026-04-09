@@ -3,7 +3,7 @@
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python>=0.19.0,<1",
-    "meson>=1.10.1,<2",
+    "meson>=1.2.3,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
@@ -16,15 +16,32 @@ build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
-dynamic = [
-  'version'
-]
+dynamic = ['version']
 description = 'Powerful data structures for data analysis, time series, and statistics'
 readme = 'README.md'
 authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
-license = {file = 'LICENSE'}
+license = 'BSD-3-Clause'
+license-files = [
+  "LICENSE", # BSD-3-Clause
+  "LICENSES/BOTTLENECK_LICENCE", # BSD-2-Clause
+  "LICENSES/DATEUTIL_LICENSE", # Apache-2.0
+  "LICENSES/HAVEN_LICENSE", # MIT
+  "LICENSES/HAVEN_MIT", # MIT
+  "LICENSES/KLIB_LICENSE", # MIT
+  "LICENSES/MUSL_LICENSE", # MIT
+  "LICENSES/NUMPY_LICENSE", # BSD-3-Clause
+  "LICENSES/PACKAGING_LICENSE", # Apache-2.0
+  "LICENSES/PSF_LICENSE", #  PSF-2.0
+  "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
+  "LICENSES/PYUPGRADE_LICENSE", # MIT
+  "LICENSES/SAS7BDAT_LICENSE", # MIT
+  "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
+  "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
+  "subprojects/fast_float-*/LICENSE-BOOST", # BSL
+  "subprojects/fast_float-*/LICENSE-MIT", # MIT
+]
 requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0; python_version < '3.14'",
@@ -39,7 +56,6 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Cython',
     'Programming Language :: Python',
@@ -54,8 +70,11 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
+source = 'https://github.com/pandas-dev/pandas'
 documentation = 'https://pandas.pydata.org/docs/'
-repository = 'https://github.com/pandas-dev/pandas'
+changelog = 'https://pandas.pydata.org/docs/whatsnew/index.html'
+issues = 'https://github.com/pandas-dev/pandas/issues'
+funding = 'https://opencollective.com/pandas'
 
 [project.entry-points."pandas_plotting_backends"]
 matplotlib = "pandas:plotting._matplotlib"
@@ -139,51 +158,44 @@ setup = ['--vsenv'] # For Windows
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
 build-verbosity = 3
+build-frontend = "pip"
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 enable = ["cpython-freethreading"]
-before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
 environment = {}
-before-build = "pip install delvewheel"
+before-build = "python -m pip install delvewheel"
+# powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
-  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
+  pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-manylinux_aarch64*"
-test-command = """
-  python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
-  """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
-# Don't strip wheels on macOS.
-# macOS doesn't support stripping wheels with linker
-# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
+build-frontend = "build"
+# pytest-xdist cannot be used on Pyodide
+# OSError: [Errno 138] emscripten does not support processes
 test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
@@ -454,6 +466,8 @@ filterwarnings = [
   "ignore:Bitwise inversion:DeprecationWarning",
   # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
   "ignore:Plugin file tracers",
+  # Raised by coverage in freethreading
+  "ignore:Couldn't import C tracer",
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
@@ -466,10 +480,6 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  # TODO: someone should investigate this ...
-  # these tests only fail in the wheel builder and don't fail in regular
-  # ARM CI
-  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
 ]
 
 [tool.mypy]
@@ -556,7 +566,12 @@ module = [
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
-  "pandas.core.internals.*", # TODO
+  "pandas.core.internals", # TODO
+  "pandas.core.internals.api", # TODO
+  "pandas.core.internals.blocks", # TODO
+  "pandas.core.internals.concat", # TODO
+  "pandas.core.internals.construction", # TODO
+  "pandas.core.internals.managers", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
   "pandas.core.ops.missing", # TODO
@@ -672,9 +687,10 @@ reportOptionalMemberAccess = false
 reportReturnType = false
 
 [tool.coverage.run]
+# Reported coverage will be less than expected due to
+# https://github.com/pytest-dev/pytest-cov/issues/455
 branch = true
 omit = ["pandas/_typing.py"]
-plugins = ["Cython.Coverage"]
 source = ["pandas"]
 
 [tool.coverage.report]
@@ -683,21 +699,13 @@ show_missing = true
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",
-  # Don't complain about missing debug-only code:s
-  "def __repr__",
-  "if self.debug",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
-  "raise NotImplementedError",
   "AbstractMethodError",
   # Don't complain if non-runnable code isn't run:
-  "if 0:",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
-[tool.coverage.html]
-directory = "coverage_html_report"
 
 [tool.codespell]
 ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"

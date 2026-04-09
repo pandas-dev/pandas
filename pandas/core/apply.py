@@ -928,7 +928,7 @@ class FrameApply(NDFrameApply):
         pass
 
     def validate_values_for_numba(self) -> None:
-        # Validate column dtyps all OK
+        # Validate column dtypes all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
                 raise ValueError(
@@ -1374,7 +1374,7 @@ class FrameColumnApply(FrameApply):
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 if not is_view:
-                    # In apply_series_generator we store the a shallow copy of the
+                    # In apply_series_generator we store a shallow copy of the
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset

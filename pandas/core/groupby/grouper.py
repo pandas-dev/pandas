@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -17,11 +18,15 @@ from pandas._libs import (
     algos as libalgos,
 )
 from pandas._libs.tslibs import OutOfBoundsDatetime
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -594,6 +599,15 @@ class Grouping:
             index = self._index
             if level not in index.names:
                 raise AssertionError(f"Level {level} not in index")
+            if isinstance(index, MultiIndex) and index.names.count(level) > 1:
+                warnings.warn(
+                    f"Grouping by index level '{level}' which matches multiple "
+                    f"index levels is ambiguous. Currently the first matching "
+                    f"level is used. In a future version of pandas, this will "
+                    f"raise a ValueError. Use the level number instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             return index.names.index(level)
         return level
 

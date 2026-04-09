@@ -205,11 +205,27 @@ def _get_ax_freq(ax: Axes):
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     if isinstance(freq, BaseOffset):
+        n = freq.n
         freqstr = freq.rule_code
     else:
-        freqstr = to_offset(freq, is_period=True).rule_code
+        offset = to_offset(freq, is_period=True)
+        n = offset.n
+        freqstr = offset.rule_code
 
-    return get_period_alias(freqstr)
+    alias = get_period_alias(freqstr)
+    if alias is None:
+        return None
+    # Don't apply multiplier for business days — Period[B] is deprecated
+    # and the special-case BDay handling doesn't support multiplied freq.
+    if alias == "B":
+        return alias
+    # Use abs(n) because the sign only indicates traversal direction
+    # (e.g. descending DatetimeIndex infers freq "-1D"), not period span.
+    # GH#64819
+    n = abs(n)
+    if n != 1:
+        return f"{n}{alias}"
+    return alias
 
 
 def _get_freq(ax: Axes, series: Series):

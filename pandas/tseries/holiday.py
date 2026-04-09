@@ -334,8 +334,7 @@ class Holiday:
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
                 np.isin(
-                    # error: "DatetimeIndex" has no attribute "dayofweek"
-                    holiday_dates.dayofweek,  # type: ignore[attr-defined]
+                    holiday_dates.day_of_week,
                     self.days_of_week,
                 ).ravel()
             ]

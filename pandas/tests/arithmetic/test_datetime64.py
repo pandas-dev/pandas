@@ -512,7 +512,7 @@ class TestDatetimeIndexComparisons:
 
         cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, idx2 in cases:
                 result = idx1 < idx2
@@ -559,7 +559,7 @@ class TestDatetimeIndexComparisons:
                 expected = np.array([True, True, True, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
                 result = idx1 < val
@@ -879,7 +879,7 @@ class TestDatetime64Arithmetic:
         tz = tz_naive_fixture
 
         dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS", unit="ns")
-        other = np.timedelta64("NaT")
+        other = np.timedelta64("NaT", "ns")
         expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
         obj = tm.box_expected(dti, box_with_array)
@@ -1597,6 +1597,40 @@ class TestDatetime64DateOffsetArithmetic:
             dtype="datetime64[ns]",
         )
         tm.assert_index_equal(result, expected)
+
+    def test_dt64arr_add_dateoffset_near_dst(self, unit):
+        # GH#28610 - vectorized DatetimeIndex + DateOffset should match
+        # scalar Timestamp + DateOffset near DST transitions.
+        # Europe/Berlin switched to DST on 2000-03-26 (02:00 -> 03:00).
+        dti = DatetimeIndex(
+            ["2000-03-26 04:00", "2000-03-26 01:00"],
+            tz="Europe/Berlin",
+        ).as_unit(unit)
+
+        offset = DateOffset(hours=-2)
+        result = dti + offset
+        expected = DatetimeIndex(
+            ["2000-03-26 01:00:00+01:00", "2000-03-25 23:00:00+01:00"],
+            dtype=f"datetime64[{unit}, Europe/Berlin]",
+        )
+        tm.assert_index_equal(result, expected)
+        pointwise = DatetimeIndex([x + offset for x in dti])
+        tm.assert_index_equal(result, pointwise)
+
+        # Also test the reverse direction (adding into DST)
+        dti2 = DatetimeIndex(
+            ["2000-03-26 01:00"],
+            tz="Europe/Berlin",
+        ).as_unit(unit)
+        offset2 = DateOffset(hours=2)
+        result2 = dti2 + offset2
+        expected2 = DatetimeIndex(
+            ["2000-03-26 04:00:00+02:00"],
+            dtype=f"datetime64[{unit}, Europe/Berlin]",
+        )
+        tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([x + offset2 for x in dti2])
+        tm.assert_index_equal(result2, pointwise2)
 
 
 class TestDatetime64OverflowHandling:
@@ -2429,11 +2463,11 @@ def test_non_nano_dt64_addsub_np_nat_scalars_unitless():
     # GH 52295
     # TODO: Can we default to the ser unit?
     ser = Series([1233242342344, 232432434324, 332434242344], dtype="datetime64[ms]")
-    result = ser - np.datetime64("nat")
+    result = ser - np.datetime64("nat", "ms")
     expected = Series([NaT] * 3, dtype="timedelta64[ms]")
     tm.assert_series_equal(result, expected)
 
-    result = ser + np.timedelta64("nat")
+    result = ser + np.timedelta64("NaT", "ms")
     expected = Series([NaT] * 3, dtype="datetime64[ms]")
     tm.assert_series_equal(result, expected)
 

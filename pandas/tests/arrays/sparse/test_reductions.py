@@ -57,7 +57,6 @@ class TestReductions:
         out = np.all(SparseArray(data, fill_value=pos))
         assert not out
 
-        # raises with a different message on py2.
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
             np.all(SparseArray(data), out=np.array([]))
