@@ -337,7 +337,7 @@ class BaseBlockManager(PandasObject):
         return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
     def get_unique_dtypes(self) -> npt.NDArray[np.object_]:
-        return algos.unique([blk.dtype for blk in self.blocks])
+        return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
