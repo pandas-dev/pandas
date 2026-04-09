@@ -1453,7 +1453,7 @@ class FrameColumnApply(FrameApply):
             for col_pos, col_vals in col_arrays:
                 first_row[col_pos] = col_vals[0]
             ser = obj._constructor_sliced(
-                first_row, index=obj.columns, name=obj.index[0]
+                first_row, index=obj.columns, name=obj.index[0], dtype=object
             )
             mgr = ser._mgr
 
