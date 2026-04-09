@@ -94,6 +94,8 @@ if TYPE_CHECKING:
         Iterator,
     )
 
+    import pyarrow as pa
+
     from pandas._typing import (
         ArrayLike,
         DateTimeErrorChoices,
@@ -107,6 +109,7 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays.string_arrow import ArrowStringArray
 
     _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
     _TimestampNoneT2 = TypeVar("_TimestampNoneT2", Timestamp, None)
@@ -1416,7 +1419,7 @@ default 'raise'
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
         if locale is None and HAS_PYARROW and using_string_dtype():
-            return self._month_name_arrow()
+            return self._month_name_arrow()  # type: ignore[return-value]
 
         values = self._local_timestamps()
 
@@ -1433,7 +1436,7 @@ default 'raise'
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
-    def _month_name_arrow(self):
+    def _month_name_arrow(self) -> ArrowStringArray:
         import pyarrow as pa
         import pyarrow.compute as pc
 
@@ -1500,7 +1503,7 @@ default 'raise'
         Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
         if locale is None and HAS_PYARROW and using_string_dtype():
-            return self._day_name_arrow()
+            return self._day_name_arrow()  # type: ignore[return-value]
 
         values = self._local_timestamps()
 
@@ -1517,7 +1520,7 @@ default 'raise'
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
 
-    def _day_name_arrow(self):
+    def _day_name_arrow(self) -> ArrowStringArray:
         import pyarrow as pa
         import pyarrow.compute as pc
 
@@ -1526,7 +1529,7 @@ default 'raise'
         result = pc.take(pa_days, pc.day_of_week(pa_ts))
         return self._wrap_pa_str_result(result)
 
-    def _to_local_pa_timestamp(self):
+    def _to_local_pa_timestamp(self) -> pa.Array:
         """Convert to a pyarrow TimestampArray with local timestamps."""
         import pyarrow as pa
 
@@ -1535,13 +1538,13 @@ default 'raise'
         return pa.array(values, mask=mask, type=pa.timestamp(self.unit))
 
     @staticmethod
-    def _wrap_pa_str_result(pa_arr):
+    def _wrap_pa_str_result(pa_arr: pa.Array) -> ArrowStringArray:
         """Wrap a pyarrow StringArray in an ArrowStringArray with StringDtype."""
         from pandas.core.arrays.string_ import StringDtype
 
         dtype = StringDtype(na_value=np.nan)
         cls = dtype.construct_array_type()
-        return cls(pa_arr, dtype=dtype)  # type: ignore[call-arg]
+        return cls(pa_arr, dtype=dtype)  # type: ignore[call-arg, return-value]
 
     @property
     def time(self) -> npt.NDArray[np.object_]:
