@@ -2234,3 +2234,43 @@ def test_mean_nullable_int_axis_1():
     result = df.mean(axis=1, skipna=False)
     expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_numeric_only_validates_bool():
+    # GH#53098
+    df = DataFrame({"A": [1, 2, 3], "B": [1.0, 2.0, 3.0], "C": ["x", "y", "z"]})
+    msg = "numeric_only accepts only Boolean values"
+
+    # _stat_function family: mean, min, max, median, skew, kurt
+    for method in ["mean", "min", "max", "median", "skew", "kurt"]:
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only=None)
+
+    # _stat_function_ddof family: std, var, sem
+    for method in ["std", "var", "sem"]:
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only=None)
+
+    # _min_count_stat_function family: sum, prod
+    for method in ["sum", "prod"]:
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with pytest.raises(ValueError, match=msg):
+            getattr(df, method)(numeric_only=None)
+
+    # Valid boolean values must still work (regression guard)
+    df_num = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df_num.mean(numeric_only=True)
+    df_num.mean(numeric_only=False)
+    df_num.sum(numeric_only=True)
+    df_num.std(numeric_only=True)
