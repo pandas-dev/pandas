@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -66,7 +66,7 @@ def set_use_bottleneck(v: bool = True) -> None:
         _USE_BOTTLENECK = v
 
 
-set_use_bottleneck(_global_config["compute"]["use_bottleneck"])
+set_use_bottleneck(config["compute"]["use_bottleneck"])
 
 
 class disallow:
@@ -371,7 +371,8 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
             if result == fill_value or np.isnan(result):
-                result = np.timedelta64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             elif np.fabs(result) > lib.i8max:
                 # raise if we have a timedelta64[ns] which is too large

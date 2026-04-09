@@ -1496,22 +1496,22 @@ class TestSeriesConstructors:
         td = Series([timedelta(days=1), np.nan], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
-        td = Series([np.timedelta64(300000000), NaT], dtype="m8[ns]")
+        td = Series([np.timedelta64(300000000, "ns"), NaT], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
         # improved inference
         # GH5689
-        td = Series([np.timedelta64(300000000), NaT])
+        td = Series([np.timedelta64(300000000, "ns"), NaT])
         assert td.dtype == "timedelta64[ns]"
 
         # because iNaT is int, not coerced to timedelta
-        td = Series([np.timedelta64(300000000), iNaT])
+        td = Series([np.timedelta64(300000000, "ns"), iNaT])
         assert td.dtype == "object"
 
-        td = Series([np.timedelta64(300000000), np.nan])
+        td = Series([np.timedelta64(300000000, "ns"), np.nan])
         assert td.dtype == "timedelta64[ns]"
 
-        td = Series([NaT, np.timedelta64(300000000)])
+        td = Series([NaT, np.timedelta64(300000000, "ns")])
         assert td.dtype == "timedelta64[ns]"
 
         td = Series([np.timedelta64(1, "s")])
@@ -2068,8 +2068,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
         expected = Series(["a", 1], dtype="object")
-        with pd.option_context("future.infer_string", True):
-            ser = Series(["a", 1])
+        ser = Series(["a", 1])
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])

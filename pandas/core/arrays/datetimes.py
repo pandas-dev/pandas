@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -47,8 +47,13 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
+from pandas._libs.tslibs.ccalendar import (
+    DAYS_FULL,
+    MONTHS_FULL,
+)
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import RelativeDeltaOffset
+from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -89,6 +94,8 @@ if TYPE_CHECKING:
         Iterator,
     )
 
+    import pyarrow as pa
+
     from pandas._typing import (
         ArrayLike,
         DateTimeErrorChoices,
@@ -102,6 +109,7 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays.string_arrow import ArrowStringArray
 
     _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
     _TimestampNoneT2 = TypeVar("_TimestampNoneT2", Timestamp, None)
@@ -547,7 +555,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 i8values = i8values.astype("i8")
 
         if start == end:
-            if not left_inclusive and not right_inclusive:
+            if not left_inclusive or not right_inclusive:
                 i8values = i8values[1:-1]
         else:
             start_i8 = (
@@ -874,7 +882,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if res_values.dtype.kind == "i":
                 res_values = res_values.view(values.dtype)
         except NotImplementedError:
-            if _global_config["mode"]["performance_warnings"]:
+            if config["mode"]["performance_warnings"]:
                 warnings.warn(
                     "Non-vectorized DateOffset being applied to Series or "
                     "DatetimeIndex.",
@@ -1035,7 +1043,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1410,6 +1418,9 @@ default 'raise'
         >>> idx.month_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
+        if locale is None and HAS_PYARROW and using_string_dtype():
+            return self._month_name_arrow()  # type: ignore[return-value]
+
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
@@ -1424,6 +1435,15 @@ default 'raise'
 
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
+
+    def _month_name_arrow(self) -> ArrowStringArray:
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        pa_months = pa.array(MONTHS_FULL, type=pa.large_string())
+        pa_ts = self._to_local_pa_timestamp()
+        result = pc.take(pa_months, pc.month(pa_ts))
+        return self._wrap_pa_str_result(result)
 
     def day_name(self, locale=None) -> npt.NDArray[np.object_]:
         """
@@ -1482,6 +1502,9 @@ default 'raise'
         >>> idx.day_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
+        if locale is None and HAS_PYARROW and using_string_dtype():
+            return self._day_name_arrow()  # type: ignore[return-value]
+
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
@@ -1489,7 +1512,6 @@ default 'raise'
         )
         result = self._maybe_mask_results(result, fill_value=None)
         if using_string_dtype():
-            # TODO: no tests that check for dtype of result as of 2024-08-15
             from pandas import (
                 StringDtype,
                 array as pd_array,
@@ -1497,6 +1519,32 @@ default 'raise'
 
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result
+
+    def _day_name_arrow(self) -> ArrowStringArray:
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        pa_days = pa.array(DAYS_FULL, type=pa.large_string())
+        pa_ts = self._to_local_pa_timestamp()
+        result = pc.take(pa_days, pc.day_of_week(pa_ts))
+        return self._wrap_pa_str_result(result)
+
+    def _to_local_pa_timestamp(self) -> pa.Array:
+        """Convert to a pyarrow TimestampArray with local timestamps."""
+        import pyarrow as pa
+
+        values = self._local_timestamps()
+        mask = self._isnan
+        return pa.array(values, mask=mask, type=pa.timestamp(self.unit))
+
+    @staticmethod
+    def _wrap_pa_str_result(pa_arr: pa.Array) -> ArrowStringArray:
+        """Wrap a pyarrow StringArray in an ArrowStringArray with StringDtype."""
+        from pandas.core.arrays.string_ import StringDtype
+
+        dtype = StringDtype(na_value=np.nan)
+        cls = dtype.construct_array_type()
+        return cls(pa_arr, dtype=dtype)  # type: ignore[call-arg, return-value]
 
     @property
     def time(self) -> npt.NDArray[np.object_]:
@@ -3223,14 +3271,22 @@ def _generate_range(
         periods = 0
 
     if end is None:
-        # error: No overload variant of "__radd__" of "BaseOffset" matches
-        # argument type "None"
-        end = start + (periods - 1) * offset  # type: ignore[operator]
+        # GH#41563 avoid 0 * offset for offsets where n=0 is not allowed
+        if periods == 1:
+            end = start
+        else:
+            # error: No overload variant of "__radd__" of "BaseOffset" matches
+            # argument type "None"
+            end = start + (periods - 1) * offset  # type: ignore[operator]
 
     if start is None:
-        # error: No overload variant of "__radd__" of "BaseOffset" matches
-        # argument type "None"
-        start = end - (periods - 1) * offset  # type: ignore[operator]
+        # GH#41563 avoid 0 * offset for offsets where n=0 is not allowed
+        if periods == 1:
+            start = end
+        else:
+            # error: No overload variant of "__radd__" of "BaseOffset" matches
+            # argument type "None"
+            start = end - (periods - 1) * offset  # type: ignore[operator]
 
     start = cast("Timestamp", start)
     end = cast("Timestamp", end)

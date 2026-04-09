@@ -1979,6 +1979,9 @@ class ExtensionArray:
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
 
+        Scalar values for `indices` are not supported. If needed,
+        use a list-like wrapping a single element (e.g. ``[index]``).
+
         Examples
         --------
         Here's an example implementation, which relies on casting the

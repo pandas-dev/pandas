@@ -75,8 +75,8 @@ def test_equals_matching_nas():
     assert Index(left).equals(Index(right))
     assert left.array.equals(right.array)
 
-    left = Series([np.timedelta64("NaT")], dtype=object)
-    right = Series([np.timedelta64("NaT")], dtype=object)
+    left = Series([np.timedelta64("NaT", "ns")], dtype=object)
+    right = Series([np.timedelta64("NaT", "ns")], dtype=object)
     assert left.equals(right)
     assert Index(left).equals(Index(right))
     assert left.array.equals(right.array)

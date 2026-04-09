@@ -292,9 +292,11 @@ cdef class _NaT(datetime):
             # GH#44460
             dtype = np.dtype(dtype)
             if dtype.kind == "M":
-                return np.datetime64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                return np.datetime64("NaT", unit)
             elif dtype.kind == "m":
-                return np.timedelta64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                return np.timedelta64("NaT", unit)
             else:
                 raise ValueError(
                     "NaT.to_numpy dtype must be a datetime64 dtype, timedelta64 "

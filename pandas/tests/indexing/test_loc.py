@@ -24,6 +24,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     IndexSlice,
@@ -71,6 +72,19 @@ def test_loc_dtype(key):
 
 
 class TestLoc:
+    def test_loc_dateoffset_columns(self):
+        # GH#20948 - .loc with DateOffset columns
+        offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+        df = DataFrame(index=[0, 1], columns=Index(offsets))
+
+        # read access
+        result = df.loc[0, offsets[0]]
+        assert result is np.nan
+
+        # write access
+        df.loc[0, offsets[0]] = 1
+        assert df.loc[0, offsets[0]] == 1
+
     def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
         df = DataFrame(["1", "2", None], columns=["a"], dtype=object)
@@ -2011,6 +2025,17 @@ class TestLocSetitemWithExpansion:
         ser.loc[item] = 1
         tm.assert_index_equal(ser.index, exp_index)
 
+    @pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+    def test_loc_setitem_with_expansion_fractional_not_truncated(self, dtype):
+        # Assigning a fractional float to an integer EA column should
+        # promote to float, not silently truncate.
+        if dtype == "int64[pyarrow]":
+            pytest.importorskip("pyarrow")
+        df = DataFrame({"A": pd.array([1, 2, 3], dtype=dtype)})
+        df.loc[len(df)] = [2.5]
+        assert df["A"].dtype.kind == "f"
+        assert df.loc[len(df) - 1, "A"] == 2.5
+
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
@@ -3131,12 +3156,15 @@ def test_loc_getitem_multiindex_tuple_level():
     #  of labels
     result = df.loc[:, (lev1[0], lev2[0], lev3[0])]
 
-    # TODO: i think this actually should drop levels
-    expected = df.iloc[:, :1]
-    tm.assert_frame_equal(result, expected)
+    # GH#18631 all three levels are scalar-indexed so all are dropped;
+    # the tuple (0, 1) is a scalar label in level y, not a sequence of labels.
+    # df.loc[:, full_key] should match df[full_key]
+    expected_loc = df[(lev1[0], lev2[0], lev3[0])]
+    tm.assert_series_equal(result, expected_loc)
 
+    expected_xs = df.iloc[:, :1]
     alt = df.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=1)
-    tm.assert_frame_equal(alt, expected)
+    tm.assert_frame_equal(alt, expected_xs)
 
     # same thing on a Series
     ser = df.iloc[0]

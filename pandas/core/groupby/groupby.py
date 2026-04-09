@@ -1526,7 +1526,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#37850 For numpy boolean data, any==max and all==min.
             # The min/max Cython path is faster (fused types, no mask overhead).
             # Excludes nullable BooleanDtype which needs Kleene logic.
-            if how in ["any", "all"] and values.dtype == np.dtype("bool"):
+            use_bool_fastpath = how in ["any", "all"] and values.dtype == np.dtype(
+                "bool"
+            )
+            if use_bool_fastpath:
                 _how = "max" if how == "any" else "min"
             else:
                 _how = how
@@ -1547,6 +1550,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
+                if use_bool_fastpath and result.dtype.kind == "f":
+                    fill = 0.0 if how == "any" else 1.0
+                    result = np.where(
+                        np.isnan(result), fill, np.asarray(result)
+                    ).astype(bool)
                 return result
 
             assert alt is not None
