@@ -2,7 +2,10 @@ import collections
 import re
 import warnings
 
-from pandas._libs.tslibs.offsets import Day
+from pandas._libs.tslibs.offsets import (
+    Day,
+    to_offset,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -2357,9 +2360,6 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, nanos
             ndarray[int64_t] arr
-
-        from pandas._libs.tslibs.offsets import to_offset
-
         freq_arg = freq
         freq = to_offset(freq, is_period=False)
         nanos = get_unit_for_round(freq, self._creso)
