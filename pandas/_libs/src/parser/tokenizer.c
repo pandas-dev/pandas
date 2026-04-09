@@ -28,6 +28,9 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
 #  define PANDAS_HAS_NEON
 #  include <arm_neon.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
 #elif defined(__SSE2__) || defined(_M_X64) ||                                  \
     (defined(_M_IX86_FP) && (_M_IX86_FP >= 2))
 #  define PANDAS_HAS_SSE2
@@ -37,15 +40,25 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #  endif
 #endif
 
-// Portable count-trailing-zeros for use in SSE2 path
+// Portable count-trailing-zeros
 #ifdef _MSC_VER
 static __inline int _pandas_ctz(unsigned int mask) {
   unsigned long index;
   _BitScanForward(&index, mask);
   return (int)index;
 }
-#elif defined(PANDAS_HAS_SSE2)
-#  define _pandas_ctz(x) __builtin_ctz(x)
+static __inline int _pandas_ctzll(unsigned long long mask) {
+  unsigned long index;
+  _BitScanForward64(&index, mask);
+  return (int)index;
+}
+#else
+#  if defined(PANDAS_HAS_SSE2)
+#    define _pandas_ctz(x) __builtin_ctz(x)
+#  endif
+#  if defined(PANDAS_HAS_NEON)
+#    define _pandas_ctzll(x) __builtin_ctzll(x)
+#  endif
 #endif
 
 #include "pandas/portable.h"
@@ -660,10 +673,10 @@ static inline size_t fast_scan_neon(const char *data, size_t len,
     // Extract as two u64 lanes and find the first set byte.
     uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
     if (low)
-      return i + __builtin_ctzll(low) / 8;
+      return i + _pandas_ctzll(low) / 8;
     uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
     if (high)
-      return i + 8 + __builtin_ctzll(high) / 8;
+      return i + 8 + _pandas_ctzll(high) / 8;
   }
   return i;
 }
@@ -680,10 +693,10 @@ static inline size_t fast_scan_quoted_neon(const char *data, size_t len,
 
     uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
     if (low)
-      return i + __builtin_ctzll(low) / 8;
+      return i + _pandas_ctzll(low) / 8;
     uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
     if (high)
-      return i + 8 + __builtin_ctzll(high) / 8;
+      return i + 8 + _pandas_ctzll(high) / 8;
   }
   return i;
 }
