@@ -2488,6 +2488,7 @@ def test_mean_nullable_int_axis_1():
 def test_numeric_only_validates_bool():
     # GH#53098
     df = DataFrame({"A": [1, 2, 3], "B": [1.0, 2.0, 3.0], "C": ["x", "y", "z"]})
+    df_num = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     msg = "Passing non-boolean values for 'numeric_only' is deprecated"
 
     # _stat_function family: mean, min, max, median, skew, kurt
@@ -2496,8 +2497,9 @@ def test_numeric_only_validates_bool():
             getattr(df, method)(numeric_only=1)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
+        # None is falsy so _reduce includes all columns; use numeric-only df
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            getattr(df, method)(numeric_only=None)
+            getattr(df_num, method)(numeric_only=None)
 
     # _stat_function_ddof family: std, var, sem
     for method in ["std", "var", "sem"]:
@@ -2506,7 +2508,7 @@ def test_numeric_only_validates_bool():
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            getattr(df, method)(numeric_only=None)
+            getattr(df_num, method)(numeric_only=None)
 
     # _min_count_stat_function family: sum, prod
     for method in ["sum", "prod"]:
@@ -2515,10 +2517,9 @@ def test_numeric_only_validates_bool():
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            getattr(df, method)(numeric_only=None)
+            getattr(df_num, method)(numeric_only=None)
 
     # Valid boolean values must still work (regression guard)
-    df_num = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     df_num.mean(numeric_only=True)
     df_num.mean(numeric_only=False)
     df_num.sum(numeric_only=True)
