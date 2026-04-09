@@ -101,7 +101,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default to False
+    sort : bool, default False
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -123,7 +123,7 @@ class Grouper:
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
-    offset : Timedelta or str, default is None
+    offset : Timedelta or str, default None
         An offset timedelta added to the origin.
 
     dropna : bool, default True
