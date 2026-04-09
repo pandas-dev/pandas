@@ -107,8 +107,8 @@ class TestConstructors:
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # TODO: actionable?
-        # XXX: Behavior change: specifying SparseIndex no longer changes the
-        # fill_value
+        # Note: Behavior change: specifying SparseIndex no longer changes
+        # the fill_value
         expected = SparseArray([0, 1, 2, 0], kind="integer")
         tm.assert_sp_array_equal(arr, expected)
         assert arr.dtype == SparseDtype(np.int64)
