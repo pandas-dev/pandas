@@ -1420,47 +1420,29 @@ class FrameColumnApply(FrameApply):
         is_view = mgr.blocks[0].refs.has_reference()
 
         if isinstance(ser.dtype, ExtensionDtype):
-            # GH#61747 - For EA dtypes, calling obj._ixs per row is slow
-            # because fast_xs must build object arrays and convert back
-            # via _from_sequence for each row. Instead, extract scalars
-            # directly from the column arrays into a reusable object-dtype
-            # Series, avoiding both _from_sequence and DataFrame.values
-            # (which can be lossy for NA/NaN handling).
+            # GH#61747 - For multi-block EA DataFrames, obj._ixs per row
+            # is slow due to per-row _from_sequence calls. Extract column
+            # arrays once and build object-dtype rows directly.
             obj = self.obj
-            blk_mgr = obj._mgr
 
-            if len(blk_mgr.blocks) == 1:
-                # Single-block EA: fast_xs single-block path is already
-                # efficient and preserves the EA dtype.
+            if len(obj._mgr.blocks) == 1:
+                # Single-block EA: _ixs preserves the EA dtype.
                 for i in range(len(obj)):
                     yield obj._ixs(i, axis=0)
                 return
 
-            # Pre-extract column arrays and their positions to avoid
-            # per-row block.iget overhead.
-            col_arrays = []
-            for blk in blk_mgr.blocks:
-                for idx, col_pos in enumerate(blk.mgr_locs):
-                    if blk.values.ndim == 1:
-                        col_arrays.append((col_pos, blk.values))
-                    else:
-                        col_arrays.append((col_pos, blk.values[idx]))
+            col_arrays = [obj._get_column_array(i) for i in range(len(obj.columns))]
 
-            n_cols = len(blk_mgr)
-
-            # Build the template object-dtype Series for reuse.
-            first_row = np.empty(n_cols, dtype=object)
-            for col_pos, col_vals in col_arrays:
-                first_row[col_pos] = col_vals[0]
+            first_row = np.array([col_arr[0] for col_arr in col_arrays], dtype=object)
             ser = obj._constructor_sliced(
                 first_row, index=obj.columns, name=obj.index[0], dtype=object
             )
             mgr = ser._mgr
 
             for row_idx in range(len(obj)):
-                arr = np.empty(n_cols, dtype=object)
-                for col_pos, col_vals in col_arrays:
-                    arr[col_pos] = col_vals[row_idx]
+                arr = np.array(
+                    [col_arr[row_idx] for col_arr in col_arrays], dtype=object
+                )
                 ser._mgr = mgr
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", obj.index[row_idx])
@@ -1477,14 +1459,12 @@ class FrameColumnApply(FrameApply):
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 if not is_view:
-                    # In apply_series_generator we store a shallow copy of
-                    # the result, which potentially increases the ref count
-                    # of this reused `ser` object (depending on the result
-                    # of the applied function) -> if that happened and `ser`
-                    # is already a copy, then we reset the refs here to
-                    # avoid triggering an unnecessary CoW inside the applied
-                    # function
-                    # (https://github.com/pandas-dev/pandas/pull/56212)
+                    # In apply_series_generator we store a shallow copy of the
+                    # result, which potentially increases the ref count of this reused
+                    # `ser` object (depending on the result of the applied function)
+                    # -> if that happened and `ser` is already a copy, then we reset
+                    # the refs here to avoid triggering an unnecessary CoW inside the
+                    # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
 
