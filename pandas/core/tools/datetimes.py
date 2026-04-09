@@ -1042,6 +1042,13 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
+        from pandas import Series
+
+        arg_name = getattr(arg, "name", None)
+        is_series = False
+        if isinstance(arg, Series):
+            arg_idx = getattr(arg, "index", None)
+            is_series = True
         arg = _adjust_to_origin(arg, origin, unit)
         if origin != "julian":
             # GH#63419 _adjust_to_origin returned the final datetime result
@@ -1052,8 +1059,10 @@ def to_datetime(
                     arg = arg.dt.tz_localize("utc")
                 elif hasattr(arg, "tz_localize"):
                     arg = arg.tz_localize("utc")  # type: ignore[union-attr]
+            if is_series:
+                return Series(arg, index=arg_idx, name=arg_name)
             if is_list_like(arg):
-                return DatetimeIndex(arg)
+                return DatetimeIndex(arg, name=arg_name)
             else:
                 return arg  # type: ignore[return-value]
 
