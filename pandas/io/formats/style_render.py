@@ -2102,7 +2102,7 @@ def non_reducing_slice(slice_: Subset):
     else:
         # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
         # "__iter__" (not iterable) -> is specifically list_like in conditional
-        slice_ = [  # type: ignore[union-attr]
+        slice_ = [
             _wrap_mi_scalars(p) if pred(p) else [p]
             for p in slice_  # type: ignore[union-attr]
         ]
