@@ -251,6 +251,22 @@ def test_empty(frame_or_series, all_boolean_reductions):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("method,fill_value", [("any", False), ("all", True)])
+def test_numpy_bool_unobserved_categorical_group_returns_identity(method, fill_value):
+    # GH#65100
+    key = pd.Categorical(["A", "B"], categories=["A", "B", "C"])
+    ser = Series(np.array([True, False], dtype=bool))
+
+    result = getattr(ser.groupby(key, observed=False), method)()
+
+    expected = Series(
+        [True, False, fill_value],
+        index=pd.CategoricalIndex(["A", "B", "C"], categories=["A", "B", "C"]),
+        dtype=bool,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("how", ["idxmin", "idxmax"])
 def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
     # GH#57040

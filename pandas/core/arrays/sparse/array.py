@@ -593,7 +593,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # a datetime64 with pandas NaT.
                 if fill_value is NaT:
                     # Can't put pd.NaT in a datetime64[ns]
-                    fill_value = np.datetime64("NaT")
+                    unit = np.datetime_data(self.sp_values.dtype)[0]
+                    fill_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
@@ -1366,7 +1367,25 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             values = ensure_wrapped_if_datetimelike(values)
             return astype_array(values, dtype=future_dtype, copy=False)
 
+        # GH#49631: save whether the original arg was a string (e.g.
+        # "Sparse[int64]") vs an explicit SparseDtype object, since
+        # update_dtype will overwrite dtype below.
+        dtype_from_string = not isinstance(dtype, SparseDtype)
         dtype = self.dtype.update_dtype(dtype)
+
+        # When dtype came from a string, update_dtype returns it with the
+        # default fill_value (e.g. 0 for int64) rather than converting the
+        # source fill_value (e.g. NaT -> iNaT). Fix that here.
+        if (
+            dtype_from_string
+            and self.dtype._is_na_fill_value
+            and not dtype._is_na_fill_value
+        ):
+            fv_arr = np.atleast_1d(np.array(self.fill_value))
+            fv_arr = ensure_wrapped_if_datetimelike(fv_arr)
+            converted_fv = np.asarray(astype_array(fv_arr, dtype.subtype))
+            dtype = SparseDtype(dtype.subtype, fill_value=converted_fv[0])
+
         subtype = pandas_dtype(dtype._subtype_with_str)
         subtype = cast("np.dtype", subtype)  # ensured by update_dtype
         values = ensure_wrapped_if_datetimelike(self.sp_values)

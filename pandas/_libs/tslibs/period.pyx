@@ -2844,6 +2844,14 @@ cdef class _Period(PeriodMixin):
         value = str(formatted)
         return value
 
+    def __format__(self, fmt: str) -> str:
+        # GH#48536
+        if not isinstance(fmt, str):
+            raise TypeError(f"must be str, not {type(fmt).__name__}")
+        if len(fmt) != 0:
+            return self.strftime(fmt)
+        return str(self)
+
     def __setstate__(self, state):
         self._freq = state[1]
         self._ordinal = state[2]

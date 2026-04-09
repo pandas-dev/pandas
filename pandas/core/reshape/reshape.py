@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._config.config import _global_config
 
+from pandas._libs import lib
 import pandas._libs.reshape as libreshape
 from pandas.errors import (
     Pandas4Warning,
@@ -209,7 +210,21 @@ class _Unstacker:
             return [line.take(indexer) for line in to_sort]
         return to_sort
 
+    @cache_readonly
+    def _indexer_is_identity(self) -> bool:
+        # Fast check for the common case: sorted MI unstacking the last level
+        if (
+            self.sort
+            and self.level == self.index.nlevels - 1
+            and self.index.is_monotonic_increasing
+        ):
+            return True
+        indexer, _ = self._indexer_and_to_sort
+        return lib.is_range_indexer(indexer, len(self.index))
+
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
+        if self._indexer_is_identity:
+            return values
         indexer, _ = self._indexer_and_to_sort
         sorted_values = algos.take_nd(values, indexer, axis=0, allow_fill=False)
         return sorted_values
@@ -294,9 +309,10 @@ class _Unstacker:
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
-            # TODO: Under what circumstances can we rely on sorted_values
-            #  matching values?  When that holds, we can slice instead
-            #  of take (in particular for EAs)
+            # sorted_values matches values when _indexer_is_identity,
+            #  i.e. when the MI is already sorted and we're unstacking
+            #  the last level.  _make_sorted_values short-circuits that
+            #  case and returns values directly.
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)

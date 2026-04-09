@@ -111,6 +111,9 @@ pandas-datareader = "*"
 pyyaml = "*"
 xarray = ">=2024.10.0"
 
+[feature.benchmarks.dependencies]
+asv = ">=0.6.1"
+
 [environments]
 py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
@@ -122,6 +125,7 @@ py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base"]
 numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
+asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
 
 
 [tasks]
@@ -156,4 +160,28 @@ cmd = [
   "--cov-report=xml",
   "--cov-append",
   "{{ pytest_target }}",
+]
+
+[tasks.ci-asv]
+cmd = [
+  "cd",
+  "asv_bench",
+  "&&",
+  "python",
+  "-m",
+  "asv",
+  "machine",
+  "--yes",
+  "&&",
+  "python",
+  "-W",
+  "error",
+  "-m",
+  "asv",
+  "run",
+  "--quick",
+  "--dry-run",
+  "--durations=30",
+  "--python=same",
+  "--show-stderr",
 ]

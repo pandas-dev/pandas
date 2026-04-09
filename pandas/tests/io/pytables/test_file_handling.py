@@ -452,7 +452,7 @@ def test_multiple_open_close(temp_h5_path):
         store.append("df2", df)
 
     with pytest.raises(ClosedFileError, match=msg):
-        store.put("df3", df)
+        store.put("df3", df, track_times=False)
 
     with pytest.raises(ClosedFileError, match=msg):
         store.get_storer("df2")

@@ -6356,6 +6356,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Replace values where the conditions are True.
 
+        Replacement is performed in order; for each element, the first condition
+        that evaluates to True determines the value used. This mirrors the semantics
+        of a SQL ``CASE WHEN`` expression. If no condition matches, the original
+        value is kept.
+
         .. versionadded:: 2.2.0
 
         Parameters
@@ -8949,7 +8954,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             The minimum of the values in the Series.
 
         See Also
@@ -9020,7 +9025,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             The maximum of the values in the Series.
 
         See Also
@@ -9098,7 +9103,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Sum of the values for the requested axis.
 
         See Also
@@ -9277,7 +9282,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Mean of the values for the requested axis.
 
         See Also
@@ -9336,7 +9341,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Median of the values for the requested axis.
 
         See Also
@@ -9418,7 +9423,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Unbiased standard error of the mean over requested axis.
 
         See Also
@@ -9483,7 +9488,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Unbiased variance over requested axis.
 
         See Also

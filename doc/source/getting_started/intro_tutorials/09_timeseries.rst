@@ -78,7 +78,7 @@ I want to work with the dates in the column ``datetime`` as datetime objects ins
 Initially, the values in ``datetime`` are character strings and do not
 provide any datetime operations (e.g. extract the year, day of the
 week, …). By applying the ``to_datetime`` function, pandas interprets the
-strings and convert these to datetime (i.e. ``datetime64[ns, UTC]``)
+strings and convert these to datetime (i.e. ``datetime64[us, UTC]``)
 objects. In pandas we call these datetime objects that are similar to
 ``datetime.datetime`` from the standard library as :class:`pandas.Timestamp`.
 
