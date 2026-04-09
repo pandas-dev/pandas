@@ -206,6 +206,14 @@ def read_excel(
     read from a local filesystem or URL. Supports an option to read
     a single sheet or a list of sheets.
 
+    This function requires an external library depending on the file format:
+    `openpyxl <https://openpyxl.readthedocs.io/>`_ supports `xlsx`/`xlsm`,
+    `odfpy <https://github.com/eea/odfpy>`_ supports `odf`/`ods`/`odt`,
+    `pyxlsb <https://github.com/willtrnr/pyxlsb>`_ supports `xlsb`,
+    `xlrd <https://xlrd.readthedocs.io/>`_ supports `xls`,
+    and `python-calamine <https://github.com/dimastbk/python-calamine>`_
+    supports `xls`/`xlsx`/`xlsm`/`xlsb`/`ods`.
+
     Parameters
     ----------
     io : str, ExcelFile, xlrd.Book, path object, or file-like object

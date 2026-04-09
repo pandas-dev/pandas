@@ -543,6 +543,9 @@ def read_parquet(
     """
     Load a parquet object from the file path, returning a DataFrame.
 
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
+
     The function automatically handles reading the data from a parquet file
     and creates a DataFrame with the appropriate structure.
 
