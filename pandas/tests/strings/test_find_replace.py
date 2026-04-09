@@ -968,7 +968,7 @@ def test_replace_regex(any_string_dtype):
     "repl, expected_data",
     [
         ("", ["abcd", np.nan, ""]),
-        ("X", ["XaXbXcXdX", np.nan, ""]),
+        ("X", ["XaXbXcXdX", np.nan, "X"]),
     ],
 )
 def test_replace_empty_pattern(any_string_dtype, regex, repl, expected_data):
