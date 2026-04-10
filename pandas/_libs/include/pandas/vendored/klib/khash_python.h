@@ -4,8 +4,8 @@
 
 #include <Python.h>
 #include <pymem.h>
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
 
 typedef struct {
   float real;
