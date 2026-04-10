@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Literal,
 )
+import zoneinfo
 
 import numpy as np
 
@@ -209,11 +210,11 @@ def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
         return tz
 
     if timezones.is_utc(tz):
-        return timezones.maybe_get_tz("UTC")
+        return dt.timezone.utc
 
-    if tz.zone is not None:
+    if tz.zone is not None:  # type: ignore[attr-defined]
         try:
-            return timezones.maybe_get_tz(tz.zone)
+            return zoneinfo.ZoneInfo(tz.zone)  # type: ignore[attr-defined]
         except Exception:
             # some pytz timezones might not be available for zoneinfo
             pass
@@ -222,7 +223,8 @@ def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
         # Convert pytz fixed offset to datetime.timezone
         try:
             offset = tz.utcoffset(None)
-            return dt.timezone(offset)
+            if offset is not None:
+                return dt.timezone(offset)
         except Exception:
             pass
 
@@ -240,7 +242,7 @@ def _normalize_timezone_index(index: pd.Index) -> pd.Index:
     if isinstance(index.dtype, pd.DatetimeTZDtype):
         normalized_tz = _normalize_pytz_timezone(index.dtype.tz)
         if normalized_tz is not index.dtype.tz:
-            return index.tz_convert(normalized_tz)
+            return index.tz_convert(normalized_tz)  # type: ignore[attr-defined]
 
     return index
 
