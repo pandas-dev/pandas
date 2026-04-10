@@ -160,9 +160,9 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
-        # if treat_tz_as_pytz(tz) and pytz is None:
-        #     # call again for raising proper error
-        #     import_optional_dependency("pytz")
+        if treat_tz_as_pytz(tz) and pytz is None:
+            # call again for raising proper error
+            import_optional_dependency("pytz")
         pass
     elif tz is None:
         pass
