@@ -1442,6 +1442,12 @@ class ArrowExtensionArray(
         if not self._hasna:
             return self.copy()
 
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
+
         if limit is not None:
             return super().fillna(value=value, limit=limit, copy=copy)
 
