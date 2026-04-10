@@ -83,11 +83,7 @@ class TestReadPyTablesHDF5:
 _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
 
 
-@pytest.mark.parametrize(
-    "legacy_file",
-    _legacy_files,
-    ids=lambda x: x.name,
-)
+@pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
 def test_legacy_files(datapath, legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
     legacy_file = datapath(
