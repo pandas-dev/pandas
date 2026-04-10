@@ -226,6 +226,7 @@ static inline bool pandas_is_NA(PyTypeObject *t) {
   PyObject *module = NULL;
   PyObject *na_type = NULL;
   static PyTypeObject *pandas_na_type = NULL;
+  bool is_na = false;
 
   if (pandas_na_type == NULL) {
     if ((module = PyImport_ImportModule("pandas._libs.missing")) == NULL) {
@@ -241,7 +242,7 @@ static inline bool pandas_is_NA(PyTypeObject *t) {
   }
 
 end:
-  bool is_na = t == pandas_na_type;
+  is_na = t == pandas_na_type;
   Py_XDECREF(na_type);
   Py_XDECREF(module);
   return is_na;
