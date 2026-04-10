@@ -646,6 +646,26 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
     tm.assert_frame_equal(result2, expected2)
 
 
+def test_ohlc_series_groupby_as_index_false():
+    # GH#65140 - SeriesGroupBy.ohlc() should honor as_index=False
+    df = DataFrame({"key": ["A", "A", "B", "B"], "price": [1.0, 2.0, 3.0, 4.0]})
+
+    result = df.groupby("key", as_index=False)["price"].ohlc()
+    expected = DataFrame(
+        {
+            "key": ["A", "B"],
+            "open": [1.0, 3.0],
+            "high": [2.0, 4.0],
+            "low": [1.0, 3.0],
+            "close": [2.0, 4.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result_multi = df.groupby(["key", "key"], as_index=False)["price"].ohlc()
+    assert result_multi.index.tolist() == [0, 1]
+
+
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 @pytest.mark.parametrize("how", ["first", "last", "min", "max", "mean", "median"])
 def test_uint64_type_handling(dtype, how):
