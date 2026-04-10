@@ -5,6 +5,7 @@
 #include <Python.h>
 #include <pymem.h>
 #include <string.h>
+#include <stdbool.h>
 
 typedef struct {
   float real;
@@ -223,18 +224,18 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
 static PyTypeObject *khash_python_pandas_na_type = NULL;
 
 // this function assumes PyErr_Occurred is checked further up the call stack
-static inline int pandas_is_NA(PyTypeObject *t) {
+static inline bool pandas_is_NA(PyTypeObject *t) {
   PyObject *module = NULL;
   PyObject *na_type = NULL;
 
-  if (NULL == khash_python_pandas_na_type) {
-    if (NULL == (module = PyImport_ImportModule("pandas._libs.missing"))) {
+  if (khash_python_pandas_na_type == NULL) {
+    if ((module = PyImport_ImportModule("pandas._libs.missing")) == NULL) {
       goto end;
     }
-    if (NULL == (na_type = PyObject_GetAttrString(module, "NAType"))) {
+    if ((na_type = PyObject_GetAttrString(module, "NAType")) == NULL) {
       goto end;
     }
-    if (0 == PyType_Check(na_type)) {
+    if (PyType_Check(na_type) == 0) {
       goto end;
     }
     khash_python_pandas_na_type = (PyTypeObject *)na_type;
