@@ -379,5 +379,5 @@ Installable with ``pip install "pandas[timezone]"``
 ========================================== ================== =================== ==============================================
 Dependency                                 Minimum Version    pip extra           Notes
 ========================================== ================== =================== ==============================================
-`pytz <https://github.com/stub42/pytz>`__  2024.2             timezone            Alternative timezone library to ``zoneinfo``.
+`pytz <https://github.com/stub42/pytz>`__  2020.1             timezone            Alternative timezone library to ``zoneinfo``.
 ========================================== ================== =================== ==============================================
