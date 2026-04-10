@@ -1506,7 +1506,7 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_get_pymap_checked(self.table, <PyObject*>val)
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
-                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                k = kh_put_pymap_checked(self.table, <PyObject*>val, &ret)
                 Py_INCREF(val)
                 uniques.append(val)
                 if return_inverse:
