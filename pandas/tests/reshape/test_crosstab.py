@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalDtype,
@@ -781,13 +783,16 @@ class TestCrosstab:
                 "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
             }
         )
-        result = crosstab(
-            index=df.C,
-            columns=[df.A, df.B],
-            margins=True,
-            margins_name="margin",
-            normalize=True,
-        )
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Setting a new value on a Series"
+        ):
+            result = crosstab(
+                index=df.C,
+                columns=[df.A, df.B],
+                margins=True,
+                margins_name="margin",
+                normalize=True,
+            )
         expected = DataFrame(
             [
                 [0.111111, 0.111111, 0.222222, 0.000000, 0.444444],

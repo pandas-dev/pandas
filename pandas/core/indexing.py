@@ -2512,6 +2512,22 @@ class _iLocIndexer(_LocationIndexer):
 
                     # reindex the axis
                     index = self.obj._get_axis(i)
+                    if isinstance(index, MultiIndex) and not (
+                        isinstance(key, tuple) and len(key) == index.nlevels
+                    ):
+                        # GH#17024
+                        warnings.warn(
+                            "Setting a new row on a DataFrame with a "
+                            "MultiIndex using a scalar key that is not "
+                            "a tuple is deprecated and will raise in a "
+                            "future version. Use a tuple key with the "
+                            "appropriate number of levels instead, or "
+                            "explicitly call "
+                            "df.index = df.index.to_flat_index() "
+                            "before expanding.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
                     labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
@@ -2833,6 +2849,21 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
+            if isinstance(index, MultiIndex) and not (
+                isinstance(indexer, tuple) and len(indexer) == index.nlevels
+            ):
+                # GH#17024 scalar key on MultiIndex is ambiguous and
+                # currently flattens the MultiIndex. Deprecate in favor
+                # of requiring a full-length tuple key.
+                warnings.warn(
+                    "Setting a new value on a Series with a MultiIndex using "
+                    "a key that is not a tuple with the appropriate number of "
+                    "levels is deprecated and will raise in a future version. "
+                    "Use a full-length tuple key instead, or explicitly call "
+                    "ser.index = ser.index.to_flat_index() before expanding.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
