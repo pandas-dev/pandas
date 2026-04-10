@@ -183,6 +183,37 @@ class TestIndex:
         result = Index(data, dtype="float")
         tm.assert_index_equal(result, expected)
 
+    def test_index_replace_scalar(self):
+        idx = Index([1, 2, 3])
+
+        result = idx.replace(2, 9)
+
+        expected = Index([1, 9, 3])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_dict(self):
+        idx = Index(["a", "b", "c"])
+
+        result = idx.replace({"b": "x"})
+
+        expected = Index(["a", "x", "c"])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_preserves_name(self):
+        idx = Index([1, 2, 3], name="test")
+
+        result = idx.replace(2, 9)
+
+        assert result.name == "test"
+
+    def test_index_replace_regex(self):
+        idx = Index(["foo", "bar", "baz"])
+        result = idx.replace("^ba", "x", regex=True)
+        expected = Index(["foo", "xr", "xz"])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "klass,dtype,na_val",
         [

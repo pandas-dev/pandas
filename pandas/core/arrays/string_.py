@@ -15,7 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -199,7 +199,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            storage = _global_config["mode"]["string_storage"]
+            storage = config["mode"]["string_storage"]
             if storage == "auto":
                 if HAS_PYARROW:
                     storage = "pyarrow"
@@ -820,6 +820,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values = self._ndarray.copy()
         values[self.isna()] = None
         return pa.array(values, type=type)
+
+    def isna(self) -> np.ndarray:
+        return libmissing.isna_string(self._ndarray)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray

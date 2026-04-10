@@ -16,6 +16,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -39,10 +40,12 @@ from pandas.errors import (
     NullFrequencyError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -61,6 +64,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexes.base import (
     Index,
 )
@@ -293,23 +297,61 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
-            should_try = False
-            inferable = self._data._infer_matches
             if other.dtype == object:
-                should_try = other.inferred_type in inferable
+                converted = lib.maybe_convert_objects(
+                    np.asarray(other), convert_non_numeric=True
+                )
+                converted = ensure_wrapped_if_datetimelike(converted)
+                if isinstance(converted, type(self._data)):
+                    other = type(self)._simple_new(converted)
+                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a future "
+                        "version, these will be left as object dtype. Use "
+                        "pd.to_datetime to explicitly convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
             elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
-                should_try = other.categories.inferred_type in inferable
-
-            if should_try:
-                try:
-                    other = type(self)(other)
-                except (ValueError, TypeError, OverflowError):
-                    # e.g.
-                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                    #  OverflowError -> Index([very_large_timedeltas])
-                    return False
+                cat_vals = np.asarray(other.categories)
+                if cat_vals.dtype == object:
+                    converted = lib.maybe_convert_objects(
+                        cat_vals, convert_non_numeric=True
+                    )
+                    converted = ensure_wrapped_if_datetimelike(converted)
+                else:
+                    converted = ensure_wrapped_if_datetimelike(cat_vals)
+                if isinstance(converted, type(self._data)):
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
+                elif (
+                    self.dtype.kind == "M"
+                    and cat_vals.dtype == object
+                    and lib.infer_dtype(other.categories) == "date"
+                ):
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a "
+                        "future version, these will be left as object "
+                        "dtype. Use pd.to_datetime to explicitly "
+                        "convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
 
         if type(self) != type(other):
             return False

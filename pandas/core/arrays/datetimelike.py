@@ -23,7 +23,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos,
@@ -211,8 +211,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         freq
     """
 
-    # _infer_matches -> which infer_dtype strings are close enough to our own
-    _infer_matches: tuple[str, ...]
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
@@ -685,14 +683,34 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if hasattr(value, "dtype") and value.dtype == object:
             # `array` below won't do inference if value is an Index or Series.
             #  so do so here.  in the Index case, inferred_type may be cached.
-            if lib.infer_dtype(value) in self._infer_matches:
-                try:
-                    value = type(self)._from_sequence(value)
-                except (ValueError, TypeError) as err:
-                    if allow_object:
-                        return value
-                    msg = self._validation_error_message(value, True)
-                    raise TypeError(msg) from err
+            arr = np.asarray(value)
+            flat = arr.ravel() if arr.ndim != 1 else arr
+            converted = lib.maybe_convert_objects(
+                flat, convert_non_numeric=True, dtype_if_all_nat=self.dtype
+            )
+            converted = ensure_wrapped_if_datetimelike(converted)
+            if isinstance(converted, type(self)):
+                if (
+                    self.dtype.kind in "mM"
+                    and not allow_object
+                    and self.unit != converted.unit  # type: ignore[attr-defined]
+                ):
+                    converted = converted.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
+                if arr.ndim != 1:
+                    converted = converted.reshape(arr.shape)
+                return converted
+            elif self.dtype.kind == "M" and lib.infer_dtype(value) == "date":
+                # GH#65056
+                warnings.warn(
+                    "Inferring datetime64 from data containing datetime.date "
+                    "objects is deprecated. In a future version, these will "
+                    "be left as object dtype. Use "
+                    "pd.to_datetime to explicitly convert "
+                    "to datetime64.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                value = type(self)._from_sequence(value)
 
         if isinstance(value, list):
             value = construct_1d_object_array_from_listlike(value)
@@ -1414,7 +1432,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
-        if _global_config["mode"]["performance_warnings"]:
+        if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
                 f"{type(self).__name__} not vectorized.",
@@ -2209,7 +2227,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2316,7 +2334,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2423,7 +2441,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
