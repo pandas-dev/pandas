@@ -1,13 +1,14 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas import (
     DataFrame,
     MultiIndex,
     Series,
     concat,
 )
-from pandas.errors import SpecificationError
 import pandas._testing as tm
 
 

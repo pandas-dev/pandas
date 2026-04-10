@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
+from pandas.errors import SpecificationError
+
 from pandas import (
     DataFrame,
     MultiIndex,
     Series,
 )
-from pandas.errors import SpecificationError
 import pandas._testing as tm
 from pandas.tests.apply.common import frame_transform_kernels
 from pandas.tests.frame.common import zip_frames
