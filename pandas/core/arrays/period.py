@@ -183,7 +183,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
-    _infer_matches = ("period",)
 
     @property
     def _scalar_type(self) -> type[Period]:
