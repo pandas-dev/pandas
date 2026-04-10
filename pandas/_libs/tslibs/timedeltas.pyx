@@ -2,10 +2,7 @@ import collections
 import re
 import warnings
 
-from pandas._libs.tslibs.offsets import (
-    Day,
-    to_offset,
-)
+from pandas._libs.tslibs.offsets import Day
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -20,6 +17,8 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
+
+from pandas._libs.tslibs.offsets cimport to_offset
 
 import numpy as np
 
