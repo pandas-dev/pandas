@@ -708,8 +708,8 @@ def factorize(
     -----
     Reference :ref:`the user guide <reshaping.factorize>` for more examples.
 
-    When working with object-dtype arrays, boolean and integer values may not be distinguished since 
-    ``True == 1`` and ``False == 0`` in Python. 
+    When working with object-dtype arrays, boolean and integer values may not
+    be distinguished since ``True == 1`` and ``False == 0`` in Python.
 
     >>> codes, uniques = pd.factorize(np.array([True, 1, False, 0], dtype=object))
     >>> codes
