@@ -241,9 +241,10 @@ static inline bool pandas_is_NA(PyTypeObject *t) {
   }
 
 end:
+  bool is_na = t == pandas_na_type;
   Py_XDECREF(na_type);
   Py_XDECREF(module);
-  return t == pandas_na_type;
+  return is_na;
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
