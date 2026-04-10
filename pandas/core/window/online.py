@@ -8,7 +8,6 @@ from pandas.compat._optional import import_optional_dependency
 
 
 def generate_online_numba_ewma_func(
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ):
@@ -18,8 +17,6 @@ def generate_online_numba_ewma_func(
 
     Parameters
     ----------
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -34,7 +31,7 @@ def generate_online_numba_ewma_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def online_ewma(
         values: np.ndarray,
         deltas: np.ndarray,

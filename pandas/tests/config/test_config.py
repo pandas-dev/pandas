@@ -1,6 +1,6 @@
 import pytest
 
-from pandas._config import config as cf
+import pandas._config.config as cf
 from pandas._config.config import OptionError
 
 from pandas.errors import Pandas4Warning

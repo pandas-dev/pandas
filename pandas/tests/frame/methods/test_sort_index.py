@@ -815,6 +815,13 @@ class TestDataFrameSortIndex:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_sort_index_level_on_range_index(self):
+        # GH#64383: sort_index with level= on a RangeIndex raised AssertionError
+        df = DataFrame({"a": [1, 2, 3]})
+        df.index.names = ["foo"]
+        result = df.sort_index(level="foo")
+        tm.assert_frame_equal(result, df)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):

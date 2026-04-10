@@ -33,17 +33,14 @@ typedef struct {
   int (*parser_add_skiprow)(parser_t *, int64_t);
   void (*parser_set_skipfirstnrows)(parser_t *, int64_t);
   void (*parser_set_default_options)(parser_t *);
-  int (*parser_consume_rows)(parser_t *, size_t);
+  int (*parser_consume_rows)(parser_t *, uint64_t);
   int (*parser_trim_buffers)(parser_t *);
   int (*tokenize_all_rows)(parser_t *, const char *);
-  int (*tokenize_nrows)(parser_t *, size_t, const char *);
+  int (*tokenize_nrows)(parser_t *, uint64_t, const char *);
   int64_t (*str_to_int64)(const char *, int *, char);
   uint64_t (*str_to_uint64)(uint_state *, const char *, int *, char);
-  double (*xstrtod)(const char *, char **, char, char, char, int, int *, int *);
   double (*precise_xstrtod)(const char *, char **, char, char, char, int, int *,
                             int *);
-  double (*round_trip)(const char *, char **, char, char, char, int, int *,
-                       int *);
   int (*to_boolean)(const char *, uint8_t *);
 } PandasParser_CAPI;
 
@@ -90,17 +87,10 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
     PandasParserAPI->str_to_int64((p_item), (error), (t_sep))
 #  define str_to_uint64(state, p_item, error, t_sep)                           \
     PandasParserAPI->str_to_uint64((state), (p_item), (error), (t_sep))
-#  define xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)   \
-    PandasParserAPI->xstrtod((p), (q), (decimal), (sci), (tsep),               \
-                             (skip_trailing), (error), (maybe_int))
 #  define precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error,      \
                           maybe_int)                                           \
     PandasParserAPI->precise_xstrtod((p), (q), (decimal), (sci), (tsep),       \
                                      (skip_trailing), (error), (maybe_int))
-#  define round_trip(p, q, decimal, sci, tsep, skip_trailing, error,           \
-                     maybe_int)                                                \
-    PandasParserAPI->round_trip((p), (q), (decimal), (sci), (tsep),            \
-                                (skip_trailing), (error), (maybe_int))
 #  define to_boolean(item, val) PandasParserAPI->to_boolean((item), (val))
 #endif /* !defined(_PANDAS_PARSER_IMPL) */
 

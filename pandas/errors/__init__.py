@@ -530,7 +530,9 @@ class AbstractMethodError(NotImplementedError):
     AbstractMethodError: This classmethod must be defined in the concrete class Foo
     """
 
-    def __init__(self, class_instance, methodtype: str = "method") -> None:
+    def __init__(
+        self, class_instance: type | object, methodtype: str = "method"
+    ) -> None:
         types = {"method", "classmethod", "staticmethod", "property"}
         if methodtype not in types:
             raise ValueError(
@@ -540,7 +542,7 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self) -> str:
-        if self.methodtype == "classmethod":
+        if isinstance(self.class_instance, type):
             name = self.class_instance.__name__
         else:
             name = type(self.class_instance).__name__
@@ -623,16 +625,10 @@ class InvalidIndexError(Exception):
 
     Examples
     --------
-    >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
-    >>> df = pd.DataFrame([[1, 1, 2, 2], [3, 3, 4, 4]], columns=idx)
-    >>> df
-        x       y
-        0   1   0   1
-    0   1   1   2   2
-    1   3   3   4   4
-    >>> df[:, 0]
+    >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> df[("a", slice(None))]
     Traceback (most recent call last):
-    InvalidIndexError: (slice(None, None, None), 0)
+    InvalidIndexError: ('a', slice(None, None, None))
     """
 
 

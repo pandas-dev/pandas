@@ -62,6 +62,10 @@ def read_orc(
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.orc``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     columns : list, default None
         If not None, only these columns will be read from the file.
         Output always follows the ordering of the file and not the columns list.

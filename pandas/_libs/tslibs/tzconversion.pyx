@@ -68,6 +68,7 @@ cdef class Localizer:
     #    int64_t* tdata
 
     @cython.initializedcheck(False)
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT creso):
         self.tz = tz
@@ -118,6 +119,7 @@ cdef class Localizer:
                     self.use_pytz = True
                 self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef int64_t utc_val_to_local_val(
         self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
@@ -210,7 +212,7 @@ def tz_localize_to_utc(
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order. Requires that the timestamps are monotonically increasing.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times, but the array must have the same length as vals)
@@ -283,7 +285,7 @@ timedelta-like}
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
     elif nonexistent not in ("raise", None):
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
-               "shift_backwards} or a timedelta object")
+               "'shift_backward'} or a timedelta object")
         raise ValueError(msg)
 
     result = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
@@ -475,6 +477,8 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     return str(ts)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _get_utc_bounds(
     ndarray[int64_t] vals,
     const int64_t* tdata,
@@ -530,6 +534,8 @@ cdef _get_utc_bounds(
     return result_a, result_b
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
     """
     For each point in 'vals', find the UTC time that it corresponds to if
@@ -596,6 +602,7 @@ cdef _get_utc_bounds_zoneinfo(ndarray vals, tz, NPY_DATETIMEUNIT creso):
     return result_a, result_b
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 cdef ndarray[int64_t] _get_dst_hours(
     # vals, creso only needed here to potential render an exception message

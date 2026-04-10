@@ -68,10 +68,9 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
-        npt,
         TimeUnit,
+        npt,
     )
-
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -114,8 +113,7 @@ def _new_DatetimeIndex(cls, d):
 
 
 @inherit_names(
-    DatetimeArray._field_ops
-    + [
+    [
         method
         for method in DatetimeArray._datetimelike_methods
         if method not in ("tz_localize", "tz_convert", "strftime")
@@ -134,7 +132,6 @@ def _new_DatetimeIndex(cls, d):
         "time",
         "timetz",
         "std",
-        *DatetimeArray._bool_ops,
     ],
     DatetimeArray,
 )
@@ -169,7 +166,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order. Requires that the timestamps are monotonically increasing.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -276,6 +273,131 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _data: DatetimeArray
     _values: DatetimeArray
     tz: dt.tzinfo | None
+
+    # field_ops: wrap result in Index
+
+    def _wrap_field(self, name: str) -> Index:
+        result = getattr(self._data, name)
+        return Index(result, name=self.name, dtype=result.dtype, copy=False)
+
+    @property
+    def year(self) -> Index:
+        return self._wrap_field("year")
+
+    @property
+    def month(self) -> Index:
+        return self._wrap_field("month")
+
+    @property
+    def day(self) -> Index:
+        return self._wrap_field("day")
+
+    @property
+    def hour(self) -> Index:
+        return self._wrap_field("hour")
+
+    @property
+    def minute(self) -> Index:
+        return self._wrap_field("minute")
+
+    @property
+    def second(self) -> Index:
+        return self._wrap_field("second")
+
+    @property
+    def weekday(self) -> Index:
+        # GH#12816
+        warnings.warn(
+            "DatetimeIndex.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
+
+    @property
+    def dayofweek(self) -> Index:
+        warnings.warn(
+            "DatetimeIndex.dayofweek is deprecated and will be removed in a "
+            "future version. Use DatetimeIndex.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_week")
+
+    @property
+    def day_of_week(self) -> Index:
+        return self._wrap_field("day_of_week")
+
+    @property
+    def dayofyear(self) -> Index:
+        warnings.warn(
+            "DatetimeIndex.dayofyear is deprecated and will be removed in a "
+            "future version. Use DatetimeIndex.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("day_of_year")
+
+    @property
+    def day_of_year(self) -> Index:
+        return self._wrap_field("day_of_year")
+
+    @property
+    def quarter(self) -> Index:
+        return self._wrap_field("quarter")
+
+    @property
+    def days_in_month(self) -> Index:
+        return self._wrap_field("days_in_month")
+
+    @property
+    def daysinmonth(self) -> Index:
+        warnings.warn(
+            "DatetimeIndex.daysinmonth is deprecated and will be removed in a "
+            "future version. Use DatetimeIndex.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._wrap_field("days_in_month")
+
+    @property
+    def microsecond(self) -> Index:
+        return self._wrap_field("microsecond")
+
+    @property
+    def nanosecond(self) -> Index:
+        return self._wrap_field("nanosecond")
+
+    # bool_ops: return raw result
+
+    @property
+    def is_month_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_month_start
+
+    @property
+    def is_month_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_month_end
+
+    @property
+    def is_quarter_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_quarter_start
+
+    @property
+    def is_quarter_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_quarter_end
+
+    @property
+    def is_year_start(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_year_start
+
+    @property
+    def is_year_end(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_year_end
+
+    @property
+    def is_leap_year(self) -> npt.NDArray[np.bool_]:
+        return self._data.is_leap_year
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -430,7 +552,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -753,7 +875,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if dtype.kind != "M":
                 return False
 
+            import pyarrow as pa
+
             pa_dtype = dtype.pyarrow_dtype
+            if not pa.types.is_timestamp(pa_dtype):
+                # GH#62051 date types (date32, date64) are not
+                # comparable with DatetimeIndex
+                return False
             if (pa_dtype.tz is None) ^ (self.tz is None):
                 return False
             return True
@@ -767,14 +895,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @cache_readonly
-    def _formatter_func(self):
+    def _formatter_func(self, val) -> str:
         # Note this is equivalent to the DatetimeIndexOpsMixin method but
         #  uses the maybe-cached self._is_dates_only instead of re-computing it.
+        return f"'{self._date_formatter(val)}'"
+
+    @cache_readonly
+    def _date_formatter(self):
         from pandas.io.formats.format import get_format_datetime64
 
-        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
-        return lambda x: f"'{formatter(x)}'"
+        return get_format_datetime64(is_dates_only=self._is_dates_only)
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -1271,6 +1401,8 @@ def date_range(
     inclusive: IntervalClosedType = "both",
     *,
     unit: TimeUnit | None = None,
+    ambiguous: TimeAmbiguous = "raise",
+    nonexistent: TimeNonexistent = "raise",
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -1316,6 +1448,32 @@ def date_range(
         resolution of the three that are provided.
 
         .. versionadded:: 2.0.0
+    ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        When clocks moved backward due to DST, ambiguous times may arise.
+        For example in Central European Time (UTC+01), when going from 03:00
+        DST to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC
+        and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter
+        dictates how ambiguous times should be handled.
+
+        - 'infer' will attempt to infer fall dst-transition hours based on
+          order. Requires that the timestamps are monotonically increasing.
+        - bool-ndarray where True signifies a DST time, False signifies a
+          non-DST time (note that this flag is only applicable for ambiguous
+          times)
+        - 'NaT' will return NaT where there are ambiguous times
+        - 'raise' will raise a ValueError if there are ambiguous times.
+    nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+    default 'raise'
+        A nonexistent time does not exist in a particular timezone
+        where clocks moved forward due to DST.
+
+        - 'shift_forward' will shift the nonexistent time forward to the
+          closest existing time
+        - 'shift_backward' will shift the nonexistent time backward to the
+          closest existing time
+        - 'NaT' will return NaT where there are nonexistent times
+        - timedelta objects will shift nonexistent times by the timedelta
+        - 'raise' will raise a ValueError if there are nonexistent times.
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1509,6 +1667,8 @@ def date_range(
         freq=freq,
         tz=tz,
         normalize=normalize,
+        ambiguous=ambiguous,
+        nonexistent=nonexistent,
         inclusive=inclusive,
         unit=unit,
         **kwargs,

@@ -10,7 +10,6 @@ from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -1834,6 +1833,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
     if len(keys) == 1:
+        expected.index = Index([], dtype=df[keys[0]].dtype, name=keys[0])
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
 
@@ -2210,23 +2210,13 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "infer_string",
-    [
-        False,
-        pytest.param(True, marks=td.skip_if_no("pyarrow")),
-    ],
-)
-def test_groupby_duplicate_columns(infer_string):
+def test_groupby_duplicate_columns():
     # GH: 31735
-    if infer_string:
-        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
     df.columns = ["A", "B", "B"]
-    with pd.option_context("future.infer_string", infer_string):
-        result = df.groupby([0, 0, 0, 0]).min()
+    result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame(
         [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
     )
@@ -3017,3 +3007,15 @@ def test_groupby_datetime_with_nat():
     grouped = df.groupby("a", dropna=False)
     result = len(grouped)
     assert result == 3
+
+
+def test_groupby_function_tuple_1677():
+    # GH#1677
+    df = DataFrame(
+        np.random.default_rng(2).random(100),
+        index=date_range("1/1/2000", periods=100),
+    )
+    monthly_group = df.groupby(lambda x: (x.year, x.month))
+
+    result = monthly_group.mean()
+    assert isinstance(result.index[0], tuple)
