@@ -16,7 +16,7 @@ from warnings import (
     filterwarnings,
 )
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = _global_config["io"]["parquet"]["engine"]
+        engine = config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order

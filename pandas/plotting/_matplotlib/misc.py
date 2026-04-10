@@ -296,8 +296,7 @@ def bootstrap_plot(
 ) -> Figure:
     import matplotlib.pyplot as plt
 
-    # TODO: is the failure mentioned below still relevant?
-    # random.sample(ndarray, int) fails on python 3.3, sigh
+    # random.sample doesn't accept ndarrays
     data = list(series.values)
     samplings = [random.sample(data, size) for _ in range(samples)]
 

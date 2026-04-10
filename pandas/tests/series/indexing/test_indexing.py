@@ -482,7 +482,7 @@ class TestSetitemValidation:
         "1.0",
         NaT,
         np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.timedelta64("NaT", "ns"),
     ]
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 

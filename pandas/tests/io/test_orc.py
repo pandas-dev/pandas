@@ -421,12 +421,7 @@ def test_invalid_dtype_backend(temp_file):
 def test_string_inference(temp_file):
     # GH#54431
     df = pd.DataFrame(data={"a": ["x", "y"]})
+    expected = df.copy()
     df.to_orc(temp_file)
-    with pd.option_context("future.infer_string", True):
-        result = read_orc(temp_file)
-    expected = pd.DataFrame(
-        data={"a": ["x", "y"]},
-        dtype=pd.StringDtype(na_value=np.nan),
-        columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
-    )
+    result = read_orc(temp_file)
     tm.assert_frame_equal(result, expected)

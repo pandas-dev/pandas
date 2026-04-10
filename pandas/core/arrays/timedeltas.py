@@ -161,7 +161,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(x, "m")
-    _infer_matches = ("timedelta", "timedelta64")
 
     @property
     def _internal_fill_value(self) -> np.timedelta64:

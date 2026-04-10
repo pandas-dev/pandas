@@ -13,6 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
+from pandas.errors import LossySetitemError
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import (
@@ -23,10 +24,14 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     maybe_downcast_to_dtype,
+    np_can_hold_element,
 )
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+)
 
 from pandas.core import (
     arraylike,
@@ -49,6 +54,8 @@ if TYPE_CHECKING:
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
+        NumpySorter,
+        NumpyValueArrayLike,
         Scalar,
         TakeIndexer,
         npt,
@@ -56,6 +63,7 @@ if TYPE_CHECKING:
 
     from pandas import Index
     from pandas.arrays import StringArray
+    from pandas.core.arrays.base import ExtensionArray
 
 
 @set_module("pandas.arrays")
@@ -160,6 +168,38 @@ class NumpyExtensionArray(
         if copy and result is scalars:
             result = result.copy()
         return cls(result)
+
+    def _validate_setitem_value(self, value):
+        if isinstance(value, type(self)):
+            value = value._ndarray
+
+        # Match Block._standardize_fill_value behavior
+        if self._ndarray.dtype.kind != "O" and is_valid_na_for_dtype(
+            value, self._ndarray.dtype
+        ):
+            value = self.dtype.na_value
+
+        try:
+            return np_can_hold_element(self._ndarray.dtype, value)
+        except LossySetitemError as err:
+            raise TypeError(
+                f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+            ) from err
+        except NotImplementedError:
+            # np_can_hold_element doesn't handle all dtypes (e.g. "U"),
+            # fall back to no validation for those.
+            return value
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        # Parent's searchsorted calls _validate_setitem_value, which is
+        # too strict for search (e.g. rejects float into int). Delegate
+        # directly to numpy which handles cross-dtype searches correctly.
+        return self._ndarray.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         result = super()._cast_pointwise_result(values)
@@ -582,8 +622,7 @@ class NumpyExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        mask = self.isna()
-        if na_value is not lib.no_default and mask.any():
+        if na_value is not lib.no_default and (mask := self.isna()).any():
             result = self._ndarray.copy()
             result[mask] = na_value
         else:

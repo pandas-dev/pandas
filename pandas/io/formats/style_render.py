@@ -19,7 +19,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -137,9 +137,7 @@ class StylerRenderer:
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
         precision = (
-            _global_config["styler"]["format"]["precision"]
-            if precision is None
-            else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
@@ -331,13 +329,9 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        max_elements = _global_config["styler"]["render"]["max_elements"]
-        max_rows = (
-            max_rows if max_rows else _global_config["styler"]["render"]["max_rows"]
-        )
-        max_cols = (
-            max_cols if max_cols else _global_config["styler"]["render"]["max_columns"]
-        )
+        max_elements = config["styler"]["render"]["max_elements"]
+        max_rows = max_rows if max_rows else config["styler"]["render"]["max_rows"]
+        max_cols = max_cols if max_cols else config["styler"]["render"]["max_columns"]
         max_rows, max_cols = _get_trimming_maximums(
             len(self.data.index),
             len(self.data.columns),
@@ -387,7 +381,7 @@ class StylerRenderer:
             )
 
         table_attr = self.table_attributes
-        if not _global_config["styler"]["html"]["mathjax"]:
+        if not config["styler"]["html"]["mathjax"]:
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace(
@@ -2012,9 +2006,7 @@ def _maybe_wrap_formatter(
         func_0 = formatter
     elif formatter is None:
         precision = (
-            _global_config["styler"]["format"]["precision"]
-            if precision is None
-            else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
