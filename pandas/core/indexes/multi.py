@@ -22,7 +22,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos as libalgos,
@@ -1670,7 +1670,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = _global_config["display"]["multi_sparse"]
+            sparsify = config["display"]["multi_sparse"]
 
         if sparsify:
             sentinel: Literal[""] | bool | lib.NoDefault = ""
@@ -2888,7 +2888,7 @@ class MultiIndex(Index):
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
                     if (
-                        _global_config["mode"]["performance_warnings"]
+                        config["mode"]["performance_warnings"]
                         and self._lexsort_depth == 0
                     ):
                         warnings.warn(
@@ -3619,7 +3619,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if _global_config["mode"]["performance_warnings"]:
+        if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,

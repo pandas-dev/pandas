@@ -549,7 +549,9 @@ class TestGetIndexer:
     def test_get_indexer_date_objs(self):
         rng = date_range("1/1/2000", periods=20)
 
-        result = rng.get_indexer(rng.map(lambda x: x.date()))
+        msg = "Inferring datetime64 from data containing datetime.date objects"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = rng.get_indexer(rng.map(lambda x: x.date()))
         expected = rng.get_indexer(rng)
         tm.assert_numpy_array_equal(result, expected)
 

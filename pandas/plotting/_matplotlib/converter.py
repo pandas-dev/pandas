@@ -18,7 +18,7 @@ import matplotlib.dates as mdates
 import matplotlib.units as munits
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -104,7 +104,7 @@ def pandas_converters() -> Generator[None]:
     --------
     register_pandas_matplotlib_converters : Decorator that applies this.
     """
-    value = _global_config["plotting"]["matplotlib"]["register_converters"]
+    value = config["plotting"]["matplotlib"]["register_converters"]
 
     if value:
         # register for True or "auto"

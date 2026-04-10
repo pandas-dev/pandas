@@ -2779,12 +2779,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.sum : Return the sum of the values over the requested axis.
+        DataFrame.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
@@ -2988,12 +2984,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.min : Return the minimum of the values over the requested axis.
+        DataFrame.min : Return the minimum of the values over the requested axis.
 
         Examples
         --------
@@ -3109,12 +3101,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.max : Return the maximum of the values over the requested axis.
+        DataFrame.max : Return the maximum of the values over the requested axis.
 
         Examples
         --------

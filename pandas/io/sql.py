@@ -33,7 +33,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -1584,7 +1584,7 @@ class SQLAlchemyEngine(BaseEngine):
 def get_engine(engine: str) -> BaseEngine:
     """return our implementation"""
     if engine == "auto":
-        engine = _global_config["io"]["sql"]["engine"]
+        engine = config["io"]["sql"]["engine"]
 
     if engine == "auto":
         # try engines in this order
