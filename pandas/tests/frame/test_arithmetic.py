@@ -1108,8 +1108,86 @@ class TestFrameArithmetic:
         result = df - df2
 
         expected = DataFrame(
-            {"foo": [pd.Timedelta(0), pd.Timedelta(0)], "bar": [np.nan, np.nan]},
+            {"foo": [pd.Timedelta(0), pd.Timedelta(0)], "bar": [pd.NaT, pd.NaT]},
             columns=["bar", "foo"],
+            dtype="m8[ns]",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_sub_series_datetime_axis1(self):
+        # GH#59529 subtracting datetime Series from datetime DataFrame
+        #  along axis=1 with non-overlapping indices
+        df = DataFrame([[1, 2], [3, 4]]).astype("datetime64[ns]")
+        ser = Series([5, 6, 7]).astype("datetime64[ns]")
+
+        result = df - ser
+        expected = DataFrame(
+            {
+                0: pd.to_timedelta([-4, -2], unit="ns"),
+                1: pd.to_timedelta([-4, -2], unit="ns"),
+                2: Series([pd.NaT, pd.NaT], dtype="timedelta64[ns]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result2 = ser - df
+        tm.assert_frame_equal(result2, -expected)
+
+    def test_frame_with_frame_reindex_pyarrow_columns(self):
+        # GH#63288 non-overlapping pyarrow columns should produce pd.NA,
+        #  not NaN with float64 dtype
+        pa = import_optional_dependency("pyarrow", errors="ignore")
+        if pa is None:
+            pytest.skip("pyarrow not installed")
+
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        df1 = df.iloc[:, :2].astype("int64[pyarrow]")
+        df2 = df.iloc[1:, 1:].astype("int64[pyarrow]")
+
+        result = df1 + df2
+        expected = DataFrame(
+            {"a": [pd.NA, pd.NA, pd.NA], "b": [pd.NA, 10, 12], "c": [pd.NA] * 3},
+            dtype="int64[pyarrow]",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_with_frame_reindex_nullable_int_columns(self):
+        # GH#63288 non-overlapping nullable integer columns should produce
+        #  pd.NA, not NaN with float64 dtype
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        df1 = df.iloc[:, :2].astype("Int64")
+        df2 = df.iloc[1:, 1:].astype("Int64")
+
+        result = df1 + df2
+        expected = DataFrame(
+            {"a": [pd.NA, pd.NA, pd.NA], "b": [pd.NA, 10, 12], "c": [pd.NA] * 3},
+            dtype="Int64",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_frame_with_frame_reindex_timedelta_columns(self):
+        # GH#59529 non-overlapping timedelta columns should produce NaT,
+        #  not NaN with float64 dtype
+        df1 = DataFrame(
+            {
+                "a": pd.to_timedelta([1, 2], unit="s"),
+                "b": pd.to_timedelta([3, 4], unit="s"),
+            }
+        )
+        df2 = DataFrame(
+            {
+                "b": pd.to_timedelta([5, 6], unit="s"),
+                "c": pd.to_timedelta([7, 8], unit="s"),
+            }
+        )
+
+        result = df1 + df2
+        expected = DataFrame(
+            {
+                "a": Series([pd.NaT, pd.NaT], dtype="timedelta64[ns]"),
+                "b": pd.to_timedelta([8, 10], unit="s"),
+                "c": Series([pd.NaT, pd.NaT], dtype="timedelta64[ns]"),
+            }
         )
         tm.assert_frame_equal(result, expected)
 
