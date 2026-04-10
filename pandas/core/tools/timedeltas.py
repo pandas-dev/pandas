@@ -215,7 +215,7 @@ def _coerce_scalar_to_timedelta_type(
 
     try:
         result = Timedelta(r, unit)
-    except ValueError:
+    except (ValueError, OverflowError):
         if errors == "raise":
             raise
         # coerce
