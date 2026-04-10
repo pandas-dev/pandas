@@ -1899,6 +1899,9 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         return result.astype(object, copy=False)
 
 
+_ITER_CHUNKSIZE = 10_000
+
+
 class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
@@ -1907,6 +1910,24 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     @classmethod
     def _validate_dtype(cls, values, dtype):
         raise AbstractMethodError(cls)
+
+    def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
+        raise AbstractMethodError(self)
+
+    def __iter__(self) -> Iterator:
+        if self.ndim > 1:
+            for i in range(len(self)):
+                yield self[i]
+        else:
+            # convert in chunks of 10k for efficiency
+            data = self._ndarray
+            length = len(self)
+            chunksize = _ITER_CHUNKSIZE
+            chunks = (length // chunksize) + 1
+            for i in range(chunks):
+                start_i = i * chunksize
+                end_i = min((i + 1) * chunksize, length)
+                yield from self._iter_convert_chunk(data[start_i:end_i])
 
     @property
     def freq(self):

@@ -91,7 +91,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Generator,
-        Iterator,
     )
 
     import pyarrow as pa
@@ -113,9 +112,6 @@ if TYPE_CHECKING:
 
     _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
     _TimestampNoneT2 = TypeVar("_TimestampNoneT2", Timestamp, None)
-
-
-_ITER_CHUNKSIZE = 10_000
 
 
 @overload
@@ -716,34 +712,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         return super().__array__(dtype=dtype, copy=copy)
 
-    def __iter__(self) -> Iterator:
-        """
-        Return an iterator over the boxed values
-
-        Yields
-        ------
-        tstamp : Timestamp
-        """
-        if self.ndim > 1:
-            for i in range(len(self)):
-                yield self[i]
-        else:
-            # convert in chunks of 10k for efficiency
-            data = self.asi8
-            length = len(self)
-            chunksize = _ITER_CHUNKSIZE
-            chunks = (length // chunksize) + 1
-
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, length)
-                converted = ints_to_pydatetime(
-                    data[start_i:end_i],
-                    tz=self.tz,
-                    box="timestamp",
-                    reso=self._creso,
-                )
-                yield from converted
+    def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
+        return ints_to_pydatetime(
+            data.view("i8"), tz=self.tz, box="timestamp", reso=self._creso
+        )
 
     def astype(self, dtype, copy: bool = True):
         # We handle

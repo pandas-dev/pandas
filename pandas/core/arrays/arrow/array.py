@@ -2471,7 +2471,7 @@ class ArrowExtensionArray(
             key = key[0]
 
         key = check_array_indexer(self, key)
-        value = self._maybe_convert_setitem_value(value)
+        value = self._validate_setitem_value(value)
 
         if com.is_null_slice(key):
             # fast path (GH50248)
@@ -2717,7 +2717,7 @@ class ArrowExtensionArray(
         most_common = most_common.take(pc.array_sort_indices(most_common))
         return self._from_pyarrow_array(most_common)
 
-    def _maybe_convert_setitem_value(self, value):
+    def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         try:
             value = self._box_pa(value, self._pa_array.type)
