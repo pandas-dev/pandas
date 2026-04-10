@@ -52,7 +52,7 @@ dask
 seaborn
 ipython
 moto
-asv>=0.6.1
+asv>=0.6.5
 mypy==1.17.1
 tokenize-rt
 pre-commit>=4.2.0

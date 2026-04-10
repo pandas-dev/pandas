@@ -69,7 +69,7 @@ dependencies:
   - moto
 
   # benchmarks
-  - asv>=0.6.1
+  - asv>=0.6.5
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
