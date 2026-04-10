@@ -70,6 +70,7 @@ dependencies:
 
   # benchmarks
   - asv>=0.6.5
+  - py-rattler
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
