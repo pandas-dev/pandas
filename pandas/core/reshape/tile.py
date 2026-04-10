@@ -343,7 +343,7 @@ def qcut(
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
     Reference :ref:`the user guide <reshaping.tile>` for more examples.
 
     Examples
