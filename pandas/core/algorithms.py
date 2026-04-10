@@ -361,7 +361,7 @@ def unique(values):
     be distinguished since ``True == 1`` and ``False == 0`` in Python.
 
     >>> pd.unique(np.array([True, 1, False, 0], dtype=object))
-    array([True, False])
+    array([True, False], dtype=object)
 
     Examples
     --------
@@ -716,7 +716,7 @@ def factorize(
     >>> codes
     array([0, 0, 1, 1])
     >>> uniques
-    array([True, False])
+    array([True, False], dtype=object)
 
 
     Examples
