@@ -182,7 +182,6 @@ cmd = [
   "run",
   "--quick",
   "--dry-run",
-  "--verbose",
   "--durations=30",
   "--python=same",
   "--show-stderr",
