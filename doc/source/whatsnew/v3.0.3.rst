@@ -20,6 +20,7 @@ Fixed regressions
 Bug fixes
 ^^^^^^^^^
 - Fixed regression in :func:`pandas.bdate_range` where specifying ``end`` on a weekend with ``periods`` returned fewer dates than expected (:issue:`64834`)
+- Fixed regression in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` raising ``ZeroDivisionError`` for sub-second ``freq`` (:issue:`64828`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
