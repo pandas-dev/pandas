@@ -9,6 +9,20 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_303.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Starting with pandas 3.0.0, time zones are represented by default using the
+  standard library's :mod:`zoneinfo` module (or ``datetime.timezone`` for fixed
+  offsets) instead of using ``pytz`` (:ref:`release note  <whatsnew_300.api_breaking.pytz>`).
+
+  The IO methods using ``pyarrow`` under the hood such as :func:`read_parquet`,
+  :func:`read_feather` and :func:`read_orc` (or :func:`read_csv` when specifying
+  the engine) were still returning timezone using ``pytz``. Those have now been
+  updated to consistently use default ``zoneinfo`` time zones as well (:issue:`65134`).
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_303.regressions:
 
 Fixed regressions
