@@ -332,7 +332,7 @@ Other
 
 .. ***DO NOT USE THIS SECTION***
 
--
+- Bug in :meth:`Series.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ from pandas import (
     MultiIndex,
     Series,
 )
+from pandas.errors import SpecificationError
 import pandas._testing as tm
 from pandas.tests.apply.common import frame_transform_kernels
 from pandas.tests.frame.common import zip_frames
@@ -262,3 +263,11 @@ def test_transform_empty_dataframe():
 
     result = df["col1"].transform(lambda x: x + 10)
     tm.assert_series_equal(result, df["col1"])
+
+
+def test_transform_dup_func_name_raises():
+    # GH#54929 - duplicate function names should raise SpecificationError
+    df = DataFrame({"A": [0.0, 1.0, 4.0]})
+    msg = "Function names must be unique if there is no new column names assigned"
+    with pytest.raises(SpecificationError, match=msg):
+        df.transform(["sqrt", "sqrt"])
