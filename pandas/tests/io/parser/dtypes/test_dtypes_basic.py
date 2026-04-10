@@ -9,7 +9,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    Pandas4Warning,
+    ParserWarning,
+)
 
 import pandas as pd
 from pandas import (
@@ -246,14 +249,18 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
         request.applymarker(
             pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
         )
-    df = parser.read_csv(
-        StringIO(value),
-        float_precision=float_precision,
-        sep="|",
-        thousands=thousands,
-        decimal=",",
-        header=None,
-    )
+    warn = Pandas4Warning if float_precision is not None else None
+    with tm.assert_produces_warning(
+        warn, match="float_precision", check_stacklevel=False
+    ):
+        df = parser.read_csv(
+            StringIO(value),
+            float_precision=float_precision,
+            sep="|",
+            thousands=thousands,
+            decimal=",",
+            header=None,
+        )
     val = df.iloc[0, 0]
     assert val == numeric_decimal[1]
 
@@ -266,13 +273,17 @@ def test_skip_whitespace(c_parser_only, float_precision):
 2\t 1\t
 2\t 1.2 \t
 """
-    df = c_parser_only.read_csv(
-        StringIO(DATA),
-        float_precision=float_precision,
-        sep="\t",
-        header=0,
-        dtype={1: np.float64},
-    )
+    warn = Pandas4Warning if float_precision is not None else None
+    with tm.assert_produces_warning(
+        warn, match="float_precision", check_stacklevel=False
+    ):
+        df = c_parser_only.read_csv(
+            StringIO(DATA),
+            float_precision=float_precision,
+            sep="\t",
+            header=0,
+            dtype={1: np.float64},
+        )
     tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
@@ -539,20 +550,24 @@ def test_ea_int_avoid_overflow(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_string_inference(all_parsers):
+def test_string_inference(all_parsers, using_infer_string):
     # GH#54430
-    dtype = pd.StringDtype(na_value=np.nan)
+    dtype = pd.StringDtype(na_value=np.nan) if using_infer_string else object
 
     data = """a,b
 x,1
 y,2
 ,3"""
     parser = all_parsers
-    with pd.option_context("future.infer_string", True):
-        result = parser.read_csv(StringIO(data))
+    result = parser.read_csv(StringIO(data))
 
     expected = DataFrame(
-        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
+        {
+            "a": pd.Series(
+                ["x", "y", None if parser.engine == "pyarrow" else np.nan], dtype=dtype
+            ),
+            "b": [1, 2, 3],
+        },
         columns=pd.Index(["a", "b"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
@@ -566,28 +581,30 @@ x,a
 y,a
 z,a"""
     parser = all_parsers
-    with pd.option_context("future.infer_string", True):
-        result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=dtype)
 
-    expected_dtype = pd.StringDtype(na_value=np.nan) if dtype is str else object
+    expected_dtype = (
+        pd.StringDtype(na_value=np.nan)
+        if dtype is str and using_infer_string
+        else object
+    )
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
             "b": pd.Series(["a", "a", "a"], dtype=expected_dtype),
         },
-        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=pd.Index(["a", "b"]),
     )
     tm.assert_frame_equal(result, expected)
 
-    with pd.option_context("future.infer_string", True):
-        result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
 
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
-            "b": pd.Series(["a", "a", "a"], dtype=pd.StringDtype(na_value=np.nan)),
+            "b": pd.Series(["a", "a", "a"]),
         },
-        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=pd.Index(["a", "b"]),
     )
     tm.assert_frame_equal(result, expected)
 

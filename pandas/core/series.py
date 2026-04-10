@@ -1146,7 +1146,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         except (TypeError, ValueError, LossySetitemError):
             # The key was OK, but we cannot set the value losslessly
-            indexer = self.index.get_loc(key)
+            indexer = self.index.get_loc(key)  # type: ignore[assignment]
             self._set_values(indexer, value)
 
         except InvalidIndexError as err:
@@ -1462,7 +1462,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     level_list = level
                 level_list = [self.index._get_level_number(lev) for lev in level_list]
                 if len(level_list) < self.index.nlevels:
-                    new_index = self.index.droplevel(level_list)
+                    new_index = self.index.droplevel(level_list)  # type: ignore[assignment]
 
             if inplace:
                 self.index = new_index
@@ -3358,7 +3358,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         other : Series
             Object to compare with.
 
-        align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
+        align_axis : {0 or 'index', 1 or 'columns'}, default 1
             Determine which axis to align the comparison on.
 
             * 0, or 'index' : Resulting differences are stacked vertically
@@ -3905,7 +3905,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         More complicated user-defined functions can be used,
         as long as they expect a Series and return an array-like
 
-        >>> s.sort_values(key=lambda x: (np.tan(x.cumsum())))
+        >>> s.sort_values(key=lambda x: np.tan(x.cumsum()))
         0   -4
         3    2
         4    4
@@ -4888,7 +4888,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self
 
-    def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+    def aggregate(
+        self, func=None, axis: Axis = 0, *args, **kwargs
+    ) -> DataFrame | Series:
         """
         Aggregate using one or more operations over the specified axis.
 
@@ -5496,7 +5498,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             apply to that axis' values.
         axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
-        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
@@ -5555,7 +5557,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ``DataFrame.reindex`` supports two calling conventions
 
         * ``(index=index_labels, columns=column_labels, ...)``
-        * ``(labels, axis={{'index', 'columns'}}, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
 
         We *highly* recommend using keyword arguments to clarify your
         intent.
@@ -5602,14 +5604,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Comodo Dragon            0           0.00
         IE10                   404           0.08
         Chrome                 200           0.02
-
-        >>> df.reindex(new_index, fill_value="missing")
-                      http_status response_time
-        Safari                404          0.07
-        Iceweasel         missing       missing
-        Comodo Dragon     missing       missing
-        IE10                  404          0.08
-        Chrome                200          0.02
 
         We can also reindex the columns.
 
@@ -6362,6 +6356,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Replace values where the conditions are True.
 
+        Replacement is performed in order; for each element, the first condition
+        that evaluates to True determines the value used. This mirrors the semantics
+        of a SQL ``CASE WHEN`` expression. If no condition matches, the original
+        value is kept.
+
         .. versionadded:: 2.2.0
 
         Parameters
@@ -6986,7 +6985,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Template-Based Arithmetic/Comparison Methods
 
-    def _cmp_method(self, other, op):
+    def _cmp_method(self, other, op) -> Series:
         res_name = ops.get_op_result_name(self, other)
 
         if isinstance(other, Series) and not self._indexed_same(other):
@@ -6999,7 +6998,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self._construct_result(res_values, name=res_name, other=other)
 
-    def _logical_method(self, other, op):
+    def _logical_method(self, other, op) -> Series:
         res_name = ops.get_op_result_name(self, other)
         self, other = self._align_for_op(other, align_asobject=True)
 
@@ -7009,7 +7008,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_values = ops.logical_op(lvalues, rvalues, op)
         return self._construct_result(res_values, name=res_name, other=other)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op) -> Series:
         self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
 
@@ -7073,6 +7072,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         out = this._construct_result(result, name, other)
         return cast("Series", out)
 
+    @overload
+    def _construct_result(
+        self,
+        result: ArrayLike,
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
+    ) -> Series: ...
+
+    @overload
+    def _construct_result(
+        self,
+        result: tuple[ArrayLike, ArrayLike],
+        name: Hashable,
+        other: AnyArrayLike | DataFrame,
+    ) -> tuple[Series, Series]: ...
+
     def _construct_result(
         self,
         result: ArrayLike | tuple[ArrayLike, ArrayLike],
@@ -7116,7 +7131,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         out.name = name
         return out
 
-    def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
+    def _flex_method(
+        self, other, op, *, level=None, fill_value=None, axis: Axis = 0
+    ) -> Series:
         if axis is not None:
             self._get_axis_number(axis)
 
@@ -8937,7 +8954,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             The minimum of the values in the Series.
 
         See Also
@@ -9008,7 +9025,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             The maximum of the values in the Series.
 
         See Also
@@ -9086,7 +9103,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Sum of the values for the requested axis.
 
         See Also
@@ -9265,7 +9282,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Mean of the values for the requested axis.
 
         See Also
@@ -9324,7 +9341,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Median of the values for the requested axis.
 
         See Also
@@ -9406,7 +9423,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Unbiased standard error of the mean over requested axis.
 
         See Also
@@ -9471,7 +9488,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar or Series (if level specified)
+        scalar
             Unbiased variance over requested axis.
 
         See Also
@@ -9682,7 +9699,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dog    2
         mouse  3
         dtype: int64
-        >>> s.kurt()
+        >>> round(s.kurt(), 6)
         1.5
         """
         return NDFrame.kurt(

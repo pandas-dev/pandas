@@ -557,12 +557,6 @@ class TestnanopsDataFrame:
         if not isinstance(values.dtype.type, np.floating):
             values = values.astype("f8")
         result = func(values, axis=axis, bias=False)
-        # fix for handling cases where all elements in an axis are the same
-        if isinstance(result, np.ndarray):
-            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
-            return result
-        elif np.max(values) == np.min(values):
-            return 0.0
         return result
 
     def test_nanskew(self, skipna):
@@ -993,6 +987,20 @@ class TestNanvarFixedValues:
         assert np.isnan(std[3])
 
     @pytest.mark.parametrize("ddof", range(3))
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    def test_complex_nanvar(self, ddof, axis, method):
+        arr = self.prng.standard_normal((5, 4)) + self.prng.standard_normal((5, 4)) * 1j
+        nanops_method = getattr(nanops, f"nan{method}")
+        if method in {"var", "std"}:
+            comparator_method = getattr(np, method)
+        elif method == "sem":
+            comparator_method = pytest.importorskip("scipy.stats").sem
+        result = nanops_method(arr, axis=axis, ddof=ddof)
+        expected = comparator_method(arr, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("ddof", range(3))
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
@@ -1018,10 +1026,10 @@ class TestNanskewFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         skew = nanops.nanskew(data)
-        assert skew == 0.0
+        assert np.isnan(skew)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1086,10 +1094,10 @@ class TestNankurtFixedValues:
 
     @pytest.mark.parametrize("val", [3075.2, 3075.3, 3075.5])
     def test_constant_series(self, val):
-        # xref GH 11974
+        # xref GH 11974, 62864
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        tm.assert_equal(kurt, 0.0)
+        tm.assert_equal(kurt, np.nan)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1234,7 +1242,7 @@ def test_nanops_independent_of_mask_param(operation):
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
-    median_result = operation(ser._values, mask=mask)
+    median_result = operation(ser._values, mask=mask._values)
     assert median_expected == median_result
 
 
@@ -1271,6 +1279,16 @@ def test_check_below_min_count_large_shape(min_count, expected_result):
 def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
     # GH 42878 bottleneck sometimes produces unreliable results for mean and sum
     assert not nanops._bn_ok_dtype(np.dtype(any_real_numpy_dtype).type, func)
+
+
+def test_nanmean_float16_overflow(disable_bottleneck):
+    # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
+    ser = Series([60000.0, 60000.0], dtype=np.float16)
+    result = ser.mean()
+    assert result == 60000.0
+
+    result = ser.sum()
+    assert result == 120000.0
 
 
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])

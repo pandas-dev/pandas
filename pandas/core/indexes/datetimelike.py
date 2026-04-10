@@ -16,6 +16,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -39,10 +40,12 @@ from pandas.errors import (
     NullFrequencyError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -61,6 +64,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexes.base import (
     Index,
 )
@@ -177,6 +181,45 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
+        """
+        Return Integer representation of the values.
+
+        For :class:`DatetimeIndex` and :class:`TimedeltaIndex`, the
+        values are the number of time units (determined by the index
+        resolution) since the epoch. For :class:`PeriodIndex`, the
+        values are ordinals.
+
+        Returns
+        -------
+        numpy.ndarray
+            An ndarray with int64 dtype.
+
+        See Also
+        --------
+        Index.values : Return an array representing the data in the Index,
+            using native types (datetime64, timedelta64) rather than int64.
+        Index.to_numpy : Return a NumPy ndarray of the index values.
+
+        Examples
+        --------
+        For :class:`DatetimeIndex` with default microsecond resolution:
+
+        >>> idx = pd.DatetimeIndex(["2023-01-01", "2023-01-02"], dtype="datetime64[us]")
+        >>> idx.asi8
+        array([1672531200000000, 1672617600000000])
+
+        For :class:`TimedeltaIndex` with millisecond resolution:
+
+        >>> idx = pd.TimedeltaIndex(["1 day", "2 days"], dtype="timedelta64[ms]")
+        >>> idx.asi8
+        array([ 86400000, 172800000])
+
+        For :class:`PeriodIndex`:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.asi8
+        array([636, 637, 638])
+        """
         return self._data.asi8
 
     @property
@@ -254,23 +297,61 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
-            should_try = False
-            inferable = self._data._infer_matches
             if other.dtype == object:
-                should_try = other.inferred_type in inferable
+                converted = lib.maybe_convert_objects(
+                    np.asarray(other), convert_non_numeric=True
+                )
+                converted = ensure_wrapped_if_datetimelike(converted)
+                if isinstance(converted, type(self._data)):
+                    other = type(self)._simple_new(converted)
+                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a future "
+                        "version, these will be left as object dtype. Use "
+                        "pd.to_datetime to explicitly convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
             elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
-                should_try = other.categories.inferred_type in inferable
-
-            if should_try:
-                try:
-                    other = type(self)(other)
-                except (ValueError, TypeError, OverflowError):
-                    # e.g.
-                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                    #  OverflowError -> Index([very_large_timedeltas])
-                    return False
+                cat_vals = np.asarray(other.categories)
+                if cat_vals.dtype == object:
+                    converted = lib.maybe_convert_objects(
+                        cat_vals, convert_non_numeric=True
+                    )
+                    converted = ensure_wrapped_if_datetimelike(converted)
+                else:
+                    converted = ensure_wrapped_if_datetimelike(cat_vals)
+                if isinstance(converted, type(self._data)):
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
+                elif (
+                    self.dtype.kind == "M"
+                    and cat_vals.dtype == object
+                    and lib.infer_dtype(other.categories) == "date"
+                ):
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a "
+                        "future version, these will be left as object "
+                        "dtype. Use pd.to_datetime to explicitly "
+                        "convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
 
         if type(self) != type(other):
             return False
@@ -345,9 +426,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
-    @property
-    def _formatter_func(self):
-        return self._data._formatter()
+    def _formatter_func(self, val) -> str:
+        return self._data._formatter()(val)
 
     def _format_attrs(self):
         """
@@ -417,7 +497,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:  # type: ignore[override]
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -455,12 +535,26 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 # we are out of range
                 raise KeyError
 
-            # TODO: does this depend on being monotonic _increasing_?
-
-            # a monotonic (sorted) series can be sliced
+            # a monotonic increasing series can be sliced
+            #  (searchsorted requires ascending order)
             left = vals.searchsorted(unbox(t1), side="left")
             right = vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
+
+        elif self.is_monotonic_decreasing:
+            if len(self) and (
+                (t1 > self[0] and t2 > self[0]) or (t1 < self[-1] and t2 < self[-1])
+            ):
+                # we are out of range
+                raise KeyError
+
+            # searchsorted requires ascending order, so search the reversed
+            #  array and convert the indices back
+            reversed_vals = vals[::-1]
+            nvals = len(vals)
+            rev_left = reversed_vals.searchsorted(unbox(t1), side="left")
+            rev_right = reversed_vals.searchsorted(unbox(t2), side="right")
+            return slice(nvals - rev_right, nvals - rev_left)
 
         else:
             lhs_mask = vals >= unbox(t1)
@@ -569,6 +663,44 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     @property
     def unit(self) -> TimeUnit:
+        """
+        The precision unit of the datetime data.
+
+        Returns the precision unit for the dtype of the index. This is the
+        smallest time frame that can be stored within this dtype.
+
+        Returns
+        -------
+        str
+            Unit string representation (e.g. ``"ns"``).
+
+        See Also
+        --------
+        DatetimeIndex.as_unit : Convert to the given unit.
+        TimedeltaIndex.as_unit : Convert to the given unit.
+
+        Examples
+        --------
+        For a DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
+        >>> idx.unit
+        'ns'
+
+        >>> idx_s = pd.DatetimeIndex(["2020-01-02 01:02:03"], dtype="datetime64[s]")
+        >>> idx_s.unit
+        's'
+
+        For a TimedeltaIndex:
+
+        >>> tdidx = pd.TimedeltaIndex(["1 day 3 min 2 us 42 ns"])
+        >>> tdidx.unit
+        'ns'
+
+        >>> tdidx_s = pd.TimedeltaIndex(["1 day 3 min"], dtype="timedelta64[s]")
+        >>> tdidx_s.unit
+        's'
+        """
         return self._data.unit
 
     def as_unit(self, unit: TimeUnit) -> Self:
@@ -812,7 +944,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            result = left._values[lslice]
+            result = left._values[lslice]  # type: ignore[assignment]
 
         return result
 
@@ -916,7 +1048,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort)._with_freq("infer")
+            return super()._union(other, sort)._with_freq("infer")  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Join Methods

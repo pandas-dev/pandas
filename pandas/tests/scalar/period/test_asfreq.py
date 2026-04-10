@@ -281,17 +281,17 @@ class TestFreqConversion:
         ival_W_to_Q = Period(freq="Q", year=2007, quarter=1)
         ival_W_to_M = Period(freq="M", year=2007, month=1)
 
-        if Period(freq="D", year=2007, month=12, day=31).weekday == 6:
+        if Period(freq="D", year=2007, month=12, day=31).day_of_week == 6:
             ival_W_to_A_end_of_year = Period(freq="Y", year=2007)
         else:
             ival_W_to_A_end_of_year = Period(freq="Y", year=2008)
 
-        if Period(freq="D", year=2007, month=3, day=31).weekday == 6:
+        if Period(freq="D", year=2007, month=3, day=31).day_of_week == 6:
             ival_W_to_Q_end_of_quarter = Period(freq="Q", year=2007, quarter=1)
         else:
             ival_W_to_Q_end_of_quarter = Period(freq="Q", year=2007, quarter=2)
 
-        if Period(freq="D", year=2007, month=1, day=31).weekday == 6:
+        if Period(freq="D", year=2007, month=1, day=31).day_of_week == 6:
             ival_W_to_M_end_of_month = Period(freq="M", year=2007, month=1)
         else:
             ival_W_to_M_end_of_month = Period(freq="M", year=2007, month=2)

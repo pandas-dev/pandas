@@ -1088,7 +1088,7 @@ def test_groupby_aggregate_empty_with_multiindex_frame_multi(as_index):
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouby_agg_loses_results_with_as_index_false_relabel():
+def test_groupby_agg_loses_results_with_as_index_false_relabel():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped.
 
@@ -1102,7 +1102,7 @@ def test_grouby_agg_loses_results_with_as_index_false_relabel():
     tm.assert_frame_equal(result, expected)
 
 
-def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
+def test_groupby_agg_loses_results_with_as_index_false_relabel_multiindex():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped. Check if
     # multiindex is returned in the right order
@@ -2086,4 +2086,23 @@ def test_agg_relabel_with_name_match_and_namedagg():
     result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
 
     expected = DataFrame({"B": [3, 7]}, index=Index([0, 1], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_multiple_partial_functions_same_name():
+    # GH#28570
+    quant50 = partial(np.percentile, q=50)
+    quant70 = partial(np.percentile, q=70)
+
+    df = DataFrame({"col1": ["a", "a", "b", "b", "b"], "col2": [1, 2, 3, 4, 5]})
+    expected = DataFrame(
+        [[1.5, 1.7], [4.0, 4.4]],
+        index=Index(["a", "b"], name="col1"),
+        columns=MultiIndex(
+            levels=[["col2"], ["percentile"]],
+            codes=[[0, 0], [0, 0]],
+        ),
+    )
+    gb = df.groupby("col1")
+    result = gb.agg({"col2": [quant50, quant70]})
     tm.assert_frame_equal(result, expected)
