@@ -306,15 +306,14 @@ The options are ``'right'``, and ``'left'``.
 Number formatting
 ------------------
 
-pandas also allows you to set how numbers are displayed in the console
-using engineering notation via :class:`~pandas.io.formats.format.EngFormatter`.
+pandas also allows you to set how numbers are displayed in the console.
+Use ``display.precision`` to control the number of decimal places:
 
 .. ipython:: python
 
    import numpy as np
-   from pandas.io.formats.format import EngFormatter
 
-   pd.set_option("display.float_format", EngFormatter(accuracy=3, use_eng_prefix=True))
+   pd.set_option("display.precision", 2)
    s = pd.Series(np.random.randn(5), index=["a", "b", "c", "d", "e"])
    s / 1.0e3
    s / 1.0e6

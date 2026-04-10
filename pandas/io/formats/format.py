@@ -1949,7 +1949,9 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     Format float representation in DataFrame with SI notation.
 
     .. deprecated:: 3.1.0
-        Use ``pd.set_option("display.float_format", EngFormatter(...))`` instead.
+        Use ``pd.set_option("display.precision", N)`` to control decimal
+        precision, or pass a custom callable to
+        ``pd.set_option("display.float_format", func)``.
 
     Sets the floating-point display format for ``DataFrame`` objects using engineering
     notation (SI units), allowing easier readability of values across wide ranges.
@@ -1974,27 +1976,24 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
 
     Examples
     --------
-    Use ``pd.set_option`` with :class:`~pandas.io.formats.format.EngFormatter`
-    instead:
+    Use ``pd.set_option("display.precision", N)`` to control decimal
+    precision instead:
 
-    >>> from pandas.io.formats.format import EngFormatter
-    >>> pd.set_option(
-    ...     "display.float_format", EngFormatter(accuracy=3, use_eng_prefix=True)
-    ... )
+    >>> pd.set_option("display.precision", 3)
     >>> pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6])
-              0
-    0    1.000n
-    1    1.000m
-    2     1.000
-    3    1.000k
-    4    1.000M
-    >>> pd.set_option("display.float_format", None)  # unset option
+               0
+    0  1.000e-09
+    1  1.000e-03
+    2  1.000e+00
+    3  1.000e+03
+    4  1.000e+06
+    >>> pd.set_option("display.precision", 6)  # restore default
     """
     warnings.warn(
         "set_eng_float_format is deprecated and will be removed in a future "
-        "version. Use "
-        "pd.set_option('display.float_format', pd.io.formats.format.EngFormatter("
-        "accuracy, use_eng_prefix)) instead.",
+        "version. Use pd.set_option('display.precision', N) to control decimal "
+        "precision, or pass a custom callable to "
+        "pd.set_option('display.float_format', func).",
         Pandas4Warning,
         stacklevel=find_stack_level(),
     )
