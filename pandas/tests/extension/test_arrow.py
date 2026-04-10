@@ -3863,6 +3863,14 @@ def test_np_ufunc_pyarrow_distinguish_nan_na():
         expected = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
         tm.assert_series_equal(result, expected)
 
+        # multi-return ufunc (tuple path)
+        ser = pd.Series([1.5, 2.7, None], dtype="double[pyarrow]")
+        frac, integ = np.modf(ser)
+        expected_frac = pd.Series([0.5, 0.7, pd.NA], dtype="double[pyarrow]")
+        expected_integ = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(frac, expected_frac)
+        tm.assert_series_equal(integ, expected_integ)
+
 
 def test_pow_with_all_na_float():
     # GH#62520
