@@ -1123,11 +1123,8 @@ def format_array(
     List[str]
     """
     fmt_klass: type[_GenericArrayFormatter]
-    if lib.is_np_dtype(values.dtype, "M"):
+    if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
-        values = cast("DatetimeArray", values)
-    elif isinstance(values.dtype, DatetimeTZDtype):
-        fmt_klass = _Datetime64TZFormatter
         values = cast("DatetimeArray", values)
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
@@ -1502,7 +1499,6 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
-        """we by definition have DO NOT have a TZ"""
         values = self.values
 
         if self.formatter is not None:
@@ -1659,21 +1655,6 @@ def get_format_datetime64(
         )
     else:
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
-
-
-class _Datetime64TZFormatter(_Datetime64Formatter):
-    values: DatetimeArray
-
-    def _format_strings(self) -> list[str]:
-        """we by definition have a TZ"""
-        ido = self.values._is_dates_only
-        values = self.values.astype(object)
-        formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format
-        )
-        fmt_values = [formatter(x) for x in values]
-
-        return fmt_values
 
 
 class _Timedelta64Formatter(_GenericArrayFormatter):
