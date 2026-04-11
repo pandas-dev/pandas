@@ -718,7 +718,6 @@ def factorize(
     >>> uniques
     array([True, False], dtype=object)
 
-
     Examples
     --------
     These examples all show factorize as a top-level method like
