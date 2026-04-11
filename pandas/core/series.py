@@ -606,20 +606,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return DataFrame
 
-    def _constructor_expanddim_from_mgr(self, mgr, axes):
-        from pandas.core.frame import DataFrame
-
-        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
-
-        if type(self) is Series:
-            # This would also work `if self._constructor_expanddim is DataFrame`,
-            #  but this check is slightly faster, benefiting the most-common case.
-            return df
-
-        # We assume that the subclass __init__ knows how to handle a
-        #  pd.DataFrame object.
-        return self._constructor_expanddim(df)
-
     # types
     @property
     def _can_hold_na(self) -> bool:
@@ -1910,8 +1896,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             columns = Index([name])
 
+        from pandas.core.frame import DataFrame
+
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+        if type(self) is not Series:
+            df = self._constructor_expanddim(df)
         return df.__finalize__(self, method="to_frame")
 
     @classmethod
