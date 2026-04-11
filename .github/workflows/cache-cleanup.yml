@@ -4,8 +4,11 @@ on:
     # 4:10 UTC daily
     - cron: "10 4 * * *"
   pull_request:
-    types:
-      - closed
+    # types:
+    #   - closed
+    branches:
+      - main
+      - 3.0.x
 
 permissions: {}
 
@@ -19,11 +22,12 @@ jobs:
     if: github.repository_owner == 'pandas-dev'
     steps:
       - name: Clean closed pull request caches
-        if: github.event_name == 'pull_request'
+        # if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh cache delete
+          --repo pandas-dev/pandas
           --all
           --ref refs/pull/${{ github.event.pull_request.number }}/merge
           --succeed-on-no-caches
@@ -33,5 +37,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh cache delete
+          --repo pandas-dev/pandas
           --all
           --succeed-on-no-caches
