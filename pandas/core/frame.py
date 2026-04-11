@@ -14083,7 +14083,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). However, by default, if ``func`` is a list-like or dict-like
+        (``axis=1``). However, by default (``by_row="compat"``), if ``func`` is a list-like or dict-like
         of functions, each function is first applied to the individual values
         of the Series rather than the Series itself; if this fails, pandas
         retries by passing the entire Series. By default (``result_type=None``),
