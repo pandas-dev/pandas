@@ -342,13 +342,9 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
         if out_dtype is not None:
             out = out.view(out_dtype)
         if fill_wrap is not None:
-            # FIXME: if we get here with dt64/td64 we need to be sure we have
-            #  matching resos
-            if fill_value.dtype.kind == "m":
-                fill_value = fill_value.astype("m8[ns]")
-            else:
-                fill_value = fill_value.astype("M8[ns]")
-            fill_value = fill_wrap(fill_value)
+            # Assumes fill_value resolution matches arr resolution; currently
+            # safe because the dispatch dicts only have dt64[ns]/td64[ns] entries.
+            fill_value = fill_value.view("i8")
 
         f(arr, indexer, out, fill_value=fill_value, allow_fill=allow_fill)
 
