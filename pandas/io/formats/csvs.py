@@ -20,7 +20,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import writers as libwriters
+from pandas._libs import (
+    tslib,
+    writers as libwriters,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -31,6 +34,10 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.indexes.api import Index
 
 from pandas.io.common import get_handle
@@ -46,6 +53,8 @@ if TYPE_CHECKING:
         WriteBuffer,
         npt,
     )
+
+    from pandas import DataFrame
 
     from pandas.io.formats.format import DataFrameFormatter
 
@@ -307,26 +316,88 @@ class CSVFormatter:
     def _save_body(self) -> None:
         nrows = len(self.data_index)
         chunks = (nrows // self.chunksize) + 1
+
+        # GH#55481: pre-compute per-column date formats from the full data
+        # so that datetime/timedelta columns are formatted consistently
+        # across chunks.
+        col_formats = self._compute_col_date_formats()
+
+        # GH#55481: pre-format the index using the full data so that
+        # DatetimeIndex/TimedeltaIndex formatting is consistent across chunks.
+        formatted_index = self._preformat_index()
+
         for i in range(chunks):
             start_i = i * self.chunksize
             end_i = min(start_i + self.chunksize, nrows)
             if start_i >= end_i:
                 break
-            self._save_chunk(start_i, end_i)
+            self._save_chunk(start_i, end_i, col_formats, formatted_index)
 
-    def _save_chunk(self, start_i: int, end_i: int) -> None:
+    def _preformat_index(self) -> npt.NDArray[np.object_] | None:
+        """Pre-format the index using the full data for consistency.
+
+        For DatetimeIndex/TimedeltaIndex, formatting depends on
+        _is_dates_only which must be determined from the full index,
+        not per-chunk slices.
+
+        Returns the fully formatted index array, or None if
+        no pre-formatting is needed.
+        """
+        if self.nlevels == 0 or self.date_format is not None:
+            return None
+
+        idx_values = self.data_index._values
+        if isinstance(idx_values, (DatetimeArray, TimedeltaArray)):
+            return self.data_index._get_values_for_csv(**self._number_format)
+
+        return None
+
+    def _compute_col_date_formats(self) -> dict[int, bool] | None:
+        """Pre-compute _is_dates_only for datetime/timedelta columns using
+        the full column data, so that per-chunk formatting is consistent.
+
+        Returns a dict mapping column index to the _is_dates_only result
+        for the full column, or None if no pre-computation is needed.
+        """
+        if self.date_format is not None:
+            # User specified a format, no auto-detection needed
+            return None
+
+        result: dict[int, bool] = {}
+        for col_idx in range(self.obj.shape[1]):
+            arr = self.obj.iloc[:, col_idx].array
+            if isinstance(arr, (DatetimeArray, TimedeltaArray)):
+                result[col_idx] = arr._is_dates_only
+
+        return result if result else None
+
+    def _save_chunk(
+        self,
+        start_i: int,
+        end_i: int,
+        col_formats: dict[int, bool] | None,
+        formatted_index: npt.NDArray[np.object_] | None,
+    ) -> None:
         # create the data for a chunk
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
 
-        res = df._get_values_for_csv(**self._number_format)
-        data = list(res._iter_column_arrays())
+        if col_formats is None:
+            res = df._get_values_for_csv(**self._number_format)
+            data = list(res._iter_column_arrays())
+        else:
+            data = self._format_chunk_columns(df, col_formats)
 
         ix = (
-            self.data_index[slicer]._get_values_for_csv(**self._number_format)
-            if self.nlevels != 0
-            else np.empty(end_i - start_i)
+            formatted_index[start_i:end_i]
+            if formatted_index is not None
+            else (
+                self.data_index[slicer]._get_values_for_csv(**self._number_format)
+                if self.nlevels != 0
+                else np.empty(end_i - start_i)
+            )
         )
+
         libwriters.write_csv_rows(
             data,
             ix,
@@ -334,3 +405,79 @@ class CSVFormatter:
             self.cols,
             self.writer,
         )
+
+    def _format_chunk_columns(
+        self, df: DataFrame, col_formats: dict[int, bool]
+    ) -> list[npt.NDArray[np.object_]]:
+        """Format chunk columns using pre-computed date format info.
+
+        For datetime/timedelta columns, uses the _is_dates_only result
+        from the full column to ensure consistent formatting.
+        """
+        from pandas.core.indexes.base import get_values_for_csv
+
+        data: list[npt.NDArray[np.object_]] = []
+        for col_idx in range(df.shape[1]):
+            col_values = df.iloc[:, col_idx]._values
+
+            if col_idx in col_formats:
+                is_dates_only = col_formats[col_idx]
+                arr = df.iloc[:, col_idx].array
+                formatted = self._format_dt_column(arr, is_dates_only)
+            else:
+                formatted = get_values_for_csv(
+                    col_values,
+                    na_rep=self.na_rep,
+                    float_format=self.float_format,  # type: ignore[arg-type]
+                    date_format=self.date_format,
+                    decimal=self.decimal,
+                    quoting=self.quoting,
+                )
+            data.append(formatted)
+        return data
+
+    def _format_dt_column(
+        self,
+        arr: DatetimeArray | TimedeltaArray,
+        is_dates_only: bool,
+    ) -> npt.NDArray[np.object_]:
+        """Format a datetime or timedelta column using a pre-computed
+        _is_dates_only value from the full column."""
+        if isinstance(arr, DatetimeArray):
+            if is_dates_only:
+                date_format = "%Y-%m-%d"
+            else:
+                date_format = None
+
+            # Call format_array_from_datetime directly to bypass the
+            # per-chunk _is_dates_only check in _format_native_types.
+            result = tslib.format_array_from_datetime(
+                arr.asi8,
+                tz=arr.tz,
+                format=date_format,
+                na_rep=self.na_rep,
+                reso=arr._creso,
+            )
+        else:
+            # TimedeltaArray
+            from pandas.io.formats.format import get_format_timedelta64
+
+            if is_dates_only:
+                # Use the default behavior (even_days format)
+                formatter = get_format_timedelta64(arr, nat_rep=self.na_rep)
+            else:
+                # Force long format to prevent per-chunk auto-detection
+                from pandas import Timedelta
+
+                def formatter(
+                    x: object, _na_rep: str | float = self.na_rep
+                ) -> str | float:
+                    if not notna(x):
+                        return _na_rep
+                    if not isinstance(x, Timedelta):
+                        x = Timedelta(x)
+                    return x._repr_base(format="long")  # type: ignore[attr-defined]
+
+            result = np.frompyfunc(formatter, 1, 1)(arr._ndarray)
+
+        return result.astype(object, copy=False)
