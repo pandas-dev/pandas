@@ -104,6 +104,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
+- Deprecated :class:`PeriodIndex` and :class:`PeriodArray` inferring the frequency from a :class:`Series` of datetime64 data when ``freq`` is not provided. Pass ``freq`` explicitly instead (:issue:`64241`)
 - Deprecated :func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`, and :attr:`TimedeltaIndex.inferred_freq` returning a string; in a future version these will return a :class:`BaseOffset` instead. Use ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in to the future behavior (:issue:`55504`)
 - Deprecated :func:`set_eng_float_format`. Use ``pd.set_option("display.precision", N)`` to control decimal precision, or pass a custom callable to ``pd.set_option("display.float_format", func)`` (:issue:`64460`)
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
