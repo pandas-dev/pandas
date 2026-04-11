@@ -130,8 +130,8 @@ class TestPeriodIndex:
         assert not index.is_(index - 0)
 
     def test_index_unique(self):
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
-        expected = PeriodIndex([2000, 2007, 2009], freq="Y-JUN")
+        idx = PeriodIndex(["2000", "2007", "2007", "2009", "2009"], freq="Y-JUN")
+        expected = PeriodIndex(["2000", "2007", "2009"], freq="Y-JUN")
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
@@ -184,7 +184,7 @@ class TestPeriodIndex:
     def test_map(self):
         # test_map_dictlike generally tests
 
-        index = PeriodIndex([2005, 2007, 2009], freq="Y")
+        index = PeriodIndex(["2005", "2007", "2009"], freq="Y")
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)

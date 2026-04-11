@@ -247,10 +247,13 @@ class TestPeriodIndex:
         tm.assert_index_equal(PeriodIndex(list(idx.values)), idx)
 
         msg = "freq not specified and cannot be inferred"
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(idx.asi8)
-        with pytest.raises(ValueError, match=msg):
-            PeriodIndex(list(idx.asi8))
+        depr_msg = "Passing integer-dtype data"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match=msg):
+                PeriodIndex(idx.asi8)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match=msg):
+                PeriodIndex(list(idx.asi8))
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
@@ -629,7 +632,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(idx, org)
 
     def test_map_with_string_constructor(self):
-        raw = [2005, 2007, 2009]
+        raw = ["2005", "2007", "2009"]
         index = PeriodIndex(raw, freq="Y")
 
         expected = Index([str(num) for num in raw])

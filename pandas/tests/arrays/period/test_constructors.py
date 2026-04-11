@@ -4,6 +4,7 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -18,7 +19,6 @@ from pandas.core.arrays import (
     [
         ([pd.Period("2017", "D")], None, [17167]),
         ([pd.Period("2017", "D")], "D", [17167]),
-        ([2017], "D", [17167]),
         (["2017"], "D", [17167]),
         ([pd.Period("2017", "D")], pd.tseries.offsets.Day(), [17167]),
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
@@ -111,25 +111,34 @@ def test_period_array_freq_mismatch():
         PeriodArray(arr, dtype=dtype)
 
 
-def test_from_sequence_allows_i8():
-    # GH#64227 this used to be allowed for PeriodIndex and period_array
-    # but not PeriodArray._from_sequence
+def test_from_sequence_int_deprecation():
+    # GH#64227 passing integer data is deprecated; integers will be treated
+    # as period ordinals in a future version instead of year values.
     arr = period_array(["1975", "1976"], dtype="period[D]")
 
-    expected = pd.PeriodIndex([pd.Period(x, freq=arr.freq) for x in arr.asi8]).array
+    # During deprecation, integer inputs are still treated as year values
+    expected_years = pd.PeriodIndex(
+        [pd.Period(x, freq=arr.freq) for x in arr.asi8]
+    ).array
 
-    result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
-    result2 = period_array(arr.asi8, dtype=arr.dtype)
-    result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
-    # FIXME: GH#64227 this goes through a different path and gives different behavior
-    # result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
-    result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
+    msg = "Passing integer-dtype data to PeriodArray/PeriodIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result2 = period_array(arr.asi8, dtype=arr.dtype)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
 
-    tm.assert_period_array_equal(result1, expected)
-    tm.assert_period_array_equal(result2, expected)
-    tm.assert_period_array_equal(result3, expected)
-    # tm.assert_period_array_equal(result4, expected)
-    tm.assert_period_array_equal(result5, expected)
+    tm.assert_period_array_equal(result1, expected_years)
+    tm.assert_period_array_equal(result2, expected_years)
+    tm.assert_period_array_equal(result3, expected_years)
+    tm.assert_period_array_equal(result5, expected_years)
+
+    # Object array path treats integers as ordinals (target behavior, no warning)
+    result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
+    tm.assert_period_array_equal(result4, arr)
 
 
 def test_from_td64nat_sequence_raises():

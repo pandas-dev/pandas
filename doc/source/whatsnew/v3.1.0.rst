@@ -122,6 +122,7 @@ Deprecations
   :meth:`DataFrame.var`, :meth:`DataFrame.sem`, :meth:`DataFrame.sum`,
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
+- Deprecated passing integer-dtype data to :class:`PeriodIndex`, :func:`period_array`, and :meth:`PeriodArray._from_sequence`. In a future version, integers will be treated as period ordinals instead of year values. Use strings instead, e.g. ``PeriodIndex(["2020", "2021"], freq="Y")`` (:issue:`64227`)
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
 -
 

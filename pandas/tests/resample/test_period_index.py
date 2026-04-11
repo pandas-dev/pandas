@@ -466,7 +466,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_resample_fill_missing(self):
-        rng = PeriodIndex([2000, 2005, 2007, 2009], freq="Y")
+        rng = PeriodIndex(["2000", "2005", "2007", "2009"], freq="Y")
 
         s = Series(np.random.default_rng(2).standard_normal(4), index=rng)
 
@@ -476,7 +476,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(filled, expected)
 
     def test_cant_fill_missing_dups(self):
-        rng = PeriodIndex([2000, 2005, 2005, 2007, 2007], freq="Y")
+        rng = PeriodIndex(["2000", "2005", "2005", "2007", "2007"], freq="Y")
         s = Series(np.random.default_rng(2).standard_normal(5), index=rng)
         msg = "Reindexing only valid with uniquely valued Index objects"
         with pytest.raises(InvalidIndexError, match=msg):

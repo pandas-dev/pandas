@@ -1736,7 +1736,13 @@ def test_validate_1d_input(dtype):
         *[[lambda x: Index(x, dtype=dtyp), {}] for dtyp in tm.ALL_REAL_NUMPY_DTYPES],
         [DatetimeIndex, {}],
         [TimedeltaIndex, {}],
-        [PeriodIndex, {"freq": "Y"}],
+        pytest.param(
+            PeriodIndex,
+            {"freq": "Y"},
+            marks=pytest.mark.filterwarnings(
+                "ignore:Passing integer-dtype data:pandas.errors.Pandas4Warning"
+            ),
+        ),
     ],
 )
 def test_construct_from_memoryview(klass, extra_kwargs):

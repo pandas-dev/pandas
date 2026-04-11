@@ -302,6 +302,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             return cls(ordinals, dtype=dtype)
 
         elif arrdata.dtype.kind in "iu":
+            warnings.warn(
+                "Passing integer-dtype data to PeriodArray/PeriodIndex is "
+                "deprecated. In a future version, integer data will be treated "
+                "as period ordinals instead of year values. To retain the "
+                "current behavior, use "
+                "PeriodIndex(data.astype(str), freq=...) or explicitly "
+                "construct Period objects.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             arr = arrdata.astype(np.int64, copy=False)
             ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
             return cls(ordinals, dtype=dtype)
@@ -1362,13 +1372,6 @@ def period_array(
     <PeriodArray>
     ['2017', '2018', 'NaT']
     Length: 3, dtype: period[Y-DEC]
-
-    Integers that look like years are handled
-
-    >>> period_array([2000, 2001, 2002], dtype=PeriodDtype("D"))
-    <PeriodArray>
-    ['2000-01-01', '2001-01-01', '2002-01-01']
-    Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 
