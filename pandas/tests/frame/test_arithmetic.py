@@ -1182,11 +1182,12 @@ class TestFrameArithmetic:
         )
 
         result = df1 + df2
+        td_dtype = pd.to_timedelta([1], unit="s").dtype
         expected = DataFrame(
             {
-                "a": Series([pd.NaT, pd.NaT], dtype="timedelta64[ns]"),
+                "a": Series([pd.NaT, pd.NaT], dtype=td_dtype),
                 "b": pd.to_timedelta([8, 10], unit="s"),
-                "c": Series([pd.NaT, pd.NaT], dtype="timedelta64[ns]"),
+                "c": Series([pd.NaT, pd.NaT], dtype=td_dtype),
             }
         )
         tm.assert_frame_equal(result, expected)

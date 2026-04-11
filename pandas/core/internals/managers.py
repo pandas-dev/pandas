@@ -1082,7 +1082,9 @@ class BaseBlockManager(PandasObject):
                     fill_value = dtype.type(np.nan)
                 elif lib.is_np_dtype(dtype, "mM"):
                     # GH#59529: datetime64/timedelta64 should use NaT
-                    fill_value = dtype.type("NaT")
+                    fill_value = na_value_for_dtype(dtype, compat=False)
+                    block_values = make_na_array(dtype, shape, fill_value)
+                    return new_block_2d(block_values, placement=placement)
                 else:
                     fill_value = np.nan
             else:
