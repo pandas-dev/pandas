@@ -14102,11 +14102,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). By default (``result_type=None``), the final return type
-        is inferred from the return type of the applied function. Otherwise,
-        it depends on the `result_type` argument. The return type of the applied
-        function is inferred based on the first computed result obtained after
-        applying the function to a Series object.
+        (``axis=1``). However, by default (``by_row="compat"``), if ``func``
+        is a list-like or dict-like of functions, each function is first
+        applied to the individual values of the Series rather than the Series
+        itself; if this fails, pandas retries by passing the entire Series.
+        By default (``result_type=None``), the final return type is inferred
+        from the return type of the applied function. Otherwise, it depends
+        on the `result_type` argument. The return type of the applied function
+        is inferred based on the first computed result obtained after applying
+        the function to a Series object.
 
         Parameters
         ----------
@@ -18828,6 +18832,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        The returned array is not intended to be written to. When the
+        DataFrame is backed by a single NumPy array (single dtype, single
+        block), the result is a read-only view; when the DataFrame has
+        multiple internal blocks (e.g. after adding a new column), the
+        result is a copy and modifications to it will not be reflected in
+        the original DataFrame. Use :meth:`DataFrame.to_numpy` for more
+        explicit control over copy behavior, or use :attr:`DataFrame.iloc`
+        to modify values in-place.
+
         The dtype will be a lower-common-denominator dtype (implicit
         upcasting); that is to say if the dtypes (even of numeric types)
         are mixed, the one that accommodates all will be chosen. Use this

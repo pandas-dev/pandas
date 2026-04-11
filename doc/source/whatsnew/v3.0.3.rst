@@ -14,6 +14,8 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed reading of Parquet files with timezone-aware timestamps or localizing of a timeseries with a ``pytz`` timezone when an older version of ``pytz`` was installed (:issue:`64978`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.bug_fixes:
 
