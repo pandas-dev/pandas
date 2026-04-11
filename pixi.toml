@@ -123,6 +123,7 @@ nbformat = "*" # used in doc/source/user_guide/style.ipynb
 nbsphinx = "*"
 numpydoc = "*"
 pandoc = "*"
+seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
 sphinx-design = "*"
 sphinx-copybutton = "*"
