@@ -105,7 +105,7 @@ class TestPeriodIndexDisallowedFreqs:
 
 def test_period_index_from_series_inferred_freq_deprecated():
     # GH#64241
-    data = np.arange(5).view("M8[D]").astype("M8[ns]")
+    data = np.arange(5, dtype=np.int64).view("M8[D]").astype("M8[ns]")
     dti = Index(data)
     assert dti.freq is None
     ser = Series(dti)
