@@ -657,8 +657,8 @@ def _mask_datetimelike_result(
     elif mask.any():
         unit = np.datetime_data(orig_values.dtype)[0]
         if orig_values.dtype.kind == "M":
-            return np.datetime64("NaT", unit)
-        return np.timedelta64("NaT", unit)  # type: ignore[return-value]
+            return np.datetime64("NaT", unit)  # type: ignore[call-overload]
+        return np.timedelta64("NaT", unit)  # type: ignore[call-overload]
     return result
 
 
