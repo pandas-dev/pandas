@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
+import warnings
 
 import numpy as np
 
@@ -22,10 +23,12 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -567,9 +570,19 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Returns True if this PeriodIndex is range-like in that all Periods
-        between start and end are present, in order.
+        Returns True if this PeriodIndex is monotonic increasing and has
+        no gaps, allowing duplicates.
+
+        .. deprecated:: 3.1.0
+            PeriodIndex.is_full is deprecated and will be removed in
+            a future version.
         """
+        warnings.warn(
+            "PeriodIndex.is_full is deprecated and will be removed in a "
+            "future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if len(self) == 0:
             return True
         if not self.is_monotonic_increasing:
