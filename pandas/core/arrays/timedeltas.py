@@ -262,37 +262,6 @@ class TimedeltaArray(dtl.TimelikeOps):
         return cls._simple_new(data, dtype=data.dtype, freq=freq)
 
     @classmethod
-    def _from_sequence_not_strict(
-        cls,
-        data,
-        *,
-        dtype=None,
-        copy: bool = False,
-        freq=lib.no_default,
-        unit=None,
-    ) -> Self:
-        """
-        _from_sequence_not_strict but without responsibility for finding the
-        result's `freq`.
-        """
-        if dtype:
-            dtype = _validate_td64_dtype(dtype)
-            if unit is None and lib.infer_dtype(data) == "integer":
-                unit = np.datetime_data(dtype)[0]
-
-        assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
-
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-
-        if dtype is not None:
-            data = astype_overflowsafe(data, dtype=dtype, copy=False)
-
-        result = cls._simple_new(data, dtype=data.dtype, freq=inferred_freq)
-
-        result._maybe_pin_freq(freq, {})
-        return result
-
-    @classmethod
     def _generate_range(
         cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
     ) -> Self:
