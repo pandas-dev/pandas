@@ -585,7 +585,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         (inclusive) with no gaps.
 
         Requires monotonic increasing order. Duplicate periods are allowed.
+
+        .. deprecated:: 3.1.0
+            ``PeriodIndex.is_full`` is deprecated and will be removed in
+            a future version.
         """
+        warnings.warn(
+            "PeriodIndex.is_full is deprecated and will be removed in a "
+            "future version.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if len(self) == 0:
             return True
         if not self.is_monotonic_increasing:
