@@ -133,6 +133,12 @@ def _handle_date_column(
             # GH11216
             return to_datetime(col, utc=True)
         else:
+            # GH#55663: convert numeric data to strings before format parsing
+            if hasattr(col, "dtype") and col.dtype.kind in "iuf":
+                notna_mask = col.notna()
+                col = col.astype("object")
+                if notna_mask.any():
+                    col[notna_mask] = col[notna_mask].astype("int64").astype(str)
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 

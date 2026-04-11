@@ -1322,8 +1322,15 @@ def _assemble_from_unit_mappings(
         + coerce(arg[unit_rev["month"]]) * 100
         + coerce(arg[unit_rev["day"]])
     )
+
+    # Convert to strings for format-based parsing (GH#55663)
+    notna_mask = values.notna()
+    str_values = values.astype("object")
+    if notna_mask.any():
+        str_values[notna_mask] = values[notna_mask].astype("int64").astype(str)
+
     try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
+        values = to_datetime(str_values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
