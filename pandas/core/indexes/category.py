@@ -487,7 +487,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             and isinstance(other, CategoricalIndex)
             and not self.categories.equals(other.categories)
         ):
-            other = other.reorder_categories(self.categories)
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
         return super()._intersection(other, sort=sort)
 
     def _union(self, other: Index, sort):
@@ -497,7 +498,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             and isinstance(other, CategoricalIndex)
             and not self.categories.equals(other.categories)
         ):
-            other = other.reorder_categories(self.categories)
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
         return super()._union(other, sort)
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
