@@ -6776,11 +6776,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def convert_dtypes(
         self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
+        infer_objects: bool | lib.NoDefault = lib.no_default,
+        convert_string: bool | lib.NoDefault = lib.no_default,
+        convert_integer: bool | lib.NoDefault = lib.no_default,
+        convert_boolean: bool | lib.NoDefault = lib.no_default,
+        convert_floating: bool | lib.NoDefault = lib.no_default,
         dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Self:
         """
@@ -6794,16 +6794,41 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         infer_objects : bool, default True
             Whether object dtypes should be converted to the best possible types.
+
+            .. deprecated:: 3.1.0
+                The ``infer_objects`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_string : bool, default True
             Whether object dtypes should be converted to ``StringDtype()``.
+
+            .. deprecated:: 3.1.0
+                The ``convert_string`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_integer : bool, default True
             Whether, if possible, conversion can be done to integer extension types.
+
+            .. deprecated:: 3.1.0
+                The ``convert_integer`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_boolean : bool, defaults True
             Whether object dtypes should be converted to ``BooleanDtypes()``.
+
+            .. deprecated:: 3.1.0
+                The ``convert_boolean`` keyword is deprecated and will be removed
+                in a future version.
+
         convert_floating : bool, defaults True
             Whether, if possible, conversion can be done to floating extension types.
             If `convert_integer` is also True, preference will be give to integer
             dtypes if the floats can be faithfully casted to integers.
+
+            .. deprecated:: 3.1.0
+                The ``convert_floating`` keyword is deprecated and will be removed
+                in a future version.
+
         dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
@@ -6916,6 +6941,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
+        deprecated_args = {
+            "infer_objects": infer_objects,
+            "convert_string": convert_string,
+            "convert_integer": convert_integer,
+            "convert_boolean": convert_boolean,
+            "convert_floating": convert_floating,
+        }
+        for arg_name, arg_val in deprecated_args.items():
+            if arg_val is not lib.no_default:
+                warnings.warn(
+                    f"The {arg_name} keyword in {type(self).__name__}."
+                    f"convert_dtypes is deprecated and will be removed in a "
+                    f"future version.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
+        # Resolve no_default to the current default values (True)
+        infer_objects = infer_objects if infer_objects is not lib.no_default else True
+        convert_string = (
+            convert_string if convert_string is not lib.no_default else True
+        )
+        convert_integer = (
+            convert_integer if convert_integer is not lib.no_default else True
+        )
+        convert_boolean = (
+            convert_boolean if convert_boolean is not lib.no_default else True
+        )
+        convert_floating = (
+            convert_floating if convert_floating is not lib.no_default else True
+        )
+
         new_mgr = self._mgr.convert_dtypes(
             infer_objects=infer_objects,
             convert_string=convert_string,

@@ -1047,9 +1047,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
             with option_context("future.distinguish_nan_and_na", False):
-                return obj.convert_dtypes(
-                    infer_objects=False, dtype_backend=self.dtype_backend
-                )
+                return obj.convert_dtypes(dtype_backend=self.dtype_backend)
         else:
             return obj
 
@@ -1134,9 +1132,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         if self.dtype_backend is not lib.no_default:
             with option_context("future.distinguish_nan_and_na", False):
-                return obj.convert_dtypes(
-                    infer_objects=False, dtype_backend=self.dtype_backend
-                )
+                return obj.convert_dtypes(dtype_backend=self.dtype_backend)
         else:
             return obj
 

@@ -2711,13 +2711,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if dtype_backend is not None:
-            result = result.convert_dtypes(
-                infer_objects=False,
-                convert_string=False,
-                convert_boolean=False,
-                convert_floating=False,
-                dtype_backend=dtype_backend,
-            )
+            result = result.convert_dtypes(dtype_backend=dtype_backend)
 
         if not self.as_index:
             result = result.rename("size").reset_index()
