@@ -86,7 +86,7 @@ def test_write_cells_merge_styled(tmp_excel):
         )
     ]
 
-    with _OpenpyxlWriter(tmp_excel, engine_kwargs={"write_only": False}) as writer:
+    with _OpenpyxlWriter(tmp_excel) as writer:
         writer._write_cells(initial_cells, sheet_name=sheet_name)
         writer._write_cells(merge_cells, sheet_name=sheet_name)
 
@@ -445,16 +445,16 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
 class TestWriteOnly:
     """Tests for write_only mode (GH#41681)."""
 
-    def test_write_only_is_default(self, tmp_excel):
+    def test_write_only_not_default(self, tmp_excel):
         with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
-            assert writer.book.write_only is True
+            assert writer.book.write_only is False
             DataFrame().to_excel(writer)
 
-    def test_write_only_override(self, tmp_excel):
+    def test_write_only_opt_in(self, tmp_excel):
         with ExcelWriter(
-            tmp_excel, engine="openpyxl", engine_kwargs={"write_only": False}
+            tmp_excel, engine="openpyxl", engine_kwargs={"write_only": True}
         ) as writer:
-            assert writer.book.write_only is False
+            assert writer.book.write_only is True
             DataFrame().to_excel(writer)
 
     def test_write_only_not_set_in_append_mode(self, tmp_excel):
@@ -466,14 +466,21 @@ class TestWriteOnly:
     def test_write_only_roundtrip(self, tmp_excel):
         # Verify basic data integrity through write-only path
         df = DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
-        df.to_excel(tmp_excel, engine="openpyxl", index=False)
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+            index=False,
+        )
         result = pd.read_excel(tmp_excel, engine="openpyxl")
         tm.assert_frame_equal(result, df)
 
     def test_write_only_multiple_sheets(self, tmp_excel):
         df1 = DataFrame({"a": [1, 2]})
         df2 = DataFrame({"b": [3, 4]})
-        with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
+        with ExcelWriter(
+            tmp_excel, engine="openpyxl", engine_kwargs={"write_only": True}
+        ) as writer:
             df1.to_excel(writer, sheet_name="one", index=False)
             df2.to_excel(writer, sheet_name="two", index=False)
         result1 = pd.read_excel(tmp_excel, sheet_name="one", engine="openpyxl")
@@ -483,7 +490,12 @@ class TestWriteOnly:
 
     def test_write_only_freeze_panes(self, tmp_excel):
         df = DataFrame({"a": [1, 2], "b": [3, 4]})
-        df.to_excel(tmp_excel, engine="openpyxl", freeze_panes=(1, 1))
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+            freeze_panes=(1, 1),
+        )
         wb = openpyxl.load_workbook(tmp_excel)
         ws = wb.active
         assert ws.freeze_panes == "B2"
@@ -494,7 +506,11 @@ class TestWriteOnly:
             [[1, 2]],
             columns=pd.MultiIndex.from_tuples([("a", "x"), ("a", "y")]),
         )
-        df.to_excel(tmp_excel, engine="openpyxl")
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+        )
         wb = openpyxl.load_workbook(tmp_excel)
         ws = wb.active
         assert len(ws.merged_cells.ranges) > 0
@@ -510,7 +526,7 @@ class TestWriteOnly:
                 style={"font": {"bold": True, "color": "00FF0000"}},
             ),
         ]
-        with _OpenpyxlWriter(tmp_excel) as writer:
+        with _OpenpyxlWriter(tmp_excel, engine_kwargs={"write_only": True}) as writer:
             writer._write_cells(styled_cells, sheet_name="Sheet1")
 
         wb = openpyxl.load_workbook(tmp_excel)
@@ -525,6 +541,7 @@ class TestWriteOnly:
         df.to_excel(
             tmp_excel,
             engine="openpyxl",
+            engine_kwargs={"write_only": True},
             startrow=3,
             startcol=2,
             index=False,
