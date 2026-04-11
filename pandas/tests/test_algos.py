@@ -49,6 +49,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
+from pandas.core.indexes.api import safe_sort_index
 
 
 class TestFactorize:
@@ -82,7 +83,7 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            expected_uniques = expected_uniques.sort_values()
+            expected_uniques = safe_sort_index(expected_uniques)
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`

@@ -359,11 +359,23 @@ class TestBase:
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
+        if index.inferred_type == "mixed-integer":
+            # mixed int/str types are not orderable in Python 3
+            with pytest.raises(TypeError, match="not supported between"):
+                index.argsort()
+            return
+
         result = index.argsort()
         expected = np.array(index).argsort()
         tm.assert_numpy_array_equal(result, expected)
 
     def test_numpy_argsort(self, index):
+        if index.inferred_type == "mixed-integer":
+            # mixed int/str types are not orderable in Python 3
+            with pytest.raises(TypeError, match="not supported between"):
+                np.argsort(index)
+            return
+
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)

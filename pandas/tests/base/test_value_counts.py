@@ -18,6 +18,7 @@ from pandas import (
     array,
 )
 import pandas._testing as tm
+from pandas.core.indexes.api import safe_sort_index
 from pandas.tests.base.common import allow_na_ops
 
 
@@ -97,8 +98,14 @@ def test_value_counts_null(null_obj, index_or_series_obj):
     expected[null_obj] = 3
 
     result = obj.value_counts(dropna=False)
-    expected = expected.sort_index()
-    result = result.sort_index()
+    if expected.index.inferred_type == "mixed-integer":
+        # mixed int/str types are not orderable; use safe_sort_index
+        sorted_idx = safe_sort_index(expected.index)
+        expected = expected.reindex(sorted_idx)
+        result = result.reindex(sorted_idx)
+    else:
+        expected = expected.sort_index()
+        result = result.sort_index()
     tm.assert_series_equal(result, expected)
 
 

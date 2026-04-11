@@ -160,6 +160,11 @@ def test_numpy_ufuncs_reductions(index, func):
         with pytest.raises(TypeError, match="is not ordered for"):
             func.reduce(index)
         return
+    elif index.inferred_type == "mixed-integer":
+        # mixed int/str types are not orderable in Python 3
+        with pytest.raises(TypeError, match="not supported between"):
+            func.reduce(index)
+        return
     else:
         result = func.reduce(index)
 

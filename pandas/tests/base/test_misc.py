@@ -156,6 +156,11 @@ def test_searchsorted(request, index_or_series_obj):
         #  comparison semantics https://github.com/numpy/numpy/issues/15981
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
         request.applymarker(mark)
+    elif isinstance(obj, Index) and obj.inferred_type == "mixed-integer":
+        # mixed int/str types are not orderable in Python 3
+        with pytest.raises(TypeError, match="not supported between"):
+            max(obj)
+        return
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)

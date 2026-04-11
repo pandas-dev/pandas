@@ -437,6 +437,11 @@ class TestCommon:
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
+    if index_with_missing.inferred_type == "mixed-integer":
+        # mixed int/str types are not orderable; TypeError before ValueError
+        with pytest.raises(TypeError, match="not supported between"):
+            index_with_missing.sort_values(na_position=na_position)
+        return
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing.sort_values(na_position=na_position)
 
@@ -446,6 +451,12 @@ def test_sort_values_invalid_na_position(index_with_missing, na_position):
 def test_sort_values_with_missing(index_with_missing, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
+
+    if index_with_missing.inferred_type == "mixed-integer":
+        # mixed int/str types are not orderable in Python 3
+        with pytest.raises(TypeError, match="not supported between"):
+            index_with_missing.sort_values(na_position=na_position)
+        return
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

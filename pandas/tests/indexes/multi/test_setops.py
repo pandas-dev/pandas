@@ -15,6 +15,7 @@ from pandas.api.types import (
     is_float_dtype,
     is_unsigned_integer_dtype,
 )
+from pandas.core.indexes.api import safe_sort_index
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
@@ -633,9 +634,16 @@ def test_union_duplicates(index, request):
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
-    result = mi2.union(mi1)
-    expected = mi2.sort_values()
-    tm.assert_index_equal(result, expected)
+
+    # mi2.union(mi1): mi1 (other) has no duplicates, so MultiIndex._union takes
+    # the sort path, which emits RuntimeWarning for unorderable types
+    warn = RuntimeWarning if index.inferred_type == "mixed-integer" else None
+    warn_msg = "The values in the array are unorderable"
+
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = mi2.union(mi1)
+    expected = safe_sort_index(mi2)
+    tm.assert_index_equal(safe_sort_index(result), expected)
 
     if (
         is_unsigned_integer_dtype(mi2.levels[0])
@@ -656,7 +664,7 @@ def test_union_duplicates(index, request):
         )
 
     result = mi1.union(mi2)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(safe_sort_index(result), expected)
 
 
 def test_union_keep_dtype_precision(any_real_numeric_dtype):

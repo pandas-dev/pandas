@@ -30,6 +30,7 @@ from pandas.api.types import (
     is_signed_integer_dtype,
     pandas_dtype,
 )
+from pandas.core.indexes.api import safe_sort_index
 
 
 def equal_contents(arr1, arr2) -> bool:
@@ -66,8 +67,8 @@ def index_flat2(index_flat):
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = index.sort_values()
-    idx2 = index.sort_values()
+    idx1 = safe_sort_index(index)
+    idx2 = safe_sort_index(index)
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
@@ -102,8 +103,8 @@ def test_union_different_types(index_flat, index_flat2):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    idx1 = idx1.sort_values()
-    idx2 = idx2.sort_values()
+    idx1 = safe_sort_index(idx1)
+    idx2 = safe_sort_index(idx2)
 
     with tm.assert_produces_warning(warn, match=msg):
         res1 = idx1.union(idx2)
@@ -227,7 +228,7 @@ class TestSetOps:
         everything = index
 
         union = first.union(second)
-        tm.assert_index_equal(union.sort_values(), everything.sort_values())
+        tm.assert_index_equal(safe_sort_index(union), safe_sort_index(everything))
 
         if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
@@ -292,7 +293,7 @@ class TestSetOps:
         second = index[:-1]
         answer = index[[0, -1]]
         result = first.symmetric_difference(second)
-        tm.assert_index_equal(result.sort_values(), answer.sort_values())
+        tm.assert_index_equal(safe_sort_index(result), safe_sort_index(answer))
 
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
@@ -371,8 +372,8 @@ class TestSetOps:
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        union = first.union(second).sort_values()
-        expected = index.set_names(expected_name).sort_values()
+        union = safe_sort_index(first.union(second))
+        expected = safe_sort_index(index.set_names(expected_name))
         tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize(
@@ -440,8 +441,8 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        intersect = first.intersection(second).sort_values()
-        expected = index[1:].set_names(expected_name).sort_values()
+        intersect = safe_sort_index(first.intersection(second))
+        expected = safe_sort_index(index[1:].set_names(expected_name))
         tm.assert_index_equal(intersect, expected)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
