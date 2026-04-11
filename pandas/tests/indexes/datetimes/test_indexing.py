@@ -606,7 +606,11 @@ class TestGetIndexer:
     def test_get_indexer_mixed_dtypes(self, target):
         # https://github.com/pandas-dev/pandas/issues/33741
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
-        result = values.get_indexer(target)
+        # GH#62158 mixed date/Timestamp list infers as "date", triggering
+        # the _maybe_downcast_for_indexing fallback
+        msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = values.get_indexer(target)
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -619,9 +623,12 @@ class TestGetIndexer:
         ],
     )
     def test_get_indexer_out_of_bounds_date(self, target, positions):
+        # GH#62158
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 
-        result = values.get_indexer(target)
+        msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = values.get_indexer(target)
         expected = np.array(positions, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 

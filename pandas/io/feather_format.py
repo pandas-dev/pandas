@@ -81,6 +81,9 @@ def read_feather(
     """
     Load a feather-format object from the file path.
 
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
+
     Feather is particularly useful for scenarios that require efficient
     serialization and deserialization of tabular data. It supports
     schema preservation, making it a reliable choice for use cases

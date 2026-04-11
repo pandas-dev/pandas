@@ -352,7 +352,8 @@ def read_hdf(
     Read from the store, close it if we opened it.
 
     Retrieve pandas object stored in file, optionally based on where
-    criteria.
+    criteria. This function requires the
+    `PyTables <https://www.pytables.org/>`_ library.
 
     .. warning::
 

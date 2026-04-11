@@ -18828,6 +18828,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        The returned array is not intended to be written to. When the
+        DataFrame is backed by a single NumPy array (single dtype, single
+        block), the result is a read-only view; when the DataFrame has
+        multiple internal blocks (e.g. after adding a new column), the
+        result is a copy and modifications to it will not be reflected in
+        the original DataFrame. Use :meth:`DataFrame.to_numpy` for more
+        explicit control over copy behavior, or use :attr:`DataFrame.iloc`
+        to modify values in-place.
+
         The dtype will be a lower-common-denominator dtype (implicit
         upcasting); that is to say if the dtypes (even of numeric types)
         are mixed, the one that accommodates all will be chosen. Use this

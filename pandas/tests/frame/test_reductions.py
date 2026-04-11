@@ -11,6 +11,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -863,7 +864,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
-    @pytest.mark.parametrize("numeric_only", [None, True, False])
+    @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
@@ -2277,7 +2278,7 @@ def test_mixed_frame_with_integer_sum():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("numeric_only", [True, False, None])
+@pytest.mark.parametrize("numeric_only", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_minmax_extensionarray(method, numeric_only):
     # https://github.com/pandas-dev/pandas/issues/32651
@@ -2482,3 +2483,44 @@ def test_mean_nullable_int_axis_1():
     result = df.mean(axis=1, skipna=False)
     expected = Series([1.0, 2.0, 3.5, pd.NA], dtype="Float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_numeric_only_validates_bool():
+    # GH#53098
+    df = DataFrame({"A": [1, 2, 3], "B": [1.0, 2.0, 3.0], "C": ["x", "y", "z"]})
+    df_num = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    msg = "Passing non-boolean values for 'numeric_only' is deprecated"
+
+    # _stat_function family: mean, min, max, median, skew, kurt
+    for method in ["mean", "min", "max", "median", "skew", "kurt"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        # None is falsy so _reduce includes all columns; use numeric-only df
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # _stat_function_ddof family: std, var, sem
+    for method in ["std", "var", "sem"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # _min_count_stat_function family: sum, prod
+    for method in ["sum", "prod"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # Valid boolean values must still work (regression guard)
+    df_num.mean(numeric_only=True)
+    df_num.mean(numeric_only=False)
+    df_num.sum(numeric_only=True)
+    df_num.std(numeric_only=True)
