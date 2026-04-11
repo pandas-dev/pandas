@@ -14087,7 +14087,7 @@ class DataFrame(NDFrame, OpsMixin):
         is a list-like or dict-like of functions, each function is first
         applied to the individual values of the Series rather than the Series
         itself; if this fails, pandas retries by passing the entire Series.
-        By default (``result_type=None``), the final return type is inferred 
+        By default (``result_type=None``), the final return type is inferred
         from the return type of the applied function. Otherwise, it depends
         on the `result_type` argument. The return type of the applied function
         is inferred based on the first computed result obtained after applying
