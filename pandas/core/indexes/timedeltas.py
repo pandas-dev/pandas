@@ -163,10 +163,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
-    @property
-    def _resolution_obj(self) -> Resolution:
-        return self._data._resolution_obj
-
     # -------------------------------------------------------------------
     # Constructors
 

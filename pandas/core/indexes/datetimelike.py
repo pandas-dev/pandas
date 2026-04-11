@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from abc import (
     ABC,
-    abstractmethod,
 )
 import operator
 from typing import (
@@ -32,6 +31,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     Timestamp,
+    get_resolution,
     parsing,
     timezones,
     to_offset,
@@ -273,15 +273,26 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
-    @abstractmethod
-    def _resolution_obj(self) -> Resolution: ...
+    def _resolution_obj(self) -> Resolution | None:
+        if isinstance(self.dtype, PeriodDtype):
+            return self.dtype._resolution_obj
+        elif self.dtype.kind == "M":
+            return get_resolution(self.asi8, self.tz, reso=self._data._creso)
+        else:
+            freqstr = self.freqstr
+            if freqstr is None:
+                return None
+            try:
+                return Resolution.get_reso_from_freqstr(freqstr)
+            except KeyError:
+                return None
 
     @cache_readonly
     def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return self._data.resolution
+        return self._resolution_obj.attrname
 
     # ------------------------------------------------------------------------
 
