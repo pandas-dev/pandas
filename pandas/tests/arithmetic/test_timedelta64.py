@@ -623,6 +623,8 @@ class TestTimedelta64ArithmeticUnsorted:
             #  new dtype.  For the others, the op can assign a new array
             #  and get the dtype that normally results from `rng + two_hours`
             expected = expected.as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -647,6 +649,8 @@ class TestTimedelta64ArithmeticUnsorted:
             #  new dtype.  For the others, the op can assign a new array
             #  and get the dtype that normally results from `rng - two_hours`
             expected = expected.as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1045,7 +1049,10 @@ class TestTimedeltaArraylikeAddSubOps:
 
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3, tz=tz)
-        if tz is not None and not timezones.is_utc(expected.tz):
+        if box_with_array is pd.array or (
+            tz is not None and not timezones.is_utc(expected.tz)
+        ):
+            # Array arithmetic does not compute freq (GH#24566).
             # Day is no longer preserved by timedelta add/sub in pandas3 because
             #  it represents Calendar-Day instead of 24h
             expected = expected._with_freq(None)
@@ -1057,9 +1064,10 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(tdarr + ts, expected)
 
         expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
-        if tz is not None and not timezones.is_utc(expected2.tz):
-            # Day is no longer preserved by timedelta add/sub in pandas3 because
-            #  it represents Calendar-Day instead of 24h
+        if box_with_array is pd.array or (
+            tz is not None and not timezones.is_utc(expected2.tz)
+        ):
+            # Array arithmetic does not compute freq (GH#24566).
             expected2 = expected2._with_freq(None)
         expected2 = tm.box_expected(expected2, box_with_array)
 
@@ -1317,6 +1325,8 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
         if isinstance(two_hours, Timedelta) and two_hours.unit == "ns":
             expected = expected.as_unit("ns")
+        if box is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, box)
@@ -1335,6 +1345,8 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
         if isinstance(two_hours, Timedelta) and two_hours.unit == "ns":
             expected = expected.as_unit("ns")
+        if box is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, box)

@@ -47,7 +47,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
-    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -1136,48 +1135,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return i8values, mask
 
     @final
-    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
-        """
-        Check if we can preserve self.freq in addition or subtraction.
-        """
-        # Adding or subtracting a Timedelta/Timestamp scalar is freq-preserving
-        #  whenever self.freq is a Tick
-        if isinstance(self.dtype, PeriodDtype):
-            return self.freq
-        elif not lib.is_scalar(other):
-            return None
-        elif isinstance(self.freq, Tick):
-            # In these cases
-            return self.freq
-        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
-            return self.freq
-        elif (
-            self.dtype.kind == "m"
-            and isinstance(other, Timestamp)
-            and (other.tz is None or timezones.is_utc(other.tz))
-        ):
-            # e.g. test_td64arr_add_sub_datetimelike_scalar tdarr + timestamp
-            #  gives a DatetimeArray. As long as the timestamp has no timezone
-            #  or UTC, the result can retain a Day freq.
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(self.freq, Day)
-            and isinstance(other, Timedelta)
-        ):
-            # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
-            # Day is unambiguously 24h
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(other, Timestamp)
-            and isinstance(self.freq, Day)
-        ):
-            return self.freq
-
-        return None
-
-    @final
     def _add_datetimelike_scalar(self, other) -> DatetimeArray:
         if not lib.is_np_dtype(self.dtype, "m"):
             raise TypeError(
@@ -1208,8 +1165,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
         res_values = result.view(f"M8[{self.unit}]")
-        new_freq = self._get_arithmetic_result_freq(other)
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
+        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=None)
 
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
@@ -1269,9 +1225,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
-        new_freq = self._get_arithmetic_result_freq(other)
-        new_freq = cast("Tick | None", new_freq)
-        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=None)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1333,13 +1287,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
-        new_freq = self._get_arithmetic_result_freq(other)
-
         # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
             res_values,
             dtype=self.dtype,
-            freq=new_freq,  # type: ignore[call-arg]
+            freq=None,  # type: ignore[call-arg]
         )
 
     @final

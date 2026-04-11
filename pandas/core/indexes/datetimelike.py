@@ -8,6 +8,7 @@ from abc import (
     ABC,
     abstractmethod,
 )
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -26,11 +27,13 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     Resolution,
     Tick,
     Timedelta,
     Timestamp,
     parsing,
+    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
@@ -57,6 +60,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -660,6 +664,64 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
+
+    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
+        """
+        Check if we can preserve self.freq in addition or subtraction.
+        """
+        if not lib.is_scalar(other):
+            return None
+
+        # Normalize scalar types to their pandas equivalents.
+        # Array arithmetic methods internally convert Tick/timedelta/
+        # np.timedelta64 → Timedelta and datetime/np.datetime64 → Timestamp.
+        # Since we receive the original user argument, normalize here.
+        if isinstance(other, Tick):
+            other = Timedelta(other)
+        elif isinstance(other, np.timedelta64):
+            other = Timedelta(other)
+        elif isinstance(other, np.datetime64):
+            other = Timestamp(other)
+        elif not isinstance(other, (Timedelta, Timestamp)):
+            # Handles datetime.timedelta, datetime.datetime
+            try:
+                other = Timedelta(other)
+            except (ValueError, TypeError, OverflowError):
+                try:
+                    other = Timestamp(other)
+                except (ValueError, TypeError, OverflowError):
+                    return None
+
+        if isinstance(self.freq, Tick):
+            return self.freq
+        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
+            return self.freq
+        elif (
+            self.dtype.kind == "m"
+            and isinstance(other, Timestamp)
+            and (other.tz is None or timezones.is_utc(other.tz))
+        ):
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(self.freq, Day)
+            and isinstance(other, (Timedelta, Timestamp))
+        ):
+            return self.freq
+
+        return None
+
+    def _arith_method(self, other, op):
+        result = super()._arith_method(other, op)
+        if result is NotImplemented:
+            return result
+        if op in (operator.add, roperator.radd, operator.sub, roperator.rsub):
+            new_freq = self._get_arithmetic_result_freq(other)
+            if new_freq is not None and isinstance(result, DatetimeTimedeltaMixin):
+                if op is roperator.rsub:
+                    new_freq = -new_freq
+                result._data._freq = new_freq
+        return result
 
     @property
     def unit(self) -> TimeUnit:
