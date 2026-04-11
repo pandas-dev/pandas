@@ -217,6 +217,42 @@ cmd = [
   "--show-stderr",
 ]
 
+[tasks.ci-test-single-page-doc]
+args = [
+  { "arg" = "page_to_build" }
+]
+cmd = [
+  "python",
+  "doc/make.py",
+  "--warnings-are-errors",
+  "--no-browser",
+  "--single",
+  "{{ page_to_build }}",
+  "&&",
+  "python",
+  "doc/make.py",
+  "clean",
+]
+
+[tasks.ci-test-nbconvert-doc-notebooks]
+args = [
+  { "arg" = "notebooks" }
+]
+cmd = [
+  "python",
+  "-m",
+  "jupyter",
+  "nbconvert",
+  "--execute",
+  "{{ notebooks }}",
+  "--to",
+  "notebook",
+  "&&",
+  "python",
+  "doc/make.py",
+  "clean",
+]
+
 [tasks.ci-build-documentation]
 args = [
   { "arg" = "doc_type", "choices" = ["html", "zip_html"] }
@@ -225,7 +261,7 @@ cmd = [
   "python",
   "doc/make.py",
   "--warnings-are-errors",
-  "{{ doc_type }}"
+  "{{ doc_type }}",
 ]
 
 [tasks.ci-test-website]
@@ -241,7 +277,7 @@ cmd = [
   "python",
   "web/pandas_web.py",
   "web/pandas",
-  "--target-path=web/build"
+  "--target-path=web/build",
 ]
 
 [tasks.ci-build-interactive_terminal]

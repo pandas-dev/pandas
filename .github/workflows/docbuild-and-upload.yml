@@ -99,6 +99,21 @@ jobs:
           --environment docs-and-web \
           ci-test-website
 
+    - name: Test build single page doc
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-test-single-page-doc pandas.Series.value_counts
+        pixi run \
+          --environment docs-and-web \
+          ci-test-single-page-doc pandas.Series.str.split
+
+    - name: Test nbconvert doc notebooks
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-test-nbconvert-doc-notebooks "$(find doc/source -name '*.ipynb')"
+
     - name: Build website
       run: |
         pixi run \
