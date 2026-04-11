@@ -63,10 +63,10 @@ class TimestampProperties:
         self.ts.tz
 
     def time_dayofweek(self, tz):
-        self.ts.dayofweek
+        self.ts.day_of_week
 
     def time_dayofyear(self, tz):
-        self.ts.dayofyear
+        self.ts.day_of_year
 
     def time_week(self, tz):
         self.ts.week

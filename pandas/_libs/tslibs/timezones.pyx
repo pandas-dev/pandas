@@ -1,3 +1,4 @@
+cimport cython
 from datetime import (
     timedelta,
     timezone,
@@ -159,6 +160,9 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
+        if treat_tz_as_pytz(tz) and pytz is None:
+            # call again for raising proper error
+            import_optional_dependency("pytz")
         pass
     elif tz is None:
         pass
@@ -256,6 +260,8 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     return new_trans
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i
@@ -403,7 +409,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
 
 def tz_standardize(tz: tzinfo) -> tzinfo:
     """
-    If the passed tz is a pytz timezone object, "normalize" it to the a
+    If the passed tz is a pytz timezone object, "normalize" it to a
     consistent version
 
     Parameters
@@ -432,6 +438,6 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
     """
-    if treat_tz_as_pytz(tz):
+    if treat_tz_as_pytz(tz) and pytz is not None:
         return pytz.timezone(str(tz))
     return tz

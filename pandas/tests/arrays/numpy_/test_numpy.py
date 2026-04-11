@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
@@ -297,14 +298,13 @@ def test_setitem_object_typecode(dtype):
 
 def test_setitem_no_coercion():
     # https://github.com/pandas-dev/pandas/issues/28150
+    # GH#51044
     arr = NumpyExtensionArray(np.array([1, 2, 3]))
-    with pytest.raises(ValueError, match="int"):
+    with pytest.raises(TypeError, match="int"):
         arr[0] = "a"
 
-    # With a value that we do coerce, check that we coerce the value
-    #  and not the underlying array.
-    arr[0] = 2.5
-    assert isinstance(arr[0], (int, np.integer)), type(arr[0])
+    with pytest.raises(TypeError, match="int"):
+        arr[0] = 2.5
 
 
 def test_setitem_preserves_views():
@@ -319,7 +319,7 @@ def test_setitem_preserves_views():
     assert view2[0] == 9
     assert view3[0] == 9
 
-    arr[-1] = 2.5
+    arr[-1] = 5
     view1[-1] = 5
     assert arr[-1] == 5
 
@@ -374,7 +374,17 @@ def test_take_assigns_floating_point_dtype(dtype):
     result = array.take([-1], allow_fill=True)
     assert result.dtype.numpy_dtype == expected
 
-    result = array.take([-1], allow_fill=True, fill_value=5.0)
+    # For integer dtypes, we cast round-float fill_value to int, so do not
+    #  get a warning here. This casting is not ideal, but is the lesser evil
+    #  preventing other breakage when doing this deprecation.
+    msg = (
+        "reindexing with a fill_value that cannot be held by the "
+        "original dtype is deprecated"
+    )
+    warn = Pandas4Warning if dtype == np.bool_ else None
+    expected = object if dtype == np.bool_ else array.dtype.numpy_dtype
+    with tm.assert_produces_warning(warn, match=msg):
+        result = array.take([-1], allow_fill=True, fill_value=5.0)
     assert result.dtype.numpy_dtype == expected
 
 

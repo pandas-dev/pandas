@@ -23,7 +23,7 @@ def get_dtype(obj) -> DtypeObj:
 def get_obj(df: DataFrame, klass):
     """
     For sharing tests using frame_or_series, either return the DataFrame
-    unchanged or return it's first column as a Series.
+    unchanged or return its first column as a Series.
     """
     if klass is DataFrame:
         return df

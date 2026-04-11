@@ -269,7 +269,7 @@ class CountMultiDtype:
         offsets = np.random.randint(n, size=n).astype("timedelta64[ns]")
         dates = np.datetime64("now") + offsets
         dates[np.random.rand(n) > 0.5] = np.datetime64("nat")
-        offsets[np.random.rand(n) > 0.5] = np.timedelta64("nat")
+        offsets[np.random.rand(n) > 0.5] = np.timedelta64("NaT", "ns")
         value2 = np.random.randn(n)
         value2[np.random.rand(n) > 0.5] = np.nan
         obj = np.random.choice(list("ab"), size=n).astype(object)

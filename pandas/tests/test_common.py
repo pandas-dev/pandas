@@ -152,7 +152,7 @@ def test_maybe_match_name(left, right, expected):
             r"to_dict\(\) only accepts initialized defaultdicts",
         ),
         (
-            # non-mapping subtypes,, instance
+            # non-mapping subtypes, instance
             [],
             "unsupported type: <class 'list'>",
         ),

@@ -352,7 +352,7 @@ SciPy sparse matrix from/to SparseDataFrame
 pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
 See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
 
-All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
+All sparse formats are supported, but matrices that are not in ``COOrdinate`` format will be converted, copying data as needed.
 
 .. code-block:: python
 
@@ -515,7 +515,7 @@ Other enhancements
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
 - Compatibility with Jupyter notebook 5.0; MultiIndex column labels are left-aligned and MultiIndex row-labels are top-aligned (:issue:`15379`)
 - ``TimedeltaIndex`` now has a custom date-tick formatter specifically designed for nanosecond level precision (:issue:`8711`)
-- ``pd.api.types.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
+- ``pd.api.types.union_categoricals`` gained the ``ignore_order`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``DataFrame.to_latex()`` and ``DataFrame.to_string()`` now allow optional header aliases. (:issue:`15536`)
 - Re-enable the ``parse_dates`` keyword of ``pd.read_excel()`` to parse string columns as dates (:issue:`14326`)
 - Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)

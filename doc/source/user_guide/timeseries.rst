@@ -80,11 +80,15 @@ pandas captures 4 general time related concepts:
 =====================   =================  ===================   ============================================  ========================================
 Concept                 Scalar Class       Array Class           pandas Data Type                              Primary Creation Method
 =====================   =================  ===================   ============================================  ========================================
-Date times              ``Timestamp``      ``DatetimeIndex``     ``datetime64[ns]`` or ``datetime64[ns, tz]``  ``to_datetime`` or ``date_range``
-Time deltas             ``Timedelta``      ``TimedeltaIndex``    ``timedelta64[ns]``                           ``to_timedelta`` or ``timedelta_range``
+Date times              ``Timestamp``      ``DatetimeIndex``     ``datetime64[us]`` or ``datetime64[us, tz]``  ``to_datetime`` or ``date_range``
+Time deltas             ``Timedelta``      ``TimedeltaIndex``    ``timedelta64[us]``                           ``to_timedelta`` or ``timedelta_range``
 Time spans              ``Period``         ``PeriodIndex``       ``period[freq]``                              ``Period`` or ``period_range``
 Date offsets            ``DateOffset``     ``None``              ``None``                                      ``DateOffset``
 =====================   =================  ===================   ============================================  ========================================
+
+The default resolution for date times and time deltas is microsecond ("us"), though second ("s"),
+millisecond ("ms"), and nanosecond ("ns") are also supported. The resolution can be changed using
+:meth:`~Series.dt.as_unit`.
 
 For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
 so manipulations can be performed with respect to the time element.
@@ -318,8 +322,8 @@ Epoch timestamps
 ~~~~~~~~~~~~~~~~
 
 pandas supports converting integer or float epoch times to ``Timestamp`` and
-``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
-objects are stored internally. However, epochs are often stored in another ``unit``
+``DatetimeIndex``. The default unit is nanoseconds when no ``unit`` is specified.
+However, epochs are often stored in another ``unit``
 which can be specified. These are computed from the starting point specified by the
 ``origin`` parameter.
 
@@ -727,11 +731,10 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
     dft_minute.loc["2011-12-31 23"]
 
 
-.. warning::
+.. note::
 
-   However, if the string is treated as an exact match, the selection in ``DataFrame``'s ``[]`` will be column-wise and not row-wise, see :ref:`Indexing Basics <indexing.basics>`. For example ``dft_minute['2011-12-31 23:59']`` will raise ``KeyError`` as ``'2012-12-31 23:59'`` has the same resolution as the index and there is no column with such name:
-
-   To *always* have unambiguous selection, whether the row is treated as a slice or a single selection, use ``.loc``.
+   As :ref:`noted above <timeseries.partialindexing>`, indexing ``DataFrame`` rows
+   with a single string via ``[]`` is no longer supported; use ``.loc`` instead.
 
    .. ipython:: python
 
@@ -894,7 +897,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to absolute 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
-    :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
+    :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week (the anchor day is the last day of the weekly period)"
     :class:`~pandas.tseries.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
     :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
     :class:`~pandas.tseries.offsets.MonthEnd`, ``'ME'``, "calendar month end"
@@ -1077,7 +1080,7 @@ Let's map to the weekday names:
 
     dts = pd.date_range(dt, periods=5, freq=bday_egypt)
 
-    pd.Series(dts.weekday, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    pd.Series(dts.day_of_week, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
 Holiday calendars can be used to provide the list of holidays.  See the
 :ref:`holiday calendar<timeseries.holiday>` section for more information.
@@ -1264,7 +1267,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "B", "business day frequency"
     "C", "custom business day frequency"
     "D", "calendar day frequency"
-    "W", "weekly frequency"
+    "W", "weekly frequency (default anchored to Sunday, i.e. W\-SUN)"
     "ME", "month end frequency"
     "SME", "semi-month end frequency (15th and end of month)"
     "BME", "business month end frequency"
@@ -1334,7 +1337,7 @@ frequencies. We will refer to these aliases as *period aliases*.
 
     "B", "business day frequency"
     "D", "calendar day frequency"
-    "W", "weekly frequency"
+    "W", "weekly frequency (default anchored to Sunday, i.e. W\-SUN)"
     "M", "monthly frequency"
     "Q", "quarterly frequency"
     "Y", "yearly frequency"
@@ -1375,13 +1378,13 @@ For some frequencies you can specify an anchoring suffix:
     :header: "Alias", "Description"
     :widths: 15, 100
 
-    "W\-SUN", "weekly frequency (Sundays). Same as 'W'"
-    "W\-MON", "weekly frequency (Mondays)"
-    "W\-TUE", "weekly frequency (Tuesdays)"
-    "W\-WED", "weekly frequency (Wednesdays)"
-    "W\-THU", "weekly frequency (Thursdays)"
-    "W\-FRI", "weekly frequency (Fridays)"
-    "W\-SAT", "weekly frequency (Saturdays)"
+    "W\-SUN", "weekly frequency, week ends on Sunday. Same as 'W'"
+    "W\-MON", "weekly frequency, week ends on Monday"
+    "W\-TUE", "weekly frequency, week ends on Tuesday"
+    "W\-WED", "weekly frequency, week ends on Wednesday"
+    "W\-THU", "weekly frequency, week ends on Thursday"
+    "W\-FRI", "weekly frequency, week ends on Friday"
+    "W\-SAT", "weekly frequency, week ends on Saturday"
     "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
     "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
     "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
@@ -2599,7 +2602,7 @@ Time zone Series operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A :class:`Series` with time zone **naive** values is
-represented with a dtype of ``datetime64[ns]``.
+represented with a dtype of ``datetime64[us]``.
 
 .. ipython:: python
 
@@ -2607,7 +2610,7 @@ represented with a dtype of ``datetime64[ns]``.
    s_naive
 
 A :class:`Series` with a time zone **aware** values is
-represented with a dtype of ``datetime64[ns, tz]`` where ``tz`` is the time zone
+represented with a dtype of ``datetime64[us, tz]`` where ``tz`` is the time zone
 
 .. ipython:: python
 
@@ -2629,7 +2632,7 @@ This method can convert between different timezone-aware dtypes.
 .. ipython:: python
 
    # convert to a new time zone
-   s_aware.astype("datetime64[ns, CET]")
+   s_aware.astype("datetime64[us, CET]")
 
 .. note::
 
@@ -2649,10 +2652,10 @@ This method can convert between different timezone-aware dtypes.
 
       pd.Series(s_aware.to_numpy())
 
-   However, if you want an actual NumPy ``datetime64[ns]`` array (with the values
+   However, if you want an actual NumPy ``datetime64`` array (with the values
    converted to UTC) instead of an array of objects, you can specify the
    ``dtype`` argument:
 
    .. ipython:: python
 
-      s_aware.to_numpy(dtype="datetime64[ns]")
+      s_aware.to_numpy(dtype="datetime64[us]")

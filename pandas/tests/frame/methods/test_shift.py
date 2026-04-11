@@ -175,6 +175,35 @@ class TestDataFrameShift:
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
+    def test_shift_2d_dta_block(self):
+        # Ensure shift works correctly with a multi-row 2D DatetimeArray block,
+        #  which does not arise via normal consolidation.
+        dta = date_range("2016-01-01", periods=9)._values.reshape(3, 3)
+        df = DataFrame(dta)
+
+        # Verify we actually have a 2D EA block
+        assert df._mgr.blocks[0].values.shape == (3, 3)
+
+        result = df.shift(1)
+        expected = DataFrame(
+            {
+                0: [NaT, dta[0, 0], dta[1, 0]],
+                1: [NaT, dta[0, 1], dta[1, 1]],
+                2: [NaT, dta[0, 2], dta[1, 2]],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = df.shift(-2)
+        expected = DataFrame(
+            {
+                0: [dta[2, 0], NaT, NaT],
+                1: [dta[2, 1], NaT, NaT],
+                2: [dta[2, 2], NaT, NaT],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("ex", [10, -10, 20, -20])
     def test_shift_dst_beyond(self, frame_or_series, ex):
         # GH#13926
@@ -538,6 +567,18 @@ class TestDataFrameShift:
         msg = "Given freq M does not match PeriodIndex freq D"
         with pytest.raises(ValueError, match=msg):
             ps.shift(freq="M")
+
+    def test_shift_freq_infer_after_float_to_datetime(self):
+        # GH#40799 - shift(freq="infer") should work on DatetimeIndex
+        # created from float seconds via to_datetime(unit="s")
+        idx = pd.to_datetime(
+            np.array([f"{x:0.3f}" for x in np.arange(0, 10.1, 0.1)], dtype="float64"),
+            unit="s",
+        )
+        ser = Series(range(len(idx)), index=idx)
+        result = ser.shift(1, freq="infer")
+        expected = ser.shift(1, freq="100ms")
+        tm.assert_series_equal(result, expected)
 
     def test_datetime_frame_shift_with_freq_error(
         self, datetime_frame, frame_or_series
