@@ -248,10 +248,7 @@ cmd = [
   "{{ notebooks }}",
   "--to",
   "notebook",
-  "&&",
-  "python",
-  "doc/make.py",
-  "clean",
+  "--stdout",
 ]
 
 [tasks.ci-build-documentation]
