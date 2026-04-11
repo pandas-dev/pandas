@@ -386,7 +386,7 @@ class CSVFormatter:
             res = df._get_values_for_csv(**self._number_format)
             data = list(res._iter_column_arrays())
         else:
-            data = self._format_chunk_columns(df, col_formats)
+            data = list(self._format_chunk_columns(df, col_formats))
 
         ix = (
             formatted_index[start_i:end_i]
@@ -408,7 +408,7 @@ class CSVFormatter:
 
     def _format_chunk_columns(
         self, df: DataFrame, col_formats: dict[int, bool]
-    ) -> list[npt.NDArray[np.object_]]:
+    ) -> list:
         """Format chunk columns using pre-computed date format info.
 
         For datetime/timedelta columns, uses the _is_dates_only result
@@ -416,7 +416,7 @@ class CSVFormatter:
         """
         from pandas.core.indexes.base import get_values_for_csv
 
-        data: list[npt.NDArray[np.object_]] = []
+        data: list = []
         for col_idx in range(df.shape[1]):
             col_values = df.iloc[:, col_idx]._values
 
@@ -472,7 +472,7 @@ class CSVFormatter:
                 def formatter(
                     x: object, _na_rep: str | float = self.na_rep
                 ) -> str | float:
-                    if not notna(x):
+                    if x is None or x != x:
                         return _na_rep
                     if not isinstance(x, Timedelta):
                         x = Timedelta(x)
@@ -480,4 +480,4 @@ class CSVFormatter:
 
             result = np.frompyfunc(formatter, 1, 1)(arr._ndarray)
 
-        return result.astype(object, copy=False)
+        return np.asarray(result, dtype=object)
