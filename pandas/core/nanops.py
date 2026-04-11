@@ -361,9 +361,9 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.nan
 
             if isna(result):
-                result = np.datetime64("NaT", unit)
+                result = np.datetime64("NaT", unit)  # type: ignore[call-overload]
             else:
-                result = np.datetime64(int(result), unit)
+                result = np.datetime64(int(result), unit)  # type: ignore[call-overload]
         else:
             result = result.astype(dtype)
     elif dtype.kind == "m":
@@ -376,7 +376,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 # raise if we have a timedelta64[ns] which is too large
                 raise ValueError("overflow in timedelta operation")
             else:
-                result = np.timedelta64(int(result), unit)
+                result = np.timedelta64(int(result), unit)  # type: ignore[call-overload]
 
         else:
             result = result.astype(dtype)
