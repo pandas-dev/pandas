@@ -2986,6 +2986,22 @@ def test_dt_timedelta_components():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_timedelta_components_preserves_index():
+    # Test that .dt.components preserves the parent Series index
+    idx = pd.Index(["a", "b", "c"])
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=1, hours=2),
+            pd.Timedelta(days=3, hours=4),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+        index=idx,
+    )
+    result = ser.dt.components
+    tm.assert_index_equal(result.index, idx)
+
+
 def test_dt_timedelta_negative_durations():
     # Test negative durations match pandas behavior
     # In pandas, -22h 57m 57s is represented as -1 day + 1h 2m 3s
@@ -3203,13 +3219,13 @@ def test_dt_day_remainder_cache_invalidation():
         [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
     )
     tm.assert_series_equal(result_before, expected_before)
-    assert "_dt_day_remainder" in arr.__dict__
+    assert "_dt_day_remainder" in arr._cache
 
     # Modify the array
     arr[0] = pd.Timedelta("3 days 7:08:09")
 
     # Cache should be invalidated
-    assert "_dt_day_remainder" not in arr.__dict__
+    assert "_dt_day_remainder" not in arr._cache
 
     # Accessing again should give correct (recomputed) values, not stale cached values
     result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
