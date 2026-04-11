@@ -110,7 +110,7 @@ def test_period_index_from_series_inferred_freq_deprecated():
     assert dti.freq is None
     ser = Series(dti)
 
-    msg = "Constructing PeriodArray from a Series with no freq"
+    msg = "Constructing PeriodArray from a Series of datetime64 data"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = PeriodIndex(ser)
     expected = PeriodIndex(dti, freq="D")

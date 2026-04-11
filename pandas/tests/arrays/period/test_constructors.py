@@ -48,7 +48,7 @@ def test_period_array_from_datetime_series_inferred_freq():
     data = pd.Series(pd.date_range("2017", periods=3))
     expected = np.asarray([17167, 17168, 17169], dtype=np.int64)
 
-    msg = "Constructing PeriodArray from a Series with no freq"
+    msg = "Constructing PeriodArray from a Series of datetime64 data"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = pd.PeriodIndex(data, freq=None).array.asi8
     tm.assert_numpy_array_equal(result, expected)
