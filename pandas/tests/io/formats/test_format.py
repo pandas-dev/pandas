@@ -2218,7 +2218,7 @@ class TestDatetime64Formatter:
             .dt.tz_localize("US/Pacific")
             ._values
         )
-        result = fmt._Datetime64TZFormatter(x).get_result()
+        result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2999-01-01 00:00:00-08:00"
         assert result[1].strip() == "2999-01-02 00:00:00-08:00"
 

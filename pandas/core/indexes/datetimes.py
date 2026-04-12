@@ -785,10 +785,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         df = self._data.isocalendar()
         return df.set_index(self)
 
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        return self._data._resolution_obj
-
     # --------------------------------------------------------------------
     # Constructors
 

@@ -6457,7 +6457,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self._index_as_unique:
             indexer = self.get_indexer_for(keyarr)  # pyright: ignore[reportArgumentType]
-            keyarr = self.reindex(keyarr)[0]  # pyright: ignore[reportArgumentType]
+            if not isinstance(keyarr, Index):
+                keyarr = ensure_index(keyarr)
+                keyarr.name = self.name
         else:
             keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
 
