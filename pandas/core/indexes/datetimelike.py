@@ -9,7 +9,8 @@ from abc import (
     abstractmethod,
 )
 from itertools import pairwise
-import operatorfrom typing import (
+import operator
+from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
