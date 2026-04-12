@@ -186,8 +186,12 @@ def melt(
     value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
 
     # GH61475 - prevent AttributeError when duplicate column in id_vars
-    if len(frame.columns.get_indexer_for(id_vars)) > len(id_vars):
-        raise ValueError("id_vars cannot contain duplicate columns.")
+    duplicate_id_cols = [col for col in id_vars if frame.columns.tolist().count(col) > 1]
+    if duplicate_id_cols:
+        raise ValueError(
+            f"id_vars contains columns with duplicate labels in the DataFrame: "
+            f"{duplicate_id_cols}. Please rename these columns before melting."
+        )
 
     if id_vars or value_vars:
         if col_level is not None:

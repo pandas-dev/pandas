@@ -558,10 +558,23 @@ class TestMelt:
     def test_melt_duplicate_column_header_raises(self):
         # GH61475
         df = DataFrame([[1, 2, 3], [3, 4, 5]], columns=["A", "A", "B"])
-        msg = "id_vars cannot contain duplicate columns."
+        msg = (
+            r"id_vars contains columns with duplicate labels in the DataFrame: "
+            r"\['A'\]\. Please rename these columns before melting\."
+        )
 
         with pytest.raises(ValueError, match=msg):
             df.melt(id_vars=["A"], value_vars=["B"])
+
+    def test_melt_duplicate_column_header_names_in_error(self):
+        # GH61475 - error message should name the specific duplicate column(s)
+        df = DataFrame(
+            [[1, 2, 3, 4], [5, 6, 7, 8]], columns=["X", "X", "Y", "Z"]
+        )
+        msg = r"id_vars contains columns with duplicate labels in the DataFrame: \['X'\]"
+
+        with pytest.raises(ValueError, match=msg):
+            df.melt(id_vars=["X"], value_vars=["Y"])
 
 
 class TestLreshape:
