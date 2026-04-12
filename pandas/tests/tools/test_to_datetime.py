@@ -2312,6 +2312,82 @@ class TestToDatetimeDataFrame:
         ).dt.tz_localize("UTC")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data,expected_ts",
+        [
+            # Feb 29 in leap year (valid)
+            (
+                {"year": [2000], "month": [2], "day": [29]},
+                [Timestamp("2000-02-29")],
+            ),
+            # Feb 28 in non-leap year (valid)
+            (
+                {"year": [2001], "month": [2], "day": [28]},
+                [Timestamp("2001-02-28")],
+            ),
+        ],
+    )
+    def test_dataframe_leap_year_valid(self, data, expected_ts):
+        result = to_datetime(DataFrame(data))
+        expected = Series(expected_ts)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"year": [2001], "month": [2], "day": [29]},  # Feb 29 non-leap
+            {"year": [2020], "month": [4], "day": [31]},  # Apr 31
+            {"year": [2020], "month": [1], "day": [0]},  # day 0
+        ],
+    )
+    def test_dataframe_invalid_day_raises(self, data):
+        msg = r"cannot assemble the datetimes: time data"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(DataFrame(data))
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"year": [2001], "month": [2], "day": [29]},  # Feb 29 non-leap
+            {"year": [2020], "month": [4], "day": [31]},  # Apr 31
+        ],
+    )
+    def test_dataframe_invalid_day_coerce(self, data):
+        result = to_datetime(DataFrame(data), errors="coerce")
+        expected = Series([NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_fractional_float_coerce(self):
+        # Fractional float with errors="coerce" should produce NaT
+        df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
+        result = to_datetime(df, errors="coerce")
+        expected = Series([NaT, Timestamp("2001-01-01")])
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_empty(self):
+        # Empty DataFrame should produce empty Series
+        df = DataFrame({"year": [], "month": [], "day": []})
+        result = to_datetime(df)
+        expected = Series([], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_utc_with_time_fields(self):
+        df = DataFrame(
+            {
+                "year": [2020],
+                "month": [6],
+                "day": [15],
+                "hour": [12],
+                "minute": [30],
+                "second": [45],
+            }
+        )
+        result = to_datetime(df, utc=True)
+        expected = Series(
+            [Timestamp("2020-06-15 12:30:45")], dtype="datetime64[us, UTC]"
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestToDatetimeMisc:
     def test_to_datetime_barely_out_of_bounds(self):

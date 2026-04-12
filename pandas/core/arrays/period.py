@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     period as libperiod,
     to_offset,
 )
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
@@ -1535,8 +1536,6 @@ def _range_from_fields(
     if day is None:
         day = 1
 
-    ordinals = []
-
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
@@ -1549,20 +1548,38 @@ def _range_from_fields(
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        for y, q in zip(year, quarter, strict=True):
-            calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
-            val = libperiod.period_ordinal(
-                calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
-            )
-            ordinals.append(val)
+        year = np.asarray(year, dtype=np.int64)
+        quarter = np.asarray(quarter, dtype=np.int64)
+
+        if (quarter < 1).any() or (quarter > 4).any():
+            raise ValueError("Quarter must be 1 <= q <= 4")
+
+        # Vectorized quarter_to_myear
+        mnum = MONTH_NUMBERS[parsing.get_rule_month(freqstr)] + 1
+        months = (mnum + (quarter - 1) * 3) % 12 + 1
+        years = np.where(months > mnum, year - 1, year)
+
+        length = len(years)
+        ones = np.ones(length, dtype=np.int64)
+        zeros = np.zeros(length, dtype=np.int64)
+        ordinals, _ = libperiod.period_ordinals_from_fields(
+            years, months, ones, zeros, zeros, zeros, base
+        )
     else:
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays, strict=True):
-            ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
+        ordinals, _ = libperiod.period_ordinals_from_fields(
+            arrays[0].astype(np.int64, copy=False),
+            arrays[1].astype(np.int64, copy=False),
+            arrays[2].astype(np.int64, copy=False),
+            arrays[3].astype(np.int64, copy=False),
+            arrays[4].astype(np.int64, copy=False),
+            arrays[5].astype(np.int64, copy=False),
+            base,
+        )
 
-    return np.array(ordinals, dtype=np.int64), freq
+    return ordinals, freq
 
 
 def _make_field_arrays(*fields) -> list[np.ndarray]:
