@@ -370,7 +370,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if type(self) != type(other):
             return False
         elif self.dtype == other.dtype:
-            return np.array_equal(self.asi8, other.asi8)
+            return lib.array_equivalent_bytes(self.asi8, other.asi8)
         elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":  # type: ignore[attr-defined]
             # different units, otherwise matching
             try:
@@ -379,7 +379,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
                 return False
             else:
-                return np.array_equal(left.view("i8"), right.view("i8"))
+                return lib.array_equivalent_bytes(left.view("i8"), right.view("i8"))
         return False
 
     def __contains__(self, key: Any) -> bool:

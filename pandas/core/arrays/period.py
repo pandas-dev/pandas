@@ -295,7 +295,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
-            if not np.isnan(arrdata).all():
+            if not lib.all_nans(arrdata):
                 raise TypeError(
                     "PeriodArray does not allow floating point in construction"
                 )
