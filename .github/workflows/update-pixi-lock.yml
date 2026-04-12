@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     if: github.repository_owner == 'pandas-dev'
     permissions:
+      contents: write
       pull-requests: write
 
     steps:
