@@ -477,7 +477,7 @@ def array_equivalent(
     ) and left.dtype != right.dtype:
         return False
 
-    if left.dtype == right.dtype:
+    if left.dtype == right.dtype and left.dtype.kind != "V":
         return lib.array_equivalent_bytes(left, right)
     return np.array_equal(left, right)
 
