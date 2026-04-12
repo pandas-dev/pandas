@@ -530,7 +530,7 @@ def test_is_datetime64_ns_dtype():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The 'generic' unit for NumPy timedelta:DeprecationWarning"
+    "ignore:Using 'generic' unit for NumPy timedelta:DeprecationWarning"
 )
 def test_is_timedelta64_ns_dtype():
     assert not com.is_timedelta64_ns_dtype(np.dtype("m8[ps]"))
