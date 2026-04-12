@@ -11,7 +11,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
-from pandas.compat.numpy import np_version_gt2_5
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -209,7 +212,7 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
         if op not in [operator.eq, operator.ne]:
-            if not np_version_gt2_5:
+            if not np_version_gt2_5 and not is_numpy_dev:
                 # This was fixed by numpy in
                 # https://github.com/numpy/numpy/pull/31085
                 np_res = op(left._ndarray, right._ndarray)
