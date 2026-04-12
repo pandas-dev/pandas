@@ -18,9 +18,11 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Tick,
     Timedelta,
     astype_overflowsafe,
+    get_resolution,
     get_supported_dtype,
     iNaT,
     is_supported_dtype,
@@ -212,6 +214,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         numpy.dtype
         """
         return self._ndarray.dtype
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        return get_resolution(self.asi8, tz=None, reso=self._creso)
 
     # ----------------------------------------------------------------
     # Constructors

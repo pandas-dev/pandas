@@ -157,10 +157,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
-    # error: Signature of "_resolution_obj" incompatible with supertype
-    # "DatetimeIndexOpsMixin"
     @property
-    def _resolution_obj(self) -> Resolution | None:  # type: ignore[override]
+    def _resolution_obj(self) -> Resolution:
         return self._data._resolution_obj
 
     # -------------------------------------------------------------------
