@@ -9,6 +9,7 @@ from pandas.errors import Pandas4Warning
 from pandas import array
 import pandas._testing as tm
 import pandas.core.algorithms as algos
+from pandas.core.array_algos.take import _get_take_nd_function_cached
 
 
 @pytest.fixture(
@@ -150,8 +151,6 @@ class TestTake:
         # GH#????? - _take_1d_dict had wrong keys for uint16/uint32/uint64,
         # causing fallback to the slow object path instead of the fast
         # Cython path. Verify the optimized function is found.
-        from pandas.core.array_algos.take import _get_take_nd_function_cached
-
         arr_dtype = np.dtype(dtype)
         func = _get_take_nd_function_cached(1, arr_dtype, arr_dtype, 0)
         assert func is not None
@@ -169,8 +168,6 @@ class TestTake:
     )
     @pytest.mark.parametrize("ndim", [1, 2])
     def test_non_ns_datetime_timedelta_uses_cython_path(self, dtype, ndim):
-        from pandas.core.array_algos.take import _get_take_nd_function_cached
-
         arr_dtype = np.dtype(dtype)
         func = _get_take_nd_function_cached(ndim, arr_dtype, arr_dtype, 0)
         assert func is not None
