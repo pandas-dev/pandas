@@ -36,10 +36,7 @@ from pandas.compat import (
     pa_version_under21p0,
 )
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import (
-    cache_readonly,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -2533,8 +2530,7 @@ class ArrowExtensionArray(
             data = pa.chunked_array([data])
         self._pa_array = data
         # Invalidate any cached properties that depend on _pa_array
-        if hasattr(self, "_cache"):
-            self._cache.pop("_dt_day_remainder", None)
+        self.__dict__.pop("_dt_day_remainder", None)
 
     def _rank_calc(
         self,
@@ -3220,7 +3216,7 @@ class ArrowExtensionArray(
         arr = self._pa_array.cast(pa.int64())
         return self._dt_floor_div_int64(arr, divisor)
 
-    @cache_readonly
+    @functools.cached_property
     def _dt_day_remainder(self) -> pa.Array:
         """
         Return the remainder after removing full days, always non-negative.

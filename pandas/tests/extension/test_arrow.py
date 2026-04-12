@@ -3218,13 +3218,13 @@ def test_dt_day_remainder_cache_invalidation():
         [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
     )
     tm.assert_series_equal(result_before, expected_before)
-    assert "_dt_day_remainder" in arr._cache
+    assert "_dt_day_remainder" in arr.__dict__
 
     # Modify the array
     arr[0] = pd.Timedelta("3 days 7:08:09")
 
     # Cache should be invalidated
-    assert "_dt_day_remainder" not in arr._cache
+    assert "_dt_day_remainder" not in arr.__dict__
 
     # Accessing again should give correct (recomputed) values, not stale cached values
     result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
