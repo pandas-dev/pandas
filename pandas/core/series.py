@@ -7065,7 +7065,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
         with np.errstate(all="ignore"):
-            result = func(this_vals, other_vals)
+            # GH#63250 Warn when flex methods are called on bool dtypes
+            # with disallowed arithmetic ops. The dunder methods already
+            # raise NotImplementedError; flex methods will do the same
+            # in a future version.
+            if (
+                func in ops.array_ops._BOOL_OP_NOT_ALLOWED
+                and hasattr(this_vals, "dtype")
+                and this_vals.dtype.kind == "b"
+            ):
+                op_name = func.__name__.strip("_").lstrip("r")
+                warnings.warn(
+                    f"operator '{op_name}' not implemented for bool dtypes, "
+                    f"it will raise in a future version. "
+                    f"Use .astype(int) before calling .{func.__name__}().",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                result = func(this_vals, other_vals)
+            else:
+                result = ops.get_array_op(func)(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
 
