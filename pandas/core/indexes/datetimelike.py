@@ -279,7 +279,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         elif self.dtype.kind == "M":
             return get_resolution(self.asi8, self.tz, reso=self._data._creso)  # type: ignore[attr-defined,union-attr]
         else:
-            return get_resolution(self.asi8, tz=None, reso=self._data._creso)  # type: ignore[attr-defined,union-attr]
+            return get_resolution(self.asi8, tz=None, reso=self._data._creso)  # type: ignore[union-attr]
 
     @cache_readonly
     def resolution(self) -> str:
