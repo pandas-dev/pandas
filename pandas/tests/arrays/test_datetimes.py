@@ -212,9 +212,14 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
         if op not in [operator.eq, operator.ne]:
-            if not np_version_gt2_5 and not is_numpy_dev:
-                # This was fixed by numpy in
+            if is_numpy_dev or np_version_gt2_5:
+                # numpy now raises instead of silently overflowing
                 # https://github.com/numpy/numpy/pull/31085
+                with pytest.raises(OverflowError, match="Overflow"):
+                    op(left._ndarray, right._ndarray)
+            else:
+                # check that numpy still gets this wrong; if it is fixed we may
+                #  be able to remove compare_mismatched_resolutions
                 np_res = op(left._ndarray, right._ndarray)
                 tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
 
