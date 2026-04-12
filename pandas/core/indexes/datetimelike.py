@@ -273,19 +273,13 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
-    def _resolution_obj(self) -> Resolution | None:
+    def _resolution_obj(self) -> Resolution:
         if isinstance(self.dtype, PeriodDtype):
             return self.dtype._resolution_obj
         elif self.dtype.kind == "M":
             return get_resolution(self.asi8, self.tz, reso=self._data._creso)
         else:
-            freqstr = self.freqstr
-            if freqstr is None:
-                return None
-            try:
-                return Resolution.get_reso_from_freqstr(freqstr)
-            except KeyError:
-                return None
+            return get_resolution(self.asi8, tz=None, reso=self._data._creso)
 
     @cache_readonly
     def resolution(self) -> str:
