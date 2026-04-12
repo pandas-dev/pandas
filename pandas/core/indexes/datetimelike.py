@@ -1180,10 +1180,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def __getitem__(self, key):
         result = super().__getitem__(key)
         if isinstance(result, type(self)):
-            # Slices are already handled by _getitem_slice; for non-slice keys
-            # (Ellipsis, bool arrays) we need to compute freq here.
-            if not isinstance(key, slice):
-                result._data._freq = self._get_getitem_freq(key)
+            result._data._freq = self._get_getitem_freq(key)
         return result
 
     def _get_getitem_freq(self, key) -> BaseOffset | None:

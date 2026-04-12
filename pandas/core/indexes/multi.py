@@ -2043,17 +2043,12 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        result = lev._shallow_copy(filled, name=name)
-        # Restore freq that may have been lost during the array-level take,
-        # since take_nd goes through _from_backing_data which doesn't copy _freq.
-        freq = getattr(lev, "freq", None)
-        if freq is not None and hasattr(filled, "_freq"):
-            indices = np.asarray(level_codes, dtype=np.intp)
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(lev))
-            if isinstance(maybe_slice, slice):
-                if maybe_slice.step is None or maybe_slice.step == 1:
-                    result._data._freq = freq
+        if lev._can_hold_na:
+            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
+        else:
+            # Index.take raises for integer dtypes with -1 (NA) codes
+            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+            result = lev._shallow_copy(filled, name=name)
         return result
 
     def get_level_values(self, level) -> Index:
