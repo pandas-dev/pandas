@@ -8388,7 +8388,9 @@ def get_values_for_csv(
 
     values = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
 
-    if isinstance(values, (DatetimeArray, TimedeltaArray)):
+    if isinstance(values, (DatetimeArray, TimedeltaArray)) or isinstance(
+        values.dtype, PeriodDtype
+    ):
         if values.ndim == 1:
             result = values._format_native_types(na_rep=na_rep, date_format=date_format)
             result = result.astype(object, copy=False)
@@ -8403,14 +8405,7 @@ def get_values_for_csv(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif isinstance(values.dtype, PeriodDtype):
-        # TODO: tests that get here in column path
-        values = cast("PeriodArray", values)
-        res = values._format_native_types(na_rep=na_rep, date_format=date_format)
-        return res
-
     elif isinstance(values.dtype, IntervalDtype):
-        # TODO: tests that get here in column path
         values = cast("IntervalArray", values)
         mask = values.isna()
         if not quoting:
