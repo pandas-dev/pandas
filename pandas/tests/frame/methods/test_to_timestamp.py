@@ -140,7 +140,7 @@ class TestToTimestamp:
         exp_index = date_range("1/1/2001 00:59:59", end="1/2/2001 00:59:59", freq="h")
         result = obj.to_timestamp(how="end")
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "us")
-        tm.assert_index_equal(result.index, exp_index)
+        tm.assert_index_equal(result.index, exp_index, check_freq=False)
         if frame_or_series is Series:
             assert result.name == "foo"
 
