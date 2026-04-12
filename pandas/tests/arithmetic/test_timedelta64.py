@@ -344,11 +344,13 @@ class TestTimedelta64ArithmeticUnsorted:
             td - dti
 
         result = dt - dti
-        expected = TimedeltaIndex(["0 days", "-1 days", "-2 days"], name="bar")
+        expected = TimedeltaIndex(
+            ["0 days", "-1 days", "-2 days"], name="bar", freq="-1D"
+        )
         tm.assert_index_equal(result, expected)
 
         result = dti - dt
-        expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar")
+        expected = TimedeltaIndex(["0 days", "1 days", "2 days"], name="bar", freq="D")
         tm.assert_index_equal(result, expected)
 
         result = tdi - td

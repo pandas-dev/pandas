@@ -291,7 +291,7 @@ class TestDateRanges:
             [snap + i * offset for i in range(n)], dtype="M8[us]", freq=offset
         )
 
-        tm.assert_index_equal(rng, expected)
+        tm.assert_index_equal(rng, expected, check_freq=False)
 
         rng = date_range("1/1/2000 08:15", periods=n, normalize=False, freq="B")
         the_time = time(8, 15)
@@ -388,14 +388,14 @@ class TestDateRanges:
         # GH 20983
         result = date_range(start, end, periods=3, tz=result_tz)
         expected = date_range("20180101", periods=3, freq="D", tz="US/Eastern")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_date_range_timedelta(self):
         start = "2020-01-01"
         end = "2020-01-11"
         rng1 = date_range(start, end, freq="3D")
         rng2 = date_range(start, end, freq=timedelta(days=3))
-        tm.assert_index_equal(rng1, rng2)
+        tm.assert_index_equal(rng1, rng2, check_freq=False)
 
     def test_range_misspecified(self):
         # GH #1095
@@ -813,7 +813,7 @@ class TestDateRanges:
             ],
             name="a",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize("freq", ["2T", "2L", "1l", "1U", "2N", "2n"])
     def test_frequency_H_T_S_L_U_N_raises(self, freq):
@@ -1168,7 +1168,7 @@ class TestBusinessDateRange:
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
         expected = date_range(bday_start, bday_end, freq="D")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
         # Note: we do _not_ expect the freqs to match here
 
     def test_bday_near_overflow(self):
@@ -1349,7 +1349,7 @@ class TestCustomDateRange:
     def test_range_with_timezone_and_custombusinessday(self, start, period, expected):
         # GH49441
         result = date_range(start=start, periods=period, freq="C")
-        expected = DatetimeIndex(expected).as_unit("us")
+        expected = DatetimeIndex(expected, freq="C").as_unit("us")
         tm.assert_index_equal(result, expected)
 
     def test_data_range_custombusinessday_partial_time(self, unit):
@@ -1367,6 +1367,7 @@ class TestCustomDateRange:
                 "2024-02-13 23:00:00",
             ],
             dtype=f"M8[{unit}]",
+            freq=offset,
         )
         tm.assert_index_equal(result, expected)
 
@@ -1393,7 +1394,7 @@ class TestCustomDateRange:
             dtype="datetime64[us]",
             freq="cbh",
         )
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_cdaterange_deprecated_error_CBH(self):
         # GH#62849
@@ -1887,7 +1888,7 @@ class TestDateRangeNonTickFreq:
         expected = date_range(
             "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
         ).tz_localize(tz, nonexistent="shift_forward")
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     @pytest.mark.parametrize(
         "freq, start, end, expected_dates",

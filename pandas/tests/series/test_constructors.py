@@ -1125,7 +1125,7 @@ class TestSeriesConstructors:
 
         exp = DatetimeIndex(result)
         exp = exp.tz_localize("UTC").tz_convert(tz=s.dt.tz)
-        tm.assert_index_equal(dr, exp)
+        tm.assert_index_equal(dr, exp, check_freq=False)
 
         # indexing
         result = s.iloc[0]

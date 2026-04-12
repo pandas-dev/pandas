@@ -94,7 +94,7 @@ class TestDatetimeIndexFactorize:
 
         arr, res = obj.factorize()
         tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, check_freq=False)
         if index_or_series is Index:
             assert res.freq == idx.freq
 
@@ -103,7 +103,7 @@ class TestDatetimeIndexFactorize:
 
         arr, res = obj.factorize()
         tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, check_freq=False)
         if index_or_series is Index:
             assert res.freq == idx.freq
 

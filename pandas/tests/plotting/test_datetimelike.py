@@ -1454,7 +1454,7 @@ class TestTSPlot:
         y = list(range(len(x)))
         _, ax = mpl.pyplot.subplots()
         lines = ax.plot(x, y, label="Y")
-        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x)
+        tm.assert_index_equal(DatetimeIndex(lines[0].get_xdata()), x, check_freq=False)
 
     def test_mpl_nopandas(self):
         dates = [date(2008, 12, 31), date(2009, 1, 31)]

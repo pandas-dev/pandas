@@ -164,7 +164,7 @@ class TestTimedeltaIndex:
         obj = timedelta_range("1h", periods=2, freq="h")
 
         result = obj.astype("category")
-        expected = pd.CategoricalIndex([Timedelta("1h"), Timedelta("2h")])
+        expected = pd.CategoricalIndex(timedelta_range("1h", periods=2, freq="h"))
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype("category")

@@ -229,6 +229,7 @@ class TestDatetimeIndexSetOps:
         expected = DatetimeIndex(
             ["2000-01-01", "2000-01-02", "2000-01-03", "2000-01-04", "2000-01-05"],
             tz=tz,
+            freq="D",
         ).as_unit("us")
         tm.assert_index_equal(result, expected)
 
@@ -491,7 +492,7 @@ class TestDatetimeIndexSetOps:
         )
         result = dti[::2].intersection(dti[1::2])
         expected = dti[:0]
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_dti_intersection(self):
         rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
@@ -609,7 +610,7 @@ class TestBusinessDatetimeIndex:
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = DatetimeIndex([]).as_unit("ns")
+        expected = DatetimeIndex([], freq=Minute()).as_unit("ns")
         tm.assert_index_equal(the_int, expected)
 
     def test_intersection_bug(self):

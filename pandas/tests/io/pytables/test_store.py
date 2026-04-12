@@ -478,7 +478,7 @@ def test_mi_data_columns(temp_hdfstore):
 
     actual = temp_hdfstore.select("df", where="id == 1")
     expected = df.iloc[[1], :]
-    tm.assert_frame_equal(actual, expected)
+    tm.assert_frame_equal(actual, expected, check_freq=False)
 
 
 def test_table_mixed_dtypes(temp_hdfstore):

@@ -52,7 +52,7 @@ def test_map_identity_mapping(index, request, using_infer_string):
         assert (index == result).all()
         # TODO: could work that into the 'exact="equiv"'?
         return  # FIXME: doesn't belong in this file anymore!
-    tm.assert_index_equal(result, index, exact="equiv")
+    tm.assert_index_equal(result, index, exact="equiv", check_freq=False)
 
 
 def test_wrong_number_names(index):

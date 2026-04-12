@@ -201,6 +201,7 @@ def assert_index_equal(
     check_exact: bool = True,
     check_categorical: bool = True,
     check_order: bool = True,
+    check_freq: bool | lib.NoDefault = lib.no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str | None = None,
@@ -237,6 +238,14 @@ def assert_index_equal(
         Whether to compare the order of index entries as well as their values.
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
+    check_freq : bool, default True
+        Whether to check the ``freq`` attribute on a DatetimeIndex or
+        TimedeltaIndex.
+
+        .. deprecated:: 3.1.0
+            The default value of True will be enforced in a future version.
+            Pass ``check_freq=True`` or ``check_freq=False`` explicitly to
+            silence this warning.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -303,6 +312,7 @@ def assert_index_equal(
                     cast("CategoricalIndex", left).categories,
                     cast("CategoricalIndex", right).categories,
                     exact=exact,
+                    check_freq=check_freq,
                 )
             return
 
@@ -348,6 +358,7 @@ def assert_index_equal(
                     check_names=check_names,
                     check_exact=check_exact,
                     check_categorical=check_categorical,
+                    check_freq=check_freq,
                     rtol=rtol,
                     atol=atol,
                     obj=lobj,
@@ -364,6 +375,7 @@ def assert_index_equal(
                     check_names=check_names,
                     check_exact=check_exact,
                     check_categorical=check_categorical,
+                    check_freq=check_freq,
                     rtol=rtol,
                     atol=atol,
                     obj=lobj,
@@ -417,6 +429,22 @@ def assert_index_equal(
             cast("IntervalArray", right._values),
         )
 
+    if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
+        right = cast("DatetimeIndex | TimedeltaIndex", right)
+        if check_freq is lib.no_default:
+            if left.freq != right.freq:
+                warnings.warn(
+                    f"The default value of True for the `check_freq` parameter is "
+                    f"deprecated and will be enforced in a future version. The "
+                    f"frequencies {left.freq!r} and {right.freq!r} do not match. "
+                    f"Pass check_freq=True or check_freq=False explicitly to "
+                    f"silence this warning",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+        elif check_freq:
+            assert left.freq == right.freq, (left.freq, right.freq)
+
     if check_categorical:
         if isinstance(left.dtype, CategoricalDtype) or isinstance(
             right.dtype, CategoricalDtype
@@ -424,6 +452,7 @@ def assert_index_equal(
             assert_categorical_equal(
                 cast("Categorical", left._values),
                 cast("Categorical", right._values),
+                check_freq=check_freq,
                 obj=f"{obj} category",
             )
 
@@ -519,6 +548,7 @@ def assert_categorical_equal(
     right: Categorical,
     check_dtype: bool = True,
     check_category_order: bool = True,
+    check_freq: bool | lib.NoDefault = lib.no_default,
     obj: str = "Categorical",
 ) -> None:
     """
@@ -552,7 +582,11 @@ def assert_categorical_equal(
 
     if check_category_order:
         assert_index_equal(
-            left.categories, right.categories, obj=f"{obj}.categories", exact=exact
+            left.categories,
+            right.categories,
+            obj=f"{obj}.categories",
+            exact=exact,
+            check_freq=check_freq,
         )
         assert_numpy_array_equal(
             left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
@@ -564,12 +598,19 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
+        assert_index_equal(
+            lc,
+            rc,
+            obj=f"{obj}.categories",
+            exact=exact,
+            check_freq=check_freq,
+        )
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
             obj=f"{obj}.values",
             exact=exact,
+            check_freq=check_freq,
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)
@@ -1066,6 +1107,7 @@ def assert_series_equal(
             check_exact=check_exact_index,
             check_categorical=check_categorical,
             check_order=not check_like,
+            check_freq=check_freq,
             rtol=rtol,
             atol=atol,
             obj=f"{obj}.index",
@@ -1359,6 +1401,7 @@ def assert_frame_equal(
         check_exact=_check_exact,
         check_categorical=check_categorical,
         check_order=not check_like,
+        check_freq=check_freq,
         rtol=_rtol,
         atol=_atol,
         obj=f"{obj}.index",
@@ -1373,6 +1416,7 @@ def assert_frame_equal(
         check_exact=_check_exact,
         check_categorical=check_categorical,
         check_order=not check_like,
+        check_freq=check_freq,
         rtol=_rtol,
         atol=_atol,
         obj=f"{obj}.columns",
@@ -1443,8 +1487,6 @@ def assert_equal(left: Any, right: Any, **kwargs: Any) -> None:
 
     if isinstance(left, Index):
         assert_index_equal(left, right, **kwargs)
-        if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
-            assert left.freq == right.freq, (left.freq, right.freq)
     elif isinstance(left, Series):
         assert_series_equal(left, right, **kwargs)
     elif isinstance(left, DataFrame):
