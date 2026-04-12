@@ -487,8 +487,9 @@ def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
         if not (left.flags.c_contiguous and right.flags.c_contiguous):
             return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
         # View complex as float pairs (complex128 -> float64, complex64 -> float32)
-        left = left.view(left.real.dtype)
-        right = right.view(right.real.dtype)
+        float_dtype = np.finfo(left.dtype).dtype
+        left = left.view(float_dtype)
+        right = right.view(float_dtype)
     if left.ndim > 1:
         if left.flags.f_contiguous and right.flags.f_contiguous:
             # .T is a C-contiguous view of an F-contiguous array
