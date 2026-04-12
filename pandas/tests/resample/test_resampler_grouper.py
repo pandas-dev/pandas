@@ -184,7 +184,7 @@ def test_nearest():
 
     expected = Series(
         [0, 0, 1, 1, 1, 2, 2],
-        index=pd.pd.DatetimeIndex(
+        index=pd.DatetimeIndex(
             [
                 "2000-01-01 00:00:00",
                 "2000-01-01 00:00:20",
@@ -611,7 +611,7 @@ def test_groupby_resample_size_all_index_same():
     mi_exp = pd.MultiIndex.from_arrays(
         [
             [1, 1, 2, 2],
-            pd.pd.DatetimeIndex(["2000-12-31", "2001-01-01"] * 2, dtype="M8[ns]"),
+            pd.DatetimeIndex(["2000-12-31", "2001-01-01"] * 2, dtype="M8[ns]"),
         ],
         names=["A", None],
     )

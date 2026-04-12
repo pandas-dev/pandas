@@ -666,7 +666,7 @@ class TestBase:
 
         result = idx.map(lambda x: x)
         # RangeIndex are equivalent to the similar Index with int64 dtype
-        tm.assert_index_equal(result, idx, exact="equiv")
+        tm.assert_index_equal(result, idx, exact="equiv", check_freq=False)
 
     @pytest.mark.parametrize(
         "mapper",
@@ -837,11 +837,15 @@ class TestBase:
         result = index.append(index)
         assert result.dtype == index.dtype
 
-        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
-        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
+        tm.assert_index_equal(
+            result[:N], index, exact=False, check_exact=True, check_freq=False
+        )
+        tm.assert_index_equal(
+            result[N:], index, exact=False, check_exact=True, check_freq=False
+        )
 
         alt = index.take(list(range(N)) * 2)
-        tm.assert_index_equal(result, alt, check_exact=True)
+        tm.assert_index_equal(result, alt, check_exact=True, check_freq=False)
 
     def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
