@@ -1062,6 +1062,10 @@ class TestTimedeltaArraylikeAddSubOps:
             #  it represents Calendar-Day instead of 24h
             expected2 = expected2._with_freq(None)
         expected2 = tm.box_expected(expected2, box_with_array)
+        if box_with_array is pd.array:
+            # GH#24566 Array-level __neg__ and __rsub__ don't carry freq;
+            # freq is managed by the Index layer.
+            expected2 = expected2._with_freq(None)
 
         tm.assert_equal(ts - tdarr, expected2)
         tm.assert_equal(ts + (-tdarr), expected2)
