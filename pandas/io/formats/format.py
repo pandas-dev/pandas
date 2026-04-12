@@ -1126,9 +1126,13 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
+        if na_rep == "NaN":
+            na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
+        if na_rep == "NaN":
+            na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
@@ -1490,10 +1494,11 @@ class _Datetime64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: DatetimeArray,
+        na_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
     ) -> None:
-        super().__init__(values, **kwargs)
+        super().__init__(values, na_rep=na_rep, **kwargs)
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
@@ -1503,7 +1508,7 @@ class _Datetime64Formatter(_GenericArrayFormatter):
             return [self.formatter(x) for x in values]
 
         fmt_values = values._format_native_types(
-            na_rep="NaT", date_format=self.date_format
+            na_rep=self.na_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
 
@@ -1661,13 +1666,14 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: TimedeltaArray,
+        na_rep: str = "NaT",
         **kwargs,
     ) -> None:
-        super().__init__(values, **kwargs)
+        super().__init__(values, na_rep=na_rep, **kwargs)
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, na_rep="NaT", box=False
+            self.values, na_rep=self.na_rep, box=False
         )
         return [formatter(x) for x in self.values]
 

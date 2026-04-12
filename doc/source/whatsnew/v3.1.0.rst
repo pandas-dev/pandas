@@ -212,6 +212,7 @@ Datetimelike
 - Bug in :func:`to_datetime` and :func:`to_timedelta` on ARM platforms where round ``float`` values outside the int64 domain (e.g. ``float(2**63)``) could silently produce incorrect results instead of raising (:issue:`64619`)
 - Bug in :func:`to_datetime` and :func:`to_timedelta` where ``uint64`` values greater than ``int64`` max silently overflowed instead of raising :class:`OutOfBoundsDatetime` or :class:`OutOfBoundsTimedelta` (:issue:`60677`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``AssertionError`` instead of :class:`OutOfBoundsDatetime` when replacing with a ``datetime`` value outside the ``datetime64[ns]`` range (:issue:`61671`)
+- Bug in :meth:`DataFrame.to_string` and :meth:`Series.to_string` where ``na_rep`` was ignored for datetime and timedelta columns, always displaying ``NaT`` (:issue:`55426`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
 - Bug in adding non-nano :class:`DatetimeIndex` with non-vectorized offsets (e.g. :class:`CustomBusinessDay`, :class:`CustomBusinessMonthEnd`) having a sub-unit ``offset`` parameter incorrectly truncating the result or raising ``AttributeError`` (:issue:`56586`)
 - Bug in subtracting :class:`BusinessHour` (or :class:`CustomBusinessHour`) from a :class:`Timestamp` giving incorrect results when the subtraction would land exactly on the business-hour opening time (:issue:`33682`)
