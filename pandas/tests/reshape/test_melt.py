@@ -331,27 +331,38 @@ class TestMelt:
         )
 
         # Try to melt with missing `value_vars` column name
-        msg = "The following id_vars or value_vars are not present in the DataFrame:"
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(
+            KeyError,
+            match="The following value_vars are not present in the DataFrame:",
+        ):
             df.melt(["a", "b"], ["C", "d"])
 
         # Try to melt with missing `id_vars` column name
-        with pytest.raises(KeyError, match=msg):
-            df.melt(["A", "b"], ["c", "d"])
-
-        # Multiple missing
         with pytest.raises(
             KeyError,
-            match=msg,
+            match="The following id_vars are not present in the DataFrame:",
+        ):
+            df.melt(["A", "b"], ["c", "d"])
+
+        # Multiple missing id_vars
+        with pytest.raises(
+            KeyError,
+            match="The following id_vars are not present in the DataFrame:",
         ):
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
         # Multiindex melt fails if column is missing from multilevel melt
         df.columns = [list("ABCD"), list("abcd")]
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(
+            KeyError,
+            match="The following id_vars are not present in the DataFrame:",
+        ):
             df.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt
-        with pytest.raises(KeyError, match=msg):
+        with pytest.raises(
+            KeyError,
+            match="The following value_vars are not present in the DataFrame:",
+        ):
             df.melt(["A"], ["F"], col_level=0)
 
     def test_melt_mixed_int_str_id_vars(self):

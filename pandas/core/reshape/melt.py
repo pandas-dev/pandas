@@ -198,17 +198,30 @@ def melt(
             level = frame.columns.get_level_values(col_level)
         else:
             level = frame.columns
-        labels = id_vars + value_vars
-        idx = level.get_indexer_for(labels)
-        missing = idx == -1
-        if missing.any():
-            missing_labels = [
-                lab for lab, not_found in zip(labels, missing, strict=True) if not_found
-            ]
+
+        # Check id_vars and value_vars separately for clearer error messages
+        id_idx = level.get_indexer_for(id_vars)
+        missing_id = [
+            lab for lab, not_found in zip(id_vars, id_idx == -1, strict=True)
+            if not_found
+        ]
+        if missing_id:
             raise KeyError(
-                "The following id_vars or value_vars are not present in "
-                f"the DataFrame: {missing_labels}"
+                f"The following id_vars are not present in the DataFrame: {missing_id}"
             )
+
+        value_idx = level.get_indexer_for(value_vars)
+        missing_value = [
+            lab for lab, not_found in zip(value_vars, value_idx == -1, strict=True)
+            if not_found
+        ]
+        if missing_value:
+            raise KeyError(
+                "The following value_vars are not present in the DataFrame: "
+                f"{missing_value}"
+            )
+
+        idx = level.get_indexer_for(id_vars + value_vars)
         if value_vars_was_not_none:
             frame = frame.iloc[:, algos.unique(idx)]
         else:
