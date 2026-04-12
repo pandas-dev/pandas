@@ -263,7 +263,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             new_freq = self._get_rsub_datetime_result_freq(other)
 
         if new_freq is not None:
-            result._data._freq = new_freq
+            result._data._freq = new_freq  # type: ignore[union-attr]
         return result
 
     def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:
