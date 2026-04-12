@@ -74,7 +74,7 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable
 
     from pandas._typing import (
         AxisInt,
@@ -262,37 +262,6 @@ class TimedeltaArray(dtl.TimelikeOps):
         return cls._simple_new(data, dtype=data.dtype, freq=freq)
 
     @classmethod
-    def _from_sequence_not_strict(
-        cls,
-        data,
-        *,
-        dtype=None,
-        copy: bool = False,
-        freq=lib.no_default,
-        unit=None,
-    ) -> Self:
-        """
-        _from_sequence_not_strict but without responsibility for finding the
-        result's `freq`.
-        """
-        if dtype:
-            dtype = _validate_td64_dtype(dtype)
-            if unit is None and lib.infer_dtype(data) == "integer":
-                unit = np.datetime_data(dtype)[0]
-
-        assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
-
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-
-        if dtype is not None:
-            data = astype_overflowsafe(data, dtype=dtype, copy=False)
-
-        result = cls._simple_new(data, dtype=data.dtype, freq=inferred_freq)
-
-        result._maybe_pin_freq(freq, {})
-        return result
-
-    @classmethod
     def _generate_range(
         cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
     ) -> Self:
@@ -384,21 +353,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy=copy)
 
-    def __iter__(self) -> Iterator:
-        if self.ndim > 1:
-            for i in range(len(self)):
-                yield self[i]
-        else:
-            # convert in chunks of 10k for efficiency
-            data = self._ndarray
-            length = len(self)
-            chunksize = 10000
-            chunks = (length // chunksize) + 1
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, length)
-                converted = ints_to_pytimedelta(data[start_i:end_i], box=True)
-                yield from converted
+    def _iter_convert_chunk(self, data: np.ndarray) -> np.ndarray:
+        return ints_to_pytimedelta(data, box=True)
 
     # ----------------------------------------------------------------
     # Reductions
