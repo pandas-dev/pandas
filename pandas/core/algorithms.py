@@ -356,10 +356,10 @@ def unique(values):
     Series.unique : Return unique values of Series object.
 
     Notes
-    --------
-    For object-dtype inputs, boolean and integer values are not
-    distinguished. For example, ``True`` and ``1`` are treated as
-    equivalent values.
+    -----
+    For object-dtype inputs, pandas follows Python's object hash/equality
+    semantics, so boolean and integer values are not distinguished.
+    For example, ``True`` and ``1`` are treated as equivalent values.
 
     Examples
     --------
