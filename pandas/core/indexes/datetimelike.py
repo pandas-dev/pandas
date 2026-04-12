@@ -736,6 +736,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             else:
                 codes = np.arange(len(self), dtype=np.intp)
                 uniques = self.copy()
+            uniques._name = None
             return codes, uniques
         return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
