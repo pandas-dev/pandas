@@ -250,7 +250,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 -
 
 Indexing
