@@ -278,7 +278,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         freq = self.freq
         assert freq is not None  # caller ensures this
         if op in (operator.mul, rmul):
-            if isna(other):
+            if bool(isna(other)):
                 return None
             # error: No overload variant of "__mul__" of "BaseOffset"
             # matches argument type "object"
