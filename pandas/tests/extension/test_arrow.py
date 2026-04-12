@@ -1568,6 +1568,45 @@ def test_astype_errors_ignore():
     tm.assert_frame_equal(result, expected)
 
 
+def test_astype_pyarrow_tznaive_to_tzaware():
+    # GH#49281 tz-naive to tz-aware should use tz_localize semantics
+    # (treat as wall times), not tz_localize("UTC").tz_convert(tz)
+    ser = pd.Series(
+        pd.date_range("2020-01-01", periods=3, freq="D"),
+        dtype="timestamp[ns][pyarrow]",
+    )
+    result = ser.astype("timestamp[ns, US/Eastern][pyarrow]")
+    expected = pd.Series(
+        pd.date_range("2020-01-01", periods=3, freq="D", tz="US/Eastern"),
+        dtype="timestamp[ns, tz=US/Eastern][pyarrow]",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_astype_cross_family_tznaive_to_tzaware():
+    # GH#49281 cross-family astype should also use tz_localize semantics
+    ser = pd.Series(pd.date_range("2020-01-01", periods=3, freq="D"))
+    # numpy dt64 naive -> pyarrow tz-aware
+    result = ser.astype("timestamp[ns, US/Eastern][pyarrow]")
+    expected = pd.Series(
+        pd.date_range("2020-01-01", periods=3, freq="D", tz="US/Eastern"),
+        dtype="timestamp[ns, tz=US/Eastern][pyarrow]",
+    )
+    tm.assert_series_equal(result, expected)
+
+    # pyarrow tz-naive -> numpy dt64 tz-aware
+    pa_ser = pd.Series(
+        pd.date_range("2020-01-01", periods=3, freq="D"),
+        dtype="timestamp[ns][pyarrow]",
+    )
+    result = pa_ser.astype("datetime64[ns, US/Eastern]")
+    expected = pd.Series(
+        pd.date_range("2020-01-01", periods=3, freq="D", tz="US/Eastern"),
+        dtype="datetime64[ns, US/Eastern]",
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_to_numpy_with_defaults(data, using_nan_is_na):
     # GH49973
     result = data.to_numpy()

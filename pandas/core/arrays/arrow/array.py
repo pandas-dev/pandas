@@ -580,6 +580,18 @@ class ArrowExtensionArray(
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
             pa_array = value._pa_array
+            if (
+                pa_type is not None
+                and pa.types.is_timestamp(pa_type)
+                and pa_type.tz is not None
+                and pa.types.is_timestamp(pa_array.type)
+                and pa_array.type.tz is None
+            ):
+                # GH#49281 tz-naive to tz-aware: treat as wall times.
+                # pyarrow cast assumes UTC; use assume_timezone instead.
+                pa_array = pc.assume_timezone(
+                    pa_array, str(pa_type.tz), ambiguous="raise", nonexistent="raise"
+                )
         elif isinstance(value, (pa.Array, pa.ChunkedArray)):
             pa_array = value
         elif isinstance(value, BaseMaskedArray):
@@ -631,7 +643,12 @@ class ArrowExtensionArray(
 
                 pass_dtype = tz_to_dtype(tz=pa_type.tz, unit=pa_type.unit)
                 value = extract_array(value, extract_numpy=True)
-                if isinstance(value, DatetimeArray):
+                if isinstance(value, DatetimeArray) and (
+                    value.tz is not None or pa_type.tz is None
+                ):
+                    # GH#49281 only skip _from_sequence when the value
+                    # already has a tz or target is tz-naive.  tz-naive to
+                    # tz-aware must go through _from_sequence to tz_localize.
                     dta = value
                 else:
                     dta = DatetimeArray._from_sequence(

@@ -92,16 +92,17 @@ class TestDatetimeIndex:
         assert result.freq == expected.freq
 
     def test_astype_tznaive_to_tzaware(self):
-        # GH 18951: tz-naive to tz-aware
+        # GH 18951, GH#49281: tz-naive to tz-aware
         idx = date_range("20170101", periods=4)
         idx = idx._with_freq(None)  # tz_localize does not preserve freq
-        msg = "Cannot use .astype to convert from timezone-naive"
-        with pytest.raises(TypeError, match=msg):
-            # dt64->dt64tz deprecated
-            idx.astype("datetime64[ns, US/Eastern]")
-        with pytest.raises(TypeError, match=msg):
-            # dt64->dt64tz deprecated
-            idx._data.astype("datetime64[ns, US/Eastern]")
+        expected = idx.tz_localize("US/Eastern")
+
+        result = idx.astype("datetime64[ns, US/Eastern]")
+        tm.assert_index_equal(result, expected)
+
+        result = idx._data.astype("datetime64[ns, US/Eastern]")
+        expected_dta = expected._data
+        tm.assert_datetime_array_equal(result, expected_dta)
 
     def test_astype_str_nat(self, using_infer_string):
         # GH 13149, GH 13209

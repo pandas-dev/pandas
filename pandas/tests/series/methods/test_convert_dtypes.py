@@ -3,7 +3,6 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -184,17 +183,6 @@ class TestSeriesConvertDtypes:
         using_infer_string,
         using_nan_is_na,
     ):
-        if (
-            hasattr(data, "dtype")
-            and lib.is_np_dtype(data.dtype, "M")
-            and isinstance(maindtype, pd.DatetimeTZDtype)
-        ):
-            # this astype is deprecated in favor of tz_localize
-            msg = "Cannot use .astype to convert from timezone-naive dtype"
-            with pytest.raises(TypeError, match=msg):
-                pd.Series(data, dtype=maindtype)
-            return
-
         if maindtype is not None:
             series = pd.Series(data, dtype=maindtype)
         else:

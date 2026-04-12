@@ -259,10 +259,6 @@ class TestIndex:
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        # As of 2.0 astype raises on dt64.astype(dt64tz)
-        err = tz_naive_fixture is not None
-        msg = "Cannot use .astype to convert from timezone-naive dtype to"
-
         if attr == "asi8":
             result = DatetimeIndex(arg).tz_localize(tz_naive_fixture)
             tm.assert_index_equal(result, index)
@@ -274,12 +270,9 @@ class TestIndex:
             tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            if err:
-                with pytest.raises(TypeError, match=msg):
-                    DatetimeIndex(arg).astype(dtype)
-            else:
-                result = DatetimeIndex(arg).astype(dtype)
-                tm.assert_index_equal(result, index)
+            # GH#49281 astype now does tz_localize
+            result = DatetimeIndex(arg).astype(dtype)
+            tm.assert_index_equal(result, index)
         else:
             result = klass(arg, dtype=dtype)
             tm.assert_index_equal(result, index)
@@ -295,12 +288,9 @@ class TestIndex:
             tm.assert_index_equal(result, index)
 
         if attr == "asi8":
-            if err:
-                with pytest.raises(TypeError, match=msg):
-                    DatetimeIndex(list(arg)).astype(dtype)
-            else:
-                result = DatetimeIndex(list(arg)).astype(dtype)
-                tm.assert_index_equal(result, index)
+            # GH#49281 astype now does tz_localize
+            result = DatetimeIndex(list(arg)).astype(dtype)
+            tm.assert_index_equal(result, index)
         else:
             result = klass(list(arg), dtype=dtype)
             tm.assert_index_equal(result, index)

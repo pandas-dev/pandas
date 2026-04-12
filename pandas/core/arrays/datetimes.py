@@ -703,14 +703,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # e.g. Sparse[datetime64[ns]]
                 return super().astype(dtype, copy=copy)
             elif self.tz is None:
-                # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
-                #  the Series behavior which did
-                #  values.tz_localize("UTC").tz_convert(dtype.tz)
-                raise TypeError(
-                    "Cannot use .astype to convert from timezone-naive dtype to "
-                    "timezone-aware dtype. Use obj.tz_localize instead or "
-                    "series.dt.tz_localize instead"
-                )
+                # GH#49281 treat as wall times, consistent with the
+                # Series(dt64_values, dtype=tzaware_dtype) constructor.
+                return self.tz_localize(dtype.tz)
             else:
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)

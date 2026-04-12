@@ -273,14 +273,14 @@ class TestAstype:
         tm.assert_series_equal(result, expected)
 
         # astype - datetime64[ns, tz]
-        msg = "Cannot use .astype to convert from timezone-naive"
-        with pytest.raises(TypeError, match=msg):
-            # dt64->dt64tz astype deprecated
-            Series(ser.values).astype("datetime64[ns, US/Eastern]")
+        # GH#49281 tz_localize semantics (treat as wall times)
+        result = Series(ser.values).astype("datetime64[ns, US/Eastern]")
+        expected = Series(ser.values).dt.tz_localize("US/Eastern")
+        tm.assert_series_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            # dt64->dt64tz astype deprecated
-            Series(ser.values).astype(ser.dtype)
+        result = Series(ser.values).astype(ser.dtype)
+        expected = Series(ser.values).dt.tz_localize("US/Eastern")
+        tm.assert_series_equal(result, expected)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = Series(
