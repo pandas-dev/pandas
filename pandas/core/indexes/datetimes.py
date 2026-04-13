@@ -738,10 +738,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]')
         """
+        from pandas.core.dtypes.dtypes import PeriodDtype
+
         from pandas.core.indexes.api import PeriodIndex
 
+        from pandas.tseries.frequencies import get_period_alias
+
         if freq is None:
-            freq = self._data.freq
+            dt_freq = self._data.freq
+            freq = self.freqstr
+            if dt_freq is not None and hasattr(dt_freq, "_period_dtype_code"):
+                freq = PeriodDtype(dt_freq)._freqstr
+
+            if freq is not None:
+                res = get_period_alias(freq)
+                if res is not None:
+                    freq = res
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
