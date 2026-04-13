@@ -116,7 +116,8 @@ def _new_DatetimeIndex(cls, d):
     [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize", "tz_convert", "strftime")
+        if method
+        not in ("tz_localize", "tz_convert", "normalize", "to_period", "strftime")
     ],
     DatetimeArray,
     wrap=True,
