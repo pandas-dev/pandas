@@ -29,12 +29,10 @@ from pandas._libs.tslibs import (
     NaTType,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
-    Resolution,
     Timedelta,
     Timestamp,
     astype_overflowsafe,
     fields,
-    get_resolution,
     get_supported_dtype,
     get_unit_from_dtype,
     ints_to_pydatetime,
@@ -697,10 +695,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Returns True if all of the dates are at midnight ("no time")
         """
         return is_date_array_normalized(self.asi8, self.tz, reso=self._creso)
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution_obj(self) -> Resolution:
-        return get_resolution(self.asi8, self.tz, reso=self._creso)
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods

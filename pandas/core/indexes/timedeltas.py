@@ -163,10 +163,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
     _get_string_slice = Index._get_string_slice
 
-    @property
-    def _resolution_obj(self) -> Resolution:
-        return self._data._resolution_obj
-
     # -------------------------------------------------------------------
     # Constructors
 
@@ -263,7 +259,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             new_freq = self._get_rsub_datetime_result_freq(other)
 
         if new_freq is not None:
-            result._data._freq = new_freq  # type: ignore[union-attr]
+            result._data._freq = new_freq
         return result
 
     def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:

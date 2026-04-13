@@ -36,7 +36,6 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Period,
-    Resolution,
     Tick,
     Timedelta,
     Timestamp,
@@ -993,18 +992,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return frequencies.infer_freq(self)
         except ValueError:
             return None
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution_obj(self) -> Resolution | None:
-        raise NotImplementedError
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def resolution(self) -> str:
-        """
-        Returns day, hour, minute, second, millisecond or microsecond
-        """
-        # error: Item "None" of "Optional[Any]" has no attribute "attrname"
-        return self._resolution_obj.attrname  # type: ignore[union-attr]
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
