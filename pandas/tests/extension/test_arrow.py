@@ -3127,6 +3127,53 @@ def test_dt_timedelta_accessors_match_python_timedelta():
     assert pd.isna(ser.dt.microseconds.iloc[1])
 
 
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_dt_timedelta_components_different_units(unit):
+    # Test that components work correctly across all duration units,
+    # including coarser units where finer components should be zero.
+    td = pd.Timedelta(days=1, hours=2, minutes=3, seconds=4, milliseconds=5)
+    ser_arrow = pd.Series([td, None], dtype=ArrowDtype(pa.duration(unit)))
+
+    result = ser_arrow.dt.components
+
+    # Days, hours, minutes are always representable
+    assert result["days"].iloc[0] == 1
+    assert result["hours"].iloc[0] == 2
+    assert result["minutes"].iloc[0] == 3
+    assert result["seconds"].iloc[0] == 4
+
+    # Finer components depend on unit resolution
+    if unit in ("ms", "us", "ns"):
+        assert result["milliseconds"].iloc[0] == 5
+    else:
+        assert result["milliseconds"].iloc[0] == 0
+
+    if unit in ("us", "ns"):
+        assert result["microseconds"].iloc[0] == 0
+    else:
+        assert result["microseconds"].iloc[0] == 0
+
+    if unit == "ns":
+        assert result["nanoseconds"].iloc[0] == 0
+    else:
+        assert result["nanoseconds"].iloc[0] == 0
+
+    # Null handling across all units
+    for col in result.columns:
+        assert pd.isna(result[col].iloc[1])
+
+
+def test_dt_timedelta_components_all_null():
+    # Test all-null array hits the min_scalar.is_valid fast path
+    ser = pd.Series(
+        [None, None, None],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    for col in result.columns:
+        assert result[col].isna().all()
+
+
 def test_dt_to_pytimedelta():
     # GH 52284
     data = [timedelta(1, 2, 3), timedelta(1, 2, 4)]
