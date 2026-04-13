@@ -136,25 +136,37 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         An ordered ndarray[int64_t]
     """
     cdef:
-        Py_ssize_t i, n = len(arr)
+        Py_ssize_t i, n = len(arr), num_uniques = 0
         int64_t val
         khiter_t k
         kh_int64_t *table
         int ret = 0
-        list uniques = []
+        int64_t *uniques = NULL
         ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
     kh_resize_int64(table, 10)
+
+    # n - 1 is the max possible number of unique deltas
+    if n > 1:
+        uniques = <int64_t*>malloc((n - 1) * sizeof(int64_t))
+        if uniques is NULL:
+            kh_destroy_int64(table)
+            raise MemoryError()
+
     for i in range(n - 1):
         val = arr[i + 1] - arr[i]
         k = kh_get_int64(table, val)
         if k == table.n_buckets:
             kh_put_int64(table, val, &ret)
-            uniques.append(val)
+            uniques[num_uniques] = val
+            num_uniques += 1
     kh_destroy_int64(table)
 
-    result = np.array(uniques, dtype=np.int64)
+    result = np.empty(num_uniques, dtype=np.int64)
+    if num_uniques > 0:
+        memcpy(cnp.PyArray_DATA(result), uniques, num_uniques * sizeof(int64_t))
+    free(uniques)
     result.sort()
     return result
 
@@ -347,6 +359,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        bint no_nans
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -356,6 +369,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    no_nans = np.asarray(mask).all()
 
     with nogil:
         for xi in range(K):
@@ -363,18 +377,32 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 # Welford's method for the variance-calculation
                 # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
                 nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+
+                if no_nans:
+                    nobs = N
+                    for i in range(N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
+                        meanx += 1. / (i + 1) * dx
+                        meany += 1. / (i + 1) * dy
                         ssqdmx += (vx - meanx) * dx
                         ssqdmy += (vy - meany) * dy
                         covxy += (vx - meanx) * dy
+                else:
+                    for i in range(N):
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx += 1. / nobs * dx
+                            meany += 1. / nobs * dy
+                            ssqdmx += (vx - meanx) * dx
+                            ssqdmy += (vy - meany) * dy
+                            covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
@@ -694,6 +722,125 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def scalar_fillna_inplace(
+    numeric_object_t[:] values,
+    numeric_object_t fill_val,
+    uint8_t[:] mask=None,
+    bint is_datetimelike=False,
+    limit=None,
+) -> Py_ssize_t:
+    """
+    Fill NA values in `values` with `fill_val` in a single pass.
+
+    NA detection strategy (in priority order):
+    - If `mask` is provided, NA positions are read from the mask and
+      filled entries are cleared.
+    - If `is_datetimelike` is True (int64 values), NA is ``NPY_NAT``.
+    - For object dtype, NA is detected via ``checknull``.
+    - For other numeric dtypes, NA is detected via NaN-check.
+
+    Parameters
+    ----------
+    values : 1D memoryview, modified in-place
+    fill_val : scalar fill value (same fused type as values)
+    mask : optional uint8 memoryview indicating NA positions, modified in-place
+    is_datetimelike : bool, default False
+        True if `values` contains datetime-like entries (int64 with
+        NPY_NAT sentinel).
+    limit : int or None
+        Maximum number of NA values to fill. If None, fill all.
+
+    Returns
+    -------
+    Py_ssize_t
+        Number of values filled.
+    """
+    cdef:
+        Py_ssize_t i, N, filled = 0
+        int lim
+        bint isna_val, uses_mask = mask is not None
+
+    N = len(values)
+    if N == 0:
+        return 0
+
+    lim = validate_limit(N, limit)
+
+    with nogil(numeric_object_t is not object):
+        for i in range(N):
+            if uses_mask:
+                isna_val = mask[i]
+            elif numeric_object_t is object:
+                isna_val = checknull(values[i])
+            elif numeric_object_t is int64_t and is_datetimelike:
+                isna_val = values[i] == NPY_NAT
+            else:
+                isna_val = values[i] != values[i]
+            if isna_val:
+                if filled >= lim:
+                    break
+                filled += 1
+                values[i] = fill_val
+                if uses_mask:
+                    mask[i] = 0
+
+    return filled
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def scalar_fillna_2d_inplace(
+    numeric_object_t[:, :] values,
+    numeric_object_t fill_val,
+    limit=None,
+) -> Py_ssize_t:
+    """
+    Fill NA values in 2D `values` with `fill_val` in a single pass.
+
+    The limit is applied per-column (axis=1 of block values).
+
+    Parameters
+    ----------
+    values : 2D memoryview (K, N), modified in-place
+    fill_val : scalar fill value
+    limit : int or None
+
+    Returns
+    -------
+    Py_ssize_t
+        Total number of values filled.
+    """
+    cdef:
+        Py_ssize_t i, j, K, N, filled = 0
+        int lim, col_fill_count
+        bint isna_val
+
+    K, N = (<object>values).shape
+    if N == 0 or K == 0:
+        return 0
+
+    lim = validate_limit(N, limit)
+
+    with nogil(numeric_object_t is not object):
+        for j in range(K):
+            col_fill_count = 0
+            for i in range(N):
+                if numeric_object_t is object:
+                    isna_val = checknull(values[j, i])
+                else:
+                    isna_val = values[j, i] != values[j, i]
+                if isna_val:
+                    if col_fill_count >= lim:
+                        continue
+                    col_fill_count += 1
+                    values[j, i] = fill_val
+                    filled += 1
+
+    return filled
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def backfill(
     const numeric_object_t[:] old,
     const numeric_object_t[:] new,
@@ -843,8 +990,6 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
                 is_monotonic_dec = 0
                 break
             if not is_monotonic_inc and not is_monotonic_dec:
-                is_monotonic_inc = 0
-                is_monotonic_dec = 0
                 break
             prev = cur
 
@@ -1022,7 +1167,6 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == "top")
-    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1031,7 +1175,9 @@ def rank_1d(
     if check_labels:
         order.append(labels)
 
-    np.putmask(masked_vals, mask, nan_fill_val)
+    if check_mask:
+        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
+        np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
     masked_vals_memview = masked_vals
 

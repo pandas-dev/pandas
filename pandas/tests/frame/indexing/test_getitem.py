@@ -89,6 +89,82 @@ class TestGetitem:
         expected = df["A"]
         tm.assert_series_equal(result, expected)
 
+    def test_getitem_multiindex_columns_slice_in_tuple(self):
+        # GH#26511 - df[:, "t1"] should work for MultiIndex columns
+        data = np.zeros((3, 6), dtype=np.int16)
+        columns = MultiIndex.from_product([["A", "B", "C"], ["t1", "t2"]])
+        df = DataFrame(data, columns=columns)
+
+        # Slice at level 0, label at level 1: selects all "t1" sub-columns
+        result = df[:, "t1"]
+        expected = DataFrame(
+            np.zeros((3, 3), dtype=np.int16),
+            columns=Index(["A", "B", "C"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Label at level 0, slice at level 1: equivalent to df["A"]
+        result = df["A", :]
+        expected = df["A"]
+        tm.assert_frame_equal(result, expected)
+
+        # Both slices: returns full DataFrame
+        result = df[:, :]
+        tm.assert_frame_equal(result, df)
+
+    def test_getitem_multiindex_columns_list_in_tuple(self):
+        # GH#26511 - df[["A", "B"], "t1"] should work for MultiIndex columns
+        data = np.arange(18, dtype=np.int64).reshape(3, 6)
+        columns = MultiIndex.from_product([["A", "B", "C"], ["t1", "t2"]])
+        df = DataFrame(data, columns=columns)
+
+        # List at level 0, scalar at level 1
+        result = df[["A", "B"], "t1"]
+        expected = DataFrame(
+            {"A": [0, 6, 12], "B": [2, 8, 14]},
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Scalar at level 0, list at level 1
+        result = df["A", ["t1", "t2"]]
+        expected = DataFrame(
+            {"t1": [0, 6, 12], "t2": [1, 7, 13]},
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # List at level 0, slice at level 1
+        result = df[["A", "C"], :]
+        expected = DataFrame(
+            data[:, [0, 1, 4, 5]],
+            columns=MultiIndex.from_product([["A", "C"], ["t1", "t2"]]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Both lists: neither level is dropped
+        result = df[["A", "B"], ["t1"]]
+        expected = DataFrame(
+            [[0, 2], [6, 8], [12, 14]],
+            columns=MultiIndex.from_product([["A", "B"], ["t1"]]),
+            dtype=np.int64,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Slice at level 0, list at level 1: neither level is dropped
+        result = df[:, ["t1"]]
+        expected = DataFrame(
+            [[0, 2, 4], [6, 8, 10], [12, 14, 16]],
+            columns=MultiIndex.from_product([["A", "B", "C"], ["t1"]]),
+            dtype=np.int64,
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # np.ndarray at level 0, scalar at level 1: array level not dropped
+        result = df[np.array(["A", "B"]), "t1"]
+        expected = DataFrame(
+            {"A": [0, 6, 12], "B": [2, 8, 14]},
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemListLike:
     def test_getitem_list_missing_key(self):

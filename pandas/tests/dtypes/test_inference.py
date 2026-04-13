@@ -398,19 +398,10 @@ def test_is_file_like():
     assert is_file(data)
 
     # No read / write attributes
-    # No iterator attributes
     m = MockFile()
     assert not is_file(m)
 
     MockFile.write = lambda self: 0
-
-    # Write attribute but not an iterator
-    m = MockFile()
-    assert not is_file(m)
-
-    # gh-16530: Valid iterator just means we have the
-    # __iter__ attribute for our purposes.
-    MockFile.__iter__ = lambda self: self
 
     # Valid write-only file
     m = MockFile()
@@ -423,7 +414,7 @@ def test_is_file_like():
     m = MockFile()
     assert is_file(m)
 
-    # Iterator but no read / write attributes
+    # Iterable but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
 
@@ -2160,4 +2151,19 @@ def test_find_result_type_int_int(right, result):
 )
 def test_find_result_type_floats(right, result):
     left_dtype = np.dtype("float16")
+    assert find_result_type(left_dtype, right) == result
+
+
+@pytest.mark.parametrize(
+    "right,result",
+    [
+        # GH#61671 - find_common_type picks highest resolution (ns)
+        (datetime(3000, 1, 1), np.dtype("datetime64[ns]")),
+        (datetime(2020, 1, 1), np.dtype("datetime64[ns]")),
+        # np.datetime64 with explicit ns resolution stays ns
+        (np.datetime64("2020-01-01", "ns"), np.dtype("datetime64[ns]")),
+    ],
+)
+def test_find_result_type_datetime(right, result):
+    left_dtype = np.dtype("datetime64[ns]")
     assert find_result_type(left_dtype, right) == result

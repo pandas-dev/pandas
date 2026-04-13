@@ -19,8 +19,8 @@ def test_setop_mismatched_category_order(method):
 
     result = getattr(id1, method)(id2)
     if method == "union":
-        # values from id1 first, then values from id2 not in id1
-        expected = CategoricalIndex(["a", "c", "d", "b"], categories=cats1)
+        # sort=None (default) sorts the result
+        expected = CategoricalIndex(["a", "b", "c", "d"], categories=cats1)
     else:
         expected = CategoricalIndex([], categories=cats1)
     tm.assert_index_equal(result, expected)

@@ -14,6 +14,7 @@ from libc.stdlib cimport (
     calloc,
     free,
 )
+from libc.string cimport memcpy
 
 import numpy as np
 
@@ -254,6 +255,11 @@ cdef:
     int subheader_indices_64bit[17]
     int data_subheader_index = const.SASIndex.data_subheader_index
 
+    int c_page_type_offset = const.page_type_offset
+    int c_page_type_mask2 = const.page_type_mask2
+    int c_block_count_offset = const.block_count_offset
+    int c_subheader_count_offset = const.subheader_count_offset
+
 
 def _init_subheader_signatures():
     subheaders_32bit = [
@@ -319,13 +325,13 @@ cdef class Parser:
         int current_row_in_chunk_index
         int current_row_in_file_index
         bint blank_missing
-        str encoding
         int header_length
         int row_length
         int bit_offset
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
+        bint need_byteswap
         int (*decompress)(Buffer, Buffer) except? 0
         Buffer decompressed_buf
         object parser
@@ -343,10 +349,6 @@ cdef class Parser:
 
         self.parser = parser
         self.blank_missing = parser.blank_missing
-        if parser.convert_text and parser.encoding is not None:
-            self.encoding = parser.encoding or parser.default_encoding
-        else:
-            self.encoding = None
         self.header_length = self.parser.header_length
         self.column_count = parser.column_count
         self.lengths = parser.column_data_lengths()
@@ -357,6 +359,7 @@ cdef class Parser:
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
         self.is_little_endian = parser.byte_order == "<"
+        self.need_byteswap = parser.need_byteswap
         self.column_types = np.empty(self.column_count, dtype="int64")
 
         # page indicators
@@ -407,28 +410,65 @@ cdef class Parser:
         self.parser._current_row_in_chunk_index = self.current_row_in_chunk_index
         self.parser._current_row_in_file_index = self.current_row_in_file_index
 
-    cdef bint read_next_page(self) except? True:
-        cdef bint done
+    cdef uint16_t read_uint16(self, int offset):
+        cdef uint16_t val = 0
+        assert offset + 2 <= self.cached_page_len, "Out of bounds read"
+        memcpy(&val, &self.cached_page[offset], sizeof(uint16_t))
+        if self.need_byteswap:
+            val = ((val >> 8) | (val << 8)) & 0xFFFF
+        return val
 
-        done = self.parser._read_next_page()
-        if done:
-            self.cached_page = NULL
-        else:
-            self.update_next_page()
-        return done
-
-    cdef update_next_page(self):
-        # update data for the current page
-
+    cdef void _parse_page_header(self):
+        # Read page header fields directly from the cached page buffer in C.
         self.cached_page = <uint8_t *>self.parser._cached_page
         self.cached_page_len = len(self.parser._cached_page)
         self.current_row_on_page_index = 0
-        self.current_page_type = self.parser._current_page_type
-        self.current_page_block_count = self.parser._current_page_block_count
+        self.current_page_type = (
+            self.read_uint16(c_page_type_offset + self.bit_offset)
+            & c_page_type_mask2
+        )
+        self.current_page_block_count = self.read_uint16(
+            c_block_count_offset + self.bit_offset
+        )
+        self.current_page_subheaders_count = self.read_uint16(
+            c_subheader_count_offset + self.bit_offset
+        )
+
+    cdef bint read_next_page(self) except? True:
+        cdef bint done
+
+        while True:
+            done = self.parser._read_page_data()
+            if done:
+                self.cached_page = NULL
+                return True
+
+            self._parse_page_header()
+
+            if (self.current_page_type == page_meta_types_0
+                    or self.current_page_type == page_meta_types_1):
+                # Set Python attr needed by _process_page_metadata
+                self.parser._current_page_subheaders_count = (
+                    self.current_page_subheaders_count
+                )
+                self.parser._process_page_metadata()
+                self.current_page_data_subheader_pointers_len = len(
+                    self.parser._current_page_data_subheader_pointers
+                )
+                return False
+            elif (self.current_page_type == page_data_type
+                    or self.current_page_type == page_mix_type):
+                self.current_page_data_subheader_pointers_len = 0
+                return False
+            # else: unsupported page type (e.g. AMD), skip to next page
+
+    cdef update_next_page(self):
+        # Called once from __init__ to sync with the page the Python parser
+        # left off on after _parse_metadata.
+        self._parse_page_header()
         self.current_page_data_subheader_pointers_len = len(
             self.parser._current_page_data_subheader_pointers
         )
-        self.current_page_subheaders_count = self.parser._current_page_subheaders_count
 
     cdef bint readline(self) except? True:
 
@@ -557,10 +597,6 @@ cdef class Parser:
                     lngt -= 1
                 if lngt == 0 and self.blank_missing:
                     string_chunk[js, current_row] = np_nan
-                elif self.encoding is not None:
-                    string_chunk[js, current_row] = buf_as_bytes(
-                        source, start, lngt
-                    ).decode(self.encoding)
                 else:
                     string_chunk[js, current_row] = buf_as_bytes(source, start, lngt)
                 js += 1

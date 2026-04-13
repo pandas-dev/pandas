@@ -708,7 +708,8 @@ class SAS7BDATReader(SASReader):
 
         return rslt
 
-    def _read_next_page(self):
+    def _read_page_data(self):
+        """Read the next page from the file. Returns True if EOF."""
         self._current_page_data_subheader_pointers = []
         self._cached_page = self._path_or_buf.read(self._page_length)
         if len(self._cached_page) <= 0:
@@ -720,6 +721,12 @@ class SAS7BDATReader(SASReader):
                 f"{len(self._cached_page):d} of {self._page_length:d} bytes)"
             )
             raise ValueError(msg)
+        return False
+
+    def _read_next_page(self):
+        done = self._read_page_data()
+        if done:
+            return True
 
         self._read_page_header()
         if self._current_page_type in const.page_meta_types:
@@ -754,8 +761,11 @@ class SAS7BDATReader(SASReader):
                 jb += 1
             elif self._column_types[j] == b"s":
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
-                if self.convert_text and (self.encoding is not None) and infer_string:
-                    rslt[name] = rslt[name].astype("str")
+                if self.convert_text and (self.encoding is not None):
+                    rslt[name] = self._decode_string(rslt[name].str)
+                    if infer_string:
+                        rslt[name] = rslt[name].astype("str")
+
                 js += 1
             else:
                 self.close()

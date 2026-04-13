@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from abc import (
     ABC,
-    abstractmethod,
 )
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,6 +16,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -25,11 +26,14 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     Resolution,
     Tick,
     Timedelta,
     Timestamp,
+    get_resolution,
     parsing,
+    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
@@ -39,10 +43,12 @@ from pandas.errors import (
     NullFrequencyError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -54,6 +60,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -61,6 +68,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexes.base import (
     Index,
 )
@@ -265,15 +273,20 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
-    @abstractmethod
-    def _resolution_obj(self) -> Resolution: ...
+    def _resolution_obj(self) -> Resolution:
+        if isinstance(self.dtype, PeriodDtype):
+            return self.dtype._resolution_obj
+        elif self.dtype.kind == "M":
+            return get_resolution(self.asi8, self.tz, reso=self._data._creso)  # type: ignore[attr-defined,union-attr]
+        else:
+            return get_resolution(self.asi8, tz=None, reso=self._data._creso)  # type: ignore[union-attr]
 
     @cache_readonly
     def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return self._data.resolution
+        return self._resolution_obj.attrname
 
     # ------------------------------------------------------------------------
 
@@ -293,23 +306,61 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
-            should_try = False
-            inferable = self._data._infer_matches
             if other.dtype == object:
-                should_try = other.inferred_type in inferable
+                converted = lib.maybe_convert_objects(
+                    np.asarray(other), convert_non_numeric=True
+                )
+                converted = ensure_wrapped_if_datetimelike(converted)
+                if isinstance(converted, type(self._data)):
+                    other = type(self)._simple_new(converted)
+                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a future "
+                        "version, these will be left as object dtype. Use "
+                        "pd.to_datetime to explicitly convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
             elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
-                should_try = other.categories.inferred_type in inferable
-
-            if should_try:
-                try:
-                    other = type(self)(other)
-                except (ValueError, TypeError, OverflowError):
-                    # e.g.
-                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                    #  OverflowError -> Index([very_large_timedeltas])
-                    return False
+                cat_vals = np.asarray(other.categories)
+                if cat_vals.dtype == object:
+                    converted = lib.maybe_convert_objects(
+                        cat_vals, convert_non_numeric=True
+                    )
+                    converted = ensure_wrapped_if_datetimelike(converted)
+                else:
+                    converted = ensure_wrapped_if_datetimelike(cat_vals)
+                if isinstance(converted, type(self._data)):
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
+                elif (
+                    self.dtype.kind == "M"
+                    and cat_vals.dtype == object
+                    and lib.infer_dtype(other.categories) == "date"
+                ):
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a "
+                        "future version, these will be left as object "
+                        "dtype. Use pd.to_datetime to explicitly "
+                        "convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
 
         if type(self) != type(other):
             return False
@@ -618,6 +669,64 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
+
+    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
+        """
+        Check if we can preserve self.freq in addition or subtraction.
+        """
+        if not lib.is_scalar(other):
+            return None
+
+        # Normalize scalar types to their pandas equivalents.
+        # Array arithmetic methods internally convert Tick/timedelta/
+        # np.timedelta64 → Timedelta and datetime/np.datetime64 → Timestamp.
+        # Since we receive the original user argument, normalize here.
+        if isinstance(other, Tick):
+            other = Timedelta(other)
+        elif isinstance(other, np.timedelta64):
+            other = Timedelta(other)
+        elif isinstance(other, np.datetime64):
+            other = Timestamp(other)
+        elif not isinstance(other, (Timedelta, Timestamp)):
+            # Handles datetime.timedelta, datetime.datetime
+            try:
+                other = Timedelta(other)
+            except (ValueError, TypeError, OverflowError):
+                try:
+                    other = Timestamp(other)
+                except (ValueError, TypeError, OverflowError):
+                    return None
+
+        if isinstance(self.freq, Tick):
+            return self.freq
+        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
+            return self.freq
+        elif (
+            self.dtype.kind == "m"
+            and isinstance(other, Timestamp)
+            and (other.tz is None or timezones.is_utc(other.tz))
+        ):
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(self.freq, Day)
+            and isinstance(other, (Timedelta, Timestamp))
+        ):
+            return self.freq
+
+        return None
+
+    def _arith_method(self, other, op):
+        result = super()._arith_method(other, op)
+        if result is NotImplemented:
+            return result
+        if op in (operator.add, roperator.radd, operator.sub, roperator.rsub):
+            new_freq = self._get_arithmetic_result_freq(other)
+            if new_freq is not None and isinstance(result, DatetimeTimedeltaMixin):
+                if op is roperator.rsub:
+                    new_freq = -new_freq
+                result._data._freq = new_freq
+        return result
 
     @property
     def unit(self) -> TimeUnit:
