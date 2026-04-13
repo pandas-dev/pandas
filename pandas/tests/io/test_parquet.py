@@ -836,6 +836,26 @@ class TestParquetPyArrow(Base):
         else:
             check_round_trip(df, temp_file, pa)
 
+    def test_read_parquet_null_batch(self, tmp_path):
+        # 1. Recreate the exact DataFrame from the issue report
+        data = {"funny_col": [None] * 200_000}
+        data["funny_col"][100200] = "funny"
+        expected_df = pd.DataFrame(data)
+
+        # Split the DataFrame to simulate the batched parquet writing
+        df_split_1 = expected_df.iloc[0:100_000]
+        df_split_2 = expected_df.iloc[100_000:200_000]
+
+        # 2. Write both batches into the pytest-provided temporary directory
+        df_split_1.to_parquet(tmp_path / "funny-00.parquet", engine="pyarrow")
+        df_split_2.to_parquet(tmp_path / "funny-01.parquet", engine="pyarrow")
+
+        # 3. Attempt to read the entire directory back into memory
+        result_df = read_parquet(tmp_path, engine="pyarrow")
+
+        # 4. Assert the round-trip was successful and matches the original
+        tm.assert_frame_equal(result_df, expected_df)
+
     @pytest.mark.xfail(
         is_platform_windows(),
         reason=(
