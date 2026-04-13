@@ -2192,21 +2192,17 @@ class Timedelta(_Timedelta):
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
+            total_ns = (
+                int(ns)
+                + int(us * 1_000)
+                + int(ms * 1_000_000)
+                + seconds
+            )
+
             try:
-                value = np.timedelta64(
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
-                    + seconds, "ns"
-                )
+                value = np.timedelta64(total_ns, "ns")
             except OverflowError:
                 # GH#46587 - fall back to coarser resolutions
-                total_ns = (
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
-                    + seconds
-                )
                 if total_ns % 1_000 != 0:
                     reso_value, reso_abbrev = total_ns, "ns"
                 elif total_ns % 1_000_000 != 0:
