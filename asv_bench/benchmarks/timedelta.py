@@ -38,12 +38,9 @@ class TimedeltaComponents:
 
     def setup(self, backend):
         N = 100000
-        if backend == "NumPy":
-            self.series = Series(timedelta_range("1 days", periods=N, freq="h"))
-        else:
-            self.series = Series(timedelta_range("1 days", periods=N, freq="h")).astype(
-                "duration[ns][pyarrow]"
-            )
+        self.series = Series(timedelta_range("1 days", periods=N, freq="h"))
+        if backend == "PyArrow":
+            self.series = self.series.astype("duration[ns][pyarrow]")
 
     def time_days(self, backend):
         self.series.dt.days
