@@ -585,7 +585,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _constructor_from_mgr(self, mgr, axes):
         ser = Series._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead.
+        # _name is not set by NDFrame.__init__, so we initialize it here.
+        object.__setattr__(ser, "_name", None)
 
         if type(self) is Series:
             # This would also work `if self._constructor is Series`, but

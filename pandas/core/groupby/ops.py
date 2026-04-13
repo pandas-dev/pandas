@@ -1281,8 +1281,15 @@ class SeriesSplitter(DataSplitter):
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
         ser = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
-        ser._name = sdata.name
-        return ser.__finalize__(sdata, method="groupby")
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
+        object.__setattr__(ser, "_name", sdata.name)
+        if (
+            type(sdata) is not Series
+            or sdata.attrs
+            or not sdata._flags._allows_duplicate_labels
+        ):
+            return ser.__finalize__(sdata, method="groupby")
+        return ser
 
 
 class FrameSplitter(DataSplitter):
@@ -1291,4 +1298,10 @@ class FrameSplitter(DataSplitter):
         # return sdata.iloc[slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
-        return df.__finalize__(sdata, method="groupby")
+        if (
+            type(sdata) is not DataFrame
+            or sdata.attrs
+            or not sdata._flags._allows_duplicate_labels
+        ):
+            return df.__finalize__(sdata, method="groupby")
+        return df
