@@ -226,6 +226,38 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
         return tz.utcoffset(obj)
 
 
+cdef set _get_zoneinfo_offset_seconds(object tz_py):
+    cdef:
+        set offsets = set()
+        object info, tz_after
+
+    if hasattr(tz_py, "_ttinfos"):
+        for info in tz_py._ttinfos:
+            offsets.add(int(info.utcoff.total_seconds()))
+    if hasattr(tz_py, "_tti_before"):
+        offsets.add(int(tz_py._tti_before.utcoff.total_seconds()))
+    if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
+        tz_after = tz_py._tz_after
+        if hasattr(tz_after, "std"):
+            offsets.add(int(tz_after.std.utcoff.total_seconds()))
+            offsets.add(int(tz_after.dst.utcoff.total_seconds()))
+        elif hasattr(tz_after, "utcoff"):
+            offsets.add(int(tz_after.utcoff.total_seconds()))
+            if hasattr(tz_after, "dstoff"):
+                offsets.add(
+                    int((tz_after.utcoff + tz_after.dstoff).total_seconds())
+                )
+    return offsets
+
+
+cdef inline bint _zoneinfo_has_future_dst(object tz_py):
+    return (
+        hasattr(tz_py, "_tz_after")
+        and tz_py._tz_after is not None
+        and hasattr(tz_py._tz_after, "transitions")
+    )
+
+
 cpdef inline bint is_fixed_offset(tzinfo tz):
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
@@ -240,30 +272,10 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 0
     elif is_zoneinfo(tz):
         tz_py = _ZoneInfo(tz.key)
-        offsets = set()
-        if hasattr(tz_py, "_ttinfos"):
-            for info in tz_py._ttinfos:
-                offsets.add(int(info.utcoff.total_seconds()))
-        if hasattr(tz_py, "_tti_before"):
-            offsets.add(int(tz_py._tti_before.utcoff.total_seconds()))
-        if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
-            tz_after = tz_py._tz_after
-            if hasattr(tz_after, "std"):
-                offsets.add(int(tz_after.std.utcoff.total_seconds()))
-                offsets.add(int(tz_after.dst.utcoff.total_seconds()))
-            elif hasattr(tz_after, "utcoff"):
-                offsets.add(int(tz_after.utcoff.total_seconds()))
-                if hasattr(tz_after, "dstoff"):
-                    offsets.add(
-                        int((tz_after.utcoff + tz_after.dstoff).total_seconds())
-                    )
+        offsets = _get_zoneinfo_offset_seconds(tz_py)
         if len(offsets) == 1:
             return 1
-        has_future_dst = (
-            hasattr(tz_py, "_tz_after")
-            and tz_py._tz_after is not None
-            and hasattr(tz_py._tz_after, "transitions")
-        )
+        has_future_dst = _zoneinfo_has_future_dst(tz_py)
         if len(tz_py._trans_utc) == 0 and not has_future_dst:
             return 1
         return 0
@@ -370,31 +382,14 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
     tz_py = _ZoneInfo(tz.key)
 
-    offsets = set()
-    if hasattr(tz_py, "_ttinfos"):
-        offsets.update(int(info.utcoff.total_seconds()) for info in tz_py._ttinfos)
-    if hasattr(tz_py, "_tti_before"):
-        offsets.add(int(tz_py._tti_before.utcoff.total_seconds()))
-    if hasattr(tz_py, "_tz_after") and tz_py._tz_after is not None:
-        tz_after = tz_py._tz_after
-        if hasattr(tz_after, "std"):
-            offsets.add(int(tz_after.std.utcoff.total_seconds()))
-            offsets.add(int(tz_after.dst.utcoff.total_seconds()))
-        elif hasattr(tz_after, "utcoff"):
-            offsets.add(int(tz_after.utcoff.total_seconds()))
-            if hasattr(tz_after, "dstoff"):
-                offsets.add(int((tz_after.utcoff + tz_after.dstoff).total_seconds()))
+    offsets = _get_zoneinfo_offset_seconds(tz_py)
     if len(offsets) == 1:
         fixed_offset_seconds = offsets.pop()
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
         deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
         return trans, deltas, True
 
-    has_future_dst = (
-        hasattr(tz_py, "_tz_after")
-        and tz_py._tz_after is not None
-        and hasattr(tz_py._tz_after, "transitions")
-    )
+    has_future_dst = _zoneinfo_has_future_dst(tz_py)
 
     # Truly fixed offset: no historical transitions and no POSIX DST rules.
     if len(tz_py._trans_utc) == 0 and not has_future_dst:
