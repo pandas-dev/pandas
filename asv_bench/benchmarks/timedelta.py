@@ -48,22 +48,11 @@ class TimedeltaComponents:
     def time_days(self, backend):
         self.series.dt.days
 
-    def time_hours(self, backend):
-        self.series.dt.hours
-
     def time_seconds(self, backend):
-        self.series.dt.seconds
+        self.series.dt.components.seconds
 
     def time_microseconds(self, backend):
-        self.series.dt.microseconds
-
-    def time_sequential_subday(self, backend):
-        s = self.series
-        s.dt.hours
-        s.dt.minutes
-        s.dt.seconds
-        s.dt.microseconds
-        s.dt.nanoseconds
+        self.series.dt.components.microseconds
 
     def time_components(self, backend):
         self.series.dt.components
