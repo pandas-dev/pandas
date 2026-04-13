@@ -97,7 +97,7 @@ jobs:
           - [macos-15, macosx_arm64]
           - [windows-2025, win_amd64]
           - [windows-11-arm, win_arm64]
-        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
             python: ["cp312", "3.12"]
