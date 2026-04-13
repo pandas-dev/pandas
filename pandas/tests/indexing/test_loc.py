@@ -2395,6 +2395,9 @@ class TestLocSetitemWithExpansion:
                 "D": [np.nan, np.nan, np.nan, 91.0],
             },
             index=Index([0, 1, 2, "x"]),
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_with_expansion_duplicate_columns(self):
         # GH#58317
         df = DataFrame(
