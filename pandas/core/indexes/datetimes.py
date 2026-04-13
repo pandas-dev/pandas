@@ -373,27 +373,27 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def is_month_start(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_month_start
+        return self._data._get_start_end_field("is_month_start", self.freq)
 
     @property
     def is_month_end(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_month_end
+        return self._data._get_start_end_field("is_month_end", self.freq)
 
     @property
     def is_quarter_start(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_quarter_start
+        return self._data._get_start_end_field("is_quarter_start", self.freq)
 
     @property
     def is_quarter_end(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_quarter_end
+        return self._data._get_start_end_field("is_quarter_end", self.freq)
 
     @property
     def is_year_start(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_year_start
+        return self._data._get_start_end_field("is_year_start", self.freq)
 
     @property
     def is_year_end(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_year_end
+        return self._data._get_start_end_field("is_year_end", self.freq)
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
@@ -447,6 +447,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         arr = self._data.strftime(date_format)
         return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
+
+    def normalize(self) -> Self:
+        arr = self._data.normalize()
+        arr = arr._with_freq("infer")
+        return type(self)._simple_new(arr, name=self.name)
 
     def tz_convert(self, tz) -> Self:
         """
@@ -520,6 +525,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                         dtype='datetime64[us]', freq='h')
         """  # noqa: E501
         arr = self._data.tz_convert(tz)
+        freq = self._data.freq
+        if isinstance(freq, Tick):
+            arr._freq = freq
         return type(self)._simple_new(arr, name=self.name, refs=self._references)
 
     def tz_localize(
@@ -667,7 +675,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
         """  # noqa: E501
+        freq = self._data.freq
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        if timezones.is_utc(arr.tz) or (len(arr) == 1 and arr[0] is not NaT):
+            # we can preserve freq
+            # TODO: Also for fixed-offsets
+            arr._freq = freq
+        elif arr.tz is None and self._data.tz is None:
+            # no-op
+            arr._freq = freq
         return type(self)._simple_new(arr, name=self.name)
 
     def to_period(self, freq=None) -> PeriodIndex:
@@ -723,6 +739,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         from pandas.core.indexes.api import PeriodIndex
 
+        if freq is None:
+            freq = self._data.freq
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
