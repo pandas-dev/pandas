@@ -30,6 +30,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
+- :meth:`DataFrame.to_sql` now supports ``if_exists='upsert'`` to insert new rows and update existing rows that match on specified conflict columns. The new ``upsert_conflict_columns`` parameter defines which columns are used to detect conflicts. Supported for SQLAlchemy (PostgreSQL, MySQL/MariaDB, SQLite dialects) and native sqlite3. (:issue:`14553`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
