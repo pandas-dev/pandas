@@ -2540,16 +2540,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         use_na_sentinel: bool = True,
         sort: bool = False,
     ):
-        if self.freq is not None:
-            # We must be unique, so can short-circuit (and retain freq)
-            if sort and self.freq.n < 0:
-                codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
-                uniques = self[::-1]
-            else:
-                codes = np.arange(len(self), dtype=np.intp)
-                uniques = self.copy()  # TODO: copy or view?
-            return codes, uniques
-
         if sort:
             # algorithms.factorize only passes sort=True here when freq is
             #  not None, so this should not be reached.

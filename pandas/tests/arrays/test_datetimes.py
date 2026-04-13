@@ -11,6 +11,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -208,10 +212,16 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
         if op not in [operator.eq, operator.ne]:
-            # check that numpy still gets this wrong; if it is fixed we may be
-            #  able to remove compare_mismatched_resolutions
-            np_res = op(left._ndarray, right._ndarray)
-            tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
+            if is_numpy_dev or np_version_gt2_5:
+                # numpy now raises instead of silently overflowing
+                # https://github.com/numpy/numpy/pull/31085
+                with pytest.raises(OverflowError, match="Overflow"):
+                    op(left._ndarray, right._ndarray)
+            else:
+                # check that numpy still gets this wrong; if it is fixed we may
+                #  be able to remove compare_mismatched_resolutions
+                np_res = op(left._ndarray, right._ndarray)
+                tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
 
     def test_add_mismatched_reso_doesnt_downcast(self):
         # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008

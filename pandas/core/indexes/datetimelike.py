@@ -728,6 +728,23 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 result._data._freq = new_freq
         return result
 
+    def factorize(
+        self,
+        sort: bool = False,
+        use_na_sentinel: bool = True,
+    ):
+        if self.freq is not None:
+            # We must be unique, so can short-circuit (and retain freq)
+            if sort and self.freq.n < 0:
+                codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+                uniques = self[::-1]
+            else:
+                codes = np.arange(len(self), dtype=np.intp)
+                uniques = self.copy()
+            uniques._name = None
+            return codes, uniques
+        return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
+
     @property
     def unit(self) -> TimeUnit:
         """
