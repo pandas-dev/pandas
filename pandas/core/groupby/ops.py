@@ -777,6 +777,34 @@ class BaseGrouper:
         """
         return bool((self.ids < 0).any())
 
+    @final
+    @cache_readonly
+    def _reduceat_segment_info(
+        self,
+    ) -> tuple[int, npt.NDArray[np.intp], npt.NDArray[np.intp], np.ndarray] | None:
+        """
+        Precompute segment boundaries for _reduceat_aggregate.
+
+        Returns (na_count, group_starts, segment_ids, segment_sizes),
+        or None when comp_ids is empty after dropping NA rows.
+        """
+        comp_ids = self.ids
+
+        if self.has_dropped_na:
+            na_count = int((comp_ids < 0).sum())
+            comp_ids = comp_ids[na_count:]
+        else:
+            na_count = 0
+
+        if comp_ids.size == 0:
+            return None
+
+        group_starts = np.flatnonzero(np.r_[True, comp_ids[1:] != comp_ids[:-1]])
+        segment_ids = comp_ids[group_starts]
+        segment_sizes = np.diff(group_starts, append=comp_ids.size)
+
+        return na_count, group_starts, segment_ids, segment_sizes
+
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
         # return the codes of items in original grouped axis
@@ -1013,7 +1041,11 @@ class BaseGrouper:
         """
         Use ufunc.reduceat for sorted group ids.  Returns None to fall back.
         """
-        comp_ids = self.ids
+        info = self._reduceat_segment_info
+        if info is None:
+            return None
+
+        na_count, group_starts, segment_ids, segment_sizes = info
         ngroups = self.ngroups
         orig_dtype = values.dtype
 
@@ -1022,20 +1054,11 @@ class BaseGrouper:
             return None
 
         # dropped-NA rows (comp_ids < 0) are at the front when monotonic
-        if self.has_dropped_na:
-            na_count = int((comp_ids < 0).sum())
-            comp_ids = comp_ids[na_count:]
+        if na_count > 0:
             if axis == 0:
                 values = values[na_count:]
             else:
                 values = values[:, na_count:]
-
-        if comp_ids.size == 0:
-            return None
-
-        group_starts = np.flatnonzero(np.r_[True, comp_ids[1:] != comp_ids[:-1]])
-        segment_ids = comp_ids[group_starts]
-        segment_sizes = np.diff(np.append(group_starts, comp_ids.size))
 
         # avoid overflow, matching _get_cython_vals
         work_dtype: np.dtype
@@ -1062,37 +1085,34 @@ class BaseGrouper:
                 shape[axis] = len(sizes)
                 seg = seg / sizes.reshape(shape)
 
-        cy_op = WrappedCythonOp(
-            kind="aggregate", how=how, has_dropped_na=self.has_dropped_na
-        )
-        res_dtype = cy_op._get_result_dtype(orig_dtype)
-
-        out_dtype = np.dtype(np.float64) if how == "mean" else work_dtype
-        seg = seg.astype(out_dtype, copy=False)
+        # inline _get_result_dtype for the ops we handle
+        res_dtype: np.dtype
+        if how == "mean":
+            res_dtype = np.dtype(np.float64)
+        elif how in ("sum", "prod") and orig_dtype.kind == "b":
+            res_dtype = np.dtype(np.int64)
+        else:
+            res_dtype = orig_dtype
 
         # ngroups may exceed present segments
         out_shape = list(values.shape)
         out_shape[axis] = ngroups
 
-        if out_dtype.kind == "f":
-            if how == "sum":
-                result = np.zeros(out_shape, dtype=out_dtype)
-            elif how == "prod":
-                result = np.ones(out_shape, dtype=out_dtype)
-            else:
-                result = np.full(out_shape, np.nan, dtype=out_dtype)
-        elif how == "sum":
-            result = np.zeros(out_shape, dtype=out_dtype)
+        if how == "sum":
+            result = np.zeros(out_shape, dtype=work_dtype)
         elif how == "prod":
-            result = np.ones(out_shape, dtype=out_dtype)
+            result = np.ones(out_shape, dtype=work_dtype)
+        elif work_dtype.kind == "f":
+            # mean, or float min/max — NaN for empty groups
+            result = np.full(out_shape, np.nan, dtype=work_dtype)
         # int/bool min/max: fill with dtype extreme; empty groups
         # will be converted to NaN below
-        elif out_dtype.kind == "b":
-            result = np.full(out_shape, how == "min", dtype=out_dtype)
+        elif work_dtype.kind == "b":
+            result = np.full(out_shape, how == "min", dtype=work_dtype)
         else:
-            info = np.iinfo(out_dtype)
-            fill = info.max if how == "min" else info.min
-            result = np.full(out_shape, fill, dtype=out_dtype)
+            iinfo = np.iinfo(work_dtype)
+            fill = iinfo.max if how == "min" else iinfo.min
+            result = np.full(out_shape, fill, dtype=work_dtype)
 
         indexer: list[Any] = [slice(None)] * len(out_shape)
         indexer[axis] = segment_ids
