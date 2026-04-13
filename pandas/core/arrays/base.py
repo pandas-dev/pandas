@@ -25,6 +25,7 @@ import numpy as np
 
 from pandas._libs import (
     algos as libalgos,
+    groupby as libgroupby,
     lib,
 )
 from pandas.compat import set_function_name
@@ -41,7 +42,9 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_integer,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -107,8 +110,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-_extension_array_shared_docs: dict[str, str] = {}
-
 
 @set_module("pandas.api.extensions")
 class ExtensionArray:
@@ -131,6 +132,7 @@ class ExtensionArray:
     argsort
     astype
     copy
+    count
     dropna
     duplicated
     factorize
@@ -140,6 +142,7 @@ class ExtensionArray:
     interpolate
     isin
     isna
+    item
     ravel
     repeat
     searchsorted
@@ -156,6 +159,8 @@ class ExtensionArray:
     _from_sequence
     _from_sequence_of_strings
     _hash_pandas_object
+    _is_monotonic_decreasing
+    _is_monotonic_increasing
     _pad_or_backfill
     _reduce
     _values_for_argsort
@@ -186,7 +191,7 @@ class ExtensionArray:
     * interpolate
 
     A default repr displaying the type, (truncated) data, length,
-    and dtype is provided. It can be customized or replaced by
+    and dtype is provided. It can be customized or replaced
     by overriding:
 
     * __repr__ : A default repr for the ExtensionArray.
@@ -457,7 +462,8 @@ class ExtensionArray:
         try:
             return type(self)._from_scalars(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            values = np.asarray(values, dtype=object)
+            if not (isinstance(values, np.ndarray) and values.dtype == object):
+                values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
@@ -615,6 +621,59 @@ class ExtensionArray:
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return ~(self == other)  # type: ignore[operator]
+
+    def item(self, index: int | None = None):
+        """
+        Return the array element at the specified position as a Python scalar.
+
+        Analogous to :meth:`numpy.ndarray.item`, this converts a single
+        element to a native Python object.
+
+        Parameters
+        ----------
+        index : int, optional
+            Position of the element. If not provided, the array must contain
+            exactly one element.
+
+        Returns
+        -------
+        scalar
+            The element at the specified position.
+
+        Raises
+        ------
+        ValueError
+            If no index is provided and the array does not have exactly
+            one element.
+        IndexError
+            If the specified position is out of bounds.
+
+        See Also
+        --------
+        numpy.ndarray.item : Return the item of an array as a scalar.
+
+        Examples
+        --------
+        >>> arr = pd.array([1], dtype="Int64")
+        >>> arr.item()
+        np.int64(1)
+
+        >>> arr = pd.array([1, 2, 3], dtype="Int64")
+        >>> arr.item(0)
+        np.int64(1)
+        >>> arr.item(2)
+        np.int64(3)
+        """
+        if index is None:
+            if len(self) != 1:
+                raise ValueError(
+                    "can only convert an array of size 1 to a Python scalar"
+                )
+            return self[0]
+        else:
+            if not is_integer(index):
+                raise TypeError(f"index must be an integer, got {type(index)}")
+            return self[index]
 
     def to_numpy(
         self,
@@ -858,7 +917,7 @@ class ExtensionArray:
         else:
             return np.array(self, dtype=dtype, copy=copy)
 
-    def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
+    def isna(self) -> np.ndarray | ExtensionArrayNaResult:
         """
         A 1-D array indicating if each value is missing.
 
@@ -885,7 +944,8 @@ class ExtensionArray:
         * ``na_values._is_boolean`` should be True
         * ``na_values`` should implement :func:`ExtensionArray._reduce`
         * ``na_values`` should implement :func:`ExtensionArray._accumulate`
-        * ``na_values.any`` and ``na_values.all`` should be implemented
+        * ``na_values.any``, ``na_values.all``, ``na_values.sum``, and
+          ``na_values.__invert__`` should be implemented
 
         Examples
         --------
@@ -1378,8 +1438,8 @@ class ExtensionArray:
         [1, 2]
         Length: 2, dtype: Int64
         """
-        # error: Unsupported operand type for ~ ("ExtensionArray")
-        return self[~self.isna()]  # type: ignore[operator]
+        # isna can return an ExtensionArrayNaResult
+        return self[~self.isna()]  # type: ignore[index]
 
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
@@ -1613,7 +1673,7 @@ class ExtensionArray:
         """
         if type(self) != type(other):
             return False
-        other = cast(ExtensionArray, other)
+        other = cast("ExtensionArray", other)
         if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
@@ -1764,48 +1824,6 @@ class ExtensionArray:
 
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
-
-    _extension_array_shared_docs["repeat"] = """
-        Repeat elements of a %(klass)s.
-
-        Returns a new %(klass)s where each element of the current %(klass)s
-        is repeated consecutively a given number of times.
-
-        Parameters
-        ----------
-        repeats : int or array of ints
-            The number of repetitions for each element. This should be a
-            non-negative integer. Repeating 0 times will return an empty
-            %(klass)s.
-        axis : None
-            Must be ``None``. Has no effect but is accepted for compatibility
-            with numpy.
-
-        Returns
-        -------
-        %(klass)s
-            Newly created %(klass)s with repeated elements.
-
-        See Also
-        --------
-        Series.repeat : Equivalent function for Series.
-        Index.repeat : Equivalent function for Index.
-        numpy.repeat : Similar method for :class:`numpy.ndarray`.
-        ExtensionArray.take : Take arbitrary positions.
-
-        Examples
-        --------
-        >>> cat = pd.Categorical(['a', 'b', 'c'])
-        >>> cat
-        ['a', 'b', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        >>> cat.repeat(2)
-        ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        >>> cat.repeat([1, 2, 3])
-        ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, str): ['a', 'b', 'c']
-        """
 
     def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
         """
@@ -1961,6 +1979,9 @@ class ExtensionArray:
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
 
+        Scalar values for `indices` are not supported. If needed,
+        use a list-like wrapping a single element (e.g. ``[index]``).
+
         Examples
         --------
         Here's an example implementation, which relies on casting the
@@ -2028,7 +2049,7 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
@@ -2132,7 +2153,7 @@ class ExtensionArray:
         Parameters
         ----------
         boxed : bool, default False
-            An indicated for whether or not your array is being printed
+            An indicator for whether or not your array is being printed
             within a Series, DataFrame, or Index (True), or just by
             itself (False). This may be useful if you want scalar values
             to appear differently within a Series versus on its own (e.g.
@@ -2237,7 +2258,7 @@ class ExtensionArray:
     @classmethod
     def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         This method joins a sequence of ExtensionArrays of the same dtype
         into a single ExtensionArray. All arrays in the sequence must
@@ -2406,7 +2427,9 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support operation '{name}'"
             )
-        result = meth(skipna=skipna, **kwargs)
+        if name != "count":
+            kwargs["skipna"] = skipna
+        result = meth(**kwargs)
         if keepdims:
             if name in ["min", "max"]:
                 result = self._from_sequence([result], dtype=self.dtype)
@@ -2414,6 +2437,30 @@ class ExtensionArray:
                 result = np.array([result])
 
         return result
+
+    def count(self):
+        """
+        Count the number of non-NA values in the array.
+
+        This method returns the number of elements in the
+        :class:`ExtensionArray` that are not missing (i.e., not NA/null).
+
+        Returns
+        -------
+        scalar
+            Number of non-NA values in the Series.
+
+        See Also
+        --------
+        Series.count : Count the number of non-NA values in a Series.
+
+        Examples
+        --------
+        >>> s = pd.array([1, pd.NA, 3])
+        >>> s.count()
+        np.int64(2)
+        """
+        return (~self.isna()).sum()
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -2544,7 +2591,7 @@ class ExtensionArray:
             return [x.tolist() for x in self]
         return list(self)
 
-    def delete(self, loc: PositionalIndexer) -> Self:
+    def delete(self, loc: ScalarIndexer | slice | list[int] | np.ndarray) -> Self:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 
@@ -2643,6 +2690,73 @@ class ExtensionArray:
 
         result[~mask] = val
         return result
+
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        """
+        Return True if the array values are monotonically increasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically increasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_decreasing : Check for monotonically
+            decreasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._is_monotonic_increasing
+        True
+        """
+        return self._monotonic_check()[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        """
+        Return True if the array values are monotonically decreasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically decreasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_increasing : Check for monotonically
+            increasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 2, 1])
+        >>> arr._is_monotonic_decreasing
+        True
+        """
+        return self._monotonic_check()[1]
+
+    def _monotonic_check(self) -> tuple[bool, bool]:
+        """
+        Return (is_monotonic_increasing, is_monotonic_decreasing).
+
+        Default implementation using ranks. Subclasses should override
+        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
+        instead of this method.
+        """
+        try:
+            ranks = self._rank()
+        except TypeError:
+            return False, False
+        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
+        return bool(inc), bool(dec)
 
     def _rank(
         self,
@@ -2819,6 +2933,15 @@ class ExtensionArray:
         -------
         np.ndarray or ExtensionArray
         """
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+
         from pandas.core.arrays.string_ import StringDtype
         from pandas.core.groupby.ops import WrappedCythonOp
 
@@ -2885,8 +3008,51 @@ class ExtensionArray:
         else:
             raise NotImplementedError
 
+    def _groupby_first_last(
+        self,
+        *,
+        how: str,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        skipna: bool = True,
+    ) -> Self:
+        """
+        Optimized implementation of groupby first/last for ExtensionArrays.
 
-class ExtensionArraySupportsAnyAll(ExtensionArray):
+        Uses an index-based approach: computes the index of the first/last
+        non-NA element per group, then gathers results via take(). This avoids
+        any dtype conversion and works for all EA types.
+        """
+        if self.ndim != 1:
+            raise NotImplementedError(
+                "groupby first/last only supports 1D ExtensionArrays"
+            )
+        isna_mask = np.asarray(self.isna(), dtype=np.uint8)
+
+        result_indices, result_mask = libgroupby.group_first_last_indexer(
+            labels=ids,
+            mask=isna_mask,
+            ngroups=ngroups,
+            skipna=skipna,
+            is_last=(how == "last"),
+        )
+
+        # Apply min_count: require at least min_count non-NA observations.
+        # For first/last, the natural minimum is 1 (need at least one value).
+        if min_count > 1:
+            nobs = np.zeros(ngroups, dtype=np.int64)
+            non_na_indices = np.where((~isna_mask.view(bool)) & (ids >= 0))[0]
+            np.add.at(nobs, ids[non_na_indices], 1)
+            below = nobs < min_count
+            result_mask[below] = 1
+            result_indices[below] = -1
+
+        # take() with allow_fill=True treats -1 as "fill with NA"
+        return self.take(result_indices, allow_fill=True)
+
+
+class ExtensionArrayNaResult(ExtensionArray):
     @overload
     def any(self, *, skipna: Literal[True] = ...) -> bool: ...
 
@@ -2903,6 +3069,19 @@ class ExtensionArraySupportsAnyAll(ExtensionArray):
     def all(self, *, skipna: bool) -> bool | NAType: ...
 
     def all(self, *, skipna: bool = True) -> bool | NAType:
+        raise AbstractMethodError(self)
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        raise AbstractMethodError(self)
+
+    def __invert__(self) -> Self:
         raise AbstractMethodError(self)
 
 

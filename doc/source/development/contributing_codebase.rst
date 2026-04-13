@@ -21,10 +21,10 @@ Thus, good style is a requirement for submitting code to pandas.
 There are a couple of tools in pandas to help contributors verify their changes
 before contributing to the project
 
-- ``./ci/code_checks.sh``: a script validates the doctests, formatting in docstrings,
-  and imported modules. It is possible to run the checks independently by using the
-  parameters ``docstrings``, ``code``, and ``doctests``
-  (e.g. ``./ci/code_checks.sh doctests``);
+- ``./ci/code_checks.sh``: a script validates the doctests, imported modules,
+  and notebooks. It is possible to run the checks independently by
+  using the parameters ``code``, ``doctests``, and ``notebooks``
+  (e.g. ``./ci/code_checks.sh doctests``).
 - ``pre-commit``, which we go into detail on in the next section.
 
 In addition, because a lot of people use our library, it is important that we
@@ -907,8 +907,7 @@ will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be
-useful if you do not have virtualenv or conda, or are using the
-``setup.py develop`` approach discussed above; for the in-place build
+useful if you do not have virtualenv or conda; for the in-place build
 you need to set ``PYTHONPATH``, e.g.
 ``PYTHONPATH="$PWD/.." asv [remaining arguments]``.
 You can run benchmarks using an existing Python

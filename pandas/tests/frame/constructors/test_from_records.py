@@ -11,7 +11,9 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_little_endian
+from pandas.errors import Pandas4Warning
 
+import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -186,14 +188,22 @@ class TestFromRecords:
         asdict2 = {x: y.values for x, y in df.items()}
 
         # dict of series & dict of ndarrays (have dtype info)
+        msg = "Passing a dict to DataFrame.from_records is deprecated"
         results = []
-        results.append(DataFrame.from_records(asdict).reindex(columns=df.columns))
-        results.append(
-            DataFrame.from_records(asdict, columns=columns).reindex(columns=df.columns)
-        )
-        results.append(
-            DataFrame.from_records(asdict2, columns=columns).reindex(columns=df.columns)
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            results.append(DataFrame.from_records(asdict).reindex(columns=df.columns))
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            results.append(
+                DataFrame.from_records(asdict, columns=columns).reindex(
+                    columns=df.columns
+                )
+            )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            results.append(
+                DataFrame.from_records(asdict2, columns=columns).reindex(
+                    columns=df.columns
+                )
+            )
 
         for r in results:
             tm.assert_frame_equal(r, df)
@@ -398,10 +408,12 @@ class TestFromRecords:
 
     def test_from_records_misc_brokenness(self):
         # GH#2179
+        msg = "Passing a dict to DataFrame.from_records is deprecated"
 
         data = {1: ["foo"], 2: ["bar"]}
 
-        result = DataFrame.from_records(data, columns=["a", "b"])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame.from_records(data, columns=["a", "b"])
         exp = DataFrame(data, columns=["a", "b"])
         tm.assert_frame_equal(result, exp)
 
@@ -409,7 +421,8 @@ class TestFromRecords:
 
         data = {"a": [1, 2, 3], "b": [4, 5, 6]}
 
-        result = DataFrame.from_records(data, index=["a", "b", "c"])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame.from_records(data, index=["a", "b", "c"])
         exp = DataFrame(data, index=["a", "b", "c"])
         tm.assert_frame_equal(result, exp)
 
@@ -457,6 +470,59 @@ class TestFromRecords:
         df2 = DataFrame.from_records(b, index="id")
         tm.assert_frame_equal(df2, df.iloc[:0])
 
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.bool_])
+    def test_from_records_ndarray_2d_dtype_preserved(self, dtype):
+        # GH#22025 - 2D ndarray should slice columns directly
+        arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype)
+        result = DataFrame.from_records(arr)
+        expected = DataFrame(arr)
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_ndarray_2d_with_columns(self):
+        # GH#22025
+        arr = np.array([[1, 2, 3], [4, 5, 6]])
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"])
+        expected = DataFrame(arr, columns=["a", "b", "c"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_ndarray_2d_with_index(self):
+        # GH#22025
+        arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"], index="a")
+        expected = DataFrame(
+            {"b": arr[:, 1], "c": arr[:, 2]},
+            index=Index(arr[:, 0], name="a"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_ndarray_2d_with_exclude(self):
+        # GH#22025
+        arr = np.array([[1, 2, 3], [4, 5, 6]])
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"], exclude=["b"])
+        expected = DataFrame(arr, columns=["a", "b", "c"]).drop(columns=["b"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_ndarray_2d_empty(self):
+        # GH#22025
+        arr = np.empty((0, 3), dtype=np.int64)
+        result = DataFrame.from_records(arr, columns=["a", "b", "c"])
+        expected = DataFrame(arr, columns=["a", "b", "c"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_ndarray_2d_single_row(self):
+        # GH#22025
+        arr = np.array([[10, 20, 30]])
+        result = DataFrame.from_records(arr, columns=["x", "y", "z"])
+        expected = DataFrame(arr, columns=["x", "y", "z"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_ndarray_2d_single_column(self):
+        # GH#22025
+        arr = np.array([[1], [2], [3]])
+        result = DataFrame.from_records(arr, columns=["a"])
+        expected = DataFrame(arr, columns=["a"])
+        tm.assert_frame_equal(result, expected)
+
     def test_from_records_empty2(self):
         # GH#42456
         dtype = [("prop", int)]
@@ -500,4 +566,38 @@ class TestFromRecords:
             iter(rows), index=[0, 1], columns=["col_1", "Col_2"], nrows=0
         )
         expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_from_records_empty_iterator_applies_exclude(self):
+        # GH#63774
+        rows = []
+        result = DataFrame.from_records(
+            iter(rows), columns=["a", "b", "c"], exclude=["b"], nrows=0
+        )
+        expected = DataFrame([], columns=["a", "c"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_from_records_missing_value_key(self, missing_value, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        # preserve values when None key is converted to NaN column name
+        dict_data = [
+            {"colA": 1, missing_value: 2},
+            {"colA": 3, missing_value: 4},
+        ]
+        result = DataFrame.from_records(dict_data)
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if using_infer_string else missing_value],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_from_records_missing_value_key_only(self, missing_value):
+        dict_data = [
+            {missing_value: 1},
+            {missing_value: 2},
+        ]
+        result = DataFrame.from_records(dict_data)
+        expected = DataFrame([[1], [2]], columns=Index([missing_value]))
         tm.assert_frame_equal(result, expected)

@@ -19,11 +19,18 @@ from typing import (
 )
 from unicodedata import east_asian_width
 
-from pandas._config import get_option
+import numpy as np
 
+from pandas._config.config import _global_config as config
+
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCNDFrame,
+)
 from pandas.core.dtypes.inference import (
     is_float,
-    is_sequence,
+    is_scalar,
 )
 from pandas.core.dtypes.missing import notna
 
@@ -123,7 +130,7 @@ def _pprint_seq(
     if max_seq_items is False:
         max_items = None
     else:
-        max_items = max_seq_items or get_option("max_seq_items") or len(seq)
+        max_items = max_seq_items or config["display"]["max_seq_items"] or len(seq)
 
     s = iter(seq)
     # handle sets, no slicing
@@ -137,7 +144,7 @@ def _pprint_seq(
             # GH#60503
             from pandas.io.formats.format import _trim_zeros_single_float
 
-            precision = get_option("display.precision")
+            precision = config["display"]["precision"]
             item = _trim_zeros_single_float(f"{item:.{precision}f}")
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
@@ -165,7 +172,7 @@ def _pprint_dict(
     if max_seq_items is False:
         nitems = len(seq)
     else:
-        nitems = max_seq_items or get_option("max_seq_items") or len(seq)
+        nitems = max_seq_items or config["display"]["max_seq_items"] or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
         pairs.append(
@@ -212,33 +219,42 @@ def pprint_thing(
     str
     """
 
-    def as_escaped_string(
-        thing: Any, escape_chars: EscapeChars | None = escape_chars
-    ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
-        if isinstance(escape_chars, Mapping):
-            if default_escapes:
-                translate.update(escape_chars)
-            else:
-                translate = escape_chars  # type: ignore[assignment]
-            escape_chars = list(escape_chars.keys())
-        else:
-            escape_chars = escape_chars or ()
-
-        result = str(thing)
-        for c in escape_chars:
-            result = result.replace(c, translate[c])
-        return result
-
-    if hasattr(thing, "__next__"):
+    # TODO: should is_scalar exclude np.record?
+    if is_scalar(thing) and not isinstance(thing, np.record):
+        # GH#58285 put this check before Mapping check for performance
+        result = _as_escaped_string(thing, escape_chars, default_escapes)
+        if quote_strings and isinstance(thing, str):
+            result = f"'{result}'"
+    elif hasattr(thing, "__next__"):
         return str(thing)
-    elif isinstance(thing, Mapping) and _nest_lvl < get_option(
-        "display.pprint_nest_depth"
+    elif (
+        isinstance(thing, Mapping)
+        and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_dict(
             thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
         )
-    elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
+    elif (
+        # GH#61809 Only iterate over types where element-by-element formatting
+        # is appropriate. Third-party array-like objects (e.g. xarray DataArray)
+        # can be extremely expensive to iterate and should use their own repr.
+        isinstance(
+            thing,
+            (
+                np.ndarray,
+                np.void,
+                list,
+                tuple,
+                set,
+                frozenset,
+                range,
+                ABCExtensionArray,
+                ABCIndex,
+                ABCNDFrame,
+            ),
+        )
+        and _nest_lvl < config["display"]["pprint_nest_depth"]
+    ):
         result = _pprint_seq(
             # error: Argument 1 to "_pprint_seq" has incompatible type "object";
             # expected "ExtensionArray | ndarray[Any, Any] | Index | Series |
@@ -249,18 +265,35 @@ def pprint_thing(
             quote_strings=quote_strings,
             max_seq_items=max_seq_items,
         )
-    elif isinstance(thing, str) and quote_strings:
-        result = f"'{as_escaped_string(thing)}'"
     else:
-        result = as_escaped_string(thing)
+        result = _as_escaped_string(thing, escape_chars, default_escapes)
 
     return result
 
 
+def _as_escaped_string(
+    thing: Any, escape_chars: EscapeChars | None, default_escapes: bool
+) -> str:
+    translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
+    if isinstance(escape_chars, Mapping):
+        if default_escapes:
+            translate.update(escape_chars)
+        else:
+            translate = escape_chars  # type: ignore[assignment]
+        escape_chars = list(escape_chars.keys())
+    else:
+        escape_chars = escape_chars or ()
+
+    result = str(thing)
+    for c in escape_chars:
+        result = result.replace(c, translate[c])
+    return result
+
+
 def pprint_thing_encoded(
-    object: object, encoding: str = "utf-8", errors: str = "replace"
+    thing: object, encoding: str = "utf-8", errors: str = "replace"
 ) -> bytes:
-    value = pprint_thing(object)  # get unicode representation of object
+    value = pprint_thing(thing)  # get unicode representation of thing
     return value.encode(encoding, errors)
 
 
@@ -268,7 +301,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
     if "IPython" not in sys.modules:
         # definitely not in IPython
         return
-    from IPython import get_ipython
+    from IPython import get_ipython  # pyright: ignore[reportPrivateImportUsage]
 
     # error: Call to untyped function "get_ipython" in typed context
     ip = get_ipython()  # type: ignore[no-untyped-call]
@@ -333,7 +366,7 @@ def format_object_summary(
         align with the name.
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.
-        If False, only break lines when the a line of values gets wider
+        If False, only break lines when a line of values gets wider
         than the display width.
 
     Returns
@@ -342,7 +375,7 @@ def format_object_summary(
     """
     display_width, _ = get_console_size()
     if display_width is None:
-        display_width = get_option("display.width") or 80
+        display_width = config["display"]["width"] or 80
     if name is None:
         name = type(obj).__name__
 
@@ -361,7 +394,7 @@ def format_object_summary(
         sep = ",\n " + " " * len(name)
     else:
         sep = ","
-    max_seq_items = get_option("display.max_seq_items") or n
+    max_seq_items = config["display"]["max_seq_items"] or n
 
     # are we a truncated display
     is_truncated = n > max_seq_items
@@ -530,7 +563,7 @@ class PrettyDict(dict[_KT, _VT]):
 
 class _TextAdjustment:
     def __init__(self) -> None:
-        self.encoding = get_option("display.encoding")
+        self.encoding = config["display"]["encoding"]
 
     def len(self, text: str) -> int:
         return len(text)
@@ -553,7 +586,7 @@ class _TextAdjustment:
 class _EastAsianTextAdjustment(_TextAdjustment):
     def __init__(self) -> None:
         super().__init__()
-        if get_option("display.unicode.ambiguous_as_wide"):
+        if config["display"]["unicode"]["ambiguous_as_wide"]:
             self.ambiguous_width = 2
         else:
             self.ambiguous_width = 1
@@ -590,7 +623,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
 
 
 def get_adjustment() -> _TextAdjustment:
-    use_east_asian_width = get_option("display.unicode.east_asian_width")
+    use_east_asian_width = config["display"]["unicode"]["east_asian_width"]
     if use_east_asian_width:
         return _EastAsianTextAdjustment()
     else:

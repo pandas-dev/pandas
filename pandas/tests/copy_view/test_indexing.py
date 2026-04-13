@@ -478,11 +478,13 @@ def test_subset_chained_getitem_column(backend, dtype):
         lambda s: s["a":"c"]["a":"b"],  # type: ignore[misc]
         lambda s: s.iloc[0:3].iloc[0:2],
         lambda s: s.loc["a":"c"].loc["a":"b"],  # type: ignore[misc]
-        lambda s: s.loc["a":"c"]  # type: ignore[misc]
-        .iloc[0:3]
-        .iloc[0:2]
-        .loc["a":"b"]  # type: ignore[misc]
-        .iloc[0:1],
+        lambda s: (
+            s.loc["a":"c"]  # type: ignore[misc]
+            .iloc[0:3]
+            .iloc[0:2]
+            .loc["a":"b"]  # type: ignore[misc]
+            .iloc[0:1]
+        ),
     ],
     ids=["getitem", "iloc", "loc", "long-chain"],
 )

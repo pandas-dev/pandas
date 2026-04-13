@@ -14,7 +14,7 @@ class BaseReduceTests:
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         # Specify if we expect this reduction to succeed.
-        return False
+        return op_name == "count"
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         # We perform the same operation on the np.float64 data and check

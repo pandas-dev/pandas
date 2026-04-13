@@ -276,6 +276,24 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_reduce_empty(skipna, dtype, min_count):
+    arr = pd.Series([], dtype=dtype)
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if min_count == 0:
+        assert result == ""
+    else:
+        assert pd.isna(result)
+
+    # all-missing
+    arr = pd.Series([None, None], dtype=dtype)
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == ""
+    else:
+        assert pd.isna(result)
+
+
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
@@ -610,3 +628,14 @@ def test_numpy_array_ufunc(dtype, box):
             expected = pd.Series(["aa", "bbbb", "cccccc"])
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.array])
+def test_numpy_random_permute(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/63935
+    arr = box(["a", "bb", "ccc"], dtype=dtype)
+
+    rng = np.random.default_rng(2)
+    result = rng.permutation(arr)
+    assert isinstance(result, np.ndarray)
+    assert sorted(result.tolist()) == ["a", "bb", "ccc"]

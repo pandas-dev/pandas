@@ -1978,9 +1978,7 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
         request.applymarker(
-            pytest.mark.xfail(
-                reason="MySQL can fail using TEXT without length as key", strict=False
-            )
+            pytest.mark.xfail(reason="MySQL can fail using TEXT without length as key")
         )
     elif "adbc" in conn_name:
         request.node.add_marker(
@@ -3855,16 +3853,10 @@ def test_read_sql_string_inference(sqlite_engine):
     # GH#54430
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
+    expected = df.copy()
+
     df.to_sql(table, con=conn, index=False, if_exists="replace")
-
-    with pd.option_context("future.infer_string", True):
-        result = read_sql_table(table, conn)
-
-    dtype = pd.StringDtype(na_value=np.nan)
-    expected = DataFrame(
-        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
-    )
-
+    result = read_sql_table(table, conn)
     tm.assert_frame_equal(result, expected)
 
 

@@ -102,6 +102,53 @@ class BaseMethodsTests:
         expected = data_missing.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_is_monotonic_increasing(self, data_for_sorting):
+        # GH#56619
+        # data_for_sorting -> [B, C, A] with A < B < C
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        # [A, B, C] -> monotonically increasing
+        sorted_data = data_for_sorting.take([2, 0, 1])
+        ser = pd.Series(sorted_data)
+        assert ser.is_monotonic_increasing is True
+
+        # [B, C, A] -> not monotonically increasing
+        ser = pd.Series(data_for_sorting)
+        if is_bool:
+            # [B, C, A] is [True, True, False] -> not increasing
+            assert ser.is_monotonic_increasing is False
+        else:
+            assert ser.is_monotonic_increasing is False
+
+        # [A, A, A] -> monotonically increasing (equal values)
+        repeated = data_for_sorting.take([2, 2, 2])
+        ser = pd.Series(repeated)
+        assert ser.is_monotonic_increasing is True
+
+    def test_is_monotonic_decreasing(self, data_for_sorting):
+        # GH#56619
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        # [C, B, A] -> monotonically decreasing
+        rev_data = data_for_sorting.take([1, 0, 2])
+        ser = pd.Series(rev_data)
+        assert ser.is_monotonic_decreasing is True
+
+        # [B, C, A] -> not monotonically decreasing
+        ser = pd.Series(data_for_sorting)
+        if is_bool:
+            # [True, True, False] -> monotonically decreasing
+            assert ser.is_monotonic_decreasing is True
+        else:
+            assert ser.is_monotonic_decreasing is False
+
+    def test_is_monotonic_na(self, data_missing_for_sorting):
+        # GH#56619
+        # data_missing_for_sorting -> [B, NA, A]
+        ser = pd.Series(data_missing_for_sorting)
+        assert ser.is_monotonic_increasing is False
+        assert ser.is_monotonic_decreasing is False
+
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
         # argsort result gets passed to take, so should be np.intp

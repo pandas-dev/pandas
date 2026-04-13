@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -257,7 +258,9 @@ def test_apply(test_frame):
     def f_0(x):
         return x.resample("2s").sum()
 
-    result = r.apply(f_0)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = r.apply(f_0)
     tm.assert_frame_equal(result, expected)
 
     def f_1(x):

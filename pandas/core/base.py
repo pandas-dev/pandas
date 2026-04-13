@@ -205,11 +205,7 @@ class SelectionMixin(Generic[NDFrameT]):
             return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
-            # equivalent to `self.obj.drop(self.exclusions, axis=1)
-            #  but this avoids consolidating and making a copy
-            # TODO: following GH#45287 can we now use .drop directly without
-            #  making a copy?
-            return self.obj._drop_axis(self.exclusions, axis=1, only_slice=True)
+            return self.obj._drop_axis(self.exclusions, axis=1)
         else:
             return self.obj
 
@@ -303,6 +299,10 @@ class IndexOpsMixin(OpsMixin):
         doc="""
         Return the transpose, which is by definition self.
 
+        For 1D objects (Series, Index) transposition has no effect; the
+        object is returned unchanged. Provided for API compatibility with
+        DataFrame and NumPy.
+
         See Also
         --------
         Index : Immutable sequence used for indexing and alignment.
@@ -336,6 +336,10 @@ class IndexOpsMixin(OpsMixin):
         """
         Return a tuple of the shape of the underlying data.
 
+        For a Series this is ``(length,)``; for a 1D Index, likewise a
+        single-element tuple. Useful for compatibility with NumPy and
+        other array-like APIs.
+
         See Also
         --------
         Series.ndim : Number of dimensions of the underlying data.
@@ -361,6 +365,9 @@ class IndexOpsMixin(OpsMixin):
     def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
+
+        Series and Index are one-dimensional; this property always returns 1
+        for compatibility with array-like interfaces.
 
         See Also
         --------
@@ -394,6 +401,10 @@ class IndexOpsMixin(OpsMixin):
     def item(self):
         """
         Return the first element of the underlying data as a Python scalar.
+
+        This method extracts the single element from a length-1 Series or
+        Index and returns it as a native Python scalar type (e.g., ``int``,
+        ``float``, ``str``).
 
         Returns
         -------
@@ -431,6 +442,9 @@ class IndexOpsMixin(OpsMixin):
         """
         Return the number of bytes in the underlying data.
 
+        Includes only the memory used by the array values; overhead such as
+        the index is not included. Useful for estimating memory usage.
+
         See Also
         --------
         Series.ndim : Number of dimensions of the underlying data.
@@ -463,6 +477,9 @@ class IndexOpsMixin(OpsMixin):
     def size(self) -> int:
         """
         Return the number of elements in the underlying data.
+
+        For a Series or Index this is the length (number of rows). Equivalent
+        to ``len(obj)`` and ``np.prod(obj.shape)``.
 
         See Also
         --------
@@ -573,6 +590,11 @@ class IndexOpsMixin(OpsMixin):
     ) -> np.ndarray:
         """
         A NumPy ndarray representing the values in this Series or Index.
+
+        This method converts the underlying data to a NumPy array, optionally
+        specifying the desired dtype and handling of missing values. For
+        extension types, this may require copying data and coercing to a NumPy
+        type.
 
         Parameters
         ----------
@@ -689,8 +711,10 @@ class IndexOpsMixin(OpsMixin):
         result = np.asarray(values, dtype=dtype)
 
         if (copy and not fillna) or not copy:
-            if np.shares_memory(self._values[:2], result[:2]):
-                # Take slices to improve performance of check
+            # Check identity first (O(1)) before the more expensive
+            # shares_memory check. Use the already-fetched `values` to
+            # avoid a second _values property access.
+            if result is values or np.shares_memory(values[:2], result[:2]):
                 if not copy:
                     result = result.view()
                     result.flags.writeable = False
@@ -1205,6 +1229,9 @@ class IndexOpsMixin(OpsMixin):
         """
         Return True if values in the object are unique.
 
+        This property checks whether all values in the Series or Index are
+        distinct, including missing values.
+
         Returns
         -------
         bool
@@ -1231,6 +1258,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic_increasing(self) -> bool:
         """
         Return True if values in the object are monotonically increasing.
+
+        This property checks whether each element is greater than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically increasing.
 
         Returns
         -------
@@ -1259,6 +1290,10 @@ class IndexOpsMixin(OpsMixin):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return True if values in the object are monotonically decreasing.
+
+        This property checks whether each element is less than or equal to
+        the previous element. Equal consecutive values are considered
+        monotonically decreasing.
 
         Returns
         -------
@@ -1322,7 +1357,7 @@ class IndexOpsMixin(OpsMixin):
 
         v = self.array.nbytes
         if deep and is_object_dtype(self.dtype) and not PYPY:
-            values = cast(np.ndarray, self._values)
+            values = cast("np.ndarray", self._values)
             v += lib.memory_usage_of_objects(values)
         return v
 
@@ -1519,7 +1554,7 @@ class IndexOpsMixin(OpsMixin):
         ----------
         value : array-like or scalar
             Values to insert into `self`.
-        side : {{'left', 'right'}}, optional
+        side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).

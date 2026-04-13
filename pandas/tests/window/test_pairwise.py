@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 from pandas import (
     DataFrame,
     Index,
@@ -168,11 +166,23 @@ def test_rolling_corr_diff_length():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", ["cov", "corr"])
+def test_time_based_rolling_other_longer_raises(func):
+    # GH#62937
+    idx_short = date_range("2020-01-01", periods=3, freq="D")
+    idx_long = date_range("2020-01-01", periods=5, freq="D")
+    s = Series([1, 2, 3], index=idx_short)
+    other = Series([1, 2, 3, 4, 5], index=idx_long)
+    msg = "Variable rolling window requires .* Got 3 < 5"
+    with pytest.raises(ValueError, match=msg):
+        getattr(s.rolling("2D"), func)(other)
+
+
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=True),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_rolling_functions_window_non_shrinkage_binary(f):
@@ -194,8 +204,8 @@ def test_rolling_functions_window_non_shrinkage_binary(f):
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=True),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
@@ -296,13 +306,7 @@ class TestPairwise:
             lambda x, y: x.expanding().cov(y, pairwise=True),
             lambda x, y: x.expanding().corr(y, pairwise=True),
             lambda x, y: x.rolling(window=3).cov(y, pairwise=True),
-            # TODO: We're missing a flag somewhere in meson
-            pytest.param(
-                lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
-                marks=pytest.mark.xfail(
-                    not IS64, reason="Precision issues on 32 bit", strict=False
-                ),
-            ),
+            lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
             lambda x, y: x.ewm(com=3).cov(y, pairwise=True),
             lambda x, y: x.ewm(com=3).corr(y, pairwise=True),
         ],
@@ -325,7 +329,8 @@ class TestPairwise:
         result = result.dropna().values
         expected = expected.dropna().values
 
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        # not exact: rolling corr rounds differently on 32-bit
+        tm.assert_almost_equal(result, expected, check_dtype=False)
 
     @pytest.mark.filterwarnings("ignore:RuntimeWarning")
     @pytest.mark.parametrize(

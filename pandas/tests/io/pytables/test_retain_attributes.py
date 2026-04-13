@@ -18,7 +18,7 @@ def test_retain_index_attributes(temp_hdfstore, unit):
     dti = date_range("2000-1-1", periods=3, freq="h", unit=unit)
     df = DataFrame({"A": Series(range(3), index=dti)})
 
-    temp_hdfstore.put("data", df, format="table")
+    temp_hdfstore.put("data", df, format="table", track_times=False)
 
     result = temp_hdfstore.get("data")
     tm.assert_frame_equal(df, result)

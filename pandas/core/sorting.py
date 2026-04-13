@@ -92,7 +92,7 @@ def get_indexer_indexer(
 
     if level is not None:
         _, indexer = target.sortlevel(
-            level,
+            level,  # type: ignore[arg-type]
             ascending=ascending,
             sort_remaining=sort_remaining,
             na_position=na_position,
@@ -112,7 +112,7 @@ def get_indexer_indexer(
         indexer = nargsort(
             target,
             kind=kind,
-            ascending=cast(bool, ascending),
+            ascending=cast("bool", ascending),
             na_position=na_position,
         )
     return indexer
@@ -348,9 +348,33 @@ def lexsort_indexer(
     for k, order in zip(reversed(keys), orders, strict=True):
         k = ensure_key_mapped(k, key)
         if codes_given:
-            codes = cast(np.ndarray, k)
+            codes = cast("np.ndarray", k)
             n = codes.max() + 1 if len(codes) else 0
         else:
+            # Fast path for numeric numpy arrays: skip Categorical
+            # conversion and pass values directly to np.lexsort.
+            arr = extract_array(k, extract_numpy=True)
+            if isinstance(arr, np.ndarray) and arr.dtype.kind in "fiub":
+                if arr.dtype.kind == "f":
+                    # For float dtypes, np.lexsort sorts NaN to the end.
+                    mask = np.isnan(arr)
+                    has_na = mask.any()
+                    if not order:
+                        # Descending: negate values. NaN stays NaN
+                        # and still sorts last.
+                        arr = -arr
+                        if na_position == "first" and has_na:
+                            arr[mask] = -np.inf
+                    elif na_position == "first" and has_na:
+                        arr = arr.copy()
+                        arr[mask] = -np.inf
+                elif not order:
+                    # int/uint/bool: no NaN possible, use bitwise NOT
+                    # for descending to avoid overflow with negation.
+                    arr = ~arr
+                labels.append(arr)
+                continue
+
             cat = Categorical(k, ordered=True)
             codes = cat.codes
             n = len(cat.categories)

@@ -10,7 +10,6 @@ import pytest
 
 from pandas._libs.tslibs import (
     iNaT,
-    to_offset,
 )
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
@@ -27,6 +26,7 @@ from pandas.errors import (
 from pandas import (
     NaT,
     Period,
+    PeriodDtype,
     Timedelta,
     Timestamp,
     offsets,
@@ -481,7 +481,7 @@ class TestPeriodConstruction:
 
     def test_period_from_ordinal(self):
         p = Period("2011-01", freq="M")
-        res = Period._from_ordinal(p.ordinal, freq=p.freq)
+        res = Period._from_ordinal(p.ordinal, dtype=p._dtype)
         assert p == res
         assert isinstance(res, Period)
 
@@ -830,6 +830,13 @@ class TestPeriodMethods:
         p = Period("nat", freq="M")
         assert repr(NaT) in repr(p)
 
+    def test_format(self):
+        # GH#48536
+        period = Period("2000-1-1 12:34:12", freq="s")
+        assert f"{period:%Y-%m-%d %H:%M:%S}" == "2000-01-01 12:34:12"
+        assert f"{period}" == str(period)
+        assert format(period, "%Y-%m") == "2000-01"
+
     def test_strftime(self):
         # GH#3363
         p = Period("2000-1-1 12:34:12", freq="s")
@@ -840,6 +847,22 @@ class TestPeriodMethods:
 
 class TestPeriodProperties:
     """Test properties such as year, month, weekday, etc...."""
+
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        per = Period("2020-03-14")
+        msg = f"Period.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            old_val = getattr(per, old_attr)
+        assert old_val == getattr(per, new_attr)
 
     @pytest.mark.parametrize("freq", ["Y", "M", "D", "h"])
     def test_is_leap_year(self, freq):
@@ -928,7 +951,8 @@ class TestPeriodProperties:
         # post-GH#63760 this no longer raises OutOfBoundsDatetime
         getattr(period, period_property)
 
-        per = Period._from_ordinal(bound.value, freq=to_offset("ms"))
+        dtype = PeriodDtype("ms")
+        per = Period._from_ordinal(bound.value, dtype=dtype)
 
         if period_property == "end_time" and offset == 1:
             err = OverflowError
@@ -1086,8 +1110,8 @@ class TestPeriodProperties:
         assert b_date.quarter == 1
         assert b_date.month == 1
         assert b_date.day == 1
-        assert b_date.weekday == 0
-        assert b_date.dayofyear == 1
+        assert b_date.day_of_week == 0
+        assert b_date.day_of_year == 1
         assert b_date.days_in_month == 31
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             assert Period(freq="B", year=2012, month=2, day=1).days_in_month == 29
@@ -1098,8 +1122,8 @@ class TestPeriodProperties:
         assert d_date.quarter == 1
         assert d_date.month == 1
         assert d_date.day == 1
-        assert d_date.weekday == 0
-        assert d_date.dayofyear == 1
+        assert d_date.day_of_week == 0
+        assert d_date.day_of_year == 1
         assert d_date.days_in_month == 31
         assert Period(freq="D", year=2012, month=2, day=1).days_in_month == 29
 
@@ -1113,8 +1137,8 @@ class TestPeriodProperties:
             assert h_date.quarter == 1
             assert h_date.month == 1
             assert h_date.day == 1
-            assert h_date.weekday == 0
-            assert h_date.dayofyear == 1
+            assert h_date.day_of_week == 0
+            assert h_date.day_of_year == 1
             assert h_date.hour == 0
             assert h_date.days_in_month == 31
             assert (
@@ -1127,8 +1151,8 @@ class TestPeriodProperties:
         assert t_date.quarter == 1
         assert t_date.month == 1
         assert t_date.day == 1
-        assert t_date.weekday == 0
-        assert t_date.dayofyear == 1
+        assert t_date.day_of_week == 0
+        assert t_date.day_of_year == 1
         assert t_date.hour == 0
         assert t_date.minute == 0
         assert t_date.days_in_month == 31
@@ -1146,8 +1170,8 @@ class TestPeriodProperties:
         assert s_date.quarter == 1
         assert s_date.month == 1
         assert s_date.day == 1
-        assert s_date.weekday == 0
-        assert s_date.dayofyear == 1
+        assert s_date.day_of_week == 0
+        assert s_date.day_of_year == 1
         assert s_date.hour == 0
         assert s_date.minute == 0
         assert s_date.second == 0
@@ -1206,3 +1230,14 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
+
+
+def test_period_np_str():
+    # GH#48974 np.str_ should not break Period construction
+    result = Period(np.str_("2023-01"), freq="M")
+    expected = Period("2023-01", freq="M")
+    assert result == expected
+
+    result = Period(np.str_("2023"), freq="Y")
+    expected = Period("2023", freq="Y")
+    assert result == expected

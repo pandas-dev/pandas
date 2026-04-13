@@ -17,9 +17,9 @@ from pandas.core.ops.array_ops import (
 )
 from pandas.core.ops.common import (
     get_op_result_name,
+    has_castable_attr,
     unpack_zerodim_and_defer,
 )
-from pandas.core.ops.docstrings import make_flex_doc
 from pandas.core.ops.invalid import invalid_comparison
 from pandas.core.ops.mask_ops import (
     kleene_and,
@@ -71,12 +71,12 @@ __all__ = [
     "fill_binop",
     "get_array_op",
     "get_op_result_name",
+    "has_castable_attr",
     "invalid_comparison",
     "kleene_and",
     "kleene_or",
     "kleene_xor",
     "logical_op",
-    "make_flex_doc",
     "maybe_prepare_scalar_for_op",
     "radd",
     "rand_",

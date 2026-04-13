@@ -23,6 +23,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays.masked import BaseMaskedDtype
 
 # The fixture it's mostly used in pandas/tests/apply, so it's defined in that
 # conftest, which is out of scope here. So we need to manually import
@@ -243,7 +244,11 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    expected = Series(np.nan, index=s.index)
+    # GH#63903
+    if isinstance(s.dtype, BaseMaskedDtype):
+        expected = Series(pd.NA, index=s.index, dtype=s.dtype)
+    else:
+        expected = Series(np.nan, index=s.index)
     tm.assert_series_equal(result, expected)
 
 
@@ -677,3 +682,14 @@ def test_map_pyarrow_timestamp(as_td):
     #  we don't for Series.map
     expected_index = Index(expected).astype("int64[pyarrow]")
     tm.assert_index_equal(res_index, expected_index)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
+def test_map_nullable_integer_precision(dtype):
+    # GH#63903
+    large_int = 10000000000000001  # above float64 integer precision limit
+    ser = Series([large_int, None], dtype=dtype)
+
+    result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
+    expected = Series([large_int + 2, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)

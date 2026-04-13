@@ -111,7 +111,7 @@ class TablePlotter:
 
     def _conv(self, data):
         """
-        Convert each input to appropriate for table outplot.
+        Convert each input to appropriate format for table output.
         """
         if isinstance(data, pd.Series):
             if data.name is None:

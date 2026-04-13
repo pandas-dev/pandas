@@ -89,7 +89,7 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
                            int utc, NPY_DATETIMEUNIT base);
 
 /*
- * Converts an pandas_timedeltastruct to an ISO 8601 string.
+ * Converts a pandas_timedeltastruct to an ISO 8601 string.
  *
  * Mutates outlen to provide size of (non-NULL terminated) string.
  *

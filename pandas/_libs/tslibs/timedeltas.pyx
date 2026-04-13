@@ -2,6 +2,7 @@ import collections
 import re
 import warnings
 
+from pandas._libs.tslibs.offsets import Day
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -16,6 +17,8 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
+
+from pandas._libs.tslibs.offsets cimport to_offset
 
 import numpy as np
 
@@ -450,6 +453,9 @@ def array_to_timedelta64(
                 ival = delta_to_nanoseconds(item, reso=creso)
 
             elif isinstance(item, str):
+                if type(item) is not str:
+                    # GH#48974 np.str_ object
+                    item = str(item)
                 if (
                     (len(item) > 0 and item[0] == "P")
                     or (len(item) > 1 and item[:2] == "-P")
@@ -509,9 +515,18 @@ def array_to_timedelta64(
                     ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
                     item_reso = NPY_FR_ns
+                    int_reso = NPY_FR_ns
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
+
+            elif isinstance(item, Day):
+                # GH#64240: support Day offsets in list-like conversion
+                ival = item.n * 86400
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_s
+                state.update_creso(item_reso)
+                if infer_reso:
+                    creso = state.creso
 
             else:
                 raise TypeError(f"Invalid type for timedelta scalar: {type(item)}")
@@ -1267,7 +1282,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> td = pd.Timedelta(1, "d")
+        >>> td = pd.Timedelta(1, "D")
         >>> td.days
         1
 
@@ -1402,7 +1417,8 @@ cdef class _Timedelta(timedelta):
         Examples
         --------
         >>> td = pd.Timedelta(42, unit='us')
-        'ns'
+        >>> td.unit
+        'us'
         """
         return npy_unit_to_abbrev(self._creso)
 
@@ -1518,6 +1534,7 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return -999999999 <= self._d and self._d <= 999999999
 
+    @cython.critical_section
     cdef _ensure_components(_Timedelta self):
         """
         compute the components
@@ -1529,6 +1546,8 @@ cdef class _Timedelta(timedelta):
             pandas_timedeltastruct tds
 
         pandas_timedelta_to_timedeltastruct(self._value, self._creso, &tds)
+        if self._is_populated:
+            return
         self._d = tds.days
         self._h = tds.hrs
         self._m = tds.min
@@ -1602,7 +1621,7 @@ cdef class _Timedelta(timedelta):
         >>> td
         Timedelta('3 days 00:00:00')
         >>> td.to_timedelta64()
-        numpy.timedelta64(259200000000000,'ns')
+        np.timedelta64(259200000000,'us')
         """
         cdef:
             str abbrev = npy_unit_to_abbrev(self._creso)
@@ -1639,7 +1658,7 @@ cdef class _Timedelta(timedelta):
         >>> td
         Timedelta('3 days 00:00:00')
         >>> td.to_numpy()
-        numpy.timedelta64(259200000000000,'ns')
+        np.timedelta64(259200000000,'us')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1678,7 +1697,7 @@ cdef class _Timedelta(timedelta):
         >>> td
         Timedelta('3 days 00:00:00')
         >>> td.view(int)
-        259200000000000
+        np.int64(259200000000)
         """
         return np.timedelta64(self._value).view(dtype)
 
@@ -1735,19 +1754,19 @@ cdef class _Timedelta(timedelta):
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.asm8
-        numpy.timedelta64(86520000003042,'ns')
+        np.timedelta64(86520000003042,'ns')
 
         >>> td = pd.Timedelta('2 min 3 s')
         >>> td.asm8
-        numpy.timedelta64(123000000000,'ns')
+        np.timedelta64(123000000,'us')
 
         >>> td = pd.Timedelta('3 ms 5 us')
         >>> td.asm8
-        numpy.timedelta64(3005000,'ns')
+        np.timedelta64(3005,'us')
 
         >>> td = pd.Timedelta(42, unit='ns')
         >>> td.asm8
-        numpy.timedelta64(42,'ns')
+        np.timedelta64(42,'ns')
         """
         return self.to_timedelta64()
 
@@ -1774,6 +1793,13 @@ cdef class _Timedelta(timedelta):
         -------
         str
             Timedelta resolution.
+
+        See Also
+        --------
+        Timedelta.components : Return all components of the Timedelta as a
+            namedtuple-like.
+        Timedelta.resolution : Return the smallest possible difference between
+            non-equal Timedelta objects.
 
         Examples
         --------
@@ -1813,6 +1839,11 @@ cdef class _Timedelta(timedelta):
     def nanoseconds(self):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+
+        This is the nanoseconds component of the Timedelta, which represents
+        the residual nanoseconds that are not captured by higher-order components
+        such as days, seconds, or microseconds. The value is always in the range
+        [0, 999].
 
         Returns
         -------
@@ -1967,6 +1998,10 @@ cdef class _Timedelta(timedelta):
         """
         Convert the underlying int64 representation to the given unit.
 
+        Converts the Timedelta to a new resolution specified by ``unit``.
+        If the conversion would require rounding (loss of precision), this
+        is allowed by default. Set ``round_ok=False`` to raise an error instead.
+
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
@@ -2061,7 +2096,7 @@ class Timedelta(_Timedelta):
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
-        milliseconds, minutes, hours, weeks}.
+        milliseconds, minutes, nanoseconds, hours, weeks}.
         Values for construction in compat with datetime.timedelta.
         Numpy ints and floats will be coerced to python ints and floats.
 
@@ -2256,6 +2291,11 @@ class Timedelta(_Timedelta):
                     raise OutOfBoundsTimedelta(value) from err
             return cls._from_value_and_reso(new_value, reso=new_reso)
 
+        elif isinstance(value, Day):
+            # GH#64240
+            new_value = value.n * 86400
+            return cls._from_value_and_reso(new_value, NPY_DATETIMEUNIT.NPY_FR_s)
+
         elif is_tick_object(value):
             new_reso = get_supported_reso(value._creso)
             new_value = delta_to_nanoseconds(value, reso=new_reso)
@@ -2278,7 +2318,7 @@ class Timedelta(_Timedelta):
         elif is_float_object(value):
             int_item = int(value)
             if value == int_item:
-                # round float -> treat like a int, try to preserve unit
+                # round float -> treat like an int, try to preserve unit
                 return cls(int_item, unit=unit)
 
             # unit=None is de-facto 'ns'
@@ -2317,23 +2357,33 @@ class Timedelta(_Timedelta):
     @cython.cdivision(True)
     def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, nanos
             ndarray[int64_t] arr
+        freq_arg = freq
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
 
-        unit = get_unit_for_round(freq, self._creso)
+            # e.g. self.unit == "s" and sub-second freq
+            return self
 
         arr = np.array([self._value], dtype="i8")
         try:
-            result = round_nsint64(arr, mode, unit)[0]
+            result = round_nsint64(arr, mode, nanos)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
-                f"Cannot round {self} to freq={freq} without overflow"
+                f"Cannot round {self} to freq={freq_arg} without overflow"
             ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 
     def round(self, freq):
         """
         Round the Timedelta to the specified resolution.
+
+        Rounds the Timedelta value to the nearest multiple of the given
+        frequency using half-even rounding.
 
         Parameters
         ----------
@@ -2369,6 +2419,9 @@ class Timedelta(_Timedelta):
         """
         Return a new Timedelta floored to this resolution.
 
+        Truncates the Timedelta to the nearest multiple of the given
+        frequency, rounding toward negative infinity.
+
         Parameters
         ----------
         freq : str
@@ -2398,6 +2451,9 @@ class Timedelta(_Timedelta):
     def ceil(self, freq):
         """
         Return a new Timedelta ceiled to this resolution.
+
+        Rounds the Timedelta up to the nearest multiple of the given
+        frequency, rounding toward positive infinity.
 
         Parameters
         ----------
@@ -2642,6 +2698,8 @@ class Timedelta(_Timedelta):
         return div, other - div * self
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def truediv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)
@@ -2672,6 +2730,8 @@ def truediv_object_array(ndarray left, ndarray right):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def floordiv_object_array(ndarray left, ndarray right):
     cdef:
         ndarray[object] result = np.empty((<object>left).shape, dtype=object)
