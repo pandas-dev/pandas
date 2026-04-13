@@ -7,6 +7,7 @@ from __future__ import annotations
 from abc import (
     ABC,
 )
+from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -69,6 +70,7 @@ from pandas.core.arrays import (
 )
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import (
     Index,
 )
@@ -77,7 +79,10 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from datetime import datetime
 
     from pandas._typing import (
@@ -1028,7 +1033,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result = self[:0]
         else:
             lslice = slice(*left.slice_locs(start, end))
-            result = left._values[lslice]  # type: ignore[assignment]
+            result = left._values[lslice]
+            result._freq = self.freq  # type: ignore[union-attr]
 
         return result
 
@@ -1095,6 +1101,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             result = type(self)._simple_new(dates, name=self.name)
+            result._data._freq = self.freq
             return result
         else:
             left, right = other, self
@@ -1110,9 +1117,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
             assert isinstance(dates, type(self._data))
-            # error: Item "ExtensionArray" of "ExtensionArray |
-            # ndarray[Any, Any]" has no attribute "_freq"
-            assert dates._freq == self.freq  # type: ignore[union-attr]
+            dates._freq = self.freq  # type: ignore[union-attr]
             result = type(self)._simple_new(dates)
             return result
         else:
@@ -1188,6 +1193,62 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     # --------------------------------------------------------------------
     # List-like Methods
+
+    def _getitem_slice(self, slobj: slice) -> Self:
+        result = super()._getitem_slice(slobj)
+        result._data._freq = self._get_getitem_freq(slobj)
+        return result
+
+    def __getitem__(self, key):
+        result = super().__getitem__(key)
+        if isinstance(result, type(self)):
+            result._data._freq = self._get_getitem_freq(key)
+        return result
+
+    def _get_getitem_freq(self, key) -> BaseOffset | None:
+        """
+        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
+        """
+        if self.ndim != 1:
+            return None
+
+        key = check_array_indexer(self._data, key)  # maybe ndarray[bool] -> slice
+        freq = None
+        if isinstance(key, slice):
+            if self.freq is not None and key.step is not None:
+                freq = key.step * self.freq
+            else:
+                freq = self.freq
+        elif key is Ellipsis:
+            # GH#21282 indexing with Ellipsis is similar to a full slice,
+            #  should preserve `freq` attribute
+            freq = self.freq
+        elif com.is_bool_indexer(key):
+            new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+            if isinstance(new_key, slice):
+                return self._get_getitem_freq(new_key)
+        return freq
+
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
+        result = super()._concat(to_concat, name)
+
+        # GH#3232: If the concat result is evenly spaced, we can retain the
+        # original frequency
+        obj = cast("DatetimeTimedeltaMixin", to_concat[0])
+        to_concat_nonempty = cast(
+            "list[DatetimeTimedeltaMixin]",
+            [idx for idx in to_concat if len(idx)],
+        )
+        if (
+            isinstance(result, type(self))
+            and obj.freq is not None
+            and all(idx.freq == obj.freq for idx in to_concat_nonempty)
+        ):
+            pairs = pairwise(to_concat_nonempty)
+            if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
+                result._data._freq = obj.freq
+
+        return result
 
     def _get_delete_freq(self, loc: int | slice | Sequence[int]):
         """
@@ -1364,6 +1425,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
-            freq = self._data._get_getitem_freq(maybe_slice)
+            freq = self._get_getitem_freq(maybe_slice)
             result._data._freq = freq
         return result

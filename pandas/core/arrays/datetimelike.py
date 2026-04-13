@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
 )
 from functools import wraps
-from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -69,7 +68,6 @@ from pandas._typing import (
     PositionalIndexerTuple,
     ScalarIndexer,
     SequenceIndexer,
-    TakeIndexer,
     TimeAmbiguous,
     TimeNonexistent,
     npt,
@@ -131,16 +129,12 @@ from pandas.core.arrays._mixins import (
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
-import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
-    check_array_indexer,
-    check_setitem_lengths,
-)
+from pandas.core.indexers import check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import (
     invalid_comparison,
@@ -395,37 +389,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             # At this point we know the result is an array.
             result = cast("Self", result)
-        # error: Incompatible types in assignment (expression has type
-        # "BaseOffset | None", variable has type "None")
-        result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
         return result
-
-    def _get_getitem_freq(self, key) -> BaseOffset | None:
-        """
-        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
-        """
-        is_period = isinstance(self.dtype, PeriodDtype)
-        if is_period:
-            freq = self.freq
-        elif self.ndim != 1:
-            freq = None
-        else:
-            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
-            freq = None
-            if isinstance(key, slice):
-                if self.freq is not None and key.step is not None:
-                    freq = key.step * self.freq
-                else:
-                    freq = self.freq
-            elif key is Ellipsis:
-                # GH#21282 indexing with Ellipsis is similar to a full slice,
-                #  should preserve `freq` attribute
-                freq = self.freq
-            elif com.is_bool_indexer(key):
-                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-                if isinstance(new_key, slice):
-                    return self._get_getitem_freq(new_key)
-        return freq
 
     # error: Argument 1 of "__setitem__" is incompatible with supertype
     # "ExtensionArray"; supertype defines the argument type as "Union[int,
@@ -2557,24 +2521,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         axis: AxisInt = 0,
     ) -> Self:
         new_obj = super()._concat_same_type(to_concat, axis)
-
-        obj = to_concat[0]
-
-        if axis == 0:
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            to_concat = [x for x in to_concat if len(x)]
-
-            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = pairwise(to_concat)
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                    new_freq = obj.freq
-                    new_obj._freq = new_freq
         return new_obj
 
     def copy(self, order: str = "C") -> Self:
         new_obj = super().copy(order=order)
-        new_obj._freq = self.freq
+        new_obj._freq = self._freq
         return new_obj
 
     def interpolate(
@@ -2614,27 +2565,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
-
-    def take(
-        self,
-        indices: TakeIndexer,
-        *,
-        allow_fill: bool = False,
-        fill_value: Any = None,
-        axis: AxisInt = 0,
-    ) -> Self:
-        result = super().take(
-            indices=indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
-        )
-
-        indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
-
-        if isinstance(maybe_slice, slice):
-            freq = self._get_getitem_freq(maybe_slice)
-            result._freq = freq  # type: ignore[assignment]
-
-        return result
 
     # --------------------------------------------------------------
     # Unsorted
