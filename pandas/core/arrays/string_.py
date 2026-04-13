@@ -15,7 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -199,7 +199,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            storage = _global_config["mode"]["string_storage"]
+            storage = config["mode"]["string_storage"]
             if storage == "auto":
                 if HAS_PYARROW:
                     storage = "pyarrow"
@@ -821,16 +821,16 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type)
 
+    def isna(self) -> np.ndarray:
+        return libmissing.isna_string(self._ndarray)
+
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
 
         return arr, self.dtype.na_value
 
     def _validate_setitem_value(self, value):
-        return self._maybe_convert_setitem_value(value)
-
-    def _maybe_convert_setitem_value(self, value):
-        """Maybe convert value to be StringArray compatible."""
+        """Validate / convert value to be StringArray compatible."""
         if lib.is_scalar(value):
             if isna(value):
                 value = self.dtype.na_value
@@ -861,7 +861,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
 
-        value = self._maybe_convert_setitem_value(value)
+        value = self._validate_setitem_value(value)
 
         key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)

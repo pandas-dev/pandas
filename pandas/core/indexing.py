@@ -3550,4 +3550,17 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
 
     if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
         new_arr = maybe_downcast_to_dtype(new_arr, dtype)
+    elif (
+        isinstance(dtype, ExtensionDtype)
+        and dtype.kind in "iu"
+        and new_arr.dtype.kind == "f"
+    ):
+        try:
+            converted = new_arr.astype(orig.dtype)
+        except (ValueError, TypeError):
+            pass
+        else:
+            # Only accept the conversion if no values were truncated
+            if (converted.astype(new_arr.dtype) == new_arr).all():
+                new_arr = converted
     return new_arr
