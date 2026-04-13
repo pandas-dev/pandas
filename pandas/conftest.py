@@ -746,6 +746,14 @@ def index(request):
     return indices_dict[request.param].copy(deep=False)
 
 
+@pytest.fixture(params=[key for key in indices_dict if key != "mixed-int-string"])
+def index_sortable(request):
+    """
+    index fixture, but excluding types that are not orderable.
+    """
+    return indices_dict[request.param].copy(deep=False)
+
+
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -757,6 +765,20 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy(deep=False)
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key, value in indices_dict.items()
+        if not isinstance(value, MultiIndex) and key != "mixed-int-string"
+    ]
+)
+def index_flat_sortable(request):
+    """
+    index_flat fixture, but excluding types that are not orderable.
+    """
+    return indices_dict[request.param].copy(deep=False)
 
 
 @pytest.fixture(
@@ -791,6 +813,28 @@ def index_with_missing(request):
         vals[0] = None
         vals[-1] = None
         return type(ind)(vals, copy=False)
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key, value in indices_dict.items()
+        if not (
+            key.startswith(("int", "uint", "float"))
+            or key in ["range", "empty", "repeats", "bool-dtype", "mixed-int-string"]
+        )
+        and not isinstance(value, MultiIndex)
+    ]
+)
+def index_with_missing_sortable(request):
+    """
+    index_with_missing fixture, but excluding types that are not orderable.
+    """
+    ind = indices_dict[request.param]
+    vals = ind.values.copy()
+    vals[0] = None
+    vals[-1] = None
+    return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------
@@ -869,6 +913,21 @@ def index_or_series_obj(request):
     copy to avoid mutation, e.g. setting .name
     """
     return _index_or_series_objs[request.param].copy(deep=False)
+
+
+_index_or_series_objs_orderable = {
+    key: value
+    for key, value in _index_or_series_objs.items()
+    if "mixed-int-string" not in key
+}
+
+
+@pytest.fixture(params=_index_or_series_objs_orderable.keys())
+def index_or_series_obj_orderable(request):
+    """
+    index_or_series_obj fixture, but excluding types that are not orderable.
+    """
+    return _index_or_series_objs_orderable[request.param].copy(deep=False)
 
 
 _typ_objects_series = {

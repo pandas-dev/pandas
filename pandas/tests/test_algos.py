@@ -49,7 +49,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
-from pandas.core.indexes.api import safe_sort_index
 
 
 class TestFactorize:
@@ -64,8 +63,8 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=complex)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    def test_factorize(self, index_or_series_obj, sort):
-        obj = index_or_series_obj
+    def test_factorize(self, index_or_series_obj_orderable, sort):
+        obj = index_or_series_obj_orderable
         result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
@@ -83,7 +82,7 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            expected_uniques = safe_sort_index(expected_uniques)
+            expected_uniques = expected_uniques.sort_values()
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`
