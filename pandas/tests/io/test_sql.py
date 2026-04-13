@@ -991,11 +991,15 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
     if conn == "postgresql_adbc_conn" and not using_string_dtype():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
+        adbc_pg = pytest.importorskip("adbc_driver_postgresql")
+        if Version(adbc_pg.__version__) < Version("1.11"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "postgres ADBC driver < 1.11 cannot insert index with null type"
+                    ),
+                )
             )
-        )
 
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
