@@ -2065,3 +2065,30 @@ def test_invalid_dtype_backend():
     )
     with pytest.raises(ValueError, match=msg):
         read_xml("test", dtype_backend="numpy")
+
+
+def test_xxe_entity_resolution_disabled(tmp_path, parser):
+    # GH#64979
+    secret_file = tmp_path / "secret.txt"
+    secret_file.write_text("SENSITIVE_DATA", encoding="utf-8")
+
+    xxe_xml = f"""\
+<?xml version="1.0"?>
+<!DOCTYPE foo [
+  <!ENTITY xxe SYSTEM "file://{secret_file}">
+]>
+<data>
+  <row>
+    <a>&xxe;</a>
+    <b>safe</b>
+  </row>
+</data>"""
+
+    if parser == "etree":
+        with pytest.raises(ParseError, match="undefined entity"):
+            read_xml(StringIO(xxe_xml), parser=parser)
+    else:
+        result = read_xml(StringIO(xxe_xml), parser=parser)
+        val = result["a"].iloc[0]
+        assert val != "SENSITIVE_DATA"
+        assert result["b"].iloc[0] == "safe"
