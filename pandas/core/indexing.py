@@ -3007,6 +3007,16 @@ class _iLocIndexer(_LocationIndexer):
                     new_ix = ax[idx]
                     if not is_list_like_indexer(new_ix):
                         new_ix = Index([new_ix])
+                    # GH#22493: partial MultiIndex setitem.
+                    # When setting via a partial key the target
+                    # slice retains the full MultiIndex but the
+                    # value's index has only the remaining levels.
+                    # Drop the consumed leading levels so reindex
+                    # can align properly.
+                    elif isinstance(new_ix, MultiIndex) and not isinstance(
+                        ser.index, MultiIndex
+                    ):
+                        new_ix = new_ix.droplevel(list(range(new_ix.nlevels - 1)))
                     else:
                         new_ix = Index(new_ix)
                     if not len(new_ix) or ser.index.equals(new_ix):
@@ -3086,6 +3096,16 @@ class _iLocIndexer(_LocationIndexer):
                         "cannot align on a multi-index with out "
                         "specifying the join levels"
                     )
+
+                # GH#22493: handle partial MultiIndex setitem.
+                # When setting via a partial key (e.g. df.loc['a1'] = val),
+                # the target slice retains the full MultiIndex but the value
+                # has an index matching only the remaining levels.  Drop the
+                # consumed leading levels so the reindex can align properly.
+                if isinstance(ax, MultiIndex) and not isinstance(df.index, MultiIndex):
+                    remaining = ax.droplevel(list(range(ax.nlevels - 1)))
+                    val = df.reindex(index=remaining)
+                    return val
 
                 val = df.reindex(index=ax)
             return val
