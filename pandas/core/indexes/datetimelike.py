@@ -849,6 +849,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return result
 
     def _with_freq(self, freq):
+        # GH#29843
+        if freq is None:
+            # Always valid
+            pass
+        elif len(self) == 0 and isinstance(freq, BaseOffset):
+            # Always valid.  In the TimedeltaArray case, we require a Tick offset
+            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+        else:
+            # As an internal method, we can ensure this assertion always holds
+            assert freq == "infer"
+            freq = to_offset(self.inferred_freq)
+
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 

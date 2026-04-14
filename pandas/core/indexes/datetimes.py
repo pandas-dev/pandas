@@ -901,16 +901,29 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
+        # Extract freq from incoming data before array conversion strips it
+        inferred_freq = None
+        if isinstance(data, DatetimeArray):
+            inferred_freq = data.freq
+        elif isinstance(data, (Index, ABCSeries)):
+            values = data._values
+            if isinstance(values, DatetimeArray):
+                inferred_freq = values.freq
+
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
             copy=copy,
             tz=tz,
-            freq=freq,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+
+        if inferred_freq is not None:
+            dtarr._freq = inferred_freq
+        dtarr._maybe_pin_freq(freq, {"ambiguous": ambiguous})
+
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references

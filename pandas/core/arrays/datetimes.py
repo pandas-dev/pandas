@@ -332,7 +332,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype=None,
         copy: bool = False,
         tz=lib.no_default,
-        freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
         ambiguous: TimeAmbiguous = "raise",
@@ -360,9 +359,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data, copy = dtl.ensure_arraylike_for_datetimelike(
             data, copy, cls_name="DatetimeArray"
         )
-        inferred_freq = None
-        if isinstance(data, DatetimeArray):
-            inferred_freq = data.freq
 
         subarr, tz = _sequence_to_dt64(
             data,
@@ -384,7 +380,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data_unit = np.datetime_data(subarr.dtype)[0]
         data_unit = cast("TimeUnit", data_unit)
         data_dtype = tz_to_dtype(tz, data_unit)
-        result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
+        result = cls._simple_new(subarr, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
             # error: Argument 1 to "as_unit" of "TimelikeOps" has
@@ -392,8 +388,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # [arg-type]
             result = result.as_unit(unit)  # type: ignore[arg-type]
 
-        validate_kwds = {"ambiguous": ambiguous}
-        result._maybe_pin_freq(freq, validate_kwds)
         return result
 
     @classmethod

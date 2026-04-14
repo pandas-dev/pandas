@@ -1865,8 +1865,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _maybe_pin_freq(self, freq, validate_kwds: dict) -> None:
         """
         Constructor helper to pin the appropriate `freq` attribute.  Assumes
-        that self._freq is currently set to any freq inferred in
-        _from_sequence_not_strict.
+        that self._freq is currently set to any freq inferred from input data.
         """
         if freq is None:
             # user explicitly passed None -> override any inferred_freq
@@ -2466,14 +2465,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if freq is None:
             # Always valid
             pass
-        elif len(self) == 0 and isinstance(freq, BaseOffset):
-            # Always valid.  In the TimedeltaArray case, we require a Tick offset
+        elif isinstance(freq, BaseOffset):
+            # In the TimedeltaArray case, we require a Tick offset
             if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
-        else:
-            # As an internal method, we can ensure this assertion always holds
-            assert freq == "infer"
+        elif freq == "infer":
             freq = to_offset(self.inferred_freq)
+        else:
+            raise ValueError(f"Invalid frequency: {freq!r}")
 
         arr = self.view()
         arr._freq = freq
