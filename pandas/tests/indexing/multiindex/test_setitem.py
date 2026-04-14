@@ -550,3 +550,58 @@ def test_frame_setitem_partial_multiindex():
     expected = df.copy()
     expected["d"] = 8
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_setitem_partial_multiindex_columns_identity():
+    # GH#40186
+    cols = MultiIndex.from_product([[1], ["a", "b"]])
+    df = DataFrame(np.ones((2, 2)), columns=cols)
+    df.loc[:, 1] = df.loc[:, 1]
+    expected = DataFrame(np.ones((2, 2)), columns=cols)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_multiindex_columns_modified_values():
+    # GH#40186
+    cols = MultiIndex.from_product([[1], ["a", "b"]])
+    df = DataFrame(np.ones((2, 2)), columns=cols)
+    df.loc[:, 1] = df.loc[:, 1] * 3
+    expected = DataFrame(np.full((2, 2), 3.0), columns=cols)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_multiindex_columns_multiple_level0():
+    # GH#40186 - only selected level-0 group should change
+    cols = MultiIndex.from_product([[1, 2], ["a", "b"]])
+    df = DataFrame(np.ones((2, 4)), columns=cols)
+    df.loc[:, 1] = df.loc[:, 1] * 5
+    expected = DataFrame([[5.0, 5.0, 1.0, 1.0], [5.0, 5.0, 1.0, 1.0]], columns=cols)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_multiindex_columns_3_levels():
+    # GH#40186 - 3-level MultiIndex columns
+    cols = MultiIndex.from_product([[1], ["a", "b"], ["x", "y"]])
+    df = DataFrame(np.ones((2, 4)), columns=cols)
+    df.loc[:, 1] = df.loc[:, 1]
+    expected = DataFrame(np.ones((2, 4)), columns=cols)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_multiindex_columns_alignment():
+    # GH#40186 - assignment aligns by column name, not position
+    cols = MultiIndex.from_product([[1], ["a", "b"]])
+    df = DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=cols)
+    rhs = df.loc[:, 1][["b", "a"]]
+    df.loc[:, 1] = rhs
+    expected = DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=cols)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_multiindex_columns_augmented_assignment():
+    # GH#40186
+    cols = MultiIndex.from_product([[1], ["a", "b"]])
+    df = DataFrame(np.ones((2, 2)), columns=cols)
+    df.loc[:, 1] *= 3
+    expected = DataFrame(np.full((2, 2), 3.0), columns=cols)
+    tm.assert_frame_equal(df, expected)

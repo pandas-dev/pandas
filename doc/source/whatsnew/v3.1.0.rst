@@ -284,6 +284,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`DataFrame.loc` setitem with :class:`MultiIndex` columns where assigning a :class:`DataFrame` obtained via partial key selection (e.g., ``df.loc[:, key] = df.loc[:, key]``) introduced ``NaN`` values (:issue:`40186`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 -

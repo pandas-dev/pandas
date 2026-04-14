@@ -2704,9 +2704,22 @@ class _iLocIndexer(_LocationIndexer):
         else:
             for loc in ilocs:
                 item = self.obj.columns[loc]
-                if item in value:
+
+                # GH#40186: When assigning from a DataFrame obtained via
+                # partial MultiIndex key (e.g., df.loc[:, key] = df.loc[:, key]),
+                # value.columns corresponds to the remaining sub-levels,
+                # not the full MultiIndex tuples. Extract the sub-key for
+                # lookup in value.
+                lookup_item = item
+                if item not in value and multiindex_indexer and isinstance(item, tuple):
+                    nlevels_value = value.columns.nlevels
+                    lookup_item = (
+                        item[-nlevels_value:] if nlevels_value > 1 else item[-1]
+                    )
+
+                if lookup_item in value:
                     sub_indexer[1] = item
-                    ser = value[item]
+                    ser = value[lookup_item]
                     val = self._align_series(
                         tuple(sub_indexer),
                         ser,
