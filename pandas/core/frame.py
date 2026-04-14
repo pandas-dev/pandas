@@ -4828,7 +4828,24 @@ class DataFrame(NDFrame, OpsMixin):
             # column_setitem will do validation that may raise TypeError,
             #  ValueError, or LossySetitemError
             # set using a non-recursive method & reset the cache
-            if takeable:
+            if is_list_like(value) and not isinstance(value, dict):
+                # GH#61223 .loc/.iloc misinterpret list-like values as
+                # multi-element setitem. Ensure object dtype column first.
+                if takeable:
+                    col_label = self.columns[col]
+                    iindex = cast("int", index)
+                else:
+                    col_label = col
+                    if col not in self.columns:
+                        self[col] = Series(dtype=object, index=self.index)
+                    iindex = self.index.get_loc(index)  # type: ignore[assignment]
+
+                icol = self.columns.get_loc(col_label)
+                if self.dtypes.iloc[icol] != np.dtype("object"):
+                    self[col_label] = self[col_label].astype(object)
+                    icol = self.columns.get_loc(col_label)
+                self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
+            elif takeable:
                 self.iloc[index, col] = value
             else:
                 self.loc[index, col] = value

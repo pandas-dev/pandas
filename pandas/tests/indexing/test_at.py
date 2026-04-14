@@ -277,3 +277,27 @@ class TestAtErrors:
             match=f"You can only assign a scalar value not a \\{type(new_row)}",
         ):
             df.at["a"] = new_row
+
+    @pytest.mark.parametrize("value", [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3])])
+    def test_at_setitem_list_like_into_new_column(self, value):
+        # GH#61223 .at should store list-like as single cell in new column
+        df = DataFrame({"A": [1, 2]}, index=["a", "b"])
+        df.at["a", "B"] = value
+        assert df["B"].dtype == object
+        result = df.at["a", "B"]
+        if isinstance(value, np.ndarray):
+            tm.assert_numpy_array_equal(result, value)
+        else:
+            assert result == value
+
+    @pytest.mark.parametrize("value", [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3])])
+    def test_at_setitem_list_like_into_incompatible_dtype(self, value):
+        # GH#61223 .at should cast column to object when storing list-like
+        df = DataFrame({"A": [1, 2]}, index=["a", "b"])
+        df.at["a", "A"] = value
+        assert df["A"].dtype == object
+        result = df.at["a", "A"]
+        if isinstance(value, np.ndarray):
+            tm.assert_numpy_array_equal(result, value)
+        else:
+            assert result == value
