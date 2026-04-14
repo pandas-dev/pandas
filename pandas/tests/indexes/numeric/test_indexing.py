@@ -608,8 +608,9 @@ class TestSliceLocs:
         assert index.slice_locs(np.nan) == (1, 5)
 
     def test_slice_locs_na_raises(self):
+        # GH#20917 - error message should mention NaN when applicable
         index = Index([np.nan, 1, 2])
-        msg = "non-monotonic index with a missing label 1.5"
+        msg = "Index contains NaN values which make it non-monotonic"
         with pytest.raises(KeyError, match=msg):
             index.slice_locs(start=1.5)
 

@@ -7146,11 +7146,20 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                raise KeyError(
+                # GH#20917
+                msg = (
                     f"Cannot get {side} slice bound for non-monotonic index "
                     f"with a missing label {original_label!r}. "
-                    "Either sort the index or specify an existing label."
-                ) from None
+                )
+                if self.hasnans:
+                    msg += (
+                        "Index contains NaN values which make it non-monotonic. "
+                        "Either drop NaN values first or specify an existing "
+                        "label."
+                    )
+                else:
+                    msg += "Either sort the index or specify an existing label."
+                raise KeyError(msg) from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
