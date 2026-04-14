@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas._libs import (
     NaT,

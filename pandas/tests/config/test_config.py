@@ -13,7 +13,8 @@ class TestConfig:
     @pytest.fixture(autouse=True)
     def clean_config(self, monkeypatch):
         with monkeypatch.context() as m:
-            m.setattr(cf, "_global_config", {})
+            m.setattr(cf, "_global_config", cf._ConfigDict(prefix=""))
+            m.setattr(cf, "config", cf._global_config)
             m.setattr(cf, "options", cf.DictWrapper(cf._global_config))
             m.setattr(cf, "_deprecated_options", {})
             m.setattr(cf, "_registered_options", {})
@@ -497,3 +498,53 @@ def test_option_context_invalid_option():
     with pytest.raises(OptionError, match="No such keys"):
         with cf.option_context("invalid", True):
             pass
+
+
+def test_option_context_thread_isolation():
+    # GH#64345
+    # Deterministic test: forces an interleaving where Thread A reads
+    # while Thread B's option_context is active.
+    #
+    # With the old global-mutating option_context this fails:
+    #   1. A enters context → _global_config["display"]["max_rows"] = 10
+    #   2. B enters context → _global_config["display"]["max_rows"] = 20
+    #   3. A reads           → gets 20 (WRONG — should see its own value 10)
+    #
+    # With ContextVar-based option_context each thread has its own
+    # overrides dict, so A always reads 10.
+    import threading
+
+    from pandas._config.config import config
+
+    entered_a = threading.Event()  # A has entered its context
+    entered_b = threading.Event()  # B has entered its context
+    read_done = threading.Event()  # A has finished reading
+
+    results = {}
+
+    def thread_a():
+        with pd.option_context("display.max_rows", 10):
+            entered_a.set()
+            entered_b.wait()
+            # Both contexts are now open.  Read via both public API
+            # and the internal config dict used by formatting code.
+            results["get_option"] = pd.get_option("display.max_rows")
+            results["config_dict"] = config["display"]["max_rows"]
+            read_done.set()
+
+    def thread_b():
+        entered_a.wait()
+        with pd.option_context("display.max_rows", 20):
+            entered_b.set()
+            read_done.wait()  # hold context open until A has read
+
+    thread1 = threading.Thread(target=thread_a)
+    thread2 = threading.Thread(target=thread_b)
+    thread1.start()
+    thread2.start()
+    thread1.join()
+    thread2.join()
+
+    # Thread A must see its own context value, not Thread B's
+    assert results["get_option"] == 10
+    assert results["config_dict"] == 10

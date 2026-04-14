@@ -29,7 +29,7 @@ from typing import (
 import numpy as np
 
 from pandas._config.config import (
-    _global_config as config,
+    config,
     set_option,
 )
 

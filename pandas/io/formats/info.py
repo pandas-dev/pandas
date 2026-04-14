@@ -7,7 +7,7 @@ from abc import (
 import sys
 from typing import TYPE_CHECKING
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing

@@ -26,7 +26,7 @@ from typing import (
 import warnings
 import zipfile
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas._libs import lib
 from pandas.compat._optional import (

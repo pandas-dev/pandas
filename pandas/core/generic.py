@@ -27,7 +27,7 @@ import warnings
 import numpy as np
 
 import pandas._config.config as cf
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer

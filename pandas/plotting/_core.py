@@ -6,7 +6,7 @@ from typing import (
     Literal,
 )
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas.util._decorators import set_module
 

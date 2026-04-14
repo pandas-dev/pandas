@@ -13,7 +13,7 @@ def get_console_size() -> tuple[int | None, int | None]:
 
     Returns (None,None) in non-interactive session.
     """
-    from pandas._config.config import _global_config as config
+    from pandas._config.config import config
 
     display_width = config["display"]["width"]
     display_height = config["display"]["max_rows"]
@@ -61,7 +61,7 @@ def in_interactive_session() -> bool:
     bool
         True if running under python/ipython interactive shell.
     """
-    from pandas._config.config import _global_config as config
+    from pandas._config.config import config
 
     def check_main() -> bool:
         try:

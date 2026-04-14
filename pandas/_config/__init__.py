@@ -28,21 +28,21 @@ from pandas._config.display import detect_console_encoding
 
 
 def using_string_dtype() -> bool:
-    from pandas._config.config import _global_config as config
+    from pandas._config.config import config
 
     _mode_options = config["future"]
     return _mode_options["infer_string"]
 
 
 def using_python_scalars() -> bool:
-    from pandas._config.config import _global_config as config
+    from pandas._config.config import config
 
     _mode_options = config["future"]
     return _mode_options["python_scalars"]
 
 
 def is_nan_na() -> bool:
-    from pandas._config.config import _global_config as config
+    from pandas._config.config import config
 
     _mode_options = config["future"]
     return not _mode_options["distinguish_nan_and_na"]

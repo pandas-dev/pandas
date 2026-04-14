@@ -4,7 +4,7 @@ from functools import reduce
 
 import numpy as np
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 
 def ensure_decoded(s) -> str:

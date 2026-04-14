@@ -51,6 +51,7 @@ Implementation
 from __future__ import annotations
 
 from contextlib import contextmanager
+from contextvars import ContextVar
 import re
 from typing import (
     TYPE_CHECKING,
@@ -94,8 +95,41 @@ _deprecated_options: dict[str, DeprecatedOption] = {}
 # holds registered option metadata
 _registered_options: dict[str, RegisteredOption] = {}
 
+# holds per-context option overrides (for thread/async safety)
+_context_overrides: ContextVar[dict[str, Any] | None] = ContextVar(
+    "pandas_option_overrides", default=None
+)
+
+
+class _ConfigDict(dict):
+    """Dict subclass whose __getitem__ checks context-local overrides first.
+
+    _global_config and all its nested sub-dicts are _ConfigDict instances.
+    This makes every ``config["display"]["max_rows"]`` access automatically
+    context-aware with no temporary object creation.
+    """
+
+    __slots__ = ("_prefix",)
+
+    def __init__(self, *args, prefix: str = "", **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._prefix = prefix
+
+    def __getitem__(self, key: str) -> Any:
+        overrides = _context_overrides.get(None)
+        if overrides is not None:
+            full_key = f"{self._prefix}.{key}" if self._prefix else key
+            if full_key in overrides:
+                return overrides[full_key]
+        return super().__getitem__(key)
+
+
 # holds the current values for registered options
-_global_config: dict[str, Any] = {}
+_global_config: _ConfigDict = _ConfigDict(prefix="")
+
+# Context-aware alias; used by all internal callers via
+# ``from pandas._config.config import config``.
+config = _global_config
 
 # keys which have a special meaning
 _reserved_keys: list[str] = ["all"]
@@ -186,6 +220,11 @@ def get_option(pat: str) -> Any:
     4
     """
     key = _get_single_key(pat)
+
+    # Check context-local overrides first
+    overrides = _context_overrides.get(None)
+    if overrides is not None and key in overrides:
+        return overrides[key]
 
     # walk the nested dict
     root, k = _get_root(key)
@@ -508,15 +547,35 @@ def option_context(*args) -> Generator[None]:
         )
 
     ops = tuple(zip(args[::2], args[1::2], strict=True))
-    undo: tuple[tuple[Any, Any], ...] = ()
+
+    # Resolve keys and validate values upfront (atomic: all-or-nothing)
+    resolved: list[tuple[str, Any, RegisteredOption | None]] = []
+    for pat, val in ops:
+        key = _get_single_key(pat)
+        opt = _get_registered_option(key)
+        if opt and opt.validator:
+            opt.validator(val)
+        resolved.append((key, val, opt))
+
+    # Build new overrides on top of any existing ones (supports nesting)
+    current = _context_overrides.get(None)
+    new_overrides = dict(current) if current is not None else {}
+    for key, val, _opt in resolved:
+        new_overrides[key] = val
+
+    token = _context_overrides.set(new_overrides)
     try:
-        undo = tuple((pat, get_option(pat)) for pat, val in ops)
-        for pat, val in ops:
-            set_option(pat, val)
+        # Fire callbacks on entry
+        for key, _val, opt in resolved:
+            if opt is not None and opt.cb:
+                opt.cb(key)
         yield
     finally:
-        for pat, val in undo:
-            set_option(pat, val)
+        _context_overrides.reset(token)
+        # Fire callbacks on exit to notify of restored values
+        for key, _val, opt in resolved:
+            if opt is not None and opt.cb:
+                opt.cb(key)
 
 
 def register_option(
@@ -575,12 +634,15 @@ def register_option(
 
     cursor = _global_config
     msg = "Path prefix to option '{option}' is already an option"
+    current_prefix = ""
 
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
             raise OptionError(msg.format(option=".".join(path[:i])))
+        next_prefix = f"{current_prefix}.{p}" if current_prefix else p
         if p not in cursor:
-            cursor[p] = {}
+            cursor[p] = _ConfigDict(prefix=next_prefix)
+        current_prefix = next_prefix
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):

@@ -25,7 +25,7 @@ from pandas._config import (
     is_nan_na,
     using_string_dtype,
 )
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas._libs import (
     NaT,

@@ -18,7 +18,7 @@ import matplotlib.dates as mdates
 import matplotlib.units as munits
 import numpy as np
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (

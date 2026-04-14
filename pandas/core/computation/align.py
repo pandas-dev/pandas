@@ -13,7 +13,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level

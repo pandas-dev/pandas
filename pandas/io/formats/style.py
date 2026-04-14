@@ -16,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas.compat._optional import import_optional_dependency
 

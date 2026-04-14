@@ -33,7 +33,7 @@ from pandas._config import (
     using_string_dtype,
 )
 import pandas._config.config as cf
-from pandas._config.config import _global_config as config
+from pandas._config.config import config
 
 from pandas._libs import (
     lib,
