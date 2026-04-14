@@ -25,7 +25,7 @@ from pandas._config import (
     is_nan_na,
     using_string_dtype,
 )
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -140,6 +140,7 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.floating import FloatingDtype
@@ -216,10 +217,7 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import (
-        IntervalArray,
-        PeriodArray,
-    )
+    from pandas.core.arrays import IntervalArray
 
 __all__ = ["Index"]
 
@@ -902,7 +900,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return {
             c
-            for c in self.unique(level=0)[: _global_config["display"]["max_dir_items"]]
+            for c in self.unique(level=0)[: config["display"]["max_dir_items"]]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -1411,7 +1409,7 @@ class Index(IndexOpsMixin, PandasObject):
         data = self._format_data()
         attrs = self._format_attrs()
 
-        display_width = _global_config["display"]["width"] or 80
+        display_width = config["display"]["width"] or 80
         indent = len(klass_name) + 1  # length of "ClassName("
         indent_str = " " * indent
 
@@ -1503,7 +1501,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif self._is_multi and any(x is not None for x in self.names):
             attrs.append(("names", default_pprint(self.names)))
 
-        max_seq_items = _global_config["display"]["max_seq_items"] or len(self)
+        max_seq_items = config["display"]["max_seq_items"] or len(self)
         if len(self) > max_seq_items:
             attrs.append(("length", len(self)))
         return attrs
@@ -6457,7 +6455,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self._index_as_unique:
             indexer = self.get_indexer_for(keyarr)  # pyright: ignore[reportArgumentType]
-            keyarr = self.reindex(keyarr)[0]  # pyright: ignore[reportArgumentType]
+            if not isinstance(keyarr, Index):
+                keyarr = ensure_index(keyarr)
+                keyarr.name = self.name
         else:
             keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
 
@@ -6603,9 +6603,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
-                return type(other)(self), other
+                result = type(other)(self), other
             except OutOfBoundsDatetime:
                 return self, other
+            else:
+                warnings.warn(
+                    # GH#62158 deprecate special-case treatment of date objects
+                    "Indexing a DatetimeIndex with a sequence of datetime.date "
+                    "objects is deprecated. Use Timestamp objects instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                return result
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
@@ -6819,6 +6828,48 @@ class Index(IndexOpsMixin, PandasObject):
             new_values = arr._cast_pointwise_result(new_values)
             dtype = new_values.dtype
         return Index(new_values, dtype=dtype, copy=False, name=self.name)
+
+    def replace(
+        self, to_replace: Any = None, value: Any = lib.no_default, regex: bool = False
+    ) -> Index:
+        """
+        Replace values in the Index.
+
+        Replace values given in `to_replace` with `value`. Values of the Index
+        that are not in `to_replace` are left unchanged.
+
+        Parameters
+        ----------
+        to_replace : scalar, list, or dict
+            The value(s) to be replaced. If a dict is provided, value must be omitted.
+        value : scalar, default None
+            The value to replace occurrences of to_replace with.
+        regex : bool, default False
+            Whether to interpret to_replace as a regular expression.
+
+        Returns
+        -------
+        Index
+            Index with replaced values.
+
+        See Also
+        --------
+        Series.replace : Replace values in a Series.
+        DataFrame.replace : Replace values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4, 5])
+        >>> idx.replace(3, 30)
+        Index([1, 2, 30, 4, 5], dtype='int64')
+        """
+        if self._is_multi:
+            raise NotImplementedError("replace is not implemented for MultiIndex")
+
+        ser = self.to_series()
+        replaced = ser.replace(to_replace, value, regex=regex)
+
+        return self._shallow_copy(replaced._values, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
@@ -8335,7 +8386,7 @@ def get_values_for_csv(
 
     values = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
 
-    if isinstance(values, (DatetimeArray, TimedeltaArray)):
+    if isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
         if values.ndim == 1:
             result = values._format_native_types(na_rep=na_rep, date_format=date_format)
             result = result.astype(object, copy=False)
@@ -8350,14 +8401,7 @@ def get_values_for_csv(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif isinstance(values.dtype, PeriodDtype):
-        # TODO: tests that get here in column path
-        values = cast("PeriodArray", values)
-        res = values._format_native_types(na_rep=na_rep, date_format=date_format)
-        return res
-
     elif isinstance(values.dtype, IntervalDtype):
-        # TODO: tests that get here in column path
         values = cast("IntervalArray", values)
         mask = values.isna()
         if not quoting:

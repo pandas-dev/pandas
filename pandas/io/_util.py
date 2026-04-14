@@ -157,6 +157,20 @@ def _post_convert_dtypes(
                 key: pandas_dtype(dtype[key]) for key in dtype if key in df.columns
             }
 
+            # GH#65056 pyarrow returns datetime.date objects which trigger
+            #  a deprecation warning when compared against DatetimeIndex
+            #  categories. Convert to datetime64 first since the user can't
+            #  control pyarrow's behavior.
+            for col, col_dtype in dtype.items():
+                if (
+                    isinstance(col_dtype, pd.CategoricalDtype)
+                    and col_dtype.categories is not None
+                    and isinstance(col_dtype.categories, pd.DatetimeIndex)
+                    and df[col].dtype == np.dtype("object")
+                    and lib.infer_dtype(df[col]) == "date"
+                ):
+                    df[col] = pd.to_datetime(df[col])
+
         else:
             dtype = pandas_dtype(dtype)
 

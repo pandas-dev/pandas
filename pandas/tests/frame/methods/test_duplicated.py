@@ -105,6 +105,19 @@ def test_duplicated_on_empty_frame():
     tm.assert_frame_equal(result, expected)
 
 
+def test_duplicated_on_empty_frame_with_index():
+    # GH#61191
+    df = DataFrame(index=[0, 1])
+    result = df.duplicated()
+    expected = Series(False, dtype=bool, index=df.index)
+    tm.assert_series_equal(result, expected)
+
+    # Boolean indexing with the result should work
+    result = df[df.duplicated()]
+    expected = df.iloc[:0]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_frame_datetime64_duplicated():
     dates = date_range("2010-07-01", end="2010-08-05")
 

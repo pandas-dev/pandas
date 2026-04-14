@@ -1044,6 +1044,10 @@ def read_html(
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
+    This function requires one of the following libraries:
+    `lxml <https://lxml.de/>`_, `html5lib <https://github.com/html5lib/html5lib-python>`_,
+    or `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/>`_.
+
     This function searches for ``<table>`` elements within an HTML document
     and parses their rows and columns into DataFrames. It can read from a URL,
     a file path, or a raw HTML string, and supports filtering tables by
