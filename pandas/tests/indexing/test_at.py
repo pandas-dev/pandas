@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timezone,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -72,6 +73,13 @@ def test_at_multiindex_partial_date_string():
         name="col",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_at_incompatible_type_decimal():
+    # GH#22740 - .at should not silently discard incompatible type
+    df = DataFrame({"A": [1, 2, 3]})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.at[0, "A"] = Decimal("1")
 
 
 def test_at_timezone():
