@@ -715,10 +715,8 @@ cdef tzinfo _parse_with_format(
         elif parse_code == 7:
             hour = int(group_val)
             ampm = found_dict.get("p", "").lower()
-            # If there was no AM/PM indicator, we'll treat this like AM.
-            # Always accept English "am"/"pm" in addition to locale-specific
-            # strings, so parsing works on non-English locales.
-            if ampm in ("", locale_time.am_pm[0], "am"):
+            # If there was no AM/PM indicator, we'll treat this like AM
+            if ampm in ("", locale_time.am_pm[0]):
                 # We're in AM so the hour is correct unless we're
                 # looking at 12 midnight.
                 # 12 midnight == 12 AM == hour 0
@@ -728,7 +726,7 @@ cdef tzinfo _parse_with_format(
                     #  branch is tested with e.g.
                     #  val='Tuesday 24 Aug 2021 01:30:48 AM'
                     #  fmt='%A %d %b %Y %I:%M:%S %p'
-            elif ampm in (locale_time.am_pm[1], "pm"):
+            elif ampm == locale_time.am_pm[1]:
                 # We're in PM so we need to add 12 to the hour unless
                 # we're looking at 12 noon.
                 # 12 noon == 12 PM == hour 12
@@ -862,18 +860,6 @@ class TimeRE(_TimeRE):
         # GH 48767: Overrides for cpython's TimeRE
         #  1) Parse up to nanos instead of micros
         self.update({"f": r"(?P<f>[0-9]{1,9})"}),
-        #  2) Always accept English AM/PM regardless of locale, so that
-        #     parsing with %p works with English input on non-English locales.
-        am_pm_alternatives = set()
-        for val in self.locale_time.am_pm:
-            if val:
-                am_pm_alternatives.add(re.escape(val))
-        am_pm_alternatives.update(["am", "pm"])
-        self.update({
-            "p": r"(?P<p>" + "|".join(
-                sorted(am_pm_alternatives, key=len, reverse=True)
-            ) + r")"
-        })
 
     def __getitem__(self, key):
         if key == "Z":

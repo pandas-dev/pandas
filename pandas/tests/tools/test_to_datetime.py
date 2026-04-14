@@ -302,21 +302,24 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
-            [
+            pytest.param(
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
-            ],
-            [
+                marks=td.skip_if_not_us_locale,
+            ),
+            pytest.param(
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
-            ],
-            [
+                marks=td.skip_if_not_us_locale,
+            ),
+            pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-            ],
+                marks=td.skip_if_not_us_locale,
+            ),
         ],
     )
     def test_to_datetime_format_time(self, cache, value, format, dt):

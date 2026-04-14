@@ -3,6 +3,8 @@ from datetime import time
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import Series
 import pandas._testing as tm
 from pandas.core.tools.times import to_time
@@ -14,12 +16,12 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            "2:15pm",
-            "0215pm",
+            pytest.param("2:15pm", marks=td.skip_if_not_us_locale),
+            pytest.param("0215pm", marks=td.skip_if_not_us_locale),
             "14:15:00",
             "141500",
-            "2:15:00pm",
-            "021500pm",
+            pytest.param("2:15:00pm", marks=td.skip_if_not_us_locale),
+            pytest.param("021500pm", marks=td.skip_if_not_us_locale),
             time(14, 15),
         ],
     )

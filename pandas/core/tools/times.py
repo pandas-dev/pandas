@@ -69,20 +69,10 @@ def to_time(
             format = _guess_time_format_for_array(arg)
 
         times: list[time | None] = []
-        # On non-English locales, strptime doesn't recognize English AM/PM.
-        # Check once and use a fallback parser for %p formats if needed.
-        need_ampm_fallback = not _LOCALE_SUPPORTS_ENGLISH_AMPM
-
         if format is not None:
-            if need_ampm_fallback and "%p" in format:
-                _parse = _strptime_ampm_fallback
-            else:
-                _parse = lambda element, time_format: datetime.strptime(
-                    element, time_format
-                ).time()
             for element in arg:
                 try:
-                    times.append(_parse(element, format))
+                    times.append(datetime.strptime(element, format).time())
                 except (ValueError, TypeError) as err:
                     if errors == "raise":
                         msg = (
@@ -101,14 +91,7 @@ def to_time(
                 except (ValueError, TypeError):
                     for time_format in formats:
                         try:
-                            if need_ampm_fallback and "%p" in time_format:
-                                time_object = _strptime_ampm_fallback(
-                                    element, time_format
-                                )
-                            else:
-                                time_object = datetime.strptime(
-                                    element, time_format
-                                ).time()
+                            time_object = datetime.strptime(element, time_format).time()
                             if not format_found:
                                 # Put the found format in front
                                 fmt = formats.pop(formats.index(time_format))
@@ -155,59 +138,14 @@ _time_formats = [
 ]
 
 
-def _locale_supports_english_ampm() -> bool:
-    """Check whether the current locale's strptime recognizes English AM/PM."""
-    try:
-        datetime.strptime("01PM", "%I%p")
-        return True
-    except ValueError:
-        return False
-
-
-_LOCALE_SUPPORTS_ENGLISH_AMPM: bool = _locale_supports_english_ampm()
-
-
-def _strptime_ampm_fallback(element: str, time_format: str) -> time:
-    """
-    Parse a time string with %p when the locale doesn't recognize English AM/PM.
-
-    Strips the AM/PM suffix, converts %I→%H / %p→empty, and adjusts
-    the hour manually.
-    """
-    element_lower = element.lower()
-    if element_lower.endswith("am"):
-        is_pm = False
-        base = element[:-2]
-    elif element_lower.endswith("pm"):
-        is_pm = True
-        base = element[:-2]
-    else:
-        raise ValueError(
-            f"Cannot convert {element} to a time with given format {time_format}"
-        )
-
-    alt_format = time_format.replace("%I", "%H").replace("%p", "")
-    parsed = datetime.strptime(base.rstrip(), alt_format.rstrip())
-    hour = parsed.hour
-    if is_pm and hour < 12:
-        hour += 12
-    elif not is_pm and hour == 12:
-        hour = 0
-    return time(hour, parsed.minute, parsed.second)
-
-
 def _guess_time_format_for_array(arr):
     # Try to guess the format based on the first non-NaN element
-    need_ampm_fallback = not _LOCALE_SUPPORTS_ENGLISH_AMPM
     non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         element = arr[non_nan_elements[0]]
         for time_format in _time_formats:
             try:
-                if need_ampm_fallback and "%p" in time_format:
-                    _strptime_ampm_fallback(element, time_format)
-                else:
-                    datetime.strptime(element, time_format)
+                datetime.strptime(element, time_format)
                 return time_format
             except ValueError:
                 pass
