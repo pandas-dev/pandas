@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+import datetime as dt
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -30,9 +31,11 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
+    Pandas4Warning,
     PerformanceWarning,
     UnsortedIndexError,
 )
@@ -3447,6 +3450,17 @@ class MultiIndex(Index):
         zipped = zip(tup, self.levels, self.codes, strict=True)
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
+
+            if isinstance(lab, dt.date) and not isinstance(lab, dt.datetime):
+                # GH#15906 coerce datetime.date to Timestamp for
+                # DatetimeIndex levels, matching DatetimeIndex behavior
+                lab = Timestamp(lab)
+                warnings.warn(
+                    "Indexing a MultiIndex with a datetime.date object is "
+                    "deprecated. Explicitly cast to Timestamp instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):

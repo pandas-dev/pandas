@@ -1,4 +1,5 @@
 from collections import namedtuple
+import datetime as dt
 from datetime import timedelta
 import re
 
@@ -83,6 +84,23 @@ class TestSliceLocs:
         # TODO: Try creating a UnicodeDecodeError in exception message
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs(df.index[1], (16, "a"))
+
+    def test_slice_locs_with_datetime_date(self):
+        # GH#15906 slicing MultiIndex with datetime.date should work
+        # (with deprecation warning), matching DatetimeIndex behavior
+        dti = date_range("2016-10-01", periods=4, freq="D")
+        mi = MultiIndex.from_arrays([dti, [1, 2, 3, 4]])
+
+        msg = "Indexing a MultiIndex with a datetime.date object is deprecated"
+        with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+            result = mi.slice_locs(dt.date(2016, 10, 2))
+        expected = mi.slice_locs(pd.Timestamp("2016-10-02"))
+        assert result == expected
+
+        with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+            result = mi.slice_locs(dt.date(2016, 10, 2), dt.date(2016, 10, 3))
+        expected = mi.slice_locs(pd.Timestamp("2016-10-02"), pd.Timestamp("2016-10-03"))
+        assert result == expected
 
     def test_slice_locs_not_sorted(self):
         index = MultiIndex(
