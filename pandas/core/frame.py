@@ -4402,7 +4402,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = self.index._engine.get_loc(index)
+        try:
+            loc = self.index._engine.get_loc(index)
+        except TypeError:
+            # e.g. partial string slicing on DatetimeIndex level;
+            #  see GH#43395
+            loc = self.index.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
