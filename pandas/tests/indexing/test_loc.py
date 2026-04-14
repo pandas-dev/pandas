@@ -3054,6 +3054,20 @@ class TestLocListlike:
         result = df.loc[Index(["cobra", "viper"], name="foo")]
         tm.assert_frame_equal(result, expected)
 
+    def test_loc_setitem_single_column_listlike_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = ["one"]
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_single_column_ea_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = pd.array(["one"], dtype="string")
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
 
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
