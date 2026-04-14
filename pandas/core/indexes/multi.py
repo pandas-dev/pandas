@@ -3653,7 +3653,7 @@ class MultiIndex(Index):
                 f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
             )
 
-        if keylen == self.nlevels and self.is_unique:
+        if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
             #  i.e. do we need _index_as_unique on that level?
             try:
@@ -3667,7 +3667,7 @@ class MultiIndex(Index):
                 loc, _ = self.get_loc_level(key, range(self.nlevels))
                 return loc
 
-        # -- partial selection or non-unique index
+        # -- partial selection
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
@@ -3841,10 +3841,10 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-                if len(key) == self.nlevels and self.is_unique:
-                    # Complete key in unique index -> standard get_loc
+                if len(key) == self.nlevels:
+                    # Complete key -> standard get_loc
                     try:
-                        return (self._engine.get_loc(key), None)
+                        loc = self._engine.get_loc(key)
                     except KeyError as err:
                         raise KeyError(key) from err
                     except (TypeError, ValueError):
@@ -3853,7 +3853,10 @@ class MultiIndex(Index):
                         # ValueError: e.g. IntervalIndex level where the
                         #  engine can't convert scalar to interval code
                         #  (GH#27456)
-                        pass
+                        loc = None
+
+                    if is_integer(loc):
+                        return loc, None
 
                 # partial selection
                 indexer = self.get_loc(key)
