@@ -2702,11 +2702,29 @@ class _iLocIndexer(_LocationIndexer):
             raise ValueError("Setting with non-unique columns is not allowed.")
 
         else:
+            # When the target has a MultiIndex and the value has fewer
+            # levels (e.g. from partial-key indexing like df.loc[:, "a"]),
+            # we need to look up by the trailing level(s) of the item
+            # in the value DataFrame. GH#43719
+            if multiindex_indexer and value.columns.nlevels < self.obj.columns.nlevels:
+                nlevels_dropped = self.obj.columns.nlevels - value.columns.nlevels
+            else:
+                nlevels_dropped = 0
+
             for loc in ilocs:
                 item = self.obj.columns[loc]
-                if item in value:
+                if nlevels_dropped:
+                    # Extract the sub-key corresponding to value's columns
+                    value_item = item[nlevels_dropped:]
+                    if value.columns.nlevels == 1:
+                        # Single remaining level: unwrap the tuple
+                        value_item = value_item[0]
+                else:
+                    value_item = item
+
+                if value_item in value:
                     sub_indexer[1] = item
-                    ser = value[item]
+                    ser = value[value_item]
                     val = self._align_series(
                         tuple(sub_indexer),
                         ser,

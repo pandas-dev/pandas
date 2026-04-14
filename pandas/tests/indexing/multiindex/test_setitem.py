@@ -550,3 +550,68 @@ def test_frame_setitem_partial_multiindex():
     expected = df.copy()
     expected["d"] = 8
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_setitem_partial_column_key_single_column():
+    # GH#43719 - single column under partial key preserves dtype and values
+    df = DataFrame({("a", "x"): np.array([0, 1, 2, 3, 4], dtype=np.float32)})
+    df.loc[:, "a"] = 2 * df.loc[:, "a"] - 1
+    expected = DataFrame({("a", "x"): np.array([-1, 1, 3, 5, 7], dtype=np.float32)})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_column_key_inplace_division():
+    # GH#45751 - in-place /= via partial key produced NaN
+    df = DataFrame(
+        {
+            ("a", "x"): [1.0, 2.0, 3.0],
+            ("b", "x"): [4.0, 5.0, 6.0],
+            ("b", "y"): [7.0, 8.0, 9.0],
+        }
+    )
+    df.loc[:, "b"] /= 2
+    expected = DataFrame(
+        {
+            ("a", "x"): [1.0, 2.0, 3.0],
+            ("b", "x"): [2.0, 2.5, 3.0],
+            ("b", "y"): [3.5, 4.0, 4.5],
+        }
+    )
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_column_key_identity():
+    # GH#40186 - identity assignment via partial key produced NaN
+    cols = MultiIndex.from_product([[1], ["a", "b"]])
+    df = DataFrame(np.ones((2, 2)), columns=cols)
+    df.loc[:, 1] = df.loc[:, 1]
+    expected = DataFrame(np.ones((2, 2)), columns=cols)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_column_key_preserves_dtype():
+    # GH#18415 - assignment to multiindexed columns changed float32 to float64
+    df = DataFrame(np.zeros((6, 5), dtype=np.float32))
+    df = pd.concat([df, df], axis=1, keys=[1, 2])
+    df.loc[:, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+    assert (df.dtypes == np.float32).all()
+
+
+def test_loc_setitem_partial_column_key_3d():
+    # GH#43719 - 3-level MultiIndex, partial key drops 1 level
+    df = DataFrame(
+        {
+            ("a", "b", "x"): [1.0, 2.0],
+            ("a", "b", "y"): [3.0, 4.0],
+            ("a", "c", "z"): [5.0, 6.0],
+        }
+    )
+    df.loc[:, "a"] = df.loc[:, "a"] * 2
+    expected = DataFrame(
+        {
+            ("a", "b", "x"): [2.0, 4.0],
+            ("a", "b", "y"): [6.0, 8.0],
+            ("a", "c", "z"): [10.0, 12.0],
+        }
+    )
+    tm.assert_frame_equal(df, expected)
