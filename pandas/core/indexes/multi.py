@@ -3359,6 +3359,25 @@ class MultiIndex(Index):
             self._raise_if_missing(key, indexer, axis_name)
             return self[indexer], indexer
 
+        if len(keyarr) and any(
+            isinstance(tup, tuple) and len(tup) < self.nlevels for tup in keyarr
+        ):
+            # GH#16083 - handle partial tuple keys (fewer elements than nlevels)
+            # by using get_loc for each key, which already supports partial keys
+            indexers: list[int] = []
+            for tup in keyarr:
+                loc = self.get_loc(tup)
+                if isinstance(loc, slice):
+                    indexers.extend(range(*loc.indices(len(self))))
+                elif isinstance(loc, np.ndarray) and loc.dtype == bool:
+                    indexers.extend(np.where(loc)[0])
+                elif isinstance(loc, (int, np.integer)):
+                    indexers.append(int(loc))
+                else:
+                    indexers.extend(loc)
+            indexer = np.array(indexers, dtype=np.intp)
+            return self[indexer], indexer
+
         return super()._get_indexer_strict(key, axis_name)
 
     def _raise_if_missing(self, key, indexer, axis_name: str) -> None:

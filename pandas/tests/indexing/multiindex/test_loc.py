@@ -1064,3 +1064,31 @@ def test_loc_multiindex_with_overlapping_interval_multiple_matches():
     result = ser.loc[("A", 1.5)]
     expected = np.array([10, 20], dtype=result.values.dtype)
     tm.assert_numpy_array_equal(result.values, expected)
+
+
+def test_loc_partial_tuple_keys_in_list():
+    # GH#16083
+    mi = MultiIndex.from_product([[1, 2], ["a", "b"], ["i", "ii"]])
+    df = DataFrame({"A": -1, "B": -1}, index=mi)
+
+    # list of 2-element tuples on a 3-level MultiIndex
+    result = df.loc[[(1, "a")]]
+    expected = df.loc[(1, "a", slice(None)), :]
+    tm.assert_frame_equal(result, expected)
+
+    # list of 1-element tuples
+    result = df.loc[[(1,)]]
+    expected = df.loc[[1]]
+    tm.assert_frame_equal(result, expected)
+
+    # multiple partial keys
+    result = df.loc[[(1, "a"), (2, "b")]]
+    idx = MultiIndex.from_tuples(
+        [(1, "a", "i"), (1, "a", "ii"), (2, "b", "i"), (2, "b", "ii")]
+    )
+    expected = DataFrame({"A": -1, "B": -1}, index=idx)
+    tm.assert_frame_equal(result, expected)
+
+    # missing partial key raises
+    with pytest.raises(KeyError, match=r"\(3, 'a'\)"):
+        df.loc[[(3, "a")]]
