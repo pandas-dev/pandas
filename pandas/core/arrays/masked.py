@@ -322,7 +322,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value_is_na = is_valid_na_for_dtype(value, self.dtype) and not (
             lib.is_float(value) and not is_nan_na()
         )
-        if lib.is_scalar(value) and not value_is_na:
+        if lib.is_scalar(value) and not value_is_na and self.ndim == 1:
             if not mask.any():
                 return self.copy() if copy else self[:]
             try:
@@ -358,7 +358,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return type(self)(new_data, new_mask, copy=False)
 
         if limit is not None and limit < len(self):
-            modify = mask.cumsum() > limit
+            modify = mask.cumsum(axis=0) > limit
             if modify.any():
                 # Only copy mask if necessary
                 mask = mask.copy()
@@ -801,7 +801,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if result is not NotImplemented:
                 return result
 
-        mask = np.zeros(len(self), dtype=bool)
+        mask = np.zeros(self.shape, dtype=bool)
         inputs2 = []
         for x in inputs:
             if isinstance(x, BaseMaskedArray):
@@ -899,7 +899,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             )
 
         if (
-            not hasattr(other, "dtype")
+            self.ndim == 1
+            and not hasattr(other, "dtype")
             and is_list_like(other)
             and len(other) == len(self)
         ):
@@ -913,12 +914,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         elif is_list_like(other):
             if not isinstance(other, ExtensionArray):
                 other = np.asarray(other)
-            if other.ndim > 1:
+            if other.ndim > self.ndim:
                 raise NotImplementedError("can only perform ops with 1-d structures")
 
         # We wrap the non-masked arithmetic logic used for numpy dtypes
         #  in Series/Index arithmetic ops.
-        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
+        other = ops.maybe_prepare_scalar_for_op(other, self.shape)
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
 
@@ -1022,9 +1023,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     stacklevel=find_stack_level(),
                 )
             other = np.asarray(other)
-            if other.ndim > 1:
+            if other.ndim > self.ndim:
                 raise NotImplementedError("can only perform ops with 1-d structures")
-            if len(self) != len(other):
+            if self.shape != other.shape:
                 raise ValueError("Lengths must match to compare")
 
         if other is libmissing.NA:
@@ -1240,8 +1241,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         pct: bool = False,
     ):
         # GH#62043 Avoid going through copy-making ensure_data in algorithms.rank
-        if axis != 0 or self.ndim != 1:
+        if axis != 0:
             raise NotImplementedError
+
+        if self.ndim == 2:
+            # Rank column-by-column using the 1D implementation
+            results = [
+                self[:, col_idx]._rank(
+                    axis=0,
+                    method=method,
+                    na_option=na_option,
+                    ascending=ascending,
+                    pct=pct,
+                )
+                for col_idx in range(self.shape[1])
+            ]
+            result_data = np.column_stack([res._data for res in results])
+            result_mask = np.column_stack([res._mask for res in results])
+            return type(results[0])._simple_new(result_data, result_mask)
 
         from pandas.core.arrays import FloatingArray
 
@@ -1597,9 +1614,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         Dispatch to quantile_with_mask, needed because we do not have
         _from_factorized.
 
-        Notes
-        -----
-        We assume that all impacted cases are 1D-only.
         """
         res = quantile_with_mask(
             self._data,
@@ -1615,10 +1629,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # Our result mask is all-False unless we are all-NA, in which
             #  case it is all-True.
             if self.ndim == 2:
-                # I think this should be out_mask=self.isna().all(axis=1)
-                #  but am holding off until we have tests
-                raise NotImplementedError
-            if self.isna().all():
+                # quantile_with_mask computes along axis=1, so check
+                # if each row (= DataFrame column) is all-NA
+                out_mask = self.isna().all(axis=1)
+                if out_mask.ndim == 1:
+                    # broadcast to match res shape (ncols, nqs)
+                    out_mask = np.broadcast_to(
+                        out_mask[:, np.newaxis], res.shape
+                    ).copy()
+
+                if is_integer_dtype(self.dtype) and out_mask.any():
+                    res = res.copy()
+                    res[out_mask] = 0
+            elif self.isna().all():
                 out_mask = np.ones(res.shape, dtype=bool)
 
                 if is_integer_dtype(self.dtype):
@@ -2029,17 +2052,35 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 f"interpolate is not implemented for dtype={self.dtype}"
             )
 
-        missing.interpolate_2d_inplace(
-            data,
-            method=method,
-            axis=0,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            mask=mask,
-            **kwargs,
-        )
+        if self.ndim == 2:
+            # interpolate_2d_inplace captures `mask` in a closure but
+            # np.apply_along_axis only slices `data`, so the mask/data
+            # dimensions go out of sync.  Iterate over axis-0 slices
+            # ourselves so each 1D call gets its matching 1D mask.
+            for row_idx in range(data.shape[0]):
+                missing.interpolate_2d_inplace(
+                    data[row_idx],
+                    method=method,
+                    axis=0,
+                    index=index,
+                    limit=limit,
+                    limit_direction=limit_direction,
+                    limit_area=limit_area,
+                    mask=mask[row_idx],
+                    **kwargs,
+                )
+        else:
+            missing.interpolate_2d_inplace(
+                data,
+                method=method,
+                axis=0,
+                index=index,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                mask=mask,
+                **kwargs,
+            )
         if not copy:
             return self  # type: ignore[return-value]
         if self.dtype.kind == "f":
