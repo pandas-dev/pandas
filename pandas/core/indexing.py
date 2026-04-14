@@ -416,8 +416,7 @@ class IndexingMixin:
         Index (same behavior as ``df.reindex``)
 
         >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-               max_speed  shield
-        foo
+              max_speed  shield
         cobra          1       2
         viper          4       5
 
@@ -1405,8 +1404,7 @@ class _LocIndexer(_LocationIndexer):
     Index (same behavior as ``df.reindex``)
 
     >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-           max_speed  shield
-    foo
+          max_speed  shield
     cobra          1       2
     viper          4       5
 
