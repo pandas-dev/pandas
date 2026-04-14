@@ -1030,3 +1030,36 @@ def test_loc_np_datetime64_key_on_object_dt64_level():
     result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
     expected = DataFrame({"val": [1]}, index=Index(["X"]))
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_multiindex_with_overlapping_interval_single_match():
+    # GH#27456 - tuple .loc on MultiIndex with overlapping IntervalIndex
+    # level returned Series instead of scalar when only one interval matched
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["label1", "label1", "label2", "label2"]),
+            pd.IntervalIndex.from_arrays([1, 3, 1, 2], [3, 4, 2, 4]),
+        ]
+    )
+    ser = Series([1, 2, 3, 4], index=idx, name="Value")
+
+    result = ser.loc[("label1", 1.5)]
+    expected = ser.loc["label1"].loc[1.5]
+    assert result == expected == 1
+
+
+def test_loc_multiindex_with_overlapping_interval_multiple_matches():
+    # GH#27456 - tuple .loc on MultiIndex where the scalar falls in
+    # multiple overlapping intervals for the same outer label;
+    # the intervals in the level are non-contiguous (get_loc returns
+    # a boolean array, not a slice)
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["A", "A", "B", "B"]),
+            pd.IntervalIndex.from_arrays([1, 0, 0.5, 2], [3, 2, 0.8, 4]),
+        ]
+    )
+    ser = Series([10, 20, 30, 40], index=idx, name="Value")
+
+    result = ser.loc[("A", 1.5)]
+    tm.assert_numpy_array_equal(result.values, np.array([10, 20]))

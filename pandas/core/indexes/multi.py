@@ -3590,9 +3590,18 @@ class MultiIndex(Index):
                 return self._engine.get_loc(key)
             except KeyError as err:
                 raise KeyError(key) from err
-            except TypeError:
-                # e.g. test_partial_slicing_with_multiindex partial string slicing
+            except (TypeError, ValueError):
+                # TypeError: e.g. test_partial_slicing_with_multiindex
+                #  partial string slicing
+                # ValueError: e.g. IntervalIndex level (GH#27456)
                 loc, _ = self.get_loc_level(key, range(self.nlevels))
+                if isinstance(loc, np.ndarray) and loc.dtype == bool:
+                    # GH#27456: fallback for IntervalIndex levels returns
+                    # a boolean mask; reduce to int when there is a single
+                    # match for consistency with the engine path.
+                    (inds,) = loc.nonzero()
+                    if len(inds) == 1:
+                        return inds[0].item()
                 return loc
 
         # -- partial selection or non-unique index
@@ -3629,9 +3638,16 @@ class MultiIndex(Index):
         loc = np.arange(start, stop, dtype=np.intp)
 
         for i, k in enumerate(follow_key, len(lead_key)):
-            mask = self.codes[i][loc] == self._get_loc_single_level_index(
-                self.levels[i], k
-            )
+            level_idx = self._get_loc_single_level_index(self.levels[i], k)
+            if is_integer(level_idx):
+                mask = self.codes[i][loc] == level_idx
+            else:
+                # GH#27456: level_idx may be a slice or bool ndarray
+                # (e.g. overlapping IntervalIndex). Normalize to a
+                # boolean mask over the level, then map via codes.
+                level_mask = np.zeros(len(self.levels[i]), dtype=bool)
+                level_mask[level_idx] = True
+                mask = level_mask[self.codes[i][loc]]
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -3768,9 +3784,12 @@ class MultiIndex(Index):
                         return (self._engine.get_loc(key), None)
                     except KeyError as err:
                         raise KeyError(key) from err
-                    except TypeError:
-                        # e.g. partial string indexing
+                    except (TypeError, ValueError):
+                        # TypeError: e.g. partial string indexing
                         #  test_partial_string_timestamp_multiindex
+                        # ValueError: e.g. IntervalIndex level where the
+                        #  engine can't convert scalar to interval code
+                        #  (GH#27456)
                         pass
 
                 # partial selection
@@ -3940,15 +3959,31 @@ class MultiIndex(Index):
 
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
-                if isinstance(idx, slice):
-                    # test_get_loc_partial_timestamp_multiindex
-                    locs = (level_codes >= idx.start) & (level_codes < idx.stop)
-                    return locs
-
-                locs = np.asarray(level_codes == idx, dtype=bool)
+                if is_integer(idx):
+                    locs = np.asarray(level_codes == idx, dtype=bool)
+                else:
+                    # GH#27456: idx is a slice or bool ndarray
+                    # (e.g. overlapping IntervalIndex). Normalize to a
+                    # boolean mask over the level, then map to row positions.
+                    level_mask = np.zeros(len(level_index), dtype=bool)
+                    level_mask[idx] = True
+                    locs = level_mask[level_codes]
+                    locs[level_codes == -1] = False
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            if isinstance(idx, np.ndarray):
+                # GH#27456: idx is a bool ndarray (e.g. overlapping
+                # IntervalIndex); searchsorted can only handle scalars, so
+                # fall back to the mask approach.
+                level_mask = np.zeros(len(level_index), dtype=bool)
+                level_mask[idx] = True
+                locs = level_mask[level_codes]
+                locs[level_codes == -1] = False
+                if not locs.any():
                     raise KeyError(key)
                 return locs
 
