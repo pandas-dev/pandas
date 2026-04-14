@@ -2406,9 +2406,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
 
-    # group by dtype using a dict instead of itertools.groupby so that
-    # non-consecutive same-dtype arrays are grouped together in a single pass,
-    # avoiding a second consolidation pass via _consolidate_inplace
+    # group by dtype using a dict faster than old itertools.groupby
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
     for tup in tuples:
         key = _grouping_key(tup)
