@@ -256,7 +256,6 @@ if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
 
@@ -4176,18 +4175,17 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         Series
         """
-        # irow
         if axis == 0:
-            new_mgr = self._mgr.fast_xs(i)
-
-            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            object.__setattr__(result, "_name", self.index[i])
-            return result.__finalize__(self)
-
-        # icol
+            mgr = self._mgr.fast_xs(i)
+            name = self.index[i]
         else:
-            col_mgr = self._mgr.iget(i)
-            return self._box_col_values(col_mgr, i)
+            mgr = self._mgr.iget(i)
+            # Lookup in columns so that if e.g. a str datetime was passed
+            #  we attach the Timestamp object as the name.
+            name = self.columns[i]
+        result = self._constructor_sliced_from_mgr(mgr, axes=mgr.axes)
+        object.__setattr__(result, "_name", name)
+        return result.__finalize__(self)
 
     def _get_column_array(self, i: int) -> ArrayLike:
         """
@@ -4862,19 +4860,6 @@ class DataFrame(NDFrame, OpsMixin):
                 index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
-
-    def _box_col_values(self, values: SingleBlockManager, loc: int) -> Series:
-        """
-        Provide boxed values for a column.
-        """
-        # Lookup in columns so that if e.g. a str datetime was passed
-        #  we attach the Timestamp object as the name.
-        name = self.columns[loc]
-        # We get index=self.index bc values is a SingleBlockManager
-        obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
-        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
-        object.__setattr__(obj, "_name", name)
-        return obj.__finalize__(self)
 
     def _get_item(self, item: Hashable) -> Series:
         loc = self.columns.get_loc(item)
