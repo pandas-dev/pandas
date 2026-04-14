@@ -4153,6 +4153,17 @@ class MultiIndex(Index):
                     if na_count:
                         lvl_indexer = lvl_indexer | (level_codes == -1)
 
+                    # GH#39424: A label may exist in the level's vocabulary
+                    # but not in the positions allowed by prior levels.
+                    # e.g. ("z", ["a", "b", "c"]) where "c" exists in level 1
+                    # (from ("y", "c")) but not under "z".
+                    if indexer is not None:
+                        active_codes = level_codes[indexer]
+                        if not np.isin(k_codes, active_codes).all():
+                            raise KeyError(k) from None
+                        if na_count and not (active_codes == -1).any():
+                            raise KeyError(k) from None
+
                 if lvl_indexer is None:
                     # no matches we are done
                     # test_loc_getitem_duplicates_multiindex_empty_indexer

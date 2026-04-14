@@ -793,6 +793,26 @@ class TestKeyErrorsWithMultiIndex:
         with pytest.raises(KeyError, match=r"\('b', '1'\)"):
             df.loc[("b", "1"), :]
 
+    def test_loc_multiindex_missing_label_in_level_context(self):
+        # GH#39424 - label exists in the level vocabulary but not under
+        # the positions restricted by prior levels
+        df = DataFrame(
+            {
+                ("z", "a"): [1, 2],
+                ("z", "b"): [4, 5],
+                ("y", "b"): [6, 7],
+                ("y", "c"): [6, 7],
+            }
+        )
+        # "c" is in level 1 (from ("y", "c")) but not under "z"
+        with pytest.raises(KeyError, match="a.*b.*c"):
+            df.loc[:, ("z", ["a", "b", "c"])]
+
+        # When all labels exist somewhere under the prior-level constraint, no error
+        result = df.loc[:, (["z", "y"], ["a", "b"])]
+        expected = df.loc[:, [("z", "a"), ("z", "b"), ("y", "b")]]
+        tm.assert_frame_equal(result, expected)
+
 
 def test_getitem_loc_commutability(multiindex_year_month_day_dataframe_random_data):
     df = multiindex_year_month_day_dataframe_random_data

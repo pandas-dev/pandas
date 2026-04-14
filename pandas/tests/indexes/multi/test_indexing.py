@@ -1051,6 +1051,20 @@ def test_get_locs_list_like_nan_not_in_level():
         idx.get_locs((["a"], [np.nan]))
 
 
+def test_get_locs_list_like_missing_in_level_context():
+    # GH#39424 - label exists in the level vocabulary but not under
+    # the positions restricted by prior levels
+    idx = MultiIndex.from_tuples([("z", "a"), ("z", "b"), ("y", "b"), ("y", "c")])
+    # "c" is in level 1 (from ("y", "c")) but not under "z"
+    with pytest.raises(KeyError, match="a.*b.*c"):
+        idx.get_locs(("z", ["a", "b", "c"]))
+
+    # all labels exist somewhere under the prior-level constraint -> no error
+    result = idx.get_locs((["z", "y"], ["a", "b"]))
+    expected = np.array([0, 1, 2], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_get_indexer_for_multiindex_with_nans(nulls_fixture):
     # GH37222
     idx1 = MultiIndex.from_product([["A"], [1.0, 2.0]], names=["id1", "id2"])

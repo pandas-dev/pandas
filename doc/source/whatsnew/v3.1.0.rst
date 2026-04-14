@@ -284,6 +284,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
+- Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` silently dropping missing labels instead of raising ``KeyError`` when a label exists in the level vocabulary but not under the positions restricted by prior levels (:issue:`39424`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 -
