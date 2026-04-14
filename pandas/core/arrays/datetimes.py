@@ -721,7 +721,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)
                 res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+                return type(self)._simple_new(res_values, dtype=dtype)
 
         elif (
             self.tz is None
@@ -815,7 +815,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._simple_new(res_values, dtype=self.dtype)
             if offset.normalize:
                 result = result.normalize()
-                result._freq = None
             return result
 
         if self.tz is not None:
@@ -850,7 +849,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             if offset.normalize:
                 result = result.normalize()
-                result._freq = None
 
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
@@ -1273,10 +1271,6 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
-            if isinstance(self.freq, BaseOffset) and hasattr(
-                self.freq, "_period_dtype_code"
-            ):
-                freq = PeriodDtype(self.freq)._freqstr
 
             if freq is None:
                 raise ValueError(

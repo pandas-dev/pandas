@@ -117,7 +117,14 @@ def _new_DatetimeIndex(cls, d):
         method
         for method in DatetimeArray._datetimelike_methods
         if method
-        not in ("tz_localize", "tz_convert", "normalize", "to_period", "strftime")
+        not in (
+            "tz_localize",
+            "tz_convert",
+            "normalize",
+            "to_period",
+            "strftime",
+            "as_unit",
+        )
     ],
     DatetimeArray,
     wrap=True,
@@ -783,10 +790,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         from pandas.tseries.frequencies import get_period_alias
 
         if freq is None:
-            dt_freq = self._data.freq
+            dt_freq = self.freq
             freq = self.freqstr
             if dt_freq is not None and hasattr(dt_freq, "_period_dtype_code"):
                 freq = PeriodDtype(dt_freq)._freqstr
+
+            if freq is None:
+                freq = self.inferred_freq
 
             if freq is not None:
                 res = get_period_alias(freq)

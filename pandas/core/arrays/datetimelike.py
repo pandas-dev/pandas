@@ -1520,19 +1520,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
@@ -2067,12 +2059,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             tz = cast("DatetimeArray", self).tz
             new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of
-        # "NDArrayBacked"  [call-arg]
         return type(self)._simple_new(
             new_values,
             dtype=new_dtype,
-            freq=self.freq,  # type: ignore[call-arg]
         )
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
