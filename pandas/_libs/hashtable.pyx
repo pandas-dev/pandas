@@ -1,5 +1,6 @@
 cimport cython
 from cpython.ref cimport (
+    Py_DECREF,
     Py_INCREF,
     PyObject,
 )
