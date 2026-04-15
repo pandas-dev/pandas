@@ -2274,7 +2274,14 @@ class MultiIndex(Index):
         """
         if self.sortorder is not None:
             return self.sortorder
-        return _lexsort_depth(self.codes, self.nlevels)
+        depth = _lexsort_depth(self.codes, self.nlevels)
+        # GH#44380 codes-based lexsort depth is only valid for levels that
+        # are monotonically sorted; unsorted levels mean sorted codes don't
+        # imply sorted values.
+        for k in range(depth):
+            if not self.levels[k].is_monotonic_increasing:
+                return k
+        return depth
 
     def _sort_levels_monotonic(self, raise_if_incomparable: bool = False) -> MultiIndex:
         """

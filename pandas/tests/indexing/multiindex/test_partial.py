@@ -37,6 +37,7 @@ class TestMultiIndexPartial:
     def test_series_slice_partial(self):
         pass
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_xs_partial(
         self,
         multiindex_dataframe_random_data,
@@ -55,10 +56,11 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(result, expected)
 
         # ex from #1796
+        # GH#44380 levels must be sorted for _lexsort_depth to be accurate
         index = MultiIndex(
-            levels=[["foo", "bar"], ["one", "two"], [-1, 1]],
+            levels=[["bar", "foo"], ["one", "two"], [-1, 1]],
             codes=[
-                [0, 0, 0, 0, 1, 1, 1, 1],
+                [1, 1, 1, 1, 0, 0, 0, 0],
                 [0, 0, 1, 1, 0, 0, 1, 1],
                 [0, 1, 0, 1, 0, 1, 0, 1],
             ],
@@ -87,9 +89,10 @@ class TestMultiIndexPartial:
         multiindex_dataframe_random_data,
         multiindex_year_month_day_dataframe_random_data,
     ):
-        frame = multiindex_dataframe_random_data
+        # GH#44380 sort_index to get truly sorted index for slicing
+        frame = multiindex_dataframe_random_data.sort_index()
         result = frame.loc["bar":"baz"]
-        expected = frame[3:7]
+        expected = frame.iloc[:4]
         tm.assert_frame_equal(result, expected)
 
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -169,7 +172,8 @@ class TestMultiIndexPartial:
     # ---------------------------------------------------------------------
 
     def test_setitem_multiple_partial(self, multiindex_dataframe_random_data):
-        frame = multiindex_dataframe_random_data
+        # GH#44380 sort_index to get truly sorted index for slicing
+        frame = multiindex_dataframe_random_data.sort_index()
         expected = frame.copy()
         result = frame.copy()
         result.loc[["foo", "bar"]] = 0
@@ -179,9 +183,10 @@ class TestMultiIndexPartial:
 
         expected = frame.copy()
         result = frame.copy()
-        result.loc["foo":"bar"] = 0
-        expected.loc["foo"] = 0
+        result.loc["bar":"foo"] = 0
         expected.loc["bar"] = 0
+        expected.loc["baz"] = 0
+        expected.loc["foo"] = 0
         tm.assert_frame_equal(result, expected)
 
         expected = frame["A"].copy()
@@ -193,9 +198,10 @@ class TestMultiIndexPartial:
 
         expected = frame["A"].copy()
         result = frame["A"].copy()
-        result.loc["foo":"bar"] = 0
-        expected.loc["foo"] = 0
+        result.loc["bar":"foo"] = 0
         expected.loc["bar"] = 0
+        expected.loc["baz"] = 0
+        expected.loc["foo"] = 0
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
