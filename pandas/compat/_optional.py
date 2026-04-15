@@ -43,7 +43,7 @@ VERSIONS = {
     "pyreadstat": "1.2.8",
     "pytest": "8.3.4",
     "python-calamine": "0.3.0",
-    "pytz": "2024.2",
+    "pytz": "2020.1",  # keep this pinned (https://github.com/pandas-dev/pandas/pull/65133)
     "pyxlsb": "1.0.10",
     "s3fs": "2024.10.0",
     "scipy": "1.14.1",

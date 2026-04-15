@@ -79,6 +79,23 @@ class TestGetLoc:
             res = oidx.get_loc(tup)
         assert res == loc
 
+    def test_get_loc_tuple_monotonic_with_duplicates(self):
+        # GH#37800 _get_loc_duplicates should not use ndarray.searchsorted
+        # with tuple keys, as searchsorted interprets tuples as array-like
+        values = np.empty(3, dtype=object)
+        values[0] = (1, 1)
+        values[1] = (1, 1)
+        values[2] = (2, 2)
+        idx = Index(values)
+        result = idx.get_loc((1, 1))
+        assert result == slice(0, 2)
+
+        result = idx.get_loc((2, 2))
+        assert result == 2
+
+        with pytest.raises(KeyError, match=r"\(3, 3\)"):
+            idx.get_loc((3, 3))
+
     def test_get_loc_nan_object_dtype_nonmonotonic_nonunique(self):
         # case that goes through _maybe_get_bool_indexer
         idx = Index(["foo", np.nan, None, "foo", 1.0, None], dtype=object)

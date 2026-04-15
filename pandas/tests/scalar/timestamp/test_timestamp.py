@@ -30,6 +30,10 @@ from pandas._libs.tslibs.timezones import (
     tz_compare,
 )
 from pandas.compat import IS64
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas import (
@@ -48,7 +52,6 @@ class TestTimestampProperties:
         freq = to_offset("B")
 
         ts = Timestamp("2017-10-01")
-        assert ts.dayofweek == 6
         assert ts.day_of_week == 6
         assert ts.is_month_start  # not a weekday
         assert not freq.is_month_start(ts)
@@ -57,7 +60,6 @@ class TestTimestampProperties:
         assert freq.is_quarter_start(ts + Timedelta(days=1))
 
         ts = Timestamp("2017-09-30")
-        assert ts.dayofweek == 5
         assert ts.day_of_week == 5
         assert ts.is_month_end
         assert not freq.is_month_end(ts)
@@ -65,6 +67,22 @@ class TestTimestampProperties:
         assert ts.is_quarter_end
         assert not freq.is_quarter_end(ts)
         assert freq.is_quarter_end(ts - Timedelta(days=1))
+
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        ts = Timestamp("2020-03-14")
+        msg = f"Timestamp.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            old_val = getattr(ts, old_attr)
+        assert old_val == getattr(ts, new_attr)
 
     @pytest.mark.parametrize(
         "attr, expected",
@@ -77,13 +95,11 @@ class TestTimestampProperties:
             ["second", 0],
             ["microsecond", 0],
             ["nanosecond", 0],
-            ["dayofweek", 2],
             ["day_of_week", 2],
             ["quarter", 4],
-            ["dayofyear", 365],
             ["day_of_year", 365],
             ["week", 1],
-            ["daysinmonth", 31],
+            ["days_in_month", 31],
         ],
     )
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
@@ -640,11 +656,13 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24).as_unit("ns")
+        other = Timestamp(dt64 - np.timedelta64(3600 * 24, "s")).as_unit("ns")
         assert other < ts
-        assert other.asm8 > ts.asm8  # <- numpy gets this wrong
+        if not is_numpy_dev and not np_version_gt2_5:
+            assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
-        assert ts.asm8 < other.asm8  # <- numpy gets this wrong
+        if not is_numpy_dev and not np_version_gt2_5:
+            assert ts.asm8 < other.asm8  # <- numpy gets this wrong
         assert not other == ts
         assert ts != other
 

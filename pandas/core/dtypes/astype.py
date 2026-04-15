@@ -100,7 +100,7 @@ def _astype_nansafe(
         ).reshape(shape)
 
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
-        return _astype_float_to_int_nansafe(arr, dtype, copy)
+        return astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif arr.dtype == object:
         # if we have a datetime/timedelta array of objects
@@ -137,7 +137,7 @@ def _astype_nansafe(
     return arr.astype(dtype, copy=copy)
 
 
-def _astype_float_to_int_nansafe(
+def astype_float_to_int_nansafe(
     values: np.ndarray, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     """

@@ -45,10 +45,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import (
-    LossySetitemError,
-    maybe_upcast_numeric_to_64bit,
-)
+from pandas.core.dtypes.cast import LossySetitemError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -283,10 +280,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         from pandas.core.indexes.base import ensure_index
 
         left = ensure_index(left, copy=copy)
-        left = maybe_upcast_numeric_to_64bit(left)
 
         right = ensure_index(right, copy=copy)
-        right = maybe_upcast_numeric_to_64bit(right)
 
         if closed is None and isinstance(dtype, IntervalDtype):
             closed = dtype.closed
@@ -892,6 +887,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         if copy is False:
             raise NotImplementedError
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
         if limit is not None:
             raise ValueError("limit must be None")
 
@@ -1896,10 +1896,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 def _maybe_convert_platform_interval(values) -> ArrayLike:
     """
     Try to do platform conversion, with special casing for IntervalArray.
-    Wrapper around maybe_convert_platform that alters the default return
-    dtype in certain cases to be compatible with IntervalArray.  For example,
-    empty lists return with integer dtype instead of object dtype, which is
-    prohibited for IntervalArray.
+
+    For example, empty lists return with integer dtype instead of object dtype,
+    which is prohibited for IntervalArray.
 
     Parameters
     ----------
@@ -1915,7 +1914,7 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
-        # This will raise later, but we avoid passing to maybe_convert_platform
+        # This will raise later
         return values
     elif isinstance(getattr(values, "dtype", None), CategoricalDtype):
         values = np.asarray(values)

@@ -615,7 +615,7 @@ class ArrowExtensionArray(
                 )
             ):
                 # See https://github.com/apache/arrow/issues/35289
-                value = value.tolist()
+                value = np.asarray(value, dtype=object)
             elif copy and is_array_like(value):
                 # pa array should not get updated when numpy array is updated
                 value = value.copy()
@@ -1442,6 +1442,12 @@ class ArrowExtensionArray(
         if not self._hasna:
             return self.copy()
 
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
+
         if limit is not None:
             return super().fillna(value=value, limit=limit, copy=copy)
 
@@ -1483,6 +1489,68 @@ class ArrowExtensionArray(
         # to False
         return np.array(result, dtype=np.bool_)
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        """
+        Hook for hash_pandas_object.
+
+        For string/binary types with categorize=True, uses pyarrow's
+        dictionary_encode to avoid the overhead of converting to numpy
+        and then factorizing.
+        """
+        from pandas.core.util.hashing import hash_array
+
+        pa_type = self._pa_array.type
+
+        if categorize and (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
+            # Use pyarrow's dictionary_encode instead of numpy factorize.
+            # dictionary_encode on a ChunkedArray unifies dictionaries
+            # across chunks, so we can work with the result directly.
+            encoded = pc.dictionary_encode(self._pa_array)
+            if encoded.num_chunks <= 1:
+                if encoded.num_chunks == 0:
+                    return np.array([], dtype=np.uint64)
+                encoded_arr = encoded.chunk(0)
+            else:
+                # Concatenate indices from chunks; dictionaries are unified.
+                indices_chunks = [chunk.indices for chunk in encoded.iterchunks()]
+                combined_indices = pa.concat_arrays(indices_chunks)
+                encoded_arr = pa.DictionaryArray.from_arrays(
+                    combined_indices, encoded.chunk(0).dictionary
+                )
+            dictionary = encoded_arr.dictionary.to_numpy(zero_copy_only=False)
+
+            # Hash the unique values
+            hashed = hash_array(dictionary, encoding, hash_key, categorize=False)
+
+            # Map indices to hashes, handling nulls
+            indices = encoded_arr.indices
+            null_mask = indices.is_null().to_numpy(zero_copy_only=False)
+            codes = indices.fill_null(0).to_numpy()
+
+            if len(hashed):
+                result = hashed.take(codes)
+            else:
+                result = np.zeros(len(codes), dtype=np.uint64)
+
+            if null_mask.any():
+                result[null_mask] = lib.u8max
+
+            return result
+
+        return hash_array(
+            self.to_numpy(),
+            encoding,
+            hash_key,
+            categorize,
+        )
+
     def _values_for_factorize(self) -> tuple[np.ndarray, Any]:
         """
         Return an array and missing value suitable for factorization.
@@ -1491,11 +1559,6 @@ class ArrowExtensionArray(
         -------
         values : ndarray
         na_value : pd.NA
-
-        Notes
-        -----
-        The values returned by this method are also used in
-        :func:`pandas.util.hash_pandas_object`.
         """
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
@@ -2414,7 +2477,7 @@ class ArrowExtensionArray(
             key = key[0]
 
         key = check_array_indexer(self, key)
-        value = self._maybe_convert_setitem_value(value)
+        value = self._validate_setitem_value(value)
 
         if com.is_null_slice(key):
             # fast path (GH50248)
@@ -2660,7 +2723,7 @@ class ArrowExtensionArray(
         most_common = most_common.take(pc.array_sort_indices(most_common))
         return self._from_pyarrow_array(most_common)
 
-    def _maybe_convert_setitem_value(self, value):
+    def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         try:
             value = self._box_pa(value, self._pa_array.type)
@@ -3203,15 +3266,41 @@ class ArrowExtensionArray(
         result = pc.day_of_week(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofweek = _dt_day_of_week
-    _dt_weekday = _dt_day_of_week
+    @property
+    def _dt_dayofweek(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofweek accessor is deprecated and will be removed "
+            "in a future version. Use day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
+
+    @property
+    def _dt_weekday(self) -> Self:
+        # GH#12816
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_week
 
     @property
     def _dt_day_of_year(self) -> Self:
         result = pc.day_of_year(self._pa_array)
         return self._from_pyarrow_array(result)
 
-    _dt_dayofyear = _dt_day_of_year
+    @property
+    def _dt_dayofyear(self) -> Self:
+        warnings.warn(
+            "ArrowDtype dayofyear accessor is deprecated and will be removed "
+            "in a future version. Use day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_day_of_year
 
     @property
     def _dt_hour(self) -> Self:
@@ -3286,7 +3375,15 @@ class ArrowExtensionArray(
         )
         return self._from_pyarrow_array(result)
 
-    _dt_daysinmonth = _dt_days_in_month
+    @property
+    def _dt_daysinmonth(self) -> Self:
+        warnings.warn(
+            "ArrowDtype daysinmonth accessor is deprecated and will be removed "
+            "in a future version. Use days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._dt_days_in_month
 
     @property
     def _dt_microsecond(self) -> Self:

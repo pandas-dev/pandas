@@ -7,6 +7,7 @@ from pandas import (
     Categorical,
     DataFrame,
     DatetimeIndex,
+    MultiIndex,
     NaT,
     PeriodIndex,
     Series,
@@ -726,6 +727,20 @@ class TestFillNA:
             }
         )
         tm.assert_frame_equal(pdf.fillna({("x", "b"): -2, "x": -1}), expected)
+
+    def test_fillna_multiindex_with_duplicate_columns(self):
+        # GH#53498
+        data = [[np.nan, 2, 3], [4, np.nan, 6], [7, 8, np.nan]]
+        df = DataFrame(
+            data,
+            columns=MultiIndex.from_tuples([("x", "a"), ("x", "a"), ("y", "b")]),
+        )
+        result = df.fillna({("x", "a"): 0})
+        expected = DataFrame(
+            [[0.0, 2.0, 3.0], [4.0, 0.0, 6.0], [7.0, 8.0, np.nan]],
+            columns=MultiIndex.from_tuples([("x", "a"), ("x", "a"), ("y", "b")]),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_fillna_nonconsolidated_frame():

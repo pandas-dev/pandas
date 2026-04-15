@@ -126,6 +126,28 @@ class TestDatetimeConcat:
         expected.index._data.freq = None
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_datetimeindex_tz_convert_freq(self):
+        # GH#41585 - concat after tz_convert should not raise when
+        # the converted timestamps no longer conform to the original freq
+        dti1 = date_range(
+            start="2020-01-01", end="2021-01-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df1 = DataFrame({"full": [1] * len(dti1)}, index=dti1)
+
+        dti2 = date_range(
+            start="2020-01-01", end="2021-02-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df2 = DataFrame({"one_month_more": [1] * len(dti2)}, index=dti2)
+
+        result = concat([df1, df2], axis=1)
+        expected_index = dti2.copy()
+        expected_index.freq = result.index.freq
+        expected = DataFrame(
+            {"full": [1.0] * 12 + [np.nan], "one_month_more": [1] * 13},
+            index=expected_index,
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_concat_multiindex_datetime_object_index(self):
         # https://github.com/pandas-dev/pandas/issues/11058
         idx = Index(

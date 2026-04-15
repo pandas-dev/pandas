@@ -33,7 +33,7 @@ class TestInsert:
     def test_insert_invalid_na(self, tz):
         idx = DatetimeIndex(["2017-01-01"], tz=tz)
 
-        item = np.timedelta64("NaT")
+        item = np.timedelta64("NaT", "ns")
         result = idx.insert(0, item)
         expected = Index([item, *list(idx)], dtype=object)
         tm.assert_index_equal(result, expected)
@@ -236,7 +236,7 @@ class TestInsert:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "item", [0, np.int64(0), np.float64(0), np.array(0), np.timedelta64(456)]
+        "item", [0, np.int64(0), np.float64(0), np.array(0), np.timedelta64(456, "ns")]
     )
     def test_insert_mismatched_types_raises(self, tz_aware_fixture, item):
         # GH#33703 dont cast these to dt64

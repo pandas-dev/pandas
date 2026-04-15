@@ -9,7 +9,7 @@ name = "pandas"
 # Build dependencies
 versioneer = ">=0.29"
 cython = ">3.1.0,<4.0.0a0"
-meson = ">=1.10.1,<2"
+meson = ">=1.2.3,<2"
 meson-python = ">=0.19.0,<1"
 c-compiler = "*"
 cxx-compiler = "*"
@@ -87,7 +87,7 @@ pymysql = ">=1.1.1"
 pyreadstat = ">=1.2.8"
 pytables = ">=3.10.1"
 python-calamine = ">=0.3.0"
-pytz = ">=2024.2"
+pytz = ">=2020.1"
 pyxlsb = ">=1.0.10"
 s3fs = ">=2024.10.0"
 scipy = ">=1.14.1"
@@ -111,6 +111,10 @@ pandas-datareader = "*"
 pyyaml = "*"
 xarray = ">=2024.10.0"
 
+[feature.benchmarks.dependencies]
+asv = ">=0.6.5"
+py-rattler = "*"  # for environment_type in asv.conf.json
+
 [environments]
 py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
@@ -122,6 +126,7 @@ py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base"]
 numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
+asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
 
 
 [tasks]
@@ -133,7 +138,7 @@ args = [
   { "arg" = "editable", "default" = "" },
   { "arg" = "werror", "default" = "" },
 ]
-cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps {{ werror }}"
+cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME {{ werror }}"
 depends-on = ["uninstall-pandas"]
 
 [tasks.ci-test-pandas]
@@ -156,4 +161,28 @@ cmd = [
   "--cov-report=xml",
   "--cov-append",
   "{{ pytest_target }}",
+]
+
+[tasks.ci-asv]
+cmd = [
+  "cd",
+  "asv_bench",
+  "&&",
+  "python",
+  "-m",
+  "asv",
+  "machine",
+  "--yes",
+  "&&",
+  "python",
+  "-W",
+  "error",
+  "-m",
+  "asv",
+  "run",
+  "--quick",
+  "--dry-run",
+  "--durations=30",
+  "--python=same",
+  "--show-stderr",
 ]

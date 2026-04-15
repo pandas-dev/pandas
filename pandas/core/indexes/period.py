@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
-    cache_readonly,
     set_module,
 )
 
@@ -73,7 +72,15 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "start_time", "end_time", *PeriodArray._field_ops],
+    [
+        "strftime",
+        "start_time",
+        "end_time",
+        *PeriodArray._field_ops,
+        "dayofweek",
+        "dayofyear",
+        "daysinmonth",
+    ],
     PeriodArray,
     wrap=True,
 )
@@ -170,11 +177,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
-
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        # for compat with DatetimeIndex
-        return self.dtype._resolution_obj
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index

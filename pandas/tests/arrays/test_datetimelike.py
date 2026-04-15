@@ -12,6 +12,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import to_offset
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -817,8 +818,10 @@ class TestDatetimeArray(SharedTests):
         dti = self.index_cls(arr1d)
         arr = arr1d
 
-        result = getattr(arr, propname)
-        expected = np.array(getattr(dti, propname), dtype=result.dtype)
+        warn = Pandas4Warning if propname == "weekday" else None
+        with tm.assert_produces_warning(warn, match="weekday is deprecated"):
+            result = getattr(arr, propname)
+            expected = np.array(getattr(dti, propname), dtype=result.dtype)
 
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1112,7 +1115,7 @@ class TestPeriodArray(SharedTests):
         tm.assert_extension_array_equal(result, dta.as_unit("us"))
 
         dta2 = dta[::2]
-        parr2 = dta2.to_period()
+        parr2 = dta2.to_period("2B")
         result2 = parr2.to_timestamp()
         assert result2.freq == "2B"
         tm.assert_extension_array_equal(result2, dta2.as_unit("us"))
@@ -1145,8 +1148,10 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        result = getattr(arr, propname)
-        expected = np.array(getattr(pi, propname))
+        warn = Pandas4Warning if propname == "weekday" else None
+        with tm.assert_produces_warning(warn, match="weekday is deprecated"):
+            result = getattr(arr, propname)
+            expected = np.array(getattr(pi, propname))
 
         tm.assert_numpy_array_equal(result, expected)
 

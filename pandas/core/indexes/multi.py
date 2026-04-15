@@ -22,7 +22,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos as libalgos,
@@ -30,7 +30,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.tslibs import Timestamp
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -1671,7 +1670,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = get_option("display.multi_sparse")
+            sparsify = config["display"]["multi_sparse"]
 
         if sparsify:
             sentinel: Literal[""] | bool | lib.NoDefault = ""
@@ -1816,6 +1815,36 @@ class MultiIndex(Index):
     def is_monotonic_increasing(self) -> bool:
         """
         Return a boolean if the values are equal or increasing.
+
+        For a MultiIndex, this checks whether the tuples are in
+        lexicographically non-decreasing order: the first level is
+        compared first, ties are broken by the second level, and so on.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        MultiIndex.is_monotonic_decreasing : Check if the values are
+            equal or decreasing.
+        MultiIndex.sortlevel : Sort a MultiIndex by the requested level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        >>> mi.is_monotonic_increasing
+        True
+
+        Ties at one level are broken by the next level:
+
+        >>> mi = pd.MultiIndex.from_arrays([[1, 1, 2], [1, 2, 1]])
+        >>> mi.is_monotonic_increasing
+        True
+
+        >>> mi = pd.MultiIndex.from_arrays([[1, 1, 2], [2, 1, 3]])
+        >>> mi.is_monotonic_increasing
+        False
         """
         if any(-1 in code for code in self.codes):
             return False
@@ -1847,6 +1876,36 @@ class MultiIndex(Index):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return a boolean if the values are equal or decreasing.
+
+        For a MultiIndex, this checks whether the tuples are in
+        lexicographically non-increasing order: the first level is
+        compared first, ties are broken by the second level, and so on.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        MultiIndex.is_monotonic_increasing : Check if the values are
+            equal or increasing.
+        MultiIndex.sortlevel : Sort a MultiIndex by the requested level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["c", "b", "a"], [3, 2, 1]])
+        >>> mi.is_monotonic_decreasing
+        True
+
+        Ties at one level are broken by the next level:
+
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1, 1], [1, 2, 1]])
+        >>> mi.is_monotonic_decreasing
+        True
+
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1, 1], [3, 1, 2]])
+        >>> mi.is_monotonic_decreasing
+        False
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
@@ -1984,8 +2043,13 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        return lev._shallow_copy(filled, name=name)
+        if lev._can_hold_na:
+            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
+        else:
+            # Index.take raises for integer dtypes with -1 (NA) codes
+            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+            result = lev._shallow_copy(filled, name=name)
+        return result
 
     def get_level_values(self, level) -> Index:
         """
@@ -2888,7 +2952,10 @@ class MultiIndex(Index):
                     step = loc.step if loc.step is not None else 1
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
-                    if get_option("performance_warnings") and self._lexsort_depth == 0:
+                    if (
+                        config["mode"]["performance_warnings"]
+                        and self._lexsort_depth == 0
+                    ):
                         warnings.warn(
                             "dropping on a non-lexsorted multi-index "
                             "without a level parameter may impact performance.",
@@ -3446,19 +3513,6 @@ class MultiIndex(Index):
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
-            # GH#55969: convert np.datetime64[D] to Python datetime.date for
-            # proper containment check against object-dtype Index.
-            # Only for day resolution; finer units would lose time info.
-            if (
-                isinstance(lab, np.datetime64)
-                and lev.dtype == object
-                and np.datetime_data(lab.dtype)[0] == "D"
-            ):
-                try:
-                    lab = Timestamp(lab).date()
-                except (ValueError, OverflowError):
-                    pass
-
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
@@ -3630,7 +3684,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if get_option("performance_warnings"):
+        if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,
@@ -4067,22 +4121,32 @@ class MultiIndex(Index):
                     # KeyError it can be ambiguous if this is a label or sequence
                     #  of labels
                     #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
-                    for x in k:
-                        if not is_hashable(x):
-                            # e.g. slice
-                            raise err
-                        # GH 39424: Ignore not founds
-                        # GH 42351: No longer ignore not founds & enforced in 2.0
-                        # TODO: how to handle IntervalIndex level? (no test cases)
-                        item_indexer = self._get_level_indexer(
-                            x, level=i, indexer=indexer
-                        )
-                        if lvl_indexer is None:
-                            lvl_indexer = _to_bool_indexer(item_indexer)
-                        elif isinstance(item_indexer, slice):
-                            lvl_indexer[item_indexer] = True  # type: ignore[index]
-                        else:
-                            lvl_indexer |= item_indexer
+
+                    # GH#55786 Vectorized path: use the level's hashtable to
+                    # map all labels to codes at once, then use algos.isin
+                    # instead of looping with per-element _get_level_indexer.
+                    if any(not is_hashable(x) for x in k):
+                        raise err
+                    level_codes = self.codes[i]
+                    k_codes = self.levels[i].get_indexer(k)
+                    # NaN labels are stored as code -1 and are absent
+                    # from levels, so get_indexer returns -1 for them.
+                    # Separate true missing labels from NaN labels.
+                    k_isna = isna(k if not isinstance(k, tuple) else list(k))
+                    na_count = k_isna.sum()
+                    missing_mask = k_codes == -1
+                    if na_count:
+                        if missing_mask.sum() > na_count:
+                            raise KeyError(k) from None
+                        # NaN is in k but must also be present in the data
+                        if not (level_codes == -1).any():
+                            raise KeyError(k) from None
+                    elif missing_mask.any():
+                        raise KeyError(k) from None
+                    k_codes = k_codes[~missing_mask]
+                    lvl_indexer = algos.isin(level_codes, k_codes)
+                    if na_count:
+                        lvl_indexer = lvl_indexer | (level_codes == -1)
 
                 if lvl_indexer is None:
                     # no matches we are done

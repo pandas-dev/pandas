@@ -790,7 +790,7 @@ class TestTimestampConstructors:
             Timestamp(Timestamp.min._value * 2)
 
     def test_out_of_bounds_value(self):
-        one_us = np.timedelta64(1).astype("timedelta64[us]")
+        one_us = np.timedelta64(1, "ns").astype("timedelta64[us]")
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
@@ -909,6 +909,14 @@ class TestTimestampConstructors:
         result = Timestamp(arg)
         expected = Timestamp(datetime(2013, 1, 1), tz=timezone(timedelta(hours=9)))
         assert result == expected
+
+    def test_comma_separated_fractional_seconds(self):
+        # GH#59256 - comma as decimal separator should parse correctly
+        ts_comma = Timestamp("2024-06-17T18:57:43,567")
+        ts_dot = Timestamp("2024-06-17T18:57:43.567")
+        assert ts_comma == ts_dot
+        assert ts_comma.unit == ts_dot.unit
+        assert ts_comma.microsecond == 567000
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):

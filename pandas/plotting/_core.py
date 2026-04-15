@@ -6,7 +6,7 @@ from typing import (
     Literal,
 )
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas.util._decorators import set_module
 
@@ -1941,7 +1941,7 @@ class PlotAccessor(PandasObject):
             The method used to calculate the estimator bandwidth. This can be
             'scott', 'silverman', a scalar constant or a callable.
             If None (default), 'scott' is used.
-            See :class:`scipy.stats.gaussian_kde` for more information.
+            See ``scipy.stats.gaussian_kde`` for more information.
         ind : NumPy array or int, optional
             Evaluation points for the estimated PDF. If None (default),
             1000 equally spaced points are used. If `ind` is a NumPy array, the
@@ -2469,7 +2469,7 @@ def _get_plot_backend(backend: str | None = None):
     -----
     Modifies `_backends` with imported backend as a side effect.
     """
-    backend_str: str = backend or get_option("plotting.backend")
+    backend_str: str = backend or config["plotting"]["backend"]
 
     if backend_str in _backends:
         return _backends[backend_str]
