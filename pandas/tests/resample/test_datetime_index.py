@@ -981,6 +981,9 @@ def test_resample_dst_crosses_boundary():
     # give 24, but date_range includes both endpoints, so count carefully)
     # Rather than count manually, verify shape and that no execption is raised.
     result = ts.resample("1D").sum()
+    print(result)
+    print(result.index)
+    print(result.index.freq)
 
     # Should produce one bin per calendar day without raising NonExistentTimeError.
     assert isinstance(result, Series)
@@ -998,6 +1001,9 @@ def test_resample_dst_15min_across_boundary():
     )
 
     result = ts.resample("1D").sum()
+    print(result)
+    print(result.index)
+    print(result.index.freq)
     
     assert isinstance(result, Series)
     # Data spans two calendar days (April 25 and April 26).
@@ -1013,6 +1019,9 @@ def test_resample_dst_normal_behavior_before_boundary():
     )
 
     result = ts.resample("1D").sum()
+    print(result)
+    print(result.index)
+    print(result.index.freq)
     
     # Manually computed: date_range "2024-04-20" to "2024-04-21" at 1H gives
     # 25 timestamps. Both endpoints share the same calendar day split:
@@ -1041,6 +1050,10 @@ def test_resample_dst_direct_boundary():
 
     result = ts.resample("1D").sum()
 
+    print(result)
+    print(result.index)
+    print(result.index.freq)
+
     # Both timestamps fall on differen calendar days, so we expect 2 bins.
     assert len(result) == 2
     assert result.iloc[0] == 1
@@ -1055,6 +1068,10 @@ def test_resample_dst_generated_edge():
     )
 
     result = ts.resample("1D").sum()
+
+    print(result)
+    print(result.index)
+    print(result.index.freq)
 
     assert isinstance(result, Series)
     assert not result.empty
