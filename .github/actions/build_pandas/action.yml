@@ -27,6 +27,9 @@ runs:
 
     - name: Build Pandas
       run: |
+        # Ensure meson/pkg-config finds conda's Python headers, not the
+        # system Python headers which may be broken (GH#65226).
+        export PKG_CONFIG_PATH="$CONDA_PREFIX/lib/pkgconfig"
         if [[ ${{ inputs.editable }} == "true" ]]; then
           pip install -e . --no-build-isolation -v --no-deps \
             ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
