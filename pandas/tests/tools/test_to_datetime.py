@@ -3331,6 +3331,7 @@ class TestOrigin:
         ],
     )
     def test_epoch(self, units, epochs, origin_unit):
+        # GH 63419: after v3.0.0 default resolution is microseconds
         epoch_1960 = Timestamp(1960, 1, 1)
         units_from_epochs = np.arange(5, dtype=np.int64)
         # result resolution is max of origin resolution and unit resolution
@@ -3356,11 +3357,8 @@ class TestOrigin:
         ],
     )
     def test_invalid_origins(self, origin, exc, units):
-        msg = "|".join(
-            [
-                f"origin {origin} cannot be converted to a Timestamp",
-            ]
-        )
+        # GH 63419
+        msg = f"origin {origin} cannot be converted to a Timestamp"
         with pytest.raises(exc, match=msg):
             to_datetime(list(range(5)), unit=units, origin=origin)
 
@@ -3437,7 +3435,7 @@ class TestOrigin:
         tm.assert_index_equal(result, expected)
 
     def test_invalid_origins_oob(self):
-        # GH#63419 datetime(1, 1, 1) overflows only for unit='ns'
+        # GH 63419 datetime(1, 1, 1) overflows only for unit='ns'
         msg = "Cannot cast .* to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(list(range(5)), unit="ns", origin=datetime(1, 1, 1))
