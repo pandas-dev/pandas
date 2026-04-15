@@ -74,13 +74,11 @@ def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_mode_infer_string():
+def test_mode_string(any_string_dtype):
     # GH#56183
-    pytest.importorskip("pyarrow")
-    ser = Series(["a", "b"], dtype=object)
-    with pd.option_context("future.infer_string", True):
-        result = ser.mode()
-    expected = Series(["a", "b"], dtype=object)
+    ser = Series(["a", "b"], dtype=any_string_dtype)
+    result = ser.mode()
+    expected = Series(["a", "b"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 

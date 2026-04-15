@@ -1221,7 +1221,8 @@ class TestSeriesConstructors:
         # construction from interval & array of intervals
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
-        assert result.dtype == "interval[int64, right]"
+        expected_subtype = np.dtype(np.intp)
+        assert result.dtype == f"interval[{expected_subtype}, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
@@ -2068,8 +2069,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
         expected = Series(["a", 1], dtype="object")
-        with pd.option_context("future.infer_string", True):
-            ser = Series(["a", 1])
+        ser = Series(["a", 1])
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])

@@ -1115,7 +1115,7 @@ class TestPeriodArray(SharedTests):
         tm.assert_extension_array_equal(result, dta.as_unit("us"))
 
         dta2 = dta[::2]
-        parr2 = dta2.to_period()
+        parr2 = dta2.to_period("2B")
         result2 = parr2.to_timestamp()
         assert result2.freq == "2B"
         tm.assert_extension_array_equal(result2, dta2.as_unit("us"))

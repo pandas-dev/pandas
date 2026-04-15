@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -66,7 +66,7 @@ def set_use_bottleneck(v: bool = True) -> None:
         _USE_BOTTLENECK = v
 
 
-set_use_bottleneck(_global_config["compute"]["use_bottleneck"])
+set_use_bottleneck(config["compute"]["use_bottleneck"])
 
 
 class disallow:
