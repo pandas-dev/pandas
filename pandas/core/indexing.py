@@ -413,13 +413,6 @@ class IndexingMixin:
                              max_speed  shield
         sidewinder          7       8
 
-        Index
-
-        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-              max_speed  shield
-        cobra          1       2
-        viper          4       5
-
         Conditional that returns a boolean Series
 
         >>> df.loc[df["shield"] > 6]
@@ -1400,13 +1393,6 @@ class _LocIndexer(_LocationIndexer):
     >>> df.loc[pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])]
                          max_speed  shield
     sidewinder          7       8
-
-    Index
-
-    >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-          max_speed  shield
-    cobra          1       2
-    viper          4       5
 
     Conditional that returns a boolean Series
 
