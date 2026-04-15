@@ -886,18 +886,17 @@ class TestMultiplicationDivision:
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
 
-    def test_non_1d_ea_raises_notimplementederror(self):
-        # GH#61866
+    def test_non_1d_ea_mul(self):
+        # GH#61866 - 2D masked arrays now support arithmetic
         ea_array = array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
         np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64).reshape(5, 1)
+        expected = array([1, 4, 9, 16, 25], dtype="Int64").reshape(5, 1)
 
-        msg = "can only perform ops with 1-d structures"
+        result = ea_array * np_array
+        tm.assert_extension_array_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match=msg):
-            ea_array * np_array
-
-        with pytest.raises(NotImplementedError, match=msg):
-            np_array * ea_array
+        result = np_array * ea_array
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestAdditionSubtraction:
