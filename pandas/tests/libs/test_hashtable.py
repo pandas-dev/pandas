@@ -508,13 +508,16 @@ def test_pyobject_hashtable_unique_refcount():
 
     table = ht.PyObjectHashTable(len(keys))
     before = sys.getrefcount(keys[0])
-    table.unique(values)
+    # Capture the result explicitly so its lifecycle is managed;
+    # discarding the return value works on CPython but not on Pyodide
+    # where the temporary may not be freed immediately.
+    result = table.unique(values)
     after = sys.getrefcount(keys[0])
 
-    # Each unique key should have exactly one extra reference
-    assert after == before + 1
+    # One extra reference from the table, one from the result array
+    assert after == before + 2
 
-    del table
+    del result, table
     gc.collect()
     assert sys.getrefcount(keys[0]) == before
 
