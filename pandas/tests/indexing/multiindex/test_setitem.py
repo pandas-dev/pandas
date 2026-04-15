@@ -450,7 +450,11 @@ class TestMultiIndexSetItem:
     def test_loc_setitem_partial_multiindex_with_dataframe(self):
         # GH#22493
         idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
-        df = DataFrame(np.arange(8).reshape(4, 2), index=idx, columns=["c1", "c2"])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
         rhs = DataFrame(-1, index=["b1", "b2"], columns=["c1", "c2"])
         df.loc["a1"] = rhs
         expected = DataFrame(
@@ -474,7 +478,11 @@ class TestMultiIndexSetItem:
     def test_loc_setitem_partial_multiindex_with_series(self):
         # GH#22493 - Series assignment via partial key
         idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
-        df = DataFrame(np.arange(8).reshape(4, 2), index=idx, columns=["c1", "c2"])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
         df.loc[("a1",), "c1"] = Series({"b1": -2, "b2": -3})
         expected = DataFrame(
             [[-2, 1], [-3, 3], [4, 5], [6, 7]],
@@ -486,7 +494,11 @@ class TestMultiIndexSetItem:
     def test_loc_setitem_partial_multiindex_reordered(self):
         # GH#22493 - value index in different order should align by label
         idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
-        df = DataFrame(np.arange(8).reshape(4, 2), index=idx, columns=["c1", "c2"])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
         rhs = DataFrame({"c1": [-1, -2], "c2": [-3, -4]}, index=["b2", "b1"])
         df.loc["a1"] = rhs
         expected = DataFrame(
