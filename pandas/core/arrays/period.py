@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Timedelta,
     add_overflowsafe,
     astype_overflowsafe,
@@ -414,6 +415,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @property
     def freqstr(self) -> str:
         return PeriodDtype(self.freq)._freqstr
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        freqstr = self.freqstr
+        try:
+            return Resolution.get_reso_from_freqstr(freqstr)
+        except KeyError:
+            return None  # type: ignore[return-value]
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None

@@ -7965,7 +7965,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
 
         if self.empty:
-            return self._constructor_sliced(dtype=bool)
+            return self._constructor_sliced(False, dtype=bool, index=self.index)
 
         def f(vals) -> tuple[np.ndarray, int]:
             labels, shape = algorithms.factorize(vals, size_hint=len(self))

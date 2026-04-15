@@ -112,7 +112,8 @@ pyyaml = "*"
 xarray = ">=2024.10.0"
 
 [feature.benchmarks.dependencies]
-asv = ">=0.6.1"
+asv = ">=0.6.5"
+py-rattler = "*"  # for environment_type in asv.conf.json
 
 [environments]
 py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
