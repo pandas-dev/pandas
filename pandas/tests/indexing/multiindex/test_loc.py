@@ -1062,4 +1062,5 @@ def test_loc_multiindex_with_overlapping_interval_multiple_matches():
     ser = Series([10, 20, 30, 40], index=idx, name="Value")
 
     result = ser.loc[("A", 1.5)]
-    tm.assert_numpy_array_equal(result.values, np.array([10, 20]))
+    expected = np.array([10, 20], dtype=result.values.dtype)
+    tm.assert_numpy_array_equal(result.values, expected)

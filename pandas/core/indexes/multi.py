@@ -3595,13 +3595,6 @@ class MultiIndex(Index):
                 #  partial string slicing
                 # ValueError: e.g. IntervalIndex level (GH#27456)
                 loc, _ = self.get_loc_level(key, range(self.nlevels))
-                if isinstance(loc, np.ndarray) and loc.dtype == bool:
-                    # GH#27456: fallback for IntervalIndex levels returns
-                    # a boolean mask; reduce to int when there is a single
-                    # match for consistency with the engine path.
-                    (inds,) = loc.nonzero()
-                    if len(inds) == 1:
-                        return inds[0].item()
                 return loc
 
         # -- partial selection or non-unique index
@@ -3813,7 +3806,15 @@ class MultiIndex(Index):
                         and key[i] != slice(None, None)
                     ]
                     if len(ilevels) == self.nlevels:
-                        # TODO: why?
+                        # All levels are scalar-indexed (no partial
+                        # string levels preserved). If the indexer is a
+                        # boolean mask with a single match, reduce to
+                        # int so callers get scalar semantics.
+                        # GH#27456
+                        if isinstance(indexer, np.ndarray) and indexer.dtype == bool:
+                            (inds,) = indexer.nonzero()
+                            if len(inds) == 1:
+                                return inds[0].item(), None
                         ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
 
