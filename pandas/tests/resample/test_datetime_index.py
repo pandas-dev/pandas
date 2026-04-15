@@ -973,7 +973,7 @@ def test_resample_dst_crosses_boundary():
     # Data spans April 24 through April 27, crossing the DST gap on April 26
     ts = Series(
         1,
-        date_range("2024-04-24", "2024-04-27", tz="Africa/Cairo", freq="1H"),
+        date_range("2024-04-24", "2024-04-27", tz="Africa/Cairo", freq="1h"),
     )
 
     # Hardcoded expected: bin edges are midnight each day (adjusted for DST).
@@ -1009,7 +1009,7 @@ def test_resample_dst_normal_behavior_before_boundary():
     # Example 2 no DST issue (1H -> 1D) 
     ts = Series(
         1,
-        date_range("2024-04-20", "2024-04-21", tz="Africa/Cairo", freq="1H"),
+        date_range("2024-04-20", "2024-04-21", tz="Africa/Cairo", freq="1h"),
     )
 
     result = ts.resample("1D").sum()
@@ -1051,7 +1051,7 @@ def test_resample_dst_generated_edge():
     # Internally creates the nonexistent midnight edge (2024-04-26 00:00)
     ts = Series(
         1,
-        date_range("2024-04-24", "2024-04-25", tz="Africa/Cairo", freq="1H"),
+        date_range("2024-04-24", "2024-04-25", tz="Africa/Cairo", freq="1h"),
     )
 
     result = ts.resample("1D").sum()
