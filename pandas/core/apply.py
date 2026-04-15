@@ -1420,33 +1420,26 @@ class FrameColumnApply(FrameApply):
         is_view = mgr.blocks[0].refs.has_reference()
 
         if isinstance(ser.dtype, ExtensionDtype):
-            # GH#61747 - For multi-block EA DataFrames, obj._ixs per row
-            # is slow due to per-row _from_sequence calls. Extract column
-            # arrays once and build object-dtype rows directly.
+            # GH#61747 - Pre-extract column arrays and reuse a template
+            # Series to avoid the per-row block traversal and
+            # Series/manager construction overhead in fast_xs.
             obj = self.obj
-
-            if len(obj._mgr.blocks) == 1:
-                # Single-block EA: _ixs preserves the EA dtype.
-                for i in range(len(obj)):
-                    yield obj._ixs(i, axis=0)
-                return
-
             col_arrays = [obj._get_column_array(i) for i in range(len(obj.columns))]
-
-            first_row = np.array([col_arr[0] for col_arr in col_arrays], dtype=object)
-            ser = obj._constructor_sliced(
-                first_row, index=obj.columns, name=obj.index[0], dtype=object
-            )
+            dtype = ser.dtype
+            cls = dtype.construct_array_type()
             mgr = ser._mgr
 
+            build_row = self._make_ea_row_builder(col_arrays, dtype, cls)
+
+            blk = mgr.blocks[0]
             for row_idx in range(len(obj)):
-                arr = np.array(
-                    [col_arr[row_idx] for col_arr in col_arrays], dtype=object
-                )
                 ser._mgr = mgr
-                mgr.set_values(arr)
+                mgr.set_values(build_row(row_idx))
+                # EABackedBlock.array_values is @cache_readonly;
+                # clear it so Series.array sees the new values.
+                blk._cache.pop("array_values", None)
                 object.__setattr__(ser, "_name", obj.index[row_idx])
-                mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
+                blk.refs = BlockValuesRefs(blk)
                 yield ser
 
         else:
@@ -1467,6 +1460,48 @@ class FrameColumnApply(FrameApply):
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
+
+    @staticmethod
+    def _make_ea_row_builder(
+        col_arrays: list, dtype: ExtensionDtype, cls: type
+    ) -> Callable:
+        """Build a callable that constructs an EA row for a given row index.
+
+        Special-cases BaseMaskedArray and ArrowExtensionArray to avoid
+        the overhead of _from_sequence per row.
+        """
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+        from pandas.core.arrays.masked import BaseMaskedArray
+
+        if all(isinstance(col_arr, BaseMaskedArray) for col_arr in col_arrays):
+            col_data = [col_arr._data for col_arr in col_arrays]
+            col_masks = [col_arr._mask for col_arr in col_arrays]
+            np_dtype = dtype.numpy_dtype
+
+            def build_row(row_idx: int) -> BaseMaskedArray:
+                data = np.array([cd[row_idx] for cd in col_data], dtype=np_dtype)
+                mask = np.array([cm[row_idx] for cm in col_masks], dtype=np.bool_)
+                return cls._simple_new(data, mask)
+
+        elif all(isinstance(col_arr, ArrowExtensionArray) for col_arr in col_arrays):
+            import pyarrow as pa
+
+            pa_arrays = [col_arr._pa_array for col_arr in col_arrays]
+            pa_type = pa_arrays[0].type
+
+            def build_row(row_idx: int) -> ArrowExtensionArray:
+                pa_scalars = [pa_col[row_idx] for pa_col in pa_arrays]
+                return type(col_arrays[0])(pa.array(pa_scalars, type=pa_type))
+
+        else:
+
+            def build_row(row_idx: int) -> BaseMaskedArray | ArrowExtensionArray:
+                row_data = np.array(
+                    [col_arr[row_idx] for col_arr in col_arrays], dtype=object
+                )
+                return cls._from_sequence(row_data, dtype=dtype)
+
+        return build_row
 
     @staticmethod
     @functools.cache

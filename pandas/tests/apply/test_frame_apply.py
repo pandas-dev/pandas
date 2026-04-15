@@ -155,6 +155,19 @@ def test_apply_axis1_with_ea():
     tm.assert_frame_equal(result, expected)
 
 
+def test_apply_axis1_ea_preserves_dtype():
+    # GH#61747 - row dtype should match the interleaved dtype, not object
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="Int64"),
+            "b": pd.array([4, 5, 6], dtype="Int64"),
+        }
+    )
+    result = df.apply(lambda row: row.dtype, axis=1)
+    expected = Series([pd.Int64Dtype()] * 3)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [(1, None), (1, CategoricalDtype([1])), (Timestamp("2013-01-01", tz="UTC"), None)],
