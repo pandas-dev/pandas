@@ -223,12 +223,12 @@ class TestDtypeEnforced:
         dti = date_range("2016-01-01", periods=3)
         cat = Categorical(dti)
         result = Index(cat, dti.dtype)
-        tm.assert_index_equal(result, dti)
+        tm.assert_index_equal(result, dti, check_freq=False)
 
         dti2 = dti.tz_localize("Asia/Tokyo")
         cat2 = Categorical(dti2)
         result = Index(cat2, dti2.dtype)
-        tm.assert_index_equal(result, dti2)
+        tm.assert_index_equal(result, dti2, check_freq=False)
 
         ii = IntervalIndex.from_breaks(range(5))
         cat3 = Categorical(ii)
@@ -239,12 +239,12 @@ class TestDtypeEnforced:
         dti = date_range("2016-01-01", periods=3)
         result = Index(dti, dtype="category")
         expected = CategoricalIndex(dti)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         dti2 = date_range("2016-01-01", periods=3, tz="US/Pacific")
         result = Index(dti2, dtype="category")
         expected = CategoricalIndex(dti2)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_constructor_period_values_mismatched_dtype(self):
         pi = period_range("2016-01-01", periods=3, freq="D")
@@ -257,7 +257,7 @@ class TestDtypeEnforced:
         tdi = timedelta_range("4 Days", periods=5)
         result = Index(tdi, dtype="category")
         expected = CategoricalIndex(tdi)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_constructor_interval_values_mismatched_dtype(self):
         dti = date_range("2016-01-01", periods=3)

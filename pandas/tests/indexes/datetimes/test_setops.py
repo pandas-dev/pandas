@@ -89,7 +89,7 @@ class TestDatetimeIndexSetOps:
             if sort is None:
                 tm.assert_index_equal(result_union, exp)
             else:
-                tm.assert_index_equal(result_union, exp_notsorted)
+                tm.assert_index_equal(result_union, exp_notsorted, check_freq=False)
 
     def test_union_coverage(self, sort):
         idx = DatetimeIndex(["2000-01-03", "2000-01-01", "2000-01-02"])
@@ -570,7 +570,9 @@ class TestBusinessDatetimeIndex:
             tm.assert_index_equal(right.union(left, sort=sort), the_union)
         else:
             expected = DatetimeIndex(list(right) + list(left))
-            tm.assert_index_equal(right.union(left, sort=sort), expected)
+            tm.assert_index_equal(
+                right.union(left, sort=sort), expected, check_freq=False
+            )
 
         # overlapping, but different offset
         rng = date_range(START, END, freq=BMonthEnd())

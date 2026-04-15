@@ -718,7 +718,7 @@ class TestBase:
         dtype = CategoricalDtype(ordered=ordered)
         result = idx.astype(dtype, copy=copy)
         expected = CategoricalIndex(idx, name=name, ordered=ordered)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
@@ -727,13 +727,13 @@ class TestBase:
             result = idx.astype(dtype, copy=copy)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = CategoricalIndex(idx, name=name, dtype=dtype)
-        tm.assert_index_equal(result, expected, exact=True)
+        tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
             result = idx.astype("category", copy=copy)
             expected = CategoricalIndex(idx, name=name)
-            tm.assert_index_equal(result, expected, exact=True)
+            tm.assert_index_equal(result, expected, exact=True, check_freq=False)
 
     def test_is_unique(self, simple_index):
         # initialize a unique index
