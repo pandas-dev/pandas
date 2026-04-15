@@ -380,12 +380,10 @@ class TestLocBaseIndependent:
     def test_loc_setitem_nonunique_string_index(self):
         # GH#22500 - .loc setitem with non-unique string index should behave
         # consistently with non-unique numeric index
-        df = DataFrame({"val": 1.0}, index=Index(["a", "b", "a"], name="idx"))
-        df_10 = df.copy()
-        df_10["val"] = 10.0
-
-        expected = df.copy()
-        expected.loc["a", "val"] = 10.0
+        idx = Index(["a", "b", "a"], name="idx")
+        df = DataFrame({"val": 1.0}, index=idx)
+        df_10 = DataFrame({"val": 10.0}, index=idx)
+        expected = DataFrame({"val": [10.0, 1.0, 10.0]}, index=idx)
 
         # scalar string key
         result = df.copy()
@@ -1882,11 +1880,8 @@ class TestLocWithMultiIndex:
             [(1, "a"), (1, "b"), (2, "a"), (2, "b")], names=["num", "let"]
         )
         df = DataFrame({"val": 1.0}, index=midx)
-        df_10 = df.copy()
-        df_10["val"] = 10.0
-
-        expected = df.copy()
-        expected.loc[(1, "a"), "val"] = 10.0
+        df_10 = DataFrame({"val": 10.0}, index=midx)
+        expected = DataFrame({"val": [10.0, 1.0, 1.0, 1.0]}, index=midx)
 
         result = df.copy()
         mask = result.index == (1, "a")
