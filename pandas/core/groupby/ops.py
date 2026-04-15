@@ -1129,7 +1129,7 @@ class BaseGrouper:
             group_counts[segment_ids] = segment_sizes
             empty_mask = group_counts < cutoff
             if empty_mask.any():
-                if result.dtype.kind in "iu":
+                if result.dtype.kind in "iub":
                     result = result.astype(np.float64)
                 indexer2: list[Any] = [slice(None)] * result.ndim
                 indexer2[axis] = empty_mask
