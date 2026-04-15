@@ -70,6 +70,12 @@ class BaseMissingTests:
         expected = data_missing.fillna(valid)
         tm.assert_extension_array_equal(result, expected)
 
+    def test_fillna_raises_with_dict(self, data_missing):
+        # GH#19705 - dict value should raise a clear error at the EA level
+        msg = "ExtensionArray.fillna does not support filling with a dict"
+        with pytest.raises(TypeError, match=msg):
+            data_missing.fillna({0: data_missing[1]})
+
     def test_fillna_with_none(self, data_missing):
         # GH#57723
         result = data_missing.fillna(None)

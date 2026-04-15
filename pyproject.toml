@@ -102,7 +102,7 @@ plot = ['matplotlib>=3.9.3']
 output-formatting = ['jinja2>=3.1.5', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.4.2']
 compression = ['zstandard>=0.23.0']
-timezone = ['pytz>=2024.2']
+timezone = ['pytz>=2020.1']
 all = ['adbc-driver-postgresql>=1.2.0',
        'adbc-driver-sqlite>=1.2.0',
        'beautifulsoup4>=4.12.3',
@@ -128,7 +128,7 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'pytest>=8.3.4',
        'pytest-xdist>=3.6.1',
        'python-calamine>=0.3.0',
-       'pytz>=2024.2',
+       'pytz>=2020.1',
        'pyxlsb>=1.0.10',
        'qtpy>=2.4.2',
        'scipy>=1.14.1',
@@ -154,6 +154,7 @@ parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
 setup = ['--vsenv'] # For Windows
+dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
@@ -166,7 +167,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-enable = ["cpython-freethreading"]
 
 [tool.cibuildwheel.windows]
 environment = {}
