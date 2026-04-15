@@ -3,6 +3,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 import re
 import struct
+import sys
 import tracemalloc
 
 import numpy as np
@@ -460,61 +461,58 @@ class TestPyObjectHashTableWithNans:
             table.get_item(other)
 
 
-class TestPyObjectHashTableRefCount:
+def test_pyobject_hashtable_map_locations_refcount():
     # GH#21968
-    def test_map_locations_refcount(self):
-        # Verify that map_locations holds proper references to stored keys,
-        # preventing use-after-free when the source array is deallocated.
-        import sys
+    # Verify that map_locations holds proper references to stored keys,
+    # preventing use-after-free when the source array is deallocated.
+    keys = [f"key_{i}_xxxxxx" for i in range(10)]
+    values = np.array(keys, dtype=object)
 
-        keys = [f"key_{i}_xxxxxx" for i in range(10)]
-        values = np.array(keys, dtype=object)
+    table = ht.PyObjectHashTable(len(keys))
+    # Measure baseline and post-insertion refcounts in the same scope
+    # to avoid artifacts from list-comprehension vs for-loop scoping.
+    before = sys.getrefcount(keys[0])
+    table.map_locations(values)
+    after = sys.getrefcount(keys[0])
 
-        table = ht.PyObjectHashTable(len(keys))
-        # Measure baseline and post-insertion refcounts in the same scope
-        # to avoid artifacts from list-comprehension vs for-loop scoping.
-        before = sys.getrefcount(keys[0])
-        table.map_locations(values)
-        after = sys.getrefcount(keys[0])
+    assert after == before + 1
 
-        assert after == before + 1
+    del table
+    final = sys.getrefcount(keys[0])
+    assert final == before
 
-        del table
-        final = sys.getrefcount(keys[0])
-        assert final == before
 
-    def test_set_item_refcount(self):
-        import sys
+def test_pyobject_hashtable_set_item_refcount():
+    # GH#21968
+    key = f"unique_key_{'x' * 20}"
 
-        key = f"unique_key_{'x' * 20}"
+    table = ht.PyObjectHashTable(64)
+    before = sys.getrefcount(key)
+    table.set_item(key, 0)
+    after = sys.getrefcount(key)
 
-        table = ht.PyObjectHashTable(64)
-        before = sys.getrefcount(key)
-        table.set_item(key, 0)
-        after = sys.getrefcount(key)
+    assert after == before + 1
 
-        assert after == before + 1
+    del table
+    assert sys.getrefcount(key) == before
 
-        del table
-        assert sys.getrefcount(key) == before
 
-    def test_unique_refcount(self):
-        import sys
+def test_pyobject_hashtable_unique_refcount():
+    # GH#21968
+    keys = [f"key_{i}_xxxxxx" for i in range(5)]
+    # Duplicate some keys so _unique exercises the "already seen" path too
+    values = np.array(keys + keys[:2], dtype=object)
 
-        keys = [f"key_{i}_xxxxxx" for i in range(5)]
-        # Duplicate some keys so _unique exercises the "already seen" path too
-        values = np.array(keys + keys[:2], dtype=object)
+    table = ht.PyObjectHashTable(len(keys))
+    before = sys.getrefcount(keys[0])
+    table.unique(values)
+    after = sys.getrefcount(keys[0])
 
-        table = ht.PyObjectHashTable(len(keys))
-        before = sys.getrefcount(keys[0])
-        table.unique(values)
-        after = sys.getrefcount(keys[0])
+    # Each unique key should have exactly one extra reference
+    assert after == before + 1
 
-        # Each unique key should have exactly one extra reference
-        assert after == before + 1
-
-        del table
-        assert sys.getrefcount(keys[0]) == before
+    del table
+    assert sys.getrefcount(keys[0]) == before
 
 
 def test_hash_equal_tuple_with_nans():
