@@ -1968,6 +1968,8 @@ class ExtensionBlock(EABackedBlock):
         # TODO(EA2D): override unnecessary with 2D EAs
         if self.ndim == 1:
             return (len(self.values),)
+        if not is_1d_only_ea_dtype(self.dtype):
+            return self.values.shape
         return len(self._mgr_locs), len(self.values)
 
     def iget(self, i: int | tuple[int, int] | tuple[slice, int]):
@@ -1978,6 +1980,10 @@ class ExtensionBlock(EABackedBlock):
         #  Literal[0] | tuple[Literal[0], int] | tuple[slice, int]
 
         # Note: only reached with self.ndim == 2
+
+        if not is_1d_only_ea_dtype(self.dtype) and self.values.ndim == 2:
+            # 2D EA: delegate to base Block.iget which does values[i]
+            return self.values[i]
 
         if isinstance(i, tuple):
             # TODO(EA2D): unnecessary with 2D EAs
@@ -2126,7 +2132,10 @@ class ExtensionBlock(EABackedBlock):
         """
         # GH#42787 in principle this is equivalent to values[..., slicer], but we don't
         # require subclasses of ExtensionArray to support that form (for now).
-        new_values = self.values[slicer]
+        if self.values.ndim == 2:
+            new_values = self.values[..., slicer]
+        else:
+            new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
     def _unstack(
@@ -2150,10 +2159,40 @@ class ExtensionBlock(EABackedBlock):
         #  us if there are any -1s in the relevant indices.  When False,
         #  that allows us to go through a faster path in 'take', among
         #  other things avoiding e.g. Categorical._validate_scalar.
+
+        values = self.values
+        if values.ndim == 2:
+            # For 2D EAs (e.g. Arrow with _supports_2d), extract each
+            # input column as 1D, take rows, and reshape back to 2D.
+            # Each output block is single-column because unstack changes
+            # the column axis — we can't predict which output columns will
+            # be adjacent, so we emit one block per (input_col, placement)
+            # pair and let BlockManager consolidate later.
+            blocks = []
+            for col_idx in range(values.shape[0]):
+                col_1d = values[col_idx]
+                for i, (indices, place) in enumerate(
+                    zip(new_values.T, new_placement, strict=True)
+                ):
+                    taken = col_1d.take(
+                        indices,
+                        allow_fill=needs_masking[i],
+                        fill_value=fill_value,
+                    )
+                    taken = taken.reshape(1, -1)
+                    blocks.append(
+                        type(self)(
+                            taken,
+                            BlockPlacement(place),
+                            ndim=2,
+                        )
+                    )
+            return blocks
+
         blocks = [
             # TODO: could cast to object depending on fill_value?
             type(self)(
-                self.values.take(
+                values.take(
                     indices, allow_fill=needs_masking[i], fill_value=fill_value
                 ),
                 BlockPlacement(place),

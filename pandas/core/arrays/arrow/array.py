@@ -5,6 +5,7 @@ from datetime import (
     datetime,
 )
 import functools
+import math
 import operator
 from pathlib import Path
 import re
@@ -237,6 +238,8 @@ def to_pyarrow_type(
         return dtype
     elif isinstance(dtype, DatetimeTZDtype):
         return pa.timestamp(dtype.unit, dtype.tz)
+    elif isinstance(dtype, StringDtype):
+        return pa.large_string()
     elif dtype:
         try:
             # Accepts python types too
@@ -303,25 +306,309 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
-    _pa_array: pa.ChunkedArray
+    _pa_table: pa.Table
     _dtype: ArrowDtype
+    _ndim: int
+    _pa_array_cache: pa.ChunkedArray | None
 
-    def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
+    def __init__(self, values: pa.Array | pa.ChunkedArray | pa.Table) -> None:
         if not HAS_PYARROW:
             msg = (
                 f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
                 "backed ArrowExtensionArray."
             )
             raise ImportError(msg)
-        if isinstance(values, pa.Array):
-            self._pa_array = pa.chunked_array([values])
+        if isinstance(values, pa.Table):
+            # 2D case: all columns must have the same type
+            types = {field.type for field in values.schema}
+            if len(types) != 1:
+                raise ValueError(
+                    "All columns in a 2D ArrowExtensionArray must have the "
+                    f"same type, got {types}"
+                )
+            self._pa_table = values
+            self._ndim = 2
+            self._pa_array_cache = None
+        elif isinstance(values, pa.Array):
+            chunked = pa.chunked_array([values])
+            self._pa_table = pa.table({"0": chunked})
+            self._ndim = 1
+            self._pa_array_cache = chunked
         elif isinstance(values, pa.ChunkedArray):
-            self._pa_array = values
+            self._pa_table = pa.table({"0": values})
+            self._ndim = 1
+            self._pa_array_cache = values
         else:
             raise ValueError(
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._pa_array.type)
+
+    @classmethod
+    def _simple_new(
+        cls, table: pa.Table, ndim: int, dtype: ArrowDtype | None = None
+    ) -> Self:
+        """Construct directly from a pa.Table with explicit ndim."""
+        obj = object.__new__(cls)
+        obj._pa_table = table
+        obj._ndim = ndim
+        col0 = table.column(0)
+        obj._pa_array_cache = col0 if ndim == 1 else None
+        obj._dtype = dtype if dtype is not None else ArrowDtype(col0.type)
+        return obj
+
+    def _column_as_1d(self, col_idx: int) -> Self:
+        """Extract column col_idx as a 1D ArrowExtensionArray (fast path)."""
+        return type(self)._simple_new(
+            pa.table({"0": self._pa_table.column(col_idx)}),
+            ndim=1,
+            dtype=self._dtype,
+        )
+
+    def _apply_per_column(self, func) -> Self:
+        """Apply *func* to each column of a 2D array, return a 2D result.
+
+        *func(col_1d, col_idx)* receives a 1D ``ArrowExtensionArray`` and the
+        column index; it must return a 1D ``ArrowExtensionArray``.
+        """
+        table = self._pa_table
+        cols = {}
+        for idx in range(table.num_columns):
+            result = func(self._column_as_1d(idx), idx)
+            cols[table.column_names[idx]] = result._pa_array
+        result_table = pa.table(cols)
+        return type(self)._simple_new(result_table, ndim=2)
+
+    def _scalar_column(self, value) -> pa.Array:
+        """Build a column-length pa.Array filled with a single scalar *value*."""
+        pa_type = self._pa_table.column(0).type
+        nrows = self._pa_table.num_rows
+        if value is None or isna(value):
+            return pa.nulls(nrows, type=pa_type)
+        return pa.repeat(pa.scalar(value, type=pa_type), nrows)
+
+    @property
+    def _pa_array(self) -> pa.ChunkedArray:
+        cached = self._pa_array_cache
+        if cached is not None:
+            return cached
+        return self._pa_table.column(0)
+
+    @_pa_array.setter
+    def _pa_array(self, value: pa.ChunkedArray) -> None:
+        if self._ndim != 1:
+            raise ValueError("Cannot set _pa_array on a 2D ArrowExtensionArray")
+        if isinstance(value, pa.Array):
+            value = pa.chunked_array([value])
+        self._pa_table = pa.table({self._pa_table.column_names[0]: value})
+        self._pa_array_cache = value
+
+    # ------------------------------------------------------------------
+    # 2D support
+    #
+    # When backed by a pa.Table (homogeneous dtype), the array is 2D with
+    # shape (num_columns, num_rows) matching the BlockManager convention.
+    # values[i] returns column i as a 1D ArrowExtensionArray.
+
+    @property
+    def ndim(self) -> int:
+        return self._ndim
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        if self._ndim == 1:
+            return (self._pa_table.num_rows,)
+        return (self._pa_table.num_columns, self._pa_table.num_rows)
+
+    def __len__(self) -> int:
+        if self._ndim == 1:
+            return self._pa_table.num_rows
+        return self._pa_table.num_columns
+
+    @property
+    def size(self) -> int:
+        return math.prod(self.shape)
+
+    @property
+    def nbytes(self) -> int:
+        return self._pa_table.nbytes
+
+    @staticmethod
+    def _resolve_2d_shape(new_shape, total):
+        """Resolve -1 placeholders in a 2D target shape and validate."""
+        ncols, nrows = new_shape
+        if ncols == -1:
+            ncols = total // nrows
+        if nrows == -1:
+            nrows = total // ncols
+        if ncols * nrows != total:
+            raise ValueError(
+                f"cannot reshape array of size {total} into shape {(ncols, nrows)}"
+            )
+        return ncols, nrows
+
+    def reshape(self, *args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], tuple):
+            new_shape = args[0]
+        else:
+            new_shape = args
+
+        if self._ndim == 1:
+            nrows = len(self._pa_array)
+            if len(new_shape) == 1:
+                expected = new_shape[0]
+                if expected not in (-1, nrows):
+                    raise ValueError(
+                        f"cannot reshape array of size {nrows} into shape {new_shape}"
+                    )
+                return type(self)(self._pa_array)
+            elif len(new_shape) == 2:
+                ncols, nrows_new = self._resolve_2d_shape(new_shape, nrows)
+                if ncols == 1:
+                    # Single column: use ChunkedArray directly to preserve
+                    # zero-copy buffer references (e.g. for astype).
+                    cols = {"0": self._pa_array}
+                else:
+                    combined = self._pa_array.combine_chunks()
+                    cols = {}
+                    for i in range(ncols):
+                        cols[str(i)] = combined.slice(i * nrows_new, nrows_new)
+                return type(self)._simple_new(pa.table(cols), ndim=2)
+            else:
+                raise ValueError(f"Shape must be 1D or 2D, got {len(new_shape)}D")
+        else:
+            total = self._pa_table.num_columns * self._pa_table.num_rows
+            if len(new_shape) == 1:
+                expected = new_shape[0]
+                if expected == -1:
+                    expected = total
+                if expected != total:
+                    raise ValueError(
+                        f"cannot reshape array of size {total} into shape {new_shape}"
+                    )
+                return self.ravel()
+            elif len(new_shape) == 2:
+                ncols, nrows_new = self._resolve_2d_shape(new_shape, total)
+                # Ravel then split
+                all_data = [
+                    self._pa_table.column(i).combine_chunks()
+                    for i in range(self._pa_table.num_columns)
+                ]
+                combined = pa.concat_arrays(all_data)
+                cols = {}
+                for i in range(ncols):
+                    cols[str(i)] = combined.slice(i * nrows_new, nrows_new)
+                return type(self)._simple_new(pa.table(cols), ndim=2)
+            else:
+                raise ValueError(f"Shape must be 1D or 2D, got {len(new_shape)}D")
+
+    @property
+    def T(self):
+        if self._ndim == 1:
+            return self.copy()
+        pa_type = self._pa_array.type
+        # Transpose via numpy — much faster than element-wise Python loops.
+        np_arr = self.to_numpy()  # (ncols, nrows)
+        transposed = np_arr.T  # (nrows, ncols)
+        cols = {
+            str(idx): pa.array(transposed[idx], type=pa_type, from_pandas=True)
+            for idx in range(transposed.shape[0])
+        }
+        return type(self)._simple_new(pa.table(cols), ndim=2)
+
+    def swapaxes(self, axis1, axis2):
+        if self._ndim == 1:
+            return self.copy()
+        if {axis1, axis2} == {0, 1}:
+            return self.T
+        return self.copy()
+
+    def delete(self, loc, axis=0):
+        if self._ndim == 1:
+            return super().delete(loc)
+
+        if axis == 0:
+            # Delete column(s)
+            all_indices = list(range(self._pa_table.num_columns))
+            if isinstance(loc, (int, np.integer)):
+                if loc < 0:
+                    loc += self._pa_table.num_columns
+                all_indices.pop(loc)
+            else:
+                to_remove = set(np.atleast_1d(np.asarray(loc)).tolist())
+                all_indices = [i for i in all_indices if i not in to_remove]
+            return type(self)(self._pa_table.select(all_indices))
+        elif axis == 1:
+            # Delete row(s)
+            nrows = self._pa_table.num_rows
+            if isinstance(loc, (int, np.integer)):
+                if loc < 0:
+                    loc += nrows
+                keep = list(range(loc)) + list(range(loc + 1, nrows))
+            else:
+                to_remove = set(np.atleast_1d(np.asarray(loc)).tolist())
+                keep = [i for i in range(nrows) if i not in to_remove]
+            return type(self)._simple_new(self._pa_table.take(keep), ndim=2)
+        else:
+            raise ValueError(
+                f"axis {axis} is out of bounds for array of dimension {self._ndim}"
+            )
+
+    def repeat(self, repeats, axis=0):
+        if self._ndim == 1:
+            if axis is not None and axis != 0:
+                raise ValueError(f"'axis' must be 0 or None for 1D arrays, got {axis}")
+            return super().repeat(repeats)
+        if axis is None:
+            axis = 0
+        if axis == 0:
+            # Repeat columns
+            cols = {}
+            col_idx = 0
+            for i in range(self._pa_table.num_columns):
+                for _ in range(repeats):
+                    cols[str(col_idx)] = self._pa_table.column(i)
+                    col_idx += 1
+            return type(self)._simple_new(pa.table(cols), ndim=2)
+        elif axis == 1:
+            # Repeat rows
+            indices = np.repeat(np.arange(self._pa_table.num_rows), repeats)
+            return type(self)._simple_new(self._pa_table.take(indices), ndim=2)
+        else:
+            raise ValueError(f"axis {axis} out of bounds")
+
+    def ravel(self, order="C"):
+        if self._ndim == 1:
+            return self
+        chunks = []
+        for i in range(self._pa_table.num_columns):
+            chunks.extend(self._pa_table.column(i).chunks)
+        return type(self)(pa.chunked_array(chunks, type=self._pa_array.type))
+
+    def shift(self, periods: int = 1, fill_value: object = None):
+        if self._ndim != 2:
+            return super().shift(periods=periods, fill_value=fill_value)
+
+        return self._apply_per_column(
+            lambda col, _idx: col.shift(periods=periods, fill_value=fill_value)
+        )
+
+    @classmethod
+    def _empty(cls, shape, dtype):
+        pa_type = to_pyarrow_type(dtype)
+        if isinstance(shape, tuple) and len(shape) == 2:
+            n_cols, n_rows = shape
+            null_col = pa.nulls(n_rows, type=pa_type)
+            cols = {str(i): null_col for i in range(n_cols)}
+            result = cls(pa.table(cols))
+        else:
+            n = shape if isinstance(shape, int) else shape[0]
+            result = cls(pa.nulls(n, type=pa_type))
+        # Preserve the original dtype (e.g. StringDtype) instead of
+        # the ArrowDtype that __init__ infers.
+        if isinstance(dtype, StringDtype):
+            result._dtype = dtype
+        return result
 
     @classmethod
     def _from_sequence(
@@ -331,6 +618,13 @@ class ArrowExtensionArray(
         Construct a new ExtensionArray from a sequence of scalars.
         """
         pa_type = to_pyarrow_type(dtype)
+        if hasattr(scalars, "ndim") and scalars.ndim == 2:
+            # 2D input (e.g. reshaped PeriodArray) — flatten, convert, reshape
+            orig_shape = scalars.shape
+            flat = scalars.ravel()
+            pa_array = cls._box_pa_array(flat, pa_type=pa_type, copy=copy)
+            arr = cls(pa_array)
+            return arr.reshape(orig_shape)
         pa_array = cls._box_pa_array(scalars, pa_type=pa_type, copy=copy)
         arr = cls(pa_array)
         return arr
@@ -724,6 +1018,369 @@ class ArrowExtensionArray(
 
         return pa_array
 
+    def _getitem_2d(self, item):
+        """__getitem__ for 2D (pa.Table-backed) arrays."""
+        table = self._pa_table
+
+        # Handle Ellipsis: values[..., slicer] -> row slicing
+        if isinstance(item, tuple) and len(item) == 2 and item[0] is Ellipsis:
+            row_slicer = item[1]
+            if isinstance(row_slicer, slice):
+                indices = range(*row_slicer.indices(table.num_rows))
+                if len(indices) == table.num_rows:
+                    return type(self)(table)
+                # Use zero-copy table.slice() for contiguous ranges
+                if indices.step == 1:
+                    sliced = table.slice(indices.start, len(indices))
+                    return type(self)._simple_new(sliced, ndim=2)
+                return type(self)._simple_new(table.take(list(indices)), ndim=2)
+            else:
+                raise IndexError(f"Unsupported row indexer type: {type(row_slicer)}")
+
+        # Handle tuple indexing: values[col, row]
+        if isinstance(item, tuple):
+            if len(item) == 2:
+                col_key, row_key = item
+
+                # (slice, int) -> from Block.iget
+                if isinstance(col_key, slice) and isinstance(
+                    row_key, (int, np.integer)
+                ):
+                    sub_table = table
+                    if not com.is_null_slice(col_key):
+                        indices = range(*col_key.indices(table.num_columns))
+                        sub_table = table.select(list(indices))
+                    row_idx = int(row_key)
+                    if row_idx < 0:
+                        row_idx += sub_table.num_rows
+                    values = [col[row_idx].as_py() for col in sub_table.columns]
+                    return type(self)(
+                        pa.chunked_array([pa.array(values, type=self._pa_array.type)])
+                    )
+
+                # (slice, slice) -> subselection
+                if isinstance(col_key, slice) and isinstance(row_key, slice):
+                    result_table = table
+                    if not com.is_null_slice(col_key):
+                        indices = range(*col_key.indices(table.num_columns))
+                        result_table = result_table.select(list(indices))
+                    if not com.is_null_slice(row_key):
+                        row_indices = range(*row_key.indices(result_table.num_rows))
+                        if row_indices.step == 1:
+                            result_table = result_table.slice(
+                                row_indices.start, len(row_indices)
+                            )
+                        else:
+                            result_table = result_table.take(list(row_indices))
+                    return type(self)(result_table)
+
+                # (int, slice) -> single column, subset of rows
+                if isinstance(col_key, (int, np.integer)) and isinstance(
+                    row_key, slice
+                ):
+                    col_idx = int(col_key)
+                    if col_idx < 0:
+                        col_idx += table.num_columns
+                    col = table.column(col_idx)
+                    if com.is_null_slice(row_key):
+                        return type(self)(col)
+                    row_indices = range(*row_key.indices(table.num_rows))
+                    pa_indices = pa.array(list(row_indices), type=pa.int64())
+                    return type(self)(pc.take(col, pa_indices))
+
+                # (int, int) -> scalar
+                if isinstance(col_key, (int, np.integer)) and isinstance(
+                    row_key, (int, np.integer)
+                ):
+                    col_idx = col_key
+                    if col_idx < 0:
+                        col_idx += table.num_columns
+                    row_idx = row_key
+                    if row_idx < 0:
+                        row_idx += table.num_rows
+                    scalar = table.column(col_idx)[row_idx].as_py()
+                    if scalar is None:
+                        return self._dtype.na_value
+                    return scalar
+
+            if len(item) == 1:
+                item = item[0]
+            else:
+                item = unpack_tuple_and_ellipses(item)
+
+        # Handle newaxis: values[:, np.newaxis]
+        if item is np.newaxis:
+            raise IndexError("too many indices for 2D array")
+
+        # int -> single column as 1D
+        if isinstance(item, (int, np.integer)):
+            idx = int(item)
+            if idx < 0:
+                idx += table.num_columns
+            if idx < 0 or idx >= table.num_columns:
+                raise IndexError(
+                    f"index {item} is out of bounds for axis 0 with "
+                    f"size {table.num_columns}"
+                )
+            return self._column_as_1d(idx)
+
+        # slice -> select columns, return 2D
+        if isinstance(item, slice):
+            indices = range(*item.indices(table.num_columns))
+            new_table = table.select(list(indices))
+            return type(self)._simple_new(new_table, ndim=2, dtype=self._dtype)
+
+        # ndarray indexer
+        if isinstance(item, np.ndarray):
+            if item.dtype == np.bool_:
+                if item.ndim == 2:
+                    # 2D boolean mask: return 1D array of matching elements
+                    # (like numpy behavior)
+                    values = []
+                    for col_idx in range(table.num_columns):
+                        col = table.column(col_idx)
+                        col_mask = item[col_idx]
+                        filtered = col.filter(pa.array(col_mask))
+                        values.extend(filtered.to_pylist())
+                    return type(self)(pa.array(values, type=table.schema.field(0).type))
+                else:
+                    # 1D boolean mask on columns
+                    selected = [i for i, val in enumerate(item) if val]
+                    return type(self)(table.select(selected))
+            else:
+                # Integer array indexer — select columns
+                return type(self)(table.select(item.tolist()))
+
+        # list indexer — select columns by index
+        if isinstance(item, list):
+            return type(self)(table.select([int(i) for i in item]))
+
+        raise IndexError(f"Unsupported indexer: {item!r}")
+
+    def _setitem_2d(self, key, value) -> None:
+        """__setitem__ for 2D (pa.Table-backed) arrays.
+
+        Receives (col_indexer, row_indexer) tuples from the block layer,
+        where our storage layout is (n_cols, n_rows).
+        """
+        table = self._pa_table
+
+        # Handle tuple (col_key, row_key) from block layer
+        if isinstance(key, tuple) and len(key) == 2:
+            col_key, row_key = key
+            if com.is_null_slice(col_key):
+                col_indices = range(table.num_columns)
+            elif isinstance(col_key, (int, np.integer)):
+                col_indices = [int(col_key)]
+            elif isinstance(col_key, slice):
+                col_indices = range(*col_key.indices(table.num_columns))
+            else:
+                col_indices = range(table.num_columns)
+
+            for j, col_idx in enumerate(col_indices):
+                col_1d = self._column_as_1d(col_idx)
+                if isinstance(value, type(self)) and value._ndim == 2:
+                    col_val = value[j]
+                elif isinstance(value, np.ndarray) and value.ndim == 2:
+                    col_val = value[j]
+                else:
+                    col_val = value
+                col_1d[row_key] = col_val
+                table = table.set_column(
+                    col_idx, table.column_names[col_idx], col_1d._pa_array
+                )
+            self._pa_table = table
+            return
+
+        # Unwrap 1-tuple
+        if isinstance(key, tuple) and len(key) == 1:
+            key = key[0]
+
+        if com.is_null_slice(key):
+            # Replace all values across all columns
+            if is_scalar(value):
+                fill_col = self._scalar_column(value)
+                self._pa_table = pa.table(dict.fromkeys(table.column_names, fill_col))
+            else:
+                # value is array-like
+                val_len = len(value)
+                if val_len == table.num_columns:
+                    # One value per column
+                    for i in range(table.num_columns):
+                        name = table.column_names[i]
+                        val_i = value[i]
+                        if is_scalar(val_i):
+                            col_val = self._scalar_column(val_i)
+                        elif hasattr(val_i, "_pa_array"):
+                            col_val = val_i._pa_array
+                        else:
+                            col_val = pa.array(
+                                np.asarray(val_i),
+                                from_pandas=True,
+                                type=self._pa_array.type,
+                            )
+                        table = table.set_column(i, name, col_val)
+                elif val_len == table.num_rows:
+                    # Same value array for every column
+                    if hasattr(value, "_pa_array"):
+                        col_val = value._pa_array
+                    else:
+                        col_val = pa.array(value, type=self._pa_array.type)
+                    for i in range(table.num_columns):
+                        name = table.column_names[i]
+                        table = table.set_column(i, name, col_val)
+                else:
+                    raise ValueError(
+                        f"Length of value ({val_len}) does not match "
+                        f"num_columns ({table.num_columns}) or "
+                        f"num_rows ({table.num_rows})"
+                    )
+                self._pa_table = table
+            return
+
+        if isinstance(key, (int, np.integer)):
+            # Set a single "column" (axis 0 element)
+            idx = int(key)
+            if idx < 0:
+                idx += table.num_columns
+            name = table.column_names[idx]
+            if hasattr(value, "_pa_array"):
+                new_col = value._pa_array
+            elif is_scalar(value):
+                new_col = self._scalar_column(value)
+            else:
+                new_col = pa.chunked_array([pa.array(value, type=self._pa_array.type)])
+            self._pa_table = table.set_column(idx, name, new_col)
+            return
+
+        if isinstance(key, slice):
+            indices = range(*key.indices(table.num_columns))
+            for j, col_idx in enumerate(indices):
+                name = table.column_names[col_idx]
+                if is_scalar(value):
+                    new_col = self._scalar_column(value)
+                elif hasattr(value, "_pa_table") and value._ndim == 2:
+                    new_col = value._pa_table.column(j)
+                elif hasattr(value, "_pa_array"):
+                    if len(value) == table.num_rows:
+                        new_col = value._pa_array
+                    else:
+                        # value has one element per selected column
+                        new_col = self._scalar_column(value[j])
+                else:
+                    value_arr = np.asarray(value)
+                    if value_arr.ndim == 1 and len(value_arr) == table.num_rows:
+                        new_col = pa.array(
+                            value_arr,
+                            type=self._pa_array.type,
+                            from_pandas=True,
+                        )
+                    else:
+                        # one value per selected column
+                        val_j = value_arr[j]
+                        if hasattr(val_j, "__len__"):
+                            # val_j is array-like (e.g. from 2D numpy)
+                            new_col = pa.array(
+                                val_j,
+                                type=self._pa_array.type,
+                                from_pandas=True,
+                            )
+                        else:
+                            new_col = self._scalar_column(val_j)
+                table = table.set_column(col_idx, name, new_col)
+            self._pa_table = table
+            return
+
+        # Boolean mask or integer array indexer
+        if isinstance(key, np.ndarray):
+            if key.dtype.kind == "b":
+                if key.ndim == 2:
+                    # 2D boolean mask: element-wise, shape (n_cols, n_rows)
+                    for col_idx in range(table.num_columns):
+                        col_mask = key[col_idx]
+                        if not col_mask.any():
+                            continue
+                        col_1d = self._column_as_1d(col_idx)
+                        col_1d[col_mask] = value
+                        table = table.set_column(
+                            col_idx,
+                            table.column_names[col_idx],
+                            col_1d._pa_array,
+                        )
+                    self._pa_table = table
+                    return
+                # 1D boolean mask along axis 0 (select columns)
+                true_indices = np.where(key)[0]
+                for col_idx in true_indices:
+                    name = table.column_names[col_idx]
+                    if is_scalar(value):
+                        new_col = self._scalar_column(value)
+                    elif hasattr(value, "_pa_array"):
+                        new_col = value._pa_array
+                    else:
+                        new_col = pa.array(
+                            value,
+                            type=self._pa_array.type,
+                            from_pandas=True,
+                        )
+                    table = table.set_column(col_idx, name, new_col)
+                self._pa_table = table
+                return
+            elif key.dtype.kind in "iu":
+                for j, col_idx in enumerate(key):
+                    col_idx = int(col_idx)
+                    name = table.column_names[col_idx]
+                    if is_scalar(value):
+                        new_col = self._scalar_column(value)
+                    else:
+                        val_j = value[j]
+                        if is_scalar(val_j):
+                            new_col = self._scalar_column(val_j)
+                        else:
+                            new_col = pa.chunked_array(
+                                [pa.array(val_j, type=self._pa_array.type)]
+                            )
+                    table = table.set_column(col_idx, name, new_col)
+                self._pa_table = table
+                return
+
+        raise IndexError(f"Unsupported 2D setitem indexer: {key!r}")
+
+    def _take_2d(self, indices, *, allow_fill=False, fill_value=None, axis=0):
+        """take() for 2D arrays.
+
+        axis=0: select columns by index.
+        axis=1: select rows from each column by index.
+        """
+        table = self._pa_table
+        indices_array = np.asanyarray(indices, dtype=np.intp)
+
+        if axis == 0:
+            if (indices_array < 0).any() and not allow_fill:
+                indices_array = indices_array.copy()
+                indices_array[indices_array < 0] += table.num_columns
+            selected = table.select(indices_array.tolist())
+            return type(self)(selected)
+        elif axis == 1:
+            # Take rows from each column
+            if (indices_array < 0).any() and not allow_fill:
+                indices_array = indices_array.copy()
+                indices_array[indices_array < 0] += table.num_rows
+
+            if allow_fill:
+                fill_mask = indices_array < 0
+                if fill_mask.any():
+                    validate_indices(indices_array, table.num_rows)
+                    pa_indices = pa.array(indices_array, mask=fill_mask)
+                else:
+                    pa_indices = pa.array(indices_array)
+            else:
+                pa_indices = pa.array(indices_array)
+
+            return type(self)(table.take(pa_indices))
+        else:
+            raise ValueError(f"axis must be 0 or 1, got {axis}")
+
     def __getitem__(self, item: PositionalIndexer):
         """Select a subset of self.
 
@@ -748,6 +1405,9 @@ class ArrowExtensionArray(
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
+        if self._ndim == 2:
+            return self._getitem_2d(item)
+
         item = check_array_indexer(self, item)
 
         if isinstance(item, np.ndarray):
@@ -774,6 +1434,14 @@ class ArrowExtensionArray(
                     "boolean arrays are valid indices."
                 )
         elif isinstance(item, tuple):
+            # Handle dimension-expanding: arr[:, np.newaxis] -> 2D
+            if (
+                len(item) == 2
+                and isinstance(item[0], slice)
+                and com.is_null_slice(item[0])
+                and item[1] is np.newaxis
+            ):
+                return self.reshape(-1, 1)
             item = unpack_tuple_and_ellipses(item)
 
         if item is Ellipsis:
@@ -825,6 +1493,10 @@ class ArrowExtensionArray(
         """
         Iterate over elements of the array.
         """
+        if self._ndim == 2:
+            for i in range(self._pa_table.num_columns):
+                yield self._column_as_1d(i)
+            return
         na_value = self._dtype.na_value
         # GH 53326
         pa_type = self._pa_array.type
@@ -898,16 +1570,51 @@ class ArrowExtensionArray(
     # https://issues.apache.org/jira/browse/ARROW-10739 is addressed
     def __getstate__(self):
         state = self.__dict__.copy()
-        state["_pa_array"] = self._pa_array.combine_chunks()
+        state.pop("_pa_array_cache", None)
+        # Serialize the table as combined chunks for each column
+        state["_pa_table_data"] = [
+            self._pa_table.column(i).combine_chunks()
+            for i in range(self._pa_table.num_columns)
+        ]
+        state["_pa_table_names"] = self._pa_table.column_names
+        state.pop("_pa_table", None)
+        # Include _pa_array for backward compat with subclasses that
+        # override __getstate__ and expect _pa_array in the state dict.
+        if self._ndim == 1:
+            state["_pa_array"] = self._pa_table.column(0)
         return state
 
     def __setstate__(self, state) -> None:
-        if "_data" in state:
+        if "_pa_table_data" in state:
+            # New format: reconstruct table from columns
+            cols = state.pop("_pa_table_data")
+            names = state.pop("_pa_table_names")
+            state["_pa_table"] = pa.table(
+                {
+                    name: pa.chunked_array(col)
+                    for name, col in zip(names, cols, strict=True)
+                }
+            )
+            # Clean up backward-compat keys that may have been added by
+            # subclass __getstate__ overrides
+            state.pop("_pa_array", None)
+            state.pop("_data", None)
+        elif "_data" in state:
+            # Legacy format
             data = state.pop("_data")
-        else:
-            data = state["_pa_array"]
-        state["_pa_array"] = pa.chunked_array(data)
+            state["_pa_table"] = pa.table({"0": pa.chunked_array(data)})
+        elif "_pa_array" in state:
+            # Legacy format with _pa_array
+            data = state.pop("_pa_array")
+            state["_pa_table"] = pa.table({"0": pa.chunked_array(data)})
+        if "_ndim" not in state:
+            state["_ndim"] = 1
         self.__dict__.update(state)
+        # Populate the _pa_array cache for 1D arrays
+        if self._ndim == 1:
+            self._pa_array_cache = self._pa_table.column(0)
+        else:
+            self._pa_array_cache = None
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
         pc_func = ARROW_CMP_FUNCS[op.__name__]
@@ -1053,6 +1760,12 @@ class ArrowExtensionArray(
     def _logical_method(self, other, op) -> Self:
         # For integer types `^`, `|`, `&` are bitwise operators and return
         # integer types. Otherwise these are boolean ops.
+        if self._ndim == 2:
+            return self._apply_per_column(
+                lambda col, idx: col._logical_method(
+                    self._get_col_other(other, idx), op
+                )
+            )
         if pa.types.is_integer(self._pa_array.type):
             return self._evaluate_op_method(other, op, ARROW_BIT_WISE_FUNCS)
         elif (
@@ -1078,6 +1791,9 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if self._ndim == 2:
+            return self._arith_method_2d(other, op)
+
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
@@ -1103,6 +1819,30 @@ class ArrowExtensionArray(
             result = type(self)(arr)
         return result
 
+    @staticmethod
+    def _get_col_other(other, idx):
+        """Extract column `idx` from a 2D operand, or return as-is for 1D/scalar."""
+        if isinstance(other, ArrowExtensionArray) and other._ndim == 2:
+            return other._column_as_1d(idx)
+        elif hasattr(other, "ndim") and other.ndim == 2:
+            return other[idx]
+        return other
+
+    def _arith_method_2d(self, other, op):
+        """Arithmetic on 2D arrays: apply op column-by-column."""
+        table = self._pa_table
+        ncols = table.num_columns
+        results = []
+        for i in range(ncols):
+            col_self = self._column_as_1d(i)
+            col_other = self._get_col_other(other, i)
+            col_result = col_self._arith_method(col_other, op)
+            results.append(col_result)
+        if all(isinstance(res, type(self)) for res in results):
+            cols = {table.column_names[i]: results[i]._pa_array for i in range(ncols)}
+            return type(self)._simple_new(pa.table(cols), ndim=2)
+        return np.stack(results, axis=0)
+
     def equals(self, other) -> bool:
         if not isinstance(other, ArrowExtensionArray):
             return False
@@ -1116,23 +1856,6 @@ class ArrowExtensionArray(
         An instance of 'ExtensionDtype'.
         """
         return self._dtype
-
-    @property
-    def nbytes(self) -> int:
-        """
-        The number of bytes needed to store this object in memory.
-        """
-        return self._pa_array.nbytes
-
-    def __len__(self) -> int:
-        """
-        Length of this array.
-
-        Returns
-        -------
-        length : int
-        """
-        return len(self._pa_array)
 
     def __contains__(self, key) -> bool:
         # https://github.com/pandas-dev/pandas/pull/51307#issuecomment-1426372604
@@ -1158,15 +1881,29 @@ class ArrowExtensionArray(
         Boolean NumPy array indicating if each value is missing.
 
         This should return a 1-D array the same length as 'self'.
+        For 2D arrays, returns shape (n_cols, n_rows).
         """
         # GH51630: fast paths
-        null_count = self._pa_array.null_count
-        if null_count == 0:
-            return np.zeros(len(self), dtype=np.bool_)
-        elif null_count == len(self):
-            return np.ones(len(self), dtype=np.bool_)
+        if self._ndim == 1:
+            null_count = self._pa_array.null_count
+            if null_count == 0:
+                return np.zeros(len(self._pa_array), dtype=np.bool_)
+            elif null_count == len(self._pa_array):
+                return np.ones(len(self._pa_array), dtype=np.bool_)
+            return self._pa_array.is_null().to_numpy()
 
-        return self._pa_array.is_null().to_numpy()
+        table = self._pa_table
+        n_rows = table.num_rows
+        cols = []
+        for col_idx in range(table.num_columns):
+            col = table.column(col_idx)
+            if col.null_count == 0:
+                cols.append(np.zeros(n_rows, dtype=np.bool_))
+            elif col.null_count == n_rows:
+                cols.append(np.ones(n_rows, dtype=np.bool_))
+            else:
+                cols.append(col.is_null().to_numpy())
+        return np.stack(cols, axis=0)
 
     @overload
     def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool: ...
@@ -1341,16 +2078,60 @@ class ArrowExtensionArray(
         """
         Return a shallow copy of the array.
 
-        Underlying ChunkedArray is immutable, so a deep copy is unnecessary.
+        Underlying ChunkedArray/Table is immutable, so a deep copy is
+        unnecessary.
 
         Returns
         -------
         type(self)
         """
-        return self._from_pyarrow_array(self._pa_array)
+        return type(self)._simple_new(self._pa_table, self._ndim, self._dtype)
 
     def count(self) -> int:
         return len(self) - self._pa_array.null_count
+
+    def _putmask(self, mask, value) -> None:
+        if self._ndim != 2:
+            return super()._putmask(mask, value)
+
+        # For 2D: mask is in block layout (n_cols, n_rows) after transpose
+        # in blocks.py, but value may be in DataFrame layout (n_rows, n_cols).
+        # Process column-by-column.
+        table = self._pa_table
+        ncols = table.num_columns
+
+        # If value is a 2D array in a different layout, transpose to match self
+        if isinstance(value, type(self)) and value._ndim == 2:
+            if value.shape != self.shape:
+                value = value.T
+        elif isinstance(value, np.ndarray) and value.ndim == 2:
+            if value.shape != self.shape:
+                value = value.T
+
+        for col_idx in range(ncols):
+            col_mask = mask[col_idx] if mask.ndim == 2 else mask
+
+            if not col_mask.any():
+                continue
+
+            col_1d = self._column_as_1d(col_idx)
+
+            if is_list_like(value):
+                if isinstance(value, type(self)) and value._ndim == 2:
+                    col_val = value._column_as_1d(col_idx)
+                elif isinstance(value, np.ndarray) and value.ndim == 2:
+                    col_val = value[col_idx]
+                else:
+                    col_val = value
+                col_1d._putmask(col_mask, col_val)
+            else:
+                col_1d._putmask(col_mask, value)
+
+            table = table.set_column(
+                col_idx, table.column_names[col_idx], col_1d._pa_array
+            )
+
+        self._pa_table = table
 
     def dropna(self) -> Self:
         """
@@ -1370,20 +2151,34 @@ class ArrowExtensionArray(
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
+        if self._ndim == 2:
+            # _pad_or_backfill along axis 0 (across columns for each row).
+            # Transpose so rows become columns, pad each, transpose back.
+            transposed = self.T
+            filled = transposed._apply_per_column(
+                lambda col, _idx: col._pad_or_backfill(
+                    method=method,
+                    limit=limit,
+                    limit_area=limit_area,
+                    copy=copy,
+                )
+            )
+            return filled.T
+
         if not self._hasna:
             return self
 
         if limit is None and limit_area is None:
             method = missing.clean_fill_method(method)
             try:
+                # combine_chunks() works around a pyarrow bug where
+                # fill_null_forward/backward on bool ChunkedArrays can
+                # produce arrays with invalid buffers.
+                pa_arr = self._pa_array.combine_chunks()
                 if method == "pad":
-                    return self._from_pyarrow_array(
-                        pc.fill_null_forward(self._pa_array)
-                    )
+                    return self._from_pyarrow_array(pc.fill_null_forward(pa_arr))
                 elif method == "backfill":
-                    return self._from_pyarrow_array(
-                        pc.fill_null_backward(self._pa_array)
-                    )
+                    return self._from_pyarrow_array(pc.fill_null_backward(pa_arr))
             except pa.ArrowNotImplementedError:
                 # ArrowNotImplementedError: Function 'coalesce' has no kernel
                 #   matching input types (duration[ns], duration[ns])
@@ -1439,6 +2234,11 @@ class ArrowExtensionArray(
         [0, 0, 2, 3, 0, 0]
         Length: 6, dtype: int64[pyarrow]
         """
+        if self._ndim == 2:
+            return self._apply_per_column(
+                lambda col, _idx: col.fillna(value=value, limit=limit, copy=copy)
+            )
+
         if not self._hasna:
             return self.copy()
 
@@ -1643,12 +2443,6 @@ class ArrowExtensionArray(
 
         return indices, uniques
 
-    def reshape(self, *args, **kwargs):
-        raise NotImplementedError(
-            f"{type(self)} does not support reshape "
-            f"as backed by a 1D pyarrow.ChunkedArray."
-        )
-
     def round(self, decimals: int = 0, *args, **kwargs) -> Self:
         """
         Round each value in the array a to the given number of decimals.
@@ -1747,6 +2541,7 @@ class ArrowExtensionArray(
         indices: TakeIndexer,
         allow_fill: bool = False,
         fill_value: Any = None,
+        axis: int = 0,
     ) -> ArrowExtensionArray:
         """
         Take elements from an array.
@@ -1801,6 +2596,11 @@ class ArrowExtensionArray(
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
         """
+        if self._ndim == 2:
+            return self._take_2d(
+                indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
+            )
+
         indices_array = np.asanyarray(indices)
 
         if len(self._pa_array) == 0 and (indices_array >= 0).any():
@@ -1903,6 +2703,17 @@ class ArrowExtensionArray(
         -------
         numpy.ndarray
         """
+        if self._ndim == 2:
+            return np.stack(
+                [
+                    self._column_as_1d(idx).to_numpy(
+                        dtype=dtype, copy=copy, na_value=na_value
+                    )
+                    for idx in range(self._pa_table.num_columns)
+                ],
+                axis=0,
+            )
+
         original_na_value = na_value
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
@@ -2069,18 +2880,22 @@ class ArrowExtensionArray(
         return Series(counts, index=index, name="count", copy=False)
 
     @classmethod
-    def _concat_same_type(cls, to_concat) -> Self:
+    def _concat_same_type(cls, to_concat, axis=0) -> Self:
         """
         Concatenate multiple ArrowExtensionArrays.
 
         Parameters
         ----------
         to_concat : sequence of ArrowExtensionArrays
+        axis : int, default 0
 
         Returns
         -------
         ArrowExtensionArray
         """
+        if any(ea._ndim == 2 for ea in to_concat):
+            return cls._concat_same_type_2d(to_concat, axis=axis)
+
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
@@ -2089,6 +2904,35 @@ class ArrowExtensionArray(
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
         arr = pa.chunked_array(chunks, type=pa_dtype)
         return to_concat[0]._from_pyarrow_array(arr)
+
+    @classmethod
+    def _concat_same_type_2d(cls, to_concat, axis=0):
+        """Concatenate 2D ArrowExtensionArrays."""
+        if axis == 0:
+            # Stack columns: append columns from each array
+            all_cols = {}
+            col_idx = 0
+            for ea in to_concat:
+                if ea._ndim == 2:
+                    for i in range(ea._pa_table.num_columns):
+                        all_cols[str(col_idx)] = ea._pa_table.column(i)
+                        col_idx += 1
+                else:
+                    all_cols[str(col_idx)] = ea._pa_array
+                    col_idx += 1
+            return cls(pa.table(all_cols))
+        elif axis == 1:
+            # Stack rows: concatenate tables vertically
+            tables = []
+            for ea in to_concat:
+                if ea._ndim == 2:
+                    tables.append(ea._pa_table)
+                else:
+                    tables.append(pa.table({"0": ea._pa_array}))
+            result = pa.concat_tables(tables)
+            return cls(result)
+        else:
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 2")
 
     def _accumulate(
         self, name: str, *, skipna: bool = True, **kwargs
@@ -2387,6 +3231,41 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        axis = kwargs.pop("axis", None)
+
+        if self._ndim == 2:
+            # For 2D arrays, reduce each column independently and return
+            # a 1D array of results.
+            if axis is None or axis == 1:
+                # axis=1 means reduce along rows (second dim)
+                # For each column, compute the reduction via pyarrow
+                # to preserve the exact result type (e.g. uint8 sum -> uint64).
+                pa_scalars = []
+                for i in range(self._pa_table.num_columns):
+                    col_arr = self._column_as_1d(i)
+                    pa_scalars.append(
+                        col_arr._reduce_pyarrow(name, skipna=skipna, **kwargs)
+                    )
+                pa_results = pa.array(pa_scalars)
+                return type(self)(pa_results)
+            elif axis == 0:
+                # axis=0 means reduce along columns (first dim).
+                # Transpose so that rows become columns, then reduce
+                # each column (= original row) via pyarrow.
+                transposed = self.T
+                pa_type = self._pa_array.type
+                nrows = self._pa_table.num_rows
+                results = []
+                for row_idx in range(nrows):
+                    row_arr = transposed._column_as_1d(row_idx)
+                    results.append(
+                        row_arr._reduce(name, skipna=skipna, keepdims=False, **kwargs)
+                    )
+                if keepdims:
+                    pa_results = pa.array(results, type=pa_type)
+                    return type(self)(pa_results)
+                return np.array(results)
+
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if isinstance(result, pa.Array):
             return self._from_pyarrow_array(result)
@@ -2469,6 +3348,10 @@ class ArrowExtensionArray(
         -------
         None
         """
+        if self._ndim == 2:
+            self._setitem_2d(key, value)
+            return
+
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
 
@@ -2751,6 +3634,20 @@ class ArrowExtensionArray(
         if not self.dtype._is_numeric:
             raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
 
+        if self._ndim == 2:
+            return self._apply_per_column(
+                lambda col, _idx: col.interpolate(
+                    method=method,
+                    axis=axis,
+                    index=index,
+                    limit=limit,
+                    limit_direction=limit_direction,
+                    limit_area=limit_area,
+                    copy=copy,
+                    **kwargs,
+                )
+            )
+
         if (
             method == "linear"
             and limit_area is None
@@ -2923,6 +3820,23 @@ class ArrowExtensionArray(
         ids: npt.NDArray[np.intp],
         **kwargs,
     ):
+        if self._ndim == 2:
+            # Process each column independently
+            results = []
+            for col_idx in range(self._pa_table.num_columns):
+                col_result = self._column_as_1d(col_idx)._groupby_op(
+                    how=how,
+                    has_dropped_na=has_dropped_na,
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    ids=ids,
+                    **kwargs,
+                )
+                results.append(col_result)
+            if isinstance(results[0], np.ndarray):
+                return np.stack(results, axis=0)
+            return type(self)._concat_same_type(results).reshape(len(results), -1)
+
         if isinstance(self.dtype, StringDtype):
             if how in [
                 "prod",

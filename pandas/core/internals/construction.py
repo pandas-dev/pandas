@@ -327,7 +327,12 @@ def ndarray_to_mgr(
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
-    elif dtype is None and values.dtype.kind == "U" and using_string_dtype():
+    elif (
+        dtype is None
+        and values.dtype.kind == "U"
+        and using_string_dtype()
+        and isinstance(values, np.ndarray)
+    ):
         dtype = StringDtype(na_value=np.nan)
 
         obj_columns = list(values)

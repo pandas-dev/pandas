@@ -2217,6 +2217,8 @@ class ArrowDtype(StorageExtensionDtype):
     """
 
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
+    _supports_2d = True
+    _can_fast_transpose = False
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")

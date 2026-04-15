@@ -133,6 +133,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
@@ -848,8 +849,11 @@ class DataFrame(NDFrame, OpsMixin):
             return False
 
         dtype = blocks[0].dtype
-        # TODO(EA2D) special case would be unnecessary with 2D EAs
-        return not is_1d_only_ea_dtype(dtype)
+        if is_1d_only_ea_dtype(dtype):
+            return False
+        if isinstance(dtype, ExtensionDtype):
+            return dtype._can_fast_transpose
+        return True
 
     @property
     def _values(self) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
@@ -865,6 +869,13 @@ class DataFrame(NDFrame, OpsMixin):
         arr = blocks[0].values
         if arr.ndim == 1:
             # non-2D ExtensionArray
+            return self.values
+
+        if isinstance(arr, ExtensionArray) and not isinstance(
+            arr, NDArrayBackedExtensionArray
+        ):
+            # 2D EA that isn't NDArrayBacked (e.g. ArrowExtensionArray) —
+            # fall back to numpy since callers expect ndarray-like semantics.
             return self.values
 
         # more generally, whatever we allow in NDArrayBackedExtensionBlock

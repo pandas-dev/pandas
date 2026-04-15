@@ -313,12 +313,15 @@ class _Unstacker:
             #  i.e. when the MI is already sorted and we're unstacking
             #  the last level.  _make_sorted_values short-circuits that
             #  case and returns values directly.
-            new_values = (
-                sorted_values.reshape(length, width, stride)
-                .swapaxes(1, 2)
-                .reshape(result_shape)
-            )
-            return new_values
+            if isinstance(sorted_values, np.ndarray) or hasattr(
+                sorted_values, "_ndarray"
+            ):
+                new_values = (
+                    sorted_values.reshape(length, width, stride)
+                    .swapaxes(1, 2)
+                    .reshape(result_shape)
+                )
+                return new_values
 
         dtype = values.dtype
 
@@ -606,7 +609,10 @@ def unstack(
             f"index must be a MultiIndex to unstack, {type(obj.index)} was passed"
         )
     else:
-        if is_1d_only_ea_dtype(obj.dtype):
+        if is_1d_only_ea_dtype(obj.dtype) or (
+            isinstance(obj.dtype, ExtensionDtype)
+            and not isinstance(obj._values, (np.ndarray, NDArrayBackedExtensionArray))
+        ):
             return _unstack_extension_series(obj, level, fill_value, sort=sort)
         unstacker = _Unstacker(
             obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
