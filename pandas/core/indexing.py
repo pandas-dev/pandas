@@ -413,7 +413,7 @@ class IndexingMixin:
                              max_speed  shield
         sidewinder          7       8
 
-        Index (same behavior as ``df.reindex``)
+        Index
 
         >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
               max_speed  shield
@@ -1401,7 +1401,7 @@ class _LocIndexer(_LocationIndexer):
                          max_speed  shield
     sidewinder          7       8
 
-    Index (same behavior as ``df.reindex``)
+    Index
 
     >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
           max_speed  shield
