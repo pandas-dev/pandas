@@ -1247,7 +1247,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.ndim == 2:
             # Rank column-by-column using the 1D implementation
             results = [
-                self[:, col_idx]._rank(
+                self[:, col_idx]._rank(  # type: ignore[call-overload]
                     axis=0,
                     method=method,
                     na_option=na_option,
@@ -1631,7 +1631,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if self.ndim == 2:
                 # quantile_with_mask computes along axis=1, so check
                 # if each row (= DataFrame column) is all-NA
-                out_mask = self.isna().all(axis=1)
+                out_mask = np.asarray(self.isna().all(axis=1))
                 if out_mask.ndim == 1:
                     # broadcast to match res shape (ncols, nqs)
                     out_mask = np.broadcast_to(
