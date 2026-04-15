@@ -91,7 +91,7 @@ class TestSliceLocs:
         dti = date_range("2016-10-01", periods=4, freq="D")
         mi = MultiIndex.from_arrays([dti, [1, 2, 3, 4]])
 
-        msg = "Indexing a MultiIndex with a datetime.date object is deprecated"
+        msg = "Slicing a MultiIndex containing a DatetimeIndex level"
         with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
             result = mi.slice_locs(dt.date(2016, 10, 2))
         expected = mi.slice_locs(pd.Timestamp("2016-10-02"))

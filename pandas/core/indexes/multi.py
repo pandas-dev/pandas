@@ -3456,8 +3456,9 @@ class MultiIndex(Index):
                 # DatetimeIndex levels, matching DatetimeIndex behavior
                 lab = Timestamp(lab)
                 warnings.warn(
-                    "Indexing a MultiIndex with a datetime.date object is "
-                    "deprecated. Explicitly cast to Timestamp instead.",
+                    "Slicing a MultiIndex containing a DatetimeIndex level "
+                    "with a datetime.date object is deprecated. "
+                    "Explicitly cast to Timestamp instead.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
