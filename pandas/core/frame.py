@@ -4844,7 +4844,9 @@ class DataFrame(NDFrame, OpsMixin):
                 if self.dtypes.iloc[icol] != np.dtype("object"):
                     self[col_label] = self[col_label].astype(object)
                     icol = self.columns.get_loc(col_label)
-                self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
+                self._mgr.column_setitem(
+                    cast("int", icol), iindex, value, inplace_only=True
+                )
             elif takeable:
                 self.iloc[index, col] = value
             else:
