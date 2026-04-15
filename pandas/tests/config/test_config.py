@@ -514,6 +514,11 @@ def test_option_context_thread_isolation():
     # overrides dict, so A always reads 10.
     import threading
 
+    try:
+        threading.Thread(target=lambda: None).start()
+    except RuntimeError:
+        pytest.skip("threads not supported in this environment")
+
     from pandas._config.config import config
 
     entered_a = threading.Event()  # A has entered its context

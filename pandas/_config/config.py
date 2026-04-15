@@ -320,9 +320,17 @@ def set_option(*args) -> None:
         if opt and opt.validator:
             opt.validator(v)
 
-        # walk the nested dict
-        root, k_root = _get_root(key)
-        root[k_root] = v
+        # If inside an option_context that overrides this key, update the
+        # override dict (which is what get_option reads) instead of the
+        # global config.  The global stays clean so that exiting the context
+        # properly restores the previous value.
+        overrides = _context_overrides.get(None)
+        if overrides is not None and key in overrides:
+            overrides[key] = v
+        else:
+            # walk the nested dict
+            root, k_root = _get_root(key)
+            root[k_root] = v
 
         if opt.cb:
             opt.cb(key)
