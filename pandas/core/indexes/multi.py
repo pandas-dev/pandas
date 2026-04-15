@@ -2043,8 +2043,13 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        return lev._shallow_copy(filled, name=name)
+        if lev._can_hold_na:
+            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
+        else:
+            # Index.take raises for integer dtypes with -1 (NA) codes
+            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+            result = lev._shallow_copy(filled, name=name)
+        return result
 
     def get_level_values(self, level) -> Index:
         """

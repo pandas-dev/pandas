@@ -67,7 +67,7 @@ jobs:
       - name: Check sdist
         run: ls -l --human-readable ./dist
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sdist
           path: ./dist/*
@@ -97,7 +97,7 @@ jobs:
           - [macos-15, macosx_arm64]
           - [windows-2025, win_amd64]
           - [windows-11-arm, win_arm64]
-        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
             python: ["cp312", "3.12"]
@@ -145,7 +145,7 @@ jobs:
       - name: Validate wheel RECORD
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
@@ -213,7 +213,7 @@ jobs:
           find dist -name '*.tar.gz' -exec mv {} upload/ \;
 
       - name: Publish to **PyPI** (Trusted Publishing)
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
           packages-dir: upload
           skip-existing: true
