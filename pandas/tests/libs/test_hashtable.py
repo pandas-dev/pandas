@@ -1,6 +1,7 @@
 from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
+import gc
 import re
 import struct
 import sys
@@ -478,6 +479,7 @@ def test_pyobject_hashtable_map_locations_refcount():
     assert after == before + 1
 
     del table
+    gc.collect()
     final = sys.getrefcount(keys[0])
     assert final == before
 
@@ -494,6 +496,7 @@ def test_pyobject_hashtable_set_item_refcount():
     assert after == before + 1
 
     del table
+    gc.collect()
     assert sys.getrefcount(key) == before
 
 
@@ -512,6 +515,7 @@ def test_pyobject_hashtable_unique_refcount():
     assert after == before + 1
 
     del table
+    gc.collect()
     assert sys.getrefcount(keys[0]) == before
 
 
