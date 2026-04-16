@@ -6136,68 +6136,68 @@ class DataFrame(NDFrame, OpsMixin):
         Drop columns and/or rows of MultiIndex DataFrame
 
         >>> midx = pd.MultiIndex(
-        ...     levels=[["llama", "cow", "falcon"], ["speed", "weight", "length"]],
-        ...     codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]],
+        ...     levels=[["cow", "falcon", "llama"], ["length", "speed", "weight"]],
+        ...     codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [1, 2, 0, 1, 2, 0, 1, 2, 0]],
         ... )
         >>> df = pd.DataFrame(
         ...     index=midx,
         ...     columns=["big", "small"],
         ...     data=[
-        ...         [45, 30],
-        ...         [200, 100],
-        ...         [1.5, 1],
         ...         [30, 20],
         ...         [250, 150],
         ...         [1.5, 0.8],
         ...         [320, 250],
         ...         [1, 0.8],
         ...         [0.3, 0.2],
+        ...         [45, 30],
+        ...         [200, 100],
+        ...         [1.5, 1],
         ...     ],
         ... )
         >>> df
-                        big     small
-        llama   speed   45.0    30.0
-                weight  200.0   100.0
-                length  1.5     1.0
-        cow     speed   30.0    20.0
-                weight  250.0   150.0
-                length  1.5     0.8
-        falcon  speed   320.0   250.0
-                weight  1.0     0.8
-                length  0.3     0.2
+                         big  small
+        cow    speed    30.0   20.0
+               weight  250.0  150.0
+               length    1.5    0.8
+        falcon speed   320.0  250.0
+               weight    1.0    0.8
+               length    0.3    0.2
+        llama  speed    45.0   30.0
+               weight  200.0  100.0
+               length    1.5    1.0
 
         Drop a specific index combination from the MultiIndex
         DataFrame, i.e., drop the combination ``'falcon'`` and
         ``'weight'``, which deletes only the corresponding row
 
         >>> df.drop(index=("falcon", "weight"))
-                        big     small
-        llama   speed   45.0    30.0
-                weight  200.0   100.0
-                length  1.5     1.0
-        cow     speed   30.0    20.0
-                weight  250.0   150.0
-                length  1.5     0.8
-        falcon  speed   320.0   250.0
-                length  0.3     0.2
+                         big  small
+        cow    speed    30.0   20.0
+               weight  250.0  150.0
+               length    1.5    0.8
+        falcon speed   320.0  250.0
+               length    0.3    0.2
+        llama  speed    45.0   30.0
+               weight  200.0  100.0
+               length    1.5    1.0
 
         >>> df.drop(index="cow", columns="small")
-                        big
-        llama   speed   45.0
-                weight  200.0
-                length  1.5
-        falcon  speed   320.0
-                weight  1.0
-                length  0.3
+                         big
+        falcon speed   320.0
+               weight    1.0
+               length    0.3
+        llama  speed    45.0
+               weight  200.0
+               length    1.5
 
         >>> df.drop(index="length", level=1)
-                        big     small
-        llama   speed   45.0    30.0
-                weight  200.0   100.0
-        cow     speed   30.0    20.0
-                weight  250.0   150.0
-        falcon  speed   320.0   250.0
-                weight  1.0     0.8
+                         big  small
+        cow    speed    30.0   20.0
+               weight  250.0  150.0
+        falcon speed   320.0  250.0
+               weight    1.0    0.8
+        llama  speed    45.0   30.0
+               weight  200.0  100.0
         """
         return super().drop(
             labels=labels,

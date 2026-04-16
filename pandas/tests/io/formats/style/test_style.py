@@ -743,13 +743,15 @@ class TestStyler:
     def test_map_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
         # Checks styler.map works with multiindex when codes are provided
+        # GH#44380 levels must be sorted for slicing to work
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
         columns = MultiIndex(
-            levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
+            levels=[["a", "b"], ["#", "%"]], codes=codes, names=["", ""]
         )
         df = DataFrame(
             [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=columns
         )
+        df = df.sort_index(axis=1)
         pct_subset = IndexSlice[:, IndexSlice[:, "%":"%"]]
 
         def color_negative_red(val):
