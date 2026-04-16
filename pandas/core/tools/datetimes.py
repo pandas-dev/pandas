@@ -1322,17 +1322,14 @@ def _assemble_from_unit_mappings(
         + coerce(arg[unit_rev["month"]]) * 100
         + coerce(arg[unit_rev["day"]])
     )
+    # GH#55663 cast to strings up front so to_datetime doesn't need to
+    # infer what to do with numeric data when a format is given.
+    str_values = values.astype("object")
+    notna_mask = values.notna()
+    if notna_mask.any():
+        str_values[notna_mask] = values[notna_mask].astype("int64").astype(str)
     try:
-        with warnings.catch_warnings():
-            # GH#55663 - suppress the int+format deprecation for this
-            # internal call; we construct the int values ourselves from
-            # year/month/day components.
-            warnings.filterwarnings(
-                "ignore",
-                "Passing integer or float",
-                DeprecationWarning,
-            )
-            values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
+        values = to_datetime(str_values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
