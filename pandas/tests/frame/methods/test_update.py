@@ -259,3 +259,22 @@ class TestDataFrameUpdate:
         expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]}, dtype=object)
 
         tm.assert_frame_equal(other, expected)
+    
+    ############################# me
+    def test_update_mixed_index_partial_overlap(self):
+        df1 = DataFrame(
+        {"col": ["a", "b", "c"]},
+        index=[1, 2, 3]
+        )
+
+        df2 = DataFrame(
+        {"col": ["x", "y", "z"]},
+        index=["1", 2, "3"]
+        )
+
+        # Only index 2 should match
+        df1.update(df2)
+
+        assert df1.loc[1, "col"] == "a"
+        assert df1.loc[2, "col"] == "y"
+        assert df1.loc[3, "col"] == "c"
