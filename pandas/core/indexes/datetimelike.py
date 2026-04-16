@@ -682,6 +682,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             result._data._freq = self.freq
         return result
 
+    def putmask(self, mask, value) -> Index:
+        # GH#24555 putmask may modify values out-of-sequence; drop freq
+        result = super().putmask(mask, value)
+        if isinstance(result, type(self)):
+            result._data._freq = None
+        return result
+
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
         """
         Check if we can preserve self.freq in addition or subtraction.

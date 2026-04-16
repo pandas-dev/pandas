@@ -495,10 +495,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         #  are present in this file.
         return super().view(dtype)
 
-    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
-        super()._putmask(mask, value)
-        self._freq = None  # GH#24555
-
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
@@ -1876,7 +1872,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             if self._freq is None:
                 # Set _freq directly to bypass duplicative _validate_frequency
                 # check.
-                self._freq = to_offset(self.inferred_freq)  # type: ignore[assignment]
+                self._freq = to_offset(self.inferred_freq)
         elif freq is lib.no_default:
             # user did not specify anything, keep inferred freq if the original
             #  data had one, otherwise do nothing
