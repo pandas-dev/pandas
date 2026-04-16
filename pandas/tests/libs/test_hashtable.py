@@ -1,17 +1,15 @@
 from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
-import gc
 import re
 import struct
-import sys
 import tracemalloc
+import weakref
 
 import numpy as np
 import pytest
 
 from pandas._libs import hashtable as ht
-from pandas.compat import WASM
 
 import pandas as pd
 import pandas._testing as tm
@@ -463,69 +461,70 @@ class TestPyObjectHashTableWithNans:
             table.get_item(other)
 
 
+class _WeakRefKey:
+    # Hashable key that supports weakref (unlike built-in str).
+    __slots__ = ("__weakref__", "name")
+
+    def __init__(self, name):
+        self.name = name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, _WeakRefKey) and self.name == other.name
+
+
 def test_pyobject_hashtable_map_locations_refcount():
     # GH#21968
     # Verify that map_locations holds proper references to stored keys,
     # preventing use-after-free when the source array is deallocated.
-    keys = [f"key_{i}_xxxxxx" for i in range(10)]
+    keys = [_WeakRefKey(f"key_{i}") for i in range(10)]
     values = np.array(keys, dtype=object)
+    refs = [weakref.ref(k) for k in keys]
 
     table = ht.PyObjectHashTable(len(keys))
-    # Measure baseline and post-insertion refcounts in the same scope
-    # to avoid artifacts from list-comprehension vs for-loop scoping.
-    before = sys.getrefcount(keys[0])
     table.map_locations(values)
-    after = sys.getrefcount(keys[0])
 
-    assert after == before + 1
+    # The table must keep the keys alive after the source list/array are gone.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
 
     del table
-    gc.collect()
-    final = sys.getrefcount(keys[0])
-    assert final == before
+    assert all(ref() is None for ref in refs)
 
 
 def test_pyobject_hashtable_set_item_refcount():
     # GH#21968
-    key = f"unique_key_{'x' * 20}"
+    key = _WeakRefKey("unique_key")
+    ref = weakref.ref(key)
 
     table = ht.PyObjectHashTable(64)
-    before = sys.getrefcount(key)
     table.set_item(key, 0)
-    after = sys.getrefcount(key)
 
-    assert after == before + 1
+    del key
+    assert ref() is not None
 
     del table
-    gc.collect()
-    assert sys.getrefcount(key) == before
+    assert ref() is None
 
 
 def test_pyobject_hashtable_unique_refcount():
     # GH#21968
-    keys = [f"key_{i}_xxxxxx" for i in range(5)]
+    keys = [_WeakRefKey(f"key_{i}") for i in range(5)]
     # Duplicate some keys so _unique exercises the "already seen" path too
     values = np.array(keys + keys[:2], dtype=object)
+    refs = [weakref.ref(k) for k in keys]
 
     table = ht.PyObjectHashTable(len(keys))
-    before = sys.getrefcount(keys[0])
-    # Capture the result explicitly so its lifecycle is managed;
-    # discarding the return value works on CPython but not on Pyodide
-    # where the temporary may not be freed immediately.
     result = table.unique(values)
-    after = sys.getrefcount(keys[0])
 
-    # One extra reference from the table, one from the result array
-    assert after == before + 2
+    # Both the table and the returned uniques array must keep the keys alive.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
 
     del result, table
-    gc.collect()
-    if WASM:
-        # Pyodide may retain one Cython-internal temporary that
-        # gc.collect() cannot reclaim; ensure no unbounded leak.
-        assert sys.getrefcount(keys[0]) <= before + 1
-    else:
-        assert sys.getrefcount(keys[0]) == before
+    assert all(ref() is None for ref in refs)
 
 
 def test_hash_equal_tuple_with_nans():
