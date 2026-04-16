@@ -7010,24 +7010,39 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _arith_method(self, other, op) -> Series:
         if isinstance(other, Series):
-            if (
-                isinstance(self.index, MultiIndex)
-                and isinstance(other.index, MultiIndex)
-                and self.index.nlevels == other.index.nlevels
-                and not (
-                    self.index.equals(other.index)
-                    or self.index.isin(other.index).all()
-                    or other.index.isin(self.index).all()
-                )
+            if isinstance(self.index, MultiIndex) and isinstance(
+                other.index, MultiIndex
             ):
-                # GH#25891
-                warnings.warn(
-                    "The silent alignment on arithmetic operations between 'Series' "
-                    "with non-aligned MultiIndexes is deprecated and "
-                    "will be removed in a future version.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+                self_names = list(self.index.names)
+                other_names = list(other.index.names)
+
+                other_names_left = list(other_names)
+                is_self_in_other = True
+                for name in self_names:
+                    try:
+                        other_names_left.remove(name)
+                    except ValueError:
+                        is_self_in_other = False
+                        break
+
+                self_names_left = list(self_names)
+                is_other_in_self = True
+                for name in other_names:
+                    try:
+                        self_names_left.remove(name)
+                    except ValueError:
+                        is_other_in_self = False
+                        break
+
+                if not (is_self_in_other or is_other_in_self):
+                    # GH#25891
+                    warnings.warn(
+                        "The silent alignment on arithmetic operations between "
+                        "'Series' with non-aligned MultiIndexes is deprecated "
+                        "and will be removed in a future version.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
         self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
