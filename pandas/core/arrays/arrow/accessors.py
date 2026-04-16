@@ -162,11 +162,38 @@ class ListAccessor(ArrowAccessor):
         from pandas import Series
 
         if isinstance(key, int):
-            # TODO: Support negative key but pyarrow does not allow
-            # element index to be an array.
-            # if key < 0:
-            #     key = pc.add(key, pc.list_value_length(self._pa_array))
-            element = pc.list_element(self._pa_array, key)
+            if key < 0:
+                arr = self._pa_array
+                min_length = pc.min(pc.list_value_length(arr)).as_py()
+                if min_length is not None and min_length < abs(key):
+                    raise IndexError(f"list index {key} out of bounds")
+                chunks = arr.chunks if isinstance(arr, pa.ChunkedArray) else [arr]
+                all_results = []
+                for chunk in chunks:
+                    if pa.types.is_fixed_size_list(chunk.type):
+                        list_size = chunk.type.list_size
+                        indices = pc.add(
+                            pc.multiply(
+                                pa.array(range(len(chunk)), type=pa.int32()),
+                                list_size,
+                            ),
+                            list_size + key,
+                        )
+                    else:
+                        chunk_lengths = pc.list_value_length(chunk)
+                        offsets = chunk.offsets.slice(0, len(chunk))
+                        indices = pc.add(offsets, pc.add(chunk_lengths, key))
+                    all_results.append(chunk.values.take(indices))
+                element = (
+                    pa.concat_arrays(all_results)
+                    if all_results
+                    else pa.array([], type=arr.type.value_type)
+                )
+            else:
+                try:
+                    element = pc.list_element(self._pa_array, key)
+                except pa.lib.ArrowInvalid as err:
+                    raise IndexError(f"list index {key} out of bounds") from err
             return Series(
                 element,
                 dtype=ArrowDtype(element.type),
