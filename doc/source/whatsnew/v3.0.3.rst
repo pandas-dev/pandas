@@ -15,6 +15,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed reading of Parquet files with timezone-aware timestamps or localizing of a timeseries with a ``pytz`` timezone when an older version of ``pytz`` was installed (:issue:`64978`)
+- Fixed regression in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` raising ``ZeroDivisionError`` for sub-second ``freq`` (:issue:`64828`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.bug_fixes:
