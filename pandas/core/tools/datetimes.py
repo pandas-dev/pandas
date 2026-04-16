@@ -812,12 +812,19 @@ def to_datetime(
 
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
-        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
-        integer or float number. This will be based off the ``origin``.
-        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
-        the number of milliseconds to the unix epoch start.
-        Only applicable to numeric input; has no effect when ``format``
-        is specified.
+        The unit of the numeric arg (Y, M, W, D, h, m, s, ms, us, ns, ps,
+        fs, as). Specifies the unit of the input values when `arg` is numeric
+        (int or float), interpreted relative to ``origin``.
+        For example, with ``unit='ms'`` and ``origin='unix'``, the input values
+        are treated as millisecond offsets from the Unix epoch (1970-01-01).
+
+        This does not truncate or round datetime-like inputs to the given unit.
+        To change the resolution of the result, use :meth:`Series.dt.as_unit`.
+        To truncate datetime values, use :meth:`Series.dt.floor` or
+        :meth:`Series.dt.normalize`.
+
+        Only applicable to numeric input; has no effect on datetime-like input
+        or when ``format`` is specified.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by ``unit``) since this reference date.

@@ -469,6 +469,50 @@ This is also a change for the :class:`Timestamp` constructor with a string input
 
     See :ref:`timeseries.converting.epoch_inverse` for more details.
 
+.. _whatsnew_300.api_breaking.pytz:
+
+Time zones are now represented by standard library ``zoneinfo`` instead of ``pytz`` by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas now uses :py:mod:`zoneinfo` from the standard library (or ``datetime.timezone``
+for fixed offsets) as the default timezone representation, for example when passing a
+timezone string to various methods. (:issue:`34916`)
+
+*Old behavior:*
+
+.. code-block:: ipython
+
+    In [1]: ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
+    In [2]: ts.tz
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+*New behavior:*
+
+.. ipython:: python
+
+    ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
+    ts.tz
+
+``pytz`` timezone objects are still supported when passed directly, but they will no longer be returned by default
+from string inputs.
+
+Additionally, pandas no longer throws ``pytz`` exceptions for timezone operations leading to ambiguous or nonexistent
+times. These cases will now raise a ``ValueError``.
+
+If you were relying on pandas to use ``pytz`` timezones and accessing the timezone
+through a ``.tz`` attribute, you may now get different timezone objects than before.
+In most cases, this should not cause any issues, but if you were relying on specific
+behavior of ``pytz`` timezones, you may need to update your code or used ``pytz`` explicitly.
+See this `pytz migration guide <https://pytz-deprecation-shim.readthedocs.io/en/latest/migration.html>`__ for more details.
+
+.. warning::
+
+    As a result, ``pytz`` is no longer a required dependency of pandas.
+
+    When installing pandas, ``pytz`` is therefore no longer included in your environment
+    automatically. If you still need the package, install it directly or use the PyPI
+    extra with ``pip install pandas[timezone]``.
+
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
 :func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`
@@ -816,37 +860,6 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
-
-.. _whatsnew_300.api_breaking.pytz:
-
-``pytz`` now an optional dependency
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-pandas now uses :py:mod:`zoneinfo` from the standard library as the default timezone implementation when passing a timezone
-string to various methods. (:issue:`34916`)
-
-*Old behavior:*
-
-.. code-block:: ipython
-
-    In [1]: ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
-    In [2]: ts.tz
-    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
-
-*New behavior:*
-
-.. ipython:: python
-
-    ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
-    ts.tz
-
-``pytz`` timezone objects are still supported when passed directly, but they will no longer be returned by default
-from string inputs. Moreover, ``pytz`` is no longer a required dependency of pandas, but can be installed
-with the pip extra ``pip install pandas[timezone]``.
-
-
-Additionally, pandas no longer throws ``pytz`` exceptions for timezone operations leading to ambiguous or nonexistent
-times. These cases will now raise a ``ValueError``.
 
 .. _whatsnew_300.api_breaking.other:
 

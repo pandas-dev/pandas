@@ -18,6 +18,8 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
+from pandas._libs.tslibs.offsets cimport to_offset
+
 import numpy as np
 
 cimport numpy as cnp
@@ -2190,27 +2192,42 @@ class Timedelta(_Timedelta):
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
-            try:
-                value = np.timedelta64(
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
-                    + seconds, "ns"
-                )
-            except OverflowError as err:
-                # GH#55503
-                msg = (
-                    f"seconds={seconds}, milliseconds={ms}, "
-                    f"microseconds={us}, nanoseconds={ns}"
-                )
-                raise OutOfBoundsTimedelta(msg) from err
+            total_ns = (
+                int(ns)
+                + int(us * 1_000)
+                + int(ms * 1_000_000)
+                + seconds
+            )
 
-            if (
-                "nanoseconds" not in kwargs
-                and cnp.get_timedelta64_value(value) % 1000 == 0
-            ):
-                # If possible, give a microsecond unit
-                value = value.astype("m8[us]")
+            try:
+                value = np.timedelta64(total_ns, "ns")
+            except OverflowError:
+                # GH#46587 - fall back to coarser resolutions
+                if total_ns % 1_000 != 0:
+                    reso_value, reso_abbrev = total_ns, "ns"
+                elif total_ns % 1_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000, "us"
+                elif total_ns % 1_000_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000_000, "ms"
+                else:
+                    reso_value, reso_abbrev = total_ns // 1_000_000_000, "s"
+
+                try:
+                    value = np.timedelta64(reso_value, reso_abbrev)
+                except OverflowError as err:
+                    # GH#55503
+                    msg = (
+                        f"seconds={seconds}, milliseconds={ms}, "
+                        f"microseconds={us}, nanoseconds={ns}"
+                    )
+                    raise OutOfBoundsTimedelta(msg) from err
+            else:
+                if (
+                    "nanoseconds" not in kwargs
+                    and cnp.get_timedelta64_value(value) % 1000 == 0
+                ):
+                    # If possible, give a microsecond unit
+                    value = value.astype("m8[us]")
 
         disallow_ambiguous_unit(unit)
 
@@ -2355,17 +2372,24 @@ class Timedelta(_Timedelta):
     @cython.cdivision(True)
     def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, nanos
             ndarray[int64_t] arr
+        freq_arg = freq
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
 
-        unit = get_unit_for_round(freq, self._creso)
+            # e.g. self.unit == "s" and sub-second freq
+            return self
 
         arr = np.array([self._value], dtype="i8")
         try:
-            result = round_nsint64(arr, mode, unit)[0]
+            result = round_nsint64(arr, mode, nanos)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
-                f"Cannot round {self} to freq={freq} without overflow"
+                f"Cannot round {self} to freq={freq_arg} without overflow"
             ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 

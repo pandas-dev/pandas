@@ -434,7 +434,7 @@ jobs:
           python-version: '3.12'
 
       - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@667eb33f24e84e7f362c16d8d7fff0629a73e15e # v15
+        uses: mymindstorm/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
           version: '3.1.58'
           actions-cache-folder: emsdk-cache

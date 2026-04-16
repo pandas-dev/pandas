@@ -297,21 +297,6 @@ class TestArrowArray(base.ExtensionTests):
         range_test = range(len(ser))
         self._compare_other(ser, range_test, comparison_op, range_test)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action, using_nan_is_na):
-        if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
-            tm.assert_numpy_array_equal(result, expected)
-        else:
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]" and using_nan_is_na:
-                # map roundtrips through objects, which converts to float64
-                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-            else:
-                expected = data_missing.to_numpy()
-            tm.assert_numpy_array_equal(result, expected)
-
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
@@ -1319,6 +1304,40 @@ def test_arrow_string_multiplication_scalar_repeat():
     tm.assert_series_equal(result, expected)
     reflected_result = 2 * binary
     tm.assert_series_equal(reflected_result, expected)
+
+
+def test_arrow_string_addition_mixed_string_types():
+    # https://github.com/pandas-dev/pandas/issues/65220
+    left = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    right = pd.Series(["b", "c"], dtype=ArrowDtype(pa.large_string()))
+
+    result = left + right
+    expected = pd.Series(["ab", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(result, expected)
+
+    reflected_result = right + left
+    expected_reflected = pd.Series(["ba", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(reflected_result, expected_reflected)
+
+
+@pytest.mark.parametrize("string_type", [pa.string(), pa.large_string()])
+def test_arrow_string_addition_mixed_with_binary_raises(string_type):
+    left = pd.Series(["a", None], dtype=ArrowDtype(string_type))
+    right = pd.Series([b"b", b"c"], dtype=ArrowDtype(pa.binary()))
+
+    msg = (
+        f"operation 'add' not supported for dtype '{left.dtype}' "
+        f"with dtype '{right.dtype}'"
+    )
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        left + right
+
+    reflected_msg = (
+        f"operation 'add' not supported for dtype '{right.dtype}' "
+        f"with dtype '{left.dtype}'"
+    )
+    with pytest.raises(TypeError, match=re.escape(reflected_msg)):
+        right + left
 
 
 @pytest.mark.parametrize(
@@ -3678,13 +3697,11 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
     assert result.dtypes.iloc[0] == data_type
 
 
-def test_map_numeric_na_action(using_nan_is_na):
+def test_map_numeric_na_action():
+    # GH#62164 - _cast_pointwise_result retains Arrow dtype
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
-    if not using_nan_is_na:
-        expected = pd.Series([42.0, 42.0, pd.NA], dtype="object")
-    else:
-        expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    expected = pd.Series([42, 42, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 

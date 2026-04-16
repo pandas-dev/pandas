@@ -16,7 +16,7 @@ from warnings import (
     filterwarnings,
 )
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = _global_config["io"]["parquet"]["engine"]
+        engine = config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -542,6 +542,9 @@ def read_parquet(
 ) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
+
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
 
     The function automatically handles reading the data from a parquet file
     and creates a DataFrame with the appropriate structure.
