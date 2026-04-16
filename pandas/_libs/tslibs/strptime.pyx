@@ -473,9 +473,12 @@ def array_strptime(
                     warnings.warn(
                         "Passing integer or float values to to_datetime with "
                         "a format argument is deprecated. In a future version, "
-                        "integers/floats will not be accepted. Convert your "
-                        "data to strings before calling to_datetime, e.g. "
-                        "data.astype(str).",
+                        "integers/floats will be treated the same as on other "
+                        "paths (i.e. interpreted via the 'unit' keyword) "
+                        "instead of being cast to strings and parsed with the "
+                        "given format. Cast numeric values to strings "
+                        "explicitly before calling to_datetime to retain the "
+                        "current behavior.",
                         Pandas4Warning,
                         stacklevel=find_stack_level(),
                     )

@@ -133,16 +133,14 @@ def _handle_date_column(
             # GH11216
             return to_datetime(col, utc=True)
         else:
-            with warnings.catch_warnings():
-                # GH#55663 - suppress the int+format deprecation; the
-                # user explicitly passed a format for this column via
-                # parse_dates and shouldn't see an internal warning.
-                warnings.filterwarnings(
-                    "ignore",
-                    "Passing integer or float",
-                    DeprecationWarning,
-                )
-                return to_datetime(col, errors="coerce", format=format, utc=utc)
+            if hasattr(col, "dtype") and col.dtype.kind in "iuf":
+                # GH#55663 cast to strings up front so to_datetime doesn't
+                # need to infer what to do with numeric data given a format.
+                notna_mask = col.notna()
+                col = col.astype("object")
+                if notna_mask.any():
+                    col[notna_mask] = col[notna_mask].astype("int64").astype(str)
+            return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
 def _parse_date_columns(data_frame: DataFrame, parse_dates) -> DataFrame:
