@@ -1296,37 +1296,48 @@ class Block(PandasObject, libinternals.Block):
 
         else:
             other = casted
-            alt = setitem_datetimelike_compat(values, icond.sum(), other)
-            if alt is not other:
-                if is_list_like(other) and len(other) < len(values):
-                    # call np.where with other to get the appropriate ValueError
-                    np.where(~icond, values, other)
-                    raise NotImplementedError(
-                        "This should not be reached; call to np.where above is "
-                        "expected to raise ValueError. Please report a bug at "
-                        "github.com/pandas-dev/pandas"
-                    )
+            if isinstance(other, tuple) and values.dtype == _dtype_obj:
+                # GH#37681 np.where/np.putmask unpack tuples, so wrap
+                #  in an object array to ensure the tuple is treated as
+                #  a scalar.
+                fill_arr = np.empty(1, dtype=object)
+                fill_arr[0] = other
                 result = values.copy()
-                np.putmask(result, icond, alt)
+                np.putmask(result, icond, fill_arr)
             else:
-                # By the time we get here, we should have all Series/Index
-                #  args extracted to ndarray
-                if (
-                    is_list_like(other)
-                    and not isinstance(other, np.ndarray)
-                    and len(other) == self.shape[-1]
-                ):
-                    # If we don't do this broadcasting here, then expressions.where
-                    #  will broadcast a 1D other to be row-like instead of
-                    #  column-like.
-                    other = np.array(other).reshape(values.shape)
-                    # If lengths don't match (or len(other)==1), we will raise
-                    #  inside expressions.where, see test_series_where
+                alt = setitem_datetimelike_compat(values, icond.sum(), other)
+                if alt is not other:
+                    if is_list_like(other) and len(other) < len(values):
+                        # call np.where with other to get the appropriate
+                        # ValueError
+                        np.where(~icond, values, other)
+                        raise NotImplementedError(
+                            "This should not be reached; call to np.where "
+                            "above is expected to raise ValueError. Please "
+                            "report a bug at github.com/pandas-dev/pandas"
+                        )
+                    result = values.copy()
+                    np.putmask(result, icond, alt)
+                else:
+                    # By the time we get here, we should have all Series/Index
+                    #  args extracted to ndarray
+                    if (
+                        is_list_like(other)
+                        and not isinstance(other, np.ndarray)
+                        and len(other) == self.shape[-1]
+                    ):
+                        # If we don't do this broadcasting here, then
+                        #  expressions.where will broadcast a 1D other to be
+                        #  row-like instead of column-like.
+                        other = np.array(other).reshape(values.shape)
+                        # If lengths don't match (or len(other)==1), we will
+                        #  raise inside expressions.where, see
+                        #  test_series_where
 
-                # Note: expressions.where may upcast.
-                result = expressions.where(~icond, values, other)
-                # The np_can_hold_element check _should_ ensure that we always
-                #  have result.dtype == self.dtype here.
+                    # Note: expressions.where may upcast.
+                    result = expressions.where(~icond, values, other)
+                    # The np_can_hold_element check _should_ ensure that we
+                    #  always have result.dtype == self.dtype here.
 
         if transpose:
             result = result.T

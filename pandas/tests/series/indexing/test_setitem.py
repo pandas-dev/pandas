@@ -854,7 +854,21 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        if is_list_like(val) and len(val) < len(obj):
+            # Index.where delegates to Series.where which does not support
+            # list-like other shorter than the Series
+            msg = "operands could not be broadcast together with shapes"
+            with pytest.raises(ValueError, match=msg):
+                Index(obj).where(~mask, val)
+            return
+
         res = Index(obj).where(~mask, val)
+
+        if val is NA and res.dtype == object:
+            expected = expected.fillna(NA)
+        elif val is None and res.dtype == object:
+            expected = expected.copy()
+            expected[expected.isna()] = None
         expected_idx = Index(expected, dtype=expected.dtype)
         tm.assert_index_equal(res, expected_idx)
 
@@ -862,7 +876,19 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        if is_list_like(val) and len(val) < len(obj):
+            msg = "operands could not be broadcast together with shapes"
+            with pytest.raises(ValueError, match=msg):
+                Index(obj).putmask(mask, val)
+            return
+
         res = Index(obj).putmask(mask, val)
+
+        if val is NA and res.dtype == object:
+            expected = expected.fillna(NA)
+        elif val is None and res.dtype == object:
+            expected = expected.copy()
+            expected[expected.isna()] = None
         tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
