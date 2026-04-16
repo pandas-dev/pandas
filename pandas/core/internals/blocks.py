@@ -1133,6 +1133,18 @@ class Block(PandasObject, libinternals.Block):
                     num_set = len(values[indexer])
                 casted = setitem_datetimelike_compat(values, num_set, casted)
 
+                if (
+                    isinstance(casted, list)
+                    and len(casted) > 0
+                    and isinstance(casted[0], (tuple, list, np.ndarray))
+                ):
+                    # Wrap in a 1D object array to prevent numpy from
+                    # unpacking nested containers (e.g. tuples) during
+                    # boolean-indexed assignment. GH#37629
+                    obj_arr = np.empty(len(casted), dtype=object)
+                    obj_arr[:] = casted
+                    casted = obj_arr
+
             self = self._maybe_copy(inplace=True)
             values = cast("np.ndarray", self.values.T)
             if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:

@@ -2581,7 +2581,11 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif _is_2d_value(value):
+            elif _is_2d_value(value) and not (
+                isinstance(value, list)
+                and isinstance(value[0], tuple)
+                and len(value[0]) != len(ilocs)
+            ):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
