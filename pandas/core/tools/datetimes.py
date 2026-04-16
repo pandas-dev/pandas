@@ -1236,53 +1236,40 @@ def _assemble_from_unit_mappings(
     # (NaN arises when errors="coerce" and a value can't be parsed)
     nan_mask = np.zeros(len(arg), dtype=bool)
 
-    has_fractional = False
-
-    def _to_int64(vals, default):
-        nonlocal has_fractional
+    def _to_int64(vals, default, col_name):
         arr = np.asarray(vals)
-        if is_float_dtype(arr.dtype):
-            isnan = np.isnan(arr)
-            # Non-integer floats (e.g. month=1.5) are invalid
-            fractional = (~isnan) & (arr != np.floor(arr))
-            if fractional.any():
-                has_fractional = True
-            bad = isnan | fractional
-            if bad.any():
-                nan_mask[bad] = True
-                arr = np.where(bad, default, arr)
-            arr = arr.astype(np.int64)
-        else:
-            arr = arr.astype(np.int64, copy=False)
-        return arr
+        if not is_float_dtype(arr.dtype):
+            return arr.astype(np.int64, copy=False)
+        isnan = np.isnan(arr)
+        # Non-integer floats (e.g. month=1.5) are invalid
+        fractional = (~isnan) & (arr != np.floor(arr))
+        if fractional.any() and errors == "raise":
+            raise ValueError(
+                f"cannot assemble the datetimes: column {col_name!r} contains "
+                f"fractional values"
+            )
+        bad = isnan | fractional
+        if bad.any():
+            nan_mask[bad] = True
+            arr = np.where(bad, default, arr)
+        return arr.astype(np.int64)
 
-    year_arr = _to_int64(coerce(arg[unit_rev["year"]]), default=2000)
-    month_arr = _to_int64(coerce(arg[unit_rev["month"]]), default=1)
-    day_arr = _to_int64(coerce(arg[unit_rev["day"]]), default=1)
-
-    def _get_time_field(field):
+    field_spec = [
+        ("year", 2000),
+        ("month", 1),
+        ("day", 1),
+        ("h", 0),
+        ("m", 0),
+        ("s", 0),
+    ]
+    field_arrs = []
+    for field, default in field_spec:
         col_name = unit_rev.get(field)
-        if col_name is not None and col_name in arg:
-            return _to_int64(coerce(arg[col_name]), default=0)
-        return np.zeros(len(arg), dtype=np.int64)
-
-    hour_arr = _get_time_field("h")
-    minute_arr = _get_time_field("m")
-    second_arr = _get_time_field("s")
-
-    if has_fractional and errors == "raise":
-        # Fractional field values (e.g. month=1.5) are invalid; replicate the
-        # error that strptime would give when encountering non-integer parts.
-        # Compute the combined value as the old code path would, so the
-        # unconverted-data error message matches the format="%Y%m%d" path.
-        year_ser = coerce(arg[unit_rev["year"]])
-        month_ser = coerce(arg[unit_rev["month"]])
-        day_ser = coerce(arg[unit_rev["day"]])
-        combined = year_ser * 10000 + month_ser * 100 + day_ser
-        try:
-            to_datetime(combined, format="%Y%m%d", errors=errors, utc=utc)
-        except (TypeError, ValueError) as err:
-            raise ValueError(f"cannot assemble the datetimes: {err}") from err
+        if col_name is not None:
+            arr = _to_int64(coerce(arg[col_name]), default=default, col_name=col_name)
+        else:
+            arr = np.zeros(len(arg), dtype=np.int64)
+        field_arrs.append(arr)
 
     # Construct datetime64[us] directly from fields, avoiding the
     # object-dtype round-trip through format="%Y%m%d" string parsing.
@@ -1290,12 +1277,10 @@ def _assemble_from_unit_mappings(
     # in the Cython function; it writes iNaT for invalid dates when
     # validate=True.
     if nan_mask.any():
-        year_arr = np.where(nan_mask, 2000, year_arr)
-        month_arr = np.where(nan_mask, 1, month_arr)
-        day_arr = np.where(nan_mask, 1, day_arr)
-        hour_arr = np.where(nan_mask, 0, hour_arr)
-        minute_arr = np.where(nan_mask, 0, minute_arr)
-        second_arr = np.where(nan_mask, 0, second_arr)
+        for idx, (_, default) in enumerate(field_spec):
+            field_arrs[idx] = np.where(nan_mask, default, field_arrs[idx])
+
+    year_arr, month_arr, day_arr, hour_arr, minute_arr, second_arr = field_arrs
 
     ordinals, first_invalid = libperiod.period_ordinals_from_fields(
         year_arr,
@@ -1307,17 +1292,16 @@ def _assemble_from_unit_mappings(
         cast("int", FreqGroup.FR_US.value),
         validate=True,
     )
-    if first_invalid >= 0:
-        if errors == "raise":
-            bad_idx = first_invalid
-            bad_val = (
-                f"{year_arr[bad_idx]}{month_arr[bad_idx]:02d}{day_arr[bad_idx]:02d}"
-            )
-            raise ValueError(
-                f'cannot assemble the datetimes: time data "{bad_val}" '
-                f'doesn\'t match format "%Y%m%d".'
-            )
-        # errors="coerce": invalid entries already have iNaT from Cython
+    if first_invalid >= 0 and errors == "raise":
+        bad_val = (
+            f"{year_arr[first_invalid]}{month_arr[first_invalid]:02d}"
+            f"{day_arr[first_invalid]:02d}"
+        )
+        raise ValueError(
+            f'cannot assemble the datetimes: time data "{bad_val}" '
+            f'doesn\'t match format "%Y%m%d".'
+        )
+    # errors="coerce": invalid entries already have iNaT from Cython
     if nan_mask.any():
         ordinals[nan_mask] = iNaT
 
