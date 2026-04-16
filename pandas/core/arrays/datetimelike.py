@@ -52,7 +52,6 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
-from pandas._libs.tslibs.offsets import FY5253Mixin
 from pandas._libs.tslibs.timedeltas import get_unit_for_round
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
@@ -1856,64 +1855,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
-
-    @final
-    def _maybe_pin_freq(self, freq, validate_kwds: dict) -> None:
-        """
-        Constructor helper to pin the appropriate `freq` attribute.  Assumes
-        that self._freq is currently set to any freq inferred from input data.
-        """
-        if freq is None:
-            # user explicitly passed None -> override any inferred_freq
-            self._freq = None
-        elif freq == "infer":
-            # if self._freq is *not* None then we already inferred a freq
-            #  and there is nothing left to do
-            if self._freq is None:
-                # Set _freq directly to bypass duplicative _validate_frequency
-                # check.
-                self._freq = to_offset(self.inferred_freq)
-        elif freq is lib.no_default:
-            # user did not specify anything, keep inferred freq if the original
-            #  data had one, otherwise do nothing
-            pass
-        elif self._freq is None:
-            # We cannot inherit a freq from the data, so we need to validate
-            #  the user-passed freq
-            freq = to_offset(freq)
-            type(self)._validate_frequency(self, freq, **validate_kwds)
-            self._freq = freq
-        else:
-            # Otherwise we just need to check that the user-passed freq
-            #  doesn't conflict with the one we already have.
-            freq = to_offset(freq)
-            if freq != self._freq:
-                # GH#61086 freq may be equivalent but not equal (e.g.
-                # QS-FEB vs QS-MAY), so validate against the actual data.
-                if len(self) == 0:
-                    pass
-                elif len(self) == 1:
-                    if not freq.is_on_offset(self[0]):
-                        raise ValueError(
-                            f"Inferred frequency {self._freq} from passed "
-                            "values does not conform to passed frequency "
-                            f"{freq.freqstr}"
-                        )
-                elif self[0] + freq == self[1]:
-                    # For standard offsets, the step is a deterministic
-                    # function of the date, so agreement on one step proves
-                    # equivalence. For Custom/FY5253 offsets, external
-                    # state (holidays, 52/53-week patterns) could cause
-                    # later steps to diverge, so we validate fully.
-                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
-                        type(self)._validate_frequency(self, freq, **validate_kwds)
-                else:
-                    raise ValueError(
-                        f"Inferred frequency {self._freq} from passed "
-                        "values does not conform to passed frequency "
-                        f"{freq.freqstr}"
-                    )
-            self._freq = freq
 
     @final
     @classmethod

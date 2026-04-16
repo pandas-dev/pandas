@@ -922,13 +922,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if inferred_freq is not None:
             dtarr._freq = inferred_freq
-        dtarr._maybe_pin_freq(freq, {"ambiguous": ambiguous})
 
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
+        subarr._pin_freq(freq, {"ambiguous": ambiguous})
         return subarr
 
     # --------------------------------------------------------------------
