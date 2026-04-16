@@ -2370,18 +2370,10 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     if not is_1d_only_ea_dtype(values.dtype):
         # TODO(EA2D): special case not needed with 2D EAs
         if values.ndim != ndim:
-            if (
-                isinstance(values, ExtensionArray)
-                and values.ndim == 1
-                and ndim == 2
-                and getattr(values.dtype, "_supports_2d", False)
-            ):
-                values = values.reshape(1, -1)
-            else:
-                raise ValueError(
-                    "Wrong number of dimensions. "
-                    f"values.ndim != ndim [{values.ndim} != {ndim}]"
-                )
+            raise ValueError(
+                "Wrong number of dimensions. "
+                f"values.ndim != ndim [{values.ndim} != {ndim}]"
+            )
         if len(placement) != len(values):
             raise ValueError(
                 f"Wrong number of items passed {len(values)}, "
@@ -2437,11 +2429,18 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
 
     if values.ndim < ndim:
         if not is_1d_only_ea_dtype(values.dtype):
-            # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
-            # block.shape is incorrect for "2D" ExtensionArrays
-            # We can't, and don't need to, reshape.
-            values = cast("np.ndarray | DatetimeArray | TimedeltaArray", values)
-            values = values.reshape(1, -1)
+            if isinstance(values, ExtensionArray) and getattr(
+                values.dtype, "_supports_2d", False
+            ):
+                # 2D-capable EA (e.g. ArrowExtensionArray with pa.Table
+                # backing): reshape via its own reshape method.
+                values = values.reshape(1, -1)  # type: ignore[attr-defined]
+            else:
+                # TODO(EA2D): https://github.com/pandas-dev/pandas/issues/23023
+                # block.shape is incorrect for "2D" ExtensionArrays
+                # We can't, and don't need to, reshape.
+                values = cast("np.ndarray | DatetimeArray | TimedeltaArray", values)
+                values = values.reshape(1, -1)
 
     return values
 
