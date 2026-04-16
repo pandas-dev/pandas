@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
+    cache_readonly,
     set_module,
 )
 
