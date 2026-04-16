@@ -17,7 +17,10 @@ import numpy as np
 from pandas._libs.internals import BlockPlacement
 from pandas.errors import Pandas4Warning
 
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import (
+    is_1d_only_ea_dtype,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -138,9 +141,12 @@ def make_block(
         placement = BlockPlacement(placement)
 
     ndim = _maybe_infer_ndim(values, placement, ndim)
-    if isinstance(values.dtype, (PeriodDtype, DatetimeTZDtype)):
-        # GH#41168 ensure we can pass 1D dt64tz values
-        # More generally, any EA dtype that isn't is_1d_only_ea_dtype
+    if isinstance(values.dtype, ExtensionDtype) and not is_1d_only_ea_dtype(
+        values.dtype
+    ):
+        # GH#41168 ensure we can pass 1D dt64tz values, and analogously for
+        # any 2D-capable EA dtype (e.g. ArrowExtensionArray) that pyarrow's
+        # to_pandas may pass in as 1D.
         values = extract_array(values, extract_numpy=True)
         values = ensure_block_shape(values, ndim)
 

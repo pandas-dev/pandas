@@ -1618,6 +1618,10 @@ class ArrowExtensionArray(
             self._pa_array_cache = None
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
+        if self._ndim == 2:
+            return self._apply_per_column(
+                lambda col, idx: col._cmp_method(self._get_col_other(other, idx), op)
+            )
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
