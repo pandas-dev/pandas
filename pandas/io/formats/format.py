@@ -1979,15 +1979,14 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     Use ``pd.set_option("display.precision", N)`` to control decimal
     precision instead:
 
-    >>> pd.set_option("display.precision", 3)
-    >>> pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6])
+    >>> with pd.option_context("display.precision", 3):
+    ...     print(pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6]))
                0
     0  1.000e-09
     1  1.000e-03
     2  1.000e+00
     3  1.000e+03
     4  1.000e+06
-    >>> pd.set_option("display.precision", 6)  # restore default
     """
     warnings.warn(
         "set_eng_float_format is deprecated and will be removed in a future "
