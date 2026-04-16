@@ -17,11 +17,13 @@ class TestEquals:
 
     def test_equals_different_blocks(self):
         # GH#9330
-        df0 = DataFrame({"A": [1.0, 2.0], "B": [1, 2], "C": [3.0, 4.0]})
+        df0 = DataFrame(
+            {"A": [1.0, 2.0], "B": np.array([1, 2], dtype=np.int64), "C": [3.0, 4.0]}
+        )
         # build df1 via sequential __setitem__ so the float columns end up
         # in separate blocks instead of being consolidated upfront
         df1 = DataFrame({"A": [1.0, 2.0]})
-        df1["B"] = np.array([1, 2])
+        df1["B"] = np.array([1, 2], dtype=np.int64)
         df1["C"] = np.array([3.0, 4.0])
         assert len(df0._mgr.blocks) == 2
         assert len(df1._mgr.blocks) == 3
