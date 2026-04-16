@@ -607,7 +607,7 @@ class ArrowExtensionArray(
         # Preserve the original dtype (e.g. StringDtype) instead of
         # the ArrowDtype that __init__ infers.
         if isinstance(dtype, StringDtype):
-            result._dtype = dtype
+            result._dtype = dtype  # type: ignore[assignment]
         return result
 
     @classmethod
@@ -1092,10 +1092,10 @@ class ArrowExtensionArray(
                 if isinstance(col_key, (int, np.integer)) and isinstance(
                     row_key, (int, np.integer)
                 ):
-                    col_idx = col_key
+                    col_idx = int(col_key)
                     if col_idx < 0:
                         col_idx += table.num_columns
-                    row_idx = row_key
+                    row_idx = int(row_key)
                     if row_idx < 0:
                         row_idx += table.num_rows
                     scalar = table.column(col_idx)[row_idx].as_py()
@@ -1168,6 +1168,7 @@ class ArrowExtensionArray(
         # Handle tuple (col_key, row_key) from block layer
         if isinstance(key, tuple) and len(key) == 2:
             col_key, row_key = key
+            col_indices: range | list[int]
             if com.is_null_slice(col_key):
                 col_indices = range(table.num_columns)
             elif isinstance(col_key, (int, np.integer)):
@@ -1839,7 +1840,10 @@ class ArrowExtensionArray(
             col_result = col_self._arith_method(col_other, op)
             results.append(col_result)
         if all(isinstance(res, type(self)) for res in results):
-            cols = {table.column_names[i]: results[i]._pa_array for i in range(ncols)}
+            cols = {
+                table.column_names[i]: results[i]._pa_array  # type: ignore[union-attr]
+                for i in range(ncols)
+            }
             return type(self)._simple_new(pa.table(cols), ndim=2)
         return np.stack(results, axis=0)
 

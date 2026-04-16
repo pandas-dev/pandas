@@ -1983,7 +1983,7 @@ class ExtensionBlock(EABackedBlock):
 
         if not is_1d_only_ea_dtype(self.dtype) and self.values.ndim == 2:
             # 2D EA: delegate to base Block.iget which does values[i]
-            return self.values[i]
+            return self.values[i]  # type: ignore[index]
 
         if isinstance(i, tuple):
             # TODO(EA2D): unnecessary with 2D EAs
@@ -2133,7 +2133,7 @@ class ExtensionBlock(EABackedBlock):
         # GH#42787 in principle this is equivalent to values[..., slicer], but we don't
         # require subclasses of ExtensionArray to support that form (for now).
         if self.values.ndim == 2:
-            new_values = self.values[..., slicer]
+            new_values = self.values[..., slicer]  # type: ignore[call-overload]
         else:
             new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
@@ -2370,10 +2370,18 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     if not is_1d_only_ea_dtype(values.dtype):
         # TODO(EA2D): special case not needed with 2D EAs
         if values.ndim != ndim:
-            raise ValueError(
-                "Wrong number of dimensions. "
-                f"values.ndim != ndim [{values.ndim} != {ndim}]"
-            )
+            if (
+                isinstance(values, ExtensionArray)
+                and values.ndim == 1
+                and ndim == 2
+                and getattr(values.dtype, "_supports_2d", False)
+            ):
+                values = values.reshape(1, -1)
+            else:
+                raise ValueError(
+                    "Wrong number of dimensions. "
+                    f"values.ndim != ndim [{values.ndim} != {ndim}]"
+                )
         if len(placement) != len(values):
             raise ValueError(
                 f"Wrong number of items passed {len(values)}, "
