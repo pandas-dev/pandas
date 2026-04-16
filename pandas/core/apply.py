@@ -73,6 +73,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
+    from pandas.core.arrays import ExtensionArray
     from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
@@ -1463,39 +1464,44 @@ class FrameColumnApply(FrameApply):
 
     @staticmethod
     def _make_ea_row_builder(
-        col_arrays: list, dtype: ExtensionDtype, cls: type
-    ) -> Callable:
+        col_arrays: list, dtype: ExtensionDtype, cls: type[ExtensionArray]
+    ) -> Callable[[int], ExtensionArray]:
         """Build a callable that constructs an EA row for a given row index.
 
         Special-cases BaseMaskedArray and ArrowExtensionArray to avoid
         the overhead of _from_sequence per row.
         """
         from pandas.core.arrays.arrow import ArrowExtensionArray
-        from pandas.core.arrays.masked import BaseMaskedArray
+        from pandas.core.arrays.masked import (
+            BaseMaskedArray,
+            BaseMaskedDtype,
+        )
 
         if all(isinstance(col_arr, BaseMaskedArray) for col_arr in col_arrays):
             col_data = [col_arr._data for col_arr in col_arrays]
             col_masks = [col_arr._mask for col_arr in col_arrays]
-            np_dtype = dtype.numpy_dtype
+            np_dtype = cast("BaseMaskedDtype", dtype).numpy_dtype
+            masked_cls = cast("type[BaseMaskedArray]", cls)
 
-            def build_row(row_idx: int) -> BaseMaskedArray:
+            def build_row(row_idx: int) -> ExtensionArray:
                 data = np.array([cd[row_idx] for cd in col_data], dtype=np_dtype)
                 mask = np.array([cm[row_idx] for cm in col_masks], dtype=np.bool_)
-                return cls._simple_new(data, mask)
+                return masked_cls._simple_new(data, mask)
 
         elif all(isinstance(col_arr, ArrowExtensionArray) for col_arr in col_arrays):
             import pyarrow as pa
 
             pa_arrays = [col_arr._pa_array for col_arr in col_arrays]
             pa_type = pa_arrays[0].type
+            arrow_cls = cast("type[ArrowExtensionArray]", type(col_arrays[0]))
 
-            def build_row(row_idx: int) -> ArrowExtensionArray:
+            def build_row(row_idx: int) -> ExtensionArray:
                 pa_scalars = [pa_col[row_idx] for pa_col in pa_arrays]
-                return type(col_arrays[0])(pa.array(pa_scalars, type=pa_type))
+                return arrow_cls(pa.array(pa_scalars, type=pa_type))
 
         else:
 
-            def build_row(row_idx: int) -> BaseMaskedArray | ArrowExtensionArray:
+            def build_row(row_idx: int) -> ExtensionArray:
                 row_data = np.array(
                     [col_arr[row_idx] for col_arr in col_arrays], dtype=object
                 )
