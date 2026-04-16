@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import (
     Callable,
+    Mapping,
     Sequence,
 )
 from functools import partial
@@ -51,7 +52,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter: TypeAlias = str | Callable
-ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+ExtFormatter: TypeAlias = BaseFormatter | Mapping[Any, BaseFormatter | None]
 CSSPair: TypeAlias = tuple[str, str | float]
 CSSList: TypeAlias = list[CSSPair]
 CSSProperties: TypeAlias = str | CSSList
