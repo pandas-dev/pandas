@@ -23,6 +23,8 @@ Bug fixes
 ~~~~~~~~~
 
 - Fixed :class:`ArrowDtype` string arithmetic for addition between ``string`` and ``large_string`` typed arrays (:issue:`65220`)
+- Fixed a bug in adding missing values (e.g. :attr:`NA`) to a pyarrow-backed string array or Series
+  raising an error instead of propagating the missing value (:issue:`64968`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:

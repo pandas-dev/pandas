@@ -1010,6 +1010,8 @@ class ArrowExtensionArray(
                     other = other.cast(pa.large_string())
 
                 sep = pa.scalar("", type=self_array.type)
+                if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
+                    other = other.cast(self_array.type)
                 try:
                     if op is operator.add:
                         result = pc.binary_join_element_wise(self_array, other, sep)
