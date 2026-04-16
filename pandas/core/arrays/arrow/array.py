@@ -980,14 +980,24 @@ class ArrowExtensionArray(
             or pa.types.is_binary(pa_type)
         ):
             if op in [operator.add, roperator.radd]:
-                sep = pa.scalar("", type=pa_type)
+                # binary_join_element_wise does not support mixed types, but we
+                # want to allow addition between string and large_string types
+                self_array = self._pa_array
+                if pa.types.is_string(pa_type) and pa.types.is_large_string(other.type):
+                    self_array = self._pa_array.cast(pa.large_string())
+                elif pa.types.is_large_string(pa_type) and pa.types.is_string(
+                    other.type
+                ):
+                    other = other.cast(pa.large_string())
+
+                sep = pa.scalar("", type=self_array.type)
                 if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
-                    other = other.cast(pa_type)
+                    other = other.cast(self_array.type)
                 try:
                     if op is operator.add:
-                        result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                        result = pc.binary_join_element_wise(self_array, other, sep)
                     elif op is roperator.radd:
-                        result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                        result = pc.binary_join_element_wise(other, self_array, sep)
                 except pa.ArrowNotImplementedError as err:
                     raise TypeError(
                         self._op_method_error_message(other_original, op)

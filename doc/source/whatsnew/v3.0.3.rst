@@ -24,6 +24,7 @@ Bug fixes
 - Fixed regression in :func:`pandas.bdate_range` where specifying ``end`` on a weekend with ``periods`` returned fewer dates than expected (:issue:`64834`)
 - Fixed regression in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` raising ``ZeroDivisionError`` for sub-second ``freq`` (:issue:`64828`)
 
+- Fixed :class:`ArrowDtype` string arithmetic for addition between ``string`` and ``large_string`` typed arrays (:issue:`65220`)
 - Fixed a bug in adding missing values (e.g. :attr:`NA`) to a pyarrow-backed string array or Series
   raising an error instead of propagating the missing value (:issue:`64968`)
 
