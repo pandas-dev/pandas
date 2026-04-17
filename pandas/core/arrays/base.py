@@ -30,7 +30,10 @@ from pandas._libs import (
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -409,6 +412,10 @@ class ExtensionArray:
         Strict analogue to _from_sequence, allowing only sequences of scalars
         that should be specifically inferred to the given dtype.
 
+        .. deprecated:: 3.1.0
+            Overriding ``_from_scalars`` is deprecated. Override
+            :meth:`_cast_pointwise_result` instead.
+
         Parameters
         ----------
         scalars : sequence
@@ -417,11 +424,6 @@ class ExtensionArray:
         Raises
         ------
         TypeError or ValueError
-
-        Notes
-        -----
-        This is called in a try/except block when casting the result of a
-        pointwise operation in ExtensionArray._cast_pointwise_result.
         """
         try:
             return cls._from_sequence(scalars, dtype=dtype, copy=False)
@@ -448,8 +450,6 @@ class ExtensionArray:
 
         If converting to your own ExtensionArray is not possible, this method
         falls back to returning an array with the default type inference.
-        If you only need to cast to `self.dtype`, it is recommended to override
-        `_from_scalars` instead of this method.
 
         Parameters
         ----------
@@ -459,12 +459,39 @@ class ExtensionArray:
         -------
         ExtensionArray or ndarray
         """
-        try:
-            return type(self)._from_scalars(values, dtype=self.dtype)
-        except (ValueError, TypeError):
-            if not (isinstance(values, np.ndarray) and values.dtype == object):
-                values = construct_1d_object_array_from_listlike(values)
-            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        overrides_from_scalars = any(
+            "_from_scalars" in klass.__dict__
+            for klass in type(self).__mro__
+            if klass is not ExtensionArray
+        )
+        if overrides_from_scalars:
+            warnings.warn(
+                "Overriding ExtensionArray._from_scalars is deprecated; "
+                "override ExtensionArray._cast_pointwise_result instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            try:
+                return type(self)._from_scalars(values, dtype=self.dtype)
+            except (ValueError, TypeError):
+                pass
+        else:
+            # Only round-trip through _from_sequence when every element is
+            #  already a genuine dtype scalar (or missing) — otherwise
+            #  _from_sequence's permissive inference can silently coerce,
+            #  e.g. _from_sequence(ints, dtype=my_dt64_dtype).
+            scalar_type = self.dtype.type
+            if all(isna(val) or isinstance(val, scalar_type) for val in values):
+                try:
+                    return type(self)._from_sequence(
+                        values, dtype=self.dtype, copy=False
+                    )
+                except (ValueError, TypeError):
+                    pass
+
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence

@@ -432,3 +432,40 @@ def test_array_copy_on_write():
         {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
     )
     tm.assert_equal(df2.values, expected.values)
+
+
+def test_from_scalars_override_deprecated():
+    # GH#XXXXX overriding _from_scalars should emit Pandas4Warning when the
+    #  base _cast_pointwise_result routes through it.
+    class OverridesFromScalars(DecimalArray):
+        @classmethod
+        def _from_scalars(cls, scalars, *, dtype):
+            return cls._from_sequence(scalars, dtype=dtype)
+
+    arr = OverridesFromScalars(
+        [decimal.Decimal("1"), decimal.Decimal("2"), decimal.Decimal("3")]
+    )
+    values = [decimal.Decimal("4"), decimal.Decimal("5"), decimal.Decimal("6")]
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Overriding ExtensionArray._from_scalars is deprecated"
+    ):
+        result = arr._cast_pointwise_result(values)
+    assert isinstance(result, OverridesFromScalars)
+
+
+def test_cast_pointwise_result_no_warn_without_override(data):
+    # Plain DecimalArray uses the base _cast_pointwise_result without
+    #  overriding _from_scalars — no deprecation warning should fire.
+    values = [decimal.Decimal("1"), decimal.Decimal("2")]
+    with tm.assert_produces_warning(None):
+        result = data._cast_pointwise_result(values)
+    assert isinstance(result, DecimalArray)
+
+
+def test_cast_pointwise_result_scalar_guard(data):
+    # GH#XXXXX the base _cast_pointwise_result only round-trips through
+    #  _from_sequence when every value is a genuine dtype scalar. Passing
+    #  non-Decimal values (here ints) should fall through to the object
+    #  inference path rather than silently coercing via _from_sequence.
+    result = data._cast_pointwise_result([1, 2, 3])
+    assert not isinstance(result, DecimalArray)
