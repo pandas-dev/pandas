@@ -3138,7 +3138,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/matplotlib-3.9.3-py311h38be061_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/matplotlib-base-3.9.3-py311h2b939e6_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/meson-python-0.19.0-pyh7e86bf3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/mmh3-4.1.0-py311hb755f60_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mmhash3-3.0.1-py313h94de1ce_3.conda
@@ -3501,7 +3501,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/matplotlib-3.9.3-py311hfecb2dc_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/matplotlib-base-3.9.3-py311h0385ec1_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/meson-python-0.19.0-pyh7e86bf3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/mmh3-4.1.0-py311h8715677_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mmhash3-3.0.1-py313h94de1ce_3.conda
@@ -3842,7 +3842,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/matplotlib-3.9.3-py311h6eed73b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/matplotlib-base-3.9.3-py311h19a4563_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/meson-python-0.19.0-pyh7e86bf3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/mmh3-4.1.0-py311hdd0406b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mmhash3-3.0.1-py313h94de1ce_3.conda
@@ -4145,7 +4145,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/matplotlib-3.9.3-py311ha1ab1f8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/matplotlib-base-3.9.3-py311h031da69_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/meson-python-0.19.0-pyh7e86bf3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/mmh3-4.1.0-py311h92babd0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mmhash3-3.0.1-py313h94de1ce_3.conda
@@ -4428,7 +4428,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/matplotlib-3.9.3-py311h1ea47a8_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/matplotlib-base-3.9.3-py311h8f1b1e4_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mdurl-0.1.2-pyhd8ed1ab_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.2.3-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.5.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/meson-python-0.19.0-pyh7e86bf3_2.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/mmh3-4.1.0-py311h12c1d0e_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/mmhash3-3.0.1-py313h94de1ce_3.conda
@@ -36488,17 +36488,17 @@ packages:
   - pkg:pypi/meson?source=hash-mapping
   size: 762880
   timestamp: 1773600816980
-- conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.2.3-pyhd8ed1ab_0.conda
-  sha256: 8781b90ae65e1e982a7a28850567630d3f5b6b9c4a88cd9aa3f8a7a4971991e2
-  md5: 884e718cb42b3dbdf07f0ebea32ccacd
+- conda: https://conda.anaconda.org/conda-forge/noarch/meson-1.5.0-pyhd8ed1ab_0.conda
+  sha256: 9ca86c9ecedfcc727a9bb1f66787e26e230f57f0b49e24b673fa34e3a8376f34
+  md5: 9d971c5bf99aed063664d6650e7e7ed8
   depends:
   - ninja >=1.8.2
-  - python >=3.5.2
+  - python >=3.7
   - setuptools
   license: Apache-2.0
   license_family: APACHE
-  size: 618539
-  timestamp: 1697868378316
+  size: 648522
+  timestamp: 1720651658395
 - conda: https://conda.anaconda.org/conda-forge/noarch/meson-python-0.19.0-pyh7e86bf3_2.conda
   sha256: f608b7ee5ef089c31a80ea3b5dd42765f6792438a5c23efaad8419ad4e47b96d
   md5: 369afcc2d4965e7a6a075ab82e2a26b8
