@@ -435,7 +435,7 @@ def test_array_copy_on_write():
 
 
 def test_from_scalars_override_deprecated():
-    # GH#XXXXX overriding _from_scalars should emit Pandas4Warning when the
+    # GH#65270 overriding _from_scalars should emit Pandas4Warning when the
     #  base _cast_pointwise_result routes through it.
     class OverridesFromScalars(DecimalArray):
         @classmethod
@@ -463,7 +463,7 @@ def test_cast_pointwise_result_no_warn_without_override(data):
 
 
 def test_cast_pointwise_result_scalar_guard(data):
-    # GH#XXXXX the base _cast_pointwise_result only round-trips through
+    # GH#65270 the base _cast_pointwise_result only round-trips through
     #  _from_sequence when every value is a genuine dtype scalar. Passing
     #  non-Decimal values (here ints) should fall through to the object
     #  inference path rather than silently coercing via _from_sequence.
