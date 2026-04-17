@@ -100,7 +100,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCCategorical,
-    ABCIndex,
     ABCMultiIndex,
 )
 from pandas.core.dtypes.missing import (
@@ -761,10 +760,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
+
         result = map_array(self, mapper, na_action=na_action)
-        if isinstance(result, ABCMultiIndex):
+        if isinstance(result, MultiIndex):
             return result.to_numpy()
-        if isinstance(result, ABCIndex):
+        if isinstance(result, Index):
             result = result._data
         return self._cast_pointwise_result(result)
 
