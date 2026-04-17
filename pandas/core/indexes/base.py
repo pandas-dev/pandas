@@ -1217,7 +1217,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+            -1 are filled with ``fill_value``. If the Index's dtype cannot hold
+            ``fill_value``, the result is promoted (e.g. an integer Index is
+            cast to float or object).
         **kwargs
             Required for compatibility with numpy.
 
