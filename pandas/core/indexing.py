@@ -944,9 +944,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         # Capture dtype info cheaply between potential column expansion
-        # (above) and potential row expansion (below).  This replaces the
-        # much more expensive ``self.obj[:].iloc[:0].copy()`` that had to
-        # slice and copy every block.
+        # (above) and potential row expansion (below).
         if self.obj.ndim == 1:
             orig_dtype_info = self.obj.dtype
             orig_columns = None

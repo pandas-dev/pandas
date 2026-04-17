@@ -1140,7 +1140,6 @@ def sequence_to_td64ns(
                 result[mask] = iNaT
                 return result, inferred_freq
 
-        # If we have float32, cast to float64
         data = data.astype(np.float64, copy=False)
         try:
             data = cast_from_unit_vectorized(data, unit or "ns")
