@@ -1105,7 +1105,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
         res_values = result.view(f"M8[{self.unit}]")
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=None)
+        return DatetimeArray._simple_new(res_values, dtype=dtype)
 
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
@@ -1165,7 +1165,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
-        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=None)
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1227,12 +1227,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
-        return type(self)._simple_new(
-            res_values,
-            dtype=self.dtype,
-            freq=None,  # type: ignore[call-arg]
-        )
+        return type(self)._simple_new(res_values, dtype=self.dtype)
 
     @final
     def _add_nat(self) -> Self:
@@ -1249,12 +1244,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         result = np.empty(self.shape, dtype=np.int64)
         result.fill(iNaT)
         result = result.view(self._ndarray.dtype)  # preserve reso
-        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
-        return type(self)._simple_new(
-            result,
-            dtype=self.dtype,
-            freq=None,  # type: ignore[call-arg]
-        )
+        return type(self)._simple_new(result, dtype=self.dtype)
 
     @final
     def _sub_nat(self) -> np.ndarray:
