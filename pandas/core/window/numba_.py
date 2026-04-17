@@ -242,7 +242,10 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nogil=True, parallel=True)
+    # parallel=False is load-bearing: this is invoked inside an outer
+    # parallel=True jit, and nested parallel launches crash numba's
+    # non-threadsafe workqueue threading layer (GH#40454)
+    @numba.jit(nogil=True, parallel=False)
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
         for i in numba.prange(table.shape[1]):
