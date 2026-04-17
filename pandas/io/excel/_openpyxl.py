@@ -480,130 +480,171 @@ class OpenpyxlWriter(ExcelWriter):
             wks = self.book.create_sheet()
             wks.title = sheet_name
 
-        write_only = self.book.write_only
+        if self.book.write_only:
+            self._write_cells_write_only(
+                cells,
+                wks,
+                startrow,
+                startcol,
+                freeze_panes,
+                autofilter_range,
+                _style_cache,
+            )
+        else:
+            self._write_cells_normal(
+                cells,
+                wks,
+                startrow,
+                startcol,
+                freeze_panes,
+                autofilter_range,
+                _style_cache,
+            )
+
+    def _write_cells_write_only(
+        self,
+        cells,
+        wks,
+        startrow: int,
+        startcol: int,
+        freeze_panes: tuple[int, int] | None,
+        autofilter_range: str | None,
+        _style_cache: dict[str, dict[str, Serialisable]],
+    ) -> None:
+        # Write-only mode: buffer cells by row then append for memory
+        # efficiency (GH#41681). Cells may arrive column-by-column rather
+        # than row-by-row, so we must buffer all cells before writing.
+        from openpyxl.cell.cell import Cell
+        from openpyxl.utils import get_column_letter
 
         if validate_freeze_panes(freeze_panes):
             freeze_panes = cast("tuple[int, int]", freeze_panes)
-            if write_only:
-                from openpyxl.utils import get_column_letter
+            col_letter = get_column_letter(freeze_panes[1] + 1)
+            wks.freeze_panes = f"{col_letter}{freeze_panes[0] + 1}"
 
-                col_letter = get_column_letter(freeze_panes[1] + 1)
-                wks.freeze_panes = f"{col_letter}{freeze_panes[0] + 1}"
-            else:
-                wks.freeze_panes = wks.cell(
-                    row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
+        # Buffer all cells indexed by (row, col)
+        rows: dict[int, dict[int, Cell]] = {}
+        merge_ranges: list[str] = []
+        max_col = -1
+
+        for cell in cells:
+            row_idx = startrow + cell.row
+            col_idx = startcol + cell.col
+            if col_idx > max_col:
+                max_col = col_idx
+
+            xcell = Cell(wks, row=1, column=1)
+            xcell.value, fmt = self._value_with_fmt(cell.val)
+            if fmt:
+                xcell.number_format = fmt
+
+            style_kwargs: dict[str, Serialisable] | None = {}
+            if cell.style:
+                key = str(cell.style)
+                style_kwargs = _style_cache.get(key)
+                if style_kwargs is None:
+                    style_kwargs = self._convert_to_style_kwargs(cell.style)
+                    _style_cache[key] = style_kwargs
+
+            if style_kwargs:
+                for attr, value in style_kwargs.items():
+                    setattr(xcell, attr, value)
+
+            rows.setdefault(row_idx, {})[col_idx] = xcell
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                # Build cell range string like "A1:B2" for merged_cells.add()
+                # since WriteOnlyWorksheet does not have merge_cells()
+                start_col_letter = get_column_letter(startcol + cell.col + 1)
+                end_col_letter = get_column_letter(startcol + cell.mergeend + 1)
+                merge_range = (
+                    f"{start_col_letter}{startrow + cell.row + 1}:"
+                    f"{end_col_letter}{startrow + cell.mergestart + 1}"
+                )
+                merge_ranges.append(merge_range)
+
+        # Write rows in order, filling gaps with empty rows
+        if rows:
+            max_row = max(rows)
+            for row_idx in range(max_row + 1):
+                if row_idx not in rows:
+                    wks.append([])
+                    continue
+                row_data = rows[row_idx]
+                row_cells: list[Cell | None] = [None] * (max_col + 1)
+                for col_idx, xcell in row_data.items():
+                    row_cells[col_idx] = xcell
+                wks.append(row_cells)
+
+        # Apply merge ranges via merged_cells.add() (WriteOnlyWorksheet
+        # does not support the merge_cells() method)
+        for merge_range in merge_ranges:
+            wks.merged_cells.add(merge_range)
+
+        if autofilter_range:
+            wks.auto_filter.ref = autofilter_range
+
+    def _write_cells_normal(
+        self,
+        cells,
+        wks,
+        startrow: int,
+        startcol: int,
+        freeze_panes: tuple[int, int] | None,
+        autofilter_range: str | None,
+        _style_cache: dict[str, dict[str, Serialisable]],
+    ) -> None:
+        if validate_freeze_panes(freeze_panes):
+            freeze_panes = cast("tuple[int, int]", freeze_panes)
+            wks.freeze_panes = wks.cell(
+                row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
+            )
+
+        for cell in cells:
+            xcell = wks.cell(
+                row=startrow + cell.row + 1, column=startcol + cell.col + 1
+            )
+            xcell.value, fmt = self._value_with_fmt(cell.val)
+            if fmt:
+                xcell.number_format = fmt
+
+            style_kwargs: dict[str, Serialisable] | None = {}
+            if cell.style:
+                key = str(cell.style)
+                style_kwargs = _style_cache.get(key)
+                if style_kwargs is None:
+                    style_kwargs = self._convert_to_style_kwargs(cell.style)
+                    _style_cache[key] = style_kwargs
+
+            if style_kwargs:
+                for attr, value in style_kwargs.items():
+                    setattr(xcell, attr, value)
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                wks.merge_cells(
+                    start_row=startrow + cell.row + 1,
+                    start_column=startcol + cell.col + 1,
+                    end_column=startcol + cell.mergeend + 1,
+                    end_row=startrow + cell.mergestart + 1,
                 )
 
-        if write_only:
-            # Write-only mode: buffer cells by row then append for memory
-            # efficiency (GH#41681). Cells may arrive column-by-column
-            # rather than row-by-row, so we must buffer all cells before
-            # writing.
-            from openpyxl.cell.cell import Cell
-            from openpyxl.utils import get_column_letter
-
-            rows: dict[int, dict[int, Cell]] = {}
-            merge_ranges: list[str] = []
-            max_col = -1
-
-            for cell in cells:
-                row_idx = startrow + cell.row
-                col_idx = startcol + cell.col
-                if col_idx > max_col:
-                    max_col = col_idx
-
-                xcell = Cell(wks, row=1, column=1)
-                xcell.value, fmt = self._value_with_fmt(cell.val)
-                if fmt:
-                    xcell.number_format = fmt
-
-                style_kwargs: dict[str, Serialisable] | None = {}
-                if cell.style:
-                    key = str(cell.style)
-                    style_kwargs = _style_cache.get(key)
-                    if style_kwargs is None:
-                        style_kwargs = self._convert_to_style_kwargs(cell.style)
-                        _style_cache[key] = style_kwargs
-
+                # When cells are merged only the top-left cell is preserved
+                # The behaviour of the other cells in a merged range is
+                # undefined
                 if style_kwargs:
-                    for attr, value in style_kwargs.items():
-                        setattr(xcell, attr, value)
+                    first_row = startrow + cell.row + 1
+                    last_row = startrow + cell.mergestart + 1
+                    first_col = startcol + cell.col + 1
+                    last_col = startcol + cell.mergeend + 1
 
-                rows.setdefault(row_idx, {})[col_idx] = xcell
-
-                if cell.mergestart is not None and cell.mergeend is not None:
-                    start_col_letter = get_column_letter(startcol + cell.col + 1)
-                    end_col_letter = get_column_letter(startcol + cell.mergeend + 1)
-                    merge_range = (
-                        f"{start_col_letter}{startrow + cell.row + 1}:"
-                        f"{end_col_letter}{startrow + cell.mergestart + 1}"
-                    )
-                    merge_ranges.append(merge_range)
-
-            # Write rows in order, filling gaps with empty rows
-            if rows:
-                max_row = max(rows)
-                for row_idx in range(max_row + 1):
-                    if row_idx not in rows:
-                        wks.append([])
-                        continue
-                    row_data = rows[row_idx]
-                    row_cells: list[Cell | None] = [None] * (max_col + 1)
-                    for col_idx, xcell in row_data.items():
-                        row_cells[col_idx] = xcell
-                    wks.append(row_cells)
-
-            # Apply merge ranges via merged_cells.add()
-            # (WriteOnlyWorksheet does not support merge_cells())
-            for merge_range in merge_ranges:
-                wks.merged_cells.add(merge_range)
-        else:
-            for cell in cells:
-                xcell = wks.cell(
-                    row=startrow + cell.row + 1,
-                    column=startcol + cell.col + 1,
-                )
-                xcell.value, fmt = self._value_with_fmt(cell.val)
-                if fmt:
-                    xcell.number_format = fmt
-
-                style_kwargs = {}
-                if cell.style:
-                    key = str(cell.style)
-                    style_kwargs = _style_cache.get(key)
-                    if style_kwargs is None:
-                        style_kwargs = self._convert_to_style_kwargs(cell.style)
-                        _style_cache[key] = style_kwargs
-
-                if style_kwargs:
-                    for attr, value in style_kwargs.items():
-                        setattr(xcell, attr, value)
-
-                if cell.mergestart is not None and cell.mergeend is not None:
-                    wks.merge_cells(
-                        start_row=startrow + cell.row + 1,
-                        start_column=startcol + cell.col + 1,
-                        end_column=startcol + cell.mergeend + 1,
-                        end_row=startrow + cell.mergestart + 1,
-                    )
-
-                    # When cells are merged only the top-left cell is
-                    # preserved. The behaviour of the other cells in a
-                    # merged range is undefined.
-                    if style_kwargs:
-                        first_row = startrow + cell.row + 1
-                        last_row = startrow + cell.mergestart + 1
-                        first_col = startcol + cell.col + 1
-                        last_col = startcol + cell.mergeend + 1
-
-                        for row in range(first_row, last_row + 1):
-                            for col in range(first_col, last_col + 1):
-                                if row == first_row and col == first_col:
-                                    # Ignore first cell. Already handled.
-                                    continue
-                                xcell = wks.cell(column=col, row=row)
-                                for attr, value in style_kwargs.items():
-                                    setattr(xcell, attr, value)
+                    for row in range(first_row, last_row + 1):
+                        for col in range(first_col, last_col + 1):
+                            if row == first_row and col == first_col:
+                                # Ignore first cell. It is already handled.
+                                continue
+                            xcell = wks.cell(column=col, row=row)
+                            for attr, value in style_kwargs.items():
+                                setattr(xcell, attr, value)
 
         if autofilter_range:
             wks.auto_filter.ref = autofilter_range
