@@ -18,6 +18,7 @@ from pandas._config import option_context
 from pandas._libs import lib
 from pandas._libs._ujson import ujson_loads
 from pandas._libs.tslibs import timezones
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
@@ -230,6 +231,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     raise ValueError(f"Unsupported or invalid field type: {typ}")
 
 
+@set_module("pandas.io.json")
 def build_table_schema(
     data: DataFrame | Series,
     index: bool = True,

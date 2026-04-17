@@ -1620,6 +1620,7 @@ def read_fwf(
     )
 
 
+@set_module("pandas.io.parsers")
 class TextFileReader(abc.Iterator):
     """
 
@@ -2036,6 +2037,7 @@ class TextFileReader(abc.Iterator):
         self.close()
 
 
+@set_module("pandas.io.parsers")
 def TextParser(*args, **kwds) -> TextFileReader:
     """
     Converts lists of lists/tuples into DataFrames with proper type inference

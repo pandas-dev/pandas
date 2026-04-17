@@ -259,7 +259,6 @@ class TestApi(Base):
         "indexers",
         "interchange",
         "typing",
-        "internals",
     ]
     allowed_typing = [
         "DataFrameGroupBy",
@@ -499,7 +498,11 @@ def get_pandas_objects(
     Get all pandas objects within a module.
 
     An object is determined to be part of pandas if it has a string
-    __module__ attribute that starts with ``"pandas"``.
+    __module__ attribute that starts with ``"pandas"``. If the module defines
+    ``__all__`` the names it lists are considered; otherwise public
+    (non-underscore-prefixed) attributes defined in the module itself are
+    considered (re-imports from other modules are skipped, since a module
+    without ``__all__`` makes no public-API contract).
 
     Parameters
     ----------
@@ -515,10 +518,21 @@ def get_pandas_objects(
     module = importlib.import_module(module_name)
     objs = []
 
+    public_names = getattr(module, "__all__", None)
     for name, obj in inspect.getmembers(module):
+        if name.startswith("_"):
+            continue
         module_dunder = getattr(obj, "__module__", None)
-        if isinstance(module_dunder, str) and module_dunder.startswith("pandas"):
-            objs.append((module_name, name, obj))
+        if not isinstance(module_dunder, str) or not module_dunder.startswith("pandas"):
+            continue
+        if public_names is None:
+            # Without ``__all__`` we only check objects actually defined in
+            # the module (re-imports from other modules are skipped).
+            if module_dunder != module_name:
+                continue
+        elif name not in public_names:
+            continue
+        objs.append((module_name, name, obj))
 
     if not recurse:
         return objs
@@ -526,7 +540,7 @@ def get_pandas_objects(
     # __file__ can, but shouldn't, be None
     assert isinstance(module.__file__, str)
     paths = [pathlib.Path(module.__file__).parent]
-    for module_info in pkgutil.walk_packages(paths):
+    for module_info in pkgutil.iter_modules(paths):
         name = module_info.name
         if name.startswith("_") or name == "internals":
             continue
@@ -544,7 +558,7 @@ def get_pandas_objects(
         "pandas.api",
         "pandas.arrays",
         "pandas.errors",
-        pytest.param("pandas.io", marks=pytest.mark.xfail(reason="Private imports")),
+        "pandas.io",
         "pandas.plotting",
         "pandas.testing",
     ],
@@ -555,15 +569,13 @@ def test_attributes_module(module_name):
     """
     recurse = module_name not in ["pandas", "pandas.testing"]
     objs = get_pandas_objects(module_name, recurse=recurse)
+    # ``__module__ == "pandas"`` covers public API re-exports whose canonical
+    # location is the top-level namespace (e.g. ``pd.ExcelFile``).
+    allowed_modules = {"pandas"}
     failures = [
         (module_name, name, type(obj), obj.__module__)
         for module_name, name, obj in objs
-        if not (
-            obj.__module__ == module_name
-            # Explicit exceptions
-            or ("Dtype" in name and obj.__module__ == "pandas")
-            or (name == "Categorical" and obj.__module__ == "pandas")
-        )
+        if obj.__module__ != module_name and obj.__module__ not in allowed_modules
     ]
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
 

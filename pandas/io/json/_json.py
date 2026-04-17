@@ -136,6 +136,7 @@ def to_json(
 ) -> str: ...
 
 
+@set_module("pandas.io.json")
 def to_json(
     path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None,
     obj: NDFrame,
