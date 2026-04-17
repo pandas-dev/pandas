@@ -260,7 +260,6 @@ class TestDataFrameUpdate:
 
         tm.assert_frame_equal(other, expected)
     
-    ############################# me
     def test_update_mixed_index_partial_overlap(self):
         df1 = DataFrame(
         {"col": ["a", "b", "c"]},
