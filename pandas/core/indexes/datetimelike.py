@@ -917,16 +917,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     def _with_freq(self, freq):
         # GH#29843
-        if freq is None or (len(self) == 0 and isinstance(freq, BaseOffset)):
-            # None is always valid. For offsets on empty index the array's
-            # _with_freq below performs the m-dtype Tick validation.
+        if freq is None:
             pass
-        else:
-            # As an internal method, we can ensure this assertion always holds
-            assert freq == "infer"
+        elif isinstance(freq, BaseOffset):
+            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+        elif freq == "infer":
             freq = to_offset(self.inferred_freq)
+        else:
+            raise ValueError(f"Invalid frequency: {freq!r}")
 
-        arr = self._data._with_freq(freq)
+        arr = self._data.view()
+        arr._freq = freq
         return type(self)._simple_new(arr, name=self._name)
 
     @property
