@@ -41,6 +41,7 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
+    construct_1d_object_array_from_listlike,
     convert_dtypes,
     find_result_type,
     np_can_hold_element,
@@ -1138,12 +1139,9 @@ class Block(PandasObject, libinternals.Block):
                     and len(casted) > 0
                     and isinstance(casted[0], (tuple, list, np.ndarray))
                 ):
-                    # Wrap in a 1D object array to prevent numpy from
-                    # unpacking nested containers (e.g. tuples) during
-                    # boolean-indexed assignment. GH#37629
-                    obj_arr = np.empty(len(casted), dtype=object)
-                    obj_arr[:] = casted
-                    casted = obj_arr
+                    # Prevent numpy from unpacking nested containers
+                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
             values = cast("np.ndarray", self.values.T)
