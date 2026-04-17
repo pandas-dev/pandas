@@ -992,7 +992,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # TODO: other cases?
             return dta
         else:
-            dta = dta._with_freq("infer")
+            dta._freq = to_offset(dta.inferred_freq)
             if freq is not None:
                 freq = to_offset(freq)
                 if (

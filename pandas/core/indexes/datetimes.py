@@ -496,7 +496,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
         arr = self._data.normalize()
-        arr = arr._with_freq("infer")
+        arr._freq = to_offset(arr.inferred_freq)
         return type(self)._simple_new(arr, name=self.name)
 
     def tz_convert(self, tz) -> Self:
