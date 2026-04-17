@@ -802,7 +802,7 @@ class ExcelFormatter:
                 ):
                     values = levels.take(
                         level_codes,
-                        allow_fill=levels._can_hold_na,
+                        allow_fill=True,
                         fill_value=levels._na_value,
                     )
                     # GH#60099

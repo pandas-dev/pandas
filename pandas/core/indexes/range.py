@@ -1540,8 +1540,11 @@ class RangeIndex(Index):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
 
-        # raise an exception if allow_fill is True and fill_value is not None
-        self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill and fill_value is not None:
+            # RangeIndex can't hold NA, fall back to Index.take
+            return super().take(
+                indices, axis=axis, allow_fill=True, fill_value=fill_value
+            )
 
         if len(indices) == 0:
             return type(self)(_empty_range, name=self.name)

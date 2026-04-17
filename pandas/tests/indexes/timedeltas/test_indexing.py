@@ -263,12 +263,12 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=NaT)
         expected = TimedeltaIndex(["2 days", "1 days", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
         tm.assert_index_equal(result, expected)
 

@@ -2044,12 +2044,8 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        if lev._can_hold_na:
-            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
-        else:
-            # Index.take raises for integer dtypes with -1 (NA) codes
-            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-            result = lev._shallow_copy(filled, name=name)
+        result = lev.take(level_codes, allow_fill=True, fill_value=lev._na_value)
+        result._name = name
         return result
 
     def get_level_values(self, level) -> Index:
@@ -2641,13 +2637,17 @@ class MultiIndex(Index):
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
-        # only fill if we are passing a non-None fill_value
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill and fill_value is not None:
+            if (indices < -1).any():
+                raise ValueError(
+                    "When allow_fill=True and fill_value is not None, "
+                    "all indices must be >= -1"
+                )
+        else:
+            allow_fill = False
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
-
-        na_value = -1
 
         taken = [lab.take(indices) for lab in self.codes]
         if allow_fill:
@@ -2656,7 +2656,7 @@ class MultiIndex(Index):
                 masked = []
                 for new_label in taken:
                     label_values = new_label
-                    label_values[mask] = na_value
+                    label_values[mask] = -1
                     masked.append(np.asarray(label_values))
                 taken = masked
 
