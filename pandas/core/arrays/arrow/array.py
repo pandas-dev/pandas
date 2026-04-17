@@ -387,6 +387,19 @@ class ArrowExtensionArray(
             return pa.nulls(nrows, type=pa_type)
         return pa.repeat(pa.scalar(value, type=pa_type), nrows)
 
+    def _slice_value_for_column(self, value, col_idx: int):
+        """Select the portion of *value* that corresponds to a single column.
+
+        Used by 2D setitem paths where *value* may be a scalar, 1D array
+        (applied to every column), or 2D array (one row per column, in
+        storage layout).
+        """
+        if isinstance(value, type(self)) and value._ndim == 2:
+            return value._column_as_1d(col_idx)
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            return value[col_idx]
+        return value
+
     @property
     def _pa_array(self) -> pa.ChunkedArray:
         cached = self._pa_array_cache
@@ -1292,6 +1305,27 @@ class ArrowExtensionArray(
             self._pa_table = table
             return
 
+        # ArrowExtensionArray 2D boolean mask (e.g. from `arr < scalar`)
+        if (
+            isinstance(key, type(self))
+            and key._ndim == 2
+            and pa.types.is_boolean(key._pa_table.column(0).type)
+        ):
+            for col_idx in range(table.num_columns):
+                col_mask = np.asarray(key._column_as_1d(col_idx))
+                if not col_mask.any():
+                    continue
+                col_1d = self._column_as_1d(col_idx)
+                col_val = self._slice_value_for_column(value, col_idx)
+                col_1d[col_mask] = col_val
+                table = table.set_column(
+                    col_idx,
+                    table.column_names[col_idx],
+                    col_1d._pa_array,
+                )
+            self._pa_table = table
+            return
+
         # Boolean mask or integer array indexer
         if isinstance(key, np.ndarray):
             if key.dtype.kind == "b":
@@ -1302,7 +1336,8 @@ class ArrowExtensionArray(
                         if not col_mask.any():
                             continue
                         col_1d = self._column_as_1d(col_idx)
-                        col_1d[col_mask] = value
+                        col_val = self._slice_value_for_column(value, col_idx)
+                        col_1d[col_mask] = col_val
                         table = table.set_column(
                             col_idx,
                             table.column_names[col_idx],
@@ -2097,6 +2132,26 @@ class ArrowExtensionArray(
 
     def count(self) -> int:
         return len(self) - self._pa_array.null_count
+
+    def _where(self, mask, value) -> Self:
+        if self._ndim != 2:
+            return super()._where(mask, value)
+
+        # 2D: process column-by-column in storage layout.
+        table = self._pa_table
+        cols = {}
+        for col_idx in range(table.num_columns):
+            col_1d = self._column_as_1d(col_idx)
+            if isinstance(mask, type(self)) and mask._ndim == 2:
+                col_mask = np.asarray(mask._column_as_1d(col_idx))
+            elif isinstance(mask, np.ndarray) and mask.ndim == 2:
+                col_mask = mask[col_idx]
+            else:
+                col_mask = mask
+            col_value = self._slice_value_for_column(value, col_idx)
+            col_result = col_1d._where(col_mask, col_value)
+            cols[table.column_names[col_idx]] = col_result._pa_array
+        return type(self)._simple_new(pa.table(cols), ndim=2, dtype=self._dtype)
 
     def _putmask(self, mask, value) -> None:
         if self._ndim != 2:

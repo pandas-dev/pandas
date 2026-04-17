@@ -198,3 +198,19 @@ class TestDataFrameClip:
         expected = DataFrame([1, 3])
         result = df.clip(upper=[3])
         tm.assert_frame_equal(result, expected)
+
+
+def test_clip_arrow_2d_block():
+    # GH#65253 clip on a single 2D pa.Table-backed ArrowExtensionArray block
+    # must go through the `_can_fast_transpose=False` path without materializing
+    # a transposed copy.
+    pytest.importorskip("pyarrow")
+
+    data = np.random.default_rng(0).standard_normal((50, 4))
+    df_pa = DataFrame(data, dtype="float64[pyarrow]")
+    assert len(df_pa._mgr.blocks) == 1
+    assert df_pa._mgr.blocks[0].values.ndim == 2
+
+    result = df_pa.clip(-1.0, 1.0).astype("float64")
+    expected = DataFrame(data).clip(-1.0, 1.0)
+    tm.assert_frame_equal(result, expected)

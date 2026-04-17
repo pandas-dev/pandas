@@ -1722,7 +1722,16 @@ class EABackedBlock(Block):
 
     @final
     def where(self, other, cond) -> list[Block]:
-        arr = self.values.T
+        values = self.values
+        # For 2D EAs whose .T is not zero-copy, operate in storage layout
+        #  (n_cols, n_rows) instead of transposing values, e.g. for
+        #  pa.Table-backed ArrowExtensionArray.
+        skip_transpose = (
+            values.ndim == 2
+            and isinstance(values.dtype, ExtensionDtype)
+            and not values.dtype._can_fast_transpose
+        )
+        arr = values if skip_transpose else values.T
 
         cond = extract_bool_array(cond)
 
@@ -1730,6 +1739,11 @@ class EABackedBlock(Block):
         orig_cond = cond
         other = self._maybe_squeeze_arg(other)
         cond = self._maybe_squeeze_arg(cond)
+
+        if skip_transpose:
+            cond = cond.T
+            if isinstance(other, (np.ndarray, ExtensionArray)) and other.ndim == 2:
+                other = other.T
 
         if other is lib.no_default:
             other = self.fill_value
@@ -1741,7 +1755,9 @@ class EABackedBlock(Block):
             return [self.copy(deep=False)]
 
         try:
-            res_values = arr._where(cond, other).T
+            res_values = arr._where(cond, other)
+            if not skip_transpose:
+                res_values = res_values.T
         except OutOfBoundsDatetime:
             raise
         except (ValueError, TypeError):

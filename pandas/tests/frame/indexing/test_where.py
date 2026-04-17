@@ -1105,3 +1105,33 @@ def test_where_series_cond_with_axis1():
         [[0.0, 0.5, np.nan], [0.1, 0.0, np.nan], [0.2, 0.0, np.nan]],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        0.0,
+        np.arange(12).reshape(6, 2).astype(float) * 10,
+    ],
+    ids=["scalar_other", "ndarray_other"],
+)
+def test_where_arrow_2d_block(other):
+    # GH#65253 where/mask on a single 2D pa.Table-backed ArrowExtensionArray
+    # block. The ndarray-other case is load-bearing: a wrong row/col transpose
+    # silently produces wrong values instead of an error.
+    pytest.importorskip("pyarrow")
+
+    data = np.random.default_rng(0).standard_normal((6, 2))
+    df_pa = DataFrame(data, dtype="float64[pyarrow]")
+    df_np = DataFrame(data)
+    assert len(df_pa._mgr.blocks) == 1
+    assert df_pa._mgr.blocks[0].values.ndim == 2
+
+    cond = df_pa > 0
+    result = df_pa.where(cond, other=other).astype("float64")
+    expected = df_np.where(df_np > 0, other=other)
+    tm.assert_frame_equal(result, expected)
+
+    result = df_pa.mask(cond, other=other).astype("float64")
+    expected = df_np.mask(df_np > 0, other=other)
+    tm.assert_frame_equal(result, expected)

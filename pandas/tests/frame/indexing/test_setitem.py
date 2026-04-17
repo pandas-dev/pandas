@@ -1503,3 +1503,19 @@ def test_loc_setitem_tz_aware_column_expansion():
     _time = datetime.fromtimestamp(1695887042, timezone.utc)
     df.loc[df.id >= 2, "time"] = _time
     assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")
+
+
+def test_setitem_arrow_2d_block_bool_mask_df():
+    # GH#65253 boolean-DataFrame masked setitem on a single 2D pa.Table-backed
+    # ArrowExtensionArray block must not iterate over a transposed column axis.
+    pytest.importorskip("pyarrow")
+
+    data = np.random.default_rng(0).standard_normal((6, 2))
+    df_pa = DataFrame(data, dtype="float64[pyarrow]")
+    df_np = DataFrame(data)
+    assert len(df_pa._mgr.blocks) == 1
+    assert df_pa._mgr.blocks[0].values.ndim == 2
+
+    df_pa[df_pa > 0] = 99.0
+    df_np[df_np > 0] = 99.0
+    tm.assert_frame_equal(df_pa.astype("float64"), df_np)
