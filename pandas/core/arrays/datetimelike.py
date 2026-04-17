@@ -2386,35 +2386,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _maybe_clear_freq(self) -> None:
         self._freq = None
 
-    def _with_freq(self, freq) -> Self:
-        """
-        Helper to get a view on the same data, with a new freq.
-
-        Parameters
-        ----------
-        freq : DateOffset, None, or "infer"
-
-        Returns
-        -------
-        Same type as self
-        """
-        # GH#29843
-        if freq is None:
-            # Always valid
-            pass
-        elif isinstance(freq, BaseOffset):
-            # In the TimedeltaArray case, we require a Tick offset
-            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
-                raise TypeError("TimedeltaArray/Index freq must be a Tick")
-        elif freq == "infer":
-            freq = to_offset(self.inferred_freq)
-        else:
-            raise ValueError(f"Invalid frequency: {freq!r}")
-
-        arr = self.view()
-        arr._freq = freq
-        return arr
-
     # --------------------------------------------------------------
     # ExtensionArray Interface
 

@@ -1220,12 +1220,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             return self._range_union(other, sort=sort)
 
         if self._can_fast_union(other):
-            result = self._fast_union(other, sort=sort)
             # in the case with sort=None, the _can_fast_union check ensures
             #  that result.freq == self.freq
-            return result
+            return self._fast_union(other, sort=sort)
         else:
-            return super()._union(other, sort)._with_freq("infer")  # type: ignore[union-attr]
+            # super()._union can return an ArrayLike; wrap into an Index first
+            result = self._wrap_setop_result(other, super()._union(other, sort))
+            return result._with_freq("infer")  # type: ignore[attr-defined]
 
     # --------------------------------------------------------------------
     # Join Methods

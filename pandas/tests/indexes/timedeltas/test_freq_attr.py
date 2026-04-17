@@ -33,8 +33,6 @@ class TestFreq:
         msg = "TimedeltaArray/Index freq must be a Tick"
         with pytest.raises(TypeError, match=msg):
             idx._with_freq(off)
-        with pytest.raises(TypeError, match=msg):
-            idx._data._with_freq(off)
 
     def test_freq_setter_errors(self):
         # GH#20678
