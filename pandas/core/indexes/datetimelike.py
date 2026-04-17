@@ -675,6 +675,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    def astype(self, dtype, copy: bool = True):
+        result = super().astype(dtype, copy=copy)
+        if isinstance(result, type(self)):
+            # Preserve freq for unit conversions (e.g. datetime64[ns] -> [us])
+            result._data._freq = self.freq
+        return result
+
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
         """
         Check if we can preserve self.freq in addition or subtraction.
@@ -837,9 +844,24 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
-        return type(self)._simple_new(arr, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        result._data._freq = self.freq
+        return result
 
     def _with_freq(self, freq):
+        # GH#29843
+        if freq is None:
+            # Always valid
+            pass
+        elif len(self) == 0 and isinstance(freq, BaseOffset):
+            # Always valid.  In the TimedeltaArray case, we require a Tick offset
+            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+        else:
+            # As an internal method, we can ensure this assertion always holds
+            assert freq == "infer"
+            freq = to_offset(self.inferred_freq)
+
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 

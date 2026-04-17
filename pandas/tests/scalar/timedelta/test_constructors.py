@@ -229,12 +229,39 @@ class TestTimedeltaConstructorUnitKeyword:
 
 def test_construct_from_kwargs_overflow():
     # GH#55503
-    msg = "seconds=86400000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(days=10**6)
-    msg = "seconds=60000000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(minutes=10**9)
+    # Truly out of bounds even at second resolution
+    with pytest.raises(OutOfBoundsTimedelta):
+        Timedelta(days=10**15)
+
+
+def test_construct_from_kwargs_non_nano():
+    # GH#46587 - kwargs that overflow nanosecond resolution should
+    # fall back to coarser resolutions instead of raising
+    td = Timedelta(days=365 * 1000)
+    assert td.unit == "s"
+    assert td.days == 365_000
+
+    td = Timedelta(days=10**6)
+    assert td.unit == "s"
+    assert td.days == 10**6
+
+    td = Timedelta(minutes=10**9)
+    assert td.unit == "s"
+    assert td.days == 694444
+    assert td.components.hours == 10
+    assert td.components.minutes == 40
+
+    # microseconds kwarg -> us resolution
+    td = Timedelta(days=365 * 1000, microseconds=1)
+    assert td.unit == "us"
+
+    # milliseconds kwarg -> ms resolution
+    td = Timedelta(days=365 * 1000, milliseconds=1)
+    assert td.unit == "ms"
+
+    # nanoseconds kwarg -> ns when it fits
+    td = Timedelta(seconds=1, nanoseconds=1)
+    assert td.unit == "ns"
 
 
 def test_construct_with_weeks_unit_overflow():

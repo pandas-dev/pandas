@@ -687,8 +687,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
 
-        value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
+        value_left, value_right = self._validate_setitem_value(value)
 
         self._left[key] = value_left
         self._right[key] = value_right
@@ -895,7 +895,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise ValueError("limit must be None")
 
-        value_left, value_right = self._validate_scalar(value)
+        value_left, value_right = self._validate_setitem_value(value)
 
         left = self.left.fillna(value=value_left)
         right = self.right.fillna(value=value_right)
@@ -1164,7 +1164,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
-            # TODO: check subdtype match like _validate_setitem_value?
+            self.left._validate_fill_value(left)
+            self.left._validate_fill_value(right)
         elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = self.left._na_value
@@ -1175,27 +1176,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return left, right
 
     def _validate_setitem_value(self, value):
+        if is_list_like(value):
+            return self._validate_listlike(value)
+
+        left, right = self._validate_scalar(value)
+
         if is_valid_na_for_dtype(value, self.left.dtype):
-            # na value: need special casing to set directly on numpy arrays
-            value = self.left._na_value
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 # GH#45484 TypeError, not ValueError, matches what we get with
                 #  non-NA un-holdable value.
                 raise TypeError("Cannot set float NaN to integer-backed IntervalArray")
-            value_left, value_right = value, value
 
-        elif isinstance(value, Interval):
-            # scalar interval
-            self._check_closed_matches(value, name="value")
-            value_left, value_right = value.left, value.right
-            self.left._validate_fill_value(value_left)
-            self.left._validate_fill_value(value_right)
-
-        else:
-            return self._validate_listlike(value)
-
-        return value_left, value_right
+        return left, right
 
     # ---------------------------------------------------------------------
     # Rendering Methods

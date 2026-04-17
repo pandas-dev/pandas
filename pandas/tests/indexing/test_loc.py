@@ -377,6 +377,30 @@ class TestLocBaseIndependent:
         result = df.loc[1]
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_nonunique_string_index(self):
+        # GH#22500 - .loc setitem with non-unique string index should behave
+        # consistently with non-unique numeric index
+        idx = Index(["a", "b", "a"], name="idx")
+        df = DataFrame({"val": 1.0}, index=idx)
+        df_10 = DataFrame({"val": 10.0}, index=idx)
+        expected = DataFrame({"val": [10.0, 1.0, 10.0]}, index=idx)
+
+        # scalar string key
+        result = df.copy()
+        result.loc["a", "val"] = df_10.loc["a", "val"]
+        tm.assert_frame_equal(result, expected)
+
+        # single-element tuple
+        result = df.copy()
+        result.loc[("a",), "val"] = df_10.loc[("a",), "val"]
+        tm.assert_frame_equal(result, expected)
+
+        # boolean mask cross-assignment
+        result = df.copy()
+        mask = result.index == "a"
+        result.loc[mask, "val"] = df_10.loc[mask, "val"]
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_setitem_dups(self):
         # GH 6541
         df_orig = DataFrame(
@@ -1849,6 +1873,20 @@ class TestLocWithMultiIndex:
         expected = Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
 
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_multiindex_boolean_mask(self):
+        # GH#22500 - boolean mask assignment with MultiIndex
+        midx = MultiIndex.from_tuples(
+            [(1, "a"), (1, "b"), (2, "a"), (2, "b")], names=["num", "let"]
+        )
+        df = DataFrame({"val": 1.0}, index=midx)
+        df_10 = DataFrame({"val": 10.0}, index=midx)
+        expected = DataFrame({"val": [10.0, 1.0, 1.0, 1.0]}, index=midx)
+
+        result = df.copy()
+        mask = result.index == (1, "a")
+        result.loc[mask, "val"] = df_10.loc[mask, "val"]
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_slice_datetime_objs_with_datetimeindex(self):
         times = date_range("2000-01-01", freq="10min", periods=100000)

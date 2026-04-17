@@ -30,6 +30,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
+- :meth:`ExtensionArray.map` now calls :meth:`ExtensionArray._cast_pointwise_result` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
@@ -162,6 +163,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)
 - Performance improvement in :meth:`DataFrame.unstack` and :meth:`Series.unstack` when the :class:`MultiIndex` is already sorted and the unstacked level is the last level (:issue:`65107`)
 - Performance improvement in :meth:`DatetimeIndex.month_name` and :meth:`DatetimeIndex.day_name` when using the default string dtype by using PyArrow compute instead of going through an intermediate object array (:issue:`65104`)
+- Performance improvement in :meth:`DatetimeIndex.strftime` and :meth:`Series.dt.strftime` for formats composed of common directives (``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f``) (:issue:`44764`)
 - Performance improvement in :meth:`GroupBy.any` and :meth:`GroupBy.all` for boolean-dtype columns (:issue:`37850`)
 - Performance improvement in :meth:`GroupBy.first` and :meth:`GroupBy.last` for Extension Array dtypes, which no longer fall back to a slow ``apply``-based implementation (:issue:`57591`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`64330`)
@@ -221,8 +223,8 @@ Timedelta
 ^^^^^^^^^
 - Bug in :attr:`TimedeltaIndex.resolution` raising when the index has no frequency (:issue:`65186`)
 - Bug in :class:`DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions (:issue:`61862`)
+- Bug in :class:`Timedelta` constructor where keyword arguments (e.g. ``days=365000``) that exceeded nanosecond int64 bounds raised ``OutOfBoundsTimedelta`` instead of falling back to a coarser resolution (:issue:`46587`)
 - Bug in :func:`to_timedelta` where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
-- Fixed regression in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` raising ``ZeroDivisionError`` for sub-second ``freq`` (:issue:`64828`)
 
 Timezones
 ^^^^^^^^^
@@ -262,8 +264,10 @@ Indexing
 - Bug in :meth:`Index.get_indexer` where ``method="pad"``, ``"backfill"``, or ``"nearest"`` returned incorrect results when the target contained ``NaT`` or ``NaN`` instead of ``-1`` (:issue:`32572`)
 - Bugs in setitem-with-expansion when adding new rows failing to keep the original dtype in some cases (:issue:`32346`, :issue:`15231`, :issue:`47503`, :issue:`6485`, :issue:`25383`, :issue:`52235`, :issue:`17026`, :issue:`56010`)
 - Bug in :meth:`DataFrame.__getitem__` raising ``InvalidIndexError`` when indexing with a tuple containing a ``slice`` on a :class:`DataFrame` with :class:`MultiIndex` columns (e.g., ``df[:, "t1"]``) (:issue:`26511`)
+- Bug in :meth:`DataFrame.at` raising ``TypeError`` when accessing a :class:`MultiIndex` with a partial date string on a :class:`DatetimeIndex` level (:issue:`43395`)
 - Bug in :meth:`DataFrame.duplicated` returning an empty :class:`Series` without the DataFrame's index when the DataFrame had no columns (:issue:`61191`)
 - Bug in :meth:`DataFrame.iloc` setitem raising ``AttributeError`` when assigning a :class:`Series` or :class:`Index` with a nullable EA dtype (e.g. ``Int64``, ``Float64``, ``boolean``) into a column with a NumPy dtype (:issue:`47776`)
+- Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` returning wrong results instead of raising ``KeyError`` when passing string keys for numeric index levels (:issue:`60104`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` where incorrect values were produced when ``other`` was a :class:`Series` with :class:`ExtensionArray` values (:issue:`64635`)
 - Bug in :meth:`DataFrame.where` and :meth:`DataFrame.mask` raising ``TypeError`` when ``cond`` is a :class:`Series` and ``axis=1`` (:issue:`58190`)
 - Bug in :meth:`DataFrame.xs` where ``drop_level=False`` was ignored for fully specified :class:`MultiIndex` keys when ``level`` was not explicitly provided (:issue:`6507`)

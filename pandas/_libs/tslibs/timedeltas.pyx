@@ -2192,27 +2192,42 @@ class Timedelta(_Timedelta):
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
-            try:
-                value = np.timedelta64(
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
-                    + seconds, "ns"
-                )
-            except OverflowError as err:
-                # GH#55503
-                msg = (
-                    f"seconds={seconds}, milliseconds={ms}, "
-                    f"microseconds={us}, nanoseconds={ns}"
-                )
-                raise OutOfBoundsTimedelta(msg) from err
+            total_ns = (
+                int(ns)
+                + int(us * 1_000)
+                + int(ms * 1_000_000)
+                + seconds
+            )
 
-            if (
-                "nanoseconds" not in kwargs
-                and cnp.get_timedelta64_value(value) % 1000 == 0
-            ):
-                # If possible, give a microsecond unit
-                value = value.astype("m8[us]")
+            try:
+                value = np.timedelta64(total_ns, "ns")
+            except OverflowError:
+                # GH#46587 - fall back to coarser resolutions
+                if total_ns % 1_000 != 0:
+                    reso_value, reso_abbrev = total_ns, "ns"
+                elif total_ns % 1_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000, "us"
+                elif total_ns % 1_000_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000_000, "ms"
+                else:
+                    reso_value, reso_abbrev = total_ns // 1_000_000_000, "s"
+
+                try:
+                    value = np.timedelta64(reso_value, reso_abbrev)
+                except OverflowError as err:
+                    # GH#55503
+                    msg = (
+                        f"seconds={seconds}, milliseconds={ms}, "
+                        f"microseconds={us}, nanoseconds={ns}"
+                    )
+                    raise OutOfBoundsTimedelta(msg) from err
+            else:
+                if (
+                    "nanoseconds" not in kwargs
+                    and cnp.get_timedelta64_value(value) % 1000 == 0
+                ):
+                    # If possible, give a microsecond unit
+                    value = value.astype("m8[us]")
 
         disallow_ambiguous_unit(unit)
 
