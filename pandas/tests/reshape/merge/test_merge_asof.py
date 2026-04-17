@@ -1902,10 +1902,8 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_basic_no_by(self, trades, asof, quotes):
-        f = (
-            lambda x: x[x.ticker == "MSFT"]
-            .drop("ticker", axis=1)
-            .reset_index(drop=True)
+        f = lambda x: (
+            x[x.ticker == "MSFT"].drop("ticker", axis=1).reset_index(drop=True)
         )
 
         # just use a single ticker

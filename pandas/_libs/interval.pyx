@@ -167,6 +167,9 @@ cdef class IntervalMixin:
         """
         Return the midpoint of the Interval.
 
+        The midpoint is the average of the left and right bounds, or equivalently
+        the left bound plus half of :attr:`length`.
+
         See Also
         --------
         Interval.left : Return the left bound for the interval.
@@ -189,6 +192,10 @@ cdef class IntervalMixin:
     def length(self):
         """
         Return the length of the Interval.
+
+        The length is the distance between the right and left bounds, i.e.
+        ``right - left``. For time-like bounds this returns a
+        :class:`~datetime.timedelta` or :class:`~pandas.Timedelta`.
 
         See Also
         --------
@@ -297,6 +304,11 @@ cdef class Interval(IntervalMixin):
     """
     Immutable object implementing an Interval, a bounded slice-like interval.
 
+    An Interval represents a range of values between a left and right bound,
+    with optional inclusion of the endpoints. It is used in :class:`IntervalIndex`
+    and :class:`~pandas.arrays.IntervalArray` for interval-based indexing and
+    analysis.
+
     Attributes
     ----------
     left : orderable scalar
@@ -390,6 +402,9 @@ cdef class Interval(IntervalMixin):
     """
     Left bound for the interval.
 
+    The left endpoint of the interval. Whether it is included in the interval
+    depends on the value of :attr:`closed`.
+
     See Also
     --------
     Interval.right : Return the right bound for the interval.
@@ -408,6 +423,9 @@ cdef class Interval(IntervalMixin):
     cdef readonly object right
     """
     Right bound for the interval.
+
+    The right endpoint of the interval. Whether it is included in the interval
+    depends on the value of :attr:`closed`.
 
     See Also
     --------

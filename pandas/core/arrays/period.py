@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Timedelta,
     add_overflowsafe,
     astype_overflowsafe,
@@ -50,10 +51,12 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -181,7 +184,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
-    _infer_matches = ("period",)
 
     @property
     def _scalar_type(self) -> type[Period]:
@@ -201,16 +203,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "weekofyear",
         "weekday",
         "week",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
         "day_of_year",
         "quarter",
         "qyear",
         "days_in_month",
-        "daysinmonth",
     ]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    # GH#46768 - deprecated but still need to be accessible via .dt accessor
+    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
+    _datetimelike_ops: list[str] = (
+        _field_ops + _object_ops + _bool_ops + _deprecated_ops
+    )
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype
@@ -413,6 +416,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def freqstr(self) -> str:
         return PeriodDtype(self.freq)._freqstr
 
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        freqstr = self.freqstr
+        try:
+            return Resolution.get_reso_from_freqstr(freqstr)
+        except KeyError:
+            return None  # type: ignore[return-value]
+
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
@@ -474,6 +485,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The year of the period.
 
+        Returns the year component for each period in the index.
+
         See Also
         --------
         PeriodIndex.day_of_year : The ordinal day of the year.
@@ -495,6 +508,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The month as January=1, December=12.
 
+        Returns the month component for each period in the index as an
+        integer, where January is 1 and December is 12.
+
         See Also
         --------
         PeriodIndex.days_in_month : The number of days in the month.
@@ -511,6 +527,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "day",
         """
         The days of the period.
+
+        Returns the day-of-month component for each period in the index.
 
         See Also
         --------
@@ -534,6 +552,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The hour of the period.
 
+        Returns the hour component for each period in the index.
+
         See Also
         --------
         PeriodIndex.minute : The minute of the period.
@@ -551,6 +571,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "minute",
         """
         The minute of the period.
+
+        Returns the minute component for each period in the index.
 
         See Also
         --------
@@ -571,6 +593,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The second of the period.
 
+        Returns the second component for each period in the index.
+
         See Also
         --------
         PeriodIndex.hour : The hour of the period.
@@ -589,6 +613,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "week",
         """
         The week ordinal of the year.
+
+        Returns the week number (1 through 53) for each period in the index.
 
         See Also
         --------
@@ -611,6 +637,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The day of the week with Monday=0, Sunday=6.
 
+        Returns the day-of-week component for each period, following the
+        Python convention where Monday is 0 and Sunday is 6.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -625,16 +654,55 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
-        >>> idx.weekday
+        >>> idx.day_of_week
         Index([6, 0, 1], dtype='int64')
         """,
     )
-    dayofweek = day_of_week
-    weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor(
+
+    @property
+    def weekday(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        # GH#12816
+        warnings.warn(
+            f"{type(self).__name__}.weekday is deprecated and will be removed "
+            "in a future version. Use PeriodIndex.day_of_week or "
+            "Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.dayofweek is deprecated and will be removed in a "
+            "future version. Use PeriodArray.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    day_of_year = _field_accessor(
         "day_of_year",
         """
         The ordinal day of the year.
+
+        Returns the day-of-year component for each period, ranging from
+        1 (January 1st) to 365 or 366 for leap years.
 
         See Also
         --------
@@ -650,20 +718,42 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([10, 32, 60], dtype='int64')
 
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
         >>> idx
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([365, 366, 365], dtype='int64')
         """,
     )
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.dayofyear is deprecated and will be removed in a "
+            "future version. Use PeriodArray.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
+
     quarter = _field_accessor(
         "quarter",
         """
         The quarter of the date.
+
+        Returns the quarter (1 through 4) for each period in the index.
 
         See Also
         --------
@@ -726,6 +816,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         """
         The number of days in the month.
 
+        Returns the total number of days in the month of each period,
+        accounting for leap years.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -757,12 +850,33 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Index([31, 28, 31], dtype='int64')
         """,
     )
-    daysinmonth = days_in_month
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.days_in_month` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.daysinmonth is deprecated and will be removed in a "
+            "future version. Use PeriodArray.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
+
+        Returns a boolean array where ``True`` indicates the period's year
+        is a leap year.
 
         See Also
         --------
@@ -865,7 +979,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
 
-        if self.freq.name == "B":
+        if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
             #  len(self) is too small for infer_freq to distinguish between them
             diffs = libalgos.unique_deltas(self.asi8)

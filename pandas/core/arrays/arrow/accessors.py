@@ -179,7 +179,7 @@ class ListAccessor(ArrowAccessor):
             start, stop, step = key.start, key.stop, key.step
             if start is None:
                 # TODO: When adding negative step support
-                #  this should be setto last element of array
+                #  this should be set to last element of array
                 # when step is negative.
                 start = 0
             if step is None:

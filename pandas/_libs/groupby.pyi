@@ -166,6 +166,13 @@ def group_nth(
     is_datetimelike: bool = ...,
     skipna: bool = ...,
 ) -> None: ...
+def group_first_last_indexer(
+    labels: npt.NDArray[np.intp],
+    mask: npt.NDArray[np.uint8],
+    ngroups: int,
+    skipna: bool,
+    is_last: bool,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.uint8]]: ...
 def group_rank(
     out: np.ndarray,  # float64_t[:, ::1]
     values: np.ndarray,  # ndarray[rank_t, ndim=2]

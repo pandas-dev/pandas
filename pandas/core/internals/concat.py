@@ -209,7 +209,7 @@ def _concat_homogeneous_fastpath(
     we avoid [...]
     """
     # assumes
-    #  all(_is_homogeneous_mgr(mgr, first_dtype) for mgr, _ in in mgrs_indexers)
+    #  all(_is_homogeneous_mgr(mgr, first_dtype) for mgr, _ in mgrs_indexers)
 
     if all(not indexers for _, indexers in mgrs_indexers):
         # https://github.com/pandas-dev/pandas/pull/52685#issuecomment-1523287739

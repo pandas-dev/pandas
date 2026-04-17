@@ -217,11 +217,6 @@ class TestSparseArray(base.ExtensionTests):
             assert ser.get(4) == ser.iloc[2]
         assert ser.get(2) == ser.iloc[1]
 
-    def test_array_item_with_index(self, data, request):
-        # TODO https://github.com/pandas-dev/pandas/pull/64183
-        request.node.add_marker(pytest.mark.xfail(reason="SparseArray getitem buggy"))
-        super().test_array_item_with_index(data)
-
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
         super().test_reindex(data, na_value)
@@ -360,15 +355,10 @@ class TestSparseArray(base.ExtensionTests):
         self._check_unsupported(data)
         super().test_argmin_argmax_all_na(method, data, na_value)
 
-    @pytest.mark.fails_arm_wheels
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
-
-    @pytest.mark.fails_arm_wheels
-    def test_equals_same_data_different_object(self, data):
-        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",

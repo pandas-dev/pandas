@@ -121,3 +121,25 @@ def test_mixed_reductions(op, expected):
     else:
         result = getattr(df, op)(numeric_only=True)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["skew", "kurt"])
+def test_mixed_reduction_nan_not_influenced_by_nullable_column(op, using_nan_is_na):
+    # GH#62024 - presence of nullable column C should not change
+    # the result for non-nullable column B
+    df = DataFrame(
+        {
+            "B": [1, None, 3],
+            "C": array([1, None, 3], dtype="Int64"),
+        }
+    )
+    result_mixed = getattr(df, op)(numeric_only=True)
+    result_alone = getattr(df[["B"]], op)()
+
+    if using_nan_is_na:
+        # In default mode both are NA (NaN folded in Float64 result)
+        assert result_mixed["B"] is pd.NA
+    else:
+        # In distinguish mode, B gives NaN in both contexts
+        assert np.isnan(result_mixed["B"])
+        assert np.isnan(result_alone["B"])

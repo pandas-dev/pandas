@@ -116,7 +116,7 @@ def pivot_table(
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
         when margins is True.
-    observed : bool, default False
+    observed : bool, default True
         This only applies if any of the groupers are Categoricals.
         If True: only show observed values for categorical groupers.
         If False: show all values for categorical groupers.
@@ -423,7 +423,7 @@ def __internal_pivot_table(
     if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how="all", axis=1)
 
-    return table
+    return cast("DataFrame", table)
 
 
 def _add_margins(

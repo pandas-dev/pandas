@@ -101,6 +101,17 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestStringArray(base.ExtensionTests):
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action, request, using_infer_string):
+        if data_missing.dtype.storage == "python" and not using_infer_string:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="StringArray[python] _cast_pointwise_result "
+                    "does not re-wrap, going away with infer_string"
+                )
+            )
+        super().test_map(data_missing, na_action)
+
     def test_combine_le(self, data_repeated):
         dtype = next(iter(data_repeated(2))).dtype
         if dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
@@ -216,7 +227,7 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return op_name in ["min", "max", "sum"] or (
+        return op_name in ["min", "max", "sum", "count"] or (
             ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
@@ -239,10 +250,6 @@ class TestStringArray(base.ExtensionTests):
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
-
-    def test_compare_scalar(self, data, comparison_op):
-        ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, "abc")
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)

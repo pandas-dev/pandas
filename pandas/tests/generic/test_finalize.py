@@ -558,9 +558,7 @@ def test_datetime_method(method):
         "second",
         "microsecond",
         "nanosecond",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
         "day_of_year",
         "quarter",
         "is_month_start",
@@ -570,7 +568,6 @@ def test_datetime_method(method):
         "is_year_start",
         "is_year_end",
         "is_leap_year",
-        "daysinmonth",
         "days_in_month",
     ],
 )

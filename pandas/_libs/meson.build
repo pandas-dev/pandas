@@ -51,19 +51,8 @@ _khash_primitive_helper_dep = declare_dependency(
 )
 
 m_dep = cc.find_library('m', required: false)
-
-cdata = configuration_data()
-if cy.version().version_compare('>=3.1.0')
-    cdata.set('freethreading_compatible', '1')
-else
-    cdata.set('freethreading_compatible', '0')
-endif
-_free_threading_config = configure_file(
-    input: 'free_threading_config.pxi.in',
-    output: 'free_threading_config.pxi',
-    configuration: cdata,
-    install: false,
-)
+fast_float = subproject('fast_float')
+fast_float_dep = fast_float.get_variable('fast_float_dep')
 
 subdir('tslibs')
 
@@ -99,7 +88,14 @@ libs_sources = {
         'sources': ['join.pyx', _khash_primitive_helper],
         'deps': _khash_primitive_helper_dep,
     },
-    'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
+    'lib': {
+        'sources': [
+            'lib.pyx',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
+        ],
+        'deps': [fast_float_dep],
+    },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
         'sources': [
@@ -112,15 +108,22 @@ libs_sources = {
     'pandas_parser': {
         'sources': [
             'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
+        'deps': [fast_float_dep],
     },
     'parsers': {
-        'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
-        'deps': _khash_primitive_helper_dep,
+        'sources': [
+            'parsers.pyx',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
+            'src/parser/io.c',
+        ],
+        'deps': [fast_float_dep, _khash_primitive_helper_dep],
     },
-    'json': {
+    '_ujson': {
         'sources': [
             'src/vendored/ujson/python/ujson.c',
             'src/vendored/ujson/python/objToJSON.c',
@@ -183,7 +186,7 @@ sources_to_install = [
     'internals.pyi',
     'interval.pyi',
     'join.pyi',
-    'json.pyi',
+    '_ujson.pyi',
     'lib.pyi',
     'missing.pyi',
     'ops.pyi',

@@ -11,10 +11,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Setting a value on a view:FutureWarning"
-)
-
 
 @pytest.mark.parametrize(
     "cons",

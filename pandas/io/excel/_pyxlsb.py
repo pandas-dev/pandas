@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.io.excel._base import BaseExcelReader
 
@@ -45,6 +48,12 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
             Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("pyxlsb")
+        warnings.warn(
+            "The pyxlsb engine is deprecated and will be removed in a future version. "
+            "Use the calamine engine instead, by setting engine='calamine'.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
         super().__init__(

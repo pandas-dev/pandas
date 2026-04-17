@@ -152,27 +152,31 @@ class StringFormatter:
         return "\n\n".join(str_lst)
 
     def _fit_strcols_to_terminal_width(self, strcols: list[list[str]]) -> str:
-        from pandas import Series
+        col_lens = [max(self.adj.len(x) for x in col) if col else 0 for col in strcols]
+        n_cols = len(col_lens)
+        # total width = sum of column widths + adjoin spacing (1 per gap)
+        total_width = sum(col_lens) + n_cols - 1
 
-        lines = self.adj.adjoin(1, *strcols).split("\n")
-        max_len = Series(lines).str.len().max()
-        # plus truncate dot col
         width, _ = get_terminal_size()
-        dif = max_len - width
+        dif = total_width - width
         # '+ 1' to avoid too wide repr (GH PR #17023)
         adj_dif = dif + 1
-        col_lens = Series([Series(ele).str.len().max() for ele in strcols])
-        n_cols = len(col_lens)
-        counter = 0
+
+        if adj_dif <= 0:
+            # All columns fit; no truncation needed and max_cols_fitted
+            # stays at the value set by _calc_max_cols_fitted (0), so
+            # is_truncated_horizontally remains False.
+            return self.adj.adjoin(1, *strcols)
+
+        # Account for the " ..." separator column that will be inserted
+        # after horizontal truncation (GH#32461)
+        adj_dif += 4 + 1  # 4 chars for " ..." + 1 adjoin spacing
+
         while adj_dif > 0 and n_cols > 1:
-            counter += 1
             mid = round(n_cols / 2)
-            mid_ix = col_lens.index[mid]
-            col_len = col_lens[mid_ix]
             # adjoin adds one
-            adj_dif -= col_len + 1
-            col_lens = col_lens.drop(mid_ix)
-            n_cols = len(col_lens)
+            adj_dif -= col_lens.pop(mid) + 1
+            n_cols -= 1
 
         # subtract index column
         max_cols_fitted = n_cols - self.fmt.index

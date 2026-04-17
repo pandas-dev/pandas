@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.errors import Pandas4Warning
 
 from pandas import array
 import pandas._testing as tm
@@ -15,7 +16,7 @@ import pandas.core.algorithms as algos
         (np.int8, np.int16(127), np.int8),
         (np.int8, np.int16(128), np.int16),
         (np.int32, 1, np.int32),
-        (np.int32, 2.0, np.float64),
+        (np.int32, 2.0, np.int32),
         (np.int32, 3.0 + 4.0j, np.complex128),
         (np.int32, True, np.object_),
         (np.int32, "", np.object_),
@@ -43,77 +44,117 @@ def dtype_fill_out_dtype(request):
 class TestTake:
     def test_1d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
+
+        warn = None
+        if out_dtype != dtype:
+            warn = Pandas4Warning
+        msg = "reindexing with a fill_value that cannot be held"
+
         data = np.random.default_rng(2).integers(0, 2, 4).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, fill_value=fill_value)
         assert (result[[0, 1, 2]] == data[[2, 1, 0]]).all()
         assert result[3] == fill_value
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
 
-        result = algos.take_nd(data, indexer, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, fill_value=fill_value)
         assert (result[[0, 1, 2, 3]] == data[indexer]).all()
         assert result.dtype == dtype
 
     def test_2d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
+
+        warn = None
+        if out_dtype != dtype:
+            warn = Pandas4Warning
+        msg = "reindexing with a fill_value that cannot be held"
+
         data = np.random.default_rng(2).integers(0, 2, (5, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
         assert (result[[0, 1, 2], :] == data[[2, 1, 0], :]).all()
         assert (result[3, :] == fill_value).all()
         assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
         assert (result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all()
         assert (result[:, 3] == fill_value).all()
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
         assert (result[[0, 1, 2, 3], :] == data[indexer, :]).all()
         assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
         assert (result[:, [0, 1, 2, 3]] == data[:, indexer]).all()
         assert result.dtype == dtype
 
     def test_3d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
 
+        warn = None
+        if out_dtype != dtype:
+            warn = Pandas4Warning
+        msg = "reindexing with a fill_value that cannot be held"
+
         data = np.random.default_rng(2).integers(0, 2, (5, 4, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
         assert (result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all()
         assert (result[3, :, :] == fill_value).all()
         assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
         assert (result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all()
         assert (result[:, 3, :] == fill_value).all()
         assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
         assert (result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all()
         assert (result[:, :, 3] == fill_value).all()
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
         assert (result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all()
         assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
         assert (result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all()
         assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
         assert (result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all()
         assert result.dtype == dtype
+
+    @pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32, np.uint64])
+    def test_1d_unsigned_int_uses_cython_path(self, dtype):
+        # GH#????? - _take_1d_dict had wrong keys for uint16/uint32/uint64,
+        # causing fallback to the slow object path instead of the fast
+        # Cython path. Verify the optimized function is found.
+        from pandas.core.array_algos.take import _get_take_nd_function_cached
+
+        arr_dtype = np.dtype(dtype)
+        func = _get_take_nd_function_cached(1, arr_dtype, arr_dtype, 0)
+        assert func is not None
 
     def test_1d_other_dtypes(self):
         arr = np.random.default_rng(2).standard_normal(10).astype(np.float32)

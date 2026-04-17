@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
-    cache_readonly,
     set_module,
 )
 
@@ -73,7 +72,15 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "start_time", "end_time", *PeriodArray._field_ops],
+    [
+        "strftime",
+        "start_time",
+        "end_time",
+        *PeriodArray._field_ops,
+        "dayofweek",
+        "dayofyear",
+        "daysinmonth",
+    ],
     PeriodArray,
     wrap=True,
 )
@@ -170,11 +177,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
-
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        # for compat with DatetimeIndex
-        return self.dtype._resolution_obj
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
@@ -290,6 +292,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         The hour of the period.
 
+        Returns the hour component for each period in the index.
+
         See Also
         --------
         PeriodIndex.minute : The minute of the period.
@@ -308,6 +312,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def minute(self) -> Index:
         """
         The minute of the period.
+
+        Returns the minute component for each period in the index.
 
         See Also
         --------
@@ -329,6 +335,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def second(self) -> Index:
         """
         The second of the period.
+
+        Returns the second component for each period in the index.
 
         See Also
         --------
@@ -398,6 +406,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
+        Each field (year, quarter, month, day, hour, minute, second) can be
+        specified as a scalar or array-like. The frequency is inferred from
+        the fields provided or can be given explicitly.
+
         Parameters
         ----------
         year : int, array, or Series, default None
@@ -449,6 +461,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def from_ordinals(cls, ordinals, *, freq, name=None) -> Self:
         """
         Construct a PeriodIndex from ordinals.
+
+        Ordinals are integer offsets from the proleptic Gregorian epoch,
+        interpreted according to the given frequency.
 
         Parameters
         ----------

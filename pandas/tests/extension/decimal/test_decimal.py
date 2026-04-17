@@ -99,10 +99,6 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
-    def test_compare_scalar(self, data, comparison_op):
-        ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, 0.5)
-
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
 

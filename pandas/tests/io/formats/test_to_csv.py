@@ -14,6 +14,8 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
+from pandas.core.indexes.base import get_values_for_csv
 
 
 class TestToCSV:
@@ -50,6 +52,14 @@ class TestToCSV:
         # the default to_csv encoding is uft-8.
         df.to_csv(temp_file)
         tm.assert_frame_equal(pd.read_csv(temp_file, index_col=0), df)
+
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+    def test_to_csv_utf16_encoding(self, encoding, temp_file):
+        # GH#10755
+        df = DataFrame({"col": ["abc", "déf", "日本語"]})
+        df.to_csv(temp_file, encoding=encoding)
+        result = pd.read_csv(temp_file, index_col=0, encoding=encoding)
+        tm.assert_frame_equal(result, df)
 
     def test_to_csv_quotechar(self, temp_file):
         df = DataFrame({"col": [1, 2]})
@@ -287,6 +297,38 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    def test_to_csv_period_columns(self):
+        # GH#55426 - exercise the column path for PeriodArray
+        df = DataFrame(
+            {
+                "a": pd.period_range("2020-01-01", periods=2, freq="D"),
+                "b": pd.period_range("2020-03-01", periods=2, freq="D"),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            "2020-01-01,2020-03-01",
+            "2020-01-02,2020-03-02",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
+    def test_to_csv_interval_columns(self):
+        # GH#55426 - exercise the column path for IntervalArray
+        df = DataFrame(
+            {
+                "a": pd.arrays.IntervalArray.from_breaks([0, 1, 2]),
+                "b": pd.arrays.IntervalArray.from_breaks([3, 4, 5]),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            '"(0, 1]","(3, 4]"',
+            '"(1, 2]","(4, 5]"',
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
     def test_to_csv_date_format_in_categorical(self):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
@@ -321,6 +363,22 @@ $1$,$2$
             ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
         )
         assert result == expected
+
+    def test_to_csv_2d_float_ea(self):
+        # GH#64634 - get_values_for_csv on a 2D float ExtensionArray should not fail.
+        data = np.array([1.0, np.nan, 3.0, 4.0])
+        mask = np.array([False, True, False, False])
+        arr2d = FloatingArray(data, mask).reshape(2, 2)
+
+        result = get_values_for_csv(
+            arr2d,
+            date_format=None,
+            na_rep="NA",
+            float_format=None,
+            decimal=".",
+        )
+        expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_to_csv_multi_index(self):
         # see gh-6618
@@ -405,6 +463,13 @@ $1$,$2$
         df.to_csv(temp_file, encoding="utf-8")
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected_utf8
+
+    def test_to_csv_roundtrip_with_newline_in_field(self, temp_file):
+        # GH#22497 - embedded newlines in field values should survive roundtrip
+        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
 
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353

@@ -238,8 +238,42 @@ cdef class _Timestamp(ABCTimestamp):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    dayofweek = _Timestamp.day_of_week
-    dayofyear = _Timestamp.day_of_year
+
+    @property
+    def dayofweek(self) -> int:
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Timestamp.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "Timestamp.dayofweek is deprecated and will be removed in a "
+            "future version. Use Timestamp.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofyear(self) -> int:
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Timestamp.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+
+        warnings.warn(
+            "Timestamp.dayofyear is deprecated and will be removed in a "
+            "future version. Use Timestamp.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
 
     _docstring_min = """
     Returns the minimum bound possible for Timestamp.
@@ -687,6 +721,7 @@ cdef class _Timestamp(ABCTimestamp):
             val = self._value
         return val
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef bint _get_start_end_field(self, str field, freq):
         cdef:
@@ -698,7 +733,7 @@ cdef class _Timestamp(ABCTimestamp):
         if freq:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
-            freq_name = freq.name
+            freq_name = freq.rule_code
         else:
             month_kw = 12
             freq_name = None
@@ -883,6 +918,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         return self.month == 12 and self.day == 31
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     cdef _get_date_name_field(self, str field, object locale):
         cdef:
@@ -1291,6 +1327,10 @@ cdef class _Timestamp(ABCTimestamp):
     def nanosecond(self) -> int:
         """
         Return the nanosecond of the Timestamp.
+
+        This property returns an integer representing the nanosecond component
+        (0-999) of the Timestamp. This is particularly useful when working with
+        high-precision temporal data that requires sub-microsecond resolution.
 
         Returns
         -------
@@ -1768,7 +1808,7 @@ cdef class _Timestamp(ABCTimestamp):
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.to_numpy()
-        np.datetime64('NaT')
+        np.datetime64('NaT','ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1973,6 +2013,42 @@ class Timestamp(_Timestamp):
         return cls(datetime.fromordinal(ordinal), tz=tz)
 
     @classmethod
+    def fromisocalendar(cls, year, week, day):
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """
+        return cls(datetime.fromisocalendar(year, week, day))
+
+    @classmethod
     def now(cls, tz=None):
         """
         Return new Timestamp object representing current time local to tz.
@@ -2050,6 +2126,10 @@ class Timestamp(_Timestamp):
         Timestamp.utcnow()
 
         Return a new Timestamp representing UTC day and time.
+
+        .. deprecated:: 3.0.0
+            ``Timestamp.utcnow`` is deprecated and will be removed in a future
+            version. Use ``Timestamp.now('UTC')`` instead.
 
         See Also
         --------
@@ -2169,9 +2249,48 @@ class Timestamp(_Timestamp):
         tz = maybe_get_tz(tz)
         return cls(datetime.fromtimestamp(ts, tz))
 
+    @classmethod
+    def fromisoformat(cls, date_string):
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
+        """
+        return cls(datetime.fromisoformat(date_string))
+
     def strftime(self, format):
         """
         Return a formatted string of the Timestamp.
+
+        This method converts a Timestamp to a string according to the given
+        format string, using the same directives as the standard library's
+        :meth:`datetime.datetime.strftime`.
 
         Parameters
         ----------
@@ -2309,6 +2428,11 @@ class Timestamp(_Timestamp):
     def isocalendar(self):
         """
         Return a named tuple containing ISO year, week number, and weekday.
+
+        The ISO 8601 calendar is a widely used international standard. The
+        returned named tuple has three components: ``year``, ``week``, and
+        ``weekday``. The ISO year may differ from the Gregorian year for dates
+        near the start or end of a calendar year.
 
         See Also
         --------
@@ -3640,7 +3764,27 @@ default 'raise'
 
 # Aliases
 Timestamp.weekofyear = Timestamp.week
-Timestamp.daysinmonth = Timestamp.days_in_month
+
+
+def _daysinmonth_fget(self):
+    """
+    Return the number of days in the month.
+
+    .. deprecated:: 3.1.0
+        Use :attr:`Timestamp.days_in_month` instead.
+    """
+    from pandas.errors import Pandas4Warning
+
+    warnings.warn(
+        "Timestamp.daysinmonth is deprecated and will be removed in a "
+        "future version. Use Timestamp.days_in_month instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return self.days_in_month
+
+
+Timestamp.daysinmonth = property(_daysinmonth_fget)
 
 
 # ----------------------------------------------------------------------

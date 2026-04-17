@@ -271,5 +271,5 @@ class TestSeriesDropDuplicates:
         pa = pytest.importorskip("pyarrow")
         ser = Series(["a", "a"], dtype=pd.ArrowDtype(pa.string()))
         result = ser.drop_duplicates()
-        expecetd = Series(["a"], dtype=pd.ArrowDtype(pa.string()))
-        tm.assert_series_equal(result, expecetd)
+        expected = Series(["a"], dtype=pd.ArrowDtype(pa.string()))
+        tm.assert_series_equal(result, expected)

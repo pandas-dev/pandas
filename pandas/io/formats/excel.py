@@ -568,7 +568,7 @@ class ExcelFormatter:
         if cols is not None:
             # all missing, raise
             if not len(Index(cols).intersection(df.columns)):
-                raise KeyError("passes columns are not ALL present dataframe")
+                raise KeyError("Passed columns are not all present in the dataframe")
 
             if len(Index(cols).intersection(df.columns)) != len(set(cols)):
                 # Deprecated in GH#17295, enforced in 1.0.0
@@ -982,7 +982,7 @@ class ExcelFormatter:
                         )
                     else:
                         startrowsoffset = self.columns.nlevels
-                        # multindex columns add a blank row between header and data
+                        # multiindex columns add a blank row between header and data
                         endrowsoffset = self.columns.nlevels + 1
             else:
                 # no index column

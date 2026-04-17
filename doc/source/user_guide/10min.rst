@@ -548,6 +548,8 @@ groups:
 
    df.groupby("A")[["C", "D"]].sum()
 
+The unique values of the grouped column now form the index of the result.
+
 Grouping by multiple columns label forms :class:`MultiIndex`.
 
 .. ipython:: python

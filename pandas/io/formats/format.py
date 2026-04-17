@@ -29,7 +29,7 @@ from typing import (
 import numpy as np
 
 from pandas._config.config import (
-    get_option,
+    _global_config as config,
     set_option,
 )
 
@@ -152,7 +152,7 @@ class SeriesFormatter:
         self.min_rows = min_rows
 
         if float_format is None:
-            float_format = get_option("display.float_format")
+            float_format = config["display"]["float_format"]
         self.float_format = float_format
         self.dtype = dtype
         self.adj = printing.get_adjustment()
@@ -304,16 +304,16 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     """
     from pandas.io.formats import console
 
-    if get_option("display.expand_frame_repr"):
+    if config["display"]["expand_frame_repr"]:
         line_width, _ = console.get_console_size()
     else:
         line_width = None
     return {
-        "max_rows": get_option("display.max_rows"),
-        "min_rows": get_option("display.min_rows"),
-        "max_cols": get_option("display.max_columns"),
-        "max_colwidth": get_option("display.max_colwidth"),
-        "show_dimensions": get_option("display.show_dimensions"),
+        "max_rows": config["display"]["max_rows"],
+        "min_rows": config["display"]["min_rows"],
+        "max_cols": config["display"]["max_columns"],
+        "max_colwidth": config["display"]["max_colwidth"],
+        "show_dimensions": config["display"]["show_dimensions"],
         "line_width": line_width,
     }
 
@@ -334,16 +334,16 @@ def get_series_repr_params() -> dict[str, Any]:
     True
     """
     width, height = get_terminal_size()
-    max_rows_opt = get_option("display.max_rows")
+    max_rows_opt = config["display"]["max_rows"]
     max_rows = height if max_rows_opt == 0 else max_rows_opt
-    min_rows = height if max_rows_opt == 0 else get_option("display.min_rows")
+    min_rows = height if max_rows_opt == 0 else config["display"]["min_rows"]
 
     return {
         "name": True,
         "dtype": True,
         "min_rows": min_rows,
         "max_rows": max_rows,
-        "length": get_option("display.show_dimensions"),
+        "length": config["display"]["show_dimensions"],
     }
 
 
@@ -521,7 +521,7 @@ class DataFrameFormatter:
 
     def _initialize_sparsify(self, sparsify: bool | None) -> bool:
         if sparsify is None:
-            return get_option("display.multi_sparse")
+            return config["display"]["multi_sparse"]
         return sparsify
 
     def _initialize_formatters(
@@ -539,7 +539,7 @@ class DataFrameFormatter:
 
     def _initialize_justify(self, justify: str | None) -> str:
         if justify is None:
-            return get_option("display.colheader_justify")
+            return config["display"]["colheader_justify"]
         else:
             return justify
 
@@ -703,7 +703,7 @@ class DataFrameFormatter:
         if not is_list_like(self.header) and not self.header:
             for i, c in enumerate(self.tr_frame):
                 fmt_values = self.format_col(i)
-                fmt_values = _make_fixed_width(
+                fmt_values, _ = _make_fixed_width(
                     strings=fmt_values,
                     justify=self.justify,
                     minimum=int(self.col_space.get(c, 0)),
@@ -734,11 +734,10 @@ class DataFrameFormatter:
                 int(self.col_space.get(c, 0)), *(self.adj.len(x) for x in cheader)
             )
             fmt_values = self.format_col(i)
-            fmt_values = _make_fixed_width(
+            fmt_values, max_len = _make_fixed_width(
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
-
-            max_len = max(*(self.adj.len(x) for x in fmt_values), header_colwidth)
+            max_len = max(max_len, header_colwidth)
             cheader = self.adj.justify(cheader, max_len, mode=self.justify)
             strcols.append(cheader + fmt_values)
 
@@ -817,7 +816,7 @@ class DataFrameFormatter:
             tuple(
                 _make_fixed_width(
                     list(x), justify="left", minimum=col_space.get("", 0), adj=self.adj
-                )
+                )[0]
             )
             for x in fmt_index
         ]
@@ -1124,15 +1123,16 @@ def format_array(
     List[str]
     """
     fmt_klass: type[_GenericArrayFormatter]
-    if lib.is_np_dtype(values.dtype, "M"):
+    if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-    elif isinstance(values.dtype, DatetimeTZDtype):
-        fmt_klass = _Datetime64TZFormatter
-        values = cast("DatetimeArray", values)
+        if na_rep == "NaN":
+            na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
+        if na_rep == "NaN":
+            na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
@@ -1146,10 +1146,10 @@ def format_array(
         space = 12
 
     if float_format is None:
-        float_format = get_option("display.float_format")
+        float_format = config["display"]["float_format"]
 
     if digits is None:
-        digits = get_option("display.precision")
+        digits = config["display"]["precision"]
 
     fmt_obj = fmt_klass(
         values,
@@ -1199,13 +1199,14 @@ class _GenericArrayFormatter:
 
     def get_result(self) -> list[str]:
         fmt_values = self._format_strings()
-        return _make_fixed_width(fmt_values, self.justify)
+        result, _ = _make_fixed_width(fmt_values, self.justify)
+        return result
 
     def _format_strings(self) -> list[str]:
         if self.float_format is None:
-            float_format = get_option("display.float_format")
+            float_format = config["display"]["float_format"]
             if float_format is None:
-                precision = get_option("display.precision")
+                precision = config["display"]["precision"]
                 float_format = lambda x: _trim_zeros_single_float(
                     f"{x: .{precision:d}f}"
                 )
@@ -1303,7 +1304,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         # because str(0.0) = '0.0' while '%g' % 0.0 = '0'
         if float_format:
 
-            def base_formatter(v):
+            def base_formatter(v):  # pyright: ignore[reportRedeclaration]
                 assert float_format is not None  # for mypy
                 # error: "str" not callable
                 # error: Unexpected keyword argument "value" for "__call__" of
@@ -1393,7 +1394,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
         if self.fixed_width:
-            threshold = get_option("display.chop_threshold")
+            threshold = config["display"]["chop_threshold"]
         else:
             threshold = None
 
@@ -1479,9 +1480,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         if self.leading_space is False:
-            formatter_str = lambda x: f"{x:d}".format(x=x)
+            formatter_str = lambda x: f"{x:d}"
         else:
-            formatter_str = lambda x: f"{x: d}".format(x=x)
+            formatter_str = lambda x: f"{x: d}"
         formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
@@ -1493,23 +1494,21 @@ class _Datetime64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: DatetimeArray,
-        nat_rep: str = "NaT",
+        na_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
     ) -> None:
-        super().__init__(values, **kwargs)
-        self.nat_rep = nat_rep
+        super().__init__(values, na_rep=na_rep, **kwargs)
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
-        """we by definition have DO NOT have a TZ"""
         values = self.values
 
         if self.formatter is not None:
             return [self.formatter(x) for x in values]
 
         fmt_values = values._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format
+            na_rep=self.na_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
 
@@ -1623,9 +1622,9 @@ def get_precision(array: np.ndarray | Sequence[float]) -> int:
     return prec
 
 
-def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
+def _format_datetime64(x: NaTType | Timestamp, na_rep: str = "NaT") -> str:
     if x is NaT:
-        return nat_rep
+        return na_rep
 
     # Timestamp.__str__ falls back to datetime.datetime.__str__ = isoformat(sep=' ')
     # so it already uses string formatting rather than strftime (faster).
@@ -1634,11 +1633,11 @@ def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
 
 def _format_datetime64_dateonly(
     x: NaTType | Timestamp,
-    nat_rep: str = "NaT",
+    na_rep: str = "NaT",
     date_format: str | None = None,
 ) -> str:
     if isinstance(x, NaTType):
-        return nat_rep
+        return na_rep
 
     if date_format:
         return x.strftime(date_format)
@@ -1648,32 +1647,17 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only: bool, na_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
     if is_dates_only:
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format
+            x, na_rep=na_rep, date_format=date_format
         )
     else:
-        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
-
-
-class _Datetime64TZFormatter(_Datetime64Formatter):
-    values: DatetimeArray
-
-    def _format_strings(self) -> list[str]:
-        """we by definition have a TZ"""
-        ido = self.values._is_dates_only
-        values = self.values.astype(object)
-        formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format
-        )
-        fmt_values = [formatter(x) for x in values]
-
-        return fmt_values
+        return lambda x: _format_datetime64(x, na_rep=na_rep)
 
 
 class _Timedelta64Formatter(_GenericArrayFormatter):
@@ -1682,23 +1666,21 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: TimedeltaArray,
-        nat_rep: str = "NaT",
+        na_rep: str = "NaT",
         **kwargs,
     ) -> None:
-        # TODO: nat_rep is never passed, na_rep is.
-        super().__init__(values, **kwargs)
-        self.nat_rep = nat_rep
+        super().__init__(values, na_rep=na_rep, **kwargs)
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, nat_rep=self.nat_rep, box=False
+            self.values, na_rep=self.na_rep, box=False
         )
         return [formatter(x) for x in self.values]
 
 
 def get_format_timedelta64(
     values: TimedeltaArray,
-    nat_rep: str | float = "NaT",
+    na_rep: str | float = "NaT",
     box: bool = False,
 ) -> Callable:
     """
@@ -1716,7 +1698,7 @@ def get_format_timedelta64(
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
-            return nat_rep
+            return na_rep
 
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
@@ -1735,33 +1717,33 @@ def _make_fixed_width(
     justify: str = "right",
     minimum: int | None = None,
     adj: printing._TextAdjustment | None = None,
-) -> list[str]:
-    if len(strings) == 0 or justify == "all":
-        return strings
-
+) -> tuple[list[str], int]:
     if adj is None:
         adjustment = printing.get_adjustment()
     else:
         adjustment = adj
+
+    if len(strings) == 0 or justify == "all":
+        max_len = max(adjustment.len(x) for x in strings) if strings else 0
+        return strings, max_len
 
     max_len = max(adjustment.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
 
-    conf_max = get_option("display.max_colwidth")
+    conf_max = config["display"]["max_colwidth"]
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    def just(x: str) -> str:
-        if conf_max is not None:
-            if (conf_max > 3) & (adjustment.len(x) > max_len):
-                x = x[: max_len - 3] + "..."
-        return x
+    if conf_max is not None and conf_max > 3:
+        strings = [
+            x[: max_len - 3] + "..." if adjustment.len(x) > max_len else x
+            for x in strings
+        ]
 
-    strings = [just(x) for x in strings]
     result = adjustment.justify(strings, max_len, mode=justify)
-    return result
+    return result, max_len
 
 
 def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[str]:
@@ -1809,6 +1791,9 @@ def _trim_zeros_single_float(str_float: str) -> str:
     return str_float
 
 
+_NUMBER_WITH_DECIMAL_RE = re.compile(r"^\s*[+-]?[0-9]+\.[0-9]*$")
+
+
 def _trim_zeros_float(
     str_floats: ArrayLike | list[str], decimal: str = "."
 ) -> list[str]:
@@ -1817,30 +1802,37 @@ def _trim_zeros_float(
     all numbers containing decimals, leaving just one if
     necessary.
     """
-    trimmed = str_floats
-    number_regex = re.compile(rf"^\s*[\+-]?[0-9]+\{decimal}[0-9]*$")
+    if decimal != ".":
+        number_regex = re.compile(rf"^\s*[+-]?[0-9]+\{decimal}[0-9]*$")
+    else:
+        number_regex = _NUMBER_WITH_DECIMAL_RE
 
-    def is_number_with_decimal(x) -> bool:
-        return re.match(number_regex, x) is not None
+    # Identify which elements are decimal numbers once, up front
+    is_number = [number_regex.match(x) is not None for x in str_floats]
 
-    def should_trim(values: ArrayLike | list[str]) -> bool:
-        """
-        Determine if an array of strings should be trimmed.
+    if not any(is_number):
+        return list(str_floats)
 
-        Returns True if all numbers containing decimals (defined by the
-        above regular expression) within the array end in a zero, otherwise
-        returns False.
-        """
-        numbers = [x for x in values if is_number_with_decimal(x)]
-        return len(numbers) > 0 and all(x.endswith("0") for x in numbers)
+    trimmed = list(str_floats)
 
-    while should_trim(trimmed):
-        trimmed = [x[:-1] if is_number_with_decimal(x) else x for x in trimmed]
+    # Trim trailing zeros from all decimal numbers equally
+    while True:
+        # Check if all decimal numbers end in "0"
+        if not all(
+            x.endswith("0")
+            for x, is_num in zip(trimmed, is_number, strict=True)
+            if is_num
+        ):
+            break
+        trimmed = [
+            x[:-1] if is_num else x
+            for x, is_num in zip(trimmed, is_number, strict=True)
+        ]
 
-    # leave one 0 after the decimal points if need be.
+    # Leave one 0 after the decimal point if needed
     result = [
-        x + "0" if is_number_with_decimal(x) and x.endswith(decimal) else x
-        for x in trimmed
+        x + "0" if is_num and x.endswith(decimal) else x
+        for x, is_num in zip(trimmed, is_number, strict=True)
     ]
     return result
 

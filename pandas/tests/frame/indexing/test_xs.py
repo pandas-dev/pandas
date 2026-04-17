@@ -379,6 +379,18 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
+    def test_xs_full_key_droplevel_false(self):
+        # GH#6507 - drop_level=False should be honored for fully specified keys
+        df = DataFrame(
+            {"value": [1, 2, 3]},
+            index=MultiIndex.from_tuples(
+                [(1, 2, 3), (4, 5, 6), (7, 8, 9)], names=["a", "b", "c"]
+            ),
+        )
+        result = df.xs((1, 2, 3), drop_level=False)
+        expected = df.iloc[:1]
+        tm.assert_frame_equal(result, expected)
+
     def test_xs_list_indexer_droplevel_false(self):
         # GH#41760
         mi = MultiIndex.from_tuples([("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")])
