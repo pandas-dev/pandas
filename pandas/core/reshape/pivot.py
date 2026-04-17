@@ -1220,10 +1220,15 @@ def _normalize(
             table.columns = table_columns
 
         elif normalize == "index":
+            column_margin = column_margin/column_margin.sum()
+            table = concat([table,column_margin],axis=1)
+            table = table.fillna(0)
             index_margin = index_margin / index_margin.sum()
+            index_margin.loc[margins_name]=1.0
             table = table._append_internal(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
+            table.columns = table_columns
 
         elif normalize == "all" or normalize is True:
             column_margin = column_margin / column_margin.sum()
