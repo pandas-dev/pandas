@@ -498,7 +498,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         arr = self._data.normalize()
         result = type(self)._simple_new(arr, name=self.name)
-        result._freq = to_offset(arr.inferred_freq)
+        result._freq = to_offset(arr._inferred_freq_str)
         return result
 
     def tz_convert(self, tz) -> Self:
@@ -799,7 +799,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 freq = PeriodDtype(dt_freq)._freqstr
 
             if freq is None:
-                freq = self.inferred_freq
+                freq = self._inferred_freq_str
 
             if freq is not None:
                 res = get_period_alias(freq)

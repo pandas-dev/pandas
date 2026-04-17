@@ -977,7 +977,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
         elif freq == "infer":
-            freq = to_offset(self.inferred_freq)
+            freq = to_offset(self._inferred_freq_str)
         else:
             raise ValueError(f"Invalid frequency: {freq!r}")
 
