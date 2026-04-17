@@ -1265,43 +1265,51 @@ class DataSplitter(Generic[NDFrameT]):
 
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
         sdata = self._sorted_data
+        # sdata is a fresh object owned by the splitter and its attrs/flags
+        # cannot be mutated through the yielded chunks, so the finalize gate
+        # can be evaluated once outside the loop.
+        needs_finalize = (
+            type(sdata) is not self._sorted_cls
+            or bool(sdata.attrs)
+            or not sdata._flags._allows_duplicate_labels
+        )
         for start, end in zip(starts, ends, strict=True):
-            yield self._chop(sdata, slice(start, end))
+            yield self._chop(sdata, slice(start, end), needs_finalize)
 
     @cache_readonly
     def _sorted_data(self) -> NDFrameT:
         return self.data.take(self._sort_idx, axis=0)
 
-    def _chop(self, sdata, slice_obj: slice) -> NDFrame:
+    _sorted_cls: type[NDFrame]
+
+    def _chop(self, sdata, slice_obj: slice, needs_finalize: bool) -> NDFrame:
         raise AbstractMethodError(self)
 
 
 class SeriesSplitter(DataSplitter):
-    def _chop(self, sdata: Series, slice_obj: slice) -> Series:
+    _sorted_cls = Series
+
+    def _chop(self, sdata: Series, slice_obj: slice, needs_finalize: bool) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
         ser = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
         object.__setattr__(ser, "_name", sdata.name)
-        if (
-            type(sdata) is not Series
-            or sdata.attrs
-            or not sdata._flags._allows_duplicate_labels
-        ):
+        if needs_finalize:
             return ser.__finalize__(sdata, method="groupby")
         return ser
 
 
 class FrameSplitter(DataSplitter):
-    def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
+    _sorted_cls = DataFrame
+
+    def _chop(
+        self, sdata: DataFrame, slice_obj: slice, needs_finalize: bool
+    ) -> DataFrame:
         # Fastpath equivalent to:
         # return sdata.iloc[slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1)
         df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
-        if (
-            type(sdata) is not DataFrame
-            or sdata.attrs
-            or not sdata._flags._allows_duplicate_labels
-        ):
+        if needs_finalize:
             return df.__finalize__(sdata, method="groupby")
         return df
