@@ -353,6 +353,14 @@ def unique(values):
     Index.unique : Return unique values from an Index.
     Series.unique : Return unique values of Series object.
 
+    Notes
+    -----
+    When working with object-dtype arrays, boolean and integer values may not
+    be distinguished since ``True == 1`` and ``False == 0`` in Python.
+
+    >>> pd.unique(np.array([True, 1, False, 0], dtype=object))
+    array([True, False], dtype=object)
+
     Examples
     --------
     >>> pd.unique(pd.Series([2, 1, 3, 3]))
@@ -698,6 +706,15 @@ def factorize(
     Notes
     -----
     Reference :ref:`the user guide <reshaping.factorize>` for more examples.
+
+    When working with object-dtype arrays, boolean and integer values may not
+    be distinguished since ``True == 1`` and ``False == 0`` in Python.
+
+    >>> codes, uniques = pd.factorize(np.array([True, 1, False, 0], dtype=object))
+    >>> codes
+    array([0, 0, 1, 1])
+    >>> uniques
+    array([True, False], dtype=object)
 
     Examples
     --------

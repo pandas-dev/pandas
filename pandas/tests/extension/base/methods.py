@@ -98,9 +98,9 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
+        # GH#62164 - _cast_pointwise_result retains EA dtype
         result = data_missing.map(lambda x: x, na_action=na_action)
-        expected = data_missing.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, data_missing)
 
     def test_is_monotonic_increasing(self, data_for_sorting):
         # GH#56619

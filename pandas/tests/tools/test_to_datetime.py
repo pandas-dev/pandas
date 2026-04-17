@@ -302,37 +302,23 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
-            # The 3 tests below are locale-dependent.
-            # They pass, except when the machine locale is zh_CN or it_IT .
             pytest.param(
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
-                ),
+                marks=td.skip_if_not_us_locale,
             ),
             pytest.param(
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
-                ),
+                marks=td.skip_if_not_us_locale,
             ),
             pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
-                ),
+                marks=td.skip_if_not_us_locale,
             ),
         ],
     )

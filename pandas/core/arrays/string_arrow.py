@@ -166,6 +166,24 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         """
         return type(self)(pa_array, dtype=self.dtype)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        if len(values) == 0:
+            return self[:0].copy()
+
+        try:
+            arr = pa.array(values, from_pandas=True)
+        except (ValueError, TypeError):
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
+            return self._from_pyarrow_array(arr)
+        if self.dtype.na_value is np.nan:
+            # ArrowEA has different semantics, so we return numpy-based
+            #  result instead
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        return ArrowExtensionArray(arr)
+
     @classmethod
     def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
         pa_scalar = super()._box_pa_scalar(value, pa_type)
