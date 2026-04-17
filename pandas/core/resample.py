@@ -2669,9 +2669,9 @@ class TimeGrouper(Grouper):
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]  # type: ignore[assignment]
+                labels = labels[1:]
         elif self.label == "right":
-            labels = labels[1:]  # type: ignore[assignment]
+            labels = labels[1:]
 
         if nat_count > 0:
             # shift bins by the number of NaT (they sort to the front of asi8)
@@ -2684,7 +2684,7 @@ class TimeGrouper(Grouper):
         # adjust the labels
         # GH4076
         if len(bins) < len(labels):
-            labels = labels[: len(bins)]  # type: ignore[assignment]
+            labels = labels[: len(bins)]
 
         return binner, bins, labels
 
@@ -2721,7 +2721,7 @@ class TimeGrouper(Grouper):
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
-                binner = binner[:-1]  # type: ignore[assignment]
+                binner = binner[:-1]
         else:
             bin_edges = binner.asi8
         return binner, bin_edges

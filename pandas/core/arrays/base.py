@@ -1979,6 +1979,9 @@ class ExtensionArray:
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
 
+        Scalar values for `indices` are not supported. If needed,
+        use a list-like wrapping a single element (e.g. ``[index]``).
+
         Examples
         --------
         Here's an example implementation, which relies on casting the
@@ -2889,7 +2892,10 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        return map_array(self, mapper, na_action=na_action)
+        result = map_array(self, mapper, na_action=na_action)
+        if isinstance(result, np.ndarray):
+            return self._cast_pointwise_result(result)
+        return result
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

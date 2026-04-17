@@ -22,7 +22,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos as libalgos,
@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -1670,7 +1671,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = _global_config["display"]["multi_sparse"]
+            sparsify = config["display"]["multi_sparse"]
 
         if sparsify:
             sentinel: Literal[""] | bool | lib.NoDefault = ""
@@ -1815,6 +1816,36 @@ class MultiIndex(Index):
     def is_monotonic_increasing(self) -> bool:
         """
         Return a boolean if the values are equal or increasing.
+
+        For a MultiIndex, this checks whether the tuples are in
+        lexicographically non-decreasing order: the first level is
+        compared first, ties are broken by the second level, and so on.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        MultiIndex.is_monotonic_decreasing : Check if the values are
+            equal or decreasing.
+        MultiIndex.sortlevel : Sort a MultiIndex by the requested level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        >>> mi.is_monotonic_increasing
+        True
+
+        Ties at one level are broken by the next level:
+
+        >>> mi = pd.MultiIndex.from_arrays([[1, 1, 2], [1, 2, 1]])
+        >>> mi.is_monotonic_increasing
+        True
+
+        >>> mi = pd.MultiIndex.from_arrays([[1, 1, 2], [2, 1, 3]])
+        >>> mi.is_monotonic_increasing
+        False
         """
         if any(-1 in code for code in self.codes):
             return False
@@ -1846,6 +1877,36 @@ class MultiIndex(Index):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return a boolean if the values are equal or decreasing.
+
+        For a MultiIndex, this checks whether the tuples are in
+        lexicographically non-increasing order: the first level is
+        compared first, ties are broken by the second level, and so on.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        MultiIndex.is_monotonic_increasing : Check if the values are
+            equal or increasing.
+        MultiIndex.sortlevel : Sort a MultiIndex by the requested level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["c", "b", "a"], [3, 2, 1]])
+        >>> mi.is_monotonic_decreasing
+        True
+
+        Ties at one level are broken by the next level:
+
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1, 1], [1, 2, 1]])
+        >>> mi.is_monotonic_decreasing
+        True
+
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1, 1], [3, 1, 2]])
+        >>> mi.is_monotonic_decreasing
+        False
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
@@ -1983,8 +2044,13 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        return lev._shallow_copy(filled, name=name)
+        if lev._can_hold_na:
+            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
+        else:
+            # Index.take raises for integer dtypes with -1 (NA) codes
+            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+            result = lev._shallow_copy(filled, name=name)
+        return result
 
     def get_level_values(self, level) -> Index:
         """
@@ -2888,7 +2954,7 @@ class MultiIndex(Index):
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
                     if (
-                        _global_config["mode"]["performance_warnings"]
+                        config["mode"]["performance_warnings"]
                         and self._lexsort_depth == 0
                     ):
                         warnings.warn(
@@ -3451,6 +3517,10 @@ class MultiIndex(Index):
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
+                if isinstance(lab, str) and is_numeric_dtype(lev.dtype):
+                    # GH#60104 - numpy searchsorted gives wrong results for
+                    # string vs numeric comparisons; raise early
+                    raise TypeError(f"Level type mismatch: {lab}")
                 try:
                     loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:
@@ -3619,7 +3689,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if _global_config["mode"]["performance_warnings"]:
+        if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,

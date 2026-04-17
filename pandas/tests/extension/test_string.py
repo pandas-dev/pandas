@@ -101,6 +101,17 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestStringArray(base.ExtensionTests):
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action, request, using_infer_string):
+        if data_missing.dtype.storage == "python" and not using_infer_string:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="StringArray[python] _cast_pointwise_result "
+                    "does not re-wrap, going away with infer_string"
+                )
+            )
+        super().test_map(data_missing, na_action)
+
     def test_combine_le(self, data_repeated):
         dtype = next(iter(data_repeated(2))).dtype
         if dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
