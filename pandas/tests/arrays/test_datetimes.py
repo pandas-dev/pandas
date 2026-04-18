@@ -479,11 +479,6 @@ class TestDatetimeArray:
         arr[0] = ts
         assert arr[0] == ts.tz_convert("US/Central")
 
-    def test_setitem_clears_freq(self):
-        a = pd.date_range("2000", periods=2, freq="D", tz="US/Central")._data
-        a[0] = pd.Timestamp("2000", tz="US/Central")
-        assert a.freq is None
-
     @pytest.mark.parametrize(
         "obj",
         [

@@ -1099,6 +1099,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t1
             dta[i] = s
 
+        dta._freq = None
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
