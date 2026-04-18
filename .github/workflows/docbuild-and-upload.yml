@@ -57,6 +57,8 @@ jobs:
         elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
           echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
+        else
+          PANDAS_VERSION=""
         fi
 
         if [[ "$EVENT_NAME" == "push" && -n "$PANDAS_VERSION" ]]; then
