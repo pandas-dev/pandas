@@ -186,6 +186,9 @@ Performance improvements
 - Performance improvement in :meth:`Series.iloc` and :meth:`DataFrame.iloc`
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
+- Performance improvement in tab completion and :meth:`DataFrame.__dir__`
+  for :class:`DataFrame` and :class:`Series` with a large string-valued
+  index or large number of columns (:issue:`18587`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
