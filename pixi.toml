@@ -170,6 +170,8 @@ args = [
   { "arg" = "editable", "default" = "" },
   { "arg" = "werror", "default" = "" },
 ]
+# https://github.com/pandas-dev/pandas/pull/65228, changed with Meson 1.11
+env = { PKG_CONFIG_PATH = "$CONDA_PREFIX/lib/pkgconfig" }
 cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME {{ werror }}"
 depends-on = ["uninstall-pandas"]
 
