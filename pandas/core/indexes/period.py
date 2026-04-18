@@ -502,6 +502,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def values(self) -> npt.NDArray[np.object_]:
         return np.asarray(self, dtype=object)
 
+    def _mpl_repr(self) -> np.ndarray:
+        # Return ordinals directly so matplotlib receives numeric x-values,
+        # bypassing a round-trip through Period scalar objects.  GH#10578
+        return self.asi8
+
     def _maybe_convert_timedelta(self, other) -> int | npt.NDArray[np.int64]:
         """
         Convert timedelta-like input to an integer multiple of self.freq
