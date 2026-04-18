@@ -5,7 +5,6 @@ from datetime import (
     timedelta,
 )
 from functools import wraps
-from itertools import pairwise
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -36,7 +35,6 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Period,
-    Resolution,
     Tick,
     Timedelta,
     Timestamp,
@@ -47,7 +45,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
-    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -55,7 +52,6 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
-from pandas._libs.tslibs.offsets import FY5253Mixin
 from pandas._libs.tslibs.timedeltas import get_unit_for_round
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
@@ -71,7 +67,6 @@ from pandas._typing import (
     PositionalIndexerTuple,
     ScalarIndexer,
     SequenceIndexer,
-    TakeIndexer,
     TimeAmbiguous,
     TimeNonexistent,
     npt,
@@ -133,16 +128,12 @@ from pandas.core.arrays._mixins import (
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.integer import IntegerArray
-import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
-    check_array_indexer,
-    check_setitem_lengths,
-)
+from pandas.core.indexers import check_setitem_lengths
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.ops.invalid import (
     invalid_comparison,
@@ -397,37 +388,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             # At this point we know the result is an array.
             result = cast("Self", result)
-        # error: Incompatible types in assignment (expression has type
-        # "BaseOffset | None", variable has type "None")
-        result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
         return result
-
-    def _get_getitem_freq(self, key) -> BaseOffset | None:
-        """
-        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
-        """
-        is_period = isinstance(self.dtype, PeriodDtype)
-        if is_period:
-            freq = self.freq
-        elif self.ndim != 1:
-            freq = None
-        else:
-            key = check_array_indexer(self, key)  # maybe ndarray[bool] -> slice
-            freq = None
-            if isinstance(key, slice):
-                if self.freq is not None and key.step is not None:
-                    freq = key.step * self.freq
-                else:
-                    freq = self.freq
-            elif key is Ellipsis:
-                # GH#21282 indexing with Ellipsis is similar to a full slice,
-                #  should preserve `freq` attribute
-                freq = self.freq
-            elif com.is_bool_indexer(key):
-                new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-                if isinstance(new_key, slice):
-                    return self._get_getitem_freq(new_key)
-        return freq
 
     # error: Argument 1 of "__setitem__" is incompatible with supertype
     # "ExtensionArray"; supertype defines the argument type as "Union[int,
@@ -532,10 +493,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # we need to explicitly call super() method as long as the `@overload`s
         #  are present in this file.
         return super().view(dtype)
-
-    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
-        super()._putmask(mask, value)
-        self._freq = None  # GH#24555
 
     # ------------------------------------------------------------------
     # Validation Methods
@@ -995,24 +952,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         except ValueError:
             return None
 
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def _resolution_obj(self) -> Resolution | None:
-        freqstr = self.freqstr
-        if freqstr is None:
-            return None
-        try:
-            return Resolution.get_reso_from_freqstr(freqstr)
-        except KeyError:
-            return None
-
-    @property  # NB: override with cache_readonly in immutable subclasses
-    def resolution(self) -> str:
-        """
-        Returns day, hour, minute, second, millisecond or microsecond
-        """
-        # error: Item "None" of "Optional[Any]" has no attribute "attrname"
-        return self._resolution_obj.attrname  # type: ignore[union-attr]
-
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
 
@@ -1136,48 +1075,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return i8values, mask
 
     @final
-    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
-        """
-        Check if we can preserve self.freq in addition or subtraction.
-        """
-        # Adding or subtracting a Timedelta/Timestamp scalar is freq-preserving
-        #  whenever self.freq is a Tick
-        if isinstance(self.dtype, PeriodDtype):
-            return self.freq
-        elif not lib.is_scalar(other):
-            return None
-        elif isinstance(self.freq, Tick):
-            # In these cases
-            return self.freq
-        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
-            return self.freq
-        elif (
-            self.dtype.kind == "m"
-            and isinstance(other, Timestamp)
-            and (other.tz is None or timezones.is_utc(other.tz))
-        ):
-            # e.g. test_td64arr_add_sub_datetimelike_scalar tdarr + timestamp
-            #  gives a DatetimeArray. As long as the timestamp has no timezone
-            #  or UTC, the result can retain a Day freq.
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(self.freq, Day)
-            and isinstance(other, Timedelta)
-        ):
-            # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
-            # Day is unambiguously 24h
-            return self.freq
-        elif (
-            lib.is_np_dtype(self.dtype, "M")
-            and isinstance(other, Timestamp)
-            and isinstance(self.freq, Day)
-        ):
-            return self.freq
-
-        return None
-
-    @final
     def _add_datetimelike_scalar(self, other) -> DatetimeArray:
         if not lib.is_np_dtype(self.dtype, "m"):
             raise TypeError(
@@ -1208,8 +1105,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
         res_values = result.view(f"M8[{self.unit}]")
-        new_freq = self._get_arithmetic_result_freq(other)
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
+        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=None)
 
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
@@ -1269,9 +1165,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
-        new_freq = self._get_arithmetic_result_freq(other)
-        new_freq = cast("Tick | None", new_freq)
-        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
+        return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=None)
 
     @final
     def _add_period(self, other: Period) -> PeriodArray:
@@ -1333,13 +1227,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
-        new_freq = self._get_arithmetic_result_freq(other)
-
         # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
             res_values,
             dtype=self.dtype,
-            freq=new_freq,  # type: ignore[call-arg]
+            freq=None,  # type: ignore[call-arg]
         )
 
     @final
@@ -1623,19 +1515,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
-
-        if not isinstance(self.dtype, PeriodDtype):
-            # restore freq, which is invalidated by setitem
-            self._freq = result.freq
         return self
 
     # --------------------------------------------------------------
@@ -1973,65 +1857,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         self._freq = value
 
     @final
-    def _maybe_pin_freq(self, freq, validate_kwds: dict) -> None:
-        """
-        Constructor helper to pin the appropriate `freq` attribute.  Assumes
-        that self._freq is currently set to any freq inferred in
-        _from_sequence_not_strict.
-        """
-        if freq is None:
-            # user explicitly passed None -> override any inferred_freq
-            self._freq = None
-        elif freq == "infer":
-            # if self._freq is *not* None then we already inferred a freq
-            #  and there is nothing left to do
-            if self._freq is None:
-                # Set _freq directly to bypass duplicative _validate_frequency
-                # check.
-                self._freq = to_offset(self.inferred_freq)  # type: ignore[assignment]
-        elif freq is lib.no_default:
-            # user did not specify anything, keep inferred freq if the original
-            #  data had one, otherwise do nothing
-            pass
-        elif self._freq is None:
-            # We cannot inherit a freq from the data, so we need to validate
-            #  the user-passed freq
-            freq = to_offset(freq)
-            type(self)._validate_frequency(self, freq, **validate_kwds)
-            self._freq = freq
-        else:
-            # Otherwise we just need to check that the user-passed freq
-            #  doesn't conflict with the one we already have.
-            freq = to_offset(freq)
-            if freq != self._freq:
-                # GH#61086 freq may be equivalent but not equal (e.g.
-                # QS-FEB vs QS-MAY), so validate against the actual data.
-                if len(self) == 0:
-                    pass
-                elif len(self) == 1:
-                    if not freq.is_on_offset(self[0]):
-                        raise ValueError(
-                            f"Inferred frequency {self._freq} from passed "
-                            "values does not conform to passed frequency "
-                            f"{freq.freqstr}"
-                        )
-                elif self[0] + freq == self[1]:
-                    # For standard offsets, the step is a deterministic
-                    # function of the date, so agreement on one step proves
-                    # equivalence. For Custom/FY5253 offsets, external
-                    # state (holidays, 52/53-week patterns) could cause
-                    # later steps to diverge, so we validate fully.
-                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
-                        type(self)._validate_frequency(self, freq, **validate_kwds)
-                else:
-                    raise ValueError(
-                        f"Inferred frequency {self._freq} from passed "
-                        "values does not conform to passed frequency "
-                        f"{freq.freqstr}"
-                    )
-            self._freq = freq
-
-    @final
     @classmethod
     def _validate_frequency(cls, index, freq: BaseOffset, **kwargs) -> None:
         """
@@ -2170,12 +1995,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             tz = cast("DatetimeArray", self).tz
             new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
 
-        # error: Unexpected keyword argument "freq" for "_simple_new" of
-        # "NDArrayBacked"  [call-arg]
         return type(self)._simple_new(
             new_values,
             dtype=new_dtype,
-            freq=self.freq,  # type: ignore[call-arg]
         )
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
@@ -2580,14 +2402,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if freq is None:
             # Always valid
             pass
-        elif len(self) == 0 and isinstance(freq, BaseOffset):
-            # Always valid.  In the TimedeltaArray case, we require a Tick offset
+        elif isinstance(freq, BaseOffset):
+            # In the TimedeltaArray case, we require a Tick offset
             if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
-        else:
-            # As an internal method, we can ensure this assertion always holds
-            assert freq == "infer"
+        elif freq == "infer":
             freq = to_offset(self.inferred_freq)
+        else:
+            raise ValueError(f"Invalid frequency: {freq!r}")
 
         arr = self.view()
         arr._freq = freq
@@ -2607,16 +2429,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         use_na_sentinel: bool = True,
         sort: bool = False,
     ):
-        if self.freq is not None:
-            # We must be unique, so can short-circuit (and retain freq)
-            if sort and self.freq.n < 0:
-                codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
-                uniques = self[::-1]
-            else:
-                codes = np.arange(len(self), dtype=np.intp)
-                uniques = self.copy()  # TODO: copy or view?
-            return codes, uniques
-
         if sort:
             # algorithms.factorize only passes sort=True here when freq is
             #  not None, so this should not be reached.
@@ -2634,24 +2446,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         axis: AxisInt = 0,
     ) -> Self:
         new_obj = super()._concat_same_type(to_concat, axis)
-
-        obj = to_concat[0]
-
-        if axis == 0:
-            # GH 3232: If the concat result is evenly spaced, we can retain the
-            # original frequency
-            to_concat = [x for x in to_concat if len(x)]
-
-            if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = pairwise(to_concat)
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                    new_freq = obj.freq
-                    new_obj._freq = new_freq
         return new_obj
 
     def copy(self, order: str = "C") -> Self:
         new_obj = super().copy(order=order)
-        new_obj._freq = self.freq
+        new_obj._freq = self._freq
         return new_obj
 
     def interpolate(
@@ -2691,27 +2490,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
-
-    def take(
-        self,
-        indices: TakeIndexer,
-        *,
-        allow_fill: bool = False,
-        fill_value: Any = None,
-        axis: AxisInt = 0,
-    ) -> Self:
-        result = super().take(
-            indices=indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
-        )
-
-        indices = np.asarray(indices, dtype=np.intp)
-        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))  # type: ignore[arg-type]
-
-        if isinstance(maybe_slice, slice):
-            freq = self._get_getitem_freq(maybe_slice)
-            result._freq = freq  # type: ignore[assignment]
-
-        return result
 
     # --------------------------------------------------------------
     # Unsorted

@@ -41,6 +41,7 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
+    construct_1d_object_array_from_listlike,
     convert_dtypes,
     find_result_type,
     np_can_hold_element,
@@ -1132,6 +1133,15 @@ class Block(PandasObject, libinternals.Block):
                 else:
                     num_set = len(values[indexer])
                 casted = setitem_datetimelike_compat(values, num_set, casted)
+
+                if (
+                    isinstance(casted, list)
+                    and len(casted) > 0
+                    and isinstance(casted[0], (tuple, list, np.ndarray))
+                ):
+                    # Prevent numpy from unpacking nested containers
+                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
             values = cast("np.ndarray", self.values.T)

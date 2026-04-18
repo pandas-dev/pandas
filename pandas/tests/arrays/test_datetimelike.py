@@ -1109,13 +1109,13 @@ class TestPeriodArray(SharedTests):
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"
         dta = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")._data
-        parr = dta.to_period()
+        parr = dta.to_period("B")
         result = parr.to_timestamp()
         assert result.freq == "B"
         tm.assert_extension_array_equal(result, dta.as_unit("us"))
 
         dta2 = dta[::2]
-        parr2 = dta2.to_period()
+        parr2 = dta2.to_period("2B")
         result2 = parr2.to_timestamp()
         assert result2.freq == "2B"
         tm.assert_extension_array_equal(result2, dta2.as_unit("us"))

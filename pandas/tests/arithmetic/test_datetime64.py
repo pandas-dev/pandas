@@ -784,7 +784,7 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
         expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz, unit="ns")
-        if tz is not None:
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -806,7 +806,7 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
         expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz, unit="ns")
-        if tz is not None:
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -1272,6 +1272,9 @@ class TestDatetime64DateOffsetArithmetic:
             freq="h",
             tz=tz,
         ).as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
+            dates = dates._with_freq(None)
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)

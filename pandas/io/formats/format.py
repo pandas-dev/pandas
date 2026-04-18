@@ -25,6 +25,7 @@ from typing import (
     Any,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -41,7 +42,9 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -1123,15 +1126,16 @@ def format_array(
     List[str]
     """
     fmt_klass: type[_GenericArrayFormatter]
-    if lib.is_np_dtype(values.dtype, "M"):
+    if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-    elif isinstance(values.dtype, DatetimeTZDtype):
-        fmt_klass = _Datetime64TZFormatter
-        values = cast("DatetimeArray", values)
+        if na_rep == "NaN":
+            na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
+        if na_rep == "NaN":
+            na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
@@ -1493,23 +1497,21 @@ class _Datetime64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: DatetimeArray,
-        nat_rep: str = "NaT",
+        na_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
     ) -> None:
-        super().__init__(values, **kwargs)
-        self.nat_rep = nat_rep
+        super().__init__(values, na_rep=na_rep, **kwargs)
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
-        """we by definition have DO NOT have a TZ"""
         values = self.values
 
         if self.formatter is not None:
             return [self.formatter(x) for x in values]
 
         fmt_values = values._format_native_types(
-            na_rep=self.nat_rep, date_format=self.date_format
+            na_rep=self.na_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
 
@@ -1623,9 +1625,9 @@ def get_precision(array: np.ndarray | Sequence[float]) -> int:
     return prec
 
 
-def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
+def _format_datetime64(x: NaTType | Timestamp, na_rep: str = "NaT") -> str:
     if x is NaT:
-        return nat_rep
+        return na_rep
 
     # Timestamp.__str__ falls back to datetime.datetime.__str__ = isoformat(sep=' ')
     # so it already uses string formatting rather than strftime (faster).
@@ -1634,11 +1636,11 @@ def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
 
 def _format_datetime64_dateonly(
     x: NaTType | Timestamp,
-    nat_rep: str = "NaT",
+    na_rep: str = "NaT",
     date_format: str | None = None,
 ) -> str:
     if isinstance(x, NaTType):
-        return nat_rep
+        return na_rep
 
     if date_format:
         return x.strftime(date_format)
@@ -1648,32 +1650,17 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only: bool, na_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
     if is_dates_only:
         return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format
+            x, na_rep=na_rep, date_format=date_format
         )
     else:
-        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
-
-
-class _Datetime64TZFormatter(_Datetime64Formatter):
-    values: DatetimeArray
-
-    def _format_strings(self) -> list[str]:
-        """we by definition have a TZ"""
-        ido = self.values._is_dates_only
-        values = self.values.astype(object)
-        formatter = self.formatter or get_format_datetime64(
-            ido, date_format=self.date_format
-        )
-        fmt_values = [formatter(x) for x in values]
-
-        return fmt_values
+        return lambda x: _format_datetime64(x, na_rep=na_rep)
 
 
 class _Timedelta64Formatter(_GenericArrayFormatter):
@@ -1682,23 +1669,21 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: TimedeltaArray,
-        nat_rep: str = "NaT",
+        na_rep: str = "NaT",
         **kwargs,
     ) -> None:
-        # TODO: nat_rep is never passed, na_rep is.
-        super().__init__(values, **kwargs)
-        self.nat_rep = nat_rep
+        super().__init__(values, na_rep=na_rep, **kwargs)
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, nat_rep=self.nat_rep, box=False
+            self.values, na_rep=self.na_rep, box=False
         )
         return [formatter(x) for x in self.values]
 
 
 def get_format_timedelta64(
     values: TimedeltaArray,
-    nat_rep: str | float = "NaT",
+    na_rep: str | float = "NaT",
     box: bool = False,
 ) -> Callable:
     """
@@ -1716,7 +1701,7 @@ def get_format_timedelta64(
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
-            return nat_rep
+            return na_rep
 
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
@@ -1963,6 +1948,11 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     """
     Format float representation in DataFrame with SI notation.
 
+    .. deprecated:: 3.1.0
+        Use ``pd.set_option("display.precision", N)`` to control decimal
+        precision, or pass a custom callable to
+        ``pd.set_option("display.float_format", func)``.
+
     Sets the floating-point display format for ``DataFrame`` objects using engineering
     notation (SI units), allowing easier readability of values across wide ranges.
 
@@ -1986,44 +1976,26 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
 
     Examples
     --------
-    >>> df = pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6])
-    >>> df
-                  0
-    0  1.000000e-09
-    1  1.000000e-03
-    2  1.000000e+00
-    3  1.000000e+03
-    4  1.000000e+06
+    Use ``pd.set_option("display.precision", N)`` to control decimal
+    precision instead:
 
-    >>> pd.set_eng_float_format(accuracy=1)
-    >>> df
-             0
-    0  1.0E-09
-    1  1.0E-03
-    2  1.0E+00
-    3  1.0E+03
-    4  1.0E+06
-
-    >>> pd.set_eng_float_format(use_eng_prefix=True)
-    >>> df
-            0
-    0  1.000n
-    1  1.000m
-    2   1.000
-    3  1.000k
-    4  1.000M
-
-    >>> pd.set_eng_float_format(accuracy=1, use_eng_prefix=True)
-    >>> df
-          0
-    0  1.0n
-    1  1.0m
-    2   1.0
-    3  1.0k
-    4  1.0M
-
-    >>> pd.set_option("display.float_format", None)  # unset option
+    >>> with pd.option_context("display.precision", 3):
+    ...     print(pd.DataFrame([1e-9, 1e-3, 1, 1e3, 1e6]))
+               0
+    0  1.000e-09
+    1  1.000e-03
+    2  1.000e+00
+    3  1.000e+03
+    4  1.000e+06
     """
+    warnings.warn(
+        "set_eng_float_format is deprecated and will be removed in a future "
+        "version. Use pd.set_option('display.precision', N) to control decimal "
+        "precision, or pass a custom callable to "
+        "pd.set_option('display.float_format', func).",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
 
 

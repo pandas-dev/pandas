@@ -2892,7 +2892,10 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        return map_array(self, mapper, na_action=na_action)
+        result = map_array(self, mapper, na_action=na_action)
+        if isinstance(result, np.ndarray):
+            return self._cast_pointwise_result(result)
+        return result
 
     # ------------------------------------------------------------------------
     # GroupBy Methods

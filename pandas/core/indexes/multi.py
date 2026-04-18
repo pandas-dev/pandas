@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -2043,8 +2044,13 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        return lev._shallow_copy(filled, name=name)
+        if lev._can_hold_na:
+            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
+        else:
+            # Index.take raises for integer dtypes with -1 (NA) codes
+            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+            result = lev._shallow_copy(filled, name=name)
+        return result
 
     def get_level_values(self, level) -> Index:
         """
@@ -3511,6 +3517,10 @@ class MultiIndex(Index):
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
+                if isinstance(lab, str) and is_numeric_dtype(lev.dtype):
+                    # GH#60104 - numpy searchsorted gives wrong results for
+                    # string vs numeric comparisons; raise early
+                    raise TypeError(f"Level type mismatch: {lab}")
                 try:
                     loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:

@@ -6,6 +6,14 @@ import pandas._testing as tm
 
 
 class BaseMissingTests:
+    def _honors_copy_keyword(self, data) -> bool:
+        """Whether the EA honors the copy keyword in methods like fillna.
+
+        EAs that always return new data regardless of copy=False should
+        override this to return False.
+        """
+        return True
+
     def test_isna(self, data_missing):
         expected = np.array([True, False])
 
@@ -137,10 +145,11 @@ class BaseMissingTests:
         assert result[0] == data_missing[1]
         tm.assert_extension_array_equal(data, data_missing)
 
-        # but with copy=False, this raises for EAs that respect the copy keyword
-        with pytest.raises(ValueError, match="Cannot modify read-only array"):
-            data.fillna(data_missing[1], copy=False)
-        tm.assert_extension_array_equal(data, data_missing)
+        if self._honors_copy_keyword(data_missing):
+            # with copy=False, this raises for EAs that respect the copy keyword
+            with pytest.raises(ValueError, match="Cannot modify read-only array"):
+                data.fillna(data_missing[1], copy=False)
+            tm.assert_extension_array_equal(data, data_missing)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]

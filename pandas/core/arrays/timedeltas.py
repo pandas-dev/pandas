@@ -18,14 +18,15 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Tick,
     Timedelta,
     astype_overflowsafe,
+    get_resolution,
     get_supported_dtype,
     iNaT,
     is_supported_dtype,
     periods_per_second,
-    to_offset,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas._libs.tslibs.fields import (
@@ -213,6 +214,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         return self._ndarray.dtype
 
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        return get_resolution(self.asi8, tz=None, reso=self._creso)
+
     # ----------------------------------------------------------------
     # Constructors
 
@@ -342,9 +347,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             if is_supported_dtype(dtype):
                 # unit conversion e.g. timedelta64[s]
                 res_values = astype_overflowsafe(self._ndarray, dtype, copy=False)
-                return type(self)._simple_new(
-                    res_values, dtype=res_values.dtype, freq=self.freq
-                )
+                return type(self)._simple_new(res_values, dtype=res_values.dtype)
             else:
                 raise ValueError(
                     f"Cannot convert from {self.dtype} to {dtype}. "
@@ -455,13 +458,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # numpy >= 2.1 may not raise a TypeError
                 # and seems to dispatch to others.__rmul__?
                 raise TypeError(f"Cannot multiply with {type(other).__name__}")
-            freq = None
-            if self.freq is not None and not isna(other):
-                freq = self.freq * other
-                if freq.n == 0:
-                    # GH#51575 Better to have no freq than an incorrect one
-                    freq = None
-            return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
+            return type(self)._simple_new(result, dtype=result.dtype)
 
         if not hasattr(other, "dtype"):
             # list, tuple
@@ -529,24 +526,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 )
 
             result = op(self._ndarray, other)
-            freq = None
-
-            if self.freq is not None:
-                # Note: freq gets division, not floor-division, even if op
-                #  is floordiv.
-                if isinstance(self.freq, Day):
-                    if self.freq.n % other == 0:
-                        freq = Day(self.freq.n // other)
-                    else:
-                        freq = to_offset(Timedelta(days=self.freq.n)) / other
-                else:
-                    freq = self.freq / other
-                if freq.nanos == 0 and self.freq.nanos != 0:
-                    # e.g. if self.freq is Nano(1) then dividing by 2
-                    #  rounds down to zero
-                    freq = None
-
-            return type(self)._simple_new(result, dtype=result.dtype, freq=freq)
+            return type(self)._simple_new(result, dtype=result.dtype)
 
     def _cast_divlike_op(self, other):
         if not hasattr(other, "dtype"):
@@ -715,15 +695,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         return res1, res2
 
     def __neg__(self) -> TimedeltaArray:
-        freq = None
-        if self.freq is not None:
-            freq = -self.freq
-        return type(self)._simple_new(-self._ndarray, dtype=self.dtype, freq=freq)
+        return type(self)._simple_new(-self._ndarray, dtype=self.dtype)
 
     def __pos__(self) -> TimedeltaArray:
-        return type(self)._simple_new(
-            self._ndarray.copy(), dtype=self.dtype, freq=self.freq
-        )
+        return type(self)._simple_new(self._ndarray.copy(), dtype=self.dtype)
 
     def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved
@@ -1163,7 +1138,6 @@ def sequence_to_td64ns(
                 result[mask] = iNaT
                 return result, inferred_freq
 
-        # If we have float32, cast to float64
         data = data.astype(np.float64, copy=False)
         try:
             data = cast_from_unit_vectorized(data, unit or "ns")
