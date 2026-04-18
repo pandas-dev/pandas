@@ -1066,10 +1066,11 @@ def test_resample_dst_direct_boundary():
 
 def test_resample_dst_generated_edge():
     # GH 62601
-    # Internally creates the nonexistent midnight edge (2024-04-26 00:00)
+    # Build the hourly data via periods so setup itself does not try to
+    # localize the nonexistent midnight edge (2024-04-26 00:00).
     ts = Series(
         1,
-        date_range("2024-04-25", "2024-04-26", tz="Africa/Cairo", freq="1h"),
+        date_range("2024-04-25", periods=25, tz="Africa/Cairo", freq="1h"),
     )
 
     result = ts.resample("1D").sum()
