@@ -292,3 +292,50 @@ class TestMultiIndexBasic:
         )
 
         tm.assert_frame_equal(meta, result)
+
+    def test_multiindex_setitem_object_dtype_level_no_silent_drop(self):
+        # GH#65118 - silent data loss when setting values on a MultiIndex
+        # with object-dtype level containing mixed types (string + int)
+        # where maybe_droplevels produces an Index with a falsy integer value (0)
+        cols = MultiIndex.from_tuples(
+            [("info", "M"), ("info", 0), ("earnings", 1), ("earnings", 2), ("prices", 0)]
+        )
+        df = DataFrame(
+            np.arange(20, dtype=float).reshape(4, 5), columns=cols
+        )
+        original = df.copy()
+
+        # This used to silently drop the assignment because:
+        # - is_string_dtype(object) is True
+        # - Index([0]).any() is False (0 is falsy)
+        # causing the early return intended for empty-string columns
+        df["prices"] = df["prices"] / 100
+
+        expected = original.copy()
+        expected["prices"] = expected["prices"] / 100
+        tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_setitem_object_dtype_level_single_subcolumn(self):
+        # GH#65118 - variant with a single subcolumn under a top-level key
+        cols = MultiIndex.from_tuples([("A", 0), ("B", "x")])
+        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=cols)
+
+        df["A"] = df["A"] * 10
+
+        expected = DataFrame([[10.0, 2.0], [30.0, 4.0]], columns=cols)
+        tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_setitem_object_dtype_level_falsy_values(self):
+        # GH#65118 - ensure falsy but non-empty-string values in object-dtype
+        # level are not mistaken for empty-string columns
+        cols = MultiIndex.from_tuples(
+            [("group", "a"), ("group", 0), ("group", "")]
+        )
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
+
+        # The ("group", "") column should still be writable
+        result = df.copy()
+        result["group"] = result["group"] + 10
+
+        expected = DataFrame([[11, 12, 13], [14, 15, 16]], columns=cols)
+        tm.assert_frame_equal(result, expected)
