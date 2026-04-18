@@ -267,3 +267,27 @@ def test_isin_filtering_on_iterable(data, isin):
     expected_result = Series([True, True, False])
 
     tm.assert_series_equal(result, expected_result)
+
+
+@pytest.mark.parametrize("set_cls", [set, frozenset])
+@pytest.mark.parametrize("dtype", ["int64", "int32", "uint8", "uint64", "bool"])
+def test_isin_set_matches_list(set_cls, dtype):
+    # GH#25507: set membership fast path for integer/bool comps must match
+    # the result of the list-based path.
+    if dtype == "bool":
+        ser = Series([True, False, True, False])
+        targets = [True]
+    else:
+        ser = Series([1, 2, 3, 4, 5], dtype=dtype)
+        targets = [2, 4, 7]
+    expected = ser.isin(list(targets))
+    result = ser.isin(set_cls(targets))
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_empty_set():
+    # GH#25507 set fast path must handle empty set
+    ser = Series([1, 2, 3])
+    result = ser.isin(set())
+    expected = Series([False, False, False])
+    tm.assert_series_equal(result, expected)

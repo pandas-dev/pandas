@@ -519,6 +519,28 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f"to isin(), you passed a `{type(values).__name__}`"
         )
 
+    if isinstance(values, (set, frozenset)) and len(values) > 0:
+        # GH#25507: for a set of values, membership can be tested directly
+        # via the set, avoiding an O(len(values)) materialization that
+        # otherwise dominates when comps is much smaller than values.
+        # Restrict to integer/bool comps (i.e. dtypes that cannot contain
+        # NaN), since Python set membership would mis-handle the case where
+        # both sides contain NaN values that are not identical.
+        if isinstance(comps, (ABCSeries, ABCIndex)):
+            comps_arr = comps._values
+        else:
+            comps_arr = comps
+        if (
+            isinstance(comps_arr, np.ndarray)
+            and comps_arr.ndim == 1
+            and comps_arr.dtype.kind in "iub"
+        ):
+            return np.fromiter(
+                (item in values for item in comps_arr.tolist()),
+                dtype=bool,
+                count=comps_arr.size,
+            )
+
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
@@ -529,9 +551,27 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             and not is_signed_integer_dtype(comps)
             and not is_dtype_equal(values, comps)
         ):
-            # GH#46485 Use object to avoid upcast to float64 later
+            # GH#46485: np.result_type(int, uint) is float64, which loses
+            # precision for uint64 magnitudes > 2**53. Only recast to object
+            # in that precision-losing case — otherwise keep the numeric
+            # ndarray so the downstream htable dispatch can use the fast
+            # numeric path.
             # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(orig_values)
+            comps_dtype = getattr(comps, "dtype", None)
+            # values came from _ensure_arraylike's numeric branch, so its
+            # dtype is an np.dtype.
+            values_dtype = cast("np.dtype", values.dtype)
+            if not isinstance(comps_dtype, np.dtype):
+                needs_object = True
+            else:
+                common = np_find_common_type(values_dtype, comps_dtype)
+                needs_object = common.kind not in "iufcb" or (
+                    common.kind == "f"
+                    and values_dtype.kind in "iu"
+                    and comps_dtype.kind in "iu"
+                )
+            if needs_object:
+                values = construct_1d_object_array_from_listlike(orig_values)
 
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
