@@ -149,6 +149,18 @@ A different alternative would be to not use ``inplace``:
     df["foo"] = df["foo"].replace(1, 5)
     df
 
+**Column-level attrs are not supported**
+
+With Copy-on-Write, assigning attributes to a column (a Series obtained from a DataFrame)
+is not supported.
+
+Previously, assigning metadata to a column via ``.attrs`` could appear to work, but this
+behavior was unreliable and could break during operations such as copying, modifying, or
+recomputing the DataFrame.
+
+Users should avoid relying on column-level ``.attrs``. Instead, store metadata at the
+DataFrame level or in an external structure.
+
 **Constructors now copy NumPy arrays by default**
 
 The Series and DataFrame constructors now copies a NumPy array by default when not
