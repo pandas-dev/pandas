@@ -970,6 +970,7 @@ def test_resample_origin_with_day_freq_on_dst(unit):
 
 
 def test_resample_dst_crosses_boundary():
+    # GH 62601
     # Data spans April 24 through April 27, crossing the DST gap on April 26
     ts = Series(
         1,
@@ -979,14 +980,18 @@ def test_resample_dst_crosses_boundary():
     # Hardcoded expected: bin edges are midnight each day (adjusted for DST).
     # April 24 00:00 -> April 25 00:00: 25 points (inclusive start, exclusive end would
     # give 24, but date_range includes both endpoints, so count carefully)
-    # Rather than count manually, verify shape and that no exception is raised.
+    # Rather than count manually, verify shape and that no execption is raised.
     result = ts.resample("1D").sum()
 
-    # Should produce one bin per calendar day without raising NonExistentTimeError.
-    assert isinstance(result, Series)
-    assert not result.empty
-    # All values must be positive (Every bin has at least one observation)
-    assert (result > 0).all()
+    expected = Series(
+        [24, 24, 23, 1],    # April 26 loses an hour to DST; April 27 is endpoint only
+        index=pd.DatetimeIndex(
+            ["2024-04-24", "2024-04-25", "2024-04-26", "2024-04-27"],
+            tz="Africa/Cairo",
+            freq="D",
+        ),
+    )
+    tm.assert_series_equal(result,expected,check_freq=False)
 
 
 def test_resample_dst_15min_across_boundary():
