@@ -1064,8 +1064,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # "Union[dtype[datetime64], DatetimeTZDtype]"
             res_values,
             dtype=self.dtype,  # type: ignore[arg-type]
-            freq=new_freq,  # type: ignore[arg-type]
         )
+        result._freq = new_freq
         return cast("Self", self._wrap_setop_result(other, result))
 
     def _range_intersect(self, other, sort) -> Self:

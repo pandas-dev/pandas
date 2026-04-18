@@ -137,9 +137,8 @@ class TestTimedeltaIndex:
 
         res = tdi.astype("m8[s]")
         exp_values = np.asarray(tdi).astype("m8[s]")
-        exp_tda = TimedeltaArray._simple_new(
-            exp_values, dtype=exp_values.dtype, freq=tdi.freq
-        )
+        exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
+        exp_tda._freq = tdi.freq
         expected = Index(exp_tda)
         assert expected.dtype == "m8[s]"
         tm.assert_index_equal(res, expected)
