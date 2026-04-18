@@ -8,7 +8,10 @@ from csv import (
 )
 import warnings
 
-from pandas._config import is_nan_na
+from pandas._config import (
+    is_nan_na,
+    using_string_dtype,
+)
 
 from pandas.util._exceptions import find_stack_level
 
@@ -24,6 +27,10 @@ from pandas.core.arrays import (
 )
 
 cimport cython
+from cpython.bytearray cimport (
+    PyByteArray_AsString,
+    PyByteArray_Resize,
+)
 from cpython.bytes cimport PyBytes_AsString
 from cpython.exc cimport (
     PyErr_Fetch,
@@ -42,8 +49,10 @@ from cpython.unicode cimport (
     PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
+from libc.stdint cimport INT32_MAX
 from libc.stdlib cimport free
 from libc.string cimport (
+    memcpy,
     strcasecmp,
     strlen,
     strncpy,
@@ -54,6 +63,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     float64_t,
+    int32_t,
     int64_t,
     ndarray,
     uint8_t,
@@ -1033,6 +1043,8 @@ cdef class TextReader:
                 return col_res, na_count
 
         if i in self.noconvert:
+            # noconvert columns are parse_dates targets; keep them as
+            # object ndarray so to_datetime can take its fast path.
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
@@ -1040,6 +1052,16 @@ cdef class TextReader:
             for dt in self.dtype_cast_order:
                 if not maybe_int and dt.kind in "iu":
                     continue
+
+                if dt == object:
+                    # Last fallback in the cast order: route directly through
+                    # _string_convert so the pyarrow fast path can fire when
+                    # allow_pyarrow applies (col_dtype is None). Bypass
+                    # _convert_with_dtype to avoid its default allow_pyarrow=False.
+                    col_res, na_count = self._string_convert(
+                        i, start, end, na_filter, na_hashset,
+                        allow_pyarrow=col_dtype is None)
+                    break
 
                 try:
                     col_res, na_count = self._convert_with_dtype(
@@ -1053,17 +1075,17 @@ cdef class TextReader:
                         # and we discover that we cannot convert to any numerical
                         # dtype successfully. As a result, we leave the data
                         # column AS IS with object dtype.
-                        col_res, na_count = self._convert_with_dtype(
-                            np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset, False)
+                        col_res, na_count = self._string_convert(
+                            i, start, end, 0, na_hashset,
+                            allow_pyarrow=col_dtype is None)
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
                                                         end, na_filter, na_hashset)
                     except ValueError:
-                        col_res, na_count = self._convert_with_dtype(
-                            np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset, False)
+                        col_res, na_count = self._string_convert(
+                            i, start, end, 0, na_hashset,
+                            allow_pyarrow=col_dtype is None)
 
                 if col_res is not None:
                     break
@@ -1211,9 +1233,21 @@ cdef class TextReader:
         else:
             raise TypeError(f"the dtype {dtype} is not supported for parsing")
 
-    # -> tuple[ndarray[object], int]
+    # -> tuple[ArrayLike, int]
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
-                         bint na_filter, kh_str_starts_t *na_hashset):
+                         bint na_filter, kh_str_starts_t *na_hashset,
+                         bint allow_pyarrow=False):
+
+        cdef str target = ""
+        if allow_pyarrow and strcasecmp(self.encoding_errors, "strict") == 0:
+            if self.dtype_backend == "pyarrow":
+                target = "arrow"
+            elif self.dtype_backend == "numpy" and using_string_dtype():
+                target = "str_nan"
+
+        if target:
+            return _string_pyarrow_utf8(self.parser, i, start, end, na_filter,
+                                        na_hashset, target)
 
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
@@ -1514,6 +1548,137 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     kh_destroy_strbox(table)
 
     return result, na_count
+
+
+# -> tuple[ExtensionArray, int]
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
+                          int64_t line_start, int64_t line_end,
+                          bint na_filter, kh_str_starts_t *na_hashset,
+                          str target):
+    """
+    Build a pyarrow-backed string ExtensionArray directly from the C parser
+    buffers, bypassing the intermediate ``ndarray[object]`` and its associated
+    ``PyUnicode`` allocations plus the downstream ``_from_sequence`` walk.
+
+    target = "str_nan"    -> ArrowStringArray with StringDtype(na_value=np.nan)
+                             (default when ``using_string_dtype()`` is on)
+    target = "arrow"      -> ArrowExtensionArray(pa.string())
+                             (dtype_backend="pyarrow")
+
+    For "str_nan" we use ``pa.large_string()`` (int64 offsets) to match
+    StringDtype's pyarrow storage. For "arrow" we keep ``pa.string()`` (int32
+    offsets) to match the dtype_backend="pyarrow" convention — callers must
+    ensure the total byte size fits in 2GiB.
+    """
+    import pyarrow as pa
+
+    from pandas.core.arrays.string_ import StringDtype
+    from pandas.core.arrays.string_arrow import ArrowStringArray
+    cdef:
+        int na_count = 0
+        Py_ssize_t i, lines, wlen
+        Py_ssize_t total_bytes = 0
+        Py_ssize_t alloc_bytes
+        coliter_t it
+        const char *word = NULL
+        ndarray[int32_t, ndim=1] offsets32
+        ndarray[int64_t, ndim=1] offsets64
+        ndarray[uint8_t, ndim=1] validity_arr
+        int32_t *offsets32_ptr = NULL
+        int64_t *offsets64_ptr = NULL
+        uint8_t *validity_ptr = NULL
+        char *data_ptr
+        object data_ba
+        bint large = target == "str_nan"
+        bint track_validity = na_filter
+
+    lines = line_end - line_start
+    if large:
+        offsets64 = np.empty(lines + 1, dtype=np.int64)
+        offsets64_ptr = <int64_t *>offsets64.data
+        offsets64_ptr[0] = 0
+    else:
+        offsets32 = np.empty(lines + 1, dtype=np.int32)
+        offsets32_ptr = <int32_t *>offsets32.data
+        offsets32_ptr[0] = 0
+
+    if track_validity:
+        validity_arr = np.zeros((lines + 7) // 8, dtype=np.uint8)
+        validity_ptr = <uint8_t *>validity_arr.data
+    else:
+        validity_arr = None
+
+    alloc_bytes = 64 if lines == 0 else max(lines * 8, 64)
+    data_ba = bytearray(alloc_bytes)
+    data_ptr = PyByteArray_AsString(data_ba)
+
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            na_count += 1
+            if large:
+                offsets64_ptr[i + 1] = <int64_t>total_bytes
+            else:
+                offsets32_ptr[i + 1] = <int32_t>total_bytes
+            continue
+
+        wlen = strlen(word)
+
+        if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
+            raise OverflowError(
+                "String column exceeds 2GiB, which is the maximum supported "
+                "by pyarrow's 'string' type."
+            )
+
+        while total_bytes + wlen > alloc_bytes:
+            alloc_bytes *= 2
+            PyByteArray_Resize(data_ba, alloc_bytes)
+            data_ptr = PyByteArray_AsString(data_ba)
+
+        if wlen:
+            memcpy(data_ptr + total_bytes, word, <size_t>wlen)
+        total_bytes += wlen
+
+        if large:
+            offsets64_ptr[i + 1] = <int64_t>total_bytes
+        else:
+            offsets32_ptr[i + 1] = <int32_t>total_bytes
+
+        if track_validity:
+            validity_ptr[i >> 3] |= <uint8_t>(1 << (i & 7))
+
+    PyByteArray_Resize(data_ba, total_bytes)
+
+    if large:
+        offsets_buf = pa.py_buffer(offsets64)
+        pa_type = pa.large_string()
+    else:
+        offsets_buf = pa.py_buffer(offsets32)
+        pa_type = pa.string()
+    data_buf = pa.py_buffer(data_ba)
+    if na_count > 0:
+        validity_buf = pa.py_buffer(validity_arr)
+        pa_arr = pa.Array.from_buffers(
+            pa_type, lines, [validity_buf, offsets_buf, data_buf],
+            null_count=na_count,
+        )
+    else:
+        pa_arr = pa.Array.from_buffers(
+            pa_type, lines, [None, offsets_buf, data_buf],
+            null_count=0,
+        )
+
+    if target == "str_nan":
+        return (
+            ArrowStringArray(pa_arr, dtype=StringDtype(na_value=np.nan)),
+            na_count,
+        )
+    return ArrowExtensionArray(pa_arr), na_count
 
 
 @cython.wraparound(False)
