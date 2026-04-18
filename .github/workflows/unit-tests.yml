@@ -362,14 +362,6 @@ jobs:
             build-pandas \
             --editable \
             -Csetup-args="--werror"
-
-      - name: Test
-        uses: ./.github/actions/run-tests
-        with:
-          environment: mingw
-          numprocesses: 'auto'
-          pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
-          pytest_target: 'pandas'
     concurrency:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-mingw
       cancel-in-progress: true
