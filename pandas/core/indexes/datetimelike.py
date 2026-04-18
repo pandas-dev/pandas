@@ -186,8 +186,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @freq.setter
     def freq(self, value) -> None:
-        # error: Property "freq" defined in "PeriodArray" is read-only  [misc]
-        self._data.freq = value  # type: ignore[misc]
+        arr = self._data
+        if not hasattr(arr, "_validate_frequency"):
+            # e.g. PeriodArray freq is derived from dtype and is read-only
+            raise AttributeError(
+                f"property 'freq' of {type(arr).__name__!r} object has no setter"
+            )
+        if value is not None:
+            value = to_offset(value)
+            arr._validate_frequency(arr, value)
+            if arr.dtype.kind == "m" and not isinstance(value, (Tick, Day)):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+
+            if arr.ndim > 1:
+                raise ValueError("Cannot set freq with ndim > 1")
+
+        arr._freq = value
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:

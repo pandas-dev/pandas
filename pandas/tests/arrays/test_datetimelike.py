@@ -456,7 +456,8 @@ class SharedTests:
     def test_setitem_object_dtype(self, box, arr1d):
         expected = arr1d.copy()[::-1]
         if expected.dtype.kind in ["m", "M"]:
-            expected._freq = None
+            # __setitem__ no longer clears freq on the target array
+            expected._freq = arr1d._freq
 
         vals = expected
         if box is list:
@@ -496,7 +497,8 @@ class SharedTests:
     def test_setitem_categorical(self, arr1d, as_index):
         expected = arr1d.copy()[::-1]
         if not isinstance(expected, PeriodArray):
-            expected._freq = None
+            # __setitem__ no longer clears freq on the target array
+            expected._freq = arr1d._freq
 
         cat = pd.Categorical(arr1d)
         if as_index:
@@ -576,6 +578,9 @@ class SharedTests:
         arr[len(arr) // 2] = NaT
         if not isinstance(expected, Period):
             expected = arr[len(arr) // 2 - 1 : len(arr) // 2 + 2].mean()
+            # setitem no longer clears freq; result of median has freq=None
+            if hasattr(arr, "_freq"):
+                arr._freq = None
 
         assert arr.median(skipna=False) is NaT
 
@@ -1229,6 +1234,10 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     for nat in casting_nats:
         arr = arr.copy()
         arr[0] = nat
+        if hasattr(arr, "_freq"):
+            # setitem no longer clears freq on the array; values are no longer
+            # on freq after introducing NaT, so match expected.
+            arr._freq = None
         tm.assert_equal(arr, expected)
 
 

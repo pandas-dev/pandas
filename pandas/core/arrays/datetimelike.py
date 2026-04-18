@@ -45,7 +45,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
-    to_offset,
 )
 from pandas._libs.tslibs.fields import (
     RoundTo,
@@ -1495,14 +1494,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
-        # result may be an Index; unwrap before reading _freq
-        self._freq = getattr(result, "_data", result)._freq
+        if self.dtype.kind in "mM":
+            # PeriodArray's freq is derived from dtype; only DTA/TDA track _freq.
+            # result may be an Index; unwrap before reading _freq.
+            self._freq = getattr(result, "_data", result)._freq
         return self
 
     def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
-        self._freq = getattr(result, "_data", result)._freq
+        if self.dtype.kind in "mM":
+            self._freq = getattr(result, "_data", result)._freq
         return self
 
     # --------------------------------------------------------------
@@ -1825,19 +1827,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         <Hour>
         """
         return self._freq
-
-    @freq.setter
-    def freq(self, value) -> None:
-        if value is not None:
-            value = to_offset(value)
-            self._validate_frequency(self, value)
-            if self.dtype.kind == "m" and not isinstance(value, (Tick, Day)):
-                raise TypeError("TimedeltaArray/Index freq must be a Tick")
-
-            if self.ndim > 1:
-                raise ValueError("Cannot set freq with ndim > 1")
-
-        self._freq = value
 
     @final
     @classmethod
