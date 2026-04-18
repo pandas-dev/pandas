@@ -159,6 +159,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` with non-unique masked index (:issue:`56759`)
 - Performance improvement in :meth:`DataFrame.query` and :meth:`DataFrame.eval` when the :class:`DataFrame` contains :class:`PeriodDtype` or :class:`IntervalDtype` columns (:issue:`35247`)
 - Performance improvement in :meth:`DataFrame.rank` and :meth:`Series.rank` for non-nullable numeric dtypes (:issue:`65054`)
+- Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` with the ``level`` parameter when the index is already sorted and not a :class:`MultiIndex` (:issue:`64883`)
 - Performance improvement in :meth:`DataFrame.sort_values` with multiple numeric columns by avoiding unnecessary :class:`Categorical` conversion (:issue:`15389`)
 - Performance improvement in :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.mean`, :meth:`DataFrame.any`, and :meth:`DataFrame.all` with ``axis=1`` for multi-block DataFrames by avoiding a transpose (:issue:`51474`)
 - Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)
