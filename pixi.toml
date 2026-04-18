@@ -252,6 +252,7 @@ cmd = [
   "--to",
   "notebook",
   "--stdout",
+  ">/dev/null",
 ]
 
 [tasks.ci-build-documentation]
