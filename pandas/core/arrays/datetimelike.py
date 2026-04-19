@@ -1494,17 +1494,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __iadd__(self, other) -> Self:
         result = self + other
         self[:] = result[:]
-        if self.dtype.kind in "mM":
-            # PeriodArray's freq is derived from dtype; only DTA/TDA track _freq.
-            # result may be an Index; unwrap before reading _freq.
-            self._freq = getattr(result, "_data", result)._freq
         return self
 
     def __isub__(self, other) -> Self:
         result = self - other
         self[:] = result[:]
-        if self.dtype.kind in "mM":
-            self._freq = getattr(result, "_data", result)._freq
         return self
 
     # --------------------------------------------------------------

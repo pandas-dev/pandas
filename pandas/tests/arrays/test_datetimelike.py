@@ -552,10 +552,16 @@ class SharedTests:
 
         expected = arr + pd.Timedelta(days=1)
         arr += pd.Timedelta(days=1)
+        # Array __iadd__ no longer manages freq; arr keeps pre-iadd freq
+        # while `arr + x` returns a freq-stripped array.
+        if hasattr(arr, "_freq"):
+            expected._freq = arr._freq
         tm.assert_equal(arr, expected)
 
         expected = arr - pd.Timedelta(days=1)
         arr -= pd.Timedelta(days=1)
+        if hasattr(arr, "_freq"):
+            expected._freq = arr._freq
         tm.assert_equal(arr, expected)
 
     def test_shift_fill_int_deprecated(self, arr1d):
