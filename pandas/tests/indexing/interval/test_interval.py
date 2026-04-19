@@ -113,7 +113,7 @@ class TestIntervalIndex:
         tm.assert_frame_equal(result, expected)
 
         msg = (
-            r"None of \[Index\(\[10\], dtype='int64', name='B'\)\] "
+            r"None of \[Index\(\[10\], dtype='int\d+', name='B'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
