@@ -502,20 +502,29 @@ def _add_margins(
         else:
             row_margin[k] = grand_margin[k[0]]
 
+    # GH#55484 recover the correct dtype when row_margin was initialized as
+    # object (len(cols)==0 path); no-op for already-typed series.
+    row_margin = row_margin.infer_objects()
+
     from pandas import DataFrame
 
     row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
     for dtype in set(result.dtypes):
-        if isinstance(dtype, ExtensionDtype):
-            # Can hold NA already
-            continue
-
         cols = result.select_dtypes([dtype]).columns
-        margin_dummy[cols] = margin_dummy[cols].apply(
-            maybe_downcast_to_dtype, args=(dtype,)
-        )
+        if isinstance(dtype, ExtensionDtype):
+            # GH#55484 margin_dummy may be object-dtype when row_margin was
+            # initialized with dtype=object (len(cols)==0 path); cast back.
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+        elif (margin_dummy[cols].dtypes == object).all() and dtype != object:
+            # GH#55484 object-initialized row_margin can leave non-EA columns
+            # as object (mixed-values case); astype back to the target dtype.
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+        else:
+            margin_dummy[cols] = margin_dummy[cols].apply(
+                maybe_downcast_to_dtype, args=(dtype,)
+            )
 
     row_names = result.index.names
     result = concat([result, margin_dummy])
@@ -646,7 +655,10 @@ def _generate_marginal_results(
         new_order_names = [row_margin.index.names[i] for i in new_order_indices]
         row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
-        row_margin = data._constructor_sliced(np.nan, index=result.columns)
+        # GH#55484 use object dtype so setitem works for grand-margin scalars
+        # whose dtype cannot hold NA (e.g. IntervalDtype with integer subtype);
+        # infer_objects is called in _add_margins after the values are set.
+        row_margin = data._constructor_sliced(index=result.columns, dtype=object)
 
     return result, margin_keys, row_margin
 
