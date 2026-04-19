@@ -13,6 +13,7 @@ from pandas._config import (
     using_string_dtype,
 )
 
+from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.util._exceptions import find_stack_level
 
 from pandas import (
@@ -1239,7 +1240,11 @@ cdef class TextReader:
                          bint allow_pyarrow=False):
 
         cdef str target = ""
-        if allow_pyarrow and strcasecmp(self.encoding_errors, "strict") == 0:
+        if (
+            allow_pyarrow
+            and HAS_PYARROW
+            and strcasecmp(self.encoding_errors, "strict") == 0
+        ):
             if self.dtype_backend == "pyarrow":
                 target = "arrow"
             elif self.dtype_backend == "numpy" and using_string_dtype():
