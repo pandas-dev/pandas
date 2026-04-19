@@ -833,11 +833,23 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_new_columns_fill_value(self):
-        # GH#58517 (mutation testing: col_idx == -1 in take.py)
-        # Ensure fill_value is correctly applied to new columns
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        result = df.reindex(columns=["a", "b", "c"], fill_value=99)
-        expected = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [99, 99, 99]})
+        # GH#58517 (mutation testing: col_mask = col_idx == -1 in take_2d_multi)
+        # To exercise take_2d_multi we need a homogeneous DataFrame reindexed
+        # on both axes (row permutation keeps row_idx free of -1 so the
+        # col_mask mutation is not rescued by row_needs in the depromote
+        # branch). A promoting fill_value makes dtype != arr.dtype so the
+        # guarded block is entered.
+        df = DataFrame(np.arange(6).reshape(2, 3), columns=list("abc"))
+        result = df.reindex(index=[1, 0], columns=list("abcd"), fill_value=np.nan)
+        expected = DataFrame(
+            {
+                "a": [3.0, 0.0],
+                "b": [4.0, 1.0],
+                "c": [5.0, 2.0],
+                "d": [np.nan, np.nan],
+            },
+            index=[1, 0],
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
