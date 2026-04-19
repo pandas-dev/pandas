@@ -3354,23 +3354,9 @@ class MultiIndex(Index):
             keyarr = com.asarray_tuplesafe(keyarr)
 
         if len(keyarr) and not isinstance(keyarr[0], tuple):
-            indexer = self._get_indexer_level_0(keyarr)
+            indexer, missing = self._get_indexer_level_0(keyarr)
 
-            self._raise_if_missing(key, indexer, axis_name)
-            return self[indexer], indexer
-
-        return super()._get_indexer_strict(key, axis_name)
-
-    def _raise_if_missing(self, key, indexer, axis_name: str) -> None:
-        keyarr = key
-        if not isinstance(key, Index):
-            keyarr = com.asarray_tuplesafe(key)
-
-        if len(keyarr) and not isinstance(keyarr[0], tuple):
-            # i.e. same condition for special case in MultiIndex._get_indexer_strict
-
-            mask = indexer == -1
-            if mask.any():
+            if len(missing):
                 check = self.levels[0].get_indexer(keyarr)
                 cmask = check == -1
                 if cmask.any():
@@ -3378,18 +3364,23 @@ class MultiIndex(Index):
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
-        else:
-            return super()._raise_if_missing(key, indexer, axis_name)
 
-    def _get_indexer_level_0(self, target) -> npt.NDArray[np.intp]:
+            return self[indexer], indexer
+
+        return super()._get_indexer_strict(key, axis_name)
+
+    def _get_indexer_level_0(
+        self, target
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """
-        Optimized equivalent to `self.get_level_values(0).get_indexer_for(target)`.
+        Optimized equivalent to
+        `self.get_level_values(0).get_indexer_non_unique(target)`.
         """
         lev = self.levels[0]
         codes = self._codes[0]
         cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
         ci = Index(cat, copy=False)
-        return ci.get_indexer_for(target)
+        return ci.get_indexer_non_unique(target)
 
     def get_slice_bound(
         self,

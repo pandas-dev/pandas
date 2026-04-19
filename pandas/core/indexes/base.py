@@ -3852,7 +3852,10 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._should_compare(target) and not self._should_partial_index(target):
             # IntervalIndex get special treatment bc numeric scalars can be
             #  matched to Interval scalars
-            return self._get_indexer_non_comparable(target, method=method, unique=True)
+            if method is not None:
+                other_dtype = _unpack_nested_dtype(target)
+                raise TypeError(f"Cannot compare dtypes {self.dtype} and {other_dtype}")
+            return self._get_indexer_non_comparable(target)[0]
 
         if isinstance(self.dtype, CategoricalDtype):
             # _maybe_cast_listlike_indexer ensures target has our dtype
@@ -4409,78 +4412,6 @@ class Index(IndexOpsMixin, PandasObject):
             target = target.copy(deep=False)
             target.name = self.name
         return target
-
-    @final
-    def _reindex_non_unique(
-        self, target: Index
-    ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp] | None]:
-        """
-        Create a new index with target's values (move/add/delete values as
-        necessary) use with non-unique Index and a possibly non-unique target.
-
-        Parameters
-        ----------
-        target : an iterable
-
-        Returns
-        -------
-        new_index : pd.Index
-            Resulting index.
-        indexer : np.ndarray[np.intp]
-            Indices of output values in original index.
-        new_indexer : np.ndarray[np.intp] or None
-
-        """
-        target = ensure_index(target)
-        if len(target) == 0:
-            # GH#13691
-            return self[:0], np.array([], dtype=np.intp), None
-
-        indexer, missing = self.get_indexer_non_unique(target)
-        check = indexer != -1
-        new_labels: Index | np.ndarray = self.take(indexer[check])
-        new_indexer = None
-
-        if len(missing):
-            length = np.arange(len(indexer), dtype=np.intp)
-
-            missing = ensure_platform_int(missing)
-            missing_labels = target.take(missing)
-            missing_indexer = length[~check]
-            cur_labels = self.take(indexer[check]).values
-            cur_indexer = length[check]
-
-            # Index constructor below will do inference
-            new_labels = np.empty((len(indexer),), dtype=object)
-            new_labels[cur_indexer] = cur_labels
-            new_labels[missing_indexer] = missing_labels
-
-            # GH#38906
-            if not len(self):
-                new_indexer = np.arange(0, dtype=np.intp)
-
-            # a unique indexer
-            elif target.is_unique:
-                # see GH5553, make sure we use the right indexer
-                new_indexer = np.arange(len(indexer), dtype=np.intp)
-                new_indexer[cur_indexer] = np.arange(len(cur_labels))
-                new_indexer[missing_indexer] = -1
-
-            # we have a non_unique selector, need to use the original
-            # indexer here
-            else:
-                # need to retake to have the same size as the indexer
-                indexer[~check] = -1
-
-                # reset the new indexer to account for the new size
-                new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
-                new_indexer[~check] = -1
-
-        if not isinstance(self, ABCMultiIndex):
-            new_index = Index(new_labels, name=self.name, copy=False)
-        else:
-            new_index = type(self).from_tuples(new_labels, names=self.names)
-        return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
     # Join Methods
@@ -6373,10 +6304,15 @@ class Index(IndexOpsMixin, PandasObject):
         """
         target = self._maybe_cast_listlike_indexer(target)
 
+        if len(self) == 0:
+            no_matches = -1 * np.ones(len(target), dtype=np.intp)
+            missing = np.arange(len(target), dtype=np.intp)
+            return no_matches, missing
+
         if not self._should_compare(target) and not self._should_partial_index(target):
             # _should_partial_index e.g. IntervalIndex with numeric scalars
             #  that can be matched to Interval scalars.
-            return self._get_indexer_non_comparable(target, method=None, unique=False)
+            return self._get_indexer_non_comparable(target)
 
         pself, ptarget = self._maybe_downcast_for_indexing(target)
         if pself is not self or ptarget is not target:
@@ -6454,14 +6390,22 @@ class Index(IndexOpsMixin, PandasObject):
             keyarr = com.asarray_tuplesafe(keyarr)
 
         if self._index_as_unique:
-            indexer = self.get_indexer_for(keyarr)  # pyright: ignore[reportArgumentType]
-            if not isinstance(keyarr, Index):
-                keyarr = ensure_index(keyarr)
-                keyarr.name = self.name
+            indexer = self.get_indexer(keyarr)  # pyright: ignore[reportArgumentType]
+            missing = (indexer < 0).nonzero()[0]
         else:
-            keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
+            indexer, missing = self.get_indexer_non_unique(keyarr)  # pyright: ignore[reportArgumentType]
 
-        self._raise_if_missing(keyarr, indexer, axis_name)
+        if not isinstance(keyarr, Index):
+            keyarr = ensure_index(keyarr)
+            keyarr.name = self.name
+
+        if len(missing):
+            nmissing = len(missing)
+            if nmissing == len(keyarr):
+                raise KeyError(f"None of [{keyarr}] are in the [{axis_name}]")
+
+            not_found = list(keyarr.take(missing).unique())
+            raise KeyError(f"{not_found} not in index")
 
         keyarr = self.take(indexer)
         if isinstance(key, Index):
@@ -6481,97 +6425,23 @@ class Index(IndexOpsMixin, PandasObject):
 
         return keyarr, indexer
 
-    def _raise_if_missing(
-        self, key: Index, indexer: npt.NDArray[np.intp], axis_name: str_t
-    ) -> None:
-        """
-        Check that indexer can be used to return a result.
-
-        e.g. at least one element was found,
-        unless the list of keys was actually empty.
-
-        Parameters
-        ----------
-        key : Index
-            Targeted labels (only used to show correct error message).
-        indexer: np.ndarray[np.intp]
-            Indices corresponding to the key,
-            (with -1 indicating not found).
-        axis_name : str
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found.
-        """
-        if len(key) == 0:
-            return
-
-        # Count missing values
-        missing_mask = indexer < 0
-        nmissing = missing_mask.sum()
-
-        if nmissing:
-            if nmissing == len(indexer):
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
-            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
-            raise KeyError(f"{not_found} not in index")
-
-    @overload
-    def _get_indexer_non_comparable(
-        self, target: Index, method: str_t | None, unique: Literal[True] = ...
-    ) -> npt.NDArray[np.intp]: ...
-
-    @overload
-    def _get_indexer_non_comparable(
-        self, target: Index, method: str_t | None, unique: Literal[False]
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
-
-    @overload
-    def _get_indexer_non_comparable(
-        self, target: Index, method: str_t | None, unique: bool = True
-    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
-
     @final
     def _get_indexer_non_comparable(
-        self, target: Index, method: str_t | None, unique: bool = True
-    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+        self, target: Index
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
 
-        For get_indexer lookups with method=None, get_indexer is an _equality_
-        check, so non-comparable dtypes mean we will always have no matches.
-
-        For get_indexer lookups with a method, get_indexer is an _inequality_
-        check, so non-comparable dtypes mean we will always raise TypeError.
+        Non-comparable dtypes mean we will always have no matches.
 
         Parameters
         ----------
         target : Index
-        method : str or None
-        unique : bool, default True
-            * True if called from get_indexer.
-            * False if called from get_indexer_non_unique.
-
-        Raises
-        ------
-        TypeError
-            If doing an inequality check, i.e. method is not None.
         """
-        if method is not None:
-            other_dtype = _unpack_nested_dtype(target)
-            raise TypeError(f"Cannot compare dtypes {self.dtype} and {other_dtype}")
-
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
-        if unique:
-            # This is for get_indexer
-            return no_matches
-        else:
-            # This is for get_indexer_non_unique
-            missing = np.arange(len(target), dtype=np.intp)
-            return no_matches, missing
+        missing = np.arange(len(target), dtype=np.intp)
+        return no_matches, missing
 
     @property
     def _index_as_unique(self) -> bool:

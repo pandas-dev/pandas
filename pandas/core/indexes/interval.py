@@ -936,7 +936,7 @@ class IntervalIndex(ExtensionIndex):
         if not self._should_compare(target) and not self._should_partial_index(target):
             # e.g. IntervalIndex with different closed or incompatible subtype
             #  -> no matches
-            return self._get_indexer_non_comparable(target, None, unique=False)
+            return self._get_indexer_non_comparable(target)
 
         elif isinstance(target, IntervalIndex):
             if self.left.is_unique and self.right.is_unique:
