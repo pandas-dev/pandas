@@ -78,12 +78,73 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
     cdef:
         Py_ssize_t i, n, idx
         {{c_type_out}} fv
+        {{if c_type_in != "object" and c_type_out != "object"}}
+        Py_ssize_t n4
+        bint contig
+        const {{c_type_in}} *vp
+        const intp_t *ip
+        {{c_type_out}} *op
+        intp_t i0, i1, i2, i3
+        {{endif}}
 
     n = indexer.shape[0]
 
     fv = fill_value
 
     {{if c_type_out != "object"}}
+    {{if c_type_in != "object"}}
+    # Fast path: when all three arrays are C-contiguous, walk raw pointers
+    # (drop the runtime stride multiply) and unroll 4x so the CPU can
+    # overlap independent indexed loads across iterations.
+    contig = (
+        n > 0
+        and values.shape[0] > 0
+        and values.strides[0] == sizeof({{c_type_in}})
+        and indexer.strides[0] == sizeof(intp_t)
+        and out.strides[0] == sizeof({{c_type_out}})
+    )
+    n4 = n - (n % 4)
+    with nogil:
+        if contig:
+            vp = &values[0]
+            ip = &indexer[0]
+            op = &out[0]
+            if allow_fill:
+                for i in range(0, n4, 4):
+                    i0 = ip[i]
+                    i1 = ip[i + 1]
+                    i2 = ip[i + 2]
+                    i3 = ip[i + 3]
+                    op[i]     = fv if i0 == -1 else vp[i0]
+                    op[i + 1] = fv if i1 == -1 else vp[i1]
+                    op[i + 2] = fv if i2 == -1 else vp[i2]
+                    op[i + 3] = fv if i3 == -1 else vp[i3]
+                for i in range(n4, n):
+                    idx = ip[i]
+                    op[i] = fv if idx == -1 else vp[idx]
+            else:
+                for i in range(0, n4, 4):
+                    i0 = ip[i]
+                    i1 = ip[i + 1]
+                    i2 = ip[i + 2]
+                    i3 = ip[i + 3]
+                    op[i]     = vp[i0]
+                    op[i + 1] = vp[i1]
+                    op[i + 2] = vp[i2]
+                    op[i + 3] = vp[i3]
+                for i in range(n4, n):
+                    op[i] = vp[ip[i]]
+        elif allow_fill:
+            for i in range(n):
+                idx = indexer[i]
+                if idx == -1:
+                    out[i] = fv
+                else:
+                    out[i] = values[idx]
+        else:
+            for i in range(n):
+                out[i] = values[indexer[i]]
+    {{else}}
     with nogil:
         if allow_fill:
             for i in range(n):
@@ -95,6 +156,7 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
         else:
             for i in range(n):
                 out[i] = values[indexer[i]]
+    {{endif}}
     {{else}}
     if allow_fill:
         for i in range(n):
@@ -131,6 +193,11 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     cdef:
         Py_ssize_t i, j, k, n, idx
         {{c_type_out}} fv
+        {{if c_type_in != "object" and c_type_out != "object"}}
+        bint contig
+        const {{c_type_in}} *vrow
+        {{c_type_out}} *orow
+        {{endif}}
         {{if c_type_in == c_type_out != "object"}}
         const {{c_type_out}} *v
         {{c_type_out}} *o
@@ -142,12 +209,17 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     fv = fill_value
 
     {{if c_type_in != "object" and c_type_out != "object"}}
+    contig = (
+        n > 0
+        and k > 0
+        and values.shape[0] > 0
+        and values.strides[1] == sizeof({{c_type_in}})
+        and out.strides[1] == sizeof({{c_type_out}})
+    )
     with nogil:
         {{if c_type_in == c_type_out}}
         # GH#3130
-        if (values.strides[1] == out.strides[1] and
-            values.strides[1] == sizeof({{c_type_out}}) and
-            sizeof({{c_type_out}}) * k >= 256):
+        if (contig and sizeof({{c_type_out}}) * k >= 256):
 
             if allow_fill:
                 for i in range(n):
@@ -164,6 +236,30 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                     v = &values[indexer[i], 0]
                     o = &out[i, 0]
                     memcpy(o, v, <size_t>(sizeof({{c_type_out}}) * k))
+        elif contig:
+        {{else}}
+        if contig:
+        {{endif}}
+            # Row-pointer fast path: inner j-loop is a straight copy/cast
+            # the C compiler can SIMD-vectorize, vs. the memoryview form
+            # where strides are opaque.
+            if allow_fill:
+                for i in range(n):
+                    idx = indexer[i]
+                    orow = &out[i, 0]
+                    if idx == -1:
+                        for j in range(k):
+                            orow[j] = fv
+                    else:
+                        vrow = &values[idx, 0]
+                        for j in range(k):
+                            orow[j] = vrow[j]
+            else:
+                for i in range(n):
+                    vrow = &values[indexer[i], 0]
+                    orow = &out[i, 0]
+                    for j in range(k):
+                        orow[j] = vrow[j]
         else:
             if allow_fill:
                 for i in range(n):
@@ -178,21 +274,6 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 for i in range(n):
                     for j in range(k):
                         out[i, j] = values[indexer[i], j]
-        {{else}}
-        if allow_fill:
-            for i in range(n):
-                idx = indexer[i]
-                if idx == -1:
-                    for j in range(k):
-                        out[i, j] = fv
-                else:
-                    for j in range(k):
-                        out[i, j] = values[idx, j]
-        else:
-            for i in range(n):
-                for j in range(k):
-                    out[i, j] = values[indexer[i], j]
-        {{endif}}
     {{else}}
 
     if allow_fill:
@@ -234,6 +315,14 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     cdef:
         Py_ssize_t i, j, k, n, idx
         {{c_type_out}} fv
+        {{if c_type_in != "object" and c_type_out != "object"}}
+        Py_ssize_t k4
+        bint contig
+        const {{c_type_in}} *vrow
+        const intp_t *ip
+        {{c_type_out}} *orow
+        intp_t i0, i1, i2, i3
+        {{endif}}
 
     n = len(values)
     k = len(indexer)
@@ -244,8 +333,47 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     fv = fill_value
 
     {{if c_type_in != "object" and c_type_out != "object"}}
+    contig = (
+        values.strides[1] == sizeof({{c_type_in}})
+        and out.strides[1] == sizeof({{c_type_out}})
+        and indexer.strides[0] == sizeof(intp_t)
+    )
+    k4 = k - (k % 4)
     with nogil:
-        if allow_fill:
+        if contig:
+            ip = &indexer[0]
+            if allow_fill:
+                for i in range(n):
+                    vrow = &values[i, 0]
+                    orow = &out[i, 0]
+                    for j in range(0, k4, 4):
+                        i0 = ip[j]
+                        i1 = ip[j + 1]
+                        i2 = ip[j + 2]
+                        i3 = ip[j + 3]
+                        orow[j]     = fv if i0 == -1 else vrow[i0]
+                        orow[j + 1] = fv if i1 == -1 else vrow[i1]
+                        orow[j + 2] = fv if i2 == -1 else vrow[i2]
+                        orow[j + 3] = fv if i3 == -1 else vrow[i3]
+                    for j in range(k4, k):
+                        idx = ip[j]
+                        orow[j] = fv if idx == -1 else vrow[idx]
+            else:
+                for i in range(n):
+                    vrow = &values[i, 0]
+                    orow = &out[i, 0]
+                    for j in range(0, k4, 4):
+                        i0 = ip[j]
+                        i1 = ip[j + 1]
+                        i2 = ip[j + 2]
+                        i3 = ip[j + 3]
+                        orow[j]     = vrow[i0]
+                        orow[j + 1] = vrow[i1]
+                        orow[j + 2] = vrow[i2]
+                        orow[j + 3] = vrow[i3]
+                    for j in range(k4, k):
+                        orow[j] = vrow[ip[j]]
+        elif allow_fill:
             for i in range(n):
                 for j in range(k):
                     idx = indexer[j]
@@ -294,14 +422,73 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
         ndarray[intp_t, ndim=1] idx0 = indexer[0]
         ndarray[intp_t, ndim=1] idx1 = indexer[1]
         {{c_type_out}} fv
+        {{if c_type_in != "object" and c_type_out != "object"}}
+        Py_ssize_t k4
+        bint contig
+        const {{c_type_in}} *vrow
+        const intp_t *ip0
+        const intp_t *ip1
+        {{c_type_out}} *orow
+        intp_t j0, j1, j2, j3
+        {{endif}}
 
     n = len(idx0)
     k = len(idx1)
 
     fv = fill_value
     {{if c_type_in != "object" and c_type_out != "object"}}
+    contig = (
+        n > 0
+        and k > 0
+        and values.shape[0] > 0
+        and values.shape[1] > 0
+        and values.strides[1] == sizeof({{c_type_in}})
+        and out.strides[1] == sizeof({{c_type_out}})
+        and idx0.strides[0] == sizeof(intp_t)
+        and idx1.strides[0] == sizeof(intp_t)
+    )
+    k4 = k - (k % 4)
     with nogil:
-        if allow_fill:
+        if contig:
+            ip0 = &idx0[0]
+            ip1 = &idx1[0]
+            if allow_fill:
+                for i in range(n):
+                    idx = ip0[i]
+                    orow = &out[i, 0]
+                    if idx == -1:
+                        for j in range(k):
+                            orow[j] = fv
+                    else:
+                        vrow = &values[idx, 0]
+                        for j in range(0, k4, 4):
+                            j0 = ip1[j]
+                            j1 = ip1[j + 1]
+                            j2 = ip1[j + 2]
+                            j3 = ip1[j + 3]
+                            orow[j]     = fv if j0 == -1 else vrow[j0]
+                            orow[j + 1] = fv if j1 == -1 else vrow[j1]
+                            orow[j + 2] = fv if j2 == -1 else vrow[j2]
+                            orow[j + 3] = fv if j3 == -1 else vrow[j3]
+                        for j in range(k4, k):
+                            j0 = ip1[j]
+                            orow[j] = fv if j0 == -1 else vrow[j0]
+            else:
+                for i in range(n):
+                    vrow = &values[ip0[i], 0]
+                    orow = &out[i, 0]
+                    for j in range(0, k4, 4):
+                        j0 = ip1[j]
+                        j1 = ip1[j + 1]
+                        j2 = ip1[j + 2]
+                        j3 = ip1[j + 3]
+                        orow[j]     = vrow[j0]
+                        orow[j + 1] = vrow[j1]
+                        orow[j + 2] = vrow[j2]
+                        orow[j + 3] = vrow[j3]
+                    for j in range(k4, k):
+                        orow[j] = vrow[ip1[j]]
+        elif allow_fill:
             for i in range(n):
                 idx = idx0[i]
                 if idx == -1:
