@@ -67,7 +67,6 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
-    map_array,
     mode,
     take,
 )
@@ -1800,14 +1799,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def count(self) -> np.int64:
         return (~self._mask).sum()
-
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        result = map_array(
-            self.to_numpy(dtype=object, na_value=libmissing.NA),
-            mapper,
-            na_action=na_action,
-        )
-        return self._cast_pointwise_result(result)
 
     @overload
     def any(
