@@ -109,6 +109,7 @@ Binary operator functions
    Series.ge
    Series.ne
    Series.eq
+   Series.__invert__
    Series.product
    Series.dot
 
