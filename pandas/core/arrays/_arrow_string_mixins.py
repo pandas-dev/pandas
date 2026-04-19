@@ -169,6 +169,12 @@ class ArrowStringArrayMixin:
             pa_pad(self._pa_array, width=width, padding=fillchar)
         )
 
+    def _str_getitem(self, key):
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
+
     def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
         if i >= 0:

@@ -250,6 +250,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :attr:`Series.str` ``[]`` accessor raising ``AttributeError`` on :class:`ArrowExtensionArray` backed strings (e.g. from :meth:`DataFrame.convert_dtypes` with ``dtype_backend="pyarrow"``) (:issue:`65112`)
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 -
 
