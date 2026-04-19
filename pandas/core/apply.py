@@ -865,7 +865,14 @@ class NDFrameApply(Apply):
             return None
 
         obj = self.obj
+        if self.kwargs.get("numeric_only", False):
+            obj = obj._get_numeric_data()
         func_names = cast("list[str]", func)
+
+        if obj.columns.empty:
+            from pandas import DataFrame
+
+            return DataFrame(index=func_names, columns=obj.columns)
 
         # Cannot reindex with duplicate column names
         if not obj.columns.is_unique:
