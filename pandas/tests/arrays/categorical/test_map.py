@@ -22,8 +22,11 @@ def test_map_str(data, categories, ordered, na_action):
     # GH 31202 - override base class since we want to maintain categorical/ordered
     cat = Categorical(data, categories=categories, ordered=ordered)
     result = cat.map(str, na_action=na_action)
+    expected_categories = list(map(str, categories))
+    if not ordered:
+        expected_categories = sorted(expected_categories)  # GH#58153
     expected = Categorical(
-        map(str, data), categories=map(str, categories), ordered=ordered
+        map(str, data), categories=expected_categories, ordered=ordered
     )
     tm.assert_categorical_equal(result, expected)
 
@@ -36,7 +39,7 @@ def test_map(na_action):
 
     cat = Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
     result = cat.map(lambda x: x.lower(), na_action=na_action)
-    exp = Categorical(list("ababc"), categories=list("bac"), ordered=False)
+    exp = Categorical(list("ababc"), categories=list("abc"), ordered=False)  # GH#58153
     tm.assert_categorical_equal(result, exp)
 
     # GH 12766: Return an index not an array
@@ -51,7 +54,8 @@ def test_map(na_action):
         return {"A": 10, "B": 20, "C": 30}.get(x)
 
     result = cat.map(f, na_action=na_action)
-    exp = Categorical([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
+    # GH#58153
+    exp = Categorical([10, 20, 10, 20, 30], categories=[10, 20, 30], ordered=False)
     tm.assert_categorical_equal(result, exp)
 
     mapper = Series([10, 20, 30], index=["A", "B", "C"])
@@ -116,6 +120,20 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
         tm.assert_categorical_equal(result, expected)
     else:
         tm.assert_index_equal(result, expected)
+
+
+def test_map_unordered_sorted_categories():
+    # GH#58153: map() must sort categories for unordered categoricals so that
+    # sort_values(key=x.map(...)) respects the mapped order, not category position
+    df = pd.DataFrame({"month": pd.Categorical(["March", "Dec", "April"])})
+    custom_dict = {"March": 0, "April": 1, "Dec": 3}
+    result = df.sort_values("month", key=lambda x: x.map(custom_dict))
+    assert list(result["month"]) == ["March", "April", "Dec"]
+
+    # categories are sorted after map
+    cat = Categorical(["b", "a", "c", "a"], categories=["c", "a", "b"], ordered=False)
+    result_cat = cat.map(lambda x: x.upper())
+    assert list(result_cat.categories) == ["A", "B", "C"]
 
 
 def test_map_with_dict_or_series(na_action):

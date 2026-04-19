@@ -1644,8 +1644,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
 
         if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
+            codes = self._codes.copy()
+            if not self.ordered:
+                # GH#58153
+                try:
+                    indexer = new_categories.argsort()
+                except TypeError:
+                    # mixed-type categories can't be compared; keep original order
+                    pass
+                else:
+                    new_categories = new_categories.take(indexer)
+                    reverse_indexer = np.empty(len(indexer), dtype=np.intp)
+                    reverse_indexer[indexer] = np.arange(len(indexer))
+                    mask = codes >= 0
+                    codes[mask] = reverse_indexer[codes[mask]]
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
-            return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
+            return self.from_codes(codes, dtype=new_dtype, validate=False)
 
         if has_nans:
             new_categories = new_categories.insert(len(new_categories), na_val)

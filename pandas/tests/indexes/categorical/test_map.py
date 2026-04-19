@@ -22,8 +22,11 @@ def test_map_str(data, categories, ordered):
     # GH 31202 - override base class since we want to maintain categorical/ordered
     index = CategoricalIndex(data, categories=categories, ordered=ordered)
     result = index.map(str)
+    expected_categories = list(map(str, categories))
+    if not ordered:
+        expected_categories = sorted(expected_categories)  # GH#58153
     expected = CategoricalIndex(
-        map(str, data), categories=map(str, categories), ordered=ordered
+        map(str, data), categories=expected_categories, ordered=ordered
     )
     tm.assert_index_equal(result, expected)
 
@@ -38,8 +41,9 @@ def test_map():
         list("ABABC"), categories=list("BAC"), ordered=False, name="XXX"
     )
     result = ci.map(lambda x: x.lower())
+    # GH#58153
     exp = CategoricalIndex(
-        list("ababc"), categories=list("bac"), ordered=False, name="XXX"
+        list("ababc"), categories=list("abc"), ordered=False, name="XXX"
     )
     tm.assert_index_equal(result, exp)
 
@@ -55,7 +59,8 @@ def test_map():
         return {"A": 10, "B": 20, "C": 30}.get(x)
 
     result = ci.map(f)
-    exp = CategoricalIndex([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
+    # GH#58153
+    exp = CategoricalIndex([10, 20, 10, 20, 30], categories=[10, 20, 30], ordered=False)
     tm.assert_index_equal(result, exp)
 
     result = ci.map(Series([10, 20, 30], index=["A", "B", "C"]))
