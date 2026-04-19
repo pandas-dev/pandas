@@ -767,8 +767,8 @@ class DataFrameFormatter:
             else:
                 return None
         else:
-            if is_integer(i) and i not in self.columns:
-                i = self.columns[i]
+            if is_integer(i):
+                i = self.tr_frame.columns[i]
             return self.formatters.get(i, None)
 
     def _get_formatted_column_labels(self, frame: DataFrame) -> list[list[str]]:
