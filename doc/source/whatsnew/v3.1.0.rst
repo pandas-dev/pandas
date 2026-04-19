@@ -163,6 +163,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` with the ``level`` parameter when the index is already sorted and not a :class:`MultiIndex` (:issue:`64883`)
 - Performance improvement in :meth:`DataFrame.sort_values` with multiple numeric columns by avoiding unnecessary :class:`Categorical` conversion (:issue:`15389`)
 - Performance improvement in :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.mean`, :meth:`DataFrame.any`, and :meth:`DataFrame.all` with ``axis=1`` for multi-block DataFrames by avoiding a transpose (:issue:`51474`)
+- Performance improvement in :meth:`DataFrame.take`, :meth:`Series.take`, :meth:`DataFrame.reindex`, :meth:`Series.reindex`, and boolean-array indexing for NumPy-backed dtypes (:issue:`65295`)
 - Performance improvement in :meth:`DataFrame.to_excel` with the ``openpyxl`` engine when using ``engine_kwargs={"write_only": True}``, reducing memory consumption (:issue:`41681`)
 - Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)
 - Performance improvement in :meth:`DataFrame.unstack` and :meth:`Series.unstack` when the :class:`MultiIndex` is already sorted and the unstacked level is the last level (:issue:`65107`)
