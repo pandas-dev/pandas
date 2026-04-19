@@ -50,7 +50,7 @@ jobs:
     - name: Run doctests
       env:
         # Avoids NumPy scalar reprs in docstrings.
-        PANDAS_FUTURE_PYTHON_SCALARS="1"
+        PANDAS_FUTURE_PYTHON_SCALARS: "1"
       run: |
         pixi run \
           --environment doctests \
