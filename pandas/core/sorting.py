@@ -164,7 +164,7 @@ def get_group_index(
     def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+        return (lab + 1, size + 1) if lib.has_sentinel(lab, -1) else (lab, size)
 
     labels = [ensure_int64(x) for x in labels]
     lshape = list(shape)
@@ -282,7 +282,7 @@ def decons_obs_group_ids(
         If nulls are excluded; i.e. -1 labels are passed through.
     """
     if not xnull:
-        lift = np.fromiter(((a == -1).any() for a in labels), dtype=np.intp)
+        lift = np.fromiter((lib.has_sentinel(a, -1) for a in labels), dtype=np.intp)
         arr_shape = np.asarray(shape, dtype=np.intp) + lift
         shape = tuple(arr_shape)
 
