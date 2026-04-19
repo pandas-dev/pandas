@@ -204,7 +204,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _is_recognized_dtype: Callable[[DtypeObj], bool]
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
-    freq: BaseOffset | None
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        # subclasses provide an implementation
+        raise AbstractMethodError(self)
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -1769,6 +1773,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
+
+    _freq: BaseOffset | None = None
 
     @classmethod
     def _validate_dtype(cls, values, dtype):

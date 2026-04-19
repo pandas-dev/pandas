@@ -187,7 +187,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     @freq.setter
     def freq(self, value) -> None:
         arr = self._data
-        if not hasattr(arr, "_validate_frequency"):
+        if not isinstance(arr, (DatetimeArray, TimedeltaArray)):
             # e.g. PeriodArray freq is derived from dtype and is read-only
             raise AttributeError(
                 f"property 'freq' of {type(arr).__name__!r} object has no setter"
