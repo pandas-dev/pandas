@@ -289,9 +289,11 @@ class ExtensionDtype:
             raise TypeError(
                 f"'construct_from_string' expects a string, got {type(string)}"
             )
-        # error: Non-overlapping equality check (left operand type: "str", right
-        #  operand type: "Callable[[ExtensionDtype], str]")  [comparison-overlap]
-        assert isinstance(cls.name, str), (cls, type(cls.name))
+        if not isinstance(cls.name, str):
+            raise TypeError(
+                f"ExtensionDtype subclass {cls.__name__} must define a 'name' "
+                f"class attribute as a string, got {type(cls.name).__name__}"
+            )
         if string != cls.name:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
         return cls()
