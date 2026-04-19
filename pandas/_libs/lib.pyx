@@ -501,6 +501,9 @@ def has_infs(const floating[:] arr) -> bool:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def has_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).any()``; exits on the first NaN found.
+    """
     cdef:
         Py_ssize_t i, n = len(arr)
         Py_ssize_t n4 = n & ~3  # round down to multiple of 4
@@ -527,6 +530,9 @@ def has_nans(const floating[:] arr) -> bool:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def all_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).all()``; exits on the first non-NaN found.
+    """
     cdef:
         Py_ssize_t i, n = len(arr)
         Py_ssize_t n4 = n & ~3
@@ -554,6 +560,10 @@ def all_nans(const floating[:] arr) -> bool:
 @cython.boundscheck(False)
 def array_equivalent_float(const floating[:] left,
                            const floating[:] right) -> bool:
+    """
+    Faster equivalent to ``((left == right) | (isnan(left) & isnan(right))).all()``;
+    exits on the first mismatch. Caller is responsible for checking shapes match.
+    """
     cdef:
         Py_ssize_t i, n = len(left)
         floating lval, rval
@@ -571,6 +581,12 @@ def array_equivalent_float(const floating[:] left,
 
 
 def array_equivalent_bytes(left, right) -> bool:
+    """
+    Faster equivalent to ``np.array_equal(left, right)`` via ``memcmp`` on
+    C-contiguous inputs. Not safe for dtypes where distinct bit patterns can
+    represent the same value (e.g. floats with -0.0/+0.0 or NaN) or for arrays
+    that contain object pointers.
+    """
     cdef:
         Py_ssize_t nbytes
         int ndim, idx
