@@ -980,7 +980,7 @@ def test_resample_dst_crosses_boundary():
     # Hardcoded expected: bin edges are midnight each day (adjusted for DST).
     # April 24 00:00 -> April 25 00:00: 25 points (inclusive start, exclusive end would
     # give 24, but date_range includes both endpoints, so count carefully)
-    # Rather than count manually, verify shape and that no execption is raised.
+    # Rather than count manually, verify shape and that no exception is raised.
     result = ts.resample("1D").sum()
 
     expected = Series(
