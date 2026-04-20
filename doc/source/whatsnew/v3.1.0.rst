@@ -251,6 +251,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
+- Bug in :class:`~pandas.arrays.ArrowExtensionArray` where indexing into a string Series with :attr:`Series.str` (e.g. ``ser.str[0]``) raised ``AttributeError`` (:issue:`65112`)
 -
 
 Interval

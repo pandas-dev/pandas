@@ -644,6 +644,26 @@ def test_string_slice_get_syntax(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+
+def test_string_slice_get_syntax_arrow_extension_array():
+    # GH#65112 - _str_getitem was missing on ArrowExtensionArray (pyarrow dtype_backend)
+    pytest.importorskip("pyarrow")
+    ser = Series(["abc", "defgh", None]).convert_dtypes(dtype_backend="pyarrow")
+    assert type(ser.array).__name__ == "ArrowExtensionArray"
+
+    result = ser.str[0]
+    expected = Series(["a", "d", None], dtype=ser.dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str[:3]
+    expected = Series(["abc", "def", None], dtype=ser.dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str[-1]
+    expected = Series(["c", "h", None], dtype=ser.dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_string_slice_out_of_bounds_nested():
     ser = Series([(1, 2), (1,), (3, 4, 5)])
     result = ser.str[1]
