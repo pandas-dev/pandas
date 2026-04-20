@@ -464,7 +464,7 @@ class CSVFormatter:
 
             if is_dates_only:
                 # Use the default behavior (even_days format)
-                formatter = get_format_timedelta64(arr, nat_rep=self.na_rep)
+                formatter = get_format_timedelta64(arr, na_rep=self.na_rep)
             else:
                 # Force long format to prevent per-chunk auto-detection
                 from pandas import Timedelta
