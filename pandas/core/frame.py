@@ -4851,7 +4851,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)  # type: ignore[assignment]
-            self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
+            self._mgr.column_setitem(cast("int", icol), iindex, value, inplace_only=True)
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
