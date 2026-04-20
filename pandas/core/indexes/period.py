@@ -284,7 +284,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
-        arr = self._data.to_timestamp(freq, how)
+        parr = self._data
+        arr = parr.to_timestamp(freq, how)
+        arr._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
         return DatetimeIndex._simple_new(arr, name=self.name)
 
     @property
