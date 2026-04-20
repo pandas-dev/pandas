@@ -1086,11 +1086,14 @@ def test_resample_dst_generated_edge():
     )
     tm.assert_series_equal(result, expected, check_freq=False)
 
+
 def test_resample_dst_check_edge():
     # GH 62601
     ts = Series(
         1,
-        date_range("2024-04-24 23:00", "2024-04-25 00:00", tz="Africa/Cairo", freq="1h"),
+        date_range(
+            "2024-04-24 23:00", "2024-04-25 00:00", tz="Africa/Cairo", freq="1h"
+        ),
     )
 
     result = ts.resample("1D").sum()
