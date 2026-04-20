@@ -4703,11 +4703,14 @@ class DataFrame(NDFrame, OpsMixin):
                 if (
                     not isinstance(cols_droplevel, MultiIndex)
                     and is_string_dtype(cols_droplevel.dtype)
-                    and not cols_droplevel.any()
+                    and (cols_droplevel == "").all()
                 ):
                     # if cols_droplevel contains only empty strings,
                     # value.reindex(cols_droplevel, axis=1) would be full of NaNs
                     # see GH#62518 and GH#61841
+                    # Note: use (== "").all() rather than not .any() to avoid
+                    # triggering on falsy-but-non-empty values such as integer 0
+                    # (GH#65118).
                     return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)

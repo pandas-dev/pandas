@@ -1503,3 +1503,17 @@ def test_loc_setitem_tz_aware_column_expansion():
     _time = datetime.fromtimestamp(1695887042, timezone.utc)
     df.loc[df.id >= 2, "time"] = _time
     assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")
+
+
+def test_setitem_multiindex_single_subcol_falsy_label():
+    # GH#65118: df[key] = value was silently discarded when MultiIndex had
+    # object-dtype level-2 labels and the key mapped to exactly one sub-column
+    # whose label was falsy (e.g. integer 0).  The guard `not .any()` fired on
+    # Index([0]) because 0 is falsy in Python.
+    cols = MultiIndex.from_tuples(
+        [("info", "M"), ("info", 0), ("earnings", 1), ("earnings", 2), ("prices", 0)]
+    )
+    df = DataFrame(np.arange(20, dtype=float).reshape(4, 5), columns=cols)
+    df["prices"] = df["prices"] / 100
+    expected = np.array([0.04, 0.09, 0.14, 0.19])
+    tm.assert_numpy_array_equal(df[("prices", 0)].to_numpy(), expected)
