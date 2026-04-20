@@ -985,12 +985,12 @@ def test_resample_dst_crosses_boundary():
 
     expected = Series(
         [24, 24, 23, 1],
-        index = DatetimeIndex(
+        index=DatetimeIndex(
             ["2024-04-26 01:00:00", "2024-04-27 00:00:00"],
-            tz = "Africa/Cairo",
+            tz="Africa/Cairo",
         ),
     )
-    tm.assert_series_equal(result,expected,check_freq=False)
+    tm.assert_series_equal(result, expected, check_freq=False)
 
 
 def test_resample_dst_15min_across_boundary():
