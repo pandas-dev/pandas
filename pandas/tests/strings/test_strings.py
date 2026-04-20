@@ -644,7 +644,6 @@ def test_string_slice_get_syntax(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-
 def test_string_slice_get_syntax_arrow_extension_array():
     # GH#65112 - _str_getitem was missing on ArrowExtensionArray (pyarrow dtype_backend)
     pytest.importorskip("pyarrow")
