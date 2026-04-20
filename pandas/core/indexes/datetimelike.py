@@ -1471,7 +1471,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         self,
         indices,
         axis: Axis = 0,
-        allow_fill: bool = True,
+        allow_fill: bool | lib.NoDefault = lib.no_default,
         fill_value=lib.no_default,
         **kwargs,
     ) -> Self:
@@ -1486,19 +1486,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-                from the right (the default). This is similar to
-                :func:`numpy.take`.
-            * True: negative values in `indices` indicate
-                missing values. These values are set to `fill_value`. Any other
-                other negative values raise a ``ValueError``.
+                from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+                entries are set to ``fill_value`` (defaulting to ``NaT`` if not
+                supplied). Any other negative values raise a ``ValueError``.
+            * Not supplied: ``-1`` wraps unless ``fill_value`` is explicitly
+                provided.
         fill_value : scalar, optional
-            If allow_fill=True and fill_value is supplied, indices specified by
-            -1 are filled with ``fill_value``. Passing ``fill_value=None`` is
-            equivalent to passing ``self._na_value`` (``NaT``).
+            If fill semantics apply (see ``allow_fill``), indices specified by
+            ``-1`` are filled with ``fill_value``. Passing ``fill_value=None``
+            is equivalent to passing ``self._na_value`` (``NaT``).
         **kwargs
             Required for compatibility with numpy.
 

@@ -2044,8 +2044,7 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        # fill_value=None → Index.take substitutes lev._na_value for -1
-        result = lev.take(level_codes, allow_fill=True, fill_value=None)
+        result = lev.take(level_codes, allow_fill=True)
         result._name = name
         return result
 
@@ -2577,8 +2576,8 @@ class MultiIndex(Index):
         self: MultiIndex,
         indices,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value=None,
+        allow_fill: bool | lib.NoDefault = lib.no_default,
+        fill_value=lib.no_default,
         **kwargs,
     ) -> MultiIndex:
         """
@@ -2638,14 +2637,12 @@ class MultiIndex(Index):
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                raise ValueError(
-                    "When allow_fill=True and fill_value is not None, "
-                    "all indices must be >= -1"
-                )
-        else:
-            allow_fill = False
+        if allow_fill is lib.no_default:
+            # Default: opt into fill semantics only if fill_value is explicit
+            allow_fill = fill_value is not lib.no_default
+
+        if allow_fill and (indices < -1).any():
+            raise ValueError("When allow_fill=True, all indices must be >= -1")
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()

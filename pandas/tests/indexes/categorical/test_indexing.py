@@ -63,9 +63,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
         tm.assert_categorical_equal(result.values, expected.values)
 
-        msg = (
-            "When allow_fill=True and fill_value is supplied, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=np.nan)
         with pytest.raises(ValueError, match=msg):
@@ -101,9 +99,7 @@ class TestTake:
         expected = CategoricalIndex(expected)
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is supplied, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=pd.NaT)
         with pytest.raises(ValueError, match=msg):

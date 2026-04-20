@@ -1158,9 +1158,7 @@ class TestIndex:
 
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
-        msg = (
-            "When allow_fill=True and fill_value is supplied, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
 
         with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -2]), fill_value=True)

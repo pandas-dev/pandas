@@ -81,9 +81,7 @@ class TestTake:
         expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is supplied, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
