@@ -860,95 +860,96 @@ def test_callable_float_format_compatibility():
     assert result == expected
 
 
-class TestToCSVChunkDatetimeConsistency:
-    """GH#55481 - to_csv with chunksize should produce consistent datetime
-    and timedelta formatting across chunks."""
+def test_to_csv_chunksize_datetime_column():
+    # GH#55481
+    dti = pd.date_range("2016-01-01", periods=3, freq="D")
+    df = DataFrame({"A": dti})
+    df.iloc[-1, -1] += pd.Timedelta(minutes=1)
 
-    def test_datetime_column_chunksize(self):
-        # GH#55481
-        dti = pd.date_range("2016-01-01", periods=3, freq="D")
-        df = DataFrame({"A": dti})
-        df.iloc[-1, -1] += pd.Timedelta(minutes=1)
+    result = df.to_csv(chunksize=1)
+    expected_rows = [
+        ",A",
+        "0,2016-01-01 00:00:00",
+        "1,2016-01-02 00:00:00",
+        "2,2016-01-03 00:01:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
 
-        result = df.to_csv(chunksize=1)
-        expected_rows = [
-            ",A",
-            "0,2016-01-01 00:00:00",
-            "1,2016-01-02 00:00:00",
-            "2,2016-01-03 00:01:00",
-        ]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert result == expected
 
-    def test_datetime_column_dates_only_chunksize(self):
-        # GH#55481 - dates-only columns should still use compact format
-        dti = pd.date_range("2016-01-01", periods=3, freq="D")
-        df = DataFrame({"A": dti})
+def test_to_csv_chunksize_datetime_column_dates_only():
+    # GH#55481 - dates-only columns should still use compact format
+    dti = pd.date_range("2016-01-01", periods=3, freq="D")
+    df = DataFrame({"A": dti})
 
-        result = df.to_csv(chunksize=1)
-        expected_rows = [",A", "0,2016-01-01", "1,2016-01-02", "2,2016-01-03"]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert result == expected
+    result = df.to_csv(chunksize=1)
+    expected_rows = [",A", "0,2016-01-01", "1,2016-01-02", "2,2016-01-03"]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
 
-    def test_timedelta_column_chunksize(self):
-        # GH#55481
-        tdi = pd.timedelta_range("1D", periods=3, freq="D")
-        df = DataFrame({"A": tdi})
-        df.iloc[-1, -1] += pd.Timedelta(minutes=1)
 
-        result = df.to_csv(chunksize=1)
-        expected_rows = [
-            ",A",
-            "0,1 days 00:00:00",
-            "1,2 days 00:00:00",
-            "2,3 days 00:01:00",
-        ]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert result == expected
+def test_to_csv_chunksize_timedelta_column():
+    # GH#55481
+    tdi = pd.timedelta_range("1D", periods=3, freq="D")
+    df = DataFrame({"A": tdi})
+    df.iloc[-1, -1] += pd.Timedelta(minutes=1)
 
-    def test_datetime_index_chunksize(self):
-        # GH#55481 - DatetimeIndex should also be consistent across chunks
-        dti = pd.date_range("2016-01-01", periods=3, freq="D")
-        df = DataFrame({"A": [1, 2, 3]}, index=dti)
-        df.index = df.index.insert(2, dti[-1] + pd.Timedelta(minutes=1)).delete(3)
+    result = df.to_csv(chunksize=1)
+    expected_rows = [
+        ",A",
+        "0,1 days 00:00:00",
+        "1,2 days 00:00:00",
+        "2,3 days 00:01:00",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
 
-        result = df.to_csv(chunksize=1)
-        expected_rows = [
-            ",A",
-            "2016-01-01 00:00:00,1",
-            "2016-01-02 00:00:00,2",
-            "2016-01-03 00:01:00,3",
-        ]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert result == expected
 
-    def test_multiple_datetime_columns_chunksize(self):
-        # GH#55481 - each column should be formatted based on its own data
-        dti_a = pd.date_range("2016-01-01", periods=3, freq="D")
-        dti_b = pd.date_range("2020-06-01", periods=3, freq="D")
-        df = DataFrame({"A": dti_a, "B": dti_b})
-        df.iloc[-1, 0] += pd.Timedelta(minutes=1)  # A is not dates-only
-        # B stays dates-only
+def test_to_csv_chunksize_datetime_index():
+    # GH#55481 - DatetimeIndex should also be consistent across chunks
+    dti = pd.date_range("2016-01-01", periods=3, freq="D")
+    df = DataFrame({"A": [1, 2, 3]}, index=dti)
+    df.index = df.index.insert(2, dti[-1] + pd.Timedelta(minutes=1)).delete(3)
 
-        result = df.to_csv(chunksize=1)
-        expected_rows = [
-            ",A,B",
-            "0,2016-01-01 00:00:00,2020-06-01",
-            "1,2016-01-02 00:00:00,2020-06-02",
-            "2,2016-01-03 00:01:00,2020-06-03",
-        ]
-        expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert result == expected
+    result = df.to_csv(chunksize=1)
+    expected_rows = [
+        ",A",
+        "2016-01-01 00:00:00,1",
+        "2016-01-02 00:00:00,2",
+        "2016-01-03 00:01:00,3",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
 
-    def test_chunksize_matches_no_chunksize(self):
-        # GH#55481 - output should be the same regardless of chunksize
-        dti = pd.date_range("2016-01-01", periods=3, freq="D")
-        df = DataFrame({"A": dti})
-        df.iloc[-1, -1] += pd.Timedelta(minutes=1)
 
-        result_chunked = df.to_csv(chunksize=1)
-        result_default = df.to_csv()
-        assert result_chunked == result_default
+def test_to_csv_chunksize_multiple_datetime_columns():
+    # GH#55481 - each column should be formatted based on its own data
+    dti_a = pd.date_range("2016-01-01", periods=3, freq="D")
+    dti_b = pd.date_range("2020-06-01", periods=3, freq="D")
+    df = DataFrame({"A": dti_a, "B": dti_b})
+    df.iloc[-1, 0] += pd.Timedelta(minutes=1)  # A is not dates-only
+    # B stays dates-only
+
+    result = df.to_csv(chunksize=1)
+    expected_rows = [
+        ",A,B",
+        "0,2016-01-01 00:00:00,2020-06-01",
+        "1,2016-01-02 00:00:00,2020-06-02",
+        "2,2016-01-03 00:01:00,2020-06-03",
+    ]
+    expected = tm.convert_rows_list_to_csv_str(expected_rows)
+    assert result == expected
+
+
+def test_to_csv_chunksize_matches_no_chunksize():
+    # GH#55481 - output should be the same regardless of chunksize
+    dti = pd.date_range("2016-01-01", periods=3, freq="D")
+    df = DataFrame({"A": dti})
+    df.iloc[-1, -1] += pd.Timedelta(minutes=1)
+
+    result_chunked = df.to_csv(chunksize=1)
+    result_default = df.to_csv()
+    assert result_chunked == result_default
 
 
 def test_no_float_format():
