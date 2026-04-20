@@ -971,22 +971,26 @@ def test_resample_origin_with_day_freq_on_dst(unit):
 
 def test_resample_dst_crosses_boundary():
     # GH 62601
-    # Data spans April 26 through April 27, crossing the DST gap on April 26
+    # Data spans April 24 through April 27, crossing the DST gap on April 26.
+    # In Africa/Cairo, DST starts on 2024-04-26 at 00:00 local time (clocks spring
+    # forward to 01:00, UTC+2 -> UTC+3), so the daily bin edge at midnight April 26
+    # is nonexistent. The fix in resample shifts that edge to 01:00+03:00.
     ts = Series(
         1,
-        date_range("2024-04-26", "2024-04-27", tz="Africa/Cairo", freq="1h"),
+        date_range("2024-04-24", "2024-04-27", tz="Africa/Cairo", freq="1h"),
     )
 
-    # Hardcoded expected: bin edges are midnight each day (adjusted for DST).
-    # April 24 00:00 -> April 25 00:00: 25 points (inclusive start, exclusive end would
-    # give 24, but date_range includes both endpoints, so count carefully)
-    # Rather than count manually, verify shape and that no exception is raised.
     result = ts.resample("1D").sum()
 
     expected = Series(
         [24, 24, 23, 1],
         index=DatetimeIndex(
-            ["2024-04-26 01:00:00", "2024-04-27 00:00:00"],
+            [
+                "2024-04-24 00:00:00+02:00",
+                "2024-04-25 00:00:00+02:00",
+                "2024-04-26 01:00:00+03:00",
+                "2024-04-27 00:00:00+03:00",
+            ],
             tz="Africa/Cairo",
         ),
     )
@@ -1077,6 +1081,23 @@ def test_resample_dst_generated_edge():
         [24, 1],
         index=DatetimeIndex(
             ["2024-04-25 00:00:00", "2024-04-26 01:00:00"],
+            tz="Africa/Cairo",
+        ),
+    )
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+def test_resample_dst_check_edge():
+    # GH 62601
+    ts = Series(
+        1,
+        date_range("2024-04-24 23:00", "2024-04-25 00:00", tz="Africa/Cairo", freq="1h"),
+    )
+
+    result = ts.resample("1D").sum()
+    expected = Series(
+        [1, 1],
+        index=DatetimeIndex(
+            ["2024-04-24 00:00:00", "2024-04-25 00:00:00"],
             tz="Africa/Cairo",
         ),
     )
