@@ -518,4 +518,5 @@ def timedelta_range(
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )
+    tdarr._freq = freq
     return TimedeltaIndex._simple_new(tdarr, name=name)

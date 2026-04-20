@@ -1763,6 +1763,7 @@ def date_range(
         unit=unit,
         **kwargs,
     )
+    dtarr._freq = freq
     return DatetimeIndex._simple_new(dtarr, name=name)
 
 

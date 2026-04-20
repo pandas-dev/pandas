@@ -307,9 +307,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             index = index[:-1]
 
         td64values = index.view(f"m8[{unit}]")
-        result = cls._simple_new(td64values, dtype=td64values.dtype)
-        result._freq = freq
-        return result
+        return cls._simple_new(td64values, dtype=td64values.dtype)
 
     # ----------------------------------------------------------------
     # DatetimeLike Interface
