@@ -48,16 +48,7 @@ jobs:
           -Csetup-args="--werror"
 
     - name: Run doctests
-      env:
-        # Avoids NumPy scalar reprs in docstrings.
-        PANDAS_FUTURE_PYTHON_SCALARS: "1"
-      run: |
-        pixi run \
-          --environment doctests \
-          ci-test-pandas \
-          '--doctest-modules --doctest-cython --ignore=pandas/tests' \
-          0 \
-          pandas
+      run: pixi run --environment doctests ci-doctests
 
     - name: Run scripts tests
       run: pixi run --environment doctests ci-scripts-tests

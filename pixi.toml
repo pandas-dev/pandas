@@ -212,6 +212,19 @@ cmd = [
   "{{ pytest_target }}",
 ]
 
+[tasks.ci-doctests]
+# Avoids NumPy scalar reprs in docstrings.
+env = { PANDAS_FUTURE_PYTHON_SCALARS = "1" }
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "--doctest-modules",
+  "--doctest-cython",
+  "--ignore=pandas/tests",
+  "pandas",
+]
+
 [tasks.ci-check-import]
 cmd = [
   "python",
@@ -224,7 +237,7 @@ cmd = [
 cmd = [
   "python",
   "-m",
-  "pre-commit",
+  "pre_commit",
   "run",
   "--verbose",
   "--hook-stage",
