@@ -152,6 +152,7 @@ natsort = "*" # DataFrame.sort_values doctest
 tokenize-rt = "*" # scripts/check_for_inconsistent_pandas_namespace.py
 
 [feature.typing.dependencies]
+pre-commit = ">=4.2.0"
 mypy = "==1.17.1"
 scipy-stubs = "*"
 types-python-dateutil = "*"
@@ -235,9 +236,7 @@ cmd = [
 
 [tasks.ci-typing]
 cmd = [
-  "python",
-  "-m",
-  "pre_commit",
+  "pre-commit",
   "run",
   "--verbose",
   "--hook-stage",
