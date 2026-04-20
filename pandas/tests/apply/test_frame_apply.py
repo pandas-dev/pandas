@@ -1447,6 +1447,30 @@ def test_nuiscance_columns():
         df.agg(["sum"])
 
 
+def test_agg_list_like_func_with_numeric_only():
+    # GH#65218 - DataFrame.agg(list, numeric_only=True) should exclude
+    # non-numeric columns instead of including them as all-NaN.
+    df = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "B": [1.0, 2.0, 3.0],
+            "C": ["foo", "bar", "baz"],
+        }
+    )
+
+    result = df.agg(["sum", "mean"], numeric_only=True)
+    expected = DataFrame(
+        {"A": {"sum": 6.0, "mean": 2.0}, "B": {"sum": 6.0, "mean": 2.0}}
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Edge case: all non-numeric columns should yield empty DataFrame
+    df_str = DataFrame({"X": ["a", "b"], "Y": ["c", "d"]})
+    result_empty = df_str.agg(["sum", "mean"], numeric_only=True)
+    assert result_empty.empty
+    assert list(result_empty.index) == ["sum", "mean"]
+
+
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_non_callable_aggregates(how):
     # GH 16405
