@@ -4816,6 +4816,32 @@ class DataFrame(NDFrame, OpsMixin):
         takeable : bool, default False
             Sets whether or not index/col interpreted as indexers
         """
+        if is_list_like(value) and not isinstance(value, dict) and not isinstance(
+            col, slice
+        ):
+            # GH#61223: list-like values must be stored as a single cell object.
+            # The except branch below uses .loc/.iloc which interprets a list-like
+            # as a multi-row assignment rather than a single-cell assignment, so we
+            # handle this case explicitly before falling through to the try/except.
+            # We exclude slice cols (e.g. df.at[row] = list with no column given)
+            # to preserve the existing InvalidIndexError for row-level assignment.
+            if takeable:
+                col_label = self.columns[col]
+                iindex = cast("int", index)
+            else:
+                col_label = col
+                if col not in self.columns:
+                    self[col] = Series(dtype=object, index=self.index)
+                iindex = self.index.get_loc(index)  # type: ignore[assignment]
+            icol = self.columns.get_loc(col_label)
+            if self.dtypes.iloc[icol] != np.dtype("object"):
+                self[col_label] = self[col_label].astype(object)
+                icol = self.columns.get_loc(col_label)
+            self._mgr.column_setitem(
+                cast("int", icol), iindex, value, inplace_only=True
+            )
+            return
+
         try:
             if takeable:
                 icol = col

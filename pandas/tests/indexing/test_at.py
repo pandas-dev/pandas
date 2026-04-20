@@ -320,3 +320,45 @@ class TestAtErrors:
             match=f"You can only assign a scalar value not a \\{type(new_row)}",
         ):
             df.at["a"] = new_row
+
+    def test_at_setitem_list_like_new_column(self):
+        # GH#61223: .at should store list-like as a single cell when column
+        # does not yet exist (column is created with object dtype)
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        df.at["a", "B"] = [10, 20, 30]
+        assert df.at["a", "B"] == [10, 20, 30]
+        assert df["B"].dtype == np.dtype("object")
+        # other rows must remain NaN
+        assert df.at["b", "B"] is np.nan
+
+    def test_at_setitem_list_like_wrong_dtype(self):
+        # GH#61223: .at should store list-like as a single cell even when the
+        # existing column has a numeric dtype (column is cast to object)
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        df.at["b", "A"] = [100, 200]
+        assert df.at["b", "A"] == [100, 200]
+        assert df["A"].dtype == np.dtype("object")
+        # other rows must keep their original values
+        assert df.at["a", "A"] == 1
+        assert df.at["c", "A"] == 3
+
+    def test_iat_setitem_list_like(self):
+        # GH#61223: .iat should store list-like as a single cell
+        df = DataFrame({"A": [1, 2, 3]})
+        df.iat[0, 0] = [99, 88, 77]
+        assert df.iat[0, 0] == [99, 88, 77]
+        assert df["A"].dtype == np.dtype("object")
+
+    def test_at_setitem_tuple_value(self):
+        # GH#61223: tuple values (also list-like) should be stored as single cell
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        df.at["a", "A"] = (10, 20, 30)
+        assert df.at["a", "A"] == (10, 20, 30)
+
+    def test_at_setitem_list_like_multiindex_row(self):
+        # GH#61223: .at should work correctly with MultiIndex row labels
+        idx = MultiIndex.from_tuples([("r1", 0), ("r2", 1)])
+        df = DataFrame({"A": [1, 2]}, index=idx)
+        df.at[("r1", 0), "A"] = [10, 20]
+        assert df.at[("r1", 0), "A"] == [10, 20]
+        assert df.at[("r2", 1), "A"] == 2
