@@ -4703,11 +4703,14 @@ class DataFrame(NDFrame, OpsMixin):
                 if (
                     not isinstance(cols_droplevel, MultiIndex)
                     and is_string_dtype(cols_droplevel.dtype)
-                    and not cols_droplevel.any()
+                    and (cols_droplevel == "").all()
                 ):
                     # if cols_droplevel contains only empty strings,
                     # value.reindex(cols_droplevel, axis=1) would be full of NaNs
                     # see GH#62518 and GH#61841
+                    # Note: use (== "").all() rather than not .any() to avoid
+                    # triggering on falsy-but-non-empty values such as integer 0
+                    # (GH#65118).
                     return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
@@ -4816,10 +4819,8 @@ class DataFrame(NDFrame, OpsMixin):
         takeable : bool, default False
             Sets whether or not index/col interpreted as indexers
         """
-        if (
-            is_list_like(value)
-            and not isinstance(value, dict)
-            and not isinstance(col, slice)
+        if is_list_like(value) and not isinstance(value, dict) and not isinstance(
+            col, slice
         ):
             # GH#61223: list-like values must be stored as a single cell object.
             # The except branch below uses .loc/.iloc which interprets a list-like
@@ -4851,7 +4852,9 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)  # type: ignore[assignment]
-            self._mgr.column_setitem(cast("int", icol), iindex, value, inplace_only=True)
+            self._mgr.column_setitem(
+                cast("int", icol), iindex, value, inplace_only=True
+            )
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
@@ -5491,7 +5494,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc: int,
         column: Hashable,
         value: object,
-        allow_duplicates: bool = False,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -5507,7 +5510,7 @@ class DataFrame(NDFrame, OpsMixin):
             Label of the inserted column.
         value : Scalar, Series, or array-like
             Content of the inserted column.
-        allow_duplicates : bool, default False
+        allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
 
         See Also
@@ -5540,6 +5543,8 @@ class DataFrame(NDFrame, OpsMixin):
         0   NaN   100     1      99     3
         1   5.0   100     2      99     4
         """
+        if allow_duplicates is lib.no_default:
+            allow_duplicates = False
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
@@ -6981,7 +6986,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
@@ -6994,7 +6999,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> None: ...
 
@@ -7007,7 +7012,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool = ...,
+        allow_duplicates: bool | lib.NoDefault = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None: ...
 
@@ -7019,7 +7024,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
-        allow_duplicates: bool = False,
+        allow_duplicates: bool | lib.NoDefault = lib.no_default,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
@@ -7046,7 +7051,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
-        allow_duplicates : bool, default False
+        allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
@@ -7186,7 +7191,8 @@ class DataFrame(NDFrame, OpsMixin):
             new_obj = self
         else:
             new_obj = self.copy(deep=False)
-        allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
+        if allow_duplicates is not lib.no_default:
+            allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
         new_index = default_index(len(new_obj))
         if level is not None:
