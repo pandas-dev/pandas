@@ -1695,3 +1695,26 @@ def test_flags_kwarg(any_string_dtype):
     with tm.assert_produces_warning(UserWarning, match=msg):
         result = data.str.contains(pat, flags=re.IGNORECASE)
     assert result.iloc[0]
+
+
+@pytest.mark.parametrize("dtype", ["string[pyarrow]", "large_string[pyarrow]"])
+@pytest.mark.parametrize("regex", [True, False])
+def test_replace_empty_pattern_arrow(dtype, regex):
+    # GH#64941: pyarrow hangs indefinitely on empty pattern
+    # Expected behavior matches Python's str.replace("", repl)
+    pytest.importorskip("pyarrow")
+    ser = Series(["abcd", "xy", pd.NA], dtype=dtype)
+
+    # replace with non-empty repl: inserts repl at every position
+    result = ser.str.replace("", "X", regex=regex)
+    expected = Series(["XaXbXcXdX", "XxXyX", pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    # replace with empty repl: no-op
+    result_noop = ser.str.replace("", "", regex=regex)
+    tm.assert_series_equal(result_noop, ser)
+
+    # limited replacements
+    result_n = ser.str.replace("", "X", n=2, regex=regex)
+    expected_n = Series(["XaXbcd", "XxXy", pd.NA], dtype=dtype)
+    tm.assert_series_equal(result_n, expected_n)

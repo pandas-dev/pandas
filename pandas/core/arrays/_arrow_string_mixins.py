@@ -239,6 +239,28 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
+        # GH#64941: pyarrow hangs indefinitely on empty patterns
+        # (upstream: https://github.com/apache/arrow/issues/39149).
+        # Fall back to element-wise Python behavior which handles this correctly.
+        if isinstance(pat, str) and not pat:
+            if regex:
+                # re.sub count=0 means "replace all"; pandas n=-1 also means all
+                re_count = 0 if n < 0 else n
+                result_list = [
+                    re.sub("", repl, val, count=re_count) if val is not None else None
+                    for val in self._pa_array.to_pylist()
+                ]
+            else:
+                result_list = [
+                    (val.replace("", repl) if n < 0 else val.replace("", repl, n))
+                    if val is not None
+                    else None
+                    for val in self._pa_array.to_pylist()
+                ]
+            return self._from_pyarrow_array(
+                pa.array(result_list, type=self._pa_array.type)
+            )
+
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
