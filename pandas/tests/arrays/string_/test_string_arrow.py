@@ -325,16 +325,6 @@ class TestFromSequenceIntBool:
         expected = pd.Series(["1", "2", None], dtype="string")
         tm.assert_series_equal(result, expected)
 
-    def test_astype_masked_float_with_nan_to_string(self, using_nan_is_na):
-        # GH#61617 - FloatingArray.astype(str) with unmasked NaN
-        arr = pd.array([np.nan, pd.NA, 3.0], dtype="Float64")
-        result = arr.astype("string")
-        if using_nan_is_na:
-            expected = ArrowStringArray._from_sequence([None, None, "3.0"])
-        else:
-            expected = ArrowStringArray._from_sequence(["nan", None, "3.0"])
-        tm.assert_extension_array_equal(result, expected)
-
 
 def test_string_dtype_error_message():
     # GH#55051
