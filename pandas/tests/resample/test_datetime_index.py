@@ -984,11 +984,10 @@ def test_resample_dst_crosses_boundary():
     result = ts.resample("1D").sum()
 
     expected = Series(
-        [24, 24, 23, 1],    # April 26 loses an hour to DST; April 27 is endpoint only
-        index=pd.DatetimeIndex(
-            ["2024-04-24", "2024-04-25", "2024-04-26", "2024-04-27"],
-            tz="Africa/Cairo",
-            freq="D",
+        [24, 24, 23, 1],
+        index = DatetimeIndex(
+            ["2024-04-24 00:00:00", "2024-04-25 00:00:00", "2024-04-26 01:00:00", "2024-04-27 00:00:00"],
+            tz = "Africa/Cairo",
         ),
     )
     tm.assert_series_equal(result,expected,check_freq=False)
