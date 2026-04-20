@@ -1472,9 +1472,54 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         indices,
         axis: Axis = 0,
         allow_fill: bool = True,
-        fill_value=None,
+        fill_value=lib.no_default,
         **kwargs,
     ) -> Self:
+        """
+        Return a new Index of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : array-like
+            Indices to be taken.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
+        allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+                from the right (the default). This is similar to
+                :func:`numpy.take`.
+            * True: negative values in `indices` indicate
+                missing values. These values are set to `fill_value`. Any other
+                other negative values raise a ``ValueError``.
+        fill_value : scalar, optional
+            If allow_fill=True and fill_value is supplied, indices specified by
+            -1 are filled with ``fill_value``. Passing ``fill_value=None`` is
+            equivalent to passing ``self._na_value`` (``NaT``).
+        **kwargs
+            Required for compatibility with numpy.
+
+        Returns
+        -------
+        Index
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
+
+        See Also
+        --------
+        numpy.ndarray.take: Return an array formed from the
+            elements of a at the given indices.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2024-01-01", periods=3)
+        >>> idx.take([2, 1, 0])
+        DatetimeIndex(['2024-01-03', '2024-01-02', '2024-01-01'],
+                      dtype='datetime64[us]', freq='-1D')
+        """
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 

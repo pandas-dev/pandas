@@ -800,10 +800,11 @@ class ExcelFormatter:
                     self.df.index.codes,
                     strict=False,
                 ):
+                    # fill_value=None → Index.take substitutes levels._na_value
                     values = levels.take(
                         level_codes,
                         allow_fill=True,
-                        fill_value=levels._na_value,
+                        fill_value=None,
                     )
                     # GH#60099
                     if isinstance(values[0], Period):

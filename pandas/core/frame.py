@@ -17960,9 +17960,8 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         index = data._get_axis(axis)
-        result = index.take(
-            indices, allow_fill=True, fill_value=index._na_value
-        )._values
+        # fill_value=None → Index.take substitutes index._na_value for -1
+        result = index.take(indices, allow_fill=True, fill_value=None)._values
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
@@ -18061,9 +18060,8 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         index = data._get_axis(axis)
-        result = index.take(
-            indices, allow_fill=True, fill_value=index._na_value
-        )._values
+        # fill_value=None → Index.take substitutes index._na_value for -1
+        result = index.take(indices, allow_fill=True, fill_value=None)._values
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmax")
 

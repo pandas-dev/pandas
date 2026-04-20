@@ -2044,7 +2044,8 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        result = lev.take(level_codes, allow_fill=True, fill_value=lev._na_value)
+        # fill_value=None → Index.take substitutes lev._na_value for -1
+        result = lev.take(level_codes, allow_fill=True, fill_value=None)
         result._name = name
         return result
 
