@@ -15,6 +15,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed reading of Parquet files with timezone-aware timestamps or localizing of a timeseries with a ``pytz`` timezone when an older version of ``pytz`` was installed (:issue:`64978`)
+- Fixed regression in :func:`to_timedelta` ignoring the ``unit`` argument for round float values when mixed with non-round floats in a list (:issue:`65150`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.bug_fixes:
