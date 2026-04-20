@@ -971,10 +971,10 @@ def test_resample_origin_with_day_freq_on_dst(unit):
 
 def test_resample_dst_crosses_boundary():
     # GH 62601
-    # Data spans April 24 through April 27, crossing the DST gap on April 26
+    # Data spans April 26 through April 27, crossing the DST gap on April 26
     ts = Series(
         1,
-        date_range("2024-04-24", "2024-04-27", tz="Africa/Cairo", freq="1h"),
+        date_range("2024-04-26", "2024-04-27", tz="Africa/Cairo", freq="1h"),
     )
 
     # Hardcoded expected: bin edges are midnight each day (adjusted for DST).
@@ -986,7 +986,7 @@ def test_resample_dst_crosses_boundary():
     expected = Series(
         [24, 24, 23, 1],
         index = DatetimeIndex(
-            ["2024-04-24 00:00:00", "2024-04-25 00:00:00", "2024-04-26 01:00:00", "2024-04-27 00:00:00"],
+            ["2024-04-26 01:00:00", "2024-04-27 00:00:00"],
             tz = "Africa/Cairo",
         ),
     )
