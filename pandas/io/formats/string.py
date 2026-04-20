@@ -66,9 +66,6 @@ class StringFormatter:
         return bool(self.fmt.max_cols is None or self.fmt.max_cols > 0)
 
     def _insert_dot_separators(self, strcols: list[list[str]]) -> list[list[str]]:
-        # All columns (including the index if present) have the same number of
-        # rows, so we can use any column's length instead of re-formatting the
-        # index just to get the row count.
         index_length = len(strcols[0])
 
         if self.fmt.is_truncated_horizontally:
@@ -196,7 +193,8 @@ class StringFormatter:
         col_num = max_cols_fitted // 2
         has_index = self.fmt.index
         if has_index:
-            kept = strcols[:1] + strcols[1 : col_num + 1] + strcols[-col_num:]
+            # strcols[0] is the index
+            kept = strcols[: col_num + 1] + strcols[-col_num:]
             insert_pos = col_num + 1
         else:
             kept = strcols[:col_num] + strcols[-col_num:]
