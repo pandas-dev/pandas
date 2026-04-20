@@ -4819,8 +4819,10 @@ class DataFrame(NDFrame, OpsMixin):
         takeable : bool, default False
             Sets whether or not index/col interpreted as indexers
         """
-        if is_list_like(value) and not isinstance(value, dict) and not isinstance(
-            col, slice
+        if (
+            is_list_like(value)
+            and not isinstance(value, dict)
+            and not isinstance(col, slice)
         ):
             # GH#61223: list-like values must be stored as a single cell object.
             # The except branch below uses .loc/.iloc which interprets a list-like
