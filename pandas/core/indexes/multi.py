@@ -3806,15 +3806,15 @@ class MultiIndex(Index):
                         and key[i] != slice(None, None)
                     ]
                     if len(ilevels) == self.nlevels:
-                        # All levels are scalar-indexed (no partial
-                        # string levels preserved). If the indexer is a
-                        # boolean mask with a single match, reduce to
-                        # int so callers get scalar semantics.
-                        # GH#27456
+                        # GH#27456: if the indexer is a boolean mask with a
+                        # single match (e.g. scalar in overlapping
+                        # IntervalIndex level), reduce to int so callers
+                        # get scalar semantics.
                         if isinstance(indexer, np.ndarray) and indexer.dtype == bool:
                             (inds,) = indexer.nonzero()
                             if len(inds) == 1:
                                 return inds[0].item(), None
+                        # TODO: why?
                         ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
 
