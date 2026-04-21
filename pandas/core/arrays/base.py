@@ -2780,6 +2780,7 @@ class ExtensionArray:
             na_option=na_option,
             ascending=ascending,
             pct=pct,
+            mask=np.asarray(self.isna(), dtype="bool") if self._hasna else None,
         )
 
     @classmethod
