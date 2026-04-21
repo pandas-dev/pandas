@@ -16,6 +16,7 @@ Fixed regressions
 
 - Fixed reading of Parquet files with timezone-aware timestamps or localizing of a timeseries with a ``pytz`` timezone when an older version of ``pytz`` was installed (:issue:`64978`)
 - Fixed regression in :func:`to_timedelta` ignoring the ``unit`` argument for round float values when mixed with non-round floats in a list (:issue:`65150`)
+- Fixed regression in :meth:`Series.rank` with custom extension dtypes (:issue:`64976`)
 - Fixed regression in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` raising ``ZeroDivisionError`` for sub-second ``freq`` (:issue:`64828`)
 
 .. ---------------------------------------------------------------------------
@@ -27,6 +28,7 @@ Bug fixes
 - Fixed :class:`ArrowDtype` string arithmetic for addition between ``string`` and ``large_string`` typed arrays (:issue:`65220`)
 - Fixed a bug in adding missing values (e.g. :attr:`NA`) to a pyarrow-backed string array or Series
   raising an error instead of propagating the missing value (:issue:`64968`)
+- Fixed a bug in :meth:`Series.rank` with period dtype and missing values, always sorting missing values at the top, regardless of the ``na_option`` value (:issue:`64976`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
