@@ -299,7 +299,8 @@ class TestDatetimeArrayComparisons:
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
         arr = dti._data
-        assert arr.freq == dti.freq
+        # freq is now Index-level state; the underlying array never carries one
+        assert arr.freq is None
         assert arr.tz == dti.tz
 
         right = dti

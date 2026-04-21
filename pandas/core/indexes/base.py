@@ -581,7 +581,14 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
-        return klass._simple_new(arr, name, refs=refs)  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+        out = klass._simple_new(arr, name, refs=refs)
+        # Preserve freq when wrapping a DatetimeIndex/TimedeltaIndex input,
+        # since _simple_new doesn't copy Index-level attributes like _freq.
+        if isinstance(data, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
+            out, (ABCDatetimeIndex, ABCTimedeltaIndex)
+        ):
+            out._freq = data._freq
+        return out  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
 
     @classmethod
     def _ensure_array(cls, data: ArrayLike, dtype: DtypeObj, copy: bool) -> ArrayLike:

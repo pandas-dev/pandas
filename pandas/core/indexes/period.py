@@ -286,8 +286,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         parr = self._data
         arr = parr.to_timestamp(freq, how)
-        arr._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
-        return DatetimeIndex._simple_new(arr, name=self.name)
+        result = DatetimeIndex._simple_new(arr, name=self.name)
+        result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
+        return result
 
     @property
     def hour(self) -> Index:
