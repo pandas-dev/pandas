@@ -141,3 +141,15 @@ class TestDatetimeIndex:
 
         with pytest.raises(ValueError, match=msg):
             date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+
+    @pytest.mark.parametrize("pa_type", ["date32", "date64"])
+    def test_get_indexer_arrow_date_types(self, pa_type):
+        # GH#62051 - should not raise AttributeError
+        pa = pytest.importorskip("pyarrow")
+        from pandas import ArrowDtype
+
+        dti = DatetimeIndex(["2017-01-01", "2018-01-01"])
+        other = Index(dti, dtype=ArrowDtype(getattr(pa, pa_type)()))
+        result = dti.get_indexer(other)
+        expected = np.array([-1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)

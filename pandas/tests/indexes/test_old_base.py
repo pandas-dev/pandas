@@ -355,7 +355,8 @@ class TestBase:
             assert res_without_engine > 0
             assert res_with_engine > 0
 
-    def test_argsort(self, index):
+    def test_argsort(self, index_sortable):
+        index = index_sortable
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
@@ -363,7 +364,8 @@ class TestBase:
         expected = np.array(index).argsort()
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_numpy_argsort(self, index):
+    def test_numpy_argsort(self, index_sortable):
+        index = index_sortable
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)

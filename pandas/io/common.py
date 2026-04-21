@@ -483,8 +483,6 @@ def _get_filepath_or_buffer(
             mode=mode,
         )
 
-    # is_file_like requires (read | write) & __iter__ but __iter__ is only
-    # needed for read_csv(engine=python)
     if not (
         hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
     ):

@@ -205,11 +205,7 @@ class SelectionMixin(Generic[NDFrameT]):
             return self.obj[self._selection_list]
 
         if len(self.exclusions) > 0:
-            # equivalent to `self.obj.drop(self.exclusions, axis=1)
-            #  but this avoids consolidating and making a copy
-            # TODO: following GH#45287 can we now use .drop directly without
-            #  making a copy?
-            return self.obj._drop_axis(self.exclusions, axis=1, only_slice=True)
+            return self.obj._drop_axis(self.exclusions, axis=1)
         else:
             return self.obj
 
@@ -660,6 +656,17 @@ class IndexOpsMixin(OpsMixin):
         datetime64[ns]     datetime64[ns]
         datetime64[ns, tz] ndarray[object] (Timestamps)
         ================== ================================
+
+        For timezone-aware datetime data, calling ``to_numpy()`` without
+        specifying ``dtype`` produces an object-dtype array of
+        :class:`Timestamp` objects. This is significantly slower and uses
+        more memory than a native ``datetime64`` array. To avoid this,
+        pass an explicit ``dtype``:
+
+        - ``dtype="datetime64[ns]"`` converts to UTC and drops the
+          timezone, returning a native ``datetime64[ns]`` array.
+        - ``dtype=object`` explicitly requests Timestamp objects when
+          you need to preserve per-element timezone information.
 
         Examples
         --------

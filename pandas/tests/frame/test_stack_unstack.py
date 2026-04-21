@@ -1423,6 +1423,21 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
     tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_sort_false_unsorted_with_gaps():
+    # Unsorted MI with missing combinations, unstacking non-last level
+    # with sort=False. Exercises the identity=False, mask_all=False,
+    # sort=False path through _Unstacker.get_new_values.
+    index = MultiIndex.from_tuples([("b", 1), ("a", 2), ("b", 2)], names=["x", "y"])
+    ser = Series([10, 20, 30], index=index)
+    result = ser.unstack(level=0, sort=False)
+    expected = DataFrame(
+        {"b": [10.0, 30.0], "a": [np.nan, 20.0]},
+        index=Index([1, 2], name="y"),
+        columns=Index(["b", "a"], name="x"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
     data = Series(["a", "b", "c", "a"], dtype="object")

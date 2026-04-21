@@ -1132,7 +1132,10 @@ class RangeIndex(Index):
         if not isinstance(other, type(self)):
             maybe_ri = self._shallow_copy(other._values, name=other.name)
             if not isinstance(maybe_ri, type(self)):
-                return super()._join_monotonic(other, how=how)
+                # Cannot convert other to RangeIndex; fall back to
+                # _join_via_get_indexer since RangeIndex._can_use_libjoin
+                # is False.
+                raise NotImplementedError
             other = maybe_ri
 
         if self.equals(other):

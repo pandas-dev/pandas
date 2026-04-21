@@ -3114,8 +3114,6 @@ cdef class BusinessHour(BusinessMixin):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
-        # used for detecting edge condition
-        nanosecond = getattr(other, "nanosecond", 0)
         # reset timezone and nanosecond
         # other may be a Timestamp, thus not use replace
         other = datetime(
@@ -3192,11 +3190,7 @@ cdef class BusinessHour(BusinessMixin):
             while bhour_remain != timedelta(0):
                 # business hour left in this business time interval
                 bhour = self._next_opening_time(other) - other
-                if (
-                    bhour_remain > bhour
-                    or bhour_remain == bhour
-                    and nanosecond != 0
-                ):
+                if bhour_remain >= bhour:
                     # finish adjusting if possible
                     other += bhour_remain
                     bhour_remain = timedelta(0)

@@ -161,7 +161,7 @@ class TestIsNA:
             [
                 NaT,
                 np.datetime64("NaT"),
-                np.timedelta64("NaT"),
+                np.timedelta64("NaT", "ns"),
                 np.datetime64("NaT", "s"),
             ]
         )
@@ -767,7 +767,7 @@ na_vals = (
         np.complex64(np.nan),
         np.complex128(np.nan),
         np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.timedelta64("NaT", "ns"),
     ]
     + [np.datetime64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
     + [np.timedelta64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]

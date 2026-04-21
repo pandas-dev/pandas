@@ -1324,7 +1324,6 @@ class PythonParser(ParserBase):
 
                             if next_row is not None:
                                 new_rows.append(next_row)
-                        len_new_rows = len(new_rows)
 
                 except StopIteration:
                     len_new_rows = len(new_rows)

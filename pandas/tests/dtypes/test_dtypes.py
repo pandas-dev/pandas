@@ -1061,7 +1061,6 @@ class TestCategoricalDtypeParametrized:
     def test_str_vs_repr(self, ordered, using_infer_string):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
-        # Py2 will have unicode prefixes
         dtype = "str" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "

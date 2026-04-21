@@ -160,6 +160,9 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
+        if treat_tz_as_pytz(tz) and pytz is None:
+            # call again for raising proper error
+            import_optional_dependency("pytz")
         pass
     elif tz is None:
         pass
@@ -435,6 +438,6 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
     """
-    if treat_tz_as_pytz(tz):
+    if treat_tz_as_pytz(tz) and pytz is not None:
         return pytz.timezone(str(tz))
     return tz

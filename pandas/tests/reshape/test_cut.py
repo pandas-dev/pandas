@@ -814,6 +814,29 @@ def test_cut_with_nullable_int64():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
+def test_cut_intervalindex_closed(closed):
+    # GH#47614 - pd.cut with IntervalIndex bins and all closed values
+    # Use non-contiguous intervals to avoid overlap with closed="both"
+    bins = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
+    data = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5]
+    result = cut(data, bins=bins)
+
+    # Verify against get_indexer
+    expected_codes = bins.get_indexer(data)
+    tm.assert_numpy_array_equal(result.codes, expected_codes.astype(result.codes.dtype))
+
+
+def test_cut_intervalindex_with_gaps():
+    # GH#47614 - pd.cut with non-contiguous IntervalIndex bins
+    bins = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    data = [0.5, 1.5, 2.5, 3.5, 4.5, np.nan]
+    result = cut(data, bins=bins)
+
+    expected_codes = np.array([0, -1, 1, -1, 2, -1], dtype=result.codes.dtype)
+    tm.assert_numpy_array_equal(result.codes, expected_codes)
+
+
 def test_cut_datetime_array_no_attributeerror():
     # GH 55431
     ser = Series(to_datetime(["2023-10-06 12:00:00+0000", "2023-10-07 12:00:00+0000"]))

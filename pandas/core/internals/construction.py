@@ -792,6 +792,12 @@ def to_arrays(
                             arrays[i] = arr[:, 0]
 
                 return arrays, columns
+            elif data.ndim == 2:
+                # GH#22025 - empty 2D ndarray
+                arrays = [data[:, idx] for idx in range(data.shape[1])]
+                if columns is None:
+                    columns = default_index(data.shape[1])
+                return arrays, columns
         return [], ensure_index([])
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
@@ -799,6 +805,14 @@ def to_arrays(
         if columns is None:
             columns = Index(data.dtype.names)
         arrays = [data[k] for k in columns]
+        return arrays, columns
+
+    elif isinstance(data, np.ndarray) and data.ndim == 2:
+        # Plain 2D ndarray: slice columns directly instead of falling through
+        # to the "last ditch" path that converts each row to a tuple.
+        arrays = [data[:, idx] for idx in range(data.shape[1])]
+        if columns is None:
+            columns = default_index(data.shape[1])
         return arrays, columns
 
     if isinstance(data[0], (list, tuple)):
