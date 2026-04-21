@@ -33,6 +33,7 @@ from pandas._libs.hashtable import duplicated
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
+    Pandas4Warning,
     PerformanceWarning,
     UnsortedIndexError,
 )
@@ -2591,20 +2592,22 @@ class MultiIndex(Index):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-            from the right (the default). This is similar to
-            :func:`numpy.take`.
+              from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+              entries are set to NA. Any other negative values raise a
+              ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
-            * True: negative values in `indices` indicate
-            missing values. These values are set to `fill_value`. Any other
-            other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        fill_value : scalar, optional
+            Retained for API compatibility with :meth:`Index.take`; ``-1``
+            entries are always represented as NA in each level regardless of
+            the value passed.
         **kwargs
             Required for compatibility with numpy.
 
@@ -2638,8 +2641,25 @@ class MultiIndex(Index):
         indices = ensure_platform_int(indices)
 
         if allow_fill is lib.no_default:
-            # Default: opt into fill semantics only if fill_value is explicit
-            allow_fill = fill_value is not lib.no_default
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this case, but
+                # warn since the sentinel-based default would otherwise flip
+                # it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not lib.no_default
 
         if allow_fill and (indices < -1).any():
             raise ValueError("When allow_fill=True, all indices must be >= -1")

@@ -1210,10 +1210,12 @@ class Index(IndexOpsMixin, PandasObject):
             * False: negative values in `indices` indicate positional indices
               from the right, matching :func:`numpy.take`.
             * True: negative values in `indices` indicate missing values. ``-1``
-              entries are set to ``fill_value`` (using the default NA value of the caller's dtype
-              if not supplied). Any other negative values raise a ``ValueError``.
-            * Not supplied: ``-1`` wraps (numpy-like) unless ``fill_value`` is
-              explicitly provided, in which case fill semantics apply.
+              entries are set to ``fill_value`` (using the default NA value of
+              the caller's dtype if not supplied). Any other negative values
+              raise a ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
         fill_value : scalar, optional
             If fill semantics apply (see ``allow_fill``), indices specified by
@@ -1251,8 +1253,25 @@ class Index(IndexOpsMixin, PandasObject):
         indices = ensure_platform_int(indices)
 
         if allow_fill is no_default:
-            # Default: opt into fill semantics only if fill_value is explicit
-            allow_fill = fill_value is not no_default
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this one case,
+                # but warn since the sentinel-based default would otherwise
+                # flip it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not no_default
 
         if allow_fill:
             # Per the ExtensionArray convention, fill_value=None (or unsupplied)

@@ -1494,8 +1494,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             * True: negative values in `indices` indicate missing values. ``-1``
                 entries are set to ``fill_value`` (defaulting to ``NaT`` if not
                 supplied). Any other negative values raise a ``ValueError``.
-            * Not supplied: ``-1`` wraps unless ``fill_value`` is explicitly
-                provided.
+            * Not supplied: defaults to ``allow_fill=False`` unless
+                ``fill_value`` is explicitly provided, in which case fill
+                semantics apply (``allow_fill=True``).
         fill_value : scalar, optional
             If fill semantics apply (see ``allow_fill``), indices specified by
             ``-1`` are filled with ``fill_value``. Passing ``fill_value=None``
