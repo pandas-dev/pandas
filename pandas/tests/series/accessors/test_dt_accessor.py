@@ -592,6 +592,13 @@ class TestSeriesDatetimeValues:
             expected = expected.astype(StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
+    def test_strftime_literal_braces(self):
+        # Literal braces in the format string should be preserved
+        ser = Series(date_range("2024-01-01", periods=3))
+        result = ser.dt.strftime("{%Y}")
+        expected = Series(["{2024}", "{2024}", "{2024}"])
+        tm.assert_series_equal(result, expected)
+
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
         result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")

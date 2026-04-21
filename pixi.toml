@@ -115,6 +115,37 @@ xarray = ">=2024.10.0"
 asv = ">=0.6.5"
 py-rattler = "*"  # for environment_type in asv.conf.json
 
+[feature.documentation.dependencies]
+gitpython = "*" # obtain contributors from git for whatsnew
+ipykernel = "*" # used in doc/source/user_guide/style.ipynb
+ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
+nbconvert = ">=7.11.0"
+nbformat = "*" # used in doc/source/user_guide/style.ipynb
+nbsphinx = "*"
+numpydoc = "*"
+pandoc = "*"
+seaborn = "*" # used in doc/source/user_guide/style.ipynb
+sphinx = "*"
+sphinx-design = "*"
+sphinx-copybutton = "*"
+
+[feature.documentation.pypi-dependencies]
+# temporary installed with pip with custom patch until released
+# https://github.com/pydata/pydata-sphinx-theme/issues/2176
+pydata-sphinx-theme = {url = "https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip"}
+
+[feature.website.dependencies]
+feedparser = "*"
+jinja2 = "*"
+jupyterlite-core = "*"
+jupyterlite-pyodide-kernel = "*"
+markdown = "*"
+packaging = "*"
+pygments = "*" # Code highlighting
+pytest = "*"
+pyyaml = "*"
+requests = "*"
+
 [environments]
 py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
@@ -127,6 +158,7 @@ numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
+docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website" ]}
 
 
 [tasks]
@@ -138,6 +170,8 @@ args = [
   { "arg" = "editable", "default" = "" },
   { "arg" = "werror", "default" = "" },
 ]
+# https://github.com/pandas-dev/pandas/pull/65228, changed with Meson 1.11
+env = { PKG_CONFIG_PATH = "$CONDA_PREFIX/lib/pkgconfig" }
 cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME {{ werror }}"
 depends-on = ["uninstall-pandas"]
 
@@ -185,4 +219,74 @@ cmd = [
   "--durations=30",
   "--python=same",
   "--show-stderr",
+]
+
+[tasks.ci-test-single-page-doc]
+args = [
+  { "arg" = "page_to_build" }
+]
+cmd = [
+  "python",
+  "doc/make.py",
+  "--warnings-are-errors",
+  "--no-browser",
+  "--single",
+  "{{ page_to_build }}",
+  "&&",
+  "python",
+  "doc/make.py",
+  "clean",
+]
+
+[tasks.ci-test-nbconvert-doc-notebooks]
+args = [
+  { "arg" = "notebooks" }
+]
+cmd = [
+  "python",
+  "-m",
+  "jupyter",
+  "nbconvert",
+  "--execute",
+  "{{ notebooks }}",
+  "--to",
+  "notebook",
+  "--stdout",
+  ">/dev/null",
+]
+
+[tasks.ci-build-documentation]
+args = [
+  { "arg" = "doc_type", "choices" = ["html", "zip_html"] }
+]
+cmd = [
+  "python",
+  "doc/make.py",
+  "--warnings-are-errors",
+  "{{ doc_type }}",
+]
+
+[tasks.ci-test-website]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "web",
+]
+
+[tasks.ci-build-website]
+cmd = [
+  "python",
+  "web/pandas_web.py",
+  "web/pandas",
+  "--target-path=web/build",
+]
+
+[tasks.ci-build-interactive_terminal]
+cmd = [
+  "python",
+  "-m",
+  "jupyter",
+  "lite",
+  "build",
 ]

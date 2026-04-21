@@ -932,6 +932,20 @@ class TestDataFrameFormatting:
         result2 = repr(frame.iloc[:5])
         assert result.startswith(result2)
 
+    def test_to_string_truncate_formatters(self):
+        # GH#35410 - formatters dict applied to wrong columns after truncation
+        df = DataFrame(
+            np.arange(30).reshape(5, 6),
+            columns=[f"Col{i}" for i in range(6)],
+        )
+        formatters = {c: (lambda x, c=c: f"{c}: {x}") for c in df.columns}
+        result = df.to_string(formatters=formatters, max_cols=4)
+        # Col4 and Col5 should use their own formatters, not Col2/Col3
+        assert "Col4:" in result
+        assert "Col5:" in result
+        assert "Col2: 4" not in result
+        assert "Col3: 5" not in result
+
     def test_datetimelike_frame(self):
         # GH 12211
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})

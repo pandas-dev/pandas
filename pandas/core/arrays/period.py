@@ -404,9 +404,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Cannot override writeable attribute with read-only property
     @property
-    def freq(self) -> BaseOffset:  # type: ignore[override]
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -992,7 +991,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # TODO: other cases?
             return dta
         else:
-            dta = dta._with_freq("infer")
+            dta._freq = to_offset(dta.inferred_freq)
             if freq is not None:
                 freq = to_offset(freq)
                 if (
