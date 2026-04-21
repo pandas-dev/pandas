@@ -895,7 +895,8 @@ class TestTimeSeriesArithmetic:
         ts2 = ts_slice.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        msg = "object-dtype Index of datetime.date objects is deprecated"
+        # GH#62158 alignment joins date-object Index with DatetimeIndex
+        msg = "Alignment of a DataFrame/Series with a DatetimeIndex"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ts + ts2
             result2 = ts2 + ts

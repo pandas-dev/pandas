@@ -206,6 +206,9 @@ def read_excel(
     read from a local filesystem or URL. Supports an option to read
     a single sheet or a list of sheets.
 
+    This function requires an external library depending on the
+    file format; see the ``engine`` parameter below.
+
     Parameters
     ----------
     io : str, ExcelFile, xlrd.Book, path object, or file-like object

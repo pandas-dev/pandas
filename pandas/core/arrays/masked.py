@@ -67,7 +67,6 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
-    map_array,
     mode,
     take,
 )
@@ -1696,7 +1695,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _wrap_min_count_reduction_result(
         self, name: str, result, *, skipna, min_count, axis
     ):
-        if min_count == 0 and isinstance(result, np.ndarray):
+        if min_count == 0 and skipna and isinstance(result, np.ndarray):
             return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
         return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
 
@@ -1800,14 +1799,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def count(self) -> np.int64:
         return (~self._mask).sum()
-
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        result = map_array(
-            self.to_numpy(dtype=object, na_value=libmissing.NA),
-            mapper,
-            na_action=na_action,
-        )
-        return self._cast_pointwise_result(result)
 
     @overload
     def any(

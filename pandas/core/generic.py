@@ -4297,11 +4297,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 result.index = new_index
                 return result
 
-            new_mgr = self._mgr.fast_xs(loc)
-
-            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            result._name = self.index[loc]
-            result = result.__finalize__(self)
+            result = self._ixs(loc, axis=0)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
@@ -11804,6 +11800,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        if not is_bool(numeric_only):
+            warnings.warn(
+                "Passing non-boolean values for 'numeric_only' is deprecated and "
+                "will raise in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11862,6 +11865,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        if not is_bool(numeric_only):
+            warnings.warn(
+                "Passing non-boolean values for 'numeric_only' is deprecated and "
+                "will raise in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
@@ -11966,6 +11976,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        if not is_bool(numeric_only):
+            warnings.warn(
+                "Passing non-boolean values for 'numeric_only' is deprecated and "
+                "will raise in a future version of pandas.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         return self._reduce(
             func,

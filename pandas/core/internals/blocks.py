@@ -41,6 +41,7 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
+    construct_1d_object_array_from_listlike,
     convert_dtypes,
     find_result_type,
     np_can_hold_element,
@@ -105,7 +106,11 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexers import (
+    check_setitem_lengths,
+    is_scalar_indexer,
+    length_of_indexer,
+)
 from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
@@ -1120,13 +1125,23 @@ class Block(PandasObject, libinternals.Block):
             nb = self.coerce_to_target_dtype(value, raise_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
-            if self.dtype == _dtype_obj:
-                # TODO: avoid having to construct values[indexer]
-                vi = values[indexer]
-                if lib.is_list_like(vi):
-                    # checking lib.is_scalar here fails on
-                    #  test_iloc_setitem_custom_object
-                    casted = setitem_datetimelike_compat(values, len(vi), casted)
+            if self.dtype == _dtype_obj and not is_scalar_indexer(indexer, values.ndim):
+                if isinstance(
+                    indexer, (ABCSeries, ABCIndex, np.ndarray, list, range, slice)
+                ):
+                    num_set = length_of_indexer(indexer, values)
+                else:
+                    num_set = len(values[indexer])
+                casted = setitem_datetimelike_compat(values, num_set, casted)
+
+                if (
+                    isinstance(casted, list)
+                    and len(casted) > 0
+                    and isinstance(casted[0], (tuple, list, np.ndarray))
+                ):
+                    # Prevent numpy from unpacking nested containers
+                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
             values = cast("np.ndarray", self.values.T)
@@ -2237,7 +2252,8 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:
         # freq is only stored in DatetimeIndex/TimedeltaIndex, not in Series/DataFrame
-        values = values._with_freq(None)
+        values = values.view()
+        values._freq = None
 
     return values
 

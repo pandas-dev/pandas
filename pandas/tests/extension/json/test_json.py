@@ -140,6 +140,16 @@ class TestJSONArray(base.ExtensionTests):
         return super().test_unstack(data, index)
 
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_scalar(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_scalar(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_readonly(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_readonly(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_series()

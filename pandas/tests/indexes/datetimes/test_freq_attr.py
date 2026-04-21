@@ -24,11 +24,11 @@ class TestFreq:
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx._data.freq = "5D"
+            idx.freq = "5D"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx._data.freq = "foo"
+            idx.freq = "foo"
 
     @pytest.mark.parametrize("values", [["20180101", "20180103", "20180105"], []])
     @pytest.mark.parametrize("freq", ["2D", Day(2), "2B", BDay(2), "48h", Hour(48)])
@@ -38,12 +38,12 @@ class TestFreq:
         idx = DatetimeIndex(values, tz=tz)
 
         # can set to an offset, converting from string if necessary
-        idx._data.freq = freq
+        idx.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
-        idx._data.freq = None
+        idx.freq = None
         assert idx.freq is None
 
     def test_freq_view_safe(self):

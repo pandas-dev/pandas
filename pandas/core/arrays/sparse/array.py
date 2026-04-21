@@ -842,6 +842,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
         if limit is not None:
             raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)

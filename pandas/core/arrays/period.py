@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Timedelta,
     add_overflowsafe,
     astype_overflowsafe,
@@ -403,9 +404,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Cannot override writeable attribute with read-only property
     @property
-    def freq(self) -> BaseOffset:  # type: ignore[override]
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -414,6 +414,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @property
     def freqstr(self) -> str:
         return PeriodDtype(self.freq)._freqstr
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        freqstr = self.freqstr
+        try:
+            return Resolution.get_reso_from_freqstr(freqstr)
+        except KeyError:
+            return None  # type: ignore[return-value]
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -983,7 +991,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # TODO: other cases?
             return dta
         else:
-            dta = dta._with_freq("infer")
+            dta._freq = to_offset(dta.inferred_freq)
             if freq is not None:
                 freq = to_offset(freq)
                 if (
