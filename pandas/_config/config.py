@@ -125,16 +125,16 @@ class OptionError(AttributeError, KeyError):
 # User API
 
 
-def _get_single_key(pat: str) -> str:
+def _get_single_key(pat: str, extra_stacklevel: int = 0) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
-        _warn_if_deprecated(pat)
+        _warn_if_deprecated(pat, extra_stacklevel=extra_stacklevel)
         raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
 
-    _warn_if_deprecated(key)
+    _warn_if_deprecated(key, extra_stacklevel=extra_stacklevel)
 
     key = _translate_key(key)
 
@@ -192,7 +192,7 @@ def get_option(pat: str) -> Any:
     return root[k]
 
 
-def set_option(*args) -> None:
+def set_option(*args, _extra_stacklevel: int = 0) -> None:
     """
     Set the value of the specified option or options.
 
@@ -275,7 +275,7 @@ def set_option(*args) -> None:
         raise ValueError("Must provide an even number of non-keyword arguments")
 
     for k, v in zip(args[::2], args[1::2], strict=True):
-        key = _get_single_key(k)
+        key = _get_single_key(k, extra_stacklevel=_extra_stacklevel)
 
         opt = _get_registered_option(key)
         if opt and opt.validator:
@@ -510,13 +510,26 @@ def option_context(*args) -> Generator[None]:
     ops = tuple(zip(args[::2], args[1::2], strict=True))
     undo: tuple[tuple[Any, Any], ...] = ()
     try:
-        undo = tuple((pat, get_option(pat)) for pat, val in ops)
+        # GH#63235: suppress deprecation warnings from the internal get_option
+        # call that saves the current value for restoration; the warning will
+        # be emitted with the correct stacklevel by set_option below instead.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            warnings.simplefilter("ignore", DeprecationWarning)
+            undo = tuple((pat, get_option(pat)) for pat, val in ops)
         for pat, val in ops:
-            set_option(pat, val)
+            # GH#63235: pass _extra_stacklevel=1 so that the deprecation warning
+            # points to user code rather than contextlib.__enter__
+            set_option(pat, val, _extra_stacklevel=1)
         yield
     finally:
-        for pat, val in undo:
-            set_option(pat, val)
+        # GH#63235: suppress deprecation warnings when restoring previous values;
+        # the user was already warned on context entry above.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            warnings.simplefilter("ignore", DeprecationWarning)
+            for pat, val in undo:
+                set_option(pat, val)
 
 
 def register_option(
@@ -713,7 +726,7 @@ def _translate_key(key: str) -> str:
         return key
 
 
-def _warn_if_deprecated(key: str) -> bool:
+def _warn_if_deprecated(key: str, extra_stacklevel: int = 0) -> bool:
     """
     Checks if `key` is a deprecated option and if so, prints a warning.
 
@@ -723,11 +736,12 @@ def _warn_if_deprecated(key: str) -> bool:
     """
     d = _get_deprecated_option(key)
     if d:
+        stacklevel = find_stack_level() + extra_stacklevel
         if d.msg:
             warnings.warn(
                 d.msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         else:
             msg = f"'{key}' is deprecated"
@@ -741,7 +755,7 @@ def _warn_if_deprecated(key: str) -> bool:
             warnings.warn(
                 msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         return True
     return False

@@ -497,3 +497,27 @@ def test_option_context_invalid_option():
     with pytest.raises(OptionError, match="No such keys"):
         with cf.option_context("invalid", True):
             pass
+
+
+def test_option_context_deprecated_key_stacklevel():
+    # GH#63235: deprecation warning from option_context should point to user
+    # code (this test file), not to contextlib.__enter__
+    import os
+    import warnings
+
+    cf.register_option("a", 1)
+    cf.deprecate_option("a", FutureWarning)
+    with warnings.catch_warnings(record=True) as recorded:
+        warnings.simplefilter("always")
+        with cf.option_context("a", 2):
+            pass
+    # Filter to only FutureWarning entries (ignore unrelated warnings)
+    dep_warnings = [w for w in recorded if issubclass(w.category, FutureWarning)]
+    assert dep_warnings, "Expected at least one FutureWarning"
+    for w in dep_warnings:
+        assert os.path.normcase(w.filename) == os.path.normcase(
+            os.path.abspath(__file__)
+        ), (
+            f"Warning filename {w.filename!r} should point to this test file, "
+            "not contextlib or internal pandas code"
+        )
