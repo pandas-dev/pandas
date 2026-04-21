@@ -1210,7 +1210,7 @@ class Index(IndexOpsMixin, PandasObject):
             * False: negative values in `indices` indicate positional indices
               from the right, matching :func:`numpy.take`.
             * True: negative values in `indices` indicate missing values. ``-1``
-              entries are set to ``fill_value`` (defaulting to ``self._na_value``
+              entries are set to ``fill_value`` (using the default NA value of the caller's dtype
               if not supplied). Any other negative values raise a ``ValueError``.
             * Not supplied: ``-1`` wraps (numpy-like) unless ``fill_value`` is
               explicitly provided, in which case fill semantics apply.
