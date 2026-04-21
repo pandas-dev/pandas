@@ -772,7 +772,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(
+                result, copy=copy, convert_na_value=False, skipna=False
+            )
             result[na_values] = na_value
 
         else:

@@ -322,6 +322,28 @@ $1$,$2$
         )
         assert result == expected
 
+    def test_to_csv_float_ea_nan_distinguish(self, using_nan_is_na):
+        # GH#61617, GH#65227 - to_csv should not crash when FloatingArray
+        # contains unmasked NaN (with distinguish_nan_and_na=True)
+        df = DataFrame({"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"})
+        result = df.to_csv(index=False)
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", ",c", ",c", "3.0,c"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", "nan,c", ",c", "3.0,c"])
+        assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish_series(self, using_nan_is_na):
+        # GH#65227 - Series.to_csv with FloatingArray containing both NaN and NA
+        ser = pd.Series((1, pd.NA, 0), index=["a", "b", "c"], dtype="Float64", name="x")
+        ser = ser / ser
+        result = ser.to_csv()
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,nan"])
+        assert result == expected
+
     def test_to_csv_multi_index(self):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))

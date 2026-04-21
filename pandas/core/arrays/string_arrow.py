@@ -209,7 +209,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             # numerical issues with Float32Dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(
+                result, copy=copy, convert_na_value=False, skipna=False
+            )
             pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
         elif isinstance(scalars, ArrowExtensionArray):
             pa_type = scalars._pa_array.type
