@@ -1046,6 +1046,7 @@ def rank(
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
@@ -1069,6 +1070,8 @@ def rank(
     pct : bool, default False
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
+    mask : bool ndarray, optional
+        Boolean array indicating which elements to exclude from ranking.
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
@@ -1081,8 +1084,10 @@ def rank(
             ascending=ascending,
             na_option=na_option,
             pct=pct,
+            mask=mask,
         )
     elif values.ndim == 2:
+        assert mask is None
         ranks = algos.rank_2d(
             values,
             axis=axis,
