@@ -18,12 +18,12 @@ class TestFreq:
         idx = TimedeltaIndex(values)
 
         # can set to an offset, converting from string if necessary
-        idx._data.freq = freq
+        idx.freq = freq
         assert idx.freq == freq
         assert isinstance(idx.freq, DateOffset)
 
         # can reset to None
-        idx._data.freq = None
+        idx.freq = None
         assert idx.freq is None
 
     def test_with_freq_empty_requires_tick(self):
@@ -33,8 +33,6 @@ class TestFreq:
         msg = "TimedeltaArray/Index freq must be a Tick"
         with pytest.raises(TypeError, match=msg):
             idx._with_freq(off)
-        with pytest.raises(TypeError, match=msg):
-            idx._data._with_freq(off)
 
     def test_freq_setter_errors(self):
         # GH#20678
@@ -46,16 +44,16 @@ class TestFreq:
             "passed frequency 5D"
         )
         with pytest.raises(ValueError, match=msg):
-            idx._data.freq = "5D"
+            idx.freq = "5D"
 
         # setting with a non-fixed frequency
         msg = r"<2 \* BusinessDays> is a non-fixed frequency"
         with pytest.raises(ValueError, match=msg):
-            idx._data.freq = "2B"
+            idx.freq = "2B"
 
         # setting with non-freq string
         with pytest.raises(ValueError, match="Invalid frequency"):
-            idx._data.freq = "foo"
+            idx.freq = "foo"
 
     def test_freq_view_safe(self):
         # Setting the freq for one TimedeltaIndex shouldn't alter the freq
