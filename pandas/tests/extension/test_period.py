@@ -111,6 +111,13 @@ class TestPeriodArray(base.ExtensionTests):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
 
+    @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
+    def test_rank_missing(self, request, data_missing_for_sorting, na_option):
+        if na_option != "top":
+            mark = pytest.mark.xfail(reason="TODO buggy period rank")
+            request.applymarker(mark)
+        super().test_rank_missing(data_missing_for_sorting, na_option)
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     pass

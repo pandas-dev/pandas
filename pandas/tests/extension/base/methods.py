@@ -320,6 +320,22 @@ class BaseMethodsTests:
             expected = pd.Series([2, 1, 2], dtype=result.dtype)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
+    def test_rank_missing(self, data_missing_for_sorting, na_option):
+        ser = pd.Series(data_missing_for_sorting)
+        result = ser.rank(na_option=na_option)
+        assert is_float_dtype(result.dtype)
+        result = result.astype("float64")
+        if na_option == "keep":
+            expected = pd.Series([2.0, np.nan, 1.0])
+        elif na_option == "top":
+            expected = pd.Series([3.0, 1.0, 2.0])
+        else:
+            # na_option == "bottom"
+            expected = pd.Series([2.0, 3.0, 1.0])
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, data, keep):
         arr = data.take([0, 1, 0, 1])
