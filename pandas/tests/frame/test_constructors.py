@@ -2976,6 +2976,23 @@ class TestDataFrameConstructorWithDtypeCoercion:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(arr[0]).astype("i8")
 
+    def test_intenum_dtype_object_preserved(self):
+        # GH#59380 - IntEnum members should not be cast to int when dtype=object
+        from enum import IntEnum
+
+        class Color(IntEnum):
+            BLUE = 1
+            RED = 2
+
+        colors = [Color.BLUE, Color.RED]
+
+        result = DataFrame(colors, columns=["color"], dtype=object)
+        assert all(isinstance(v, Color) for v in result["color"])
+
+        # Series with dtype=object correctly preserves IntEnum - DataFrame should match
+        ser = Series(colors, dtype=object)
+        assert all(isinstance(v, Color) for v in ser)
+
 
 class TestDataFrameConstructorWithDatetimeTZ:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
