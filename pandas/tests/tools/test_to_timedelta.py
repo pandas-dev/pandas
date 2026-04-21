@@ -382,11 +382,11 @@ class TestTimedeltas:
         # respect the unit for all values
         expected = to_timedelta(["0 days 00:00:01", "0 days 00:00:01.01"]).as_unit("ns")
 
-        result = to_timedelta([1.0, 1.01], unit="s")
+        result = to_timedelta([1.0, 1.01], input_unit="s")
         tm.assert_index_equal(result, expected)
 
         # Also test integers mixed with non-round floats
-        result2 = to_timedelta([1, 1.01], unit="s")
+        result2 = to_timedelta([1, 1.01], input_unit="s")
         tm.assert_index_equal(result2, expected)
 
     def test_float_to_timedelta_raise_near_bounds(self):
