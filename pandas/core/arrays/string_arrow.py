@@ -21,6 +21,7 @@ from pandas.compat import (
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
@@ -173,14 +174,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         try:
             arr = pa.array(values, from_pandas=True)
         except (ValueError, TypeError):
-            values = np.asarray(values, dtype=object)
+            values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
         if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
             return self._from_pyarrow_array(arr)
         if self.dtype.na_value is np.nan:
             # ArrowEA has different semantics, so we return numpy-based
             #  result instead
-            values = np.asarray(values, dtype=object)
+            values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
         return ArrowExtensionArray(arr)
 
