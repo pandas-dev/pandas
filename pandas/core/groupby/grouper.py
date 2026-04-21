@@ -975,15 +975,18 @@ def _factorize_monotonic(
     checks for n >= 2), NA handling is not needed here.
     """
     if isinstance(grouping_vector, (Series, Index)):
+        # Bail before np.asarray for extension dtypes (PeriodDtype,
+        # DatetimeTZDtype, etc.) — converting them would box every element.
+        dtype = grouping_vector.dtype
+        if not isinstance(dtype, np.dtype) or dtype.kind not in "iufmMb":
+            return None
         ascending = grouping_vector.is_monotonic_increasing
         if not ascending and not grouping_vector.is_monotonic_decreasing:
             return None
         arr = np.asarray(grouping_vector)
-        if arr.dtype == object:
-            return None
     elif isinstance(grouping_vector, np.ndarray):
         arr = grouping_vector
-        if arr.dtype == object or arr.dtype.kind not in "iufmMb":
+        if arr.dtype.kind not in "iufmMb":
             return None
         if len(arr) <= 1:
             return None
