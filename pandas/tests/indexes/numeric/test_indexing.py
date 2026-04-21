@@ -182,6 +182,15 @@ class TestGetIndexer:
         )
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nan_target(self, method):
+        # GH#32572 NaN in the target should not be matched
+        index = Index([1.0, 2.0, 3.0, 4.0, 5.0])
+        target = Index([np.nan])
+        result = index.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_nearest_error(self):
         index = Index(np.arange(10))
         with pytest.raises(ValueError, match="limit argument"):

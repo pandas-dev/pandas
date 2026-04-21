@@ -36,13 +36,6 @@ See LICENSE for the license
  *  functions.
  */
 
-// #define VERBOSE
-#if defined(VERBOSE)
-#  define TRACE(X) printf X;
-#else
-#  define TRACE(X)
-#endif // VERBOSE
-
 #define PARSER_OUT_OF_MEMORY -1
 
 /*
@@ -177,7 +170,7 @@ parser_t *parser_new(void);
 
 int parser_init(parser_t *self);
 
-int parser_consume_rows(parser_t *self, size_t nrows);
+int parser_consume_rows(parser_t *self, uint64_t nrows);
 
 int parser_trim_buffers(parser_t *self);
 
@@ -191,7 +184,7 @@ void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
 
-int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors);
+int tokenize_nrows(parser_t *self, uint64_t nrows, const char *encoding_errors);
 
 int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 

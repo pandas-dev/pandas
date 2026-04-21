@@ -49,7 +49,7 @@ dependencies:
   - pyreadstat>=1.2.8
   - pytables>=3.10.1
   - python-calamine>=0.3.0
-  - pytz>=2024.2
+  - pytz>=2020.1
   - pyxlsb>=1.0.10
   - s3fs>=2024.10.0
   - scipy>=1.14.1
@@ -69,7 +69,8 @@ dependencies:
   - moto
 
   # benchmarks
-  - asv>=0.6.1
+  - asv>=0.6.5
+  - py-rattler
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler

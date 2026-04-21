@@ -499,6 +499,15 @@ def test_scalar_raises():
         pd.array(1)
 
 
+@pytest.mark.parametrize("dtype", ["i8", "int64", "u8", "uint64"])
+def test_pd_array_float_with_nan_to_integer_raises(dtype):
+    # GH#41724
+    arr = np.array([np.nan, 1.0])
+    msg = "Cannot convert non-finite values"
+    with pytest.raises(pd.errors.IntCastingNaNError, match=msg):
+        pd.array(arr, dtype=dtype)
+
+
 def test_dataframe_raises():
     # GH#51167 don't accidentally cast to StringArray by doing inference on columns
     df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])

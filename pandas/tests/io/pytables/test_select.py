@@ -40,7 +40,7 @@ def test_select_columns_in_where(temp_hdfstore):
         columns=["A", "B", "C"],
     )
 
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
     expected = df[["A"]]
 
     tm.assert_frame_equal(temp_hdfstore.select("df", columns=["A"]), expected)
@@ -49,7 +49,7 @@ def test_select_columns_in_where(temp_hdfstore):
 
     # With a Series
     s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
-    temp_hdfstore.put("s", s, format="table")
+    temp_hdfstore.put("s", s, format="table", track_times=False)
     tm.assert_series_equal(temp_hdfstore.select("s", where="columns=['A']"), s)
 
 
@@ -601,7 +601,7 @@ def test_frame_select(temp_hdfstore):
         index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
-    temp_hdfstore.put("frame", df, format="table")
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
     date = df.index[len(df) // 2]
 
     crit1 = Term("index>=date")
@@ -646,7 +646,9 @@ def test_frame_select_complex(temp_hdfstore):
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
 
-    temp_hdfstore.put("df", df, format="table", data_columns=["string"])
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["string"], track_times=False
+    )
 
     # empty
     result = temp_hdfstore.select("df", 'index>df.index[3] & string="bar"')
@@ -759,7 +761,7 @@ def test_invalid_filtering(temp_hdfstore):
         index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
 
     msg = "unable to collapse Joint Filters"
     # not implemented
@@ -999,7 +1001,7 @@ def test_select_empty_where(temp_hdfstore, where):
     # GH26610
 
     df = DataFrame([1, 2, 3])
-    temp_hdfstore.put("df", df, "t")
+    temp_hdfstore.put("df", df, "t", track_times=False)
     result = read_hdf(temp_hdfstore, "df", where=where)
     tm.assert_frame_equal(result, df)
 
