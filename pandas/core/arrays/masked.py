@@ -36,6 +36,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -168,7 +169,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if isna(values).all():
             return type(self)._from_sequence(values, dtype=self.dtype)
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
         lkind = self.dtype.kind
         rkind = result.dtype.kind
