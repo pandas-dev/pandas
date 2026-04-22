@@ -1593,7 +1593,7 @@ class TestDuplicated:
             np.array([Timestamp(d) for d in dt]),
             np.array([Timestamp(d, tz="US/Eastern") for d in dt]),
             np.array([Period(d, freq="D") for d in dt]),
-            np.array([np.datetime64(d) for d in dt]),
+            np.array([np.datetime64(d, "ns") for d in dt]),
             np.array([Timedelta(d) for d in td]),
         ]
 
