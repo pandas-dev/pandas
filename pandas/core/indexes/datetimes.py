@@ -92,7 +92,8 @@ def _new_DatetimeIndex(cls, d):
             #  a DatetimeArray to adapt to the newer _simple_new signature
             tz = d.pop("tz")
             freq = d.pop("freq")
-            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
+            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz))
+            dta._freq = freq
         else:
             dta = data
             for key in ["tz", "freq"]:
@@ -496,7 +497,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
         arr = self._data.normalize()
-        arr = arr._with_freq("infer")
+        arr._freq = to_offset(arr.inferred_freq)
         return type(self)._simple_new(arr, name=self.name)
 
     def tz_convert(self, tz) -> Self:
@@ -922,13 +923,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if inferred_freq is not None:
             dtarr._freq = inferred_freq
-        dtarr._maybe_pin_freq(freq, {"ambiguous": ambiguous})
 
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
+        subarr._pin_freq(freq, {"ambiguous": ambiguous})
         return subarr
 
     # --------------------------------------------------------------------
@@ -1098,6 +1099,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t1
             dta[i] = s
 
+        dta._freq = None
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------

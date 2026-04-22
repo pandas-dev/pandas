@@ -237,7 +237,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.timedelta64],
-        freq: Tick | Day | None = None,
         dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
     ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
@@ -245,10 +244,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
-        assert freq is None or isinstance(freq, (Tick, Day))
 
         result = super()._simple_new(values=values, dtype=dtype)
-        result._freq = freq
+        result._freq = None
         return result
 
     @classmethod
@@ -264,7 +262,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
-        return cls._simple_new(data, dtype=data.dtype, freq=freq)
+        result = cls._simple_new(data, dtype=data.dtype)
+        result._freq = freq
+        return result
 
     @classmethod
     def _generate_range(
@@ -307,7 +307,9 @@ class TimedeltaArray(dtl.TimelikeOps):
             index = index[:-1]
 
         td64values = index.view(f"m8[{unit}]")
-        return cls._simple_new(td64values, dtype=td64values.dtype, freq=freq)
+        result = cls._simple_new(td64values, dtype=td64values.dtype)
+        result._freq = freq
+        return result
 
     # ----------------------------------------------------------------
     # DatetimeLike Interface
@@ -409,7 +411,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             op = getattr(datetimelike_accumulations, name)
             result = op(self._ndarray.copy(), skipna=skipna, **kwargs)
 
-            return type(self)._simple_new(result, freq=None, dtype=self.dtype)
+            return type(self)._simple_new(result, dtype=self.dtype)
         elif name == "cumprod":
             raise TypeError("cumprod not supported for Timedelta.")
 
@@ -1138,7 +1140,6 @@ def sequence_to_td64ns(
                 result[mask] = iNaT
                 return result, inferred_freq
 
-        # If we have float32, cast to float64
         data = data.astype(np.float64, copy=False)
         try:
             data = cast_from_unit_vectorized(data, unit or "ns")

@@ -208,12 +208,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         # - Cases checked above all return/raise before reaching here - #
 
         tdarr = TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
-        tdarr._maybe_pin_freq(freq, {})
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        return cls._simple_new(tdarr, name=name, refs=refs)
+        result = cls._simple_new(tdarr, name=name, refs=refs)
+        result._pin_freq(freq, {})
+        return result
 
     # -------------------------------------------------------------------
 
