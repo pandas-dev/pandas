@@ -2383,37 +2383,26 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_key(tup: tuple[int, ArrayLike]) -> Hashable:
-    dtype = tup[1].dtype
-
-    if isinstance(dtype, np.dtype):
-        # Only numpy dtypes get stacked into 2D blocks in _form_blocks,
-        # so only they need real grouping by dtype.
-        return dtype.name
-    else:
-        # Extension dtypes each get their own block regardless, so grouping
-        # doesn't matter. Use id() to avoid potentially expensive __hash__
-        # (e.g. CategoricalDtype hashes all categories).
-        return id(dtype)
-
-
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
-    tuples = enumerate(arrays)
-
     if not consolidate:
-        return _tuples_to_blocks_no_consolidate(tuples, refs)
+        return _tuples_to_blocks_no_consolidate(enumerate(arrays), refs)
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
 
-    # group by dtype using a dict faster than old itertools.groupby
+    # Group by dtype using a dict (faster than the old itertools.groupby).
+    # np.dtype has cheap hash/eq so it is used directly as the key. Extension
+    # dtypes each get their own block regardless, so id() is used to avoid
+    # a potentially expensive __hash__ (e.g. CategoricalDtype hashes all
+    # categories).
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
-    for tup in tuples:
-        key = _grouping_key(tup)
+    for i, arr in enumerate(arrays):
+        dtype = arr.dtype
+        key = dtype if isinstance(dtype, np.dtype) else id(dtype)
         try:
-            groups[key].append(tup)
+            groups[key].append((i, arr))
         except KeyError:
-            groups[key] = [tup]
+            groups[key] = [(i, arr)]
 
     nbs: list[Block] = []
     for tup_block in groups.values():
