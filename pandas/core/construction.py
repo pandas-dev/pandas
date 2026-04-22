@@ -611,26 +611,20 @@ def sanitize_array(
         return data
 
     # GH63511
-    # Only consider Pyarrow-backed UUID arrays
+    # All Pyarrow-backed ChunkedArray and Arrays
+    # should be wrapped by ArrowExtensionArray
     elif (
         hasattr(data, "type")
         and "pyarrow" in type(data).__module__
-        and "uuid" in str(getattr(data, "type", "")).lower()
+        and ("Array" in type(data).__name__ or "ChunkedArray" in type(data).__name__)
     ):
-        subarr = data
         try:
-            import pyarrow as pa
-            from pyarrow import (
-                Array,
-                ChunkedArray,
-            )
+            from pandas.core.arrays.arrow import ArrowExtensionArray
 
-            if isinstance(data, (Array, ChunkedArray)) and data.type == pa.uuid():
-                from pandas.core.arrays.arrow import ArrowExtensionArray
-
-                subarr = ArrowExtensionArray(data)
+            subarr = ArrowExtensionArray(data)
         except (ImportError, AttributeError):
-            pass
+            # Fallback when ArrowExtensionArray is unavailable
+            subarr = data
 
     elif isinstance(data, ABCExtensionArray):
         # it is already ensured above this is not a NumpyExtensionArray
