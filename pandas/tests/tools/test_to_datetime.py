@@ -3435,8 +3435,27 @@ class TestOrigin:
                 "2016-01-02 00:00:00.000001",
                 "2016-01-03 00:00:00.000001",
                 "2016-01-04 00:00:00.000001",
-            ]
+            ],
+            dtype="datetime64[us]",
         )
+        tm.assert_index_equal(result, expected)
+
+    def test_preserve_series_and_name(self):
+        # GH 63419
+        origin = Timestamp("2016-01-01")
+        data = ["2016-01-02", "2016-01-03", "2016-01-04"]
+        arg = Series([1, 2, 3], name="foo")
+        result = to_datetime(arg, unit="D", origin=origin)
+        assert isinstance(result, Series)
+        expected = Series(
+            [Timestamp(x) for x in data], dtype="datetime64[us]", name="foo"
+        )
+        tm.assert_series_equal(result, expected)
+
+        arg = Index([1, 2, 3], name="foo")
+        result = to_datetime(arg, unit="D", origin=origin)
+        assert isinstance(result, DatetimeIndex)
+        expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
         tm.assert_index_equal(result, expected)
 
 
