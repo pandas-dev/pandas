@@ -544,7 +544,6 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 result._data[mask] = NaT
                 return result
 
-            # if we have float32, cast to float64
             arg = arg.astype("float64", copy=False)
             with np.errstate(over="raise"):
                 try:

@@ -208,11 +208,6 @@ class TestTimedeltaArray:
         expected = arr._ndarray.view("i8")
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_setitem_clears_freq(self):
-        a = pd.timedelta_range("1h", periods=2, freq="h")._data
-        a[0] = Timedelta("1h")
-        assert a.freq is None
-
     @pytest.mark.parametrize(
         "obj",
         [

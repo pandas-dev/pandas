@@ -871,14 +871,11 @@ class NDFrameApply(Apply):
         if not obj.columns.is_unique:
             return None
 
-        # Verify all function names are valid methods on the DataFrame
         for func_name in func_names:
             if not hasattr(obj, func_name):
                 return None
 
         # Compute reductions per dtype group to preserve per-column dtypes.
-        # Using to_frame().T for each result avoids the slow
-        # DataFrame(list-of-Series) construction path.
         groups = obj.columns.groupby(obj.dtypes)  # type: ignore[arg-type]
         pieces = []
         for dtype in groups:
@@ -893,6 +890,7 @@ class NDFrameApply(Apply):
                 if not isinstance(row, ABCSeries):
                     # Not a reduction (e.g. returns DataFrame), fall back
                     return None
+                # to_frame().T avoids the slow DataFrame(list-of-Series) path
                 group_pieces.append(row.to_frame(func_name).T)
             pieces.append(concat(group_pieces))
 

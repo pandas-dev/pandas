@@ -1142,6 +1142,27 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
         assert ser.loc[0] == value
 
 
+def test_loc_setitem_list_of_tuples_on_object_column():
+    # GH#37629 - assigning list of tuples to object-dtype column
+    # with a boolean mask on a mixed-dtype DataFrame
+    df = DataFrame({"a": [1, 1, 2, 1], "b": [(1, 1, 0)] * 4})
+
+    # list of tuples matching selected row count
+    df.loc[df["a"] == 1, "b"] = [(0, 0, 1), (0, 0, 1), (0, 0, 1)]
+    expected = DataFrame(
+        {"a": [1, 1, 2, 1], "b": [(0, 0, 1), (0, 0, 1), (1, 1, 0), (0, 0, 1)]}
+    )
+    tm.assert_frame_equal(df, expected)
+    # verify tuples are preserved as tuples
+    assert isinstance(df["b"].iloc[0], tuple)
+
+    # doubly-nested list: [[(tuple)]] treated as 2D with 1 row x 1 col,
+    # tuple value broadcast to all matching rows
+    df2 = DataFrame({"a": [1, 1, 2, 1], "b": [(1, 1, 0)] * 4})
+    df2.loc[df2["a"] == 1, "b"] = [[(0, 0, 1)]]
+    tm.assert_frame_equal(df2, expected)
+
+
 def test_object_dtype_series_set_series_element():
     # GH 48933
     s1 = Series(dtype="O", index=["a", "b"])

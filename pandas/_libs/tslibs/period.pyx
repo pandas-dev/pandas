@@ -1591,7 +1591,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227
+        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
         ordinal = item
     else:
         try:

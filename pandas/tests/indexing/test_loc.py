@@ -3043,16 +3043,45 @@ class TestLocListlike:
             ser.loc[keys]
 
     def test_loc_named_index(self):
-        # GH 42790
+        # GH#17110 - loc should preserve the original index name,
+        # not adopt the key's index name
         df = DataFrame(
             [[1, 2], [4, 5], [7, 8]],
             index=["cobra", "viper", "sidewinder"],
             columns=["max_speed", "shield"],
         )
         expected = df.iloc[:2]
-        expected.index.name = "foo"
         result = df.loc[Index(["cobra", "viper"], name="foo")]
         tm.assert_frame_equal(result, expected)
+        assert result.index.name is None
+
+    def test_loc_setitem_single_column_listlike_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = ["one"]
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_single_column_ea_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = pd.array(["one"], dtype="string")
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_multi_column_listlike_value(self):
+        # GH#44103 - multi-column assignment with a list-like value on a
+        # single-block DataFrame (EA dtype)
+        df = DataFrame(
+            {"a": [None, "two"], "b": ["1", "2"]}, index=[0, 1], dtype="string"
+        )
+        df.loc[0, ["a", "b"]] = ["new_a", "new_b"]
+        expected = DataFrame(
+            {"a": ["new_a", "two"], "b": ["new_b", "2"]},
+            index=[0, 1],
+            dtype="string",
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(
