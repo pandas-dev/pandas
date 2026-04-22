@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from hypothesis import (
     given,
     strategies as st,
@@ -6,13 +8,111 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import (
+    NaT,
+    iNaT,
+)
 from pandas.errors import OutOfBoundsTimedelta
 
 from pandas import Timedelta
 
 
+class FrequencyRoundingCase(NamedTuple):
+    timedelta: Timedelta
+    frequency: Timedelta
+    expected_ceil: Timedelta | None
+    expected_round: Timedelta | None
+    expected_floor: Timedelta | None
+    expected_error: type[Exception] | None = None
+    expected_error_msg: str | None = None
+
+
 class TestTimedeltaRound:
+    FREQUENCY_TIMEDELTA_ROUNDING_TESTS: dict[str, FrequencyRoundingCase] = {
+        "case_1": FrequencyRoundingCase(
+            timedelta=Timedelta("1001ms"),
+            frequency=Timedelta("1s"),
+            expected_ceil=Timedelta("2s"),
+            expected_round=Timedelta("1s"),
+            expected_floor=Timedelta("1s"),
+        ),
+        "case_2": FrequencyRoundingCase(
+            timedelta=Timedelta("1001ms"),
+            frequency=Timedelta("1ms"),
+            expected_ceil=Timedelta("1001ms"),
+            expected_round=Timedelta("1001ms"),
+            expected_floor=Timedelta("1001ms"),
+        ),
+        "case_3": FrequencyRoundingCase(
+            timedelta=Timedelta("1 days 2 min 3 us 42 ns"),
+            frequency=Timedelta("1s"),
+            expected_ceil=Timedelta("1 days 2 min 1s"),
+            expected_round=Timedelta("1 days 2 min"),
+            expected_floor=Timedelta("1 days 2 min"),
+        ),
+        "case_4": FrequencyRoundingCase(
+            timedelta=Timedelta("5 hours 9 minutes 15.13 seconds"),
+            frequency=Timedelta("1 hour"),
+            expected_ceil=Timedelta("6 hours"),
+            expected_round=Timedelta("5 hours"),
+            expected_floor=Timedelta("5 hours"),
+        ),
+        "case_5": FrequencyRoundingCase(
+            timedelta=Timedelta("5 hours 9 minutes 15.13 seconds"),
+            frequency=Timedelta("1 hour 30 min"),
+            expected_ceil=Timedelta("6 hours"),
+            expected_round=Timedelta("4 hours 30 minutes"),
+            expected_floor=Timedelta("4 hours 30 minutes"),
+        ),
+        # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
+        "aligned_15s": FrequencyRoundingCase(
+            timedelta=Timedelta("1 days 45 seconds"),
+            frequency=Timedelta("15s"),
+            expected_ceil=Timedelta("1 days 45 seconds"),
+            expected_round=Timedelta("1 days 45 seconds"),
+            expected_floor=Timedelta("1 days 45 seconds"),
+        ),
+        "floor_10ns": FrequencyRoundingCase(
+            timedelta=Timedelta("1 days 45.000000012 seconds"),
+            frequency=Timedelta("10ns"),
+            expected_ceil=Timedelta("1 days 45.000000020 seconds"),
+            expected_round=Timedelta("1 days 45.000000010 seconds"),
+            expected_floor=Timedelta("1 days 45.000000010 seconds"),
+        ),
+        "ceil_10ns": FrequencyRoundingCase(
+            timedelta=Timedelta("1 days 1.000000012 seconds"),
+            frequency=Timedelta("10ns"),
+            expected_ceil=Timedelta("1 days 1.000000020 seconds"),
+            expected_round=Timedelta("1 days 1.000000010 seconds"),
+            expected_floor=Timedelta("1 days 1.000000010 seconds"),
+        ),
+        "nat_timedelta": FrequencyRoundingCase(
+            timedelta=Timedelta("NaT"),
+            frequency=Timedelta("1s"),
+            expected_ceil=NaT,
+            expected_round=NaT,
+            expected_floor=NaT,
+        ),
+        "nat_frequency": FrequencyRoundingCase(
+            timedelta=Timedelta("1001ms"),
+            frequency=Timedelta("NaT"),
+            expected_ceil=None,
+            expected_round=None,
+            expected_floor=None,
+            expected_error=TypeError,
+            expected_error_msg="Argument 'freq' has incorrect type",
+        ),
+        "zero_frequency": FrequencyRoundingCase(
+            timedelta=Timedelta("1001ms"),
+            frequency=Timedelta("0s"),
+            expected_ceil=None,
+            expected_round=None,
+            expected_floor=None,
+            expected_error=ValueError,
+            expected_error_msg="Division by zero in rounding",
+        ),
+    }
+
     @pytest.mark.parametrize(
         "freq,s1,s2",
         [
@@ -186,108 +286,50 @@ class TestTimedeltaRound:
         assert res == Timedelta("1 days 02:35:00")
         assert res._creso == td._creso
 
-    @pytest.mark.parametrize(
-        "timedelta, freq_td, expected",
-        [
-            (Timedelta("1001ms"), Timedelta("1s"), Timedelta("1s")),
-            (Timedelta("1001ms"), Timedelta("1ms"), Timedelta("1001ms")),
-            (
-                Timedelta("1 days 2 min 3 us 42 ns"),
-                Timedelta("1s"),
-                Timedelta("1 days 2 min"),
-            ),
-            (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour"),
-                Timedelta("5 hours"),
-            ),
-            (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour 30 min"),
-                Timedelta("4 hours 30 minutes"),
-            ),
-        ],
-    )
-    def test_round_timedelta_freq(self, timedelta, freq_td, expected):
+    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
+    def test_round_timedelta_freq(self, case: str):
         # GH#63687 - Timedelta.round accepts Timedelta arguments
-        result = timedelta.round(freq_td)
-        assert result == expected
+        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
+        if test_case.expected_error is not None:
+            with pytest.raises(
+                test_case.expected_error, match=test_case.expected_error_msg
+            ):
+                test_case.timedelta.round(test_case.frequency)
+        elif test_case.timedelta is NaT:
+            assert test_case.timedelta.round(test_case.frequency) is NaT
+        else:
+            result = test_case.timedelta.round(test_case.frequency)
+            assert result == test_case.expected_round
 
-    @pytest.mark.parametrize(
-        "timedelta, freq_td, expected",
-        [
-            (Timedelta("1001ms"), Timedelta("1s"), Timedelta("1s")),
-            (Timedelta("1001ms"), Timedelta("1ms"), Timedelta("1001ms")),
-            (
-                Timedelta("1 days 2 min 3 us 42 ns"),
-                Timedelta("1s"),
-                Timedelta("1 days 2 min"),
-            ),
-            (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour"),
-                Timedelta("5 hours"),
-            ),
-            (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour 30 min"),
-                Timedelta("4 hours 30 minutes"),
-            ),
-            # Edge cases
-            (
-                Timedelta("1 days 45 seconds"),
-                Timedelta("15s"),
-                Timedelta("1 days 45 seconds"),
-            ),
-            (
-                Timedelta("1 days 45.000000012 seconds"),
-                Timedelta("10ns"),
-                Timedelta("1 days 45.000000010 seconds"),
-            ),
-        ],
-    )
-    def test_floor_timedelta_freq(self, timedelta, freq_td, expected):
+    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
+    def test_floor_timedelta_freq(self, case: str):
         # GH#63687 - Timedelta.floor accepts Timedelta arguments (including edge cases)
-        result = timedelta.floor(freq_td)
-        assert result == expected
+        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
+        if test_case.expected_error is not None:
+            with pytest.raises(
+                test_case.expected_error, match=test_case.expected_error_msg
+            ):
+                test_case.timedelta.floor(test_case.frequency)
+        elif test_case.timedelta is NaT:
+            assert test_case.timedelta.floor(test_case.frequency) is NaT
+        else:
+            result = test_case.timedelta.floor(test_case.frequency)
+            assert result == test_case.expected_floor
 
-    @pytest.mark.parametrize(
-        "timedelta, freq_td, expected",
-        [
-            (Timedelta("1001ms"), Timedelta("1s"), Timedelta("2s")),
-            (Timedelta("1001ms"), Timedelta("1ms"), Timedelta("1001ms")),
-            (
-                Timedelta("1 days 2 min 3 us 42 ns"),
-                Timedelta("1s"),
-                Timedelta("1 days 2 min 1s"),
-            ),
-            (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour"),
-                Timedelta("6 hours"),
-            ),
-            (
-                Timedelta("5 hours 9 minutes 15.13 seconds"),
-                Timedelta("1 hour 30 min"),
-                Timedelta("6 hours"),
-            ),
-            # Edge cases
-            (
-                Timedelta("1 days 45 seconds"),
-                Timedelta("15s"),
-                Timedelta("1 days 45 seconds"),
-            ),
-            (
-                Timedelta("1 days 1.000000012 seconds"),
-                Timedelta("10ns"),
-                Timedelta("1 days 1.000000020 seconds"),
-            ),
-        ],
-    )
-    def test_ceil_timedelta_freq(self, timedelta, freq_td, expected):
+    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
+    def test_ceil_timedelta_freq(self, case: str):
         # GH#63687 - Timedelta.ceil accepts Timedelta arguments (including edge cases)
-        result = timedelta.ceil(freq_td)
-        assert result == expected
+        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
+        if test_case.expected_error is not None:
+            with pytest.raises(
+                test_case.expected_error, match=test_case.expected_error_msg
+            ):
+                test_case.timedelta.ceil(test_case.frequency)
+        elif test_case.timedelta is NaT:
+            assert test_case.timedelta.ceil(test_case.frequency) is NaT
+        else:
+            result = test_case.timedelta.ceil(test_case.frequency)
+            assert result == test_case.expected_ceil
 
     def test_round_freq_finer_than_resolution(self):
         # GH#64828

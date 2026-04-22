@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from hypothesis import (
     given,
     strategies as st,
@@ -20,7 +22,116 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas._testing as tm
 
 
+class FrequencyRoundingCase(NamedTuple):
+    timestamp: Timestamp
+    frequency: Timedelta
+    expected_ceil: str | None
+    expected_round: str | None
+    expected_floor: str | None
+    expected_error: type[Exception] | None = None
+    expected_error_msg: str | None = None
+
+
 class TestTimestampRound:
+    FREQUENCY_TIMEDELTA_ROUNDING_TESTS: dict[str, FrequencyRoundingCase] = {
+        "case_1": FrequencyRoundingCase(
+            timestamp=Timestamp("20130101 09:10:11"),
+            frequency=Timedelta("1 day"),
+            expected_ceil="20130102",
+            expected_round="20130101",
+            expected_floor="20130101",
+        ),
+        "case_2": FrequencyRoundingCase(
+            timestamp=Timestamp("20130101 19:10:11"),
+            frequency=Timedelta("1 day"),
+            expected_ceil="20130102",
+            expected_round="20130102",
+            expected_floor="20130101",
+        ),
+        "case_3": FrequencyRoundingCase(
+            timestamp=Timestamp("2000-01-05 05:09:15.13"),
+            frequency=Timedelta("1 day"),
+            expected_ceil="2000-01-06 00:00:00",
+            expected_round="2000-01-05 00:00:00",
+            expected_floor="2000-01-05 00:00:00",
+        ),
+        "case_4": FrequencyRoundingCase(
+            timestamp=Timestamp("2000-01-05 05:09:15.13"),
+            frequency=Timedelta("1 hour"),
+            expected_ceil="2000-01-05 06:00:00",
+            expected_round="2000-01-05 05:00:00",
+            expected_floor="2000-01-05 05:00:00",
+        ),
+        "case_5": FrequencyRoundingCase(
+            timestamp=Timestamp("2000-01-05 05:09:15.13"),
+            frequency=Timedelta("1 second"),
+            expected_ceil="2000-01-05 05:09:16",
+            expected_round="2000-01-05 05:09:15",
+            expected_floor="2000-01-05 05:09:15",
+        ),
+        "case_6": FrequencyRoundingCase(
+            timestamp=Timestamp("2000-01-05 05:09:15.13"),
+            frequency=Timedelta("1 hour 30 min"),
+            expected_ceil="2000-01-05 06:00:00",
+            expected_round="2000-01-05 04:30:00",
+            expected_floor="2000-01-05 04:30:00",
+        ),
+        # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
+        "future_aligned_15s": FrequencyRoundingCase(
+            timestamp=Timestamp("2117-01-01 00:00:45"),
+            frequency=Timedelta("15s"),
+            expected_ceil="2117-01-01 00:00:45",
+            expected_round="2117-01-01 00:00:45",
+            expected_floor="2117-01-01 00:00:45",
+        ),
+        "future_floor_10ns": FrequencyRoundingCase(
+            timestamp=Timestamp("2117-01-01 00:00:45.000000012"),
+            frequency=Timedelta("10ns"),
+            expected_ceil="2117-01-01 00:00:45.000000020",
+            expected_round="2117-01-01 00:00:45.000000010",
+            expected_floor="2117-01-01 00:00:45.000000010",
+        ),
+        "historical_aligned_1s": FrequencyRoundingCase(
+            timestamp=Timestamp("1823-01-01 00:00:01"),
+            frequency=Timedelta("1s"),
+            expected_ceil="1823-01-01 00:00:01",
+            expected_round="1823-01-01 00:00:01",
+            expected_floor="1823-01-01 00:00:01",
+        ),
+        "historical_ceil_10ns": FrequencyRoundingCase(
+            timestamp=Timestamp("1823-01-01 00:00:01.000000012"),
+            frequency=Timedelta("10ns"),
+            expected_ceil="1823-01-01 00:00:01.000000020",
+            expected_round="1823-01-01 00:00:01.000000010",
+            expected_floor="1823-01-01 00:00:01.000000010",
+        ),
+        "nat_timestamp": FrequencyRoundingCase(
+            timestamp=Timestamp("NaT"),
+            frequency=Timedelta("1s"),
+            expected_ceil="NaT",
+            expected_round="NaT",
+            expected_floor="NaT",
+        ),
+        "nat_frequency": FrequencyRoundingCase(
+            timestamp=Timestamp("2000-01-05 05:09:15.13"),
+            frequency=Timedelta("NaT"),
+            expected_ceil=None,
+            expected_round=None,
+            expected_floor=None,
+            expected_error=TypeError,
+            expected_error_msg="Argument 'freq' has incorrect type",
+        ),
+        "zero_frequency": FrequencyRoundingCase(
+            timestamp=Timestamp("2000-01-05 05:09:15.13"),
+            frequency=Timedelta("0s"),
+            expected_ceil=None,
+            expected_round=None,
+            expected_floor=None,
+            expected_error=ValueError,
+            expected_error_msg="Division by zero in rounding",
+        ),
+    }
+
     def test_round_division_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
 
@@ -90,94 +201,52 @@ class TestTimestampRound:
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             stamp.round("foo")
 
-    @pytest.mark.parametrize(
-        "timestamp, freq_td, expected",
-        [
-            ("20130101 09:10:11", Timedelta("1 day"), "20130101"),
-            ("20130101 19:10:11", Timedelta("1 day"), "20130102"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 day"), "2000-01-05 00:00:00"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 hour"), "2000-01-05 05:00:00"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 second"), "2000-01-05 05:09:15"),
-            (
-                "2000-01-05 05:09:15.13",
-                Timedelta("1 hour 30 min"),
-                "2000-01-05 04:30:00",
-            ),
-        ],
-    )
-    def test_round_timedelta_freq(self, timestamp, freq_td, expected):
+    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
+    def test_round_timedelta_freq(self, case: str):
         # GH#63687 - Timestamp.round accepts Timedelta arguments
-        dt = Timestamp(timestamp)
-        result = dt.round(freq_td)
-        expected = Timestamp(expected)
-        assert result == expected
-
-    @pytest.mark.parametrize(
-        "timestamp, freq_td, expected",
-        [
-            ("20130101 09:10:11", Timedelta("1 day"), "20130101"),
-            ("20130101 19:10:11", Timedelta("1 day"), "20130101"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 day"), "2000-01-05 00:00:00"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 hour"), "2000-01-05 05:00:00"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 second"), "2000-01-05 05:09:15"),
-            (
-                "2000-01-05 05:09:15.13",
-                Timedelta("1 hour 30 min"),
-                "2000-01-05 04:30:00",
-            ),
-            # Edge cases
-            ("2117-01-01 00:00:45", Timedelta("15s"), "2117-01-01 00:00:45"),
-            (
-                "2117-01-01 00:00:45.000000012",
-                Timedelta("10ns"),
-                "2117-01-01 00:00:45.000000010",
-            ),
-            ("1823-01-01 00:00:01", Timedelta("1s"), "1823-01-01 00:00:01"),
-            ("NaT", Timedelta("1s"), "NaT"),
-        ],
-    )
-    def test_floor_timedelta_freq(self, timestamp, freq_td, expected):
-        # GH#63687 - Timestamp.floor accepts Timedelta arguments (including edge cases)
-        dt = Timestamp(timestamp)
-        if dt is NaT:
-            assert dt.floor(freq_td) is NaT
+        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
+        if test_case.expected_error is not None:
+            with pytest.raises(
+                test_case.expected_error, match=test_case.expected_error_msg
+            ):
+                test_case.timestamp.round(test_case.frequency)
+        elif test_case.timestamp is NaT:
+            assert test_case.timestamp.round(test_case.frequency) is NaT
         else:
-            result = dt.floor(freq_td)
-            expected = Timestamp(expected)
+            result = test_case.timestamp.round(test_case.frequency)
+            expected = Timestamp(test_case.expected_round)
             assert result == expected
 
-    @pytest.mark.parametrize(
-        "timestamp, freq_td, expected",
-        [
-            ("20130101 09:10:11", Timedelta("1 day"), "20130102"),
-            ("20130101 19:10:11", Timedelta("1 day"), "20130102"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 day"), "2000-01-06 00:00:00"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 hour"), "2000-01-05 06:00:00"),
-            ("2000-01-05 05:09:15.13", Timedelta("1 second"), "2000-01-05 05:09:16"),
-            (
-                "2000-01-05 05:09:15.13",
-                Timedelta("1 hour 30 min"),
-                "2000-01-05 06:00:00",
-            ),
-            # Edge cases
-            ("2117-01-01 00:00:45", Timedelta("15s"), "2117-01-01 00:00:45"),
-            (
-                "1823-01-01 00:00:01.000000012",
-                Timedelta("10ns"),
-                "1823-01-01 00:00:01.000000020",
-            ),
-            ("1823-01-01 00:00:01", Timedelta("1s"), "1823-01-01 00:00:01"),
-            ("NaT", Timedelta("1s"), "NaT"),
-        ],
-    )
-    def test_ceil_timedelta_freq(self, timestamp, freq_td, expected):
-        # GH#63687 - Timestamp.ceil accepts Timedelta arguments (including edge cases)
-        dt = Timestamp(timestamp)
-        if dt is NaT:
-            assert dt.ceil(freq_td) is NaT
+    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
+    def test_floor_timedelta_freq(self, case: str):
+        # GH#63687 - Timestamp.floor accepts Timedelta arguments (including edge cases)
+        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
+        if test_case.expected_error is not None:
+            with pytest.raises(
+                test_case.expected_error, match=test_case.expected_error_msg
+            ):
+                test_case.timestamp.floor(test_case.frequency)
+        elif test_case.timestamp is NaT:
+            assert test_case.timestamp.floor(test_case.frequency) is NaT
         else:
-            result = dt.ceil(freq_td)
-            expected = Timestamp(expected)
+            result = test_case.timestamp.floor(test_case.frequency)
+            expected = Timestamp(test_case.expected_floor)
+            assert result == expected
+
+    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
+    def test_ceil_timedelta_freq(self, case: str):
+        # GH#63687 - Timestamp.ceil accepts Timedelta arguments
+        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
+        if test_case.expected_error is not None:
+            with pytest.raises(
+                test_case.expected_error, match=test_case.expected_error_msg
+            ):
+                test_case.timestamp.ceil(test_case.frequency)
+        elif test_case.timestamp is NaT:
+            assert test_case.timestamp.ceil(test_case.frequency) is NaT
+        else:
+            result = test_case.timestamp.ceil(test_case.frequency)
+            expected = Timestamp(test_case.expected_ceil)
             assert result == expected
 
     @pytest.mark.parametrize(
