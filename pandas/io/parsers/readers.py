@@ -320,7 +320,7 @@ def _read(
     # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
     # and type-conversion code in parsers.pyx runs truly in parallel.
     if not iterator and chunksize is None and nrows is None:
-        _max = get_option("mode.max_workers")
+        _max = get_option("mode.max_threads")
         _n_workers = _max if _max is not None else (os.cpu_count() or 1)
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             try:

@@ -458,7 +458,7 @@ with cf.config_prefix("mode"):
     )
 
 
-max_workers_doc = """
+max_threads_doc = """
 : int or None
     Maximum number of worker threads for parallel operations (e.g. ``read_csv``
     for large files).  ``None`` (the default) means use ``os.cpu_count()``.
@@ -477,9 +477,9 @@ def _is_positive_int_or_none(value: Any) -> None:
 
 with cf.config_prefix("mode"):
     cf.register_option(
-        "max_workers",
+        "max_threads",
         None,
-        max_workers_doc,
+        max_threads_doc,
         validator=_is_positive_int_or_none,
     )
 
