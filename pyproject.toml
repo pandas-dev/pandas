@@ -188,6 +188,8 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
+# Pyodide repairs wheels on its own, using auditwheel-emscripten.
+repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 build-frontend = "build"

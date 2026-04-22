@@ -100,7 +100,7 @@ py.install_sources('pyproject.toml', subdir: 'pandas')
 # the wheel's .dist-info/sboms/ via the {py_distinfo} placeholder.
 custom_target(
     'pandas-vendored-sbom',
-    output: 'pandas-vendored.cdx.json',
+    output: 'pandas.cdx.json',
     command: [
         py,
         files('scripts/generate_sbom.py'),
