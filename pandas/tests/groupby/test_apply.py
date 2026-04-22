@@ -1541,3 +1541,18 @@ def test_groupby_apply_store_copy():
 
     tm.assert_frame_equal(store[0], expected_out_0)
     tm.assert_frame_equal(store[1], expected_out_1)
+
+
+def test_apply_as_index_false_empty_index_name():
+    df = DataFrame({"A": [4, 4, 4], "B": [9, 9, 9]})
+    result = df.groupby("A", as_index=False).apply(lambda x: x)
+
+    empty_df = df.iloc[:0]
+    result_empty = empty_df.groupby("A", as_index=False).apply(lambda x: x)
+
+    assert result.index.names == [None]
+    assert result_empty.index.names == result.index.names, (
+        f"empty_names={result_empty.index.names}, "
+        f"nonempty_names={result.index.names}, "
+        f"empty_index_name={result_empty.index.name}"
+    )
