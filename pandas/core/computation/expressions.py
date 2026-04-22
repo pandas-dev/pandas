@@ -193,6 +193,22 @@ def _where_numexpr(cond, left_op, right_op):
 
 
 # turn myself on
+# Disable numexpr for known incompatible numpy/numexpr combinations
+# that produce incorrect results (see GH#63320)
+if NUMEXPR_INSTALLED:
+    _np_version = tuple(int(x) for x in np.__version__.split(".")[:2])
+    _ne_version = tuple(int(x) for x in ne.__version__.split(".")[:2])
+    if _np_version >= (2, 3) and _ne_version < (2, 11):
+        import warnings
+        warnings.warn(
+            "Disabling numexpr due to known incorrect results with "
+            f"numpy {_np_version} and numexpr {_ne_version}. "
+            "Set use_numexpr=False to suppress this warning.",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
+        config["compute"]["use_numexpr"] = False
+
 set_use_numexpr(config["compute"]["use_numexpr"])
 
 
