@@ -298,11 +298,15 @@ class TestMultiIndexBasic:
         # with object-dtype level containing mixed types (string + int)
         # where maybe_droplevels produces an Index with a falsy integer value (0)
         cols = MultiIndex.from_tuples(
-            [("info", "M"), ("info", 0), ("earnings", 1), ("earnings", 2), ("prices", 0)]
+            [
+                ("info", "M"),
+                ("info", 0),
+                ("earnings", 1),
+                ("earnings", 2),
+                ("prices", 0),
+            ]
         )
-        df = DataFrame(
-            np.arange(20, dtype=float).reshape(4, 5), columns=cols
-        )
+        df = DataFrame(np.arange(20, dtype=float).reshape(4, 5), columns=cols)
         original = df.copy()
 
         # This used to silently drop the assignment because:
@@ -328,9 +332,7 @@ class TestMultiIndexBasic:
     def test_multiindex_setitem_object_dtype_level_falsy_values(self):
         # GH#65118 - ensure falsy but non-empty-string values in object-dtype
         # level are not mistaken for empty-string columns
-        cols = MultiIndex.from_tuples(
-            [("group", "a"), ("group", 0), ("group", "")]
-        )
+        cols = MultiIndex.from_tuples([("group", "a"), ("group", 0), ("group", "")])
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
 
         # The ("group", "") column should still be writable
