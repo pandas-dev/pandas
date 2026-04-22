@@ -258,7 +258,7 @@ def test_nth3():
     gb = df[0]
     expected = ser.groupby(gb).first()
     expected2 = ser.groupby(gb).apply(lambda x: x.iloc[0])
-    tm.assert_series_equal(expected2, expected, check_names=False)
+    tm.assert_series_equal(expected2, expected)
     assert expected.name == 1
     assert expected2.name == 1
 

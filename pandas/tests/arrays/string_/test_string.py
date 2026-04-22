@@ -276,6 +276,24 @@ def test_reduce_missing(skipna, dtype):
         assert pd.isna(result)
 
 
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_reduce_empty(skipna, dtype, min_count):
+    arr = pd.Series([], dtype=dtype)
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if min_count == 0:
+        assert result == ""
+    else:
+        assert pd.isna(result)
+
+    # all-missing
+    arr = pd.Series([None, None], dtype=dtype)
+    result = arr.sum(skipna=skipna, min_count=min_count)
+    if skipna and min_count == 0:
+        assert result == ""
+    else:
+        assert pd.isna(result)
+
+
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
@@ -470,6 +488,17 @@ def test_astype_from_float_dtype(float_dtype, dtype):
     result = ser.astype(dtype)
     expected = pd.Series(["0.1"], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_astype_from_masked_float_with_nan(dtype, using_nan_is_na):
+    # GH#61617, GH#65227 - FloatingArray.astype(str) with unmasked NaN
+    arr = pd.array([np.nan, pd.NA, 3.0], dtype="Float64")
+    result = arr.astype(dtype)
+    if using_nan_is_na:
+        expected = pd.array([pd.NA, pd.NA, "3.0"], dtype=dtype)
+    else:
+        expected = pd.array(["nan", pd.NA, "3.0"], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_to_numpy_returns_pdna_default(dtype):

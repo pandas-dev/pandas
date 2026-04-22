@@ -137,12 +137,17 @@ class BaseGetitemTests:
             [
                 "list index out of range",  # json
                 "index out of bounds",  # pyarrow
-                "Out of bounds access",  # Sparse
-                f"loc must be an integer between -{ub} and {ub}",  # Sparse
+                (
+                    "index is out of bounds: must be an integer "
+                    f"between -{ub} and {ub - 1}"
+                ),  # Sparse
+                f"index {ub} is out of bounds for axis 0 with size {ub}",
                 f"index {ub + 1} is out of bounds for axis 0 with size {ub}",
                 f"index -{ub + 1} is out of bounds for axis 0 with size {ub}",
             ]
         )
+        with pytest.raises(IndexError, match=msg):
+            data[ub]
         with pytest.raises(IndexError, match=msg):
             data[ub + 1]
         with pytest.raises(IndexError, match=msg):

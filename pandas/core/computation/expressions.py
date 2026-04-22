@@ -14,7 +14,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas.util._exceptions import find_stack_level
 
@@ -193,7 +193,7 @@ def _where_numexpr(cond, left_op, right_op):
 
 
 # turn myself on
-set_use_numexpr(get_option("compute.use_numexpr"))
+set_use_numexpr(config["compute"]["use_numexpr"])
 
 
 def _has_bool_dtype(x):

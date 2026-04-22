@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     prepare_function_arguments,
@@ -367,7 +368,6 @@ class Apply(metaclass=abc.ABCMeta):
         """
         Compute transform in the case of a dict-like func
         """
-        from pandas.core.reshape.concat import concat
 
         obj = self.obj
         args = self.args
@@ -444,7 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         results = []
-        keys = []
+        keys: list[Hashable] = []
 
         # degenerate case
         if selected_obj.ndim == 1:
@@ -483,8 +483,6 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
-        from pandas.core.reshape.concat import concat
-
         obj = self.obj
 
         try:
@@ -613,7 +611,6 @@ class Apply(metaclass=abc.ABCMeta):
         result_data: list,
     ):
         from pandas import Index
-        from pandas.core.reshape.concat import concat
 
         obj = self.obj
 
@@ -841,8 +838,64 @@ class NDFrameApply(Apply):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
+        if op_name == "agg" and obj.ndim == 2:
+            result = self._agg_list_like_frame_reductions()
+            if result is not None:
+                return result
+
         keys, results = self.compute_list_like(op_name, obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
+        return result
+
+    def _agg_list_like_frame_reductions(self) -> DataFrame | None:
+        """
+        Aggregate a list of named functions using DataFrame-level reductions.
+
+        Instead of extracting each column as a Series and calling
+        Series.agg per column, call DataFrame-level reductions directly.
+        Operates per dtype group to preserve per-column dtypes.
+
+        Returns None if the fast path cannot be used (e.g. non-string
+        functions, functions that aren't valid DataFrame methods, or
+        functions that don't return a reduction result).
+        """
+        func = cast("list[AggFuncTypeBase]", self.func)
+
+        if not all(isinstance(f, str) for f in func):
+            return None
+
+        obj = self.obj
+        func_names = cast("list[str]", func)
+
+        # Cannot reindex with duplicate column names
+        if not obj.columns.is_unique:
+            return None
+
+        for func_name in func_names:
+            if not hasattr(obj, func_name):
+                return None
+
+        # Compute reductions per dtype group to preserve per-column dtypes.
+        groups = obj.columns.groupby(obj.dtypes)  # type: ignore[arg-type]
+        pieces = []
+        for dtype in groups:
+            cols = groups[dtype]
+            sub = obj[cols]
+            group_pieces = []
+            for func_name in func_names:
+                try:
+                    row = getattr(sub, func_name)(*self.args, **self.kwargs)
+                except TypeError:
+                    return None
+                if not isinstance(row, ABCSeries):
+                    # Not a reduction (e.g. returns DataFrame), fall back
+                    return None
+                # to_frame().T avoids the slow DataFrame(list-of-Series) path
+                group_pieces.append(row.to_frame(func_name).T)
+            pieces.append(concat(group_pieces))
+
+        result = concat(pieces, axis=1)
+        result = result.reindex(columns=obj.columns)
         return result
 
     def agg_or_apply_dict_like(
@@ -919,7 +972,7 @@ class FrameApply(NDFrameApply):
     @functools.cache
     @abc.abstractmethod
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         pass
 
@@ -928,7 +981,7 @@ class FrameApply(NDFrameApply):
         pass
 
     def validate_values_for_numba(self) -> None:
-        # Validate column dtyps all OK
+        # Validate column dtypes all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
                 raise ValueError(
@@ -1244,7 +1297,7 @@ class FrameRowApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1257,7 +1310,7 @@ class FrameRowApply(FrameApply):
 
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
@@ -1374,7 +1427,7 @@ class FrameColumnApply(FrameApply):
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 if not is_view:
-                    # In apply_series_generator we store the a shallow copy of the
+                    # In apply_series_generator we store a shallow copy of the
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset
@@ -1386,7 +1439,7 @@ class FrameColumnApply(FrameApply):
     @staticmethod
     @functools.cache
     def generate_numba_apply_func(
-        func, nogil=True, nopython=True, parallel=False
+        func, nogil: bool = True, parallel: bool = False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
@@ -1394,7 +1447,7 @@ class FrameColumnApply(FrameApply):
 
         jitted_udf = numba.extending.register_jitable(func)
 
-        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        @numba.jit(nogil=nogil, parallel=parallel)
         def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here
@@ -1896,7 +1949,7 @@ def normalize_keyword_aggregation(
     uniquified_aggspec = _make_unique_kwarg_list(aggspec_order)
 
     # get the new index of columns by comparison
-    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
+    col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)  # type: ignore[arg-type]
     return aggspec, columns, col_idx_order
 
 
@@ -1987,7 +2040,8 @@ def relabel_result(
         # mean  1.5
         if reorder_mask:
             fun = [
-                com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
+                com.get_callable_name(f) if not isinstance(f, str) else f  # type: ignore[misc]
+                for f in fun
             ]
             col_idx_order = Index(s.index, copy=False).get_indexer(fun)
             valid_idx = col_idx_order != -1

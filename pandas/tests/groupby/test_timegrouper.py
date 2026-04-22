@@ -959,6 +959,17 @@ class TestGroupBy:
         expected_df = gb[["Quantity"]].aggregate("mean")
         tm.assert_frame_equal(result_df, expected_df)
 
+    def test_groupby_all_nat_timegrouper(self):
+        # GH#43486
+        df = DataFrame({"date": [pd.NaT, pd.NaT], "value": [1, 2]})
+        gb = df.groupby(Grouper(freq="ME", key="date"))
+        result = gb.sum()
+        expected = DataFrame(
+            {"value": np.array([], dtype="int64")},
+            index=DatetimeIndex([], dtype="datetime64[s]", name="date"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     @td.skip_if_no("pyarrow")
     def test_pyarrow_index_retention(self):
         # https://github.com/pandas-dev/pandas/issues/63518

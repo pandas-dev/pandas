@@ -74,7 +74,7 @@ class TestTimedeltaIndexInsert:
             assert result.freq == expected.freq
 
     @pytest.mark.parametrize(
-        "null", [None, np.nan, np.timedelta64("NaT"), pd.NaT, pd.NA]
+        "null", [None, np.nan, np.timedelta64("NaT", "ns"), pd.NaT, pd.NA]
     )
     def test_insert_nat(self, null):
         # GH 18295 (test missing)

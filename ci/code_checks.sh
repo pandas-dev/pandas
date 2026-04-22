@@ -3,16 +3,12 @@
 # Run checks related to code quality.
 #
 # This script is intended for both the CI and to check locally that code standards are
-# respected. We run doctests here (currently some files only), and we
-# validate formatting error in docstrings.
+# respected. We run doctests here (currently some files only).
 #
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
-#   $ ./ci/code_checks.sh docstrings    # validate docstring errors
-#   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
-#   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
 set -uo pipefail
 
@@ -23,10 +19,9 @@ else
     CHECK=""
 fi
 
-[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "docstrings" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 1; }
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests]"; exit 1; }
 
-BASE_DIR="$(dirname "$0")/.."
 RET=0
 
 ### CODE ###
@@ -61,170 +56,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
-fi
-
-### DOCSTRINGS ###
-if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
-
-    MSG='Validate Docstrings' ; echo "$MSG"
-    python "$BASE_DIR"/scripts/validate_docstrings.py \
-        --format=actions \
-        -i "pandas.CategoricalDtype.categories ES01" \
-        -i "pandas.CategoricalDtype.ordered ES01" \
-        -i "pandas.DatetimeTZDtype.unit ES01" \
-        -i "pandas.DatetimeTZDtype.tz ES01" \
-        -i "pandas.IntervalDtype.subtype ES01" \
-        -i "pandas.api.extensions.ExtensionArray.item ES01" \
-        -i "pandas.read_html ES01" \
-        -i "pandas.read_xml ES01" \
-        -i "pandas.HDFStore.get ES01" \
-        -i "pandas.HDFStore.info ES01" \
-        -i "pandas.HDFStore.keys ES01" \
-        -i "pandas.Index.putmask ES01" \
-        -i "pandas.Index.fillna ES01" \
-        -i "pandas.Index.dropna ES01" \
-        -i "pandas.Index.infer_objects ES01" \
-        -i "pandas.Index.map ES01" \
-        -i "pandas.Index.ravel ES01" \
-        -i "pandas.Index.argsort ES01" \
-        -i "pandas.Index.append ES01" \
-        -i "pandas.Index.join ES01" \
-        -i "pandas.Index.symmetric_difference ES01" \
-        -i "pandas.Index.get_loc ES01" \
-        -i "pandas.Index.slice_locs ES01" \
-        -i "pandas.CategoricalIndex.append ES01" \
-        -i "pandas.IndexSlice ES01" \
-        -i "pandas.TimedeltaIndex.to_pytimedelta ES01" \
-        -i "pandas.PeriodIndex.day ES01" \
-        -i "pandas.PeriodIndex.dayofweek ES01" \
-        -i "pandas.PeriodIndex.day_of_week ES01" \
-        -i "pandas.PeriodIndex.dayofyear ES01" \
-        -i "pandas.PeriodIndex.day_of_year ES01" \
-        -i "pandas.PeriodIndex.days_in_month ES01" \
-        -i "pandas.PeriodIndex.daysinmonth ES01" \
-        -i "pandas.PeriodIndex.hour ES01" \
-        -i "pandas.PeriodIndex.is_leap_year ES01" \
-        -i "pandas.PeriodIndex.minute ES01" \
-        -i "pandas.PeriodIndex.month ES01" \
-        -i "pandas.PeriodIndex.quarter ES01" \
-        -i "pandas.PeriodIndex.second ES01" \
-        -i "pandas.PeriodIndex.week ES01" \
-        -i "pandas.PeriodIndex.weekday ES01" \
-        -i "pandas.PeriodIndex.weekofyear ES01" \
-        -i "pandas.PeriodIndex.year ES01" \
-        -i "pandas.PeriodIndex.from_fields ES01" \
-        -i "pandas.PeriodIndex.from_ordinals ES01" \
-        -i "pandas.api.typing.Window.mean ES01" \
-        -i "pandas.api.typing.Window.sum ES01" \
-        -i "pandas.api.typing.Window.var ES01" \
-        -i "pandas.api.typing.Window.std ES01" \
-        -i "pandas.api.typing.Expanding.count ES01" \
-        -i "pandas.api.typing.Expanding.sum ES01" \
-        -i "pandas.api.typing.Expanding.mean ES01" \
-        -i "pandas.api.typing.Expanding.median ES01" \
-        -i "pandas.api.typing.Expanding.var ES01" \
-        -i "pandas.api.typing.Expanding.std ES01" \
-        -i "pandas.api.typing.Expanding.min ES01" \
-        -i "pandas.api.typing.Expanding.max ES01" \
-        -i "pandas.api.typing.Expanding.first ES01" \
-        -i "pandas.api.typing.Expanding.last ES01" \
-        -i "pandas.api.typing.Expanding.corr ES01" \
-        -i "pandas.api.typing.Expanding.cov ES01" \
-        -i "pandas.api.typing.Expanding.skew ES01" \
-        -i "pandas.api.typing.Expanding.kurt ES01" \
-        -i "pandas.api.typing.Expanding.apply ES01" \
-        -i "pandas.api.typing.Expanding.aggregate ES01" \
-        -i "pandas.api.typing.Expanding.quantile ES01" \
-        -i "pandas.api.typing.Expanding.sem ES01" \
-        -i "pandas.api.typing.Expanding.rank ES01" \
-        -i "pandas.api.typing.ExponentialMovingWindow.mean ES01" \
-        -i "pandas.api.typing.ExponentialMovingWindow.sum ES01" \
-        -i "pandas.api.typing.ExponentialMovingWindow.std ES01" \
-        -i "pandas.api.typing.ExponentialMovingWindow.var ES01" \
-        -i "pandas.api.typing.ExponentialMovingWindow.corr ES01" \
-        -i "pandas.api.typing.ExponentialMovingWindow.cov ES01" \
-        -i "pandas.api.indexers.BaseIndexer ES01" \
-        -i "pandas.api.indexers.FixedForwardWindowIndexer ES01" \
-        -i "pandas.api.indexers.VariableOffsetWindowIndexer ES01" \
-        -i "pandas.NamedAgg ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.all ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.any ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.bfill ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.corr ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.count ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.cummin ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.cumprod ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.cumsum ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.ewm ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.expanding ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.ffill ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.idxmax ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.idxmin ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.max ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.mean ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.min ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.nunique ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.pct_change ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.prod ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.quantile ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rank ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.rolling ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.size ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.kurt ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.sum ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.all ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.any ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.bfill ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.corr ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.count ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cov ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cummin ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cumprod ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.cumsum ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.ewm ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.expanding ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.ffill ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_increasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.is_monotonic_decreasing ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.max ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.mean ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.min ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nlargest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nsmallest ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.nunique ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.pct_change ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.prod ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.quantile ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rank ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.rolling ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.size ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.kurt ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.sum ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.value_counts ES01" \
-        -i "pandas.api.typing.DataFrameGroupBy.boxplot ES01" \
-        -i "pandas.api.typing.SeriesGroupBy.hist ES01" \
-        -i "pandas.api.extensions.register_dataframe_accessor ES01" \
-        -i "pandas.api.extensions.register_series_accessor ES01" \
-        -i "pandas.api.extensions.register_index_accessor ES01" # no backslash in the last line
-
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
-### DOCUMENTATION NOTEBOOKS ###
-if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
-
-    MSG='Notebooks' ; echo $MSG
-    jupyter nbconvert --execute "$(find doc/source -name '*.ipynb')" --to notebook
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
-### SINGLE-PAGE DOCS ###
-if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET

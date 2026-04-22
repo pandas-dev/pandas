@@ -177,6 +177,9 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
         ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
+        # Docstring divides by zero to show nan result
+        ("Series.autocorr", "invalid value encountered in divide"),
+        ("Series.corr", "invalid value encountered in divide"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -434,7 +437,7 @@ def na_action(request):
 @pytest.fixture(params=[True, False])
 def ascending(request):
     """
-    Fixture for 'na_action' argument in sort_values/sort_index/rank.
+    Fixture for 'ascending' argument in sort_values/sort_index/rank.
     """
     return request.param
 
@@ -471,7 +474,7 @@ def parallel(request):
     return request.param
 
 
-# Can parameterize nogil & nopython over True | False, but limiting per
+# Can parameterize nogil over True | False, but limiting per
 # https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
 
 
@@ -479,14 +482,6 @@ def parallel(request):
 def nogil(request):
     """
     Fixture for nogil keyword argument for numba.jit.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """
-    Fixture for nopython keyword argument for numba.jit.
     """
     return request.param
 
@@ -721,6 +716,7 @@ indices_dict = {
     ),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
+    "mixed-int-string": Index([0, "a", 1, "b", 2, "c"]),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
     "nullable_int": Index(np.arange(10), dtype="Int64"),
     "nullable_uint": Index(np.arange(10), dtype="UInt16"),
@@ -750,6 +746,14 @@ def index(request):
     return indices_dict[request.param].copy(deep=False)
 
 
+@pytest.fixture(params=[key for key in indices_dict if key != "mixed-int-string"])
+def index_sortable(request):
+    """
+    index fixture, but excluding types that are not orderable.
+    """
+    return indices_dict[request.param].copy(deep=False)
+
+
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -761,6 +765,20 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy(deep=False)
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key, value in indices_dict.items()
+        if not isinstance(value, MultiIndex) and key != "mixed-int-string"
+    ]
+)
+def index_flat_sortable(request):
+    """
+    index_flat fixture, but excluding types that are not orderable.
+    """
+    return indices_dict[request.param].copy(deep=False)
 
 
 @pytest.fixture(
@@ -795,6 +813,28 @@ def index_with_missing(request):
         vals[0] = None
         vals[-1] = None
         return type(ind)(vals, copy=False)
+
+
+@pytest.fixture(
+    params=[
+        key
+        for key, value in indices_dict.items()
+        if not (
+            key.startswith(("int", "uint", "float"))
+            or key in ["range", "empty", "repeats", "bool-dtype", "mixed-int-string"]
+        )
+        and not isinstance(value, MultiIndex)
+    ]
+)
+def index_with_missing_sortable(request):
+    """
+    index_with_missing fixture, but excluding types that are not orderable.
+    """
+    ind = indices_dict[request.param]
+    vals = ind.values.copy()
+    vals[0] = None
+    vals[-1] = None
+    return type(ind)(vals, copy=False)
 
 
 # ----------------------------------------------------------------
@@ -873,6 +913,21 @@ def index_or_series_obj(request):
     copy to avoid mutation, e.g. setting .name
     """
     return _index_or_series_objs[request.param].copy(deep=False)
+
+
+_index_or_series_objs_orderable = {
+    key: value
+    for key, value in _index_or_series_objs.items()
+    if "mixed-int-string" not in key
+}
+
+
+@pytest.fixture(params=_index_or_series_objs_orderable.keys())
+def index_or_series_obj_orderable(request):
+    """
+    index_or_series_obj fixture, but excluding types that are not orderable.
+    """
+    return _index_or_series_objs_orderable[request.param].copy(deep=False)
 
 
 _typ_objects_series = {
@@ -1969,11 +2024,14 @@ def ip():
     pytest.importorskip("IPython", minversion="6.0.0")
     from IPython.core.interactiveshell import InteractiveShell
 
-    # GH#35711 make sure sqlite history file handle is not leaked
+    # GH#35711 make sure sqlite history file handle is not leaked.
+    # Using :memory: avoids leaking a file on disk; disabling the history
+    # manager entirely avoids leaking the underlying sqlite3.Connection.
     from traitlets.config import Config  # isort:skip
 
     c = Config()
     c.HistoryManager.hist_file = ":memory:"
+    c.HistoryManager.enabled = False
 
     return InteractiveShell(config=c)
 

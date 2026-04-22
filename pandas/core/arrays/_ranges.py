@@ -96,6 +96,73 @@ def generate_regular_range(
     return range_to_ndarray(range(b, e, stride))
 
 
+def generate_daily_offset_range(
+    start: Timestamp | None,
+    end: Timestamp | None,
+    periods: int | None,
+    freq: BaseOffset,
+    unit: TimeUnit = "ns",
+) -> npt.NDArray[np.int64]:
+    """
+    Generate a range for offsets whose on-offset dates are a subset of a
+    daily grid, by generating a daily range and filtering.
+
+    This is a performance optimization (GH#16463) for offsets like BusinessDay
+    that implement ``_get_daily_offset_mask``. Instead of iteratively applying
+    the offset, we generate a daily range and filter it vectorized.
+
+    Parameters
+    ----------
+    start : Timestamp or None
+    end : Timestamp or None
+    periods : int or None
+    freq : BaseOffset
+        Must have ``_supports_daily_offset_mask`` and ``n >= 1``
+        (caller ensures both).
+    unit : str, default "ns"
+
+    Returns
+    -------
+    ndarray[int64]
+        The filtered i8 values.
+    """
+    abs_n = freq.n  # caller ensures n >= 1
+
+    # For the periods case, convert to start+end by extending the known
+    # endpoint with a generous Timedelta. The worst-case gap for any
+    # daily-grid offset is 7 calendar days per on-offset day (e.g. Week),
+    # so needed * 7 + 6 is always sufficient.
+    trim_to = None
+    trim_from_end = False
+    if periods is not None:
+        needed_on_offset = (periods - 1) * abs_n + 1
+        buffer_days = needed_on_offset * 7 + 6
+        if end is None:
+            # start is guaranteed non-None by the caller
+            end = (  # type: ignore[assignment]
+                start + Timedelta(days=buffer_days)  # type: ignore[operator]
+            ).as_unit(unit)
+        else:
+            trim_from_end = True
+            start = (end - Timedelta(days=buffer_days)).as_unit(unit)  # pyright: ignore[reportAssignmentType]
+        trim_to = periods
+
+    i8values = generate_regular_range(start, end, None, Day(), unit=unit)
+    dt64 = i8values.view(f"datetime64[{unit}]")
+    i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
+
+    if abs_n > 1:
+        i8values = i8values[::abs_n]
+
+    if trim_to is not None:
+        if trim_from_end:
+            i8values = i8values[-trim_to:]
+        else:
+            i8values = i8values[:trim_to]
+
+    return i8values
+
+
 def _generate_range_overflow_safe(
     endpoint: int, periods: int, stride: int, side: str = "start"
 ) -> int:

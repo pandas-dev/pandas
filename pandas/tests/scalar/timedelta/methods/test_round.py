@@ -288,3 +288,11 @@ class TestTimedeltaRound:
         # GH#63687 - Timedelta.ceil accepts Timedelta arguments (including edge cases)
         result = timedelta.ceil(freq_td)
         assert result == expected
+
+    def test_round_freq_finer_than_resolution(self):
+        # GH#64828
+        td = Timedelta(1.0, unit="days").as_unit("s")
+        assert td.unit == "s"
+        assert td.round("100ms") == Timedelta("1 days 00:00:00")
+        assert td.floor("100ms") == Timedelta("1 days 00:00:00")
+        assert td.ceil("100ms") == Timedelta("1 days 00:00:00")

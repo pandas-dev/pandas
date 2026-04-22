@@ -7,6 +7,8 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -260,7 +262,6 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             ser.iat[3] = 5.0
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
@@ -339,7 +340,8 @@ class TestPartialSetting:
         df.loc[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + dates.freq, "A"] = 7
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            df.at[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)
 
         exp_other = DataFrame({0: 7}, index=dates[-1:] + dates.freq)
@@ -349,7 +351,8 @@ class TestPartialSetting:
         df.loc[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + dates.freq, 0] = 7
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):

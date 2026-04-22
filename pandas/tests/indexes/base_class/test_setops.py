@@ -253,6 +253,34 @@ class TestIndexSetOps:
             expected = Index(vals, name=expected_name)
             tm.assert_index_equal(union.sort_values(), expected.sort_values())
 
+    def test_setops_mixed_freq_periods(self, sort):
+        # GH#55333 - object-dtype Index with mixed-freq Period objects
+        #  should not raise IncompatibleFrequency
+        ts = pd.Timestamp("2024-01-01")
+        pers = [ts.to_period(freq) for freq in ["D", "s", "h", "M"]]
+
+        left = Index(pers[:2])
+        right = Index(pers[2:])
+        assert left.dtype == object
+        assert right.dtype == object
+
+        warn = RuntimeWarning if sort is not False else None
+        with tm.assert_produces_warning(warn, match="sort order is undefined"):
+            result = left.union(right, sort=sort)
+        assert result.dtype == object
+        assert len(result) == 4
+
+        result = left.intersection(right, sort=sort)
+        expected = Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(
+            RuntimeWarning, match="sort order is undefined"
+        ):
+            result = left.join(right, how="outer")
+        assert result.dtype == object
+        assert len(result) == 4
+
     @pytest.mark.parametrize(
         "diff_type, expected",
         [["difference", [1, "B"]], ["symmetric_difference", [1, 2, "B", "C"]]],

@@ -18,6 +18,8 @@ import matplotlib.dates as mdates
 import matplotlib.units as munits
 import numpy as np
 
+from pandas._config.config import _global_config as config
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timestamp,
@@ -39,7 +41,6 @@ from pandas.core.dtypes.common import (
 from pandas import (
     Index,
     Series,
-    get_option,
 )
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import (
@@ -103,7 +104,7 @@ def pandas_converters() -> Generator[None]:
     --------
     register_pandas_matplotlib_converters : Decorator that applies this.
     """
-    value = get_option("plotting.matplotlib.register_converters")
+    value = config["plotting"]["matplotlib"]["register_converters"]
 
     if value:
         # register for True or "auto"
@@ -595,7 +596,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
         ppm = 1
         ppy = 12
     elif freq_group == FreqGroup.FR_QTR:
-        ppm = -1  # placerholder
+        ppm = -1  # placeholder
         ppy = 4
     elif freq_group == FreqGroup.FR_ANN:
         ppm = -1  # placeholder
@@ -613,6 +614,20 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
     periodsperday, periodspermonth, periodsperyear = _get_periods_per_ymd(freq)
+
+    # When the frequency has a multiplier n > 1 (e.g. '1000ms' instead of
+    # '1ms'), the period_range below steps by n, so span is n times smaller
+    # than the raw ordinal count.  Adjust the per-day/month/year counts to
+    # match so that the threshold comparisons remain correct.  GH#50355
+    n = freq.n
+    if n > 1:
+        if periodsperday > 0:
+            periodsperday = max(1, periodsperday // n)
+            periodspermonth = 28 * periodsperday
+            periodsperyear = 365 * periodsperday
+        else:
+            periodspermonth = max(1, periodspermonth // n)
+            periodsperyear = max(1, periodsperyear // n)
 
     # save this for later usage
     vmin_orig = vmin
@@ -664,7 +679,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
-            target = dates_.hour  # type: ignore[union-attr]
+            target = dates_.hour
             mask = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
             info_min[mask & (target % label_interval == 0)] = True
@@ -675,7 +690,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
         def _minute_finder(label_interval: int) -> None:
-            target = dates_.minute  # type: ignore[union-attr]
+            target = dates_.minute
             hour_start = _period_break(dates_, "hour")
             mask = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
@@ -685,7 +700,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
         def _second_finder(label_interval: int) -> None:
-            target = dates_.second  # type: ignore[union-attr]
+            target = dates_.second
             minute_start = _period_break(dates_, "minute")
             mask = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True
@@ -787,7 +802,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
         info_min[month_start] = True
         info_min[year_start] = False
 
-        month_break = dates_[month_start].month
+        month_break = dates_[month_start].month  # pyright: ignore[reportAttributeAccessIssue]
         jan_or_jul = month_start[(month_break == 1) | (month_break == 7)]
         info_fmt[jan_or_jul] = "%b"
         info_fmt[year_start] = "%b\n%Y"
@@ -802,7 +817,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     # Case 6. More than 12 years ................
     else:
         year_start = _period_break(dates_, "year")
-        year_break = dates_[year_start].year
+        year_break = dates_[year_start].year  # pyright: ignore[reportAttributeAccessIssue]
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
         major_idx = year_start[(year_break % maj_anndef == 0)]

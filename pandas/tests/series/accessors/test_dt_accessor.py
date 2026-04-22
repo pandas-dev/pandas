@@ -42,6 +42,8 @@ from pandas.core.arrays import (
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
 ok_for_dt = DatetimeArray._datetimelike_ops
+# GH#46768 - deprecated aliases that should be skipped in property access tests
+_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 ok_for_dt_methods = [
     "to_period",
     "to_pydatetime",
@@ -108,9 +110,10 @@ class TestSeriesDatetimeValues:
         ser = Series(dti, name="xxx")
 
         for prop in ok_for_dt:
-            # we test freq below
-            if prop != "freq":
-                self._compare(ser, prop)
+            # we test freq below; GH#46768 skip deprecated aliases
+            if prop == "freq" or prop in _deprecated_dt_attrs:
+                continue
+            self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
@@ -145,9 +148,10 @@ class TestSeriesDatetimeValues:
         dti = date_range("20130101", periods=5, tz="US/Eastern")
         ser = Series(dti, name="xxx")
         for prop in ok_for_dt:
-            # we test freq below
-            if prop != "freq":
-                self._compare(ser, prop)
+            # we test freq below; GH#46768 skip deprecated aliases
+            if prop == "freq" or prop in _deprecated_dt_attrs:
+                continue
+            self._compare(ser, prop)
 
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
@@ -215,9 +219,10 @@ class TestSeriesDatetimeValues:
         ser = Series(pi, name="xxx")
 
         for prop in ok_for_period:
-            # we test freq below
-            if prop != "freq":
-                self._compare(ser, prop)
+            # we test freq below; GH#46768 skip deprecated aliases
+            if prop == "freq" or prop in _deprecated_dt_attrs:
+                continue
+            self._compare(ser, prop)
 
         for prop in ok_for_period_methods:
             getattr(ser.dt, prop)
@@ -586,6 +591,13 @@ class TestSeriesDatetimeValues:
         if using_infer_string:
             expected = expected.astype(StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
+
+    def test_strftime_literal_braces(self):
+        # Literal braces in the format string should be preserved
+        ser = Series(date_range("2024-01-01", periods=3))
+        result = ser.dt.strftime("{%Y}")
+        expected = Series(["{2024}", "{2024}", "{2024}"])
+        tm.assert_series_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
