@@ -49,12 +49,12 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
-    is_file_like,
     is_float,
     is_integer,
     is_list_like,
     pandas_dtype,
 )
+from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
 from pandas.core.frame import DataFrame
