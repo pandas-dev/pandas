@@ -6889,7 +6889,10 @@ class Index(IndexOpsMixin, PandasObject):
             return type(self).from_arrays(values)
         else:
             items = [func(x) for x in self]
-            return Index(items, name=self.name, tupleize_cols=False)
+            try:
+                return Index(items, dtype=self.dtype, name=self.name, tupleize_cols=False)
+            except (ValueError, TypeError):
+                return Index(items, name=self.name, tupleize_cols=False)
 
     def isin(
         self, values: Axes | set, level: str_t | int | None = None
