@@ -2,8 +2,8 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.19.0,<1",
-    "meson>=1.2.3,<2",
+    "meson-python>=0.20.0,<1",
+    "meson>=1.12.0,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
@@ -35,7 +35,6 @@ license-files = [
   "LICENSES/PACKAGING_LICENSE", # Apache-2.0
   "LICENSES/PSF_LICENSE", #  PSF-2.0
   "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
-  "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
   "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
@@ -167,10 +166,6 @@ test-command = """
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-# Repair wheel and inject SBOM (PEP 770)
-# auditwheel 6.5.0+ auto-generates SBOM for bundled .so files
-# Our script adds the vendored code SBOM on top of that
-repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [tool.cibuildwheel.windows]
 config-settings = { setup-args = ["--vsenv"] }
@@ -182,7 +177,6 @@ test-command = """
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
-repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
@@ -191,13 +185,9 @@ before-test = "apk update && apk add musl-locales"
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
-repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-# Pyodide repairs wheels on its own, using auditwheel-emscripten
-# We just inject SBOM using the macos path (copy + inject, no repair tool)
-repair-wheel-command = "python ./scripts/cibw_repair_wheel.py {wheel} {dest_dir}"
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
 build-frontend = "build"

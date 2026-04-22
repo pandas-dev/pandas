@@ -6,7 +6,7 @@ project(
     'cython',
     version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
-    meson_version: '>=1.2.3',
+    meson_version: '>=1.12.0',
     default_options: [
         'buildtype=release',
         'c_std=c17',
@@ -94,5 +94,22 @@ endif
 
 # Needed by pandas.test() when it looks for the pytest ini options
 py.install_sources('pyproject.toml', subdir: 'pandas')
+
+# PEP 770 SBOM for vendored components. Generated at build time from
+# LICENSES/vendored.toml; meson-python (>=0.20.0) routes the output into
+# the wheel's .dist-info/sboms/ via the {py_distinfo} placeholder.
+custom_target(
+    'pandas-vendored-sbom',
+    output: 'pandas-vendored.cdx.json',
+    command: [
+        py,
+        files('scripts/generate_sbom.py'),
+        '@OUTPUT@',
+        '--version',
+        meson.project_version(),
+    ],
+    install: true,
+    install_dir: py.dist_info_install_dir('sboms'),
+)
 
 subdir('pandas')

@@ -63,6 +63,5 @@ prune pandas/tests/io/parser/data
 graft pandas/_libs/src
 graft pandas/_libs/include
 
-# Include cibw scripts in sdist since they're needed for building wheels
-include scripts/cibw_repair_wheel.py
+# Include the SBOM generator in sdist; meson.build invokes it via custom_target.
 include scripts/generate_sbom.py
