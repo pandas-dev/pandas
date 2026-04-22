@@ -355,6 +355,14 @@ def read_hdf(
     criteria. This function requires the
     `PyTables <https://www.pytables.org/>`_ library.
 
+    .. note::
+
+       This function only reads HDF5 files written by pandas (via
+       :meth:`DataFrame.to_hdf`, :meth:`Series.to_hdf`, or :class:`HDFStore`),
+       which use a pandas-specific layout built on PyTables. Arbitrary HDF5
+       files produced by other tools such as ``h5py`` or plain PyTables are
+       not supported; use those libraries directly to read such files.
+
     .. warning::
 
        Pandas uses PyTables for reading and writing HDF5 files, which allows
@@ -518,6 +526,13 @@ class HDFStore:
     Dict-like IO interface for storing pandas objects in PyTables.
 
     Either Fixed or Table format.
+
+    .. note::
+
+       ``HDFStore`` uses a pandas-specific layout on top of PyTables and is
+       intended for round-tripping pandas objects. It cannot read arbitrary
+       HDF5 files produced by other tools such as ``h5py`` or plain PyTables;
+       use those libraries directly for general HDF5 interoperability.
 
     .. warning::
 
