@@ -6889,6 +6889,16 @@ class Index(IndexOpsMixin, PandasObject):
             return type(self).from_arrays(values)
         else:
             items = [func(x) for x in self]
+            if isinstance(self.dtype, ExtensionDtype):
+                # Reconstruct through the original ExtensionArray type so that
+                # nullable dtypes (e.g. Int64, Float64) are not silently downcast
+                # to the corresponding NumPy dtype when building from a Python list.
+                # GH#65315
+                try:
+                    arr = self._data._from_sequence(items, dtype=self.dtype)
+                    return Index(arr, name=self.name)
+                except (TypeError, ValueError):
+                    pass
             return Index(items, name=self.name, tupleize_cols=False)
 
     def isin(

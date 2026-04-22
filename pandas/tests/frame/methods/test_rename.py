@@ -4,11 +4,13 @@ import inspect
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    array,
     merge,
 )
 import pandas._testing as tm
@@ -440,3 +442,33 @@ class TestRename:
 
         # check we didn't corrupt the original
         tm.assert_series_equal(ser, orig.iloc[0])
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["Int64", "Float64", "boolean", "UInt8"],
+)
+def test_rename_preserves_nullable_index_dtype(dtype):
+    # GH#65315: rename() must not silently downcast nullable ExtensionArray index
+    # dtypes to the corresponding NumPy dtype.
+    idx = Index(array([1, 2, 3], dtype=dtype))
+    df = DataFrame({"val": [10, 20, 30]}, index=idx)
+
+    renamed = df.rename({1: 9})
+    assert renamed.index.dtype == idx.dtype, (
+        f"rename() downcast nullable dtype {dtype!r} to {renamed.index.dtype!r}"
+    )
+    assert renamed.index[0] == 9
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+def test_rename_preserves_nullable_series_index_dtype(dtype):
+    # GH#65315: Series.rename() must preserve nullable ExtensionArray index dtype.
+    idx = Index(array([10, 20, 30], dtype=dtype))
+    ser = Series([1, 2, 3], index=idx)
+
+    renamed = ser.rename({10: 99})
+    assert renamed.index.dtype == idx.dtype, (
+        f"Series.rename() downcast nullable dtype {dtype!r} to {renamed.index.dtype!r}"
+    )
+    assert renamed.index[0] == 99
