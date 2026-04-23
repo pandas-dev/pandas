@@ -486,9 +486,11 @@ def concat(
         else:
             non_concat_axis = [obj.index for obj in objs]
         no_sort_result_index = union_indexes(non_concat_axis, sort=False)
-        orig = result.index if orig_axis == 1 else (
-                result.columns if hasattr(result, "columns") else result.index
-            )
+        orig = (
+            result.index
+            if orig_axis == 1
+            else (result.columns if hasattr(result, "columns") else result.index)
+        )
         if not no_sort_result_index.equals(orig):
             msg = (
                 "Sorting by default when concatenating all DatetimeIndex is "
