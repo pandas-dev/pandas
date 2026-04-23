@@ -242,6 +242,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         int seen_null
 
     void COLITER_NEXT(coliter_t, const char *) nogil
+    void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
@@ -257,6 +258,7 @@ cdef extern from "pandas/parser/pd_parser.h":
     void coliter_setup(coliter_t *it, parser_t *parser,
                        int64_t i, int64_t start) nogil
     void COLITER_NEXT(coliter_t, const char *) nogil
+    void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
 
     parser_t* parser_new()
 
@@ -1471,6 +1473,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
+        int64_t token_idx = 0
+        int64_t word_len
         ndarray[object] result
 
         int ret = 0
@@ -1487,7 +1491,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        COLITER_NEXT(it, word)
+        COLITER_NEXT_WITH_IDX(it, word, token_idx)
 
         if na_filter:
             if kh_get_str_starts_item(na_hashset, word):
@@ -1503,8 +1507,20 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            # box it. new ref?
-            pyval = PyUnicode_Decode(word, strlen(word), "utf-8", encoding_errors)
+            # Derive word length from adjacent word_starts entries; this keeps
+            # hit-heavy columns off any extra-cacheline read on the fast path,
+            # and avoids paying for a parallel word_lens array during parse.
+            # token_idx == -1 signals a missing field (word == ""), handled up
+            # front; for the last parsed token we fall through to stream_len.
+            if token_idx < 0:
+                word_len = 0
+            elif <uint64_t>(token_idx + 1) < parser.words_len:
+                word_len = (parser.word_starts[token_idx + 1]
+                            - parser.word_starts[token_idx] - 1)
+            else:
+                word_len = (<int64_t>parser.stream_len
+                            - parser.word_starts[token_idx] - 1)
+            pyval = PyUnicode_Decode(word, word_len, "utf-8", encoding_errors)
 
             k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject *>pyval
