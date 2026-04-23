@@ -51,6 +51,12 @@ def test_fillna_null(null_obj, index_or_series_obj):
     expected = values.copy()
     values[0:2] = null_obj
     expected[0:2] = fill_value
+    # setitem no longer clears freq; after mutating, values are no longer on
+    # the original freq, so clear it on DTA/TDA explicitly.
+    if hasattr(values, "_freq"):
+        values._freq = None
+    if hasattr(expected, "_freq"):
+        expected._freq = None
 
     expected = klass(expected)
     obj = klass(values)

@@ -100,7 +100,7 @@ void parser_set_default_options(parser_t *self) {
   self->allow_embedded_newline = 1;
 
   self->expected_fields = -1;
-  self->on_bad_lines = ERROR;
+  self->on_bad_lines = BLHM_ERROR;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -396,7 +396,7 @@ static int end_line(parser_t *self) {
     self->line_fields[self->lines] = 0;
 
     // file_lines is now the actual file line number (starting at 1)
-    if (self->on_bad_lines == ERROR) {
+    if (self->on_bad_lines == BLHM_ERROR) {
       const size_t bufsize = 100;
       self->error_msg = malloc(bufsize);
       snprintf(self->error_msg, bufsize,
@@ -406,7 +406,7 @@ static int end_line(parser_t *self) {
       return -1;
     } else {
       // simply skip bad lines
-      if (self->on_bad_lines == WARN) {
+      if (self->on_bad_lines == BLHM_WARN) {
         // pass up error message
         const size_t bufsize = 100;
         char *msg = (char *)malloc(bufsize);
