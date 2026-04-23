@@ -1097,7 +1097,9 @@ def test_non_nano_value():
     assert result == -52_700_112_000 * 10**6
 
 
-@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+@pytest.mark.parametrize(
+    "na_value", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+)
 def test_timestamp_constructor_na_value(na_value):
     # GH45481
     result = Timestamp(na_value)

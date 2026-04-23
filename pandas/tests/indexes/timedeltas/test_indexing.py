@@ -65,7 +65,7 @@ class TestGetItem:
             datetime(1970, 1, 1),
             Timestamp("1970-01-03").to_datetime64(),
             # non-matching NA values
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ],
     )
     def test_timestamp_invalid_key(self, key):
