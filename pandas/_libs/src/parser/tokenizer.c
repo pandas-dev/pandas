@@ -1604,10 +1604,12 @@ int uint64_conflict(uint_state *self) {
 }
 
 /* Copy a string without `char_to_remove` into `output`.
+ *
+ * Returns the number of bytes written (excluding NUL), or -1 on overflow.
  */
-static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, size_t str_len,
-                                    char char_to_remove) {
+static int64_t copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
+                                        const char *str, size_t str_len,
+                                        char char_to_remove) {
   const char *left = str;
   const char *end_ptr = str + str_len;
   size_t bytes_written = 0;
@@ -1633,8 +1635,15 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   }
 
   output[bytes_written] = '\0';
-  return 0;
+  return (int64_t)bytes_written;
 }
+
+// Defined in pd_strtoi.cpp — locale-independent integer parsing via
+// std::from_chars. Faster than libc strtoll/strtoull.
+int pd_strtoll(const char *start, const char *end, int64_t *value,
+               const char **endptr);
+int pd_strtoull(const char *start, const char *end, uint64_t *value,
+                const char **endptr);
 
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
@@ -1643,36 +1652,43 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
     ++p;
   }
 
-  // Handle sign.
+  // Handle sign. std::from_chars accepts '-' but rejects '+', so strip '+'
+  // after verifying the following char is a digit (not another sign).
   const bool has_sign = *p == '-' || *p == '+';
-  // Handle sign.
   const char *digit_start = has_sign ? p + 1 : p;
-
-  // Check that there is a first digit.
   if (!isdigit_ascii(*digit_start)) {
-    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
+  if (*p == '+') {
+    ++p;
+  }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
+  size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p, str_len, tsep);
-    if (status != 0) {
+    const int64_t written = copy_string_without_char(buffer, p, str_len, tsep);
+    if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
+    str_len = (size_t)written;
   }
 
-  char *endptr;
-  int64_t number = strtoll(p, &endptr, 10);
-
-  if (errno == ERANGE) {
+  int64_t number;
+  const char *endptr;
+  const int status = pd_strtoll(p, p + str_len, &number, &endptr);
+  if (status == 1) {
+    // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
+    // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
+    // at NUL) → OVERFLOW (caller retries as uint64).
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
-    errno = 0;
+    return 0;
+  }
+  if (status == -1) {
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
@@ -1710,29 +1726,32 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
 
   // Check that there is a first digit.
   if (!isdigit_ascii(*p)) {
-    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
+  size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p, str_len, tsep);
-    if (status != 0) {
+    const int64_t written = copy_string_without_char(buffer, p, str_len, tsep);
+    if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
+    str_len = (size_t)written;
   }
 
-  char *endptr;
-  uint64_t number = strtoull(p, &endptr, 10);
-
-  if (errno == ERANGE) {
+  uint64_t number;
+  const char *endptr;
+  const int status = pd_strtoull(p, p + str_len, &number, &endptr);
+  if (status == 1) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
-    errno = 0;
+    return 0;
+  }
+  if (status == -1) {
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
