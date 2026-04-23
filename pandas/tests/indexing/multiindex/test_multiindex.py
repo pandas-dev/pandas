@@ -25,9 +25,10 @@ class TestMultiIndexBasic:
             }
         ).set_index(["jim", "joe"])
 
-        with tm.assert_produces_warning(performance_warning):
-            df.loc[(1, "z")]
+        # Full-length key uses the engine directly; no PerformanceWarning
+        df.loc[(1, "z")]
 
+        # Partial key still goes through lexsort path
         df = df.iloc[[2, 1, 3, 0]]
         with tm.assert_produces_warning(performance_warning):
             df.loc[(0,)]

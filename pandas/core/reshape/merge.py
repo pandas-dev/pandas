@@ -2059,7 +2059,7 @@ class _MergeOperation:
 
 
 def _maybe_promote_to_rangeindex(idx: Index) -> Index:
-    if idx.is_monotonic_increasing and idx.is_unique and idx.dtype.kind in "iu":
+    if idx.dtype.kind in "iu" and idx.is_monotonic_increasing and idx.is_unique:
         values = idx._values
         if isinstance(values, np.ndarray):
             result = maybe_sequence_to_range(values)
@@ -3037,16 +3037,18 @@ def _factorize_keys(
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
-            ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
+            # GH#38418 Use lookup instead of hash_inner_join for unique right
+            # keys. lookup pre-allocates the result array and fills directly,
+            # avoiding dynamic vector resizing and scatter.
+            ridx = rizer.table.lookup(lk_data, lk_mask)  # type: ignore[attr-defined]
             if how == "inner":
+                mask = ridx != -1
+                lidx = mask.nonzero()[0].astype(np.intp, copy=False)
+                ridx = ridx[mask].astype(np.intp, copy=False)
                 return lidx, ridx, -1
             # left-outer hash join with unique right side.
-            # Preserve original left-row order: one output row per left row,
-            # ridx=-1 for unmatched rows.
-            n_left = len(lk_data)
-            ridx_full = np.full(n_left, -1, dtype=np.intp)
-            ridx_full[lidx] = ridx
-            return np.arange(n_left, dtype=np.intp), ridx_full, -1
+            # One output row per left row, ridx=-1 for unmatched rows.
+            return np.arange(len(lk_data), dtype=np.intp), ridx, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)
     else:

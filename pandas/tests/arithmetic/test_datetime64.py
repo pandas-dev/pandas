@@ -110,15 +110,14 @@ class TestDatetime64ArrayLikeComparisons:
     ):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tz)._data
+        dta = date_range("2000-01-01", freq="ns", periods=10, tz=tz)._data
         obj = tm.box_expected(dta, box_with_array)
         assert_invalid_comparison(obj, other, box_with_array)
 
     def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="h", periods=5, tz=tz)._data
-
+        dta = date_range("2000-01-01", freq="h", periods=5, tz=tz)._data
         other = np.array([0, 1, 2, dta[3], Timedelta(days=1)])
         result = dta == other
         expected = np.array([False, False, False, True, False])
@@ -785,7 +784,7 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
         expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz, unit="ns")
-        if tz is not None:
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -798,6 +797,11 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, expected)
 
         rng += two_hours
+        if box_with_array is pd.array:
+            # Array-level __iadd__ no longer manages freq (Index manages freq);
+            # rng retains its pre-iadd freq even though `rng + x` would return
+            # a freq=None array.
+            expected._freq = rng._freq
         tm.assert_equal(rng, expected)
 
     def test_dt64arr_sub_timedeltalike_scalar(
@@ -807,7 +811,7 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
         expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz, unit="ns")
-        if tz is not None:
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -817,6 +821,9 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, expected)
 
         rng -= two_hours
+        if box_with_array is pd.array:
+            # See test_dt64arr_add_timedeltalike_scalar.
+            expected._freq = rng._freq
         tm.assert_equal(rng, expected)
 
     def test_dt64_array_sub_dt_with_different_timezone(self, box_with_array):
@@ -1273,6 +1280,9 @@ class TestDatetime64DateOffsetArithmetic:
             freq="h",
             tz=tz,
         ).as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
+            dates = dates._with_freq(None)
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)

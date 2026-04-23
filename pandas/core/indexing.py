@@ -413,14 +413,6 @@ class IndexingMixin:
                              max_speed  shield
         sidewinder          7       8
 
-        Index (same behavior as ``df.reindex``)
-
-        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-               max_speed  shield
-        foo
-        cobra          1       2
-        viper          4       5
-
         Conditional that returns a boolean Series
 
         >>> df.loc[df["shield"] > 6]
@@ -913,8 +905,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  below would create float64 columns in this example, which
                 #  would successfully hold 7, so we would end up with the wrong
                 #  dtype.
-                indexer = np.arange(len(keys), dtype=np.intp)
-                indexer[len(self.obj.columns) :] = -1
+                indexer = self.obj.columns.get_indexer(keys)
                 new_mgr = self.obj._mgr.reindex_indexer(
                     keys, indexer=indexer, axis=0, only_slice=True, use_na_proxy=True
                 )
@@ -945,9 +936,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         # Capture dtype info cheaply between potential column expansion
-        # (above) and potential row expansion (below).  This replaces the
-        # much more expensive ``self.obj[:].iloc[:0].copy()`` that had to
-        # slice and copy every block.
+        # (above) and potential row expansion (below).
         if self.obj.ndim == 1:
             orig_dtype_info = self.obj.dtype
             orig_columns = None
@@ -1403,14 +1392,6 @@ class _LocIndexer(_LocationIndexer):
                          max_speed  shield
     sidewinder          7       8
 
-    Index (same behavior as ``df.reindex``)
-
-    >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-           max_speed  shield
-    foo
-    cobra          1       2
-    viper          4       5
-
     Conditional that returns a boolean Series
 
     >>> df.loc[df["shield"] > 6]
@@ -1863,7 +1844,39 @@ class _LocIndexer(_LocationIndexer):
                 locs = labels.get_locs(key)
                 indexer: list[slice | npt.NDArray[np.intp]] = [slice(None)] * self.ndim
                 indexer[axis] = locs
-                return self.obj.iloc[tuple(indexer)]
+                result = self.obj.iloc[tuple(indexer)]
+
+                # GH#18631 Drop levels that were indexed with scalars,
+                # but only when the key has no slices or bool indexers.
+                # Dropping scalar levels in the presence of slices would
+                # be correct in principle, but many internal operations
+                # (e.g. stack/unstack) rely on the current behavior.
+                has_slice_or_mask = any(
+                    isinstance(k, slice) or com.is_bool_indexer(k) for k in key
+                )
+                if not has_slice_or_mask:
+                    levels_to_drop = []
+                    for idx, k in enumerate(key):
+                        if not is_list_like(k):
+                            levels_to_drop.append(idx)
+                        elif isinstance(k, tuple):
+                            # GH#27591 A tuple might be a single label
+                            # in this level rather than a sequence of labels
+                            try:
+                                labels.levels[idx].get_loc(k)
+                                levels_to_drop.append(idx)
+                            except KeyError:
+                                pass
+                    if levels_to_drop:
+                        if len(levels_to_drop) >= labels.nlevels:
+                            # All levels are scalar-indexed; reduce
+                            # dimensionality instead of droplevel (which
+                            # cannot remove every level).
+                            result = result._ixs(0, axis=axis)
+                        else:
+                            result = result.droplevel(levels_to_drop, axis=axis)
+
+                return result
 
         # fall thru to straight lookup
         self._validate_key(key, axis)
@@ -2397,6 +2410,20 @@ class _iLocIndexer(_LocationIndexer):
                     take_split_path = True
                     break
 
+        # GH#44103 - setting a scalar row across columns with a list-like
+        # value must go through the split path so each column gets its
+        # corresponding scalar value.
+        if (
+            not take_split_path
+            and isinstance(indexer, tuple)
+            and len(indexer) == 2
+            and is_integer(indexer[0])
+            and not is_integer(indexer[1])
+            and is_list_like(value)
+            and not isinstance(value, (ABCSeries, ABCDataFrame))
+        ):
+            take_split_path = True
+
         return take_split_path
 
     def _setitem_new_column(self, indexer, key, value, name: str) -> None:
@@ -2550,7 +2577,11 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif _is_2d_value(value):
+            elif _is_2d_value(value) and not (
+                isinstance(value, list)
+                and isinstance(value[0], tuple)
+                and len(value[0]) != len(ilocs)
+            ):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2838,8 +2869,12 @@ class _iLocIndexer(_LocationIndexer):
 
         elif self.ndim == 2:
             if not len(self.obj.columns):
-                # no columns and scalar
-                raise ValueError("cannot set a frame with no defined columns")
+                # GH#17895 no columns, just expand the index
+                new_index = self.obj.index.insert(len(self.obj.index), indexer)
+                self.obj._mgr = self.obj._constructor(
+                    index=new_index, columns=self.obj.columns
+                )._mgr
+                return
 
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
@@ -3516,6 +3551,29 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
         # [assignment]
         dtype = dtype.numpy_dtype  # type: ignore[assignment]
 
+    # _cast_pointwise_result may return NumpyExtensionArray; unwrap so
+    # maybe_downcast_to_dtype sees a plain np.ndarray it can downcast.
+    arr_type = None
+    if isinstance(new_arr.dtype, NumpyEADtype):
+        arr_type = type(new_arr)
+        new_arr = new_arr._ndarray
+
     if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
         new_arr = maybe_downcast_to_dtype(new_arr, dtype)
+    elif (
+        isinstance(dtype, ExtensionDtype)
+        and dtype.kind in "iu"
+        and new_arr.dtype.kind == "f"
+    ):
+        try:
+            converted = new_arr.astype(orig.dtype)
+        except (ValueError, TypeError):
+            pass
+        else:
+            # Only accept the conversion if no values were truncated
+            if (converted.astype(new_arr.dtype) == new_arr).all():
+                new_arr = converted
+
+    if arr_type is not None:
+        new_arr = arr_type(new_arr)
     return new_arr
