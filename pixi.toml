@@ -79,14 +79,14 @@ qtpy = ">=2.4.2"
 [feature.pyarrow.dependencies]
 pyarrow = ">=13.0.0"
 
-[feature.pyarrow20.dependencies]
-pyarrow = "20.*"
-
 [feature.pyarrow21.dependencies]
 pyarrow = "21.*"
 
 [feature.pyarrow22.dependencies]
 pyarrow = "22.*"
+
+[feature.pyarrow23.dependencies]
+pyarrow = "23.*"
 
 [feature.pyarrow-nightly.pypi-dependencies]
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -174,9 +174,9 @@ pyyaml = "*"
 requests = "*"
 
 [environments]
-py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow20", "optional-dependencies"] }
-py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
-py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
+py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
+py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
+py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies"] }
 py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
