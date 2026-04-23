@@ -22,10 +22,11 @@ from datetime import (
     datetime,
     timezone,
 )
+import hashlib
 import json
+import os
 from pathlib import Path
 import tomllib
-import uuid
 
 
 def is_spdx_expression(license_str: str) -> bool:
@@ -76,17 +77,48 @@ def get_pandas_version() -> str:
         return "0.0.0.dev0"
 
 
+def _reproducible_timestamp() -> str:
+    """Return an ISO-8601 timestamp honoring SOURCE_DATE_EPOCH if set.
+
+    Matches the reproducible-builds convention already honored by
+    meson-python for wheel file mtimes. Falls back to wall-clock UTC
+    only when no SOURCE_DATE_EPOCH is provided.
+    """
+    sde = os.environ.get("SOURCE_DATE_EPOCH")
+    if sde:
+        return datetime.fromtimestamp(int(sde), timezone.utc).isoformat()
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _deterministic_serial(version: str, manifest_path: Path) -> str:
+    """Build a urn:uuid serialNumber deterministic in pandas version + manifest.
+
+    CycloneDX requires serialNumber to be unique per BOM, but for
+    reproducible builds we derive it from inputs so repeated invocations
+    produce byte-identical output. Hashing manifest bytes + pandas
+    version yields a stable UUID that still changes when either input
+    changes.
+    """
+    manifest_bytes = manifest_path.read_bytes()
+    digest = hashlib.sha256(manifest_bytes + version.encode("utf-8")).hexdigest()
+    # Lay out the 32-hex digest as a canonical UUID string (8-4-4-4-12).
+    u = f"{digest[0:8]}-{digest[8:12]}-{digest[12:16]}-{digest[16:20]}-{digest[20:32]}"
+    return f"urn:uuid:{u}"
+
+
 def generate_sbom(
     version: str | None = None, manifest_path: Path | None = None
 ) -> dict:
     """Generate the CycloneDX SBOM document."""
     if version is None:
         version = get_pandas_version()
+    if manifest_path is None:
+        manifest_path = Path(__file__).parent.parent / "LICENSES" / "vendored.toml"
 
     vendored_components = load_vendored_components(manifest_path)
 
-    timestamp = datetime.now(timezone.utc).isoformat()
-    serial_number = f"urn:uuid:{uuid.uuid4()}"
+    timestamp = _reproducible_timestamp()
+    serial_number = _deterministic_serial(version, manifest_path)
 
     # Build components list
     components = []
@@ -113,6 +145,12 @@ def generate_sbom(
         components.append(component)
         dependency_refs.append(comp["bom_ref"])
 
+    # Single bom-ref shared by metadata.component and dependencies[0]
+    # so CycloneDX consumers can resolve the root of the dependency
+    # graph. See
+    # https://cyclonedx.org/use-cases/software-dependencies/.
+    root_bom_ref = f"pkg:pypi/pandas@{version}"
+
     sbom = {
         "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
         "bomFormat": "CycloneDX",
@@ -132,9 +170,10 @@ def generate_sbom(
             },
             "component": {
                 "type": "library",
+                "bom-ref": root_bom_ref,
                 "name": "pandas",
                 "version": version,
-                "purl": f"pkg:pypi/pandas@{version}",
+                "purl": root_bom_ref,
                 "description": "Powerful data structures for data analysis, "
                 "time series, and statistics",
                 "licenses": [{"license": {"id": "BSD-3-Clause"}}],
@@ -154,7 +193,7 @@ def generate_sbom(
         "components": components,
         "dependencies": [
             {
-                "ref": f"pkg:pypi/pandas@{version}",
+                "ref": root_bom_ref,
                 "dependsOn": dependency_refs,
             }
         ],

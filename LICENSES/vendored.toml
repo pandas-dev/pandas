@@ -64,8 +64,19 @@ purl = "pkg:pypi/sas7bdat"
 website = "https://github.com/jaredhobbs/sas7bdat"
 
 [[component]]
+name = "pyupgrade"
+license = "MIT"
+license_file = "PYUPGRADE_LICENSE"
+description = "Ported unwanted-pattern check in scripts/validate_unwanted_patterns.py"
+purl = "pkg:pypi/pyupgrade"
+website = "https://github.com/asottile/pyupgrade"
+
+[[component]]
 name = "ultrajson"
-license = "BSD-3-Clause"
+# Per LICENSES/ULTRAJSON_LICENSE: BSD-3-Clause for ultrajson itself,
+# plus TCL-licensed portions derived from the double-to-ascii routine
+# (see header in pandas/_libs/src/vendored/ujson/lib/ultrajsonenc.c).
+license = "BSD-3-Clause AND TCL"
 license_file = "ULTRAJSON_LICENSE"
 description = "Derived JSON parsing code"
 purl = "pkg:pypi/ujson"

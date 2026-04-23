@@ -35,6 +35,7 @@ license-files = [
   "LICENSES/PACKAGING_LICENSE", # Apache-2.0
   "LICENSES/PSF_LICENSE", #  PSF-2.0
   "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
+  "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
   "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
@@ -177,6 +178,7 @@ test-command = """
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
