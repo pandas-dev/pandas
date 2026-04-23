@@ -322,7 +322,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value_is_na = is_valid_na_for_dtype(value, self.dtype) and not (
             lib.is_float(value) and not is_nan_na()
         )
-        if lib.is_scalar(value) and not value_is_na and self.ndim == 1:
+        if lib.is_scalar(value) and not value_is_na:
             if not mask.any():
                 return self.copy() if copy else self[:]
             try:
@@ -358,7 +358,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return type(self)(new_data, new_mask, copy=False)
 
         if limit is not None and limit < len(self):
-            modify = mask.cumsum(axis=0) > limit
+            modify = mask.cumsum() > limit
             if modify.any():
                 # Only copy mask if necessary
                 mask = mask.copy()
@@ -801,7 +801,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if result is not NotImplemented:
                 return result
 
-        mask = np.zeros(self.shape, dtype=bool)
+        mask = np.zeros(len(self), dtype=bool)
         inputs2 = []
         for x in inputs:
             if isinstance(x, BaseMaskedArray):
@@ -899,8 +899,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             )
 
         if (
-            self.ndim == 1
-            and not hasattr(other, "dtype")
+            not hasattr(other, "dtype")
             and is_list_like(other)
             and len(other) == len(self)
         ):
@@ -914,12 +913,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         elif is_list_like(other):
             if not isinstance(other, ExtensionArray):
                 other = np.asarray(other)
-            if other.ndim > self.ndim:
+            if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
 
         # We wrap the non-masked arithmetic logic used for numpy dtypes
         #  in Series/Index arithmetic ops.
-        other = ops.maybe_prepare_scalar_for_op(other, self.shape)
+        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
 
@@ -1023,9 +1022,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     stacklevel=find_stack_level(),
                 )
             other = np.asarray(other)
-            if other.ndim > self.ndim:
+            if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
-            if self.shape != other.shape:
+            if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
         if other is libmissing.NA:
@@ -2052,35 +2051,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 f"interpolate is not implemented for dtype={self.dtype}"
             )
 
-        if self.ndim == 2:
-            # interpolate_2d_inplace captures `mask` in a closure but
-            # np.apply_along_axis only slices `data`, so the mask/data
-            # dimensions go out of sync.  Iterate over axis-0 slices
-            # ourselves so each 1D call gets its matching 1D mask.
-            for row_idx in range(data.shape[0]):
-                missing.interpolate_2d_inplace(
-                    data[row_idx],
-                    method=method,
-                    axis=0,
-                    index=index,
-                    limit=limit,
-                    limit_direction=limit_direction,
-                    limit_area=limit_area,
-                    mask=mask[row_idx],
-                    **kwargs,
-                )
-        else:
-            missing.interpolate_2d_inplace(
-                data,
-                method=method,
-                axis=0,
-                index=index,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                mask=mask,
-                **kwargs,
-            )
+        missing.interpolate_2d_inplace(
+            data,
+            method=method,
+            axis=0,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            mask=mask,
+            **kwargs,
+        )
         if not copy:
             return self  # type: ignore[return-value]
         if self.dtype.kind == "f":
