@@ -478,24 +478,29 @@ def concat(
     )
 
     if sort is lib.no_default:
-        if orig_axis == 0:
-            non_concat_axis = [
-                obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])
-                for obj in objs
-            ]
-        else:
-            non_concat_axis = [obj.index for obj in objs]
-        no_sort_result_index = union_indexes(non_concat_axis, sort=False)
-        orig = result.index if orig_axis == 1 else result.columns
-        if not no_sort_result_index.equals(orig):
-            msg = (
-                "Sorting by default when concatenating all DatetimeIndex is "
-                "deprecated.  In the future, pandas will respect the default "
-                "of `sort=False`. Specify `sort=True` or `sort=False` to "
-                "silence this message. If you see this warnings when not "
-                "directly calling concat, report a bug to pandas."
-            )
-            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+        # Series has no .columns; skip for Series results
+        if not isinstance(result, ABCSeries):
+            if orig_axis == 0:
+                non_concat_axis = [
+                    obj.columns
+                    if isinstance(obj, ABCDataFrame)
+                    else Index([obj.name])
+                    for obj in objs
+                ]
+            else:
+                non_concat_axis = [obj.index for obj in objs]
+            no_sort_result_index = union_indexes(non_concat_axis, sort=False)
+            orig = result.index if orig_axis == 1 else result.columns
+            if not no_sort_result_index.equals(orig):
+                msg = (
+                    "Sorting by default when concatenating all DatetimeIndex "
+                    "is deprecated.  In the future, pandas will respect the "
+                    "default of `sort=False`. Specify `sort=True` or "
+                    "`sort=False` to silence this message. If you see this "
+                    "warnings when not directly calling concat, report a "
+                    "bug to pandas."
+                )
+                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
     return result
 
