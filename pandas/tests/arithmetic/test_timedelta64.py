@@ -4,7 +4,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import warnings
 
 import numpy as np
 import pytest
@@ -1089,17 +1088,14 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdarr - ts
 
+    @pytest.mark.filterwarnings("ignore:.*generic.*unit.*:DeprecationWarning")
     def test_td64arr_add_datetime64_nat(self, box_with_array):
         # GH#23215
-        # Exercise the generic-unit np.datetime64("NaT"); the resulting dtype
-        # below (M8[us]) comes from numpy's default unit promotion. NumPy
-        # nightly emits a DeprecationWarning for the bare form; suppress it
-        # so CI under numpy nightly doesn't turn the warning into an error.
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", category=DeprecationWarning, message=".*generic.*unit.*"
-            )
-            other = np.datetime64("NaT")
+        # The bare np.datetime64("NaT") is load-bearing here: the expected
+        # M8[us] dtype comes from numpy's default unit promotion from the
+        # generic-unit scalar. NumPy nightly emits a DeprecationWarning for
+        # the bare form, which the filterwarnings marker ignores.
+        other = np.datetime64("NaT")
 
         tdi = timedelta_range("1 day", periods=3)
         expected = DatetimeIndex(["NaT", "NaT", "NaT"], dtype="M8[us]")
