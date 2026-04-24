@@ -160,21 +160,13 @@ class TestDataFrameEval:
             df.query("")
 
     def test_query_duplicate_column_name(self, engine, parser):
-        df = DataFrame(
-            {
-                "A": range(3),
-                "B": range(3),
-                "C": range(3)
-            }
-        ).rename(columns={"B": "A"})
+        df = DataFrame({"A": range(3), "B": range(3), "C": range(3)}).rename(
+            columns={"B": "A"}
+        )
 
         res = df.query("C == 1", engine=engine, parser=parser)
 
-        expect = DataFrame(
-            [[1, 1, 1]],
-            columns=["A", "A", "C"],
-            index=[1]
-        )
+        expect = DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
 
         tm.assert_frame_equal(res, expect)
 
@@ -240,6 +232,25 @@ class TestDataFrameEval:
         result = df.eval("a/b", engine=engine, parser=parser)
         expected = Series([1.5 + 0.5j])
         tm.assert_series_equal(result, expected)
+
+    def test_query_period_dtype(self, engine, parser):
+        # GH#35247
+        df = DataFrame(
+            {
+                "year": pd.period_range("2018", periods=5, freq="Y"),
+                "val": range(5),
+            }
+        )
+        result = df.query("year > '2020'", engine=engine, parser=parser)
+        expected = df[df["year"] > "2020"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_interval_dtype(self, engine, parser):
+        # GH#35247
+        idx = pd.IntervalIndex.from_breaks(range(6))
+        df = DataFrame({"a": idx, "b": idx})
+        result = df.query("a == b", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
 
 
 class TestDataFrameQueryWithMultiIndex:
@@ -529,7 +540,10 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_query_with_non_date(self, engine, parser):
         n = 10
         df = DataFrame(
-            {"dates": date_range("1/1/2012", periods=n), "nondate": np.arange(n)}
+            {
+                "dates": date_range("1/1/2012", periods=n, unit="ns"),
+                "nondate": np.arange(n),
+            }
         )
 
         result = df.query("dates == nondate", parser=parser, engine=engine)
@@ -999,10 +1013,10 @@ class TestDataFrameQueryStrings:
             rhs = lhs[::-1]
 
             eq, ne = "==", "!="
-            ops = 2 * ([eq] + [ne])
+            ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, op_, rh in zip(lhs, ops, rhs):
+            for lh, op_, rh in zip(lhs, ops, rhs, strict=True):
                 ex = f"{lh} {op_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(
@@ -1040,10 +1054,10 @@ class TestDataFrameQueryStrings:
             rhs = lhs[::-1]
 
             eq, ne = "==", "!="
-            ops = 2 * ([eq] + [ne])
+            ops = 2 * ([eq, ne])
             msg = r"'(Not)?In' nodes are not implemented"
 
-            for lh, ops_, rh in zip(lhs, ops, rhs):
+            for lh, ops_, rh in zip(lhs, ops, rhs, strict=True):
                 ex = f"{lh} {ops_} {rh}"
                 with pytest.raises(NotImplementedError, match=msg):
                     df.query(ex, engine=engine, parser=parser)
@@ -1140,9 +1154,7 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(
-        self, parser, engine, op, func
-    ):
+    def test_query_lex_compare_strings(self, parser, engine, op, func):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})

@@ -1516,14 +1516,39 @@ def test_rolling_skew_kurt_numerical_stability(method):
             [3000000, 1, 1, 2, 3, 4, 999],
             [np.nan] * 3 + [4.0, -1.289256, -1.2, 3.999946],
         ),
+        (
+            "kurt",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [1.5, 4.0, -1.2, -1.2, -1.2],
+        ),
     ],
 )
 def test_rolling_skew_kurt_large_value_range(method, data, values):
-    # GH: 37557, 47461
+    # GH: 37557, 47461, 61416
     s = Series(data)
     result = getattr(s.rolling(4), method)()
     expected = Series(values)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_same_result_with_different_lengths(method):
+    # GH-54380
+    len_smaller = 10
+    len_bigger = 12
+    window_size = 8
+
+    rng = np.random.default_rng(2)
+    data = rng.normal(loc=0.0, scale=1e3, size=len_bigger)
+    window_smaller = Series(data[:len_smaller]).rolling(window_size)
+    window_bigger = Series(data).rolling(window_size)
+
+    result_smaller = getattr(window_smaller, method)()
+    result_bigger = getattr(window_bigger, method)()
+
+    result_bigger_trimmed = result_bigger[:len_smaller]
+
+    tm.assert_series_equal(result_smaller, result_bigger_trimmed, check_exact=True)
 
 
 def test_invalid_method():
@@ -1602,7 +1627,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         ]
     )
 
-    values = exp_values + [
+    values = [
+        *exp_values,
         0.00366666,
         0.005,
         0.005,
@@ -1908,10 +1934,10 @@ def test_rolling_skew_kurt_floating_artifacts():
     sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
     r = sr.rolling(4)
     result = r.skew()
-    expected = Series([np.nan, np.nan, np.nan, 1.9619045191072484, 2.0, 0.0, 0.0])
+    expected = Series([np.nan, np.nan, np.nan, 1.9619045191072484, 2.0, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
     result = r.kurt()
-    expected = Series([np.nan, np.nan, np.nan, 3.8636048803878786, 4.0, -3.0, -3.0])
+    expected = Series([np.nan, np.nan, np.nan, 3.8636048803878786, 4.0, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -1998,7 +2024,8 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+        {"A": range(5)},
+        index=date_range("2013-01-01", freq="1s", periods=5, tz=tz, unit="ns"),
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # microseconds / milliseconds should not break the correct rolling

@@ -34,7 +34,10 @@ if TYPE_CHECKING:
 def make_data(n: int):
     left_array = np.random.default_rng(2).uniform(size=n).cumsum()
     right_array = left_array + np.random.default_rng(2).uniform(size=n)
-    return [Interval(left, right) for left, right in zip(left_array, right_array)]
+    return [
+        Interval(left, right)
+        for left, right in zip(left_array, right_array, strict=True)
+    ]
 
 
 @pytest.fixture
@@ -80,8 +83,11 @@ def data_for_grouping():
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return op_name in ["min", "max"]
+        return op_name in ["min", "max", "count"]
 
     def test_fillna_limit_frame(self, data_missing):
         # GH#58001
@@ -99,10 +105,6 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
-
-    @pytest.mark.xfail(reason="copy=False is not Implemented")
-    def test_fillna_readonly(self, data_missing):
-        super().test_fillna_readonly(data_missing)
 
     @pytest.mark.filterwarnings(
         "ignore:invalid value encountered in cast:RuntimeWarning"
@@ -135,10 +137,3 @@ class TestIntervalArray(base.ExtensionTests):
     )
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data):
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
-
-
-# TODO: either belongs in tests.arrays.interval or move into base tests.
-def test_fillna_non_scalar_raises(data_missing):
-    msg = "can only insert Interval objects and NA into an IntervalArray"
-    with pytest.raises(TypeError, match=msg):
-        data_missing.fillna([1, 1])

@@ -6,7 +6,11 @@ import pytest
 
 from pandas._typing import Dtype
 
-from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -98,9 +102,56 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
+        # GH#62164 - _cast_pointwise_result retains EA dtype
         result = data_missing.map(lambda x: x, na_action=na_action)
-        expected = data_missing.to_numpy()
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, data_missing)
+
+    def test_is_monotonic_increasing(self, data_for_sorting):
+        # GH#56619
+        # data_for_sorting -> [B, C, A] with A < B < C
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        # [A, B, C] -> monotonically increasing
+        sorted_data = data_for_sorting.take([2, 0, 1])
+        ser = pd.Series(sorted_data)
+        assert ser.is_monotonic_increasing is True
+
+        # [B, C, A] -> not monotonically increasing
+        ser = pd.Series(data_for_sorting)
+        if is_bool:
+            # [B, C, A] is [True, True, False] -> not increasing
+            assert ser.is_monotonic_increasing is False
+        else:
+            assert ser.is_monotonic_increasing is False
+
+        # [A, A, A] -> monotonically increasing (equal values)
+        repeated = data_for_sorting.take([2, 2, 2])
+        ser = pd.Series(repeated)
+        assert ser.is_monotonic_increasing is True
+
+    def test_is_monotonic_decreasing(self, data_for_sorting):
+        # GH#56619
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        # [C, B, A] -> monotonically decreasing
+        rev_data = data_for_sorting.take([1, 0, 2])
+        ser = pd.Series(rev_data)
+        assert ser.is_monotonic_decreasing is True
+
+        # [B, C, A] -> not monotonically decreasing
+        ser = pd.Series(data_for_sorting)
+        if is_bool:
+            # [True, True, False] -> monotonically decreasing
+            assert ser.is_monotonic_decreasing is True
+        else:
+            assert ser.is_monotonic_decreasing is False
+
+    def test_is_monotonic_na(self, data_missing_for_sorting):
+        # GH#56619
+        # data_missing_for_sorting -> [B, NA, A]
+        ser = pd.Series(data_missing_for_sorting)
+        assert ser.is_monotonic_increasing is False
+        assert ser.is_monotonic_decreasing is False
 
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
@@ -241,6 +292,50 @@ class BaseMethodsTests:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_rank(self, data_for_sorting, ascending):
+        ser = pd.Series(data_for_sorting)
+        result = ser.rank(ascending=ascending)
+        # result should be float, but exact dtype (numpy/nullable/pyarrow) depends
+        # so here just assert it is float and normalize to float64 for comparison
+        assert is_float_dtype(result.dtype)
+        result = result.astype("float64")
+        if is_bool_dtype(ser.dtype):
+            expected = pd.Series([2.5, 2.5, 1.0] if ascending else [1.5, 1.5, 3.0])
+        else:
+            expected = pd.Series([2.0, 3.0, 1.0] if ascending else [2.0, 1.0, 3.0])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["average", "min"])
+    def test_rank_method(self, data_for_sorting, method):
+        ser = pd.Series(data_for_sorting.take([0, 2, 0]))
+        result = ser.rank(method=method)
+        if method == "average":
+            assert is_float_dtype(result.dtype)
+            result = result.astype("float64")
+            expected = pd.Series([2.5, 1.0, 2.5])
+        else:
+            # TODO the exact dtype here is inconsistent across EAs (should all be int?)
+            assert is_integer_dtype(result.dtype) or is_float_dtype(result.dtype)
+            expected = pd.Series([2, 1, 2], dtype=result.dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
+    def test_rank_missing(self, data_missing_for_sorting, na_option):
+        ser = pd.Series(data_missing_for_sorting)
+        result = ser.rank(na_option=na_option)
+        assert is_float_dtype(result.dtype)
+        result = result.astype("float64")
+        if na_option == "keep":
+            expected = pd.Series([2.0, np.nan, 1.0])
+        elif na_option == "top":
+            expected = pd.Series([3.0, 1.0, 2.0])
+        else:
+            # na_option == "bottom"
+            expected = pd.Series([2.0, 3.0, 1.0])
+
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, data, keep):
         arr = data.take([0, 1, 0, 1])
@@ -350,7 +445,10 @@ class BaseMethodsTests:
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
             pd.array(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+                [
+                    a <= b
+                    for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)
+                ],
                 dtype=self._combine_le_expected_dtype,
             )
         )
@@ -369,7 +467,7 @@ class BaseMethodsTests:
     def _construct_for_combine_add(self, left, right):
         if isinstance(right, type(left)):
             return left._from_sequence(
-                [a + b for (a, b) in zip(list(left), list(right))],
+                [a + b for (a, b) in zip(list(left), list(right), strict=True)],
                 dtype=left.dtype,
             )
         else:
@@ -627,7 +725,7 @@ class BaseMethodsTests:
         result = np.repeat(arr, repeats) if use_numpy else arr.repeat(repeats)
 
         repeats = [repeats] * 3 if isinstance(repeats, int) else repeats
-        expected = [x for x, n in zip(arr, repeats) for _ in range(n)]
+        expected = [x for x, n in zip(arr, repeats, strict=True) for _ in range(n)]
         expected = type(data)._from_sequence(expected, dtype=data.dtype)
         if as_series:
             expected = pd.Series(expected, index=arr.index.repeat(repeats))

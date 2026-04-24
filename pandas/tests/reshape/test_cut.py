@@ -543,7 +543,7 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     if not isinstance(bins, int):
         bins = box(bins)
@@ -794,7 +794,7 @@ def test_cut_bins_datetime_intervalindex():
     # https://github.com/pandas-dev/pandas/issues/46218
     bins = interval_range(Timestamp("2022-02-25"), Timestamp("2022-02-27"), freq="1D")
     # passing Series instead of list is important to trigger bug
-    result = cut(Series([Timestamp("2022-02-26")]).astype("M8[ns]"), bins=bins)
+    result = cut(Series([Timestamp("2022-02-26")]), bins=bins)
     expected = Categorical.from_codes([0], bins, ordered=True)
     tm.assert_categorical_equal(result.array, expected)
 
@@ -812,6 +812,29 @@ def test_cut_with_nullable_int64():
     result = cut(series, bins=bins)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
+def test_cut_intervalindex_closed(closed):
+    # GH#47614 - pd.cut with IntervalIndex bins and all closed values
+    # Use non-contiguous intervals to avoid overlap with closed="both"
+    bins = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
+    data = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5]
+    result = cut(data, bins=bins)
+
+    # Verify against get_indexer
+    expected_codes = bins.get_indexer(data)
+    tm.assert_numpy_array_equal(result.codes, expected_codes.astype(result.codes.dtype))
+
+
+def test_cut_intervalindex_with_gaps():
+    # GH#47614 - pd.cut with non-contiguous IntervalIndex bins
+    bins = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    data = [0.5, 1.5, 2.5, 3.5, 4.5, np.nan]
+    result = cut(data, bins=bins)
+
+    expected_codes = np.array([0, -1, 1, -1, 2, -1], dtype=result.codes.dtype)
+    tm.assert_numpy_array_equal(result.codes, expected_codes)
 
 
 def test_cut_datetime_array_no_attributeerror():

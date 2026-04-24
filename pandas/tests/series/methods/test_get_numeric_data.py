@@ -25,7 +25,7 @@ class TestGetNumericData:
         result = obj._get_numeric_data()
         tm.assert_series_equal(result, obj)
 
-        obj = Series(date_range("20130101", periods=3))
+        obj = Series(date_range("20130101", periods=3, unit="ns"))
         result = obj._get_numeric_data()
         expected = Series([], dtype="M8[ns]")
         tm.assert_series_equal(result, expected)

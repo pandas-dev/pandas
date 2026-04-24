@@ -151,8 +151,9 @@ def test_numpy_ufuncs_other(index, func):
 
 
 @pytest.mark.parametrize("func", [np.maximum, np.minimum])
-def test_numpy_ufuncs_reductions(index, func, request):
+def test_numpy_ufuncs_reductions(index_sortable, func):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
+    index = index_sortable
     if len(index) == 0:
         pytest.skip("Test doesn't make sense for empty index.")
 
@@ -160,8 +161,8 @@ def test_numpy_ufuncs_reductions(index, func, request):
         with pytest.raises(TypeError, match="is not ordered for"):
             func.reduce(index)
         return
-    else:
-        result = func.reduce(index)
+
+    result = func.reduce(index)
 
     if func is np.maximum:
         expected = index.max(skipna=False)

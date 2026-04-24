@@ -30,6 +30,10 @@ class TestIntervalRange:
     def test_constructor_numeric(self, closed, name, freq, periods):
         start, end = 0, 100
         breaks = np.arange(101, step=freq)
+        if breaks.dtype.kind == "f":
+            breaks = breaks.astype(np.float64)
+        else:
+            breaks = breaks.astype(np.int64)
         expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
@@ -265,7 +269,7 @@ class TestIntervalRange:
             tm.assert_index_equal(result, expected)
 
         # equivalent timedelta-like start/end
-        start, end = Timedelta(days=1), Timedelta(days=10)
+        start, end = Timedelta(days=1).as_unit("us"), Timedelta(days=10).as_unit("us")
         expected = interval_range(start=start, end=end)
 
         result = interval_range(start=start.to_pytimedelta(), end=end.to_pytimedelta())

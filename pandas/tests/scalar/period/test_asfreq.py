@@ -1,7 +1,6 @@
 import pytest
 
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
-from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
     Period,
@@ -42,10 +41,8 @@ class TestFreqConversion:
         # GH#19643, used to incorrectly give Timestamp in 1754
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             per = Period("0001-01-01", freq="B")
-        msg = "Out of bounds nanosecond timestamp"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-                per.to_timestamp()
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per.to_timestamp()
 
     def test_asfreq_corner(self):
         val = Period(freq="Y", year=2007)
@@ -284,17 +281,17 @@ class TestFreqConversion:
         ival_W_to_Q = Period(freq="Q", year=2007, quarter=1)
         ival_W_to_M = Period(freq="M", year=2007, month=1)
 
-        if Period(freq="D", year=2007, month=12, day=31).weekday == 6:
+        if Period(freq="D", year=2007, month=12, day=31).day_of_week == 6:
             ival_W_to_A_end_of_year = Period(freq="Y", year=2007)
         else:
             ival_W_to_A_end_of_year = Period(freq="Y", year=2008)
 
-        if Period(freq="D", year=2007, month=3, day=31).weekday == 6:
+        if Period(freq="D", year=2007, month=3, day=31).day_of_week == 6:
             ival_W_to_Q_end_of_quarter = Period(freq="Q", year=2007, quarter=1)
         else:
             ival_W_to_Q_end_of_quarter = Period(freq="Q", year=2007, quarter=2)
 
-        if Period(freq="D", year=2007, month=1, day=31).weekday == 6:
+        if Period(freq="D", year=2007, month=1, day=31).day_of_week == 6:
             ival_W_to_M_end_of_month = Period(freq="M", year=2007, month=1)
         else:
             ival_W_to_M_end_of_month = Period(freq="M", year=2007, month=2)
@@ -694,14 +691,7 @@ class TestFreqConversion:
         start = per.start_time
         expected = Timestamp("2020-01-30 15:57:27.576166")
         assert start == expected
-        assert start._value == per.ordinal * 1000
-
-        per2 = Period("2300-01-01", "us")
-        msg = "2300-01-01"
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            per2.start_time
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            per2.end_time
+        assert start._value == per.ordinal
 
     def test_asfreq_mult(self):
         # normal freq to mult freq
@@ -780,7 +770,7 @@ class TestFreqConversion:
 
         # ordinal will not change
         expected = Period("2007", freq="25h")
-        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"]):
+        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"], strict=True):
             result = p.asfreq(freq, how=how)
             assert result == expected
             assert result.ordinal == expected.ordinal

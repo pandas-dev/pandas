@@ -136,6 +136,20 @@ class TestMethods:
         )
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [Interval(-np.inf, 0), Interval(-np.inf, 1)],
+            [Interval(0, np.inf), Interval(1, np.inf)],
+        ],
+    )
+    def test_unique_with_infinty(self, data):
+        # https://github.com/pandas-dev/pandas/issues/63218
+        s = pd.Series(data)
+        tm.assert_interval_array_equal(s.unique(), s.array)
+        assert s.nunique() == 2
+        tm.assert_series_equal(s.drop_duplicates(), s)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
@@ -143,7 +157,7 @@ class TestSetitem:
         result = IntervalArray.from_arrays(left, right, copy=True)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
-            msg = "'value' should be an interval type, got <.*NaTType'> instead."
+            msg = "can only insert Interval objects and NA into an IntervalArray"
             with pytest.raises(TypeError, match=msg):
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
@@ -156,8 +170,8 @@ class TestSetitem:
 
         result[0] = np.nan
 
-        expected_left = Index([left._na_value] + list(left[1:]))
-        expected_right = Index([right._na_value] + list(right[1:]))
+        expected_left = Index([left._na_value, *list(left[1:])])
+        expected_right = Index([right._na_value, *list(right[1:])])
         expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         tm.assert_extension_array_equal(result, expected)
@@ -248,3 +262,22 @@ class TestReductions:
             res = arr_na.max(**kws)
             assert res == MAX
             assert type(res) == type(MAX)
+
+
+def test_fillna_non_scalar_raises():
+    arr = IntervalArray.from_tuples([None, (0, 1)])
+    msg = "'value' should be an interval type, got <class 'list'> instead."
+    with pytest.raises(TypeError, match=msg):
+        arr.fillna([1, 1])
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.int32, np.uint32])
+@pytest.mark.parametrize("constructor", [IntervalArray, IntervalIndex])
+def test_sub64bit_dtype_preserved(constructor, dtype):
+    # GH#45412
+    left = np.array([0, 1, 2], dtype=dtype)
+    right = np.array([1, 2, 3], dtype=dtype)
+    result = constructor.from_arrays(left, right)
+    assert result.dtype.subtype == dtype
+    assert result.left.dtype == dtype
+    assert result.right.dtype == dtype

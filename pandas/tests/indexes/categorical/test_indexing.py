@@ -315,7 +315,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
-        expected = CategoricalIndex([np.nan] + i[1:].tolist(), categories=i.categories)
+        expected = CategoricalIndex([np.nan, *i[1:].tolist()], categories=i.categories)
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
@@ -347,7 +347,7 @@ class TestContains:
         assert 1 not in ci
 
     def test_contains_nan(self):
-        ci = CategoricalIndex(list("aabbca") + [np.nan], categories=list("cabdef"))
+        ci = CategoricalIndex([*list("aabbca"), np.nan], categories=list("cabdef"))
         assert np.nan in ci
 
     @pytest.mark.parametrize("unwrap", [True, False])
@@ -364,8 +364,8 @@ class TestContains:
         assert np.nan in obj
         assert None in obj
         assert pd.NaT in obj
-        assert np.datetime64("NaT") in obj
-        assert np.timedelta64("NaT") not in obj
+        assert np.datetime64("NaT", "ns") in obj
+        assert np.timedelta64("NaT", "ns") not in obj
 
         obj2 = CategoricalIndex(tdi)
         if unwrap:
@@ -374,8 +374,8 @@ class TestContains:
         assert np.nan in obj2
         assert None in obj2
         assert pd.NaT in obj2
-        assert np.datetime64("NaT") not in obj2
-        assert np.timedelta64("NaT") in obj2
+        assert np.datetime64("NaT", "ns") not in obj2
+        assert np.timedelta64("NaT", "ns") in obj2
 
         obj3 = CategoricalIndex(pi)
         if unwrap:
@@ -384,8 +384,8 @@ class TestContains:
         assert np.nan in obj3
         assert None in obj3
         assert pd.NaT in obj3
-        assert np.datetime64("NaT") not in obj3
-        assert np.timedelta64("NaT") not in obj3
+        assert np.datetime64("NaT", "ns") not in obj3
+        assert np.timedelta64("NaT", "ns") not in obj3
 
     @pytest.mark.parametrize(
         "item, expected",

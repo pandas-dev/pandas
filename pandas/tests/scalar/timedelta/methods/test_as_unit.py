@@ -10,29 +10,29 @@ class TestAsUnit:
     def test_as_unit(self):
         td = Timedelta(days=1)
 
-        assert td.as_unit("ns") is td
+        assert td.as_unit("us") is td
 
-        res = td.as_unit("us")
-        assert res._value == td._value // 1000
-        assert res._creso == NpyDatetimeUnit.NPY_FR_us.value
+        res = td.as_unit("ns")
+        assert res._value == td._value * 1000
+        assert res._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
-        rt = res.as_unit("ns")
+        rt = res.as_unit("us")
         assert rt._value == td._value
         assert rt._creso == td._creso
 
         res = td.as_unit("ms")
-        assert res._value == td._value // 1_000_000
+        assert res._value == td._value // 1_000
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
-        rt = res.as_unit("ns")
+        rt = res.as_unit("us")
         assert rt._value == td._value
         assert rt._creso == td._creso
 
         res = td.as_unit("s")
-        assert res._value == td._value // 1_000_000_000
+        assert res._value == td._value // 1_000_000
         assert res._creso == NpyDatetimeUnit.NPY_FR_s.value
 
-        rt = res.as_unit("ns")
+        rt = res.as_unit("us")
         assert rt._value == td._value
         assert rt._creso == td._creso
 

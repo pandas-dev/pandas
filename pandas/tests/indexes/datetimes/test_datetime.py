@@ -8,7 +8,6 @@ from pandas.compat.numpy import np_long
 
 import pandas as pd
 from pandas import (
-    DataFrame,
     DatetimeIndex,
     Index,
     Timestamp,
@@ -69,17 +68,6 @@ class TestDatetimeIndex:
         result = rng.groupby(rng.day)
         assert isinstance(next(iter(result.values()))[0], Timestamp)
 
-    # TODO: belongs in frame groupby tests?
-    def test_groupby_function_tuple_1677(self):
-        df = DataFrame(
-            np.random.default_rng(2).random(100),
-            index=date_range("1/1/2000", periods=100),
-        )
-        monthly_group = df.groupby(lambda x: (x.year, x.month))
-
-        result = monthly_group.mean()
-        assert isinstance(result.index[0], tuple)
-
     def assert_index_parameters(self, index):
         assert index.freq == "40960ns"
         assert index.inferred_freq == "40960ns"
@@ -99,7 +87,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        idx = date_range("2000", periods=2)
+        idx = date_range("2000", periods=2, unit="ns")
         # M8[ns] by default
         result = np.asarray(idx)
 
@@ -114,7 +102,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        idx = date_range("2000", periods=2, tz=tz)
+        idx = date_range("2000", periods=2, tz=tz, unit="ns")
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(idx, dtype="datetime64[ns]")
 
@@ -153,3 +141,15 @@ class TestDatetimeIndex:
 
         with pytest.raises(ValueError, match=msg):
             date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+
+    @pytest.mark.parametrize("pa_type", ["date32", "date64"])
+    def test_get_indexer_arrow_date_types(self, pa_type):
+        # GH#62051 - should not raise AttributeError
+        pa = pytest.importorskip("pyarrow")
+        from pandas import ArrowDtype
+
+        dti = DatetimeIndex(["2017-01-01", "2018-01-01"])
+        other = Index(dti, dtype=ArrowDtype(getattr(pa, pa_type)()))
+        result = dti.get_indexer(other)
+        expected = np.array([-1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)

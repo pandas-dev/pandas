@@ -15,6 +15,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.generic import ABCNDFrame
 
 from pandas.core import roperator
@@ -399,19 +400,18 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # ufunc(series, ...)
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
+    # ufunc(dataframe)
+    elif method == "__call__" and not kwargs:
+        # for np.<ufunc>(..) calls
+        # kwargs cannot necessarily be handled block-by-block, so only
+        # take this path if there are no kwargs
+        mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
+        result = mgr.apply(getattr(ufunc, method))
     else:
-        # ufunc(dataframe)
-        if method == "__call__" and not kwargs:
-            # for np.<ufunc>(..) calls
-            # kwargs cannot necessarily be handled block-by-block, so only
-            # take this path if there are no kwargs
-            mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
-            result = mgr.apply(getattr(ufunc, method))
-        else:
-            # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
-            # Those can have an axis keyword and thus can't be called block-by-block
-            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
-            # e.g. np.negative (only one reached), with "where" and "out" in kwargs
+        # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
+        # Those can have an axis keyword and thus can't be called block-by-block
+        result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
+        # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
     return result
@@ -529,4 +529,6 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    return getattr(self, method_name)(skipna=False, **kwargs)
+    result = getattr(self, method_name)(skipna=False, **kwargs)
+    result = maybe_unbox_numpy_scalar(result)
+    return result

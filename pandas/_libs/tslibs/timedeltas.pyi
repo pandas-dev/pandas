@@ -71,6 +71,7 @@ def array_to_timedelta64(
     values: npt.NDArray[np.object_],
     unit: str | None = ...,
     errors: str = ...,
+    creso: int = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
 def delta_to_nanoseconds(
@@ -159,7 +160,7 @@ class Timedelta(timedelta):
     def __hash__(self) -> int: ...
     def isoformat(self) -> str: ...
     def to_numpy(
-        self, dtype: npt.DTypeLike = ..., copy: bool = False
+        self, dtype: npt.DTypeLike | None = ..., copy: bool = False
     ) -> np.timedelta64: ...
     def view(self, dtype: npt.DTypeLike) -> object: ...
     @property

@@ -243,8 +243,9 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    expected = Series(np.nan, index=s.index)
-    tm.assert_series_equal(result, expected)
+    # GH#63903, GH#62164 - _cast_pointwise_result retains EA dtype
+    assert result.isna().all()
+    assert len(result) == len(s)
 
 
 def test_map_compat():
@@ -519,7 +520,7 @@ def test_map_categorical(na_action, using_infer_string):
 )
 def test_map_categorical_na_action(na_action, expected):
     dtype = pd.CategoricalDtype(list("DCBA"), ordered=True)
-    values = pd.Categorical(list("AB") + [np.nan], dtype=dtype)
+    values = pd.Categorical([*list("AB"), np.nan], dtype=dtype)
     s = Series(values, name="XX")
     result = s.map(str, na_action=na_action)
     tm.assert_series_equal(result, expected)
@@ -538,7 +539,7 @@ def test_map_datetimetz():
     tm.assert_series_equal(result, exp)
 
     result = s.map(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
+    exp = Series([*list(range(24)), 0], name="XX", dtype=np.int64)
     tm.assert_series_equal(result, exp)
 
     # not vectorized
@@ -562,7 +563,7 @@ def test_map_datetimetz():
 )
 def test_map_missing_mixed(vals, mapping, exp):
     # GH20495
-    s = Series(vals + [np.nan])
+    s = Series([*vals, np.nan])
     result = s.map(mapping)
     exp = Series(exp)
     tm.assert_series_equal(result, exp)
@@ -669,11 +670,35 @@ def test_map_pyarrow_timestamp(as_td):
     mapper = {date: i for i, date in enumerate(ser)}
 
     res_series = ser.map(mapper)
-    expected = Series(range(len(ser)), name="a", dtype="int64")
+    # GH#62164 - _cast_pointwise_result retains Arrow dtype backend
+    expected = Series(range(len(ser)), name="a", dtype="int64[pyarrow]")
     tm.assert_series_equal(res_series, expected)
 
     res_index = Index(ser).map(mapper)
-    # For now (as of 2025-09-06) at least, we do inference on Index.map that
-    #  we don't for Series.map
-    expected_index = Index(expected).astype("int64[pyarrow]")
+    expected_index = Index(range(len(ser)), dtype="int64[pyarrow]", name="a")
     tm.assert_index_equal(res_index, expected_index)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
+def test_map_nullable_integer_precision(dtype):
+    # GH#63903
+    large_int = 10000000000000001  # above float64 integer precision limit
+    ser = Series([large_int, None], dtype=dtype)
+
+    result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
+    expected = Series([large_int + 2, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_retains_dtype_with_na(dtype):
+    # GH#57189 - map should not coerce Int64/Arrow int to float64
+    ser = Series([1, 2, 3, pd.NA, 10], dtype=dtype)
+    result = ser.map(lambda x: x)
+    tm.assert_series_equal(result, ser)

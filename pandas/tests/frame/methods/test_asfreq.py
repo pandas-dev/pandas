@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import MonthEnd
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -186,13 +187,16 @@ class TestAsFreq:
         tm.assert_series_equal(expected_series, actual_series)
 
     def test_asfreq_with_date_object_index(self, frame_or_series):
-        rng = date_range("1/1/2000", periods=20)
+        rng = date_range("1/1/2000", periods=20, unit="ns")
         ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4h", method="ffill")
+        # GH#62158 date-object Index reindexed against DatetimeIndex
+        msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts2.asfreq("4h", method="ffill")
         expected = ts.asfreq("4h", method="ffill")
         tm.assert_equal(result, expected)
 

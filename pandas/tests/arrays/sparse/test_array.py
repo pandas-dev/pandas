@@ -120,9 +120,9 @@ class TestSparseArray:
         tm.assert_numpy_array_equal(res, vals)
 
     @pytest.mark.parametrize("fix", ["arr", "zarr"])
-    def test_pickle(self, fix, request):
+    def test_pickle(self, fix, request, temp_file):
         obj = request.getfixturevalue(fix)
-        unpickled = tm.round_trip_pickle(obj)
+        unpickled = tm.round_trip_pickle(obj, temp_file)
         tm.assert_sp_array_equal(unpickled, obj)
 
     def test_generator_warnings(self):
@@ -349,6 +349,50 @@ class TestSparseArrayAnalytics:
         assert arr.npoints == 1
 
 
+class TestIsna:
+    # GH#41023
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_non_null_fill_no_nas(self, kind):
+        # Common case: non-null fill value, no NAs in sp_values
+        arr = SparseArray([0, 1, 0, 2, 0], fill_value=0, kind=kind)
+        result = arr.isna()
+        assert result.dtype == SparseDtype(bool, False)
+        expected_dense = np.array([False, False, False, False, False])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+        assert result.sp_values.size == 0
+
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_non_null_fill_with_nas(self, kind):
+        # Non-null fill value, some NAs among sp_values
+        arr = SparseArray([0, np.nan, 0, 2, np.nan], fill_value=0, kind=kind)
+        result = arr.isna()
+        expected_dense = np.array([False, True, False, False, True])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_non_null_fill_all_sp_values_na(self, kind):
+        # Non-null fill value, all sp_values are NA
+        arr = SparseArray([0, np.nan, 0, np.nan], fill_value=0, kind=kind)
+        result = arr.isna()
+        expected_dense = np.array([False, True, False, True])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+    @pytest.mark.parametrize("kind", ["integer", "block"])
+    def test_isna_null_fill_value(self, kind):
+        # Null fill value
+        arr = SparseArray([np.nan, 1, np.nan, 2], kind=kind)
+        result = arr.isna()
+        expected_dense = np.array([True, False, True, False])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+    def test_isna_empty_sparse(self):
+        # All fill values, no sp_values at all
+        arr = SparseArray([0, 0, 0], fill_value=0)
+        result = arr.isna()
+        expected_dense = np.array([False, False, False])
+        tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
+
+
 def test_setting_fill_value_fillna_still_works():
     # This is why letting users update fill_value / dtype is bad
     # astype has the same problem.
@@ -361,6 +405,28 @@ def test_setting_fill_value_fillna_still_works():
 
     expected = np.array([False, True, False])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_cumsum_integer_no_recursion():
+    # GH 62669: RecursionError in integer SparseArray.cumsum
+    arr = SparseArray([1, 2, 3])
+    result = arr.cumsum()
+    expected = SparseArray([1, 3, 6], fill_value=np.nan)
+    tm.assert_sp_array_equal(result, expected)
+
+    # Also test with some zeros interleaved
+    arr2 = SparseArray([0, 1, 0, 2])
+    result2 = arr2.cumsum()
+    expected2 = SparseArray([0, 1, 1, 3], fill_value=np.nan)
+    tm.assert_sp_array_equal(result2, expected2)
+
+
+def test_cumsum_float_fill_value_zero():
+    # GH 62669
+    arr = pd.arrays.SparseArray([1.0, 0.0, np.nan, 3.0], fill_value=0.0)
+    result = arr.cumsum()
+    expected = SparseArray([1.0, 1.0, None, 4.0], fill_value=np.nan)
+    tm.assert_sp_array_equal(result, expected)
 
 
 def test_setting_fill_value_updates():
@@ -459,7 +525,9 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Index([1]))
+    expected_df = pd.DataFrame(
+        {"a": [1], "b": exp}, index=pd.RangeIndex(start=1, stop=2, step=1)
+    )
     tm.assert_equal(df.dropna(), expected_df)
 
 

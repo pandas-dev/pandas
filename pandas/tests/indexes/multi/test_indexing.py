@@ -777,6 +777,25 @@ class TestGetLoc:
         with pytest.raises(KeyError, match=re.escape(str(key))):
             mi.get_loc(key)
 
+    def test_get_loc_string_key_on_numeric_level(self):
+        # GH#60104 - string key on integer level should raise KeyError,
+        # not return wrong results due to numpy searchsorted cross-dtype bug
+        mi = MultiIndex.from_product([[2000, 2001], ["a", "b"], ["x", "y"]])
+        df = DataFrame({"value": range(8)}, index=mi)
+
+        with pytest.raises(KeyError, match="2000"):
+            df.loc[("2000",)]
+        with pytest.raises(KeyError, match="a"):
+            df.loc[("2000", "a")]
+        with pytest.raises(KeyError, match="GIBBERISH"):
+            df.loc[("2000", "GIBBERISH")]
+
+        # Valid lookups should still work
+        result = df.loc[(2000, "a")]
+        assert len(result) == 2
+        result = df.loc[(2000,)]
+        assert len(result) == 4
+
 
 class TestWhere:
     def test_where(self):
@@ -962,7 +981,7 @@ def test_pyint_engine(N, expected_dtype):
 
     # With missing key:
     idces = range(len(keys))
-    expected = np.array([-1] + list(idces), dtype=np.intp)
+    expected = np.array([-1, *list(idces)], dtype=np.intp)
     missing = tuple([0, 1, 0, 1] * N)
     result = index.get_indexer([missing] + [keys[i] for i in idces])
     tm.assert_numpy_array_equal(result, expected)
@@ -992,6 +1011,44 @@ def test_get_locs_reordering(keys, expected):
     result = idx.get_locs(keys)
     expected = np.array(expected, dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_basic():
+    # GH#55786 - vectorized path for list-like keys
+    idx = MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    result = idx.get_locs((["a"], [1, 3]))
+    expected = np.array([0, 2], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_with_nan():
+    # GH#55786 - NaN labels are stored as code -1
+    idx = MultiIndex.from_arrays([["a", "a", "b"], [1.0, np.nan, 2.0]])
+    result = idx.get_locs((["a"], [np.nan]))
+    expected = np.array([1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_with_nan_and_valid():
+    # GH#55786 - mix of NaN and valid labels
+    idx = MultiIndex.from_arrays([["a", "a", "a"], [1.0, np.nan, 2.0]])
+    result = idx.get_locs((slice(None), [1.0, np.nan]))
+    expected = np.array([0, 1], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_locs_list_like_missing_raises():
+    # GH#55786 - missing labels raise KeyError
+    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+    with pytest.raises(KeyError, match="99"):
+        idx.get_locs((["a"], [1, 99]))
+
+
+def test_get_locs_list_like_nan_not_in_level():
+    # GH#55786 - NaN in query but not in index raises KeyError
+    idx = MultiIndex.from_product([["a"], [1, 2]])
+    with pytest.raises(KeyError, match="nan"):
+        idx.get_locs((["a"], [np.nan]))
 
 
 def test_get_indexer_for_multiindex_with_nans(nulls_fixture):

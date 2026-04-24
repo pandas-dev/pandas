@@ -11,7 +11,7 @@ import dateutil
 import numpy as np
 import pytest
 
-import pandas._libs.json as ujson
+import pandas._libs._ujson as ujson
 from pandas.compat import IS64
 
 from pandas import (
@@ -347,7 +347,7 @@ class TestUltraJSONTests:
         assert expected == output
 
     @pytest.mark.parametrize(
-        "decoded_input", [NaT, np.datetime64("NaT"), np.nan, np.inf, -np.inf]
+        "decoded_input", [NaT, np.datetime64("NaT", "ns"), np.nan, np.inf, -np.inf]
     )
     def test_encode_as_null(self, decoded_input):
         assert ujson.ujson_dumps(decoded_input) == "null", "Expected null"
@@ -660,7 +660,7 @@ class TestUltraJSONTests:
 
     def test_ujson__name__(self):
         # GH 52898
-        assert ujson.__name__ == "pandas._libs.json"
+        assert ujson.__name__ == "pandas._libs._ujson"
 
 
 class TestNumpyJSONTests:
@@ -917,7 +917,9 @@ class TestPandasJSONTests:
         date_unit = "ns"
 
         # freq doesn't round-trip
-        rng = DatetimeIndex(list(date_range("1/1/2000", periods=20)), freq=None)
+        rng = DatetimeIndex(
+            list(date_range("1/1/2000", periods=20, unit="ns")), freq=None
+        )
         encoded = ujson.ujson_dumps(rng, date_unit=date_unit)
 
         decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))

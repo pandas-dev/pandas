@@ -13,6 +13,7 @@ from pandas import (
     DatetimeIndex,
     NaT,
     Period,
+    PeriodIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -21,7 +22,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import period_array
 
 
 class TestSeriesFillNA:
@@ -222,7 +222,7 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        result = obj.fillna(np.timedelta64(10**9))
+        result = obj.fillna(np.timedelta64(10**9, "ns"))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -611,7 +611,7 @@ class TestSeriesFillNA:
         ser = Series([np.nan, Timedelta("1 days")], index=["A", "B"])
 
         result = ser.fillna(timedelta(1))
-        expected = Series(Timedelta("1 days"), index=["A", "B"])
+        expected = Series(Timedelta("1 days"), index=["A", "B"], dtype="m8[us]")
         tm.assert_series_equal(result, expected)
 
     def test_fillna_period(self):
@@ -947,7 +947,7 @@ class TestFillnaPad:
         )
         ser = Series(dti.to_period("ns"))
         ser[2] = NaT
-        arr = period_array(
+        arr = PeriodIndex(
             [
                 Timestamp("2262-04-11 23:47:16.854775797"),
                 Timestamp("2262-04-11 23:47:16.854775798"),

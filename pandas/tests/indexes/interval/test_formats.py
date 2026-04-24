@@ -46,6 +46,7 @@ class TestIntervalIndexRendering:
                     for left, right in zip(
                         Index([329.973, 345.137], dtype="float64"),
                         Index([345.137, 360.191], dtype="float64"),
+                        strict=True,
                     )
                 ]
             ),
@@ -108,7 +109,9 @@ class TestIntervalIndexRendering:
         index = IntervalIndex.from_arrays(left, right)
         result = repr(index)
         expected = (
-            "IntervalIndex([(2020-01-01 00:00:00+00:00, 2020-01-02 00:00:00+00:00]], "
+            "IntervalIndex([(2020-01-01 00:00:00+00:00, "
+            "2020-01-02 00:00:00+00:00]],\n"
+            "              "
             f"dtype='interval[datetime64[{unit}, UTC], right]')"
         )
         assert result == expected

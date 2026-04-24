@@ -72,6 +72,8 @@ SQL table or the ``data.frame`` in `R <https://www.r-project.org/>`__.
 -  The column ``Name`` consists of textual data with each value a
    string, the column ``Age`` are numbers and the column ``Sex`` is
    textual data.
+-  The index labels each row. By default, this is a sequence of integers
+   starting at 0.
 
 In spreadsheet software, the table representation of our data would look
 very similar:

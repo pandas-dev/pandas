@@ -67,7 +67,7 @@ class TestConvertDtypes:
                 "b": pd.Series(["x", "y", None], dtype=np.dtype("O")),
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
-                "e": pd.Series(pd.date_range("2022", periods=3)),
+                "e": pd.Series(pd.date_range("2022", periods=3, unit="ns")),
                 "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
                 "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
@@ -110,7 +110,7 @@ class TestConvertDtypes:
                             datetime.timedelta(2),
                             datetime.timedelta(3),
                         ],
-                        type=pa.duration("ns"),
+                        type=pa.duration("us"),
                     )
                 ),
             }
@@ -239,4 +239,17 @@ class TestConvertDtypes:
             }
         )
         result = df.convert_dtypes()
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_mixed_column_after_slice(self):
+        # GH#64702
+        df = pd.DataFrame(data=[[1, "a"], [2, "b"], ["c", 3]], columns=["col1", "col2"])
+        df = df.loc[[0, 1]].copy()
+        result = df.convert_dtypes()
+        expected = pd.DataFrame(
+            {
+                "col1": pd.array([1, 2], dtype="Int64"),
+                "col2": pd.array(["a", "b"], dtype="string"),
+            }
+        )
         tm.assert_frame_equal(result, expected)

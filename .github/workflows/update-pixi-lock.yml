@@ -1,0 +1,51 @@
+name: Update pixi.lock
+on:
+  schedule:
+    # 4:10 UTC every Sunday
+    - cron: "10 4 * * 0"
+
+permissions: {}
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
+
+jobs:
+  update_lock_file:
+    runs-on: ubuntu-24.04
+    if: github.repository_owner == 'pandas-dev'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+    - name: Install Pixi
+      uses: prefix-dev/setup-pixi@1b2de7f3351f171c8b4dfeb558c639cb58ed4ec0 # v0.9.5
+      with:
+        pixi-version: v0.66.0
+        log-level: vv
+        manifest-path: pixi.toml
+        run-install: false
+
+    - name: Generate lock files
+      id: check-lock-file
+      run: pixi update --no-install
+
+    # There should be an update since pixi.toml references nightly packages
+    # or use https://github.com/prefix-dev/pixi/issues/5813
+    - name: Create pull request
+      uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+      with:
+        commit-message: Update pixi.lock
+        # author same as default committer for this action
+        author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+        branch: "ci/update-pixi-lock"
+        delete-branch: true
+        title: "CI: Update pixi.lock"
+        body: |
+          Scheduled update by `.github/workflows/update-pixi-lock.yml`
+
+          If CI jobs fail, modify this pull request as needed.
+        labels: "CI"

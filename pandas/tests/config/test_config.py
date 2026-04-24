@@ -1,6 +1,6 @@
 import pytest
 
-from pandas._config import config as cf
+import pandas._config.config as cf
 from pandas._config.config import OptionError
 
 from pandas.errors import Pandas4Warning
@@ -129,7 +129,7 @@ class TestConfig:
 
         cf.deprecate_option("KanBan", category)
         msg = "'kanban' is deprecated, please refrain from using it."
-        with pytest.raises(category, match=msg):
+        with tm.assert_produces_warning(category, match=msg):
             cf.get_option("kAnBaN")
 
     def test_get_option(self):

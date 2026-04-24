@@ -3,6 +3,7 @@ Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
 
+import csv
 from datetime import datetime
 from inspect import signature
 from io import StringIO
@@ -14,6 +15,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas._libs import parsers as libparsers
 from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
@@ -369,13 +371,47 @@ def test_escapechar(all_parsers):
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
+@skip_pyarrow
+def test_escapechar_quoting_round_trip(all_parsers):
+    # GH#25501 - round-trip with escapechar before quotechar
+    parser = all_parsers
+    escape = "\\"
+    quote = '"'
+    sep = "|"
+
+    sample_data = [i * escape + quote for i in range(1, 11)]
+    initial_df = DataFrame(sample_data, columns=["column"])
+
+    csv_text = initial_df.to_csv(
+        sep=sep,
+        columns=None,
+        header=None,
+        index=False,
+        doublequote=False,
+        quoting=csv.QUOTE_ALL,
+        quotechar=quote,
+        escapechar=escape,
+    )
+
+    result = parser.read_csv(
+        StringIO(csv_text),
+        sep=sep,
+        escapechar=escape,
+        quoting=csv.QUOTE_ALL,
+        header=None,
+        doublequote=False,
+    )
+    expected = DataFrame(sample_data)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_ignore_leading_whitespace(all_parsers):
     # see gh-3374, gh-6607
     parser = all_parsers
     data = " a b c\n 1 2 3\n 4 5 6\n 7 8 9"
 
     if parser.engine == "pyarrow":
-        msg = "the 'pyarrow' engine does not support regex separators"
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), sep=r"\s+")
         return
@@ -545,7 +581,7 @@ A,B,C
         data = data.replace(",", "  ")
 
         if parser.engine == "pyarrow":
-            msg = "the 'pyarrow' engine does not support regex separators"
+            msg = "the 'pyarrow' engine does not support separators > 1 char"
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(
                     StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines
@@ -598,7 +634,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
     # see gh-6607
     parser = all_parsers
     if parser.engine == "pyarrow":
-        msg = "the 'pyarrow' engine does not support regex separators"
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), sep=r"\s+")
         return
@@ -850,3 +886,15 @@ def test_read_seek(all_parsers, tmp_path):
         actual = parser.read_csv(file)
     expected = parser.read_csv(StringIO(content))
     tm.assert_frame_equal(actual, expected)
+
+
+def test_dtype_conversion_in_sanitization():
+    # GH60088
+    values = np.array([1, True, 0, False, 1.0, 0.0, np.True_, np.False_], dtype=object)
+    expected = np.array(
+        [1, True, 0, False, 1.0, 0.0, np.True_, np.False_], dtype=object
+    )
+    libparsers.sanitize_objects(values, na_values=set())
+    for v, e in zip(values, expected, strict=True):
+        assert v == e
+        assert type(v) == type(e)

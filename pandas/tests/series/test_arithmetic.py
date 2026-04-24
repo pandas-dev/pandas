@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -301,7 +302,7 @@ class TestSeriesArithmetic:
     def test_sub_datetimelike_align(self):
         # GH#7500
         # datetimelike ops need to align
-        dt = Series(date_range("2012-1-1", periods=3, freq="D"))
+        dt = Series(date_range("2012-1-1", periods=3, freq="D", unit="ns"))
         dt.iloc[2] = np.nan
         dt2 = dt[::-1]
 
@@ -353,10 +354,10 @@ class TestSeriesArithmetic:
 
         # GH#8363
         # datetime ops with a non-unique index
-        ser = Series(date_range("20130101 09:00:00", periods=5), index=index)
-        other = Series(date_range("20130101", periods=5), index=index)
+        ser = Series(date_range("20130101 09:00:00", periods=5, unit="ns"), index=index)
+        other = Series(date_range("20130101", periods=5, unit="ns"), index=index)
         result = ser - other
-        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4], dtype="m8[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_masked_and_non_masked_propagate_na(self):
@@ -382,21 +383,43 @@ class TestSeriesArithmetic:
     def test_add_list_to_masked_array(self, val):
         # GH#22962, behavior changed by GH#62552
         ser = Series([1, None, 3], dtype="Int64")
-        result = ser + [1, None, val]
+        result = ser + [1, None, val]  # noqa: RUF005
         expected = Series([2, pd.NA, 3 + val], dtype="Float64")
         tm.assert_series_equal(result, expected)
 
-        result = [1, None, val] + ser
+        result = [1, None, val] + ser  # noqa: RUF005
         tm.assert_series_equal(result, expected)
 
     def test_add_list_to_masked_array_boolean(self):
         # GH#22962
         ser = Series([True, None, False], dtype="boolean")
-        result = ser + [True, None, True]
+        result = ser + [True, None, True]  # noqa: RUF005
         expected = Series([2, pd.NA, 1], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        result = [True, None, True] + ser
+        result = [True, None, True] + ser  # noqa: RUF005
+        tm.assert_series_equal(result, expected)
+
+    def test_subtraction_index_name_type_mismatch_regression(self):
+        # GH#57524
+        s1 = Series(
+            [23, 22, 21],
+            index=Index(["a", "b", "c"], name="index a"),
+            dtype="Int64",
+        )
+        s2 = Series(
+            [21, 22, 23],
+            index=Index(
+                ["a", "b", "c"],
+                name="index b",
+                dtype="string",
+            ),
+            dtype="Int64",
+        )
+
+        result = s1 - s2
+        expected = Series([2, 0, -2], index=s1.index, dtype="Int64")
+
         tm.assert_series_equal(result, expected)
 
 
@@ -872,8 +895,11 @@ class TestTimeSeriesArithmetic:
         ts2 = ts_slice.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts + ts2
-        result2 = ts2 + ts
+        # GH#62158 alignment joins date-object Index with DatetimeIndex
+        msg = "Alignment of a DataFrame/Series with a DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts + ts2
+            result2 = ts2 + ts
         expected = ts + ts[5:]
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
@@ -903,7 +929,13 @@ class TestNamePreservation:
             if is_logical:
                 # Series doesn't have these as flex methods
                 return
-            result = getattr(left, name)(right)
+
+            warn = None
+            tuple_msg = "with a tuple is deprecated"
+            if box is tuple:
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=tuple_msg):
+                result = getattr(left, name)(right)
         else:
             if is_logical and box in [list, tuple]:
                 with pytest.raises(TypeError, match=msg):
@@ -1060,3 +1092,26 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2016-01-01", periods=3),
+        date_range("2016-01-01", tz="US/Pacific", periods=3),
+        pd.timedelta_range("1 Day", periods=3),
+    ],
+)
+def test_comparison_mismatched_datetime_units(index):
+    # GH#63459
+
+    ser = Series(1, index=index)
+    ser2 = Series(1, index=index.as_unit("ns"))
+
+    result = ser == ser2
+    expected = Series([True, True, True], index=ser.index)
+    tm.assert_series_equal(result, expected)
+
+    result2 = ser2 < ser
+    expected2 = Series([False, False, False], index=ser2.index)
+    tm.assert_series_equal(result2, expected2)

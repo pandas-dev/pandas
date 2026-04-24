@@ -182,6 +182,15 @@ class TestGetIndexer:
         )
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nan_target(self, method):
+        # GH#32572 NaN in the target should not be matched
+        index = Index([1.0, 2.0, 3.0, 4.0, 5.0])
+        target = Index([np.nan])
+        result = index.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_nearest_error(self):
         index = Index(np.arange(10))
         with pytest.raises(ValueError, match="limit argument"):
@@ -440,7 +449,7 @@ class TestWhere:
         result = index.where(listlike_box(cond))
 
         cond = [False] + [True] * (len(index) - 1)
-        expected = Index([index._na_value] + index[1:].tolist(), dtype=np.float64)
+        expected = Index([index._na_value, *index[1:].tolist()], dtype=np.float64)
         result = index.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
@@ -600,10 +609,11 @@ class TestSliceLocs:
 
     def test_slice_locs_na_raises(self):
         index = Index([np.nan, 1, 2])
-        with pytest.raises(KeyError, match="1.5"):
+        msg = "non-monotonic index with a missing label 1.5"
+        with pytest.raises(KeyError, match=msg):
             index.slice_locs(start=1.5)
 
-        with pytest.raises(KeyError, match="1.5"):
+        with pytest.raises(KeyError, match=msg):
             index.slice_locs(end=1.5)
 
 

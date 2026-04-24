@@ -85,6 +85,12 @@ def get_default_engine(ext: str, mode: Literal["reader", "writer"] = "reader") -
             _default_writers["xlsx"] = "xlsxwriter"
         return _default_writers[ext]
     else:
+        # Fall back to calamine if the deprecated default engine
+        # is not installed (GH#56542)
+        if ext == "xls" and not import_optional_dependency("xlrd", errors="ignore"):
+            _default_readers["xls"] = "calamine"
+        if ext == "xlsb" and not import_optional_dependency("pyxlsb", errors="ignore"):
+            _default_readers["xlsb"] = "calamine"
         return _default_readers[ext]
 
 
@@ -238,7 +244,7 @@ def fill_mi_header(
     """
     Forward fill blank entries in row but only inside the same parent index.
 
-    Used for creating headers in Multiindex.
+    Used for creating headers in MultiIndex.
 
     Parameters
     ----------
@@ -298,7 +304,7 @@ def pop_header_name(
     header_name = row[i]
     header_name = None if header_name == "" else header_name
 
-    return header_name, row[:i] + [""] + row[i + 1 :]
+    return header_name, [*row[:i], "", *row[i + 1 :]]
 
 
 def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
@@ -314,7 +320,7 @@ def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
     engine_kwargs: dict
         kwargs to be passed through to the engine.
     kwargs: dict
-        kwargs to be psased through to the engine (deprecated)
+        kwargs to be passed through to the engine (deprecated)
 
     Returns
     -------

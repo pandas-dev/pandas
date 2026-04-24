@@ -725,7 +725,7 @@ class TestMerge:
     def test_join_append_timedeltas2(self):
         # timedelta64 issues with join/merge
         # GH 5695
-        td = np.timedelta64(300000000)
+        td = np.timedelta64(300000000, "ns")
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 
@@ -847,22 +847,34 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": [1, 2],
-                "value": pd.date_range("20151010", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151010", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         right = DataFrame(
             {
                 "key": [2, 3],
-                "value": pd.date_range("20151011", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151011", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
-                + [pd.NaT],
-                "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                "value_x": [
+                    *list(
+                        pd.date_range("20151010", periods=2, tz="US/Eastern", unit="ns")
+                    ),
+                    pd.NaT,
+                ],
+                "value_y": [
+                    pd.NaT,
+                    *list(
+                        pd.date_range("20151011", periods=2, tz="US/Eastern", unit="ns")
+                    ),
+                ],
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -974,8 +986,8 @@ class TestMerge:
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(exp_x) + [pd.NaT],
-                "value_y": [pd.NaT] + list(exp_y),
+                "value_x": [*list(exp_x), pd.NaT],
+                "value_y": [pd.NaT, *list(exp_y)],
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -2206,6 +2218,37 @@ class TestMergeCategorical:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_category_index_levels_stay_category(self):
+        # GH#37480
+        df1 = DataFrame(
+            {
+                "x": list(range(1, 10)),
+                "y": list(range(1, 10)),
+                "z": list(range(1, 10)),
+                "d": list(range(1, 10)),
+            }
+        )
+
+        df2 = df1.astype({"x": "category", "y": "category", "z": "category"})
+
+        df3 = df2.iloc[:4, :].groupby(["z", "x"], observed=True).agg({"d": "sum"})
+        df4 = df2.iloc[7:, :].groupby(["z", "x", "y"], observed=True).agg({"d": "sum"})
+        result = merge(df3, df4, left_index=True, right_index=True, how="outer")
+
+        cats = list(range(1, 10))
+        z = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        x = Categorical(list(range(1, 5)) + list(range(8, 10)), categories=cats)
+        y = Categorical([np.nan] * 4 + list(range(8, 10)), categories=cats)
+        idx = MultiIndex.from_arrays([z, x, y], names=["z", "x", "y"])
+        expected = DataFrame(
+            {
+                "d_x": list(map(float, range(1, 5))) + [np.nan] * 2,
+                "d_y": [np.nan] * 4 + list(map(float, range(8, 10))),
+            },
+            index=idx,
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestMergeOnIndexes:
     @pytest.mark.parametrize(
@@ -2593,7 +2636,7 @@ def test_categorical_non_unique_monotonic(n_categories):
     # GH 28189
     # With n_categories as 5, we test the int8 case is hit in libjoin,
     # with n_categories as 128 we test the int16 case.
-    left_index = CategoricalIndex([0] + list(range(n_categories)))
+    left_index = CategoricalIndex([0, *list(range(n_categories))])
     df1 = DataFrame(range(n_categories + 1), columns=["value"], index=left_index)
     df2 = DataFrame(
         [[6]],
@@ -2928,6 +2971,41 @@ def test_merge_multiindex_single_level():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_multiindex_reset_index_mixed():
+    # GH#62150
+    df = DataFrame(
+        {("column_1", ""): [1, 1], ("column_2", ""): [2, 2]},
+        index=MultiIndex.from_arrays(
+            [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+        ),
+    )
+
+    df2 = DataFrame(
+        data=[1, 1],
+        index=Index([1, 1], name="index"),
+        columns=MultiIndex.from_product([["new_data"], [""]]),
+    )
+
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        result = df.reset_index().merge(df2.reset_index(), on="index")
+
+    expected = DataFrame(
+        {
+            ("index", ""): [1, 1, 1, 1],
+            ("metadata", ""): ["metadata_1", "metadata_1", "metadata_2", "metadata_2"],
+            ("column_1", ""): [1, 1, 1, 1],
+            ("column_2", ""): [2, 2, 2, 2],
+            ("new_data", ""): [1, 1, 1, 1],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(expected.columns)
+
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df.reset_index().merge(df2.reset_index(), on=[("index", "")])
+    tm.assert_frame_equal(result2, expected)
+
+
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])
@@ -3140,4 +3218,64 @@ def test_merge_pyarrow_datetime_duplicates():
         }
     )
     expected = expected.convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_on_and_right_index():
+    df1 = DataFrame({"col": [1, 2, 3]})
+    df2 = DataFrame({"col": [2, 3, 4]})
+
+    with pytest.raises(pd.errors.MergeError):
+        df1.merge(df2, left_on="col", right_on="col", right_index=True)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_left_sort_false_range_like_right(dtype, start, step):
+    left_k = np.array(
+        [start + step * 3, start, start + step * 1, start + step * 10],
+        dtype=dtype,
+    )
+    left = (
+        DataFrame({"k": left_k, "v": [10, 11, 12, 13]})
+        .iloc[[2, 0, 3, 1]]
+        .reset_index(drop=True)
+    )
+    right_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    right = DataFrame(
+        {"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)},
+    )
+
+    result = left.merge(right, on="k", how="left", sort=False)
+
+    expected = left.copy()
+    expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+@pytest.mark.parametrize("start, step", [(0, 2), (5, 3)])
+def test_merge_right_sort_false_range_like_left(dtype, start, step):
+    left_k = np.arange(start, start + step * 6, step, dtype=dtype)
+    left = DataFrame(
+        {"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)},
+    )
+
+    right_k = np.array(
+        [start + step * 2, start, start + step * 10, start + step * 1],
+        dtype=dtype,
+    )
+    right = (
+        DataFrame({"k": right_k, "w": [1, 2, 3, 4]})
+        .iloc[[1, 3, 0, 2]]
+        .reset_index(drop=True)
+    )
+
+    result = left.merge(right, on="k", how="right", sort=False)
+
+    expected = right.copy()
+    expected["v"] = left.set_index("k")["v"].reindex(expected["k"]).to_numpy()
+    expected = expected[["k", "v", "w"]]
+
     tm.assert_frame_equal(result, expected)

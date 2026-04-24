@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslibs import Day
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -99,7 +100,7 @@ def test_groupby_resample_on_api():
 
 
 def test_resample_group_keys():
-    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
+    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10, unit="ns"))
     expected = df.copy()
 
     # group_keys=False
@@ -221,7 +222,7 @@ def test_combined_up_downsampling_of_irregular():
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
-    rng = date_range("1/1/2012", periods=100, freq="s")
+    rng = date_range("1/1/2012", periods=100, freq="s", unit="ns")
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
@@ -355,7 +356,7 @@ def test_agg_consistency_int_str_column_mix():
 
 @pytest.fixture
 def index():
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D", unit="ns")
     index.name = "date"
     return index
 
@@ -653,7 +654,9 @@ def test_agg_list_like_func_with_args():
     with pytest.raises(TypeError, match=msg):
         df.resample("D").agg([foo1, foo2], 3, b=3, c=4)
 
-    result = df.resample("D").agg([foo1, foo2], 3, c=4)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.resample("D").agg([foo1, foo2], 3, c=4)
     expected = DataFrame(
         [[8, 8], [9, 9], [10, 10]],
         index=date_range("2020-01-01", periods=3, freq="D"),
@@ -744,7 +747,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
 
 def test_resample_agg_readonly():
     # GH#31710 cython needs to allow readonly data
-    index = date_range("2020-01-01", "2020-01-02", freq="1h")
+    index = date_range("2020-01-01", "2020-01-02", freq="1h", unit="ns")
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 

@@ -37,10 +37,10 @@ def get_objs():
         Index([True, False] * 5, name="a"),
         Index(np.arange(10), dtype=np.int64, name="a"),
         Index(np.arange(10), dtype=np.float64, name="a"),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a"),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
-            tz="US/Eastern"
-        ),
+        DatetimeIndex(date_range("2020-01-01", periods=10, unit="ns"), name="a"),
+        DatetimeIndex(
+            date_range("2020-01-01", periods=10, unit="ns"), name="a"
+        ).tz_localize(tz="US/Eastern"),
         PeriodIndex(period_range("2020-01-01", periods=10, freq="D"), name="a"),
         Index([str(i) for i in range(10)], name="a"),
     ]
@@ -198,7 +198,8 @@ class TestReductions:
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
         df = DataFrame(
-            date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
+            date_range("2016-01-01 00:00:00", periods=3, tz="UTC", unit="ns"),
+            columns=["a"],
         )
         df["b"] = df.a.subtract(Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
@@ -781,11 +782,15 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
-    def test_var_complex_array(self):
-        # GH#61645
-        ser = Series([-1j, 0j, 1j], dtype=complex)
-        assert ser.var(ddof=1) == 1.0
-        assert ser.std(ddof=1) == 1.0
+    @pytest.mark.parametrize(
+        "values,expected", [([-1j, 0j, 1j], 1.0), ([1 + 2j, 2 + 3j, 3 + 4j], 2.0)]
+    )
+    def test_var_complex_array(self, values, expected):
+        # GH 61645, 62421
+        ser = Series(values, dtype=complex)
+        tm.assert_almost_equal(ser.var(ddof=1), expected)
+        tm.assert_almost_equal(ser.std(ddof=1), np.sqrt(expected))
+        tm.assert_almost_equal(ser.sem(ddof=1), np.sqrt(expected / len(values)))
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
@@ -1268,11 +1273,15 @@ class TestSeriesReductions:
         expected = np.uint64(10000000000000000000)
         tm.assert_almost_equal(result, expected)
 
-    def test_signedness_preserved_after_sum(self):
+    def test_signedness_preserved_after_sum(self, using_python_scalars):
         # GH 37491
         ser = Series([1, 2, 3, 4])
 
-        assert ser.astype("uint8").sum().dtype == "uint64"
+        result = ser.astype("uint8").sum()
+        if using_python_scalars:
+            assert isinstance(result, int)
+        else:
+            assert isinstance(result, np.uint64)
 
 
 class TestDatetime64SeriesReductions:
@@ -1365,7 +1374,7 @@ class TestCategoricalSeriesReductions:
         [
             (list("abc"), list("abc")),
             (list("abc"), list("cba")),
-            (list("abc") + [np.nan], list("cba")),
+            ([*list("abc"), np.nan], list("cba")),
             ([1, 2, 3], [3, 2, 1]),
             ([1, 2, 3, np.nan], [3, 2, 1]),
         ],

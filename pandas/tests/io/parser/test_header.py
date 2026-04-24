@@ -572,7 +572,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
 
         exp_columns.append(col)
 
-    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
+    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"], strict=False))
     expected = DataFrame([[2, 3], [4, 5]], columns=columns)
     tm.assert_frame_equal(result, expected)
 

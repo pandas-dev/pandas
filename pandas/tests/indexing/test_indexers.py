@@ -16,6 +16,20 @@ def test_length_of_indexer():
     assert result == 1
 
 
+@pytest.mark.parametrize(
+    "start, stop, step, expected",
+    [
+        (10, 0, -3, 4),
+        (0, 1, 5, 1),
+    ],
+)
+def test_length_of_indexer_range_overflow(start, stop, step, expected):
+    # https://github.com/pandas-dev/pandas/pull/63872
+    indexer = range(start, stop, step)
+    result = length_of_indexer(indexer)
+    assert result == expected
+
+
 def test_is_scalar_indexer():
     indexer = (0, 1)
     assert is_scalar_indexer(indexer, 2)

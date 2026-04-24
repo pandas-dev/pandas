@@ -73,8 +73,7 @@ def test_apply(float_frame, engine, request):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
-@pytest.mark.parametrize("nopython", [True, False])
-def test_apply_args(float_frame, axis, raw, engine, nopython):
+def test_apply_args(float_frame, axis, raw, engine):
     numba = pytest.importorskip("numba")
     if (
         engine == "numba"
@@ -82,14 +81,12 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
         and is_platform_arm()
     ):
         pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
-    engine_kwargs = {"nopython": nopython}
     result = float_frame.apply(
         lambda x, y: x + y,
         axis,
         args=(1,),
         raw=raw,
         engine=engine,
-        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
@@ -101,7 +98,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
         b=2,
         raw=raw,
         engine=engine,
-        engine_kwargs=engine_kwargs,
     )
     expected = float_frame + 3
     tm.assert_frame_equal(result, expected)
@@ -114,7 +110,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
         # keyword-only arguments are not supported in numba
@@ -128,7 +123,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
         with pytest.raises(
@@ -141,7 +135,6 @@ def test_apply_args(float_frame, axis, raw, engine, nopython):
                 b=2,
                 raw=raw,
                 engine=engine,
-                engine_kwargs=engine_kwargs,
             )
 
 
@@ -1435,7 +1428,7 @@ def test_nuiscance_columns():
 
     result = df.agg(["min"])
     expected = DataFrame(
-        [[1, 1.0, "bar", Timestamp("20130101").as_unit("ns")]],
+        [[1, 1.0, "bar", Timestamp("20130101")]],
         index=["min"],
         columns=df.columns,
     )
@@ -1840,6 +1833,23 @@ def test_agg_std():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_np_size():
+    # GH#42203, GH#48328
+    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["A", "B", "C"])
+
+    result = df.agg({"A": [np.size]})
+    expected = DataFrame({"A": [3]}, index=["size"])
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg({"A": np.size})
+    expected = Series({"A": 3})
+    tm.assert_series_equal(result, expected)
+
+    result = df.agg({"A": [np.mean, np.size]})
+    expected = DataFrame({"A": [4.0, 3.0]}, index=["mean", "size"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = DataFrame(
@@ -1856,3 +1866,17 @@ def test_agg_dist_like_and_nonunique_columns():
 def test_wrong_engine(engine_name):
     with pytest.raises(ValueError, match="Unknown engine "):
         DataFrame().apply(lambda x: x, engine=engine_name)
+
+
+def test_apply_timedelta_preserves_resolution():
+    # GH#52411 - UDFs via apply should preserve datetime resolution
+    # rather than always returning nanoseconds
+    df = DataFrame(
+        {
+            "a": Series(["2023-01-01", "2023-01-02"], dtype="datetime64[s]"),
+            "b": Series(["2023-01-02", "2023-01-03"], dtype="datetime64[s]"),
+        }
+    )
+    direct = df["a"] - df["b"]
+    applied = df.apply(lambda row: row["a"] - row["b"], axis=1)
+    assert applied.dtype == direct.dtype

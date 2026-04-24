@@ -3,9 +3,9 @@
 
 pip
 versioneer[toml]
-cython<4.0.0a0
-meson[ninja]==1.2.1
-meson-python==0.13.1
+cython>=3.1.0,<4.0.0a0
+meson[ninja]>=1.2.3,<2
+meson-python>=0.18.0,<1
 pytest>=8.3.4
 pytest-cov
 pytest-xdist>=3.6.1
@@ -32,13 +32,13 @@ numexpr>=2.10.2
 openpyxl>=3.1.5
 odfpy>=1.4.1
 psycopg2-binary>=2.9.10
-pyarrow>=13.0.0
+pyarrow>=13.0.0,<24.0.0
 pyiceberg>=0.8.1
 pymysql>=1.1.1
 pyreadstat>=1.2.8
 tables>=3.10.1
 python-calamine>=0.3.0
-pytz>=2024.2
+pytz>=2020.1
 pyxlsb>=1.0.10
 s3fs>=2024.10.0
 scipy>=1.14.1
@@ -52,8 +52,8 @@ dask
 seaborn
 ipython
 moto
-asv>=0.6.1
-flake8==7.1.0
+asv>=0.6.5
+py-rattler
 mypy==1.17.1
 tokenize-rt
 pre-commit>=4.2.0
@@ -61,8 +61,7 @@ gitpython
 natsort
 pickleshare
 numpydoc
-pydata-sphinx-theme==0.16
-pytest-cython
+pytest-cython>=0.4.0
 sphinx
 sphinx-design
 sphinx-copybutton
@@ -71,7 +70,6 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-PyYAML
-types-setuptools
 nbconvert>=7.11.0
 nbsphinx
 pandoc
@@ -87,3 +85,4 @@ pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
 tzdata>=2023.3
+https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip

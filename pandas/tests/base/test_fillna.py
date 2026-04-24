@@ -6,6 +6,7 @@ test here to confirm these works as the same
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import MultiIndex
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
@@ -50,6 +51,12 @@ def test_fillna_null(null_obj, index_or_series_obj):
     expected = values.copy()
     values[0:2] = null_obj
     expected[0:2] = fill_value
+    # setitem no longer clears freq; after mutating, values are no longer on
+    # the original freq, so clear it on DTA/TDA explicitly.
+    if hasattr(values, "_freq"):
+        values._freq = None
+    if hasattr(expected, "_freq"):
+        expected._freq = None
 
     expected = klass(expected)
     obj = klass(values)
@@ -59,3 +66,11 @@ def test_fillna_null(null_obj, index_or_series_obj):
 
     # check shallow_copied
     assert obj is not result
+
+
+def test_fillna_with_tuple_on_object_index():
+    # GH#37681 np.putmask should not unpack tuple fill values
+    idx = pd.Index([(0, 1), (1, 2), None], tupleize_cols=False)
+    result = idx.fillna((9, 9))
+    expected = pd.Index([(0, 1), (1, 2), (9, 9)], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)

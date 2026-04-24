@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -35,7 +37,11 @@ def test_get_level_number_integer(idx):
 def test_get_dtypes(using_infer_string):
     # Test MultiIndex.dtypes (# Gh37062)
     idx_multitype = MultiIndex.from_product(
-        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
+        ],
         names=["int", "string", "dt"],
     )
 
@@ -56,7 +62,7 @@ def test_get_dtypes_no_level_name(using_infer_string):
         [
             [1, 2, 3],
             ["a", "b", "c"],
-            pd.date_range("20200101", periods=2, tz="UTC"),
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
         ],
     )
     exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
@@ -76,7 +82,7 @@ def test_get_dtypes_duplicate_level_names(using_infer_string):
         [
             [1, 2, 3],
             ["a", "b", "c"],
-            pd.date_range("20200101", periods=2, tz="UTC"),
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
         ],
         names=["A", "A", "A"],
     ).dtypes
@@ -327,7 +333,8 @@ def test_set_value_keeps_names():
     )
     df = df.sort_index()
     assert df.index.names == ("Name", "Number")
-    df.at[("grethe", "4"), "one"] = 99.34
+    with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+        df.at[("grethe", "4"), "one"] = 99.34
     assert df.index.names == ("Name", "Number")
 
 

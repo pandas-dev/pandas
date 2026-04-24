@@ -25,36 +25,37 @@ static int to_double(char *item, double *p_value, char sci, char decimal,
 }
 
 static int floatify(PyObject *str, double *result, int *maybe_int) {
-  char *data;
-  PyObject *tmp = NULL;
+  const char *data;
   const char sci = 'E';
   const char dec = '.';
 
   if (PyBytes_Check(str)) {
     data = PyBytes_AS_STRING(str);
   } else if (PyUnicode_Check(str)) {
-    tmp = PyUnicode_AsUTF8String(str);
-    if (tmp == NULL) {
+    // PyUnicode_AsUTF8 returns a pointer to the string's internal UTF-8
+    // buffer (caching it on the object), avoiding a heap allocation.
+    data = PyUnicode_AsUTF8(str);
+    if (data == NULL) {
       return -1;
     }
-    data = PyBytes_AS_STRING(tmp);
   } else {
     PyErr_SetString(PyExc_TypeError, "Invalid object type");
     return -1;
   }
 
-  const int status = to_double(data, result, sci, dec, maybe_int);
+  const int status = to_double((char *)data, result, sci, dec, maybe_int);
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */
-    if (strlen(data) == 3) {
+    const size_t len = strlen(data);
+    if (len == 3) {
       if (0 == strcasecmp(data, "inf")) {
         *result = HUGE_VAL;
         *maybe_int = 0;
       } else {
         goto parsingerror;
       }
-    } else if (strlen(data) == 4) {
+    } else if (len == 4) {
       if (0 == strcasecmp(data, "-inf")) {
         *result = -HUGE_VAL;
         *maybe_int = 0;
@@ -64,14 +65,14 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
       } else {
         goto parsingerror;
       }
-    } else if (strlen(data) == 8) {
+    } else if (len == 8) {
       if (0 == strcasecmp(data, "infinity")) {
         *result = HUGE_VAL;
         *maybe_int = 0;
       } else {
         goto parsingerror;
       }
-    } else if (strlen(data) == 9) {
+    } else if (len == 9) {
       if (0 == strcasecmp(data, "-infinity")) {
         *result = -HUGE_VAL;
         *maybe_int = 0;
@@ -86,12 +87,10 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
     }
   }
 
-  Py_XDECREF(tmp);
   return 0;
 
 parsingerror:
   PyErr_Format(PyExc_ValueError, "Unable to parse string \"%s\"", data);
-  Py_XDECREF(tmp);
   return -1;
 }
 
@@ -128,9 +127,7 @@ static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
   capi->tokenize_nrows = tokenize_nrows;
   capi->str_to_int64 = str_to_int64;
   capi->str_to_uint64 = str_to_uint64;
-  capi->xstrtod = xstrtod;
   capi->precise_xstrtod = precise_xstrtod;
-  capi->round_trip = round_trip;
   capi->to_boolean = to_boolean;
 
   PyObject *capsule =

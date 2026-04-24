@@ -46,8 +46,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.algorithms import unique
-
 if TYPE_CHECKING:
     from pandas._typing import npt
 
@@ -171,7 +169,7 @@ def infer_freq(
         )
 
     if not isinstance(index, DatetimeIndex):
-        index = DatetimeIndex(index)
+        index = DatetimeIndex(index, copy=False)
 
     inferer = _FrequencyInferer(index)
     return inferer.get_freq()
@@ -284,12 +282,12 @@ class _FrequencyInferer:
     @cache_readonly
     def day_deltas(self) -> list[int]:
         ppd = periods_per_day(self._creso)
-        return [x / ppd for x in self.deltas]
+        return [x // ppd for x in self.deltas]
 
     @cache_readonly
     def hour_deltas(self) -> list[int]:
         pph = periods_per_day(self._creso) // 24
-        return [x / pph for x in self.deltas]
+        return [x // pph for x in self.deltas]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
@@ -300,7 +298,7 @@ class _FrequencyInferer:
         return Timestamp(self.i8values[0], unit=self.index.unit)
 
     def month_position_check(self) -> str | None:
-        return month_position_check(self.fields, self.index.dayofweek)
+        return month_position_check(self.fields, self.index.day_of_week)
 
     @cache_readonly
     def mdiffs(self) -> npt.NDArray[np.int64]:
@@ -358,7 +356,7 @@ class _FrequencyInferer:
         if len(self.ydiffs) > 1:
             return None
 
-        if len(unique(self.fields["M"])) > 1:
+        if len(np.unique(self.fields["M"])) > 1:
             return None
 
         pos_check = self.month_position_check()
@@ -412,11 +410,11 @@ class _FrequencyInferer:
         )
 
     def _get_wom_rule(self) -> str | None:
-        weekdays = unique(self.index.weekday)
+        weekdays = np.unique(self.index.day_of_week)
         if len(weekdays) > 1:
             return None
 
-        week_of_months = unique((self.index.day - 1) // 7)
+        week_of_months = np.unique((self.index.day - 1) // 7)
         # Only attempt to infer up to WOM-4. See #9425
         week_of_months = week_of_months[week_of_months < 4]
         if len(week_of_months) == 0 or len(week_of_months) > 1:
@@ -474,15 +472,21 @@ def is_subperiod(source, target) -> bool:
     target = _maybe_coerce_freq(target)
 
     if _is_annual(target):
+        if _is_annual(source):
+            return get_rule_month(source) == get_rule_month(target)
         if _is_quarterly(source):
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
         return source in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_quarterly(target):
+        if _is_quarterly(source):
+            return _quarter_months_conform(
+                get_rule_month(source), get_rule_month(target)
+            )
         return source in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_monthly(target):
-        return source in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
+        return source in {target, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif _is_weekly(target):
         return source in {target, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif target == "B":
@@ -538,9 +542,13 @@ def is_superperiod(source, target) -> bool:
             return _quarter_months_conform(smonth, tmonth)
         return target in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_quarterly(source):
+        if _is_quarterly(target):
+            return _quarter_months_conform(
+                get_rule_month(source), get_rule_month(target)
+            )
         return target in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_monthly(source):
-        return target in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
+        return target in {source, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif _is_weekly(source):
         return target in {source, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif source == "B":
@@ -580,7 +588,10 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = PeriodDtype(to_offset(code.name))._freqstr
+        code = PeriodDtype(to_offset(code.rule_code))._freqstr
+    # Strip any leading multiplier digits (e.g. '12h' -> 'h') so that
+    # is_subperiod / is_superperiod can compare base frequency codes.  GH#50355
+    code = code.lstrip("0123456789")
     if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:

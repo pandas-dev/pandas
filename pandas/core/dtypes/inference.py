@@ -108,12 +108,8 @@ def is_file_like(obj: object) -> bool:
     """
     Check if the object is a file-like object.
 
-    For objects to be considered file-like, they must
-    be an iterator AND have either a `read` and/or `write`
-    method as an attribute.
-
-    Note: file-like objects must be iterable, but
-    iterable objects need not be file-like.
+    For objects to be considered file-like, they must have
+    a `read` and/or `write` method as an attribute.
 
     Parameters
     ----------
@@ -121,7 +117,7 @@ def is_file_like(obj: object) -> bool:
         The object to check for file-like properties.
         This can be any Python object, and the function will
         check if it has attributes typically associated with
-        file-like objects (e.g., `read`, `write`, `__iter__`).
+        file-like objects (e.g., `read`, `write`).
 
     Returns
     -------
@@ -145,16 +141,16 @@ def is_file_like(obj: object) -> bool:
     >>> is_file_like([1, 2, 3])
     False
     """
-    if not (hasattr(obj, "read") or hasattr(obj, "write")):
-        return False
-
-    return bool(hasattr(obj, "__iter__"))
+    return bool(hasattr(obj, "read") or hasattr(obj, "write"))
 
 
 @set_module("pandas.api.types")
 def is_re(obj: object) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
+
+    This function tests whether ``obj`` is an instance of a compiled
+    regular expression pattern, as created by :func:`re.compile`.
 
     Parameters
     ----------
@@ -192,6 +188,9 @@ def is_re(obj: object) -> TypeGuard[Pattern]:
 def is_re_compilable(obj: object) -> bool:
     """
     Check if the object can be compiled into a regex pattern instance.
+
+    This function attempts to compile ``obj`` as a regular expression
+    using :func:`re.compile` and returns whether the compilation succeeds.
 
     Parameters
     ----------
@@ -308,6 +307,9 @@ def is_dict_like(obj: object) -> bool:
     """
     Check if the object is dict-like.
 
+    An object is considered dict-like if it has the ``__getitem__``,
+    ``keys``, and ``__contains__`` attributes but is not a type itself.
+
     Parameters
     ----------
     obj : object
@@ -351,6 +353,9 @@ def is_named_tuple(obj: object) -> bool:
     """
     Check if the object is a named tuple.
 
+    A named tuple is a subclass of :class:`tuple` that has named fields,
+    as created by :func:`collections.namedtuple`.
+
     Parameters
     ----------
     obj : object
@@ -385,7 +390,7 @@ def is_named_tuple(obj: object) -> bool:
 
 
 @set_module("pandas.api.types")
-def is_hashable(obj: object) -> TypeGuard[Hashable]:
+def is_hashable(obj: object, allow_slice: bool = True) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -399,13 +404,17 @@ def is_hashable(obj: object) -> TypeGuard[Hashable]:
     ----------
     obj : object
         The object to check for hashability. Any Python object can be passed here.
+    allow_slice : bool
+        If True, return True if the object is hashable (including slices).
+        If False, return True if the object is hashable and not a slice.
 
     Returns
     -------
     bool
         True if object can be hashed (i.e., does not raise TypeError when
-        passed to hash()), and False otherwise (e.g., if object is mutable
-        like a list or dictionary).
+        passed to hash()) and passes the slice check according to 'allow_slice'.
+        False otherwise (e.g., if object is mutable like a list or dictionary
+        or if allow_slice is False and object is a slice or contains a slice).
 
     See Also
     --------
@@ -424,12 +433,14 @@ def is_hashable(obj: object) -> TypeGuard[Hashable]:
     >>> is_hashable(a)
     False
     """
-    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
-    # which can be faster than calling hash. That is because numpy scalars
-    # fail this test.
-
-    # Reconsider this decision once this numpy bug is fixed:
-    # https://github.com/numpy/numpy/issues/5562
+    # We can't use isinstance(obj, collections.abc.Hashable) because it
+    # returns True for tuples containing unhashable elements (e.g. ([],)).
+    # Calling hash() is the only reliable check.
+    if allow_slice is False:
+        if isinstance(obj, tuple) and any(isinstance(v, slice) for v in obj):
+            return False
+        elif isinstance(obj, slice):
+            return False
 
     try:
         hash(obj)

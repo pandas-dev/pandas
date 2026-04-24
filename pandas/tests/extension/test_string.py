@@ -101,6 +101,20 @@ def data_for_grouping(dtype, chunked):
 
 
 class TestStringArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return data.dtype.storage != "pyarrow"
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action, request, using_infer_string):
+        if data_missing.dtype.storage == "python" and not using_infer_string:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="StringArray[python] _cast_pointwise_result "
+                    "does not re-wrap, going away with infer_string"
+                )
+            )
+        super().test_map(data_missing, na_action)
+
     def test_combine_le(self, data_repeated):
         dtype = next(iter(data_repeated(2))).dtype
         if dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
@@ -169,25 +183,6 @@ class TestStringArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-    def test_fillna_readonly(self, data_missing):
-        data = data_missing.copy()
-        data._readonly = True
-
-        # by default fillna(copy=True), then this works fine
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is generally not honored by Arrow-backed array,
-        # but always returns new data -> same result as above
-        if data.dtype.storage == "pyarrow":
-            result = data.fillna(data_missing[1])
-            assert result[0] == data_missing[1]
-        else:
-            with pytest.raises(ValueError, match="Cannot modify read-only array"):
-                data.fillna(data_missing[1], copy=False)
-        tm.assert_extension_array_equal(data, data_missing)
-
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
@@ -216,7 +211,7 @@ class TestStringArray(base.ExtensionTests):
         return None
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        return op_name in ["min", "max", "sum"] or (
+        return op_name in ["min", "max", "sum", "count"] or (
             ser.dtype.na_value is np.nan  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
@@ -226,7 +221,7 @@ class TestStringArray(base.ExtensionTests):
         return op_name in ["cummin", "cummax", "cumsum"]
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
-        dtype = cast(StringDtype, tm.get_dtype(obj))
+        dtype = cast("StringDtype", tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
             dtype_other = tm.get_dtype(other) if not isinstance(other, str) else None
@@ -239,10 +234,6 @@ class TestStringArray(base.ExtensionTests):
         else:
             cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
-
-    def test_compare_scalar(self, data, comparison_op):
-        ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, "abc")
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
@@ -282,6 +273,14 @@ class TestStringArray(base.ExtensionTests):
             mark = pytest.mark.xfail(reason="Casts to object")
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+    def test_loc_setitem_with_expansion_retains_ea_dtype(
+        self, data, using_infer_string, request
+    ):
+        if not using_infer_string and data.dtype.storage == "python":
+            mark = pytest.mark.xfail(reason="Gives object")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_retains_ea_dtype(data)
 
 
 class Test2DCompat(base.Dim2CompatTests):

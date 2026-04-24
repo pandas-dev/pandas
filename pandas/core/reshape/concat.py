@@ -5,6 +5,7 @@ Concat routines.
 from __future__ import annotations
 
 from collections import abc
+from itertools import pairwise
 import types
 from typing import (
     TYPE_CHECKING,
@@ -210,21 +211,17 @@ def concat(
         not already aligned. In that case, the non-concatenation axis is always
         sorted lexicographically.
     copy : bool, default False
-        If False, do not copy data unnecessarily.
-
-        .. note::
-            The `copy` keyword will change behavior in pandas 3.0.
-            `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that all methods with a
-            `copy` keyword will use a lazy copy mechanism to defer the copy and
-            ignore the `copy` keyword. The `copy` keyword will be removed in a
-            future version of pandas.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+        This keyword is now ignored; changing its value will have no
+        impact on the method.
 
         .. deprecated:: 3.0.0
+
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
 
     Returns
     -------
@@ -421,13 +418,11 @@ def concat(
         if (
             intersect
             or any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
-            or all(
-                prev is curr for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
-            )
+            or all(prev is curr for prev, curr in pairwise(non_concat_axis))
             or (
                 all(
                     prev[-1] <= curr[0] and prev.is_monotonic_increasing
-                    for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
+                    for prev, curr in pairwise(non_concat_axis)
                     if not prev.empty and not curr.empty
                 )
                 and non_concat_axis[-1].is_monotonic_increasing
@@ -538,13 +533,12 @@ def _sanitize_mixed_ndim(
                     if name is None:
                         name = 0
                         rename_columns = True
-                else:
-                    # doing a column-wise concatenation so need series
-                    # to have unique names
-                    if name is None:
-                        rename_columns = True
-                        name = current_column
-                        current_column += 1
+                # doing a column-wise concatenation so need series
+                # to have unique names
+                elif name is None:
+                    rename_columns = True
+                    name = current_column
+                    current_column += 1
                 obj = sample._constructor(obj, copy=False)
                 if isinstance(obj, ABCDataFrame) and rename_columns:
                     obj.columns = range(name, name + 1, 1)
@@ -603,7 +597,7 @@ def _get_result(
             result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
             result._name = name
             return result.__finalize__(
-                types.SimpleNamespace(input_objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs, objs=objs), method="concat"
             )
 
         # combine as columns in a frame
@@ -625,7 +619,7 @@ def _get_result(
             df = cons(data, index=index, copy=False)
             df.columns = columns
             return df.__finalize__(
-                types.SimpleNamespace(input_objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs, objs=objs), method="concat"
             )
 
     # combine block managers
@@ -665,7 +659,9 @@ def _get_result(
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
-        return out.__finalize__(types.SimpleNamespace(input_objs=objs), method="concat")
+        return out.__finalize__(
+            types.SimpleNamespace(input_objs=objs, objs=objs), method="concat"
+        )
 
 
 def new_axes(

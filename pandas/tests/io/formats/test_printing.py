@@ -85,6 +85,10 @@ class TestPPrintThing:
     def test_repr_frozenset(self):
         assert printing.pprint_thing(frozenset([1, 2])) == "frozenset({1, 2})"
 
+    def test_repr_seq_float_precision(self):
+        with cf.option_context("display.precision", 3):
+            assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
+
 
 class TestFormatBase:
     def test_adjoin(self):

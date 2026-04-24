@@ -164,6 +164,7 @@ class TestDateRanges:
         # GH#13672
         td = Timedelta(f"1{freq}")
         ts = Timestamp("1970-01-01")
+        exp_dtype = "M8[us]" if freq != "ns" else "M8[ns]"
 
         idx = date_range(
             start=ts + td,
@@ -172,7 +173,7 @@ class TestDateRanges:
         )
         exp = DatetimeIndex(
             [ts + n * td for n in range(1, 5)],
-            dtype="M8[ns]",
+            dtype=exp_dtype,
             freq=freq,
         )
         tm.assert_index_equal(idx, exp)
@@ -183,7 +184,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([], dtype="M8[ns]", freq=freq)
+        exp = DatetimeIndex([], dtype=exp_dtype, freq=freq)
         tm.assert_index_equal(idx, exp)
 
         # start matches end
@@ -192,7 +193,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([ts + td], dtype="M8[ns]", freq=freq)
+        exp = DatetimeIndex([ts + td], dtype=exp_dtype, freq=freq)
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
@@ -242,11 +243,11 @@ class TestDateRanges:
         # case with start later than 1970-01-01, overflow int64 but not uint64
         msg = "Cannot generate range with"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range(start="1970-02-01", periods=106752 * 24, freq="h")
+            date_range(start="1970-02-01", periods=106752 * 24, freq="h", unit="ns")
 
         # case with end before 1970-01-01, overflow int64 but not uint64
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range(end="1969-11-14", periods=106752 * 24, freq="h")
+            date_range(end="1969-11-14", periods=106752 * 24, freq="h", unit="ns")
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -271,9 +272,9 @@ class TestDateRanges:
         # GH#14187
         msg = "Cannot generate range"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range("2016-01-01", periods=100000, freq="D")
+            date_range("2016-01-01", periods=100000, freq="D", unit="ns")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range(end="1763-10-12", periods=100000, freq="D")
+            date_range(end="1763-10-12", periods=100000, freq="D", unit="ns")
 
     def test_date_range_gen_error(self):
         rng = date_range("1/1/2000 00:00", "1/1/2000 00:18", freq="5min")
@@ -287,7 +288,7 @@ class TestDateRanges:
 
         offset = timedelta(2)
         expected = DatetimeIndex(
-            [snap + i * offset for i in range(n)], dtype="M8[ns]", freq=offset
+            [snap + i * offset for i in range(n)], dtype="M8[us]", freq=offset
         )
 
         tm.assert_index_equal(rng, expected)
@@ -687,13 +688,13 @@ class TestDateRanges:
         result_2 = date_range("2005-01-13 10:00", "2005-01-13 16:00", freq="345min")
         expected_1 = DatetimeIndex(
             ["2005-01-12 10:00:00", "2005-01-12 15:45:00"],
-            dtype="datetime64[ns]",
+            dtype="datetime64[us]",
             freq="345min",
             tz=None,
         )
         expected_2 = DatetimeIndex(
             ["2005-01-13 10:00:00", "2005-01-13 15:45:00"],
-            dtype="datetime64[ns]",
+            dtype="datetime64[us]",
             freq="345min",
             tz=None,
         )
@@ -727,7 +728,7 @@ class TestDateRanges:
         tm.assert_index_equal(result, expected)
 
     def test_range_where_start_equal_end(self, inclusive_endpoints_fixture):
-        # GH 43394
+        # GH#43394, GH#55293
         start = "2021-09-02"
         end = "2021-09-02"
         result = date_range(
@@ -735,11 +736,62 @@ class TestDateRanges:
         )
 
         both_range = date_range(start=start, end=end, freq="D", inclusive="both")
-        if inclusive_endpoints_fixture == "neither":
-            expected = both_range[1:-1]
-        elif inclusive_endpoints_fixture in ("left", "right", "both"):
+        if inclusive_endpoints_fixture == "both":
             expected = both_range[:]
+        else:
+            # (a, a], [a, a), and (a, a) are all empty
+            expected = both_range[1:-1]
 
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2021-09-02"]),
+            ("left", []),
+            ("right", []),
+            ("neither", []),
+        ],
+    )
+    def test_start_equal_end_inclusive(self, inclusive, expected_values):
+        # GH#55293 - when start == end, only inclusive="both" should
+        # return the singleton; left, right, and neither should all be empty
+        result = date_range(
+            start="2021-09-02", end="2021-09-02", freq="D", inclusive=inclusive
+        )
+        expected = DatetimeIndex(expected_values, dtype="datetime64[us]", freq="D")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2020-06-01", "2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("left", ["2020-06-01", "2020-06-02", "2020-06-03"]),
+            ("right", ["2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("neither", ["2020-06-02", "2020-06-03"]),
+        ],
+    )
+    def test_inclusive_with_periods_and_start(self, inclusive, expected_values):
+        # GH#46331 - inclusive should filter endpoints even when
+        # only start+periods is provided (end is not specified)
+        result = date_range(start="2020-06-01", periods=4, inclusive=inclusive)
+        expected = DatetimeIndex(expected_values, freq="D")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "inclusive, expected_values",
+        [
+            ("both", ["2020-06-01", "2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("left", ["2020-06-01", "2020-06-02", "2020-06-03"]),
+            ("right", ["2020-06-02", "2020-06-03", "2020-06-04"]),
+            ("neither", ["2020-06-02", "2020-06-03"]),
+        ],
+    )
+    def test_inclusive_with_periods_and_end(self, inclusive, expected_values):
+        # GH#46331 - inclusive should filter endpoints even when
+        # only end+periods is provided (start is not specified)
+        result = date_range(end="2020-06-04", periods=4, inclusive=inclusive)
+        expected = DatetimeIndex(expected_values, freq="D")
         tm.assert_index_equal(result, expected)
 
     def test_freq_dateoffset_with_relateivedelta_nanos(self):
@@ -1014,13 +1066,26 @@ class TestGenRangeGeneration:
             "2015-06-21 00:00:03",
         ]
         expected1 = DatetimeIndex(
-            expected1_list, dtype="datetime64[ns]", freq="QE-DEC", tz=None
+            expected1_list, dtype="datetime64[us]", freq="QE-DEC", tz=None
         )
         expected2 = DatetimeIndex(
-            expected2_list, dtype="datetime64[ns]", freq="W-SUN", tz=None
+            expected2_list, dtype="datetime64[us]", freq="W-SUN", tz=None
         )
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
+
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            offsets.LastWeekOfMonth(1),
+            offsets.FY5253(1),
+        ],
+    )
+    def test_generate_range_periods1_no_n0_error(self, freq):
+        # GH#41563 - offsets that disallow n=0 should not raise
+        # when periods=1 (which computes 0 * offset internally)
+        result = date_range("2018-04-01", periods=1, freq=freq)
+        assert len(result) == 1
 
     dt1, dt2 = "2017-01-01", "2017-01-01"
     tz1, tz2 = "US/Eastern", "Europe/London"
@@ -1110,7 +1175,7 @@ class TestBusinessDateRange:
         # GH#24252 avoid doing unnecessary addition that _would_ overflow
         start = Timestamp.max.floor("D").to_pydatetime()
         rng = date_range(start, end=None, periods=1, freq="B")
-        expected = DatetimeIndex([start], freq="B").as_unit("ns")
+        expected = DatetimeIndex([start], freq="B")
         tm.assert_index_equal(rng, expected)
 
     def test_bday_overflow_error(self):
@@ -1118,7 +1183,7 @@ class TestBusinessDateRange:
         msg = "Out of bounds nanosecond timestamp"
         start = Timestamp.max.floor("D").to_pydatetime()
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range(start, periods=2, freq="B")
+            date_range(start, periods=2, freq="B", unit="ns")
 
 
 class TestCustomDateRange:
@@ -1257,7 +1322,7 @@ class TestCustomDateRange:
         # https://github.com/pandas-dev/pandas/issues/24110
         start, end = start_end
         result = date_range(start=start, end=end, periods=2, inclusive="left")
-        expected = DatetimeIndex([start], dtype="M8[ns, UTC]")
+        expected = DatetimeIndex([start], dtype="M8[us, UTC]")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1275,7 +1340,7 @@ class TestCustomDateRange:
     def test_range_with_timezone_and_custombusinessday(self, start, period, expected):
         # GH49441
         result = date_range(start=start, periods=period, freq="C")
-        expected = DatetimeIndex(expected).as_unit("ns")
+        expected = DatetimeIndex(expected).as_unit("us")
         tm.assert_index_equal(result, expected)
 
     def test_data_range_custombusinessday_partial_time(self, unit):
@@ -1316,7 +1381,7 @@ class TestCustomDateRange:
                 "2009-03-13 15:00:00",
                 "2009-03-13 16:00:00",
             ],
-            dtype="datetime64[ns]",
+            dtype="datetime64[us]",
             freq="cbh",
         )
         tm.assert_index_equal(result, expected)
@@ -1389,7 +1454,7 @@ class TestDateRangeNonNano:
 
         exp = np.arange(
             start.astype("M8[s]").view("i8"),
-            (end + 1).astype("M8[s]").view("i8"),
+            (end + np.timedelta64(1, "D")).astype("M8[s]").view("i8"),
             24 * 3600,
         ).view("M8[s]")
 
@@ -1814,3 +1879,118 @@ class TestDateRangeNonTickFreq:
             "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
         ).tz_localize(tz, nonexistent="shift_forward")
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq, start, end, expected_dates",
+        [
+            (
+                "MS",
+                "2020-02-01 15:00",
+                "2020-05-01 01:00",
+                [
+                    "2020-02-01 15:00",
+                    "2020-03-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-05-01 15:00",
+                ],
+            ),
+            (
+                "ME",
+                "2020-01-31 15:00",
+                "2020-04-30 01:00",
+                [
+                    "2020-01-31 15:00",
+                    "2020-02-29 15:00",
+                    "2020-03-31 15:00",
+                    "2020-04-30 15:00",
+                ],
+            ),
+            (
+                "QS",
+                "2020-01-01 15:00",
+                "2020-10-01 01:00",
+                [
+                    "2020-01-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-07-01 15:00",
+                    "2020-10-01 15:00",
+                ],
+            ),
+            (
+                "YS",
+                "2020-01-01 15:00",
+                "2023-01-01 01:00",
+                [
+                    "2020-01-01 15:00",
+                    "2021-01-01 15:00",
+                    "2022-01-01 15:00",
+                    "2023-01-01 15:00",
+                ],
+            ),
+            (
+                "-1MS",
+                "2020-05-01 15:00",
+                "2020-02-01 01:00",
+                [
+                    "2020-05-01 15:00",
+                    "2020-04-01 15:00",
+                    "2020-03-01 15:00",
+                    "2020-02-01 15:00",
+                ],
+            ),
+        ],
+    )
+    def test_date_range_end_time_earlier_than_start_time(
+        self, unit, freq, start, end, expected_dates
+    ):
+        # GH#35342 - end's time-of-day should not cause the last offset
+        # boundary to be excluded
+        result = date_range(start, end, freq=freq, unit=unit)
+        expected = DatetimeIndex(expected_dates, dtype=f"M8[{unit}]", freq=freq)
+        tm.assert_index_equal(result, expected)
+
+
+class TestDateRangeUnitInference:
+    def test_date_range_unit_inference_matching_unit(self, unit):
+        start = Timestamp("2025-11-25").as_unit(unit)
+        end = Timestamp("2025-11-26").as_unit(unit)
+
+        dti = date_range(start, end, freq="D")
+        assert dti.unit == unit
+
+    def test_date_range_unit_inference_mismatched_unit(self, unit):
+        start = Timestamp("2025-11-25").as_unit(unit)
+        end = Timestamp("2025-11-26").as_unit("s")
+
+        dti = date_range(start, end, freq="D")
+        assert dti.unit == unit
+
+        dti = date_range(start, end.as_unit("ns"), freq="D")
+        assert dti.unit == "ns"
+
+    def test_date_range_unit_inference_tick(self):
+        start = Timestamp("2025-11-25").as_unit("ms")
+        end = Timestamp("2025-11-26").as_unit("s")
+
+        dti = date_range(start, end, freq="2000000us")
+        assert dti.unit == "us"
+
+        dti = date_range(start, end.as_unit("ns"), freq="2000000us")
+        assert dti.unit == "ns"
+
+    def test_date_range_unit_inference_dateoffset_freq(self):
+        start = Timestamp("2025-11-25 09:00:00").as_unit("s")
+        end = Timestamp("2025-11-25 09:00:02").as_unit("s")
+
+        off = DateOffset(microseconds=2_000_000)
+        dti = date_range(start, end, freq=off)
+        assert dti.unit == "us"
+
+        off = DateOffset(milliseconds=2)
+        dti = date_range(start, end, freq=off)
+        assert dti.unit == "ms"
+
+        end2 = start + Timedelta(microseconds=2).as_unit("us")
+        off = DateOffset(nanoseconds=2)
+        dti = date_range(start, end2, freq=off)
+        assert dti.unit == "ns"

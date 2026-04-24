@@ -343,12 +343,14 @@ integer_dtypes: list = []
 
 @pytest.mark.parametrize(
     "dtype",
-    integer_dtypes
-    + [pd.Series([1, 2])]
-    + tm.ALL_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES)
-    + tm.ALL_INT_EA_DTYPES
-    + to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
+    [
+        *integer_dtypes,
+        pd.Series([1, 2]),
+        *tm.ALL_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES),
+        *tm.ALL_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
+    ],
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -363,7 +365,7 @@ def test_is_integer_dtype(dtype):
         np.timedelta64,
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
-        np.array([], dtype=np.timedelta64),
+        np.array([], dtype="m8[ns]"),
     ],
 )
 def test_is_not_integer_dtype(dtype):
@@ -375,12 +377,14 @@ signed_integer_dtypes: list = []
 
 @pytest.mark.parametrize(
     "dtype",
-    signed_integer_dtypes
-    + [pd.Series([1, 2])]
-    + tm.SIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
-    + tm.SIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+    [
+        *signed_integer_dtypes,
+        pd.Series([1, 2]),
+        *tm.SIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES),
+        *tm.SIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -395,12 +399,12 @@ def test_is_signed_integer_dtype(dtype):
         np.timedelta64,
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
-        np.array([], dtype=np.timedelta64),
-    ]
-    + tm.UNSIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
-    + tm.UNSIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+        np.array([], dtype="m8[ns]"),
+        *tm.UNSIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES),
+        *tm.UNSIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
@@ -411,12 +415,14 @@ unsigned_integer_dtypes: list = []
 
 @pytest.mark.parametrize(
     "dtype",
-    unsigned_integer_dtypes
-    + [pd.Series([1, 2], dtype=np.uint32)]
-    + tm.UNSIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
-    + tm.UNSIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+    [
+        *unsigned_integer_dtypes,
+        pd.Series([1, 2], dtype=np.uint32),
+        *tm.UNSIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES),
+        *tm.UNSIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -431,12 +437,12 @@ def test_is_unsigned_integer_dtype(dtype):
         np.timedelta64,
         pd.Index([1, 2.0]),
         np.array(["a", "b"]),
-        np.array([], dtype=np.timedelta64),
-    ]
-    + tm.SIGNED_INT_NUMPY_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
-    + tm.SIGNED_INT_EA_DTYPES
-    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+        np.array([], dtype="m8[ns]"),
+        *tm.SIGNED_INT_NUMPY_DTYPES,
+        *to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES),
+        *tm.SIGNED_INT_EA_DTYPES,
+        *to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
+    ],
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
@@ -523,9 +529,12 @@ def test_is_datetime64_ns_dtype():
     assert not com.is_datetime64_ns_dtype(DatetimeTZDtype("us", "US/Eastern"))
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
+)
 def test_is_timedelta64_ns_dtype():
     assert not com.is_timedelta64_ns_dtype(np.dtype("m8[ps]"))
-    assert not com.is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
+    assert not com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8"))
 
     assert com.is_timedelta64_ns_dtype(np.dtype("m8[ns]"))
     assert com.is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
@@ -560,7 +569,7 @@ def test_is_numeric_dtype():
     assert not com.is_numeric_dtype(np.datetime64)
     assert not com.is_numeric_dtype(np.timedelta64)
     assert not com.is_numeric_dtype(np.array(["a", "b"]))
-    assert not com.is_numeric_dtype(np.array([], dtype=np.timedelta64))
+    assert not com.is_numeric_dtype(np.array([], dtype="m8[ns]"))
 
     assert com.is_numeric_dtype(int)
     assert com.is_numeric_dtype(float)
@@ -580,6 +589,7 @@ def test_is_numeric_dtype():
         def construct_array_type(self):
             raise NotImplementedError
 
+        @property
         def _is_numeric(self) -> bool:
             return True
 
@@ -711,6 +721,10 @@ def test_get_dtype(input_param, result):
         # numpy dev changed from double-quotes to single quotes
         ("random string", "data type [\"']random string[\"'] not understood"),
         (pd.DataFrame([1, 2]), "data type not understood"),
+        (
+            np.typing.NDArray[np.float32],
+            "data type not understood|Cannot interpret.*numpy.*as a data type",
+        ),
     ],
 )
 def test_get_dtype_fails(input_param, expected_error_message):

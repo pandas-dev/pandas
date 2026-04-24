@@ -702,7 +702,7 @@ of length "1".
     df.at["h", "cats"]  # returns a string
 
 .. note::
-    The is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
+    This is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
     returns a single value ``factor``.
 
 To get a single value ``Series`` of type ``category``, you pass in a list with
@@ -889,7 +889,7 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
-using the ``ignore_ordered=True`` argument.
+using the ``ignore_order=True`` argument.
 
 .. ipython:: python
 
@@ -1147,34 +1147,3 @@ Setting the index will create a ``CategoricalIndex``:
     df.index
     # This now sorts by the categories order
     df.sort_index()
-
-Side effects
-~~~~~~~~~~~~
-
-Constructing a ``Series`` from a ``Categorical`` will not copy the input
-``Categorical``. This means that changes to the ``Series`` will in most cases
-change the original ``Categorical``:
-
-.. ipython:: python
-
-    cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
-    s = pd.Series(cat, name="cat")
-    cat
-    s.iloc[0:2] = 10
-    cat
-
-Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:
-
-.. ipython:: python
-
-    cat = pd.Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
-    s = pd.Series(cat, name="cat", copy=True)
-    cat
-    s.iloc[0:2] = 10
-    cat
-
-.. note::
-
-    This also happens in some cases when you supply a NumPy array instead of a ``Categorical``:
-    using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behavior, while using
-    a string array (e.g. ``np.array(["a","b","c","a"])``) will not.

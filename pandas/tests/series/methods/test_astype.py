@@ -257,7 +257,7 @@ class TestAstype:
         assert ser.dtype == np.object_
 
     def test_astype_datetime64tz(self):
-        ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
+        ser = Series(date_range("20130101", periods=3, tz="US/Eastern", unit="ns"))
 
         # astype
         result = ser.astype(object)
@@ -283,7 +283,9 @@ class TestAstype:
             Series(ser.values).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
-        expected = Series(date_range("20130101 06:00:00", periods=3, tz="CET"))
+        expected = Series(
+            date_range("20130101 06:00:00", periods=3, tz="CET", unit="ns")
+        )
         tm.assert_series_equal(result, expected)
 
     def test_astype_str_cast_dt64(self):
@@ -508,7 +510,7 @@ class TestAstypeString:
             ([1, None], "UInt16"),
             (["1/1/2021", "2/1/2021"], "period[M]"),
             (["1/1/2021", "2/1/2021", NaT], "period[M]"),
-            (["1 Day", "59 Days", NaT], "timedelta64[ns]"),
+            (["1 Day", "59 Days", NaT], "timedelta64[us]"),
             # currently no way to parse IntervalArray from a list of strings
         ],
     )
@@ -682,3 +684,26 @@ class TestAstypeCategorical:
         result = ser.astype("string[pyarrow]")
         expected = Series(["12", NA], dtype="string[pyarrow]")
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])
+def test_astype_to_datetimelike_unit(arr_dtype, kind, unit):
+    # GH#19223
+    dtype = f"{kind}8[{unit}]"
+    arr = np.array([1, 2, 3], dtype=arr_dtype)
+    ser = Series(arr)
+    result = ser.astype(dtype)
+
+    expected = Series(arr.astype(dtype))
+
+    if unit in ["ns", "us", "ms", "s"]:
+        assert result.dtype == dtype
+        assert expected.dtype == dtype
+    else:
+        # Otherwise we cast to nearest-supported unit, i.e. seconds
+        assert result.dtype == f"{kind}8[s]"
+        assert expected.dtype == f"{kind}8[s]"
+
+    tm.assert_series_equal(result, expected)

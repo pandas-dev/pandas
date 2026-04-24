@@ -8,7 +8,10 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -466,7 +469,9 @@ def test_agg_tzaware_non_datetime_result(as_period):
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected = Series(
+        [pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b", dtype="m8[us]"
+    )
     expected.index.name = "a"
     if as_period:
         expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
@@ -614,7 +619,9 @@ def test_agg_lambda_with_timezone():
             ],
         }
     )
-    result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("tag").agg({"date": lambda e: e.head(1)})
     expected = DataFrame(
         [pd.Timestamp("2018-01-01", tz="UTC")],
         index=Index([1], name="tag"),

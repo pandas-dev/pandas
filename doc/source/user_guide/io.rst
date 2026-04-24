@@ -251,7 +251,7 @@ skip_blank_lines : boolean, default ``True``
 Datetime handling
 +++++++++++++++++
 
-parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
+parse_dates : boolean or list of ints or names, default ``False``.
   * If ``True`` -> try parsing the index.
   * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
     column.
@@ -786,9 +786,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    # These are Python datetime objects
    df.index
 
-It is often the case that we may want to store date and time data separately,
-or store various date fields separately. the ``parse_dates`` keyword can be
-used to specify columns to parse the dates and/or times.
+The ``parse_dates`` keyword can be used to specify columns to parse as dates.
 
 
 .. note::
@@ -813,9 +811,9 @@ Performance-wise, you should try these methods of parsing dates in order:
 1. If you know the format, use ``date_format``, e.g.:
    ``date_format="%d/%m/%Y"`` or ``date_format={column_name: "%d/%m/%Y"}``.
 
-2. If you different formats for different columns, or want to pass any extra options (such
-   as ``utc``) to ``to_datetime``, then you should read in your data as ``object`` dtype, and
-   then use ``to_datetime``.
+2. If the source CSV uses different formats for different columns, or you want to pass
+   any extra options (such as ``utc``) to ``to_datetime``, then you should read in your
+   data as ``object`` dtype, and then use ``to_datetime``.
 
 
 .. _io.csv.mixed_timezones:
@@ -943,6 +941,10 @@ opened in text or binary mode.
 Specifying method for floating-point conversion
 '''''''''''''''''''''''''''''''''''''''''''''''
 
+.. deprecated:: 3.1.0
+   The ``float_precision`` parameter is deprecated. All float precision
+   modes now use the same converter.
+
 The parameter ``float_precision`` can be specified in order to use
 a specific floating-point converter during parsing with the C engine.
 The options are the ordinary converter, the high-precision converter, and
@@ -959,17 +961,6 @@ writing to a file). For example:
            engine="c",
            float_precision=None,
        )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(
-           StringIO(data),
-           engine="c",
-           float_precision="high",
-       )["c"][0] - float(val)
-   )
-   abs(
-       pd.read_csv(StringIO(data), engine="c", float_precision="round_trip")["c"][0]
-       - float(val)
    )
 
 
@@ -3987,6 +3978,14 @@ the high performance HDF5 format using the excellent `PyTables
 <https://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
+.. note::
+
+   pandas reads and writes HDF5 files using a pandas-specific layout built on
+   top of PyTables. :func:`read_hdf` and :class:`HDFStore` are intended for
+   round-tripping pandas objects and **do not read arbitrary HDF5 files**, such
+   as those produced directly by ``h5py`` or plain PyTables. To work with
+   general HDF5 files, use ``h5py`` or ``PyTables`` directly.
+
 .. warning::
 
    pandas uses PyTables for reading and writing HDF5 files, which allows
@@ -4080,7 +4079,15 @@ similar to how ``read_csv`` and ``to_csv`` work.
    os.remove("store_tl.h5")
 
 
-HDFStore will by default not drop rows that are all missing. This behavior can be changed by setting ``dropna=True``.
+HDFStore will by default not drop rows that are all missing. To drop all-NaN
+rows before writing, use :meth:`DataFrame.dropna` before calling
+:meth:`~DataFrame.to_hdf`.
+
+.. deprecated:: 3.1.0
+   The ``dropna`` keyword in :meth:`~DataFrame.to_hdf`, :meth:`HDFStore.put`,
+   :meth:`HDFStore.append`, and :meth:`HDFStore.append_to_multiple`, and the
+   ``io.hdf.dropna_table`` option are deprecated. Use :meth:`DataFrame.dropna`
+   before writing instead.
 
 
 .. ipython:: python
@@ -4097,8 +4104,8 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
 
    pd.read_hdf("file.h5", "df_with_missing")
 
-   df_with_missing.to_hdf(
-       "file.h5", key="df_with_missing", format="table", mode="w", dropna=True
+   df_with_missing.dropna(how="all").to_hdf(
+       "file.h5", key="df_with_missing", format="table", mode="w"
    )
    pd.read_hdf("file.h5", "df_with_missing")
 
@@ -4193,7 +4200,7 @@ everything in the sub-store and **below**, so be *careful*.
 
 .. ipython:: python
 
-   store.put("foo/bar/bah", df)
+   store.put("foo/bar/bah", df, track_times=False)
    store.append("food/orange", df)
    store.append("food/apple", df)
    store
@@ -4308,7 +4315,7 @@ storing/selecting from homogeneous index ``DataFrames``.
    store.select("df_mi", "foo=bar")
 
 .. note::
-   The ``index`` keyword is reserved and cannot be use as a level name.
+   The ``index`` keyword is reserved and cannot be used as a level name.
 
 .. _io.hdf5-query:
 
@@ -5249,7 +5256,7 @@ more columns in the output file. For example, this code:
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
-    df.to_parquet("test.parquet", engine="pyarrow")
+    df.to_parquet("test.parquet")
 
 creates a parquet file with *three* columns (``a``, ``b``, and
 ``__index_level_0__`` when using the ``pyarrow`` engine, or ``index``, ``a``,
@@ -5292,7 +5299,7 @@ Parquet supports partitioning of data based on the values of one or more columns
 .. ipython:: python
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
-    df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)
+    df.to_parquet(path="test", partition_cols=["a"], compression=None)
 
 The ``path`` specifies the parent directory to which data will be saved.
 The ``partition_cols`` are the column names by which the dataset will be partitioned.
@@ -6175,7 +6182,7 @@ is lost when exporting.
 
     *Stata* only supports string value labels, and so ``str`` is called on the
     categories when exporting data.  Exporting ``Categorical`` variables with
-    non-string categories produces a warning, and can result a loss of
+    non-string categories produces a warning, and can result in a loss of
     information if the ``str`` representations of the categories are not unique.
 
 Labeled data can similarly be imported from *Stata* data files as ``Categorical``

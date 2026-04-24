@@ -7,6 +7,9 @@ DataFrame
 =========
 .. currentmodule:: pandas
 
+.. note::
+   For an introduction to using DataFrames, see :ref:`basics`.
+
 Constructor
 ~~~~~~~~~~~
 .. autosummary::
@@ -272,7 +275,7 @@ Flags
 ~~~~~
 
 Flags refer to attributes of the pandas object. Properties of the dataset (like
-the date is was recorded, the URL it was accessed from, etc.) should be stored
+the date it was recorded, the URL it was accessed from, etc.) should be stored
 in :attr:`DataFrame.attrs`.
 
 .. autosummary::
@@ -360,6 +363,7 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
+   DataFrame.from_arrow
    DataFrame.from_dict
    DataFrame.from_records
    DataFrame.to_orc

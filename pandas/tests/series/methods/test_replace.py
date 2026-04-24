@@ -1,8 +1,10 @@
+from datetime import datetime
 import re
 
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -228,7 +230,7 @@ class TestSeriesReplace:
         # test an object with dates + floats + integers + strings
         dr = pd.Series(pd.date_range("1/1/2001", "1/10/2001", freq="D"))
         result = dr.astype(object).replace([dr[0], dr[1], dr[2]], [1.0, 2, "a"])
-        expected = pd.Series([1.0, 2, "a"] + dr[3:].tolist(), dtype=object)
+        expected = pd.Series([1.0, 2, "a", *dr[3:].tolist()], dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_replace_bool_with_string_no_op(self):
@@ -724,6 +726,13 @@ class TestSeriesReplace:
         expected = pd.Series([pd.NA, pd.NA])
         tm.assert_series_equal(result, expected)
 
+    def test_replace_mixed_types_with_none(self):
+        # GH#29813
+        df = pd.Series([np.nan, 1, "foo"])
+        result = df.replace({np.nan: None})
+        expected = pd.Series([None, 1, "foo"])
+        tm.assert_series_equal(result, expected)
+
 
 @td.skip_if_no("pyarrow")
 def test_replace_from_index():
@@ -732,3 +741,10 @@ def test_replace_from_index():
     expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
     result = pd.Series(idx).replace({"z": "b", "a": "d"})
     tm.assert_series_equal(result, expected)
+
+
+def test_replace_datetime_out_of_bounds_for_ns():
+    # GH#61671
+    ser = pd.Series([np.nan], dtype="datetime64[ns]")
+    with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+        ser.replace(np.nan, datetime(3000, 1, 1))

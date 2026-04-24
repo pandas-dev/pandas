@@ -43,6 +43,7 @@ from pandas import (
 )
 import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
+from pandas.core.col import Expression
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -108,7 +109,7 @@ def cut(
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
-    duplicates : {default 'raise', 'drop'}, optional
+    duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
@@ -157,7 +158,7 @@ def cut(
     ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
     to some predefined methods.
 
-    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+    See :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
     Examples
     --------
@@ -342,7 +343,8 @@ def qcut(
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
+    See :ref:`the user guide <reshaping.tile>` for more examples.
 
     Examples
     --------
@@ -359,6 +361,10 @@ def qcut(
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
     """
+    if isinstance(x, Expression):
+        return x._call_with_func(
+            qcut, x=x, q=q, labels=labels, retbins=retbins, precision=precision
+        )
     original = x
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
@@ -402,7 +408,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     rng = (x_idx.min(), x_idx.max())
     mn, mx = rng
 
-    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):
+    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):  # type: ignore[call-overload]
         # GH#24314
         raise ValueError(
             "cannot specify integer `bins` when input data contains infinity"
@@ -419,11 +425,15 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
-                start=mn - td, end=mx + td, periods=nbins + 1, freq=None, unit=unit
+                start=mn - td,  # type: ignore[operator]
+                end=mx + td,  # type: ignore[operator]
+                periods=nbins + 1,
+                freq=None,
+                unit=unit,
             )
         else:
-            mn -= 0.001 * abs(mn) if mn != 0 else 0.001
-            mx += 0.001 * abs(mx) if mx != 0 else 0.001
+            mn -= 0.001 * abs(mn) if mn != 0 else 0.001  # type: ignore[operator, arg-type]
+            mx += 0.001 * abs(mx) if mx != 0 else 0.001  # type: ignore[operator, arg-type]
 
             bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
     else:  # adjust end points after binning
@@ -439,14 +449,14 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
                 start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
         else:
-            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
-        adj = (mx - mn) * 0.001  # 0.1% of the range
+            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)  # type: ignore[call-overload]
+        adj = (mx - mn) * 0.001  # type: ignore[operator]  # 0.1% of the range
         if right:
             bins[0] -= adj
         else:
             bins[-1] += adj
 
-    return Index(bins)
+    return Index(bins, copy=False)
 
 
 def _bins_to_cuts(
@@ -527,11 +537,10 @@ def _bins_to_cuts(
                 "labels must be unique if ordered=True; pass ordered=False "
                 "for duplicate labels"
             )
-        else:
-            if len(labels) != len(bins) - 1:
-                raise ValueError(
-                    "Bin labels must be one fewer than the number of bin edges"
-                )
+        elif len(labels) != len(bins) - 1:
+            raise ValueError(
+                "Bin labels must be one fewer than the number of bin edges"
+            )
 
         if not isinstance(getattr(labels, "dtype", None), CategoricalDtype):
             labels = Categorical(
@@ -571,13 +580,13 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     # https://github.com/pandas-dev/pandas/issues/31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
         x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
-        x = Index(x_arr)
+        x = Index(x_arr, copy=False)
 
     return Index(x), dtype
 
 
 def _is_dt_or_td(dtype: DtypeObj) -> bool:
-    # Note: the dtype here comes from an Index.dtype, so we know that that any
+    # Note: the dtype here comes from an Index.dtype, so we know that any
     #  dt64/td64 dtype is of a supported unit.
     return isinstance(dtype, DatetimeTZDtype) or lib.is_np_dtype(dtype, "mM")
 
@@ -631,7 +640,7 @@ def _preprocess_for_cut(x) -> Index:
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return Index(x)
+    return Index(x, copy=False)
 
 
 def _postprocess_for_cut(fac, bins, retbins: bool, original):

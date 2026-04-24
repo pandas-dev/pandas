@@ -152,6 +152,16 @@ class TestPreserves:
         result = pd.concat(objs, **kwargs)
         assert result.flags.allows_duplicate_labels is False
 
+    def test_concat_mixed_allows_duplicate_labels(self):
+        # GH#57431 - when any input has allows_duplicate_labels=False,
+        # the result should also have it False
+        df_no_dups = pd.DataFrame({"A": [1, 2]}).set_flags(
+            allows_duplicate_labels=False
+        )
+        df_allows_dups = pd.DataFrame({"A": [3, 4]})
+        result = pd.concat([df_no_dups, df_allows_dups], ignore_index=True)
+        assert result.flags.allows_duplicate_labels is False
+
     @pytest.mark.parametrize(
         "left, right, expected",
         [
@@ -187,7 +197,7 @@ class TestPreserves:
 
     @not_implemented
     def test_groupby(self):
-        # XXX: This is under tested
+        # Note: This is under tested
         # TODO:
         #  - apply
         #  - transform
@@ -380,11 +390,11 @@ def test_inplace_raises(method, frame_only):
             method(s)
 
 
-def test_pickle():
+def test_pickle(temp_file):
     a = pd.Series([1, 2]).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, temp_file)
     tm.assert_series_equal(a, b)
 
     a = pd.DataFrame({"A": []}).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, temp_file)
     tm.assert_frame_equal(a, b)

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -21,7 +22,7 @@ from pandas.core.indexes.datetimes import date_range
 def test_frame():
     return DataFrame(
         {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
-        index=date_range("1/1/2000", freq="s", periods=40),
+        index=date_range("1/1/2000", freq="s", periods=40, unit="ns"),
     )
 
 
@@ -178,7 +179,7 @@ def test_groupby_with_origin():
 def test_nearest():
     # GH 17496
     # Resample nearest
-    index = date_range("1/1/2000", periods=3, freq="min")
+    index = date_range("1/1/2000", periods=3, freq="min", unit="ns")
     result = Series(range(3), index=index).resample("20s").nearest()
 
     expected = Series(
@@ -257,7 +258,9 @@ def test_apply(test_frame):
     def f_0(x):
         return x.resample("2s").sum()
 
-    result = r.apply(f_0)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = r.apply(f_0)
     tm.assert_frame_equal(result, expected)
 
     def f_1(x):
@@ -464,7 +467,7 @@ def test_empty(keys):
 def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     # https://github.com/pandas-dev/pandas/issues/39329
 
-    dates = date_range("2020-01-01", periods=15, freq="D")
+    dates = date_range("2020-01-01", periods=15, freq="D", unit="ns")
     df1 = DataFrame({"key": "A", "date": dates, "col1": range(15), "col_object": "val"})
     df2 = DataFrame({"key": "B", "date": dates, "col1": range(15)})
     df = pd.concat([df1, df2], ignore_index=True)
@@ -502,7 +505,7 @@ def test_groupby_resample_empty_sum_string(
     result = gbrs.sum(min_count=min_count)
 
     index = pd.MultiIndex(
-        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns")]],
+        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns").as_unit("ns")]],
         codes=[[0, 1, 2], [0, 0, 0]],
         names=["A", None],
     )
@@ -586,7 +589,7 @@ def test_groupby_resample_size_all_index_same():
     # GH 46826
     df = DataFrame(
         {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
-        index=date_range("31/12/2000 18:00", freq="h", periods=12),
+        index=date_range("31/12/2000 18:00", freq="h", periods=12, unit="ns"),
     )
     result = df.groupby("A").resample("D").size()
 
