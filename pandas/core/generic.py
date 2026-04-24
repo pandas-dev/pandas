@@ -7214,6 +7214,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self
         else:
             return result.__finalize__(self, method="fillna")
+
     @final
     def ffill(
         self,
