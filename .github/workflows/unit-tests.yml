@@ -247,7 +247,7 @@ jobs:
             --environment ${{ matrix.environment }} \
             build-pandas \
             --editable \
-            -Csetup-args="--werror"
+            "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
         shell: bash -euox pipefail {0}
 
       - name: Test
@@ -337,6 +337,33 @@ jobs:
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
+      cancel-in-progress: true
+
+  Windows-MinGW:
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Create virtual environment with Pixi
+        uses: ./.github/actions/setup-pixi
+        with:
+          environment: mingw
+
+      - name: Build pandas
+        id: build
+        run: |
+          pixi run \
+            --environment mingw \
+            build-pandas \
+            --editable \
+            -Csetup-args="--werror"
+    concurrency:
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-mingw
       cancel-in-progress: true
 
   python-dev:

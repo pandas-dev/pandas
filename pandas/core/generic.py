@@ -2683,6 +2683,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
+        .. note::
+
+           Files produced by this method use a pandas-specific layout on top
+           of PyTables and are intended to be read back with :func:`read_hdf`
+           or :class:`HDFStore`. They are valid HDF5 files but are not a
+           general-purpose interchange format for arbitrary HDF5 consumers.
+
         .. warning::
 
            One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,

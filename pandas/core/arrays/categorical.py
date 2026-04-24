@@ -559,7 +559,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "ignore",
                 "Constructing a Categorical with a dtype and values containing",
             )
-            cat = type(self)._from_sequence(res, dtype=self.dtype)
+            try:
+                cat = type(self)._from_sequence(res, dtype=self.dtype)
+            except (TypeError, ValueError):
+                return res
         if (cat.isna() == isna(res)).all():
             # i.e. the conversion was non-lossy
             return cat

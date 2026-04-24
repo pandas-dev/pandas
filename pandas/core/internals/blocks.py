@@ -657,7 +657,12 @@ class Block(PandasObject, libinternals.Block):
         values = self.values
         refs: BlockValuesRefs | None
         if deep:
-            values = values.copy()
+            if isinstance(values, np.ndarray):
+                # "K" preserves memory layout; default "C" flips contiguity
+                # for non-C-order blocks (GH#60469).
+                values = values.copy(order="K")
+            else:
+                values = values.copy()
             refs = None
         else:
             values = values.view()

@@ -1628,7 +1628,7 @@ This enables nice expressions like this:
 
    s[s.dt.day == 2]
 
-You can easily produces tz aware transformations:
+You can easily produce tz aware transformations:
 
 .. ipython:: python
 

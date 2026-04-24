@@ -153,7 +153,6 @@ tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
-setup = ['--vsenv'] # For Windows
 dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
@@ -169,6 +168,7 @@ test-command = """
   """
 
 [tool.cibuildwheel.windows]
+config-settings = { setup-args = ["--vsenv"] }
 environment = {}
 before-build = "python -m pip install delvewheel"
 # powershell needs to swap quotes?
