@@ -37,6 +37,7 @@ Other enhancements
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
+- Wheels now include a `PEP 770 <https://peps.python.org/pep-0770/>`_ Software Bill of Materials (SBOM) in CycloneDX format at ``<distname>-<version>.dist-info/sboms/pandas.cdx.json``, describing vendored source-level components. Generated at build time from ``LICENSES/vendored.toml`` (:issue:`63479`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.notable_bug_fixes:
