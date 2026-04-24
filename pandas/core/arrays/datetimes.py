@@ -3189,13 +3189,6 @@ def _generate_range(
     else:
         end = None
 
-    # GH #64834 FIX for bdate_range regression
-    if end is not None and periods is not None and not offset.is_on_offset(end):
-        if offset.n >= 0:
-            end = offset.rollback(end)  # type: ignore[assignment]
-        else:
-            end = offset.rollforward(end)  # type: ignore[assignment]
-
     if start and not offset.is_on_offset(start):
         # Incompatible types in assignment (expression has type "datetime",
         # variable has type "Optional[Timestamp]")
