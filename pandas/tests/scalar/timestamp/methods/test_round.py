@@ -199,7 +199,7 @@ class TestTimestampRound:
 
         if frequency is NaT:
             with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-                timestamp.ceil(frequency)  # type: ignore[arg-type]
+                timestamp.round(frequency)  # type: ignore[arg-type]
         elif timestamp is NaT:
             # Note: need ignore[arg-type] since mypy doesn't narrow frequency
             assert timestamp.round(frequency) is NaT  # type: ignore[arg-type]
@@ -217,7 +217,7 @@ class TestTimestampRound:
 
         if frequency is NaT:
             with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-                timestamp.ceil(frequency)  # type: ignore[arg-type]
+                timestamp.floor(frequency)  # type: ignore[arg-type]
         elif timestamp is NaT:
             # Note: need ignore[arg-type] since mypy doesn't narrow frequency
             assert timestamp.floor(frequency) is NaT  # type: ignore[arg-type]
