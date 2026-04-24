@@ -1550,9 +1550,16 @@ def test_apply_as_index_false_empty_index_name():
     empty_df = df.iloc[:0]
     result_empty = empty_df.groupby("A", as_index=False).apply(lambda x: x)
 
-    assert result.index.names == [None]
-    assert result_empty.index.names == result.index.names, (
-        f"empty_names={result_empty.index.names}, "
-        f"nonempty_names={result.index.names}, "
-        f"empty_index_name={result_empty.index.name}"
+    expected = DataFrame(
+        {"B": [9, 9, 9]},
+        index=Index([0, 1, 2], dtype="int64"),
     )
+    expected.index.name = None
+    tm.assert_frame_equal(result, expected)
+
+    expected_empty = DataFrame(
+        {"B": Series([], dtype="int64")},
+        index=Index([], dtype="int64"),
+    )
+    expected_empty.index.name = None
+    tm.assert_frame_equal(result_empty, expected_empty)
