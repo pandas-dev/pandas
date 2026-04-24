@@ -1995,6 +1995,11 @@ class TextFileReader(abc.Iterator):
         """
         Read rows from the file into a :class:`DataFrame`.
 
+        Advances the internal cursor by the number of rows returned, so
+        successive calls yield later rows of the file. Used with readers
+        created via :func:`read_csv` or :func:`read_table` with
+        ``iterator=True`` or ``chunksize`` set.
+
         Parameters
         ----------
         nrows : int, optional
@@ -2090,6 +2095,11 @@ class TextFileReader(abc.Iterator):
     def get_chunk(self, size: int | None = None) -> DataFrame:
         """
         Read the next chunk of rows from the file.
+
+        Convenience wrapper around :meth:`TextFileReader.read` that defaults
+        ``size`` to the ``chunksize`` passed to :func:`read_csv` or
+        :func:`read_table`, and respects a configured ``nrows`` limit by
+        raising ``StopIteration`` once it has been reached.
 
         Parameters
         ----------
