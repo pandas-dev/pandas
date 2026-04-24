@@ -157,8 +157,9 @@ dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
-build-verbosity = 3
+build-verbosity = 1
 build-frontend = "pip"
+config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
