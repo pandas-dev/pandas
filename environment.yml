@@ -43,7 +43,8 @@ dependencies:
   - openpyxl>=3.1.5
   - odfpy>=1.4.1
   - psycopg2>=2.9.10
-  - pyarrow>=13.0.0
+  # TMP avoid pyarrow 24.0 due to typing issues (https://github.com/apache/arrow/issues/49831)
+  - pyarrow>=13.0.0,<24.0.0
   - pyiceberg>=0.8.1
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8

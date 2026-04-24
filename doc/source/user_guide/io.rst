@@ -3978,6 +3978,14 @@ the high performance HDF5 format using the excellent `PyTables
 <https://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
 
+.. note::
+
+   pandas reads and writes HDF5 files using a pandas-specific layout built on
+   top of PyTables. :func:`read_hdf` and :class:`HDFStore` are intended for
+   round-tripping pandas objects and **do not read arbitrary HDF5 files**, such
+   as those produced directly by ``h5py`` or plain PyTables. To work with
+   general HDF5 files, use ``h5py`` or ``PyTables`` directly.
+
 .. warning::
 
    pandas uses PyTables for reading and writing HDF5 files, which allows
