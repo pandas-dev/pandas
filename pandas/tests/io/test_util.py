@@ -11,6 +11,11 @@ pa = pytest.importorskip("pyarrow")
 pytz = pytest.importorskip("pytz")
 
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+
 def test_arrow_table_to_pandas_normalize_timezones():
     df = pd.DataFrame(
         {"ts": pd.date_range("2024-03-01", periods=2, tz="America/New_York")},
@@ -43,7 +48,9 @@ def test_arrow_table_to_pandas_normalize_timezones_columns():
 def test_arrow_table_to_pandas_normalize_timezones_multiindex():
     df = pd.DataFrame(
         {"ts": pd.date_range("2024-03-01", periods=2, tz="America/New_York")},
-    ).set_index("ts", append=True, drop=False)
+    )
+    df.index.name = "index"
+    df = df.set_index("ts", append=True, drop=False)
     expected = df.copy()
 
     table = pa.Table.from_pandas(df)
