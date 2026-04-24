@@ -7204,7 +7204,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self.where(self.notna(), value)._mgr
         else:
             raise ValueError(
-                f"Invalid fill value: expected scalar, dict, Series or DataFrame, got {type(value).__name__}"
+                "Invalid fill value: expected scalar, dict, Series or DataFrame; "
+                f"got {type(value).__name__}"
             )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
