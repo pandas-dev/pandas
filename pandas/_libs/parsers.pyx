@@ -6,6 +6,10 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
+from datetime import (
+    timedelta,
+    timezone,
+)
 import warnings
 
 from pandas._config import is_nan_na
@@ -19,6 +23,7 @@ from pandas import (
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
+    DatetimeArray,
     FloatingArray,
     IntegerArray,
 )
@@ -101,11 +106,41 @@ from pandas.errors import (
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    npy_unit_to_abbrev,
+)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    import_pandas_datetime,
+    npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
+)
+
+import_pandas_datetime()
+
+
+cdef extern from "pandas/datetime/pd_datetime.h":
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT
+
+    int parse_iso_8601_datetime(const char *str, int length, int want_exc,
+                                npy_datetimestruct *out,
+                                NPY_DATETIMEUNIT *out_bestunit,
+                                int *out_local, int *out_tzoffset,
+                                const char *format, int format_len,
+                                FormatRequirement exact) nogil
+
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -331,6 +366,7 @@ cdef class TextReader:
         list dtype_cast_order  # list[np.dtype]
         list names   # can be None
         set noconvert  # set[int]
+        set datetime_cols  # set[int]
 
     cdef public:
         int64_t leading_cols, table_width
@@ -501,6 +537,7 @@ cdef class TextReader:
         self.dtype_backend = dtype_backend
 
         self.noconvert = set()
+        self.datetime_cols = set()
 
         self.index_col = index_col
 
@@ -904,6 +941,9 @@ cdef class TextReader:
     def remove_noconvert(self, i: int) -> None:
         self.noconvert.remove(i)
 
+    def set_datetime_convert(self, i: int) -> None:
+        self.datetime_cols.add(i)
+
     def _convert_column_data(self, rows: int | None) -> dict[int, "ArrayLike"]:
         cdef:
             int64_t i
@@ -1033,6 +1073,14 @@ cdef class TextReader:
                 return col_res, na_count
 
         if i in self.noconvert:
+            if i in self.datetime_cols:
+                # Try direct char-buffer -> datetime64 fastpath; fall back to
+                # object-strings if the input isn't ISO8601 (handled downstream
+                # by date_converter via to_datetime).
+                col_res, na_count = _datetime_box_utf8(
+                    self.parser, i, start, end, na_filter, na_hashset)
+                if col_res is not None:
+                    return col_res, na_count
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
@@ -1408,6 +1456,11 @@ def _maybe_upcast(
         #  be reached. Is that incorrect?
         return arr
 
+    if arr.dtype.kind in "Mm":
+        # datetime64/timedelta64 already carry NaT as the missing-value
+        # sentinel; no upcast is required.
+        return arr
+
     na_value = na_values[arr.dtype]
 
     if issubclass(arr.dtype.type, np.integer):
@@ -1514,6 +1567,151 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     kh_destroy_strbox(table)
 
     return result, na_count
+
+
+# -> tuple[ArrayLike, int] | tuple[None, 0]
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _datetime_box_utf8(parser_t *parser, int64_t col,
+                        int64_t line_start, int64_t line_end,
+                        bint na_filter, kh_str_starts_t *na_hashset,
+                        NPY_DATETIMEUNIT force_creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC):
+    """
+    Faster equivalent to `_string_box_utf8` + `to_datetime(..., format=None)` for
+    ISO8601-formatted datetime columns: parse each tokenized field directly
+    from the tokenizer's `const char *` buffer into a datetime64 output array,
+    skipping the intermediate object ndarray of Python strings.
+
+    `force_creso` is used during a recursive reparse triggered by mid-column
+    resolution bumps. When it is the sentinel `NPY_FR_GENERIC`, resolution is
+    inferred per-row.
+
+    Returns (result, na_count) on success, or (None, 0) to signal that the
+    caller should fall back to the object-string path.
+    """
+    cdef:
+        int na_count = 0
+        Py_ssize_t i, lines, word_len
+        coliter_t it
+        const char *word = NULL
+        ndarray result
+        int64_t[::1] iresult
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit, item_reso
+        NPY_DATETIMEUNIT creso = NPY_DATETIMEUNIT.NPY_FR_us
+        int out_local = 0, out_tzoffset = 0
+        int ret
+        bint creso_set = False
+        bint tz_set = False
+        bint saw_tz = False, saw_naive = False
+        int first_tzoffset = 0
+        int64_t offset_in_unit, tz_offset_mult
+
+    if force_creso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        creso = force_creso
+        creso_set = True
+
+    lines = line_end - line_start
+    # Output buffer holds int64s at `creso` resolution; the final dtype is
+    # assigned via a view once the final creso is known (matching
+    # array_strptime's behavior of flooring at us for ISO8601 inputs).
+    result = np.empty(lines, dtype="M8[us]")
+    iresult = result.view("i8")
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            na_count += 1
+            iresult[i] = NPY_NAT
+            continue
+
+        word_len = strlen(word)
+        if word_len == 0:
+            na_count += 1
+            iresult[i] = NPY_NAT
+            continue
+
+        ret = parse_iso_8601_datetime(
+            word, <int>word_len, 0,
+            &dts, &out_bestunit, &out_local, &out_tzoffset,
+            NULL, 0, INFER_FORMAT,
+        )
+        if ret:
+            # Not ISO8601 — signal caller to fall back to the object path.
+            return None, 0
+
+        if out_local:
+            # Tracked here so we can uniformly shift to UTC after the loop.
+            # Mixed naive+aware or differing offsets defer to the slow path,
+            # matching the existing error behavior.
+            if saw_naive:
+                return None, 0
+            if not tz_set:
+                first_tzoffset = out_tzoffset
+                tz_set = True
+            elif out_tzoffset != first_tzoffset:
+                return None, 0
+            saw_tz = True
+        else:
+            if saw_tz:
+                return None, 0
+            saw_naive = True
+
+        item_reso = get_supported_reso(out_bestunit)
+        if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+            item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+
+        if not creso_set:
+            creso = item_reso
+            creso_set = True
+        elif item_reso > creso:
+            # Higher-resolution row encountered mid-column — reparse the whole
+            # column at the new resolution. Mirrors array_strptime's recursive
+            # reparse on `creso_ever_changed` and keeps output values
+            # consistent with one another.
+            return _datetime_box_utf8(
+                parser, col, line_start, line_end,
+                na_filter, na_hashset, force_creso=item_reso,
+            )
+        # else: item_reso <= creso; fine to write at the higher creso.
+
+        try:
+            iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+        except OverflowError:
+            return None, 0
+
+    if creso_set and creso != NPY_DATETIMEUNIT.NPY_FR_us:
+        result = iresult.base.view(f"M8[{npy_unit_to_abbrev(creso)}]")
+
+    if saw_tz:
+        # Normalize each non-NaT entry to UTC by subtracting the fixed offset.
+        if creso == NPY_DATETIMEUNIT.NPY_FR_s:
+            tz_offset_mult = 60
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
+            tz_offset_mult = 60_000
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
+            tz_offset_mult = 60_000_000
+        else:  # ns
+            tz_offset_mult = 60_000_000_000
+        offset_in_unit = first_tzoffset * tz_offset_mult
+        for i in range(lines):
+            if iresult[i] != NPY_NAT:
+                iresult[i] -= offset_in_unit
+
+        if first_tzoffset == 0:
+            tz = timezone.utc
+        else:
+            tz = timezone(timedelta(minutes=first_tzoffset))
+        dtype = DatetimeTZDtype(tz=tz, unit=npy_unit_to_abbrev(creso))
+        return DatetimeArray._simple_new(result, dtype=dtype), na_count
+
+    # Wrap naive output in a DatetimeArray so that `_concatenate_chunks` in
+    # low_memory mode routes through the ExtensionArray concat path, which
+    # correctly upcasts mixed-unit datetime64 across chunks. Raw mixed-unit
+    # M8 ndarrays silently demote to object in `concat_compat`.
+    return DatetimeArray._simple_new(result, dtype=result.dtype), na_count
 
 
 @cython.wraparound(False)
