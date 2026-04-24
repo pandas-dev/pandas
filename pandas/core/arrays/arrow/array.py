@@ -2742,18 +2742,7 @@ class ArrowExtensionArray(
         if not self.dtype._is_numeric:
             raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
 
-        if (
-            method == "linear"
-            and limit_area is None
-            and limit is None
-            and limit_direction == "forward"
-        ):
-            values = self._pa_array.combine_chunks()
-            na_value = pa.array([None], type=values.type)
-            y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
-            prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
-            interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
-            return self._from_pyarrow_array(pc.coalesce(self._pa_array, interps))
+        
 
         mask = self.isna()
         if self.dtype.kind == "f":
