@@ -1,5 +1,3 @@
-from typing import NamedTuple
-
 from hypothesis import (
     given,
     strategies as st,
@@ -18,86 +16,87 @@ from pandas.errors import OutOfBoundsTimedelta
 from pandas import Timedelta
 
 
-class FrequencyRoundingCase(NamedTuple):
-    timedelta: Timedelta | NaTType
-    frequency: Timedelta | NaTType
-    expected_ceil: Timedelta | NaTType | None
-    expected_round: Timedelta | NaTType | None
-    expected_floor: Timedelta | NaTType | None
-
-
 class TestTimedeltaRound:
-    FREQUENCY_TIMEDELTA_ROUNDING_TESTS: dict[str, FrequencyRoundingCase] = {
-        "case_1": FrequencyRoundingCase(
-            timedelta=Timedelta("1001ms"),
-            frequency=Timedelta("1s"),
-            expected_ceil=Timedelta("2s"),
-            expected_round=Timedelta("1s"),
-            expected_floor=Timedelta("1s"),
+    FREQUENCY_TIMEDELTA_ROUNDING_TESTS: dict[
+        str,
+        tuple[
+            Timedelta | NaTType,  # timedelta
+            Timedelta | NaTType,  # frequency
+            Timedelta | NaTType | None,  # expected_ceil
+            Timedelta | NaTType | None,  # expected_round
+            Timedelta | NaTType | None,  # expected_floor
+        ],
+    ] = {
+        "case_1": (
+            Timedelta("1001ms"),
+            Timedelta("1s"),
+            Timedelta("2s"),
+            Timedelta("1s"),
+            Timedelta("1s"),
         ),
-        "case_2": FrequencyRoundingCase(
-            timedelta=Timedelta("1001ms"),
-            frequency=Timedelta("1ms"),
-            expected_ceil=Timedelta("1001ms"),
-            expected_round=Timedelta("1001ms"),
-            expected_floor=Timedelta("1001ms"),
+        "case_2": (
+            Timedelta("1001ms"),
+            Timedelta("1ms"),
+            Timedelta("1001ms"),
+            Timedelta("1001ms"),
+            Timedelta("1001ms"),
         ),
-        "case_3": FrequencyRoundingCase(
-            timedelta=Timedelta("1 days 2 min 3 us 42 ns"),
-            frequency=Timedelta("1s"),
-            expected_ceil=Timedelta("1 days 2 min 1s"),
-            expected_round=Timedelta("1 days 2 min"),
-            expected_floor=Timedelta("1 days 2 min"),
+        "case_3": (
+            Timedelta("1 days 2 min 3 us 42 ns"),
+            Timedelta("1s"),
+            Timedelta("1 days 2 min 1s"),
+            Timedelta("1 days 2 min"),
+            Timedelta("1 days 2 min"),
         ),
-        "case_4": FrequencyRoundingCase(
-            timedelta=Timedelta("5 hours 9 minutes 15.13 seconds"),
-            frequency=Timedelta("1 hour"),
-            expected_ceil=Timedelta("6 hours"),
-            expected_round=Timedelta("5 hours"),
-            expected_floor=Timedelta("5 hours"),
+        "case_4": (
+            Timedelta("5 hours 9 minutes 15.13 seconds"),
+            Timedelta("1 hour"),
+            Timedelta("6 hours"),
+            Timedelta("5 hours"),
+            Timedelta("5 hours"),
         ),
-        "case_5": FrequencyRoundingCase(
-            timedelta=Timedelta("5 hours 9 minutes 15.13 seconds"),
-            frequency=Timedelta("1 hour 30 min"),
-            expected_ceil=Timedelta("6 hours"),
-            expected_round=Timedelta("4 hours 30 minutes"),
-            expected_floor=Timedelta("4 hours 30 minutes"),
+        "case_5": (
+            Timedelta("5 hours 9 minutes 15.13 seconds"),
+            Timedelta("1 hour 30 min"),
+            Timedelta("6 hours"),
+            Timedelta("4 hours 30 minutes"),
+            Timedelta("4 hours 30 minutes"),
         ),
         # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
-        "aligned_15s": FrequencyRoundingCase(
-            timedelta=Timedelta("1 days 45 seconds"),
-            frequency=Timedelta("15s"),
-            expected_ceil=Timedelta("1 days 45 seconds"),
-            expected_round=Timedelta("1 days 45 seconds"),
-            expected_floor=Timedelta("1 days 45 seconds"),
+        "aligned_15s": (
+            Timedelta("1 days 45 seconds"),
+            Timedelta("15s"),
+            Timedelta("1 days 45 seconds"),
+            Timedelta("1 days 45 seconds"),
+            Timedelta("1 days 45 seconds"),
         ),
-        "floor_10ns": FrequencyRoundingCase(
-            timedelta=Timedelta("1 days 45.000000012 seconds"),
-            frequency=Timedelta("10ns"),
-            expected_ceil=Timedelta("1 days 45.000000020 seconds"),
-            expected_round=Timedelta("1 days 45.000000010 seconds"),
-            expected_floor=Timedelta("1 days 45.000000010 seconds"),
+        "floor_10ns": (
+            Timedelta("1 days 45.000000012 seconds"),
+            Timedelta("10ns"),
+            Timedelta("1 days 45.000000020 seconds"),
+            Timedelta("1 days 45.000000010 seconds"),
+            Timedelta("1 days 45.000000010 seconds"),
         ),
-        "ceil_10ns": FrequencyRoundingCase(
-            timedelta=Timedelta("1 days 1.000000012 seconds"),
-            frequency=Timedelta("10ns"),
-            expected_ceil=Timedelta("1 days 1.000000020 seconds"),
-            expected_round=Timedelta("1 days 1.000000010 seconds"),
-            expected_floor=Timedelta("1 days 1.000000010 seconds"),
+        "ceil_10ns": (
+            Timedelta("1 days 1.000000012 seconds"),
+            Timedelta("10ns"),
+            Timedelta("1 days 1.000000020 seconds"),
+            Timedelta("1 days 1.000000010 seconds"),
+            Timedelta("1 days 1.000000010 seconds"),
         ),
-        "nat_timedelta": FrequencyRoundingCase(
-            timedelta=Timedelta("NaT"),
-            frequency=Timedelta("1s"),
-            expected_ceil=NaT,
-            expected_round=NaT,
-            expected_floor=NaT,
+        "nat_timedelta": (
+            Timedelta("NaT"),
+            Timedelta("1s"),
+            NaT,
+            NaT,
+            NaT,
         ),
-        "nat_frequency": FrequencyRoundingCase(
-            timedelta=Timedelta("1001ms"),
-            frequency=Timedelta("NaT"),
-            expected_ceil=None,
-            expected_round=None,
-            expected_floor=None,
+        "nat_frequency": (
+            Timedelta("1001ms"),
+            Timedelta("NaT"),
+            None,
+            None,
+            None,
         ),
     }
 
@@ -277,10 +276,9 @@ class TestTimedeltaRound:
     @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
     def test_round_timedelta_freq(self, case: str):
         # GH#63687 - Timedelta.round accepts Timedelta arguments
-        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
-        timedelta = test_case.timedelta
-        frequency = test_case.frequency
-        expected = test_case.expected_round
+        timedelta, frequency, _, expected, _ = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
+            case
+        ]
 
         if frequency is NaT:
             with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
@@ -295,10 +293,9 @@ class TestTimedeltaRound:
     @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
     def test_floor_timedelta_freq(self, case: str):
         # GH#63687 - Timedelta.floor accepts Timedelta arguments (including edge cases)
-        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
-        timedelta = test_case.timedelta
-        frequency = test_case.frequency
-        expected = test_case.expected_floor
+        timedelta, frequency, _, _, expected = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
+            case
+        ]
 
         if frequency is NaT:
             with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
@@ -313,10 +310,9 @@ class TestTimedeltaRound:
     @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
     def test_ceil_timedelta_freq(self, case: str):
         # GH#63687 - Timedelta.ceil accepts Timedelta arguments (including edge cases)
-        test_case = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[case]
-        timedelta = test_case.timedelta
-        frequency = test_case.frequency
-        expected = test_case.expected_ceil
+        timedelta, frequency, expected, _, _ = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
+            case
+        ]
 
         if frequency is NaT:
             with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
