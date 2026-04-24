@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -559,7 +559,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "ignore",
                 "Constructing a Categorical with a dtype and values containing",
             )
-            cat = type(self)._from_sequence(res, dtype=self.dtype)
+            try:
+                cat = type(self)._from_sequence(res, dtype=self.dtype)
+            except (TypeError, ValueError):
+                return res
         if (cat.isna() == isna(res)).all():
             # i.e. the conversion was non-lossy
             return cat
@@ -2288,8 +2291,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         max_categories = (
             10
-            if _global_config["display"]["max_categories"] == 0
-            else _global_config["display"]["max_categories"]
+            if config["display"]["max_categories"] == 0
+            else config["display"]["max_categories"]
         )
         from pandas.io.formats import format as fmt
 
@@ -2324,7 +2327,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
         width, _ = get_terminal_size()
-        max_width = _global_config["display"]["width"] or width
+        max_width = config["display"]["width"] or width
         if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
@@ -2395,7 +2398,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         max_len = 10
 
         width, _ = get_terminal_size()
-        max_width = _global_config["display"]["width"] or width
+        max_width = config["display"]["width"] or width
         if console.in_ipython_frontend():
             max_width = 0
 

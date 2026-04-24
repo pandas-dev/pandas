@@ -824,7 +824,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -2779,12 +2779,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.sum : Return the sum of the values over the requested axis.
+        DataFrame.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
@@ -2988,12 +2984,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.min : Return the minimum of the values over the requested axis.
+        DataFrame.min : Return the minimum of the values over the requested axis.
 
         Examples
         --------
@@ -3109,12 +3101,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.max : Return the maximum of the values over the requested axis.
+        DataFrame.max : Return the maximum of the values over the requested axis.
 
         Examples
         --------
@@ -3435,6 +3423,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self.obj._constructor_expanddim(
                 res_values, index=self._grouper.result_index, columns=agg_names
             )
+            if not self.as_index:
+                result = result.reset_index()
             return result
 
         result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
