@@ -7203,7 +7203,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif isinstance(value, ABCDataFrame) and self.ndim == 2:
             new_data = self.where(self.notna(), value)._mgr
         else:
-            raise ValueError(f"invalid fill value with a {type(value)}")
+            raise ValueError(
+                f"Invalid fill value: expected scalar, dict, Series or DataFrame, got {type(value).__name__}"
+            )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
@@ -7211,7 +7213,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self
         else:
             return result.__finalize__(self, method="fillna")
-
     @final
     def ffill(
         self,
