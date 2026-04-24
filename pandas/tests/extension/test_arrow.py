@@ -3650,6 +3650,13 @@ def test_interpolate_linear(dtype):
     expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_interpolate_linear_forward_consecutive_nans(dtype):
+    # GH#65345 - limit_direction="forward" was leaving NAs unchanged
+    ser = pd.Series([1, 2, 3, None, None, 6, 7], dtype=dtype)
+    result = ser.interpolate(method="linear", limit_direction="forward")
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0], dtype=dtype)
+    tm.assert_series_equal(result, expected)
 
 def test_string_to_time_parsing_cast():
     # GH 56463
