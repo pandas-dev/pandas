@@ -2,6 +2,8 @@ import zoneinfo
 
 import pytest
 
+from pandas.compat import pa_version_under23p0
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -37,20 +39,23 @@ def test_arrow_table_to_pandas_normalize_timezones_columns():
         [[1, 2], [3, 4]],
         columns=pd.date_range("2024-02-01", periods=2, tz="Europe/Berlin"),
     )
+    expected = df.copy()
 
     table = pa.Table.from_pandas(df)
     result = arrow_table_to_pandas(table)
 
-    tm.assert_frame_equal(result, df)
+    if pa_version_under23p0:
+        expected.columns = expected.columns.as_unit("ns")
+
+    tm.assert_frame_equal(result, expected)
     assert isinstance(result.columns.tz, zoneinfo.ZoneInfo)
 
 
 def test_arrow_table_to_pandas_normalize_timezones_multiindex():
     df = pd.DataFrame(
         {"ts": pd.date_range("2024-03-01", periods=2, tz="America/New_York")},
-    )
-    df.index.name = "index"
-    df = df.set_index("ts", append=True, drop=False)
+        index=pd.Index([1, 2], name="index"),
+    ).set_index("ts", append=True, drop=False)
     expected = df.copy()
 
     table = pa.Table.from_pandas(df)
