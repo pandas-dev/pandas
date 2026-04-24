@@ -409,7 +409,7 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in "mM":
-        return dtype.type("NaT")
+        return dtype.type("NaT", np.datetime_data(dtype)[0])
     elif dtype.kind in "fc":
         return dtype.type("NaN")
     elif dtype.kind == "b":
