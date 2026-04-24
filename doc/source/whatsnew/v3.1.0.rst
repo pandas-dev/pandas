@@ -146,7 +146,7 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="cross"`` (:issue:`38082`)
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :func:`merge` with ``sort=False`` for single-key ``how="left"``/``how="right"`` joins when the opposite join key is sorted, unique, and range-like (:issue:`64146`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` and ``parse_dates`` for columns containing ISO8601 datetime strings, which now parse directly into ``datetime64`` without an intermediate object array of Python strings
+- Performance improvement in :func:`read_csv` with ``engine="c"`` and ``parse_dates`` for columns containing ISO8601 datetime strings, which now parse directly into ``datetime64`` without an intermediate object array of Python strings (:issue:`65353`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_html` and the Python CSV parser when ``thousands`` is set, fixing catastrophic regex backtracking on cells with many comma-separated digit groups followed by non-numeric text (:issue:`52619`)
 - Performance improvement in :func:`read_sas` by reading page header fields directly in Cython instead of falling back to Python (:issue:`47339`)
