@@ -2,7 +2,10 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.20.0,<1",
+    # TEMPORARY: pin to the meson-python fork branch that implements
+    # PEP 770 SBOM routing (mesonbuild/meson-python#843). Revert to
+    # "meson-python>=0.20.0,<1" once that PR lands in a released version.
+    "meson-python @ git+https://github.com/fangchenli/meson-python.git@feat/distinfo-placeholder",
     "meson>=1.2.3,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
