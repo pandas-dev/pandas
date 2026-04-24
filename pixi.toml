@@ -77,7 +77,7 @@ qtpy = ">=2.4.2"
 
 # test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
-pyarrow = ">=13.0.0"
+pyarrow = ">=16.0.0"
 
 [feature.pyarrow21.dependencies]
 pyarrow = "21.*"

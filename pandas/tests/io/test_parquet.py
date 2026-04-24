@@ -13,9 +13,9 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under14p0,
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
 )
@@ -1224,7 +1224,7 @@ class TestParquetPyArrow(Base):
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        pa_version_under14p0, reason="pyarrow < 14 writes unit-less datetime64 metadata"
+        pa_version_under18p0, reason="pyarrow < 18 writes unit-less datetime64 metadata"
     )
     def test_datetime64_column_index_roundtrip(self, pa, temp_file):
         # GH#55118

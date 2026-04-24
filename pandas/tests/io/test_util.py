@@ -2,7 +2,10 @@ import zoneinfo
 
 import pytest
 
-from pandas.compat import pa_version_under23p0
+from pandas.compat import (
+    pa_version_under18p0,
+    pa_version_under23p0,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -44,7 +47,7 @@ def test_arrow_table_to_pandas_normalize_timezones_columns():
     table = pa.Table.from_pandas(df)
     result = arrow_table_to_pandas(table)
 
-    if pa_version_under23p0:
+    if pa_version_under23p0 and not pa_version_under18p0:
         expected.columns = expected.columns.as_unit("ns")
 
     tm.assert_frame_equal(result, expected)
