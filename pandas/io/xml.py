@@ -884,6 +884,10 @@ def read_xml(
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
         :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements

@@ -147,9 +147,9 @@ cdef extern from "pandas/parser/tokenizer.h":
     enum: ERROR_OVERFLOW, ERROR_INVALID_CHARS
 
     ctypedef enum BadLineHandleMethod:
-        ERROR,
-        WARN,
-        SKIP
+        BLHM_ERROR,
+        BLHM_WARN,
+        BLHM_SKIP
 
     ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                   int *status, const char *encoding_errors)
@@ -269,12 +269,14 @@ cdef extern from "pandas/parser/pd_parser.h":
 
     void parser_set_default_options(parser_t *self)
 
-    int parser_consume_rows(parser_t *self, size_t nrows)
+    int parser_consume_rows(parser_t *self, uint64_t nrows)
 
     int parser_trim_buffers(parser_t *self)
 
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
-    int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
+    int tokenize_nrows(
+        parser_t *self, uint64_t nrows, const char *encoding_errors
+    ) nogil
 
     int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
     uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
@@ -365,7 +367,7 @@ cdef class TextReader:
                   thousands=None,       # bytes | str
                   dtype=None,
                   usecols=None,
-                  on_bad_lines=ERROR,
+                  on_bad_lines=BLHM_ERROR,
                   bint na_filter=True,
                   na_values=None,       # dict[hashable, set[str]] | set[str]
                   na_fvalues=None,      # dict[hashable, set[float]] | set[float]
@@ -459,7 +461,7 @@ cdef class TextReader:
             self.usecols = usecols
 
         if skipfooter > 0:
-            self.parser.on_bad_lines = SKIP
+            self.parser.on_bad_lines = BLHM_SKIP
 
         self.delimiter = delimiter
 
@@ -876,7 +878,7 @@ cdef class TextReader:
 
         return chunks
 
-    cdef _tokenize_rows(self, size_t nrows):
+    cdef _tokenize_rows(self, uint64_t nrows):
         cdef:
             int status
 
@@ -964,8 +966,7 @@ cdef class TextReader:
             end = min(start + rows, self.parser.lines)
 
         num_cols = -1
-        # Py_ssize_t cast prevents build warning
-        for i in range(<Py_ssize_t>self.parser.lines):
+        for i in range(<int64_t>self.parser.lines):
             num_cols = (num_cols < self.parser.line_fields[i]) * \
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols

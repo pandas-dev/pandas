@@ -1591,7 +1591,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227
+        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
         ordinal = item
     else:
         try:
@@ -2843,6 +2843,14 @@ cdef class _Period(PeriodMixin):
         formatted = period_format(self.ordinal, base)
         value = str(formatted)
         return value
+
+    def __format__(self, fmt: str) -> str:
+        # GH#48536
+        if not isinstance(fmt, str):
+            raise TypeError(f"must be str, not {type(fmt).__name__}")
+        if len(fmt) != 0:
+            return self.strftime(fmt)
+        return str(self)
 
     def __setstate__(self, state):
         self._freq = state[1]

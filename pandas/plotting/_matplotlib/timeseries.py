@@ -219,6 +219,10 @@ def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     # and the special-case BDay handling doesn't support multiplied freq.
     if alias == "B":
         return alias
+    # Use abs(n) because the sign only indicates traversal direction
+    # (e.g. descending DatetimeIndex infers freq "-1D"), not period span.
+    # GH#64819
+    n = abs(n)
     if n != 1:
         return f"{n}{alias}"
     return alias
@@ -266,7 +270,7 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
-            return index[:1].is_normalized  # type: ignore[attr-defined]
+            return index[:1].is_normalized
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
         return period.to_timestamp().tz_localize(index.tz) == index[0]

@@ -65,7 +65,7 @@ class TestGetItem:
             datetime(1970, 1, 1),
             Timestamp("1970-01-03").to_datetime64(),
             # non-matching NA values
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ],
     )
     def test_timestamp_invalid_key(self, key):
@@ -130,6 +130,15 @@ class TestGetIndexer:
 
         res = idx.get_indexer(target, "nearest", tolerance=Timedelta("1 hour"))
         tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
+
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nat_target(self, method):
+        # GH#32572 NaT in the target should not be matched
+        tdi = to_timedelta(["0 days", "1 days", "2 days"])
+        target = TimedeltaIndex([NaT])
+        result = tdi.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestWhere:

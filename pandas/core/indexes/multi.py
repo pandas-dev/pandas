@@ -22,7 +22,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos as libalgos,
@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
@@ -1670,7 +1671,7 @@ class MultiIndex(Index):
             result_levels.append(level)
 
         if sparsify is None:
-            sparsify = _global_config["display"]["multi_sparse"]
+            sparsify = config["display"]["multi_sparse"]
 
         if sparsify:
             sentinel: Literal[""] | bool | lib.NoDefault = ""
@@ -1815,6 +1816,36 @@ class MultiIndex(Index):
     def is_monotonic_increasing(self) -> bool:
         """
         Return a boolean if the values are equal or increasing.
+
+        For a MultiIndex, this checks whether the tuples are in
+        lexicographically non-decreasing order: the first level is
+        compared first, ties are broken by the second level, and so on.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        MultiIndex.is_monotonic_decreasing : Check if the values are
+            equal or decreasing.
+        MultiIndex.sortlevel : Sort a MultiIndex by the requested level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        >>> mi.is_monotonic_increasing
+        True
+
+        Ties at one level are broken by the next level:
+
+        >>> mi = pd.MultiIndex.from_arrays([[1, 1, 2], [1, 2, 1]])
+        >>> mi.is_monotonic_increasing
+        True
+
+        >>> mi = pd.MultiIndex.from_arrays([[1, 1, 2], [2, 1, 3]])
+        >>> mi.is_monotonic_increasing
+        False
         """
         if any(-1 in code for code in self.codes):
             return False
@@ -1846,6 +1877,36 @@ class MultiIndex(Index):
     def is_monotonic_decreasing(self) -> bool:
         """
         Return a boolean if the values are equal or decreasing.
+
+        For a MultiIndex, this checks whether the tuples are in
+        lexicographically non-increasing order: the first level is
+        compared first, ties are broken by the second level, and so on.
+
+        Returns
+        -------
+        bool
+
+        See Also
+        --------
+        MultiIndex.is_monotonic_increasing : Check if the values are
+            equal or increasing.
+        MultiIndex.sortlevel : Sort a MultiIndex by the requested level.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["c", "b", "a"], [3, 2, 1]])
+        >>> mi.is_monotonic_decreasing
+        True
+
+        Ties at one level are broken by the next level:
+
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1, 1], [1, 2, 1]])
+        >>> mi.is_monotonic_decreasing
+        True
+
+        >>> mi = pd.MultiIndex.from_arrays([[2, 1, 1], [3, 1, 2]])
+        >>> mi.is_monotonic_decreasing
+        False
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
@@ -1983,8 +2044,13 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-        return lev._shallow_copy(filled, name=name)
+        if lev._can_hold_na:
+            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
+        else:
+            # Index.take raises for integer dtypes with -1 (NA) codes
+            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
+            result = lev._shallow_copy(filled, name=name)
+        return result
 
     def get_level_values(self, level) -> Index:
         """
@@ -2888,7 +2954,7 @@ class MultiIndex(Index):
                     inds.extend(range(loc.start, loc.stop, step))
                 elif com.is_bool_indexer(loc):
                     if (
-                        _global_config["mode"]["performance_warnings"]
+                        config["mode"]["performance_warnings"]
                         and self._lexsort_depth == 0
                     ):
                         warnings.warn(
@@ -3451,6 +3517,10 @@ class MultiIndex(Index):
             loc: npt.NDArray[np.intp] | np.intp | int
             if lab not in lev and not isna(lab):
                 # short circuit
+                if isinstance(lab, str) and is_numeric_dtype(lev.dtype):
+                    # GH#60104 - numpy searchsorted gives wrong results for
+                    # string vs numeric comparisons; raise early
+                    raise TypeError(f"Level type mismatch: {lab}")
                 try:
                     loc = algos.searchsorted(lev, lab, side=side)
                 except TypeError as err:
@@ -3583,19 +3653,21 @@ class MultiIndex(Index):
                 f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
             )
 
-        if keylen == self.nlevels and self.is_unique:
+        if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
             #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
             except KeyError as err:
                 raise KeyError(key) from err
-            except TypeError:
-                # e.g. test_partial_slicing_with_multiindex partial string slicing
+            except (TypeError, ValueError):
+                # TypeError: e.g. test_partial_slicing_with_multiindex
+                #  partial string slicing
+                # ValueError: e.g. IntervalIndex level (GH#27456)
                 loc, _ = self.get_loc_level(key, range(self.nlevels))
                 return loc
 
-        # -- partial selection or non-unique index
+        # -- partial selection
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
@@ -3619,7 +3691,7 @@ class MultiIndex(Index):
         if not follow_key:
             return slice(start, stop)
 
-        if _global_config["mode"]["performance_warnings"]:
+        if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "indexing past lexsort depth may impact performance.",
                 PerformanceWarning,
@@ -3629,9 +3701,16 @@ class MultiIndex(Index):
         loc = np.arange(start, stop, dtype=np.intp)
 
         for i, k in enumerate(follow_key, len(lead_key)):
-            mask = self.codes[i][loc] == self._get_loc_single_level_index(
-                self.levels[i], k
-            )
+            level_idx = self._get_loc_single_level_index(self.levels[i], k)
+            if is_integer(level_idx):
+                mask = self.codes[i][loc] == level_idx
+            else:
+                # GH#27456: level_idx may be a slice or bool ndarray
+                # (e.g. overlapping IntervalIndex). Normalize to a
+                # boolean mask over the level, then map via codes.
+                level_mask = np.zeros(len(self.levels[i]), dtype=bool)
+                level_mask[level_idx] = True
+                mask = level_mask[self.codes[i][loc]]
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -3762,16 +3841,22 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-                if len(key) == self.nlevels and self.is_unique:
-                    # Complete key in unique index -> standard get_loc
+                if len(key) == self.nlevels:
+                    # Complete key -> standard get_loc
                     try:
-                        return (self._engine.get_loc(key), None)
+                        loc = self._engine.get_loc(key)
                     except KeyError as err:
                         raise KeyError(key) from err
-                    except TypeError:
-                        # e.g. partial string indexing
+                    except (TypeError, ValueError):
+                        # TypeError: e.g. partial string indexing
                         #  test_partial_string_timestamp_multiindex
-                        pass
+                        # ValueError: e.g. IntervalIndex level where the
+                        #  engine can't convert scalar to interval code
+                        #  (GH#27456)
+                        loc = None
+
+                    if is_integer(loc):
+                        return loc, None
 
                 # partial selection
                 indexer = self.get_loc(key)
@@ -3794,6 +3879,14 @@ class MultiIndex(Index):
                         and key[i] != slice(None, None)
                     ]
                     if len(ilevels) == self.nlevels:
+                        # GH#27456: if the indexer is a boolean mask with a
+                        # single match (e.g. scalar in overlapping
+                        # IntervalIndex level), reduce to int so callers
+                        # get scalar semantics.
+                        if isinstance(indexer, np.ndarray) and indexer.dtype == bool:
+                            (inds,) = indexer.nonzero()
+                            if len(inds) == 1:
+                                return inds[0].item(), None
                         # TODO: why?
                         ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
@@ -3940,15 +4033,31 @@ class MultiIndex(Index):
 
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
-                if isinstance(idx, slice):
-                    # test_get_loc_partial_timestamp_multiindex
-                    locs = (level_codes >= idx.start) & (level_codes < idx.stop)
-                    return locs
-
-                locs = np.asarray(level_codes == idx, dtype=bool)
+                if is_integer(idx):
+                    locs = np.asarray(level_codes == idx, dtype=bool)
+                else:
+                    # GH#27456: idx is a slice or bool ndarray
+                    # (e.g. overlapping IntervalIndex). Normalize to a
+                    # boolean mask over the level, then map to row positions.
+                    level_mask = np.zeros(len(level_index), dtype=bool)
+                    level_mask[idx] = True
+                    locs = level_mask[level_codes]
+                    locs[level_codes == -1] = False
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            if isinstance(idx, np.ndarray):
+                # GH#27456: idx is a bool ndarray (e.g. overlapping
+                # IntervalIndex); searchsorted can only handle scalars, so
+                # fall back to the mask approach.
+                level_mask = np.zeros(len(level_index), dtype=bool)
+                level_mask[idx] = True
+                locs = level_mask[level_codes]
+                locs[level_codes == -1] = False
+                if not locs.any():
                     raise KeyError(key)
                 return locs
 

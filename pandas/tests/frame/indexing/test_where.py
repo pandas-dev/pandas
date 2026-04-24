@@ -52,8 +52,8 @@ class TestDataFrameIndexingWhere:
             rs = df.where(cond, other1)
             rs2 = df.where(cond.values, other1)
             for k, v in rs.items():
-                exp = Series(np.where(cond[k], df[k], other1[k]), index=v.index)
-                tm.assert_series_equal(v, exp, check_names=False)
+                exp = Series(np.where(cond[k], df[k], other1[k]), index=v.index, name=k)
+                tm.assert_series_equal(v, exp)
             tm.assert_frame_equal(rs, rs2)
 
             # dtypes

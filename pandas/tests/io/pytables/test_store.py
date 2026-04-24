@@ -7,8 +7,6 @@ import time
 import numpy as np
 import pytest
 
-from pandas.compat import PY312
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -52,6 +50,15 @@ def test_context(temp_h5_path):
         )
         assert len(tbl) == 1
         assert type(tbl["a"]) == DataFrame
+
+
+def test_track_times_default_deprecated(temp_h5_path):
+    # GH#51456 - not passing track_times explicitly warns about default change
+    df = DataFrame({"a": [1]})
+    msg = "The default value of 'track_times' in HDFStore.put"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        with HDFStore(temp_h5_path, mode="w") as hdf:
+            hdf.put("table", df, format="table", data_columns=True)
 
 
 @pytest.mark.xfail(
@@ -268,11 +275,11 @@ def test_walk(where, expected, temp_hdfstore):
     }
 
     store = temp_hdfstore
-    store.put("/first_group/df1", objs["df1"])
-    store.put("/first_group/df2", objs["df2"])
-    store.put("/second_group/df3", objs["df3"])
-    store.put("/second_group/s1", objs["s1"])
-    store.put("/second_group/third_group/df4", objs["df4"])
+    store.put("/first_group/df1", objs["df1"], track_times=False)
+    store.put("/first_group/df2", objs["df2"], track_times=False)
+    store.put("/second_group/df3", objs["df3"], track_times=False)
+    store.put("/second_group/s1", objs["s1"], track_times=False)
+    store.put("/second_group/third_group/df4", objs["df4"], track_times=False)
     # Create non-pandas objects
     store._handle.create_array("/first_group", "a1", objs["a1"])
     store._handle.create_table("/first_group", "tb1", obj=objs["tb1"])
@@ -420,7 +427,7 @@ def test_create_table_index(temp_hdfstore):
     assert col("f2", "string2").is_indexed is False
 
     # try to index a non-table
-    store.put("f2", df)
+    store.put("f2", df, track_times=False)
     msg = "cannot create table index on a Fixed format store"
     with pytest.raises(TypeError, match=msg):
         store.create_table_index("f2")
@@ -516,7 +523,7 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
 
     s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
-    temp_hdfstore.put("fixed", s)
+    temp_hdfstore.put("fixed", s, track_times=False)
     result = temp_hdfstore.select("fixed")
     tm.assert_series_equal(result, s)
 
@@ -574,7 +581,7 @@ def test_same_name_scoping(temp_hdfstore):
         np.random.default_rng(2).standard_normal((20, 2)),
         index=date_range("20130101", periods=20, unit="ns"),
     )
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
     expected = df[df.index > Timestamp("20130105")]
 
     result = temp_hdfstore.select("df", "index>datetime.datetime(2013,1,5)")
@@ -823,7 +830,7 @@ def test_start_stop_fixed(temp_hdfstore):
         },
         index=date_range("20130101", periods=20),
     )
-    store.put("df", df)
+    store.put("df", df, track_times=False)
 
     result = store.select("df", start=0, stop=5)
     expected = df.iloc[0:5, :]
@@ -840,7 +847,7 @@ def test_start_stop_fixed(temp_hdfstore):
 
     # series
     s = df.A
-    store.put("s", s)
+    store.put("s", s, track_times=False)
     result = store.select("s", start=0, stop=5)
     expected = s.iloc[0:5]
     tm.assert_series_equal(result, expected)
@@ -859,20 +866,13 @@ def test_start_stop_fixed(temp_hdfstore):
     df.iloc[8:10, -2] = np.nan
 
 
-def test_select_filter_corner(temp_hdfstore, request):
+def test_select_filter_corner(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
-    temp_hdfstore.put("frame", df, format="table")
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
 
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=ValueError,
-        )
-    )
     crit = "columns=df.columns[:75]"
     result = temp_hdfstore.select("frame", [crit])
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75]])
@@ -1062,7 +1062,7 @@ def test_to_hdf_with_object_column_names_should_run(temp_h5_path, dtype):
 def test_hdfstore_strides(temp_hdfstore):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
-    temp_hdfstore.put("df", df)
+    temp_hdfstore.put("df", df, track_times=False)
     assert df["a"].values.strides == temp_hdfstore["df"]["a"].values.strides
 
 

@@ -168,6 +168,10 @@ class StringFormatter:
             # is_truncated_horizontally remains False.
             return self.adj.adjoin(1, *strcols)
 
+        # Account for the " ..." separator column that will be inserted
+        # after horizontal truncation (GH#32461)
+        adj_dif += 4 + 1  # 4 chars for " ..." + 1 adjoin spacing
+
         while adj_dif > 0 and n_cols > 1:
             mid = round(n_cols / 2)
             # adjoin adds one

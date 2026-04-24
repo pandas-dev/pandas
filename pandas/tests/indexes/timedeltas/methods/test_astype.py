@@ -137,19 +137,22 @@ class TestTimedeltaIndex:
 
         res = tdi.astype("m8[s]")
         exp_values = np.asarray(tdi).astype("m8[s]")
-        exp_tda = TimedeltaArray._simple_new(
-            exp_values, dtype=exp_values.dtype, freq=tdi.freq
-        )
+        exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
+        exp_tda._freq = tdi.freq
         expected = Index(exp_tda)
         assert expected.dtype == "m8[s]"
         tm.assert_index_equal(res, expected)
 
         # check this matches Series and TimedeltaArray
+        # freq is not preserved at the array level; Index handles freq
+        exp_arr = expected._values.view()
+        exp_arr._freq = None
+
         res = tdi._data.astype("m8[s]")
-        tm.assert_equal(res, expected._values)
+        tm.assert_equal(res, exp_arr)
 
         res = tdi.to_series().astype("m8[s]")
-        tm.assert_equal(res._values, expected._values._with_freq(None))
+        tm.assert_equal(res._values, exp_arr)
 
     @pytest.mark.parametrize("dtype", [float, "datetime64", "datetime64[ns]"])
     def test_astype_raises(self, dtype):

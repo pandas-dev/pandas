@@ -736,10 +736,15 @@ def read_csv(
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -1307,10 +1312,15 @@ def read_table(
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -1823,10 +1833,15 @@ def read_fwf(
     ----------
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a text ``read()`` function.The string could be a URL.
+        object implementing a text ``read()`` function that accepts an optional
+        size argument. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to] ).
@@ -2020,15 +2035,6 @@ class TextFileReader(abc.Iterator):
         return options
 
     def _check_file_or_buffer(self, f, engine: CSVEngine) -> None:
-        # see gh-16530
-        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
-            # The C engine doesn't need the file-like to have the "__iter__"
-            # attribute. However, the Python engine needs "__iter__(...)"
-            # when iterating through such an object, meaning it
-            # needs to have that attribute
-            raise ValueError(
-                "The 'python' engine cannot iterate through this file buffer."
-            )
         if hasattr(f, "encoding"):
             file_encoding = f.encoding
             orig_reader_enc = self.orig_options.get("encoding", None)
@@ -2564,11 +2570,11 @@ def _refine_defaults_read(
         kwds["engine_specified"] = False
 
     if on_bad_lines == "error":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_ERROR
     elif on_bad_lines == "warn":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_WARN
     elif on_bad_lines == "skip":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_SKIP
     elif callable(on_bad_lines):
         if engine not in ["python", "pyarrow"]:
             raise ValueError(
