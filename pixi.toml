@@ -26,6 +26,18 @@ activation = { env = { CC = "gcc", CXX = "g++" } }
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
 
+# latest version (currently 2.4) is included in "numpy" feature above, in addition
+# test the 3 minor versions before -> test latest 4 versions of numpy spread
+# across the 4 tested Python versions
+[feature.numpy21.dependencies]
+numpy = "2.1.*"
+
+[feature.numpy22.dependencies]
+numpy = "2.2.*"
+
+[feature.numpy23.dependencies]
+numpy = "2.3.*"
+
 [feature.numpy-nightly.pypi-dependencies]
 numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
@@ -63,8 +75,18 @@ pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.9"
 qtpy = ">=2.4.2"
 
+# test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
 pyarrow = ">=13.0.0"
+
+[feature.pyarrow21.dependencies]
+pyarrow = "21.*"
+
+[feature.pyarrow22.dependencies]
+pyarrow = "22.*"
+
+[feature.pyarrow23.dependencies]
+pyarrow = "23.*"
 
 [feature.pyarrow-nightly.pypi-dependencies]
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -152,9 +174,9 @@ pyyaml = "*"
 requests = "*"
 
 [environments]
-py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py313 = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
+py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
+py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies"] }
 py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
