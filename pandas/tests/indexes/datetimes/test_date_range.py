@@ -1191,10 +1191,7 @@ class TestBusinessDateRange:
         expected = DatetimeIndex(["2026-03-18", "2026-03-19", "2026-03-20"])
         tm.assert_index_equal(result, expected)
 
-    def test_bdate_range_end_sunday_periods(self):
-        # GH#64834
         result = bdate_range(end="2026-03-22", periods=3)
-        expected = DatetimeIndex(["2026-03-18", "2026-03-19", "2026-03-20"])
         tm.assert_index_equal(result, expected)
 
 
