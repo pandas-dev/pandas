@@ -1282,6 +1282,33 @@ class TestSeriesReductions:
             assert isinstance(result, int)
         else:
             assert isinstance(result, np.uint64)
+            
+    def test_sum_mixed_negative_nan(self):
+        """
+        Test DataFrame.sum() with negative values and NaN.
+        
+        Regression test to ensure sum() correctly handles:
+        - Negative numbers
+        - NaN values (should be ignored)
+        - Mixed positive and negative
+        """
+        
+        # ARRANGE
+        df = DataFrame({
+            "losses": [-100, np.nan, -50, -25],
+            "gains": [50, 100, np.nan, 75]
+        })
+        
+        # ACT
+        result = df.sum()
+        
+        # ASSERT
+        expected = Series({
+            "losses": -175.0,
+            "gains": 225.0
+        })
+        
+        tm.assert_series_equal(result, expected)
 
 
 class TestDatetime64SeriesReductions:
