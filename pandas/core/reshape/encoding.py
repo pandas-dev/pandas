@@ -159,12 +159,28 @@ def get_dummies(
     """
     from pandas.core.reshape.concat import concat
 
-    dtypes_to_encode = ["object", "string", "category"]
+    def _is_encodable(arr) -> bool:
+        dtype = arr.dtype
+        if is_object_dtype(dtype):
+            return True
+        if isinstance(dtype, (StringDtype, CategoricalDtype)):
+            return True
+        if isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
+            pa_type = dtype.pyarrow_dtype
+            return (
+                pa.types.is_string(pa_type)
+                or pa.types.is_large_string(pa_type)
+                or pa.types.is_dictionary(pa_type)
+            )
+        return False
 
     if isinstance(data, DataFrame):
         # determine columns being encoded
         if columns is None:
-            data_to_encode = data.select_dtypes(include=dtypes_to_encode)
+            mgr = data._mgr._get_data_subset(_is_encodable).copy(deep=False)
+            data_to_encode = data._constructor_from_mgr(mgr, axes=mgr.axes)
         elif not is_list_like(columns):
             raise TypeError("Input must be a list-like for parameter `columns`")
         else:
@@ -209,7 +225,10 @@ def get_dummies(
         else:
             # Encoding only object and category dtype columns. Get remaining
             # columns to prepend to result.
-            with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
+            rest_mgr = data._mgr._get_data_subset(
+                lambda arr: not _is_encodable(arr)
+            ).copy(deep=False)
+            with_dummies = [data._constructor_from_mgr(rest_mgr, axes=rest_mgr.axes)]
 
         for col, pre, sep in zip(
             data_to_encode.items(), prefix, prefix_sep, strict=True

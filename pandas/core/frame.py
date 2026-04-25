@@ -104,6 +104,8 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -258,6 +260,18 @@ if TYPE_CHECKING:
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
     from pandas.io.formats.style import Styler
+
+
+# Legacy select_dtypes string aliases that name a parameterized EA "kind"
+# rather than a specific instance. Mapped to the class so that e.g.
+# select_dtypes("category") matches any CategoricalDtype regardless of its
+# categories, rather than only CategoricalDtype() with no categories set.
+_SELECT_DTYPES_EA_ALIASES: dict[str, type[ExtensionDtype]] = {
+    "category": CategoricalDtype,
+    "datetimetz": DatetimeTZDtype,
+    "datetime64tz": DatetimeTZDtype,
+    "string": StringDtype,
+}
 
 
 # -----------------------------------------------------------------------
@@ -5375,9 +5389,14 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        # convert the myriad valid dtypes object to a single representation
+        # Convert user-facing dtype specs into two buckets: numpy scalar types
+        # (matched via issubclass on dtype.type) and ExtensionDtype requests
+        # (matched via isinstance for classes, equality for instances).
+        # Keeping these separate fixes GH#40234 (Int64 no longer matches int64)
+        # and GH#59888 (Arrow timestamps no longer match "datetime64[ns]").
         def check_int_infer_dtype(dtypes):
             converted_dtypes: list[type] = []
+            ea_requests: list = []
             for dtype in dtypes:
                 # Numpy maps int to different types (int32, in64) on Windows and Linux
                 # see https://github.com/numpy/numpy/issues/9464
@@ -5387,55 +5406,123 @@ class DataFrame(NDFrame, OpsMixin):
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
                     converted_dtypes.extend([np.float64, np.float32])
+                elif isinstance(dtype, ExtensionDtype):
+                    # GH#40234: EA instances match by equality
+                    ea_requests.append(dtype)
+                elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+                    # EA subclass (possibly parameterized like ArrowDtype) matches
+                    # by isinstance. Avoid calling pandas_dtype(cls) which emits
+                    # "Instantiating X without any arguments" for parameterized EAs.
+                    ea_requests.append(dtype)
+                elif isinstance(dtype, type):
+                    # Python types (e.g. `str` resolves to StringDtype under
+                    # the future string option). Route to the EA class as a
+                    # kind-request; otherwise fall through to numpy.
+                    try:
+                        parsed = pandas_dtype(dtype)
+                    except TypeError:
+                        parsed = None
+                    if isinstance(parsed, ExtensionDtype):
+                        ea_requests.append(type(parsed))
+                    else:
+                        converted_dtypes.append(infer_dtype_from_object(dtype))
+                elif isinstance(dtype, str):
+                    # Legacy aliases for parameterized EA kinds -- treat as
+                    # class requests (kind-match) rather than as canonical-
+                    # instance requests (which would over-narrow).
+                    if dtype in _SELECT_DTYPES_EA_ALIASES:
+                        ea_requests.append(_SELECT_DTYPES_EA_ALIASES[dtype])
+                        continue
+                    # GH#59888: EA-parseable strings ("Int64",
+                    # "timestamp[ns][pyarrow]", "datetime64[ns, UTC]") become
+                    # EA requests; numpy-parseable strings fall through.
+                    try:
+                        parsed = pandas_dtype(dtype)
+                    except TypeError:
+                        parsed = None
+                    if isinstance(parsed, ExtensionDtype):
+                        ea_requests.append(parsed)
+                    else:
+                        converted_dtypes.append(infer_dtype_from_object(dtype))
                 else:
                     converted_dtypes.append(infer_dtype_from_object(dtype))
-            return frozenset(converted_dtypes)
+            return frozenset(converted_dtypes), tuple(ea_requests)
 
-        include = check_int_infer_dtype(include)
-        exclude = check_int_infer_dtype(exclude)
+        include_np, include_ea = check_int_infer_dtype(include)
+        exclude_np, exclude_ea = check_int_infer_dtype(exclude)
 
-        for dtypes in (include, exclude):
+        for dtypes in (include_np, exclude_np):
             invalidate_string_dtypes(dtypes)
 
         # can't both include AND exclude!
-        if not include.isdisjoint(exclude):
-            raise ValueError(f"include and exclude overlap on {(include & exclude)}")
+        if not include_np.isdisjoint(exclude_np):
+            raise ValueError(
+                f"include and exclude overlap on {(include_np & exclude_np)}"
+            )
+        ea_overlap = set(include_ea) & set(exclude_ea)
+        if ea_overlap:
+            raise ValueError(f"include and exclude overlap on {ea_overlap}")
 
-        def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
-            # GH 46870: BooleanDtype._is_numeric == True but should be excluded
-            dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return (
-                issubclass(dtype.type, tuple(dtypes_set))
-                or (
-                    np.number in dtypes_set
+        def _matches_ea(dtype: DtypeObj, ea_reqs: tuple) -> bool:
+            for req in ea_reqs:
+                if isinstance(req, type):
+                    # class -> "any dtype of this class"
+                    if isinstance(dtype, req):
+                        return True
+                # instance -> exact-dtype match
+                elif dtype == req:
+                    return True
+            return False
+
+        def dtype_predicate(dtype: DtypeObj, numpy_set, ea_reqs) -> bool:
+            if _matches_ea(dtype, ea_reqs):
+                return True
+            if isinstance(dtype, ExtensionDtype):
+                # EA column not matched by any EA request; still participates
+                # in the "number" capability request, and in the StringDtype
+                # backcompat for np.object_ (GH#61916).
+                # GH#46870: BooleanDtype._is_numeric == True but should be excluded
+                if (
+                    np.number in numpy_set
                     and getattr(dtype, "_is_numeric", False)
                     and not is_bool_dtype(dtype)
-                )
-                # backwards compat for the default `str` dtype being selected by object
-                or (
+                ):
+                    return True
+                if (
                     isinstance(dtype, StringDtype)
                     and dtype.na_value is np.nan
-                    and np.object_ in dtypes_set
-                )
-            )
+                    and np.object_ in numpy_set
+                ):
+                    return True
+                return False
+            if numpy_set:
+                return issubclass(dtype.type, tuple(numpy_set))
+            return False
 
         def predicate(arr: ArrayLike) -> bool:
             dtype = arr.dtype
-            if include:
-                if not dtype_predicate(dtype, include):
+            if include_np or include_ea:
+                if not dtype_predicate(dtype, include_np, include_ea):
                     return False
 
-            if exclude:
-                if dtype_predicate(dtype, exclude):
+            if exclude_np or exclude_ea:
+                if dtype_predicate(dtype, exclude_np, exclude_ea):
                     return False
 
             return True
 
         blk_dtypes = self._mgr.get_unique_dtypes()
+
+        def _requests_string_dtype(reqs: tuple) -> bool:
+            return any(
+                req is StringDtype or isinstance(req, StringDtype) for req in reqs
+            )
+
+
         if (
-            np.object_ in include
-            and str not in include
-            and str not in exclude
+            np.object_ in include_np
+            and not _requests_string_dtype(include_ea)
+            and not _requests_string_dtype(exclude_ea)
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes

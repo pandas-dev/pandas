@@ -526,3 +526,108 @@ class TestSelectDtypes:
         else:
             expected = df[["c"]]
         tm.assert_frame_equal(result, expected)
+
+
+# GH#40234
+@pytest.mark.parametrize("spec", ["Int64", pd.Int64Dtype, pd.Int64Dtype()])
+def test_select_dtypes_int64_ea_does_not_match_numpy_int64(spec):
+    df = DataFrame({"A": [1, 2], "B": pd.array([1, 2], dtype="Int64")})
+    result = df.select_dtypes(spec)
+    tm.assert_frame_equal(result, df[["B"]])
+
+
+@pytest.mark.parametrize("spec", ["int64", np.int64, np.dtype("int64")])
+def test_select_dtypes_numpy_int64_does_not_match_int64_ea(spec):
+    df = DataFrame({"A": [1, 2], "B": pd.array([1, 2], dtype="Int64")})
+    result = df.select_dtypes(spec)
+    tm.assert_frame_equal(result, df[["A"]])
+
+
+def test_select_dtypes_arrow_timestamp_string_roundtrip():
+    # GH#59888
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "id": [1, 2],
+            "ts": pd.to_datetime(["2023-01-01", "2023-01-02"]),
+        }
+    ).astype({"ts": "timestamp[ns][pyarrow]"})
+
+    # The Arrow-string spec should match the Arrow column
+    result = df.select_dtypes(include=["timestamp[ns][pyarrow]"])
+    tm.assert_frame_equal(result, df[["ts"]])
+
+    # A numpy datetime64 spec should not cross-match an Arrow column
+    result = df.select_dtypes(include=["datetime64[ns]"])
+    assert result.shape[1] == 0
+
+
+def test_select_dtypes_arrow_int_not_matched_by_numpy_int():
+    # GH#59888 (symmetric case)
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "np": [1, 2],
+            "arrow": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+        }
+    )
+    result = df.select_dtypes(include=[np.int64])
+    tm.assert_frame_equal(result, df[["np"]])
+
+    result = df.select_dtypes(include=[pd.ArrowDtype(pa.int64())])
+    tm.assert_frame_equal(result, df[["arrow"]])
+
+
+def test_select_dtypes_arrow_dtype_class_matches_all_arrow():
+    # Passing the ArrowDtype class as a "kind" request matches every
+    # Arrow-backed column regardless of the inner pyarrow type.
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+            "b": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
+            "c": [1.0, 2.0],
+        }
+    )
+    result = df.select_dtypes(include=pd.ArrowDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+def test_select_dtypes_parameterized_ea_class_does_not_warn():
+    # Passing a parameterized EA class (ArrowDtype, DatetimeTZDtype, ...)
+    # as a spec previously emitted a UserWarning from pandas_dtype.
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame({"x": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64()))})
+    with tm.assert_produces_warning(None):
+        df.select_dtypes(pd.ArrowDtype)
+
+    df2 = DataFrame({"t": pd.to_datetime(["2020-01-01"]).tz_localize("UTC")})
+    with tm.assert_produces_warning(None):
+        df2.select_dtypes(pd.DatetimeTZDtype)
+
+
+def test_select_dtypes_datetimetz_class_matches_any_tz():
+    df = DataFrame(
+        {
+            "utc": pd.to_datetime(["2020-01-01"]).tz_localize("UTC"),
+            "est": pd.to_datetime(["2020-01-01"]).tz_localize("US/Eastern"),
+            "naive": pd.to_datetime(["2020-01-01"]),
+        }
+    )
+    expected = df[["utc", "est"]]
+    tm.assert_frame_equal(df.select_dtypes(pd.DatetimeTZDtype), expected)
+    tm.assert_frame_equal(df.select_dtypes("datetimetz"), expected)
+    tm.assert_frame_equal(df.select_dtypes("datetime64tz"), expected)
+
+
+def test_select_dtypes_category_class_matches_any_categories():
+    df = DataFrame(
+        {
+            "cat1": pd.Categorical(["a", "b"], categories=["a", "b", "c"]),
+            "cat2": pd.Categorical([1, 2], categories=[1, 2, 3]),
+            "num": [1, 2],
+        }
+    )
+    expected = df[["cat1", "cat2"]]
+    tm.assert_frame_equal(df.select_dtypes(pd.CategoricalDtype), expected)
+    tm.assert_frame_equal(df.select_dtypes("category"), expected)
