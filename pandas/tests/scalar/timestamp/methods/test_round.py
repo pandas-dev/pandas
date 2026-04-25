@@ -103,20 +103,6 @@ class TestTimestampRound:
             Timestamp("1823-01-01 00:00:01.000000010"),
             Timestamp("1823-01-01 00:00:01.000000010"),
         ),
-        "nat_timestamp": (
-            NaT,
-            Timedelta("1s"),
-            NaT,
-            NaT,
-            NaT,
-        ),
-        "nat_frequency": (
-            Timestamp("2000-01-05 05:09:15.13"),
-            NaT,
-            None,
-            None,
-            None,
-        ),
     }
 
     def test_round_division_by_zero_raises(self):
@@ -195,15 +181,8 @@ class TestTimestampRound:
             case
         ]
 
-        if frequency is NaT:
-            with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-                timestamp.round(frequency)  # type: ignore[arg-type]
-        elif timestamp is NaT:
-            # Note: need ignore[arg-type] since mypy doesn't narrow frequency
-            assert timestamp.round(frequency) is NaT  # type: ignore[arg-type]
-        else:
-            result = timestamp.round(frequency)  # type: ignore[arg-type]
-            assert result == expected
+        result = timestamp.round(frequency)
+        assert result == expected
 
     @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
     def test_floor_timedelta_freq(self, case: str):
@@ -212,15 +191,8 @@ class TestTimestampRound:
             case
         ]
 
-        if frequency is NaT:
-            with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-                timestamp.floor(frequency)  # type: ignore[arg-type]
-        elif timestamp is NaT:
-            # Note: need ignore[arg-type] since mypy doesn't narrow frequency
-            assert timestamp.floor(frequency) is NaT  # type: ignore[arg-type]
-        else:
-            result = timestamp.floor(frequency)  # type: ignore[arg-type]
-            assert result == expected
+        result = timestamp.floor(frequency)
+        assert result == expected
 
     @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
     def test_ceil_timedelta_freq(self, case: str):
@@ -229,15 +201,25 @@ class TestTimestampRound:
             case
         ]
 
-        if frequency is NaT:
-            with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-                timestamp.ceil(frequency)  # type: ignore[arg-type]
-        elif timestamp is NaT:
-            # Note: need ignore[arg-type] since mypy doesn't narrow frequency
-            assert timestamp.ceil(frequency) is NaT  # type: ignore[arg-type]
-        else:
-            result = timestamp.ceil(frequency)  # type: ignore[arg-type]
-            assert result == expected
+        result = timestamp.ceil(frequency)
+        assert result == expected
+
+    def test_rounding_nat_frequency(self):
+        ts = Timestamp("2000-01-05 05:09:15.13")
+
+        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+            ts.ceil(NaT)  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+            ts.floor(NaT)  # type: ignore[arg-type]
+        with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
+            ts.round(NaT)  # type: ignore[arg-type]
+
+    def test_rounding_nat_timestamp(self):
+        freq = Timedelta("1s")
+
+        assert NaT.ceil(freq) is NaT  # type: ignore[operator]
+        assert NaT.floor(freq) is NaT  # type: ignore[operator]
+        assert NaT.round(freq) is NaT  # type: ignore[operator]
 
     @pytest.mark.parametrize(
         "test_input, rounder, freq, expected",
