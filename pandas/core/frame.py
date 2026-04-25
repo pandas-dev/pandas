@@ -5414,6 +5414,11 @@ class DataFrame(NDFrame, OpsMixin):
                     # by isinstance. Avoid calling pandas_dtype(cls) which emits
                     # "Instantiating X without any arguments" for parameterized EAs.
                     ea_requests.append(dtype)
+                elif isinstance(dtype, type) and issubclass(dtype, np.generic):
+                    # Numpy scalar types (np.number, np.floating, np.inexact, ...).
+                    # Skip the pandas_dtype round-trip, which would call np.dtype()
+                    # and emit a DeprecationWarning for abstract numpy scalars.
+                    converted_dtypes.append(infer_dtype_from_object(dtype))
                 elif isinstance(dtype, type):
                     # Python types (e.g. `str` resolves to StringDtype under
                     # the future string option). Route to the EA class as a
