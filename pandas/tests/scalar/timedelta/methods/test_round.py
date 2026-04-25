@@ -8,7 +8,6 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
-    NaTType,
     iNaT,
 )
 from pandas.errors import OutOfBoundsTimedelta
@@ -17,75 +16,6 @@ from pandas import Timedelta
 
 
 class TestTimedeltaRound:
-    FREQUENCY_TIMEDELTA_ROUNDING_TESTS: dict[
-        str,
-        tuple[
-            Timedelta | NaTType,  # timedelta
-            Timedelta | NaTType,  # frequency
-            Timedelta | NaTType | None,  # expected_ceil
-            Timedelta | NaTType | None,  # expected_round
-            Timedelta | NaTType | None,  # expected_floor
-        ],
-    ] = {
-        "case_1": (
-            Timedelta("1001ms"),
-            Timedelta("1s"),
-            Timedelta("2s"),
-            Timedelta("1s"),
-            Timedelta("1s"),
-        ),
-        "case_2": (
-            Timedelta("1001ms"),
-            Timedelta("1ms"),
-            Timedelta("1001ms"),
-            Timedelta("1001ms"),
-            Timedelta("1001ms"),
-        ),
-        "case_3": (
-            Timedelta("1 days 2 min 3 us 42 ns"),
-            Timedelta("1s"),
-            Timedelta("1 days 2 min 1s"),
-            Timedelta("1 days 2 min"),
-            Timedelta("1 days 2 min"),
-        ),
-        "case_4": (
-            Timedelta("5 hours 9 minutes 15.13 seconds"),
-            Timedelta("1 hour"),
-            Timedelta("6 hours"),
-            Timedelta("5 hours"),
-            Timedelta("5 hours"),
-        ),
-        "case_5": (
-            Timedelta("5 hours 9 minutes 15.13 seconds"),
-            Timedelta("1 hour 30 min"),
-            Timedelta("6 hours"),
-            Timedelta("4 hours 30 minutes"),
-            Timedelta("4 hours 30 minutes"),
-        ),
-        # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
-        "aligned_15s": (
-            Timedelta("1 days 45 seconds"),
-            Timedelta("15s"),
-            Timedelta("1 days 45 seconds"),
-            Timedelta("1 days 45 seconds"),
-            Timedelta("1 days 45 seconds"),
-        ),
-        "floor_10ns": (
-            Timedelta("1 days 45.000000012 seconds"),
-            Timedelta("10ns"),
-            Timedelta("1 days 45.000000020 seconds"),
-            Timedelta("1 days 45.000000010 seconds"),
-            Timedelta("1 days 45.000000010 seconds"),
-        ),
-        "ceil_10ns": (
-            Timedelta("1 days 1.000000012 seconds"),
-            Timedelta("10ns"),
-            Timedelta("1 days 1.000000020 seconds"),
-            Timedelta("1 days 1.000000010 seconds"),
-            Timedelta("1 days 1.000000010 seconds"),
-        ),
-    }
-
     @pytest.mark.parametrize(
         "freq,s1,s2",
         [
@@ -259,35 +189,75 @@ class TestTimedeltaRound:
         assert res == Timedelta("1 days 02:35:00")
         assert res._creso == td._creso
 
-    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
-    def test_round_timedelta_freq(self, case: str):
-        # GH#63687 - Timedelta.round accepts Timedelta arguments
-        timedelta, frequency, _, expected, _ = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
-            case
-        ]
-
-        result = timedelta.round(frequency)
-        assert result == expected
-
-    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
-    def test_floor_timedelta_freq(self, case: str):
-        # GH#63687 - Timedelta.floor accepts Timedelta arguments (including edge cases)
-        timedelta, frequency, _, _, expected = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
-            case
-        ]
-
-        result = timedelta.floor(frequency)
-        assert result == expected
-
-    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
-    def test_ceil_timedelta_freq(self, case: str):
-        # GH#63687 - Timedelta.ceil accepts Timedelta arguments (including edge cases)
-        timedelta, frequency, expected, _, _ = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
-            case
-        ]
-
-        result = timedelta.ceil(frequency)
-        assert result == expected
+    @pytest.mark.parametrize(
+        "timedelta,frequency,expected_ceil,expected_round,expected_floor",
+        [
+            (
+                Timedelta("1001ms"),
+                Timedelta("1s"),
+                Timedelta("2s"),
+                Timedelta("1s"),
+                Timedelta("1s"),
+            ),
+            (
+                Timedelta("1001ms"),
+                Timedelta("1ms"),
+                Timedelta("1001ms"),
+                Timedelta("1001ms"),
+                Timedelta("1001ms"),
+            ),
+            (
+                Timedelta("1 days 2 min 3 us 42 ns"),
+                Timedelta("1s"),
+                Timedelta("1 days 2 min 1s"),
+                Timedelta("1 days 2 min"),
+                Timedelta("1 days 2 min"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour"),
+                Timedelta("6 hours"),
+                Timedelta("5 hours"),
+                Timedelta("5 hours"),
+            ),
+            (
+                Timedelta("5 hours 9 minutes 15.13 seconds"),
+                Timedelta("1 hour 30 min"),
+                Timedelta("6 hours"),
+                Timedelta("4 hours 30 minutes"),
+                Timedelta("4 hours 30 minutes"),
+            ),
+            # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
+            (
+                Timedelta("1 days 45 seconds"),
+                Timedelta("15s"),
+                Timedelta("1 days 45 seconds"),
+                Timedelta("1 days 45 seconds"),
+                Timedelta("1 days 45 seconds"),
+            ),
+            (
+                Timedelta("1 days 45.000000012 seconds"),
+                Timedelta("10ns"),
+                Timedelta("1 days 45.000000020 seconds"),
+                Timedelta("1 days 45.000000010 seconds"),
+                Timedelta("1 days 45.000000010 seconds"),
+            ),
+            (
+                Timedelta("1 days 1.000000012 seconds"),
+                Timedelta("10ns"),
+                Timedelta("1 days 1.000000020 seconds"),
+                Timedelta("1 days 1.000000010 seconds"),
+                Timedelta("1 days 1.000000010 seconds"),
+            ),
+        ],
+    )
+    def test_rounding_with_timedelta_freq(
+        self, timedelta, frequency, expected_ceil, expected_round, expected_floor
+    ):
+        # GH#63687 - Timedelta rounding methods accept Timedelta arguments
+        assert timedelta.ceil(frequency) == expected_ceil
+        assert timedelta.round(frequency) == expected_round
+        assert timedelta.floor(frequency) == expected_floor
 
     def test_rounding_nat_frequency(self):
         td = Timedelta("1001ms")

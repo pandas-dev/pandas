@@ -8,7 +8,6 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
-    NaTType,
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
@@ -22,89 +21,6 @@ import pandas._testing as tm
 
 
 class TestTimestampRound:
-    FREQUENCY_TIMEDELTA_ROUNDING_TESTS: dict[
-        str,
-        tuple[
-            Timestamp | NaTType,  # timedelta
-            Timedelta | NaTType,  # frequency
-            Timestamp | NaTType | None,  # expected_ceil
-            Timestamp | NaTType | None,  # expected_round
-            Timestamp | NaTType | None,  # expected_floor
-        ],
-    ] = {
-        "case_1": (
-            Timestamp("20130101 09:10:11"),
-            Timedelta("1 day"),
-            Timestamp("20130102"),
-            Timestamp("20130101"),
-            Timestamp("20130101"),
-        ),
-        "case_2": (
-            Timestamp("20130101 19:10:11"),
-            Timedelta("1 day"),
-            Timestamp("20130102"),
-            Timestamp("20130102"),
-            Timestamp("20130101"),
-        ),
-        "case_3": (
-            Timestamp("2000-01-05 05:09:15.13"),
-            Timedelta("1 day"),
-            Timestamp("2000-01-06 00:00:00"),
-            Timestamp("2000-01-05 00:00:00"),
-            Timestamp("2000-01-05 00:00:00"),
-        ),
-        "case_4": (
-            Timestamp("2000-01-05 05:09:15.13"),
-            Timedelta("1 hour"),
-            Timestamp("2000-01-05 06:00:00"),
-            Timestamp("2000-01-05 05:00:00"),
-            Timestamp("2000-01-05 05:00:00"),
-        ),
-        "case_5": (
-            Timestamp("2000-01-05 05:09:15.13"),
-            Timedelta("1 second"),
-            Timestamp("2000-01-05 05:09:16"),
-            Timestamp("2000-01-05 05:09:15"),
-            Timestamp("2000-01-05 05:09:15"),
-        ),
-        "case_6": (
-            Timestamp("2000-01-05 05:09:15.13"),
-            Timedelta("1 hour 30 min"),
-            Timestamp("2000-01-05 06:00:00"),
-            Timestamp("2000-01-05 04:30:00"),
-            Timestamp("2000-01-05 04:30:00"),
-        ),
-        # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
-        "future_aligned_15s": (
-            Timestamp("2117-01-01 00:00:45"),
-            Timedelta("15s"),
-            Timestamp("2117-01-01 00:00:45"),
-            Timestamp("2117-01-01 00:00:45"),
-            Timestamp("2117-01-01 00:00:45"),
-        ),
-        "future_floor_10ns": (
-            Timestamp("2117-01-01 00:00:45.000000012"),
-            Timedelta("10ns"),
-            Timestamp("2117-01-01 00:00:45.000000020"),
-            Timestamp("2117-01-01 00:00:45.000000010"),
-            Timestamp("2117-01-01 00:00:45.000000010"),
-        ),
-        "historical_aligned_1s": (
-            Timestamp("1823-01-01 00:00:01"),
-            Timedelta("1s"),
-            Timestamp("1823-01-01 00:00:01"),
-            Timestamp("1823-01-01 00:00:01"),
-            Timestamp("1823-01-01 00:00:01"),
-        ),
-        "historical_ceil_10ns": (
-            Timestamp("1823-01-01 00:00:01.000000012"),
-            Timedelta("10ns"),
-            Timestamp("1823-01-01 00:00:01.000000020"),
-            Timestamp("1823-01-01 00:00:01.000000010"),
-            Timestamp("1823-01-01 00:00:01.000000010"),
-        ),
-    }
-
     def test_round_division_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
 
@@ -174,35 +90,89 @@ class TestTimestampRound:
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             stamp.round("foo")
 
-    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
-    def test_round_timedelta_freq(self, case: str):
-        # GH#63687 - Timestamp.round accepts Timedelta arguments
-        timestamp, frequency, _, expected, _ = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
-            case
-        ]
-
-        result = timestamp.round(frequency)
-        assert result == expected
-
-    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
-    def test_floor_timedelta_freq(self, case: str):
-        # GH#63687 - Timestamp.floor accepts Timedelta arguments (including edge cases)
-        timestamp, frequency, _, _, expected = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
-            case
-        ]
-
-        result = timestamp.floor(frequency)
-        assert result == expected
-
-    @pytest.mark.parametrize("case", FREQUENCY_TIMEDELTA_ROUNDING_TESTS)
-    def test_ceil_timedelta_freq(self, case: str):
-        # GH#63687 - Timestamp.ceil accepts Timedelta arguments
-        timestamp, frequency, expected, _, _ = self.FREQUENCY_TIMEDELTA_ROUNDING_TESTS[
-            case
-        ]
-
-        result = timestamp.ceil(frequency)
-        assert result == expected
+    @pytest.mark.parametrize(
+        "timestamp,frequency,expected_ceil,expected_round,expected_floor",
+        [
+            (
+                Timestamp("20130101 09:10:11"),
+                Timedelta("1 day"),
+                Timestamp("20130102"),
+                Timestamp("20130101"),
+                Timestamp("20130101"),
+            ),
+            (
+                Timestamp("20130101 19:10:11"),
+                Timedelta("1 day"),
+                Timestamp("20130102"),
+                Timestamp("20130102"),
+                Timestamp("20130101"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 day"),
+                Timestamp("2000-01-06 00:00:00"),
+                Timestamp("2000-01-05 00:00:00"),
+                Timestamp("2000-01-05 00:00:00"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 hour"),
+                Timestamp("2000-01-05 06:00:00"),
+                Timestamp("2000-01-05 05:00:00"),
+                Timestamp("2000-01-05 05:00:00"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 second"),
+                Timestamp("2000-01-05 05:09:16"),
+                Timestamp("2000-01-05 05:09:15"),
+                Timestamp("2000-01-05 05:09:15"),
+            ),
+            (
+                Timestamp("2000-01-05 05:09:15.13"),
+                Timedelta("1 hour 30 min"),
+                Timestamp("2000-01-05 06:00:00"),
+                Timestamp("2000-01-05 04:30:00"),
+                Timestamp("2000-01-05 04:30:00"),
+            ),
+            # Edge cases derived from TestTimestampRound.test_ceil_floor_edge
+            (
+                Timestamp("2117-01-01 00:00:45"),
+                Timedelta("15s"),
+                Timestamp("2117-01-01 00:00:45"),
+                Timestamp("2117-01-01 00:00:45"),
+                Timestamp("2117-01-01 00:00:45"),
+            ),
+            (
+                Timestamp("2117-01-01 00:00:45.000000012"),
+                Timedelta("10ns"),
+                Timestamp("2117-01-01 00:00:45.000000020"),
+                Timestamp("2117-01-01 00:00:45.000000010"),
+                Timestamp("2117-01-01 00:00:45.000000010"),
+            ),
+            (
+                Timestamp("1823-01-01 00:00:01"),
+                Timedelta("1s"),
+                Timestamp("1823-01-01 00:00:01"),
+                Timestamp("1823-01-01 00:00:01"),
+                Timestamp("1823-01-01 00:00:01"),
+            ),
+            (
+                Timestamp("1823-01-01 00:00:01.000000012"),
+                Timedelta("10ns"),
+                Timestamp("1823-01-01 00:00:01.000000020"),
+                Timestamp("1823-01-01 00:00:01.000000010"),
+                Timestamp("1823-01-01 00:00:01.000000010"),
+            ),
+        ],
+    )
+    def test_rounding_with_timedelta_freq(
+        self, timestamp, frequency, expected_ceil, expected_round, expected_floor
+    ):
+        # GH#63687 - Timestamp rounding methods accept Timedelta arguments
+        assert timestamp.ceil(frequency) == expected_ceil
+        assert timestamp.round(frequency) == expected_round
+        assert timestamp.floor(frequency) == expected_floor
 
     def test_rounding_nat_frequency(self):
         ts = Timestamp("2000-01-05 05:09:15.13")
