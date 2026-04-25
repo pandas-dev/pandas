@@ -6,7 +6,6 @@ from cython cimport (
 from libc.math cimport (
     NAN,
     isfinite,
-    isnan,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -1025,7 +1024,7 @@ def group_skew(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, uses_mask = mask is not None
         float64_t[:, ::1] mean, M2, M3
         float64_t val
 
@@ -1054,20 +1053,27 @@ def group_skew(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask and mask[i, j]:
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
 
-                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                if skipna and isna_entry:
                     continue
+                elif isna_entry:
+                    val = NaN
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
                                   &M3[lab, j], NULL, 3)
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
-                if result_mask is not None and isnan(out[i, j]):
-                    result_mask[i, j] = 1
+                if nobs[i, j] < 3:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                else:
+                    out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
 
 
 @cython.wraparound(False)
@@ -1087,7 +1093,7 @@ def group_kurt(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, uses_mask = mask is not None
         float64_t[:, ::1] mean, M2, M3, M4
         float64_t val
 
@@ -1117,20 +1123,27 @@ def group_kurt(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask and mask[i, j]:
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
 
-                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                if skipna and isna_entry:
                     continue
+                elif isna_entry:
+                    val = NaN
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
                                   &M3[lab, j], &M4[lab, j], 4)
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
-                if result_mask is not None and isnan(out[i, j]):
-                    result_mask[i, j] = 1
+                if nobs[i, j] < 4:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                else:
+                    out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
 
 
 @cython.wraparound(False)

@@ -1246,6 +1246,59 @@ def test_nanops_independent_of_mask_param(operation):
     assert median_expected == median_result
 
 
+@pytest.mark.parametrize(
+    "nanops_operation",
+    [
+        "nansum",
+        "nanmean",
+        "nanmedian",
+        "nanstd",
+        "nanvar",
+        "nansem",
+        "nanmax",
+        "nanmin",
+        "nanskew",
+        "nankurt",
+        "nanprod",
+    ],
+)
+@pytest.mark.parametrize("axis", [None, 0, 1])
+def test_nanops_reductions_dont_skip_nan_with_mask(
+    nanops_operation, skipna, axis, request
+):
+    if skipna and nanops_operation == "nanmedian":
+        mark = pytest.mark.xfail(reason="nanmedian skips NaN")
+        request.applymarker(mark)
+    elif not skipna and axis in {0, 1} and nanops_operation == "nansem":
+        mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
+        request.applymarker(mark)
+    if axis is None:
+        expected = np.nan
+    else:
+        expected = np.array([np.nan, np.nan, np.nan, np.nan, np.nan])
+    values = np.array(
+        [
+            [np.nan, 1.0, 2.0, 3.0, 4.0],
+            [0.0, np.nan, 2.0, 3.0, 4.0],
+            [0.0, 1.0, np.nan, 3.0, 4.0],
+            [0.0, 1.0, 2.0, np.nan, 4.0],
+            [0.0, 1.0, 2.0, 3.0, np.nan],
+        ]
+    )
+    mask = np.array(
+        [
+            [False, True, False, False, False],
+            [False, False, True, False, False],
+            [False, False, False, True, False],
+            [False, False, False, False, True],
+            [True, False, False, False, False],
+        ]
+    )
+    operation = getattr(nanops, nanops_operation)
+    result = operation(values, mask=mask, skipna=skipna, axis=axis)
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize("min_count", [-1, 0])
 def test_check_below_min_count_negative_or_zero_min_count(min_count):
     # GH35227
