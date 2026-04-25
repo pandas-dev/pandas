@@ -927,7 +927,7 @@ def group_var(
         float64_t[:, ::1] mean, M2
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, isna_result, uses_mask = mask is not None
         bint is_std = name == "std"
         bint is_sem = name == "sem"
 
@@ -955,11 +955,36 @@ def group_var(
             for j in range(K):
                 val = values[i, j]
 
-                if (uses_mask and mask[i, j]) or (is_datetimelike and val == NPY_NAT):
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                elif is_datetimelike:
+                    # With group_var, we cannot just use _treat_as_na bc
+                    #  datetimelike dtypes get cast to float64 instead of
+                    #  to int64.
+                    isna_entry = val == NPY_NAT
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
 
-                if skipna and isnan(val):
-                    continue
+                if not skipna:
+                    if uses_mask:
+                        isna_result = result_mask[lab, j]
+                    elif is_datetimelike:
+                        # With group_var, we cannot just use _treat_as_na bc
+                        #  datetimelike dtypes get cast to float64 instead of
+                        #  to int64.
+                        isna_result = out[lab, j] == NPY_NAT
+                    else:
+                        isna_result = _treat_as_na(out[lab, j], is_datetimelike)
+
+                    if isna_result:
+                        # If aggregate is already NA, don't add to it. This is
+                        # important for datetimelike because adding a value to NPY_NAT
+                        # may not result in a NPY_NAT
+                        continue
+                if isna_entry:
+                    if skipna:
+                        continue
+                    val = NaN
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
                                   NULL, NULL, 2)
