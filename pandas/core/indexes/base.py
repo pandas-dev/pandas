@@ -5454,11 +5454,8 @@ class Index(IndexOpsMixin, PandasObject):
             )
         cond = np.asarray(cond, dtype=bool)
 
-        from pandas import Series
-
-        ser = Series(self._values)
         try:
-            result_ser = ser.where(cond, other)
+            result_ser = self.to_series().where(cond, other)
         except (TypeError, ValueError):
             # e.g. Categorical with a value not in categories;
             # find a common dtype and retry
