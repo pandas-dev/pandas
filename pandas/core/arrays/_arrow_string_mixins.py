@@ -239,6 +239,29 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
+        # GH#64941: pyarrow's replace_substring{_regex} hangs indefinitely
+        # when the pattern is an empty string (apache/arrow#39149).
+        # Fall back to element-wise Python which handles it correctly,
+        # e.g. "ab".replace("", "X") -> "XaXbX".
+        if pat == "":
+            if regex:
+                compiled = re.compile("")
+                count = 0 if n < 0 else n  # re.sub: 0 means replace all
+                result_list = [
+                    compiled.sub(repl, val, count=count) if val is not None else None
+                    for val in self._pa_array.to_pylist()
+                ]
+            else:
+                result_list = [
+                    (val.replace("", repl) if n < 0 else val.replace("", repl, n))
+                    if val is not None
+                    else None
+                    for val in self._pa_array.to_pylist()
+                ]
+            return self._from_pyarrow_array(
+                pa.array(result_list, type=self._pa_array.type)
+            )
+
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.

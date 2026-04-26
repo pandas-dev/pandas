@@ -255,7 +255,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
--
+- Bug in :meth:`Series.str.replace` and :meth:`Index.str.replace` hanging indefinitely when ``pat`` is an empty string and the backend is PyArrow (:issue:`64941`)
 
 Interval
 ^^^^^^^^

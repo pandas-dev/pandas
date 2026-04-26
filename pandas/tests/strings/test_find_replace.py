@@ -791,6 +791,25 @@ def test_pyarrow_backend_group_replacement(pattern, repl, expected_list):
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("regex", [False, True])
+@pytest.mark.parametrize(
+    "repl, expected",
+    [
+        # empty replacement: no-op (matches Python's str.replace("", "") behaviour)
+        ("", ["abcd", "ef", None]),
+        # non-empty replacement: insert at every position incl. start and end
+        ("X", ["XaXbXcXdX", "XeXfX", None]),
+    ],
+)
+def test_replace_empty_pattern_pyarrow(repl, expected, regex):
+    # GH#64941 - pyarrow's replace_substring hangs on empty pattern
+    ser = Series(["abcd", "ef", None]).convert_dtypes(dtype_backend="pyarrow")
+    result = ser.str.replace("", repl, regex=regex)
+    expected_ser = Series(expected).convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_series_equal(result, expected_ser)
+
+
 def test_replace_callable_named_groups(any_string_dtype):
     # test regex named groups
     ser = Series(["Foo Bar Baz", np.nan], dtype=any_string_dtype)
