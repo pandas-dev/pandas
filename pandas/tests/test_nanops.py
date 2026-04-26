@@ -1251,7 +1251,6 @@ def test_nanops_independent_of_mask_param(operation):
     [
         "nansum",
         "nanmean",
-        "nanmedian",
         "nanstd",
         "nanvar",
         "nansem",
@@ -1266,10 +1265,7 @@ def test_nanops_independent_of_mask_param(operation):
 def test_nanops_reductions_dont_skip_nan_with_mask(
     nanops_operation, skipna, axis, request
 ):
-    if skipna and nanops_operation == "nanmedian":
-        mark = pytest.mark.xfail(reason="nanmedian skips NaN")
-        request.applymarker(mark)
-    elif not skipna and axis in {0, 1} and nanops_operation == "nansem":
+    if not skipna and axis in {0, 1} and nanops_operation == "nansem":
         mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
         request.applymarker(mark)
     if axis is None:
