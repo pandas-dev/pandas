@@ -848,7 +848,7 @@ The choice of storage backend (PyArrow vs Python) involves important
 performance trade-offs:
 
 **PyArrow storage** (``storage='pyarrow'``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **Advantages**: Compact memory footprint, fast vectorized operations
 - **Disadvantages**: Immutable strings - any modification creates a new PyArrow ChunkedArray
@@ -860,7 +860,7 @@ performance and lower memory usage compared to Python storage, especially for
 large datasets.
 
 **Python storage** (``storage='python'``)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - **Advantages**: Mutable strings, compatible without external dependencies
 - **Disadvantages**: Highest memory overhead (each string is a separate Python object), no vectorization
@@ -873,7 +873,7 @@ and slower operations due to lack of vectorization.
 .. _text.known_differences:
 
 Known Behavior Differences
----------------------------
+--------------------------
 
 While pandas aims to provide consistent behavior regardless of storage backend,
 there are some edge cases where PyArrow and Python storage behave differently:
