@@ -130,6 +130,10 @@ class StringDtype(StorageExtensionDtype):
     -------
     None
 
+    See Also
+    --------
+    BooleanDtype : Extension dtype for boolean data.
+
     Notes
     -----
     When choosing between storage backends, consider the following:
@@ -142,10 +146,6 @@ class StringDtype(StorageExtensionDtype):
     There are also some known behavioral differences between storage backends
     for edge cases involving Unicode operations and regex handling. See the
     :ref:`text.known_differences` section in the user guide for details.
-
-    See Also
-    --------
-    BooleanDtype : Extension dtype for boolean data.
 
     Examples
     --------
