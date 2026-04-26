@@ -831,6 +831,49 @@ class TestSeriesPlots:
         exp = np.array(list(range(0, 11, 2)))
         tm.assert_numpy_array_equal(exp, ax.get_xticks())
 
+    def test_bar_xticks_index_values(self):
+        # GH#55508
+        s = Series([1, 3, 2], index=[2010, 2015, 2020])
+        ax = s.plot.bar(xticks=[2010, 2020])
+        result_ticks = ax.get_xticks()
+        expected_ticks = np.array([0, 2])
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+        result_labels = [t.get_text() for t in ax.get_xticklabels()]
+        assert result_labels == ["2010", "2020"]
+        assert ax.get_xlim()[1] < 10
+
+    def test_barh_yticks_index_values(self):
+        # GH#55508
+        s = Series([1, 3, 2], index=[2010, 2015, 2020])
+        ax = s.plot.barh(yticks=[2010, 2020])
+        result_ticks = ax.get_yticks()
+        expected_ticks = np.array([0, 2])
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+        result_labels = [t.get_text() for t in ax.get_yticklabels()]
+        assert result_labels == ["2010", "2020"]
+        assert ax.get_ylim()[1] < 10
+
+    def test_bar_xticks_partial_index_match(self):
+        # GH#55508 - xtick values not in the index are silently dropped
+        s = Series([1, 3, 2], index=[2010, 2015, 2020])
+        ax = s.plot.bar(xticks=[2010, 9999])
+        result_ticks = ax.get_xticks()
+        expected_ticks = np.array([0])
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+        result_labels = [t.get_text() for t in ax.get_xticklabels()]
+        assert result_labels == ["2010"]
+
+    def test_bar_xticks_dataframe(self):
+        # GH#55508
+        df = DataFrame({"A": [1, 3, 2], "B": [4, 2, 5]}, index=[2010, 2015, 2020])
+        ax = df.plot.bar(xticks=[2010, 2020])
+        result_ticks = ax.get_xticks()
+        expected_ticks = np.array([0, 2])
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+        result_labels = [t.get_text() for t in ax.get_xticklabels()]
+        assert result_labels == ["2010", "2020"]
+        assert ax.get_xlim()[1] < 10
+
     def test_custom_business_day_freq(self):
         # GH7222
         s = Series(
