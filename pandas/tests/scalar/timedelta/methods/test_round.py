@@ -263,18 +263,18 @@ class TestTimedeltaRound:
         td = Timedelta("1001ms")
 
         with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-            td.ceil(NaT)  # type: ignore[arg-type]
+            td.ceil(NaT)
         with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-            td.floor(NaT)  # type: ignore[arg-type]
+            td.floor(NaT)
         with pytest.raises(TypeError, match="Argument 'freq' has incorrect type"):
-            td.round(NaT)  # type: ignore[arg-type]
+            td.round(NaT)
 
     def test_rounding_nat_timedelta(self):
         freq = Timedelta("1s")
 
-        assert NaT.ceil(freq) is NaT  # type: ignore[operator]
-        assert NaT.floor(freq) is NaT  # type: ignore[operator]
-        assert NaT.round(freq) is NaT  # type: ignore[operator]
+        assert NaT.ceil(freq) is NaT
+        assert NaT.floor(freq) is NaT
+        assert NaT.round(freq) is NaT
 
     def test_round_freq_finer_than_resolution(self):
         # GH#64828
