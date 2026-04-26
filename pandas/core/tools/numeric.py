@@ -72,7 +72,7 @@ def to_numeric(
 
     Parameters
     ----------
-    arg : scalar, list, tuple, 1-d array, or Series
+    arg : scalar, list, tuple, 1-d array, Index, or Series
         Argument to be converted.
 
     errors : {'raise', 'coerce'}, default 'raise'
@@ -101,7 +101,7 @@ def to_numeric(
         performed on the data.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
-        Back-end data type applied to the resultant :class:`DataFrame`
+        Back-end data type applied to the resultant :class:`Series` or :class:`Index`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
         is as follows:
@@ -113,9 +113,17 @@ def to_numeric(
 
     Returns
     -------
-    ret
-        Numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray.
+    ret : int, float, Series, Index, or ndarray
+        Return type depends on input:
+
+       - scalar input: scalar (``int`` if possible, otherwise ``float``)
+        - :class:`Series` input: :class:`Series`
+        - :class:`Index` input: :class:`Index`
+        - list, tuple, or 1-d array: :class:`numpy.ndarray`
+
+        If ``errors='coerce'``, un-parseable values become ``NaN``
+        (still a numeric float). If ``errors='raise'`` (default),
+        a :exc:`ValueError` is raised for invalid values.
 
     Raises
     ------
@@ -175,6 +183,18 @@ def to_numeric(
     1    2.1
     2    3.0
     dtype: Float32
+    
+    Scalar input returns a scalar:
+
+    >>> pd.to_numeric('42')
+    np.int64(42)
+    >>> pd.to_numeric('3.14')
+    np.float64(3.14)
+
+    Index input returns an Index:
+
+    >>> pd.to_numeric(pd.Index(['1', '2', '3']))
+    Index([1, 2, 3], dtype='int64')
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
