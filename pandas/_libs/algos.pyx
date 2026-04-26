@@ -1621,7 +1621,10 @@ cdef void accumulate_moments_scalar(
 
     for i in range(n):
         val = values[i]
-        is_na_entry = (uses_mask and mask[i]) or (not uses_mask and isnan(val))
+        if uses_mask:
+            is_na_entry = mask[i]
+        else:
+            is_na_entry = isnan(val)
 
         if skipna and is_na_entry:
             continue
