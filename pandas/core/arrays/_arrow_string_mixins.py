@@ -34,7 +34,7 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _from_pyarrow_array(self, pa_array) -> Self:
+    def _from_pyarrow_array(self, pa_array: pa.Array | pa.ChunkedArray) -> Self:
         raise NotImplementedError
 
     def _convert_bool_result(self, result, na=lib.no_default, method_name=None):

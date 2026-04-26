@@ -166,8 +166,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         Avoids full __init__ overhead (type checking, pc.cast, ArrowDtype
         construction, etc.).
         """
-        if not isinstance(pa_array, (pa.Array, pa.ChunkedArray)):
-            return type(self)(pa_array, dtype=self.dtype)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
         if not pa.types.is_large_string(pa_array.type):
             pa_array = pa_array.cast(pa.large_string())
         obj = type(self).__new__(type(self))

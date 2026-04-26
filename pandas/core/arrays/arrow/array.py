@@ -427,8 +427,7 @@ class ArrowExtensionArray(
         Avoids full __init__ overhead by reusing the dtype when the pyarrow
         type is unchanged.
         """
-        if not isinstance(pa_array, (pa.Array, pa.ChunkedArray)):
-            return type(self)(pa_array)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
         obj = type(self).__new__(type(self))
         if isinstance(pa_array, pa.Array):
             pa_array = pa.chunked_array([pa_array])
@@ -762,12 +761,9 @@ class ArrowExtensionArray(
                 and item.step < 0
             ):
                 item = slice(item.start, None, item.step)
-            value = self._pa_array[item]
-            if isinstance(value, pa.ChunkedArray):
-                result = self._from_pyarrow_array(value)
-                result._readonly = self._readonly
-                return result
-            return self._box_pa_scalar(value)
+            result = self._from_pyarrow_array(self._pa_array[item])
+            result._readonly = self._readonly
+            return result
 
         item = check_array_indexer(self, item)
 

@@ -1265,9 +1265,10 @@ class DataSplitter(Generic[NDFrameT]):
 
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
         sdata = self._sorted_data
-        # sdata is a fresh object owned by the splitter and its attrs/flags
-        # cannot be mutated through the yielded chunks, so the finalize gate
-        # can be evaluated once outside the loop.
+        # __finalize__ is a no-op for an exact Series/DataFrame with empty
+        # attrs and default flags; skip it in that case. Safe to compute the
+        # gate once because sdata is splitter-owned and its type/attrs/flags
+        # can't be mutated through the yielded chunks.
         needs_finalize = (
             type(sdata) is not self._sorted_cls
             or bool(sdata.attrs)
