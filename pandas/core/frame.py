@@ -15706,7 +15706,19 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#51474: block-wise axis=1 reduction avoiding expensive
                 # transpose for numpy-backed and 2D EA blocks.
                 if (
-                    name in ("sum", "prod", "min", "max", "any", "all", "mean")
+                    name
+                    in (
+                        "sum",
+                        "prod",
+                        "min",
+                        "max",
+                        "any",
+                        "all",
+                        "mean",
+                        "var",
+                        "std",
+                        "sem",
+                    )
                     and len(df._mgr.blocks) > 1
                     and all(
                         (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
@@ -15724,6 +15736,7 @@ class DataFrame(NDFrame, OpsMixin):
                         op,
                         skipna=skipna,
                         min_count=kwds.get("min_count", 0),
+                        ddof=kwds.get("ddof", 1),
                     )
                 dtype = find_common_type(
                     [block.values.dtype for block in df._mgr.blocks]
@@ -15766,7 +15779,7 @@ class DataFrame(NDFrame, OpsMixin):
         return out
 
     def _reduce_axis1(
-        self, name: str, func, skipna: bool, min_count: int = 0
+        self, name: str, func, skipna: bool, min_count: int = 0, ddof: int = 1
     ) -> Series:
         """
         Special case for _reduce to try to avoid a potentially-expensive transpose.
@@ -15797,6 +15810,59 @@ class DataFrame(NDFrame, OpsMixin):
         elif name == "max":
             result = None
             ufunc = np.fmax if skipna else np.maximum  # type: ignore[assignment]
+        elif name in ("var", "std", "sem"):
+            # GH#55194: two-pass block-wise variance computation
+            total_sum = np.zeros(len(self), dtype="float64")
+            non_null_count = np.zeros(len(self), dtype=np.intp)
+            for block in self._mgr.blocks:
+                vals = block.values
+                block_sum = nanops.nansum(  # type: ignore[arg-type]
+                    vals, axis=0, skipna=skipna, min_count=0
+                )
+                total_sum += np.asarray(block_sum, dtype="float64")
+                if vals.dtype.kind in "biu":
+                    non_null_count += vals.shape[0]
+                else:
+                    non_null_count += vals.shape[0] - np.isnan(
+                        np.asarray(vals, dtype="float64")
+                    ).sum(axis=0)
+
+            row_mean = np.divide(
+                total_sum,
+                non_null_count,
+                out=np.full(len(self), np.nan),
+                where=non_null_count > 0,
+            )
+
+            sum_sq = np.zeros(len(self), dtype="float64")
+            for block in self._mgr.blocks:
+                vals = block.values
+                float_vals = np.asarray(vals, dtype="float64")
+                dev = float_vals - row_mean
+                sq = dev**2
+                if skipna and vals.dtype.kind not in "biu":
+                    nan_mask = np.isnan(float_vals)
+                    sq[nan_mask] = 0.0
+                sum_sq += sq.sum(axis=0)
+
+            denom = (non_null_count - ddof).astype("float64")
+            var_result = np.divide(
+                sum_sq,
+                denom,
+                out=np.full(len(self), np.nan),
+                where=denom > 0,
+            )
+
+            if name == "std":
+                var_result = np.sqrt(var_result)
+            elif name == "sem":
+                with np.errstate(invalid="ignore"):
+                    var_result = np.sqrt(var_result) / np.sqrt(
+                        non_null_count.astype("float64")
+                    )
+                var_result[non_null_count == 0] = np.nan
+
+            return self._constructor_sliced(var_result, index=self.index, copy=False)
         else:
             raise NotImplementedError(name)
 

@@ -792,6 +792,162 @@ class TestSeriesReductions:
         tm.assert_almost_equal(ser.std(ddof=1), np.sqrt(expected))
         tm.assert_almost_equal(ser.sem(ddof=1), np.sqrt(expected / len(values)))
 
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_mixed_dtype(self, func):
+        # GH#55194
+        df = DataFrame(
+            {
+                "A": [1, -2, 3],
+                "B": [1.0, -2, 3],
+                "C": [True, False, True],
+            }
+        )
+        result = getattr(df, func)(axis=1)
+        assert result.dtype == np.float64
+
+        for i in range(len(df)):
+            row = df.iloc[i].values.astype(float)
+            if func == "var":
+                expected = np.var(row, ddof=1)
+            elif func == "std":
+                expected = np.std(row, ddof=1)
+            else:  # sem
+                expected = np.std(row, ddof=1) / np.sqrt(len(row))
+            tm.assert_almost_equal(result.iloc[i], expected)
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_with_nan(self, func):
+        # GH#55194
+        df = DataFrame(
+            {
+                "A": [1.0, np.nan, 3.0],
+                "B": [4.0, 5.0, np.nan],
+                "C": [np.nan, np.nan, np.nan],
+            }
+        )
+        result_skipna = getattr(df, func)(axis=1, skipna=True)
+        assert result_skipna.dtype == np.float64
+        assert np.isnan(result_skipna.iloc[1])
+        assert np.isnan(result_skipna.iloc[2])
+        row0 = np.array([1.0, 4.0])
+        if func == "var":
+            tm.assert_almost_equal(result_skipna.iloc[0], np.var(row0, ddof=1))
+        elif func == "std":
+            tm.assert_almost_equal(result_skipna.iloc[0], np.std(row0, ddof=1))
+        else:
+            tm.assert_almost_equal(
+                result_skipna.iloc[0], np.std(row0, ddof=1) / np.sqrt(len(row0))
+            )
+
+        result_no_skipna = getattr(df, func)(axis=1, skipna=False)
+        assert result_no_skipna.dtype == np.float64
+        assert np.isnan(result_no_skipna.iloc[0])
+        assert np.isnan(result_no_skipna.iloc[1])
+        assert np.isnan(result_no_skipna.iloc[2])
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_ddof0(self, func):
+        # GH#55194
+        df = DataFrame(
+            {
+                "A": [1, -2, 3],
+                "B": [1.0, -2, 3],
+                "C": [True, False, True],
+            }
+        )
+        result = getattr(df, func)(axis=1, ddof=0)
+        assert result.dtype == np.float64
+        for i in range(len(df)):
+            row = df.iloc[i].values.astype(float)
+            if func == "var":
+                tm.assert_almost_equal(result.iloc[i], np.var(row, ddof=0))
+            elif func == "std":
+                tm.assert_almost_equal(result.iloc[i], np.std(row, ddof=0))
+            else:  # sem: std(ddof=0) / sqrt(n)
+                tm.assert_almost_equal(
+                    result.iloc[i], np.std(row, ddof=0) / np.sqrt(len(row))
+                )
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_ddof_exceeds_count(self, func):
+        # GH#55194
+        df = DataFrame({"A": [1.0, 2.0], "B": [3.0, 4.0]})
+        result = getattr(df, func)(axis=1, ddof=2)
+        assert result.dtype == np.float64
+        assert np.isnan(result.iloc[0])
+        assert np.isnan(result.iloc[1])
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_all_nan_row(self, func):
+        # GH#55194
+        df = DataFrame(
+            {
+                "A": [1.0, np.nan],
+                "B": [2.0, np.nan],
+            }
+        )
+        result = getattr(df, func)(axis=1, skipna=True)
+        assert result.dtype == np.float64
+        assert np.isnan(result.iloc[1])
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_nan_in_multiblock(self, func):
+        # GH#55194
+        df = DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4.0, 5.0, np.nan],
+                "C": [np.nan, np.nan, np.nan],
+            }
+        )
+        assert len(df._mgr.blocks) > 1, "test requires multiple blocks"
+
+        result_skipna = getattr(df, func)(axis=1, skipna=True)
+        assert result_skipna.dtype == np.float64
+        assert not np.isnan(result_skipna.iloc[0])
+        assert not np.isnan(result_skipna.iloc[1])
+        assert np.isnan(result_skipna.iloc[2])
+        row0 = np.array([1.0, 4.0])
+        row1 = np.array([2.0, 5.0])
+        if func == "var":
+            tm.assert_almost_equal(result_skipna.iloc[0], np.var(row0, ddof=1))
+            tm.assert_almost_equal(result_skipna.iloc[1], np.var(row1, ddof=1))
+        elif func == "std":
+            tm.assert_almost_equal(result_skipna.iloc[0], np.std(row0, ddof=1))
+            tm.assert_almost_equal(result_skipna.iloc[1], np.std(row1, ddof=1))
+        else:
+            tm.assert_almost_equal(
+                result_skipna.iloc[0], np.std(row0, ddof=1) / np.sqrt(len(row0))
+            )
+            tm.assert_almost_equal(
+                result_skipna.iloc[1], np.std(row1, ddof=1) / np.sqrt(len(row1))
+            )
+
+        result_no_skipna = getattr(df, func)(axis=1, skipna=False)
+        assert result_no_skipna.dtype == np.float64
+        assert np.isnan(result_no_skipna.iloc[0])
+        assert np.isnan(result_no_skipna.iloc[1])
+        assert np.isnan(result_no_skipna.iloc[2])
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_all_nan_row_multiblock(self, func):
+        # GH#55194
+        df = DataFrame({"A": [1, 2], "B": [2.0, np.nan]})
+        assert len(df._mgr.blocks) > 1, "test requires multiple blocks"
+        result = getattr(df, func)(axis=1, skipna=True)
+        assert result.dtype == np.float64
+        assert np.isnan(result.iloc[1])
+
+    @pytest.mark.parametrize("func", ["var", "std", "sem"])
+    def test_var_std_sem_axis1_ddof_exceeds_count_multiblock(self, func):
+        # GH#55194
+        df = DataFrame({"A": [1, 2], "B": [3.0, 4.0]})
+        assert len(df._mgr.blocks) > 1, "test requires multiple blocks"
+        result = getattr(df, func)(axis=1, ddof=2)
+        assert result.dtype == np.float64
+        assert np.isnan(result.iloc[0])
+        assert np.isnan(result.iloc[1])
+
     @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
