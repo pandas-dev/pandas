@@ -1219,13 +1219,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         fill_value : scalar, optional
             If fill semantics apply (see ``allow_fill``), indices specified by
-            ``-1`` are filled with ``fill_value``. Passing ``fill_value=None``
-            is equivalent to passing ``self._na_value``, matching the
-            :class:`~pandas.api.extensions.ExtensionArray` convention. If the
-            Index's dtype cannot hold ``fill_value``, the result is promoted
-            to a common dtype (e.g. an integer Index + ``np.nan`` fill is cast
-            to float, while an integer Index + a string fill is cast to
-            object).
+            ``-1`` are filled with ``fill_value``. Not specifying ``fill_value``
+            or passing ``fill_value=None`` will fill using the default NA value
+            of the caller's dtype. If the Index's dtype cannot hold
+            ``fill_value``, the result is promoted to a common dtype (e.g. an
+            integer Index + ``np.nan`` fill is cast to float, while an integer
+            Index + a string fill is cast to object).
         **kwargs
             Required for compatibility with numpy.
 
