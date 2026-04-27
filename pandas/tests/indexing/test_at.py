@@ -162,6 +162,15 @@ class TestAtSetItem:
         df.at[row, 0] = 0.5
         tm.assert_frame_equal(df, expected)
 
+    def test_at_setitem_list_like_object_dtype_no_warning(self):
+        # GH#61223 - list-like in object-dtype column succeeds without warning
+        df = DataFrame({"A": Series([[1, 2], [3, 4], [5, 6]])})
+        assert df["A"].dtype == np.dtype("object")
+        with tm.assert_produces_warning(None):
+            df.at[0, "A"] = [10, 20, 30]
+        assert df.at[0, "A"] == [10, 20, 30]
+        assert df["A"].dtype == np.dtype("object")
+
 
 class TestAtSetItemWithExpansion:
     def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
@@ -235,6 +244,52 @@ class TestAtSetItemWithExpansion:
             ser.at[0] = 99
         assert ser.at[0] == 99
 
+    def test_at_setitem_list_like_missing_row_object_dtype(self):
+        # GH#61223 - missing row falls back to .loc with Pandas4Warning
+        df = DataFrame({"A": Series([[1], [2]], dtype=object)}, index=["a", "b"])
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at["c", "A"] = [3, 4]
+        assert df.at["c", "A"] == [3, 4]
+        assert df["A"].dtype == np.dtype("object")
+
+    def test_at_setitem_list_like_new_column(self):
+        # GH#61223 - list-like stored as single cell in new object-dtype column
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="column key 'B' that does not exist"
+        ):
+            df.at["a", "B"] = [10, 20, 30]
+        assert df.at["a", "B"] == [10, 20, 30]
+        assert df["B"].dtype == np.dtype("object")
+        assert df.at["b", "B"] is np.nan
+
+    def test_at_setitem_ndarray_new_column(self):
+        # GH#61223 - np.ndarray stored as single cell in new object-dtype column
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        arr = np.array([10, 20, 30])
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="column key 'B' that does not exist"
+        ):
+            df.at["a", "B"] = arr
+        stored = df.at["a", "B"]
+        assert isinstance(stored, np.ndarray)
+        tm.assert_numpy_array_equal(stored, arr)
+        assert df["B"].dtype == np.dtype("object")
+        assert df.at["b", "B"] is np.nan
+
+    def test_at_setitem_series_value_new_column(self):
+        # GH#61223 - Series stored as single cell in new object-dtype column
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        val = Series([10, 20], index=["x", "y"])
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="column key 'B' that does not exist"
+        ):
+            df.at["a", "B"] = val
+        result = df.at["a", "B"]
+        tm.assert_series_equal(result, val)
+        assert df["B"].dtype == np.dtype("object")
+
 
 class TestAtWithDuplicates:
     def test_at_with_duplicate_axes_requires_scalar_lookup(self):
@@ -258,6 +313,18 @@ class TestAtWithDuplicates:
             df.at[1, ["A"]] = 1
         with pytest.raises(ValueError, match=msg):
             df.at[:, "A"] = 1
+
+    def test_at_setitem_list_like_nonunique_columns_raises(self):
+        # GH#61223 - non-unique column key with list-like raises KeyError
+        df = DataFrame([[1, 2]], columns=["A", "A"])
+        with pytest.raises(KeyError, match="A"):
+            df.at[0, "A"] = [10, 20]
+
+    def test_at_setitem_list_like_nonunique_columns_object_dtype_raises(self):
+        # GH#61223 - non-unique column with object dtype also raises KeyError
+        df = DataFrame([[[1], [2]]], columns=["A", "A"])
+        with pytest.raises(KeyError, match="A"):
+            df.at[0, "A"] = [10, 20]
 
 
 class TestAtErrors:
@@ -348,3 +415,102 @@ class TestAtErrors:
             match=f"You can only assign a scalar value not a \\{type(new_row)}",
         ):
             df.at["a"] = new_row
+
+    def test_at_setitem_list_like_wrong_dtype(self):
+        # GH#61223 - list-like in non-object dtype column raises ValueError
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.at["b", "A"] = [100, 200]
+
+    def test_iat_setitem_list_like(self):
+        # GH#61223 - .iat raises ValueError for non-object dtype
+        df = DataFrame({"A": [1, 2, 3]})
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.iat[0, 0] = [99, 88, 77]
+
+    def test_at_setitem_tuple_value(self):
+        # GH#61223 - tuple raises ValueError for non-object dtype
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.at["a", "A"] = (10, 20, 30)
+
+    def test_at_setitem_list_like_multiindex_row(self):
+        # GH#61223 - .at with MultiIndex row raises ValueError for non-object dtype
+        idx = MultiIndex.from_tuples([("r1", 0), ("r2", 1)])
+        df = DataFrame({"A": [1, 2]}, index=idx)
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.at[("r1", 0), "A"] = [10, 20]
+
+    def test_at_setitem_list_like_multiindex_partial_key(self):
+        # GH#61223 - partial MultiIndex key raises KeyError (.at requires unique row)
+        idx = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 3)])
+        df = DataFrame({"A": [[1], [2], [3]]}, index=idx)
+        with pytest.raises(KeyError, match="a"):
+            df.at["a", "A"] = [10, 20, 30]
+
+    def test_at_setitem_list_like_partial_multiindex_key_matching_len(self):
+        # GH#61223 - partial MultiIndex key; new column fires Pandas4Warning
+        idx = MultiIndex.from_tuples([("r1", 0), ("r1", 1), ("r2", 0)])
+        df = DataFrame({"A": [1, 2, 3]}, index=idx)
+        msg_warn = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg_warn):
+            with pytest.raises(KeyError, match="r1"):
+                df.at["r1", "B"] = [10, 20]
+
+    def test_at_setitem_ndarray_existing_column(self):
+        # GH#61223 - np.ndarray in non-object dtype column raises ValueError
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.at["b", "A"] = np.array([100, 200])
+
+    def test_at_setitem_dict_value_not_affected(self):
+        # GH#61223 - dict is not list-like; .at raises ValueError as before
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Incompatible indexer"):
+            df.at["a", "A"] = {"key": "val"}
+
+    def test_at_setitem_series_value_single_cell(self):
+        # GH#61223 - Series raises ValueError for non-object dtype
+        df = DataFrame({"A": [1, 2, 3]}, index=["a", "b", "c"])
+        val = Series([10, 20], index=["x", "y"])
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.at["a", "A"] = val
+
+    def test_at_setitem_list_like_float_column(self):
+        # GH#61223 - float64 column raises ValueError like int64
+        df = DataFrame({"A": [1.0, 2.0, 3.0]}, index=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Cannot store a list-like value"):
+            df.at["b", "A"] = [10.5, 20.5]
+
+    def test_at_setitem_list_like_multiindex_row_object_dtype(self):
+        # GH#61223 - full tuple key on unique MultiIndex stores list-like as single cell
+        idx = MultiIndex.from_tuples([("r1", 0), ("r2", 1)])
+        df = DataFrame({"A": Series([[1, 2], [3, 4]], index=idx)})
+        assert df["A"].dtype == np.dtype("object")
+        df.at[("r1", 0), "A"] = [10, 20, 30]
+        assert df.at[("r1", 0), "A"] == [10, 20, 30]
+        assert df["A"].dtype == np.dtype("object")
+
+    def test_iat_setitem_list_like_object_dtype(self):
+        # GH#61223 - .iat on object-dtype column stores list-like as single cell
+        df = DataFrame({"A": Series([[1, 2], [3, 4], [5, 6]])})
+        assert df["A"].dtype == np.dtype("object")
+        df.iat[0, 0] = [10, 20, 30]
+        assert df.iat[0, 0] == [10, 20, 30]
+        assert df["A"].dtype == np.dtype("object")
+
+    def test_at_setitem_tuple_value_object_dtype(self):
+        # GH#61223 - tuple value in object-dtype column stores as single cell
+        df = DataFrame({"A": Series([(1, 2), (3, 4)])})
+        assert df["A"].dtype == np.dtype("object")
+        df.at[0, "A"] = (10, 20, 30)
+        assert df.at[0, "A"] == (10, 20, 30)
+
+    def test_at_setitem_series_value_object_dtype_column(self):
+        # GH#61223 - Series value in object-dtype column stores as single cell
+        df = DataFrame({"A": Series([[1, 2], [3, 4]])})
+        assert df["A"].dtype == np.dtype("object")
+        val = Series([10, 20], index=["x", "y"])
+        df.at[0, "A"] = val
+        result = df.at[0, "A"]
+        tm.assert_series_equal(result, val)

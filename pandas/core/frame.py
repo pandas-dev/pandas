@@ -4823,7 +4823,17 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 icol = self.columns.get_loc(col)
                 iindex = self.index.get_loc(index)  # type: ignore[assignment]
-            self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
+            if (
+                not takeable
+                and not isinstance(icol, int)
+                and is_list_like(value)
+                and not isinstance(value, dict)
+            ):
+                # GH#61223: non-unique columns; force except branch to raise
+                raise KeyError(col)
+            self._mgr.column_setitem(
+                cast("int", icol), iindex, value, inplace_only=True
+            )
 
         except (KeyError, TypeError, ValueError, LossySetitemError):
             # get_loc might raise a KeyError for missing labels (falling back
@@ -4831,7 +4841,48 @@ class DataFrame(NDFrame, OpsMixin):
             # column_setitem will do validation that may raise TypeError,
             #  ValueError, or LossySetitemError
             # set using a non-recursive method & reset the cache
-            if takeable:
+            if is_list_like(value) and not isinstance(value, dict):
+                # GH#61223: store list-like as single cell, bypassing .loc/.iloc
+                if takeable:
+                    col_label = self.columns[col]
+                    iindex = cast("int", index)
+                else:
+                    col_label = col
+                    try:
+                        _iindex = self.index.get_loc(index)
+                    except KeyError:
+                        # GH#48323 missing row: fall back to .loc (deprecated)
+                        self.loc[index, col] = value
+                        return
+                    if not isinstance(_iindex, int):
+                        # GH#61223: partial MultiIndex key; .at requires unique row
+                        raise KeyError(index) from None
+                    iindex = _iindex
+                    if col not in self.columns:
+                        warnings.warn(
+                            f"Setting a value on a {type(self).__name__} via "
+                            f".at with a column key '{col}' that does not "
+                            "exist is deprecated and will raise a KeyError "
+                            "in a future version. Use .loc instead.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
+                        self[col] = Series(dtype=object, index=self.index)
+                icol = self.columns.get_loc(col_label)
+                if not isinstance(icol, int):
+                    # GH#61223: non-unique column label
+                    raise KeyError(col) from None
+                if self.dtypes.iloc[icol] != np.dtype("object"):
+                    # GH#61223 list-like requires object dtype (PDEP6)
+                    raise ValueError(
+                        f"Cannot store a list-like value in column "
+                        f"'{col_label}' with dtype "
+                        f"'{self.dtypes.iloc[icol]}'. Cast the column to "
+                        "object dtype explicitly: "
+                        f"df['{col_label}'] = df['{col_label}'].astype(object)"
+                    ) from None
+                self._mgr.column_setitem(icol, iindex, value, inplace_only=True)
+            elif takeable:
                 self.iloc[index, col] = value
             else:
                 self.loc[index, col] = value
