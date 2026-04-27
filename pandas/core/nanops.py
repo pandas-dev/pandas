@@ -1087,7 +1087,7 @@ def nansem(
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
 
-    if not skipna and mask is not None and mask.any():
+    if not skipna and mask is not None and axis is None and mask.any():
         return np.nan
 
     dtype_count = np.dtype(np.float64)
