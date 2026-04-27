@@ -239,6 +239,24 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
+        try:
+            is_zero_length = regex and re.match(pat, "") is not None
+        except re.error:
+            # RE2-only patterns (e.g. \p{Lu}, \z) can't be parsed by Python's
+            # re module - let PyArrow handle them directly.
+            is_zero_length = False
+
+        if is_zero_length:
+            # GH#64872 - PyArrow uses RE2 which handles zero-length regex
+            # matches differently from Python's PCRE engine. Fall back to
+            # Python re.sub for patterns that can match zero-length strings.
+            compiled = re.compile(pat)
+            count = n if n >= 0 else 0
+            result = self._apply_elementwise(
+                lambda val: compiled.sub(repl=repl, string=val, count=count)
+            )
+            return self._from_pyarrow_array(pa.chunked_array(result))
+
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.

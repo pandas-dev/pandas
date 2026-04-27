@@ -759,6 +759,7 @@ def test_replace_named_groups_regex_swap_expected_fail(
 )
 def test_pyarrow_ambiguous_group_references(pyarrow_string_dtype, pattern, repl):
     # GH#62653
+    # pyarrow (RE2) interprets \20 as group 2 + literal "0"
     ser = Series(["One Two Three", "Foo Bar Baz"], dtype=pyarrow_string_dtype)
 
     result = ser.str.replace(pattern, repl, regex=True)
@@ -1026,6 +1027,15 @@ def test_replace_end_of_string(any_string_dtype):
     ser = Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
     result = ser.str.replace(r"bar\\Z", "x", regex=True)
     expected = Series(["x", "bar", "bars", "bar\n"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_replace_regex_zero_length_match_consistency(any_string_dtype):
+    # GH#64872 - str.replace with regex patterns that can match zero-length
+    # strings should produce consistent results across all string backends
+    ser = Series(["FGHI"], dtype=any_string_dtype)
+    result = ser.str.replace("F?H?", "_", regex=True)
+    expected = Series(["__G__I_"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
