@@ -1245,6 +1245,7 @@ def test_nanops_independent_of_mask_param(operation):
     median_result = operation(ser._values, mask=mask._values)
     assert median_expected == median_result
 
+
 def test_nansem_mask_skipna_false_axis_returns_array():
     # GH#65373 - nansem with mask + skipna=False + axis={0,1} was returning
     # a scalar np.nan instead of an array of np.nan
@@ -1284,6 +1285,7 @@ def test_nansem_mask_skipna_false_axis_returns_array():
     result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
     assert np.isnan(result[0])
     assert not np.any(np.isnan(result[1:]))
+
 
 @pytest.mark.parametrize("min_count", [-1, 0])
 def test_check_below_min_count_negative_or_zero_min_count(min_count):
