@@ -3,10 +3,26 @@
 {{ header }}
 
 *******************
-Community tutorials
+Tutorials and Books
 *******************
 
-This is a guide to many pandas tutorials by the community, geared mainly for new users.
+This is a guide to many pandas tutorials and books by the community, geared mainly for new users.
+
+Pandas Workout by Reuven Lerner
+-------------------------------
+
+https://www.manning.com/books/pandas-workout
+
+This book provides 200 exercises with pandas. From the description:
+
+   Pandas Workout hones your pandas skills to a professional-level through two hundred
+   exercises, each designed to strengthen your pandas skills. You’ll test your abilities
+   against common pandas challenges such as importing and exporting, data cleaning,
+   visualization, and performance optimization. Each exercise utilizes a real-world
+   scenario based on real-world data, from tracking the parking tickets in New York City,
+   to working out which country makes the best wines. You’ll soon find your pandas skills
+   becoming second nature—no more trips to StackOverflow for what is now a natural part
+   of your skillset.
 
 pandas cookbook by Julia Evans
 ------------------------------
