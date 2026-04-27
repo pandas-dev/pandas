@@ -885,6 +885,7 @@ Other
 - Bug in :meth:`DataFrame.replace` raising ``IndexError`` instead of replacing when ``to_replace`` was list-like or dict-like, the replacement changed a column's dtype, and two or more other columns were left unchanged (:issue:`61972`)
 - Bug in :meth:`DataFrame.select_dtypes` with an :class:`~pandas.api.extensions.ExtensionDtype` subclass such as :class:`ArrowDtype` or :class:`DatetimeTZDtype` raising ``TypeError``, emitting a spurious ``UserWarning``, or selecting the wrong columns; passing such a class now selects every column whose dtype is an instance of that class (:issue:`65366`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+- Bug in :func:`option_context` where deprecation warnings pointed to ``contextlib.__enter__`` instead of user code (:issue:`63235`)
 - Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
 
 .. ***DO NOT USE THIS SECTION***
