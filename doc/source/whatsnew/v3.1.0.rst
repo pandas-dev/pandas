@@ -243,6 +243,7 @@ Numeric
 - Fixed bug in :meth:`Series.mean` and :meth:`Series.sum` (and their :class:`DataFrame` counterparts) overflowing for ``float16`` dtypes instead of upcasting to ``float64`` (:issue:`43929`)
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
+- Fixed bug in :func:`~pandas.core.nanops.nansem` where passing ``mask`` with ``skipna=False`` and an ``axis`` argument incorrectly returned a scalar ``np.nan`` instead of an array of ``np.nan`` (:issue:`65373`)
 
 Conversion
 ^^^^^^^^^^

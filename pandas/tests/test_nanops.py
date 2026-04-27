@@ -1245,6 +1245,45 @@ def test_nanops_independent_of_mask_param(operation):
     median_result = operation(ser._values, mask=mask._values)
     assert median_expected == median_result
 
+def test_nansem_mask_skipna_false_axis_returns_array():
+    # GH#65373 - nansem with mask + skipna=False + axis={0,1} was returning
+    # a scalar np.nan instead of an array of np.nan
+    rng = np.random.default_rng(2)
+    n = 5
+    values = rng.standard_normal((n, n))
+
+    # Place np.nan on the main diagonal so every slice along both axes
+    # contains an actual NaN value
+    np.fill_diagonal(values, np.nan)
+
+    # Shifted diagonal mask: one True per row and per column,
+    # so every slice has both a NaN value and a masked entry
+    mask = np.zeros((n, n), dtype=bool)
+    for i in range(n):
+        mask[i, (i + 1) % n] = True
+
+    expected = np.full(n, np.nan)
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=1)
+    tm.assert_numpy_array_equal(result, expected)
+
+    # axis=None: scalar nan expected (this behavior is correct and unchanged)
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=None)
+    assert np.isnan(result)
+
+    # partial mask: only [0, 0] masked -> only col 0 (axis=0) becomes nan,
+    # all other columns remain valid floats
+    values_partial = rng.standard_normal((n, n))
+    values_partial[0, 0] = np.nan
+    mask_partial = np.zeros((n, n), dtype=bool)
+    mask_partial[0, 0] = True
+
+    result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
+    assert np.isnan(result[0])
+    assert not np.any(np.isnan(result[1:]))
 
 @pytest.mark.parametrize("min_count", [-1, 0])
 def test_check_below_min_count_negative_or_zero_min_count(min_count):
