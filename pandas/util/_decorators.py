@@ -482,7 +482,7 @@ def set_module(module) -> Callable[[F], F]:
                 # Store the original module for classes to ensure linkcode_resolve
                 # can resolve the true source location after re-exporting
                 try:
-                    func._module_source = func.__module__
+                    func._module_source = func.__module__  # type: ignore[attr-defined]
                 except AttributeError:
                     pass
 
