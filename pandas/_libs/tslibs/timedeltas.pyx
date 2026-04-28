@@ -1261,7 +1261,7 @@ cdef class _Timedelta(timedelta):
         return npy_unit_to_abbrev(self._creso)
 
     @property
-    def days(self) -> int:  # TODO(cython3): make cdef property
+    def days(self) -> int:
         """
         Returns the days of the timedelta.
 
@@ -1297,7 +1297,7 @@ cdef class _Timedelta(timedelta):
         return self._d
 
     @property
-    def seconds(self) -> int:  # TODO(cython3): make cdef property
+    def seconds(self) -> int:
         """
         Return the total hours, minutes, and seconds of the timedelta as seconds.
 
@@ -1335,7 +1335,7 @@ cdef class _Timedelta(timedelta):
         return self._h * 3600 + self._m * 60 + self._s
 
     @property
-    def microseconds(self) -> int:  # TODO(cython3): make cdef property
+    def microseconds(self) -> int:
         # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
         #  (or be incorrect)
         """
@@ -1396,7 +1396,12 @@ cdef class _Timedelta(timedelta):
         """
         # We need to override bc we overrode days/seconds/microseconds
         # TODO: add nanos/1e9?
-        return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
+        self._ensure_components()
+        return (
+            self._d * 86400
+            + self._h * 3600 + self._m * 60 + self._s
+            + (self._ms * 1000 + self._us) / 1_000_000
+        )
 
     @property
     def unit(self) -> str:
