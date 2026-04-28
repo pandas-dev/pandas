@@ -4,36 +4,31 @@ from cpython.datetime cimport (
     datetime,
 )
 from numpy cimport (
+    NPY_DATETIMEUNIT,
+    NPY_FR_B,
+    NPY_FR_D,
+    NPY_FR_GENERIC,
+    NPY_FR_M,
+    NPY_FR_W,
+    NPY_FR_Y,
+    NPY_FR_as,
+    NPY_FR_fs,
+    NPY_FR_h,
+    NPY_FR_m,
+    NPY_FR_ms,
+    NPY_FR_ns,
+    NPY_FR_ps,
+    NPY_FR_s,
+    NPY_FR_us,
     int32_t,
     int64_t,
     npy_datetime,
+    npy_datetimestruct,
     npy_timedelta,
 )
 
 
-# TODO(cython3): most of these can be cimported directly from numpy
 cdef extern from "numpy/ndarraytypes.h":
-    ctypedef struct npy_datetimestruct:
-        int64_t year
-        int32_t month, day, hour, min, sec, us, ps, as
-
-    ctypedef enum NPY_DATETIMEUNIT:
-        NPY_FR_Y
-        NPY_FR_M
-        NPY_FR_W
-        NPY_FR_D
-        NPY_FR_B
-        NPY_FR_h
-        NPY_FR_m
-        NPY_FR_s
-        NPY_FR_ms
-        NPY_FR_us
-        NPY_FR_ns
-        NPY_FR_ps
-        NPY_FR_fs
-        NPY_FR_as
-        NPY_FR_GENERIC
-
     int64_t NPY_DATETIME_NAT  # elsewhere we call this NPY_NAT
 
 
