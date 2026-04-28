@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
+from math import pi
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -2587,6 +2588,14 @@ class _iLocIndexer(_LocationIndexer):
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
+            
+            elif (
+                self._is_scalar_access(indexer) 
+                and is_object_dtype(self.obj.dtypes._values[ilocs[0]])
+            ):
+                # We are setting nested data into a single cell, 
+                # only possible for object dtype. Bypasses length checks.
+                self._setitem_single_column(ilocs[0], value, pi)
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
@@ -2605,12 +2614,6 @@ class _iLocIndexer(_LocationIndexer):
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with an all-False mask
                 pass
-
-            elif self._is_scalar_access(indexer) and is_object_dtype(
-                self.obj.dtypes._values[ilocs[0]]
-            ):
-                # We are setting nested data, only possible for object dtype data
-                self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
