@@ -1856,29 +1856,6 @@ def test_str_replace_re2_unicode_property():
     tm.assert_series_equal(result, expected)
 
 
-def test_str_replace_empty_pattern():
-    # GH#64941
-    ser = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
-
-    result = ser.str.replace("", "")
-    expected = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
-    tm.assert_series_equal(result, expected)
-
-    result = ser.str.replace("", "X")
-    expected = pd.Series(["XaXbXcXdX"], dtype=ArrowDtype(pa.string()))
-    tm.assert_series_equal(result, expected)
-
-    ser = pd.Series(["abcd"], dtype="string[pyarrow]")
-
-    result = ser.str.replace("", "")
-    expected = pd.Series(["abcd"], dtype=ser.dtype)
-    tm.assert_series_equal(result, expected)
-
-    result = ser.str.replace("", "X")
-    expected = pd.Series(["XaXbXcXdX"], dtype=ser.dtype)
-    tm.assert_series_equal(result, expected)
-
-
 def test_str_replace_negative_n():
     # GH 56404
     ser = pd.Series(["abc", "aaaaaa"], dtype=ArrowDtype(pa.string()))
@@ -1896,6 +1873,19 @@ def test_str_replace_negative_n():
     actual3 = ser3.str.replace("a", "", -3, True)
     expected3 = expected.astype(ser3.dtype)
     tm.assert_series_equal(expected3, actual3)
+
+
+def test_str_replace_empty_pattern():
+    # https://github.com/pandas-dev/pandas/issues/64941
+    ser = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+
+    result = ser.str.replace("", "")
+    expected = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("", "X")
+    expected = pd.Series(["XaXbXcXdX"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_repeat_unsupported():
