@@ -84,12 +84,13 @@ class TestSelectDtypes:
         ei = df[["b", "c", "d", "f"]]
         tm.assert_frame_equal(ri, ei)
 
+        # GH#40234: kind-string specs match across numpy and EA backends
         ri = df.select_dtypes(include=["datetime"])
-        ei = df[["g"]]
+        ei = df[["g", "h", "i"]]
         tm.assert_frame_equal(ri, ei)
 
         ri = df.select_dtypes(include=["datetime64"])
-        ei = df[["g"]]
+        ei = df[["g", "h", "i"]]
         tm.assert_frame_equal(ri, ei)
 
         ri = df.select_dtypes(include=["datetimetz"])
@@ -195,11 +196,11 @@ class TestSelectDtypes:
         tm.assert_frame_equal(ri, ei)
 
         ri = df.select_dtypes(include="datetime")
-        ei = df[["g"]]
+        ei = df[["g", "h", "i"]]
         tm.assert_frame_equal(ri, ei)
 
         ri = df.select_dtypes(include="datetime64")
-        ei = df[["g"]]
+        ei = df[["g", "h", "i"]]
         tm.assert_frame_equal(ri, ei)
 
         ri = df.select_dtypes(include="category")
@@ -536,11 +537,61 @@ def test_select_dtypes_int64_ea_does_not_match_numpy_int64(spec):
     tm.assert_frame_equal(result, df[["B"]])
 
 
-@pytest.mark.parametrize("spec", ["int64", np.int64, np.dtype("int64")])
-def test_select_dtypes_numpy_int64_does_not_match_int64_ea(spec):
+@pytest.mark.parametrize("spec", [np.int64, np.dtype("int64")])
+def test_select_dtypes_numpy_int64_type_does_not_match_int64_ea(spec):
+    # numpy types target numpy storage; the Int64 EA is a different storage
     df = DataFrame({"A": [1, 2], "B": pd.array([1, 2], dtype="Int64")})
     result = df.select_dtypes(spec)
     tm.assert_frame_equal(result, df[["A"]])
+
+
+def test_select_dtypes_int64_string_matches_all_int64_kinds():
+    # GH#40234: "int64" names a kind, not a storage class
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "np": [1, 2],
+            "ea": pd.array([1, 2], dtype="Int64"),
+            "arrow": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+            "narrow": pd.array([1, 2], dtype="int32"),
+        }
+    )
+    result = df.select_dtypes("int64")
+    tm.assert_frame_equal(result, df[["np", "ea", "arrow"]])
+
+
+def test_select_dtypes_float64_string_matches_all_float64_kinds():
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "np": [1.0, 2.0],
+            "ea": pd.array([1.0, 2.0], dtype="Float64"),
+            "arrow": pd.array([1.0, 2.0], dtype=pd.ArrowDtype(pa.float64())),
+            "narrow": pd.array([1.0, 2.0], dtype="float32"),
+        }
+    )
+    result = df.select_dtypes("float64")
+    tm.assert_frame_equal(result, df[["np", "ea", "arrow"]])
+
+
+def test_select_dtypes_datetime_string_matches_arrow_timestamp():
+    # GH#59888: "datetime" is a kind, matches numpy datetime, DatetimeTZDtype,
+    # and Arrow timestamp alike
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "naive": pd.to_datetime(["2020-01-01", "2020-01-02"]),
+            "tz": pd.to_datetime(["2020-01-01", "2020-01-02"]).tz_localize("UTC"),
+            "arrow": pd.array(
+                pd.to_datetime(["2020-01-01", "2020-01-02"]),
+                dtype=pd.ArrowDtype(pa.timestamp("ns")),
+            ),
+            "other": [1, 2],
+        }
+    )
+    expected = df[["naive", "tz", "arrow"]]
+    tm.assert_frame_equal(df.select_dtypes(include=["datetime"]), expected)
+    tm.assert_frame_equal(df.select_dtypes(include=["datetime64"]), expected)
 
 
 def test_select_dtypes_arrow_timestamp_string_roundtrip():
@@ -557,13 +608,14 @@ def test_select_dtypes_arrow_timestamp_string_roundtrip():
     result = df.select_dtypes(include=["timestamp[ns][pyarrow]"])
     tm.assert_frame_equal(result, df[["ts"]])
 
-    # A numpy datetime64 spec should not cross-match an Arrow column
+    # A numpy parametrized datetime spec is storage-specific and should not
+    # cross-match an Arrow column
     result = df.select_dtypes(include=["datetime64[ns]"])
     assert result.shape[1] == 0
 
 
-def test_select_dtypes_arrow_int_not_matched_by_numpy_int():
-    # GH#59888 (symmetric case)
+def test_select_dtypes_arrow_int_not_matched_by_numpy_int_type():
+    # GH#59888 (symmetric case): the numpy *type* targets numpy storage
     pa = pytest.importorskip("pyarrow")
     df = DataFrame(
         {
@@ -631,3 +683,13 @@ def test_select_dtypes_category_class_matches_any_categories():
     expected = df[["cat1", "cat2"]]
     tm.assert_frame_equal(df.select_dtypes(pd.CategoricalDtype), expected)
     tm.assert_frame_equal(df.select_dtypes("category"), expected)
+
+
+def test_select_dtypes_python_type_resolves_to_ea(using_infer_string):
+    # The Python `str` type resolves to StringDtype under future.infer_string
+    # and should select string columns without raising.
+    if not using_infer_string:
+        pytest.skip("requires future.infer_string")
+    df = DataFrame({"s": ["a", "b"], "n": [1, 2]})
+    result = df.select_dtypes(include=str)
+    tm.assert_frame_equal(result, df[["s"]])

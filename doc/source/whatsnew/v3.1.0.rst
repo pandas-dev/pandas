@@ -346,6 +346,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :meth:`DataFrame.select_dtypes` where ``"Int64"`` and :class:`Int64Dtype` also matched numpy ``int64`` columns (and analogously for other nullable integer and floating dtypes) (:issue:`40234`)
+- Bug in :meth:`DataFrame.select_dtypes` where kind-name strings such as ``"int64"``, ``"float64"``, or ``"datetime"`` matched only numpy storage; they now match the corresponding masked, Arrow, and tz-aware extension columns as well (:issue:`40234`, :issue:`59888`)
 - Bug in :meth:`DataFrame.select_dtypes` where passing a parameterized :class:`ExtensionDtype` subclass (e.g. :class:`ArrowDtype`, :class:`DatetimeTZDtype`) emitted a spurious ``UserWarning`` about instantiating the dtype without arguments; passing such a class is now supported as a "kind" request matching any instance of that class
 - Bug in :meth:`DataFrame.select_dtypes` where the string form of an Arrow dtype (e.g. ``"timestamp[ns][pyarrow]"``) failed to match columns of that dtype, and where a numpy dtype string (e.g. ``"datetime64[ns]"``) silently matched Arrow-backed columns (:issue:`59888`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
