@@ -34,7 +34,6 @@ Other enhancements
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
-- Improved the error message shown when an optional dependency is missing to suggest alternative package managers (e.g. ``uv``, ``poetry``) in addition to ``pip`` and ``conda`` (:issue:`62796`)
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - MSVC is no longer required to build on Windows, and build errors when using the MinGW compiler have been fixed (:issue:`63160`)
