@@ -1377,7 +1377,8 @@ cdef class _Timedelta(timedelta):
         Total seconds in the duration.
 
         This method calculates the total duration in seconds by combining
-        the days, seconds, and microseconds of the `Timedelta` object.
+        the days, seconds, microseconds, and nanoseconds of the `Timedelta`
+        object.
 
         See Also
         --------
@@ -1395,12 +1396,12 @@ cdef class _Timedelta(timedelta):
         60.0
         """
         # We need to override bc we overrode days/seconds/microseconds
-        # TODO: add nanos/1e9?
         self._ensure_components()
         return (
             self._d * 86400
             + self._h * 3600 + self._m * 60 + self._s
             + (self._ms * 1000 + self._us) / 1_000_000
+            + self._ns / 1_000_000_000
         )
 
     @property
