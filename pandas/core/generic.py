@@ -7090,7 +7090,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if axis == 1:
                 # Check that all columns in result have the same dtype
                 # otherwise don't bother with fillna and losing accurate dtypes
-                unique_dtypes = algos.unique(self._mgr.get_dtypes())
+                unique_dtypes = self._mgr.get_unique_dtypes()
                 if len(unique_dtypes) > 1:
                     raise ValueError(
                         "All columns must have the same dtype, but got dtypes: "

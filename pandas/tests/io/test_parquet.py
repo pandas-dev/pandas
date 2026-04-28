@@ -1010,31 +1010,7 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, pa, timezone_aware_date_list, temp_file):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
-
-        # see gh-36004
-        # compare time(zone) values only, skip their class:
-        # pyarrow always creates fixed offset timezones using pytz.FixedOffset()
-        # even if it was datetime.timezone() originally
-        #
-        # technically they are the same:
-        # they both implement datetime.tzinfo
-        # they both wrap datetime.timedelta()
-        # this use-case sets the resolution to 1 minute
-
-        expected = df[:]
-        if timezone_aware_date_list.tzinfo != datetime.UTC:
-            # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
-            # https://github.com/pandas-dev/pandas/issues/37286
-            try:
-                import pytz
-            except ImportError:
-                pass
-            else:
-                offset = df.index.tz.utcoffset(timezone_aware_date_list)
-                tz = pytz.FixedOffset(offset.total_seconds() / 60)
-                expected.index = expected.index.tz_convert(tz)
-                expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
-        check_round_trip(df, temp_file, pa, check_dtype=False, expected=expected)
+        check_round_trip(df, temp_file, pa, check_dtype=False)
 
     def test_filter_row_groups(self, pa, temp_file):
         # https://github.com/pandas-dev/pandas/issues/26551
