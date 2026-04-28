@@ -289,16 +289,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         """
         return self._dtype
 
-    def insert(self, loc: int, item) -> ArrowStringArray:
-        if self.dtype.na_value is np.nan and item is np.nan:
-            item = libmissing.NA
-        if not isinstance(item, str) and item is not libmissing.NA:
-            raise TypeError(
-                f"Invalid value '{item}' for dtype 'str'. Value should be a "
-                f"string or missing value, got '{type(item).__name__}' instead."
-            )
-        return super().insert(loc, item)
-
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
         validate_na_arg(na, name="na")
         if self.dtype.na_value is np.nan:
@@ -312,16 +302,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
+    def _validate_scalar(self, value):
+        if isna(value):
+            value = None
+        elif not isinstance(value, str):
+            raise TypeError(
+                f"Invalid value '{value}' for dtype 'str'. Value should be a "
+                f"string or missing value, got '{type(value).__name__}' instead."
+            )
+        return super()._validate_scalar(value)
+
     def _validate_setitem_value(self, value):
-        """Maybe convert value to be pyarrow compatible."""
         if is_scalar(value):
-            if isna(value):
-                value = None
-            elif not isinstance(value, str):
-                raise TypeError(
-                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
-                    f"string or missing value, got '{type(value).__name__}' instead."
-                )
+            return self._validate_scalar(value)
         elif isinstance(value, type(self)):
             pass
         else:

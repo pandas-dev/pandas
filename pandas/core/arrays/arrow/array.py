@@ -1461,11 +1461,7 @@ class ArrowExtensionArray(
                     f" expected {len(self)}"
                 )
 
-        try:
-            fill_value = self._box_pa(value, pa_type=self._pa_array.type)
-        except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
-            raise TypeError(msg) from err
+        fill_value = self._validate_setitem_value(value)
 
         try:
             return self._from_pyarrow_array(
@@ -2714,14 +2710,25 @@ class ArrowExtensionArray(
         most_common = most_common.take(pc.array_sort_indices(most_common))
         return self._from_pyarrow_array(most_common)
 
-    def _validate_setitem_value(self, value):
-        """Maybe convert value to be pyarrow compatible."""
+    def _validate_scalar(self, value):
         try:
-            value = self._box_pa(value, self._pa_array.type)
+            return self._box_pa_scalar(value, pa_type=self._pa_array.type)
         except pa.ArrowTypeError as err:
             msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
-        return value
+
+    def _validate_setitem_value(self, value):
+        if isinstance(value, pa.Scalar) or not is_list_like(value):
+            return self._validate_scalar(value)
+        try:
+            return self._box_pa_array(value, pa_type=self._pa_array.type)
+        except pa.ArrowTypeError as err:
+            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+            raise TypeError(msg) from err
+
+    def insert(self, loc: int, item) -> Self:
+        item = self._validate_scalar(item)
+        return super().insert(loc, item.as_py())
 
     def interpolate(
         self,

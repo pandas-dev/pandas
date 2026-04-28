@@ -832,7 +832,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return arr, self.dtype.na_value
 
     def _validate_setitem_value(self, value):
-        """Validate / convert value to be StringArray compatible."""
         if lib.is_scalar(value):
             if isna(value):
                 value = self.dtype.na_value
