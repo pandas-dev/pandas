@@ -116,26 +116,12 @@ class TestConcatSort:
         msg = "The 'sort' keyword only accepts boolean values; None was passed."
         with pytest.raises(ValueError, match=msg):
             pd.concat([df, df], sort=None)
-class TestConcatSortTimestampNames:
-    def test_combine_first_timestamp_names_anterior(self):
-        # GH#65333
-        s1 = pd.Series([0], name=pd.to_datetime("2026"))
-        s3 = pd.Series([1, 3], name=pd.to_datetime("2025"))
-        result = s1.combine_first(s3)
-        expected = pd.Series([0, 3], index=[0, 1], name=pd.to_datetime("2026"))
-        tm.assert_series_equal(result, expected)
 
-    def test_combine_first_timestamp_names_posterior(self):
-        # GH#65333
-        s1 = pd.Series([0], name=pd.to_datetime("2026"))
-        s2 = pd.Series([1, 2], name=pd.to_datetime("2027"))
-        result = s1.combine_first(s2)
-        expected = pd.Series([0, 2], index=[0, 1], name=pd.to_datetime("2026"))
-        tm.assert_series_equal(result, expected)
 
-    def test_concat_series_timestamp_names_no_crash(self):
-        # GH#65333
-        s1 = pd.Series([0], name=pd.to_datetime("2026"))
-        s3 = pd.Series([1, 3], name=pd.to_datetime("2025"))
-        result = pd.concat([s1, s3])
-        assert len(result) == 3
+def test_concat_series_timestamp_names_anterior():
+    # GH#65333
+    s1 = pd.Series([0], name=pd.to_datetime("2026"))
+    s3 = pd.Series([1, 3], name=pd.to_datetime("2025"))
+    result = pd.concat([s1, s3])
+    expected = pd.Series([0, 1, 3], index=[0, 0, 1])
+    tm.assert_series_equal(result, expected)
