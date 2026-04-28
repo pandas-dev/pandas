@@ -354,6 +354,18 @@ class TestTimedeltas:
         result2 = to_timedelta(arr2, unit="s")
         assert result2.unit == "ns"
 
+    def test_to_timedelta_unit_mixed_round_and_non_round_floats(self):
+        # GH#65150 - round floats mixed with non-round floats should
+        # respect the unit for all values
+        expected = to_timedelta(["0 days 00:00:01", "0 days 00:00:01.01"]).as_unit("ns")
+
+        result = to_timedelta([1.0, 1.01], unit="s")
+        tm.assert_index_equal(result, expected)
+
+        # Also test integers mixed with non-round floats
+        result2 = to_timedelta([1, 1.01], unit="s")
+        tm.assert_index_equal(result2, expected)
+
     def test_float_to_timedelta_raise_near_bounds(self):
         # GH#57366
         oneday_in_ns = 1e9 * 60 * 60 * 24
@@ -438,7 +450,7 @@ class TestTimedeltas:
         arr = np.array([uint64_max], dtype=np.uint64)
 
         result = to_timedelta(arr, unit="ns", errors="coerce")
-        expected = TimedeltaIndex([pd.NaT])
+        expected = TimedeltaIndex([pd.NaT], dtype="m8[ns]")
         tm.assert_index_equal(result, expected)
 
         # scalar
