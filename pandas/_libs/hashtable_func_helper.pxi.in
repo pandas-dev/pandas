@@ -450,7 +450,7 @@ cpdef ismember(ndarray[htfunc_t] arr, ndarray[htfunc_t] values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
-    # TODO(cython3): use const htfunct_t[:]
+    # TODO(cython#2485): once possible, use const htfunc_t[:]
 
     cdef:
         ndarray[htfunc_t] keys
