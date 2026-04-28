@@ -100,7 +100,7 @@ class JSONArray(ExtensionArray):
             # TODO replace with public function
             from pandas._libs import lib
 
-            values = np.asarray(values, dtype=object)
+            values = construct_1d_object_array_from_listlike(values)
             return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     def __getitem__(self, item):

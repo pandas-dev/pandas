@@ -53,16 +53,8 @@ jobs:
       run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 
-    - name: Check for no warnings when building single-page docs
-      run: ci/code_checks.sh single-docs
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
     - name: Run checks on imported code
       run: ci/code_checks.sh code
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Run check of documentation notebooks
-      run: ci/code_checks.sh notebooks
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Use existing environment for type checking

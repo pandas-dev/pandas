@@ -256,7 +256,6 @@ if TYPE_CHECKING:
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
-    from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
 
@@ -424,11 +423,6 @@ class DataFrame(NDFrame, OpsMixin):
             # This would also work `if self._constructor is DataFrame`, but
             #  this check is slightly faster, benefiting the most-common case.
             return df
-
-        elif type(self).__name__ == "GeoDataFrame":
-            # Shim until geopandas can override their _constructor_from_mgr
-            #  bc they have different behavior for Managers than for DataFrames
-            return self._constructor(mgr)
 
         # We assume that the subclass __init__ knows how to handle a
         #  pd.DataFrame object.
@@ -4181,18 +4175,17 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         Series
         """
-        # irow
         if axis == 0:
-            new_mgr = self._mgr.fast_xs(i)
-
-            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            object.__setattr__(result, "_name", self.index[i])
-            return result.__finalize__(self)
-
-        # icol
+            mgr = self._mgr.fast_xs(i)
+            name = self.index[i]
         else:
-            col_mgr = self._mgr.iget(i)
-            return self._box_col_values(col_mgr, i)
+            mgr = self._mgr.iget(i)
+            # Lookup in columns so that if e.g. a str datetime was passed
+            #  we attach the Timestamp object as the name.
+            name = self.columns[i]
+        result = self._constructor_sliced_from_mgr(mgr, axes=mgr.axes)
+        object.__setattr__(result, "_name", name)
+        return result.__finalize__(self)
 
     def _get_column_array(self, i: int) -> ArrayLike:
         """
@@ -4407,7 +4400,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
-        loc = self.index._engine.get_loc(index)
+        try:
+            loc = self.index._engine.get_loc(index)
+        except TypeError:
+            # e.g. partial string slicing on DatetimeIndex level;
+            #  see GH#43395
+            loc = self.index.get_loc(index)
         return series._values[loc]
 
     def isetitem(self, loc, value) -> None:
@@ -4867,19 +4865,6 @@ class DataFrame(NDFrame, OpsMixin):
                 index_copy.name = self.index.name
 
             self._mgr = self._mgr.reindex_axis(index_copy, axis=1, fill_value=np.nan)
-
-    def _box_col_values(self, values: SingleBlockManager, loc: int) -> Series:
-        """
-        Provide boxed values for a column.
-        """
-        # Lookup in columns so that if e.g. a str datetime was passed
-        #  we attach the Timestamp object as the name.
-        name = self.columns[loc]
-        # We get index=self.index bc values is a SingleBlockManager
-        obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
-        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead
-        object.__setattr__(obj, "_name", name)
-        return obj.__finalize__(self)
 
     def _get_item(self, item: Hashable) -> Series:
         loc = self.columns.get_loc(item)
@@ -5478,7 +5463,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc: int,
         column: Hashable,
         value: object,
-        allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        allow_duplicates: bool = False,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -5494,7 +5479,7 @@ class DataFrame(NDFrame, OpsMixin):
             Label of the inserted column.
         value : Scalar, Series, or array-like
             Content of the inserted column.
-        allow_duplicates : bool, optional, default lib.no_default
+        allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
         See Also
@@ -5527,8 +5512,6 @@ class DataFrame(NDFrame, OpsMixin):
         0   NaN   100     1      99     3
         1   5.0   100     2      99     4
         """
-        if allow_duplicates is lib.no_default:
-            allow_duplicates = False
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
@@ -6970,7 +6953,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
@@ -6983,7 +6966,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> None: ...
 
@@ -6996,7 +6979,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None: ...
 
@@ -7008,7 +6991,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
-        allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        allow_duplicates: bool = False,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
@@ -7035,7 +7018,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
-        allow_duplicates : bool, optional, default lib.no_default
+        allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
@@ -7175,8 +7158,7 @@ class DataFrame(NDFrame, OpsMixin):
             new_obj = self
         else:
             new_obj = self.copy(deep=False)
-        if allow_duplicates is not lib.no_default:
-            allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
+        allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
         new_index = default_index(len(new_obj))
         if level is not None:
@@ -7965,7 +7947,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
 
         if self.empty:
-            return self._constructor_sliced(dtype=bool)
+            return self._constructor_sliced(False, dtype=bool, index=self.index)
 
         def f(vals) -> tuple[np.ndarray, int]:
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
@@ -17978,9 +17960,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         index = data._get_axis(axis)
-        result = algorithms.take(
-            index._values, indices, allow_fill=True, fill_value=index._na_value
-        )
+        result = index.take(indices, allow_fill=True)._values
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
@@ -18079,9 +18059,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         index = data._get_axis(axis)
-        result = algorithms.take(
-            index._values, indices, allow_fill=True, fill_value=index._na_value
-        )
+        result = index.take(indices, allow_fill=True)._values
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmax")
 

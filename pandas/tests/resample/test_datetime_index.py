@@ -1136,7 +1136,7 @@ def test_resample_anchored_intraday2(unit):
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
-    expected.index._data.freq = "QE"
+    expected.index.freq = "QE"
     expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
@@ -1146,7 +1146,7 @@ def test_resample_anchored_intraday2(unit):
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
-    expected.index._data.freq = "QE"
+    expected.index.freq = "QE"
     expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)

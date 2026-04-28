@@ -70,7 +70,6 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import (
@@ -146,27 +145,9 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
         values = self._local_timestamps()
 
         if field in self._bool_ops:
-            result: np.ndarray
-
             if field.endswith(("start", "end")):
-                freq = self.freq
-                month_kw = 12
-                if freq:
-                    kwds = freq.kwds
-                    month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
-
-                if freq is not None:
-                    freq_name = freq.rule_code
-                else:
-                    freq_name = None
-                result = fields.get_start_end_field(
-                    values, field, freq_name, month_kw, reso=self._creso
-                )
-            else:
-                result = fields.get_date_field(values, field, reso=self._creso)
-
-            # these return a boolean by-definition
-            return result
+                return self._get_start_end_field(field, freq=None)
+            return fields.get_date_field(values, field, reso=self._creso)
 
         result = fields.get_date_field(values, field, reso=self._creso)
         result = self._maybe_mask_results(result, fill_value=None, convert="float64")
@@ -322,7 +303,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.datetime64],
-        freq: BaseOffset | None = None,
         dtype: np.dtype[np.datetime64] | DatetimeTZDtype = DT64NS_DTYPE,
     ) -> Self:
         assert isinstance(values, np.ndarray)
@@ -336,7 +316,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             assert dtype._creso == get_unit_from_dtype(values.dtype)
 
         result = super()._simple_new(values, dtype)
-        result._freq = freq
+        result._freq = None
         return result
 
     @classmethod
@@ -351,7 +331,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype=None,
         copy: bool = False,
         tz=lib.no_default,
-        freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
         ambiguous: TimeAmbiguous = "raise",
@@ -379,9 +358,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data, copy = dtl.ensure_arraylike_for_datetimelike(
             data, copy, cls_name="DatetimeArray"
         )
-        inferred_freq = None
-        if isinstance(data, DatetimeArray):
-            inferred_freq = data.freq
 
         subarr, tz = _sequence_to_dt64(
             data,
@@ -403,7 +379,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data_unit = np.datetime_data(subarr.dtype)[0]
         data_unit = cast("TimeUnit", data_unit)
         data_dtype = tz_to_dtype(tz, data_unit)
-        result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
+        result = cls._simple_new(subarr, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
             # error: Argument 1 to "as_unit" of "TimelikeOps" has
@@ -411,8 +387,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # [arg-type]
             result = result.as_unit(unit)  # type: ignore[arg-type]
 
-        validate_kwds = {"ambiguous": ambiguous}
-        result._maybe_pin_freq(freq, validate_kwds)
         return result
 
     @classmethod
@@ -573,7 +547,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
         dtype = tz_to_dtype(tz, unit=unit)
-        return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
+        result = cls._simple_new(dt64_values, dtype=dtype)
+        result._freq = freq
+        return result
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -740,7 +716,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)
                 res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+                return type(self)._simple_new(res_values, dtype=dtype)
 
         elif (
             self.tz is None
@@ -834,7 +810,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._simple_new(res_values, dtype=self.dtype)
             if offset.normalize:
                 result = result.normalize()
-                result._freq = None
             return result
 
         if self.tz is not None:
@@ -869,7 +844,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             if offset.normalize:
                 result = result.normalize()
-                result._freq = None
 
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
@@ -972,10 +946,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        new_freq = None
-        if isinstance(self.freq, Tick):
-            new_freq = self.freq
-        return self._simple_new(self._ndarray, dtype=dtype, freq=new_freq)
+        return self._simple_new(self._ndarray, dtype=dtype)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -1152,15 +1123,7 @@ default 'raise'
         new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
         dtype = tz_to_dtype(tz, unit=self.unit)
 
-        freq = None
-        if timezones.is_utc(tz) or (len(self) == 1 and not isna(new_dates_dt64[0])):
-            # we can preserve freq
-            # TODO: Also for fixed-offsets
-            freq = self.freq
-        elif tz is None and self.tz is None:
-            # no-op
-            freq = self.freq
-        return self._simple_new(new_dates_dt64, dtype=dtype, freq=freq)
+        return self._simple_new(new_dates_dt64, dtype=dtype)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1236,7 +1199,6 @@ default 'raise'
         dt64_values = new_values.view(self._ndarray.dtype)
 
         dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
-        dta = dta._with_freq("infer")
         if self.tz is not None:
             dta = dta.tz_localize(self.tz)
         return dta
@@ -1303,11 +1265,7 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.freqstr or self.inferred_freq
-            if isinstance(self.freq, BaseOffset) and hasattr(
-                self.freq, "_period_dtype_code"
-            ):
-                freq = PeriodDtype(self.freq)._freqstr
+            freq = self.inferred_freq
 
             if freq is None:
                 raise ValueError(
@@ -2165,6 +2123,30 @@ default 'raise'
             stacklevel=find_stack_level(),
         )
         return self.days_in_month
+
+    def _get_start_end_field(self, field: str, freq: BaseOffset | None) -> np.ndarray:
+        """
+        Return boolean array for is_month_start, is_quarter_end, etc.
+
+        Parameters
+        ----------
+        field : str
+        freq : BaseOffset or None
+        """
+        month_kw = 12
+        if freq:
+            kwds = freq.kwds
+            month_kw = kwds.get("startingMonth", kwds.get("month", month_kw))
+
+        if freq is not None:
+            freq_name = freq.rule_code
+        else:
+            freq_name = None
+
+        values = self._local_timestamps()
+        return fields.get_start_end_field(
+            values, field, freq_name, month_kw, reso=self._creso
+        )
 
     _is_month_doc = """
         Indicates whether the date is the {first_or_last} day of the month.
