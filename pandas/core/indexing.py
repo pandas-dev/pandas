@@ -2587,12 +2587,11 @@ class _iLocIndexer(_LocationIndexer):
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
-            
-            elif (
-                self._is_scalar_access(indexer) 
-                and is_object_dtype(self.obj.dtypes._values[ilocs[0]])
+
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes._values[ilocs[0]]
             ):
-                # We are setting nested data into a single cell, 
+                # We are setting nested data into a single cell,
                 # only possible for object dtype. Bypasses length checks.
                 self._setitem_single_column(ilocs[0], value, pi)
 

@@ -1067,10 +1067,10 @@ def test_scalar_setitem_with_nested_value(value):
 
     # Update for object dtype: We DO preserve nested data now (Fixes #57962)
     df = DataFrame({"A": [1, 2, 3], "B": np.array([1, "a", "b"], dtype=object)})
-    
+
     # Perform the assignment (this used to be inside the pytest.raises block)
     df.loc[0, "B"] = value
-    
+
     # Use the author's original intended assertions
     if isinstance(value, np.ndarray):
         assert (df.loc[0, "B"] == value).all()
