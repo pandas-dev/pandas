@@ -147,6 +147,20 @@ class TestCanParallelizeCsv:
         assert _can_parallelize_csv(path, self._kwds(lineterminator="\n"))
         assert _can_parallelize_csv(path, self._kwds(lineterminator=None))
 
+    @pytest.mark.parametrize(
+        "encoding", ["utf-16", "UTF-16", "utf_16_le", "utf-32", "UTF_32_BE"]
+    )
+    def test_rejects_utf16_32_encoding(self, tmp_path, monkeypatch, encoding):
+        # UTF-16/32 encode \n as a multi-byte sequence (e.g. b"\x0a\x00" in
+        # UTF-16LE).  Splitting on raw \n bytes would misalign chunks and
+        # silently corrupt data.
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(encoding=encoding))
+
     def test_rejects_callable_skiprows(self, tmp_path):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")

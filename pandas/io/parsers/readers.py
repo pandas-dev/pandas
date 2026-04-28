@@ -409,6 +409,15 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if lineterminator is not None and lineterminator != "\n":
         return False
 
+    # UTF-16 / UTF-32 are not byte-safe for splitting on raw \n: in UTF-16LE
+    # a '\n' code point is the byte pair 0x0A 0x00, and a chunk boundary
+    # landing on the high byte would silently misalign the data.
+    encoding = kwds.get("encoding")
+    if encoding is not None:
+        norm = encoding.lower().replace("-", "_")
+        if norm.startswith(("utf_16", "utf_32", "utf16", "utf32")):
+            return False
+
     # Callable / list skiprows require tracking absolute line numbers.
     skiprows = kwds.get("skiprows")
     if skiprows is not None and not isinstance(skiprows, (int, np.integer)):
