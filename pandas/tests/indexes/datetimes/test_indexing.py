@@ -476,7 +476,7 @@ class TestGetLoc:
 
         assert index.get_loc(pd.NA) == 1
 
-        assert index.get_loc(np.datetime64("NaT")) == 1
+        assert index.get_loc(np.datetime64("NaT", "ns")) == 1
 
         with pytest.raises(KeyError, match="NaT"):
             index.get_loc(np.timedelta64("NaT", "ns"))

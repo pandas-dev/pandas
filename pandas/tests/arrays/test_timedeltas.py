@@ -235,7 +235,7 @@ class TestTimedeltaArray:
             1,
             np.int64(1),
             1.0,
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
             pd.Timestamp("2021-01-01"),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,

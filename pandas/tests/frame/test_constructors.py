@@ -2032,11 +2032,11 @@ class TestDataFrameConstructors:
         [
             np.array([None, None, None, None, datetime.now(), None]),
             np.array([None, None, datetime.now(), None]),
-            [[np.datetime64("NaT")], [None]],
-            [[np.datetime64("NaT")], [pd.NaT]],
-            [[None], [np.datetime64("NaT")]],
+            [[np.datetime64("NaT", "ns")], [None]],
+            [[np.datetime64("NaT", "ns")], [pd.NaT]],
+            [[None], [np.datetime64("NaT", "ns")]],
             [[None], [pd.NaT]],
-            [[pd.NaT], [np.datetime64("NaT")]],
+            [[pd.NaT], [np.datetime64("NaT", "ns")]],
             [[pd.NaT], [None]],
         ],
     )

@@ -347,7 +347,7 @@ class TestUltraJSONTests:
         assert expected == output
 
     @pytest.mark.parametrize(
-        "decoded_input", [NaT, np.datetime64("NaT"), np.nan, np.inf, -np.inf]
+        "decoded_input", [NaT, np.datetime64("NaT", "ns"), np.nan, np.inf, -np.inf]
     )
     def test_encode_as_null(self, decoded_input):
         assert ujson.ujson_dumps(decoded_input) == "null", "Expected null"
