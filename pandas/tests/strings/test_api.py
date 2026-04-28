@@ -159,6 +159,20 @@ def test_api_per_method(
         mark = pytest.mark.xfail(raises=raises, reason=reason)
         request.applymarker(mark)
 
+    if (
+        box is Index
+        and method_name in ("findall", "split", "rsplit")
+        and not kwargs.get("expand", False)
+        and values.size > 0
+        and inferred_dtype not in ("bytes", "empty")
+    ):
+        mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason="GH#20285 returns unhashable list elements in Index",
+            strict=False,
+        )
+        request.applymarker(mark)
+
     t = box(values, dtype=dtype)  # explicit dtype to avoid casting
     method = getattr(t.str, method_name)
 

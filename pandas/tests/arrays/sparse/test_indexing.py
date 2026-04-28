@@ -206,7 +206,7 @@ class TestTake:
         tm.assert_sp_array_equal(result, expected)
 
         # TODO: actionable?
-        # XXX: test change: fill_value=True -> allow_fill=True
+        # Note: test change: fill_value=True -> allow_fill=True
         result = sparse.take(np.array([1, 0, -1]), allow_fill=True)
         expected = SparseArray([np.nan, np.nan, np.nan])
         tm.assert_sp_array_equal(result, expected)
@@ -241,7 +241,7 @@ class TestTake:
         # fill_value
         result = sparse.take(np.array([1, 0, -1]), allow_fill=True)
         # TODO: actionable?
-        # XXX: behavior change.
+        # Note: behavior change.
         # the old way of filling self.fill_value doesn't follow EA rules.
         # It's supposed to be self.dtype.na_value (nan in this case)
         expected = SparseArray([0, np.nan, np.nan], fill_value=0)

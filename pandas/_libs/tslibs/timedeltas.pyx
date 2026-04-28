@@ -18,6 +18,8 @@ from cpython.object cimport (
     PyObject_RichCompare,
 )
 
+from pandas._libs.tslibs.offsets cimport to_offset
+
 import numpy as np
 
 cimport numpy as cnp
@@ -486,12 +488,14 @@ def array_to_timedelta64(
                 if item == NPY_NAT:
                     ival = NPY_NAT
                 else:
-                    ival = _numeric_to_td64ns(item, parsed_unit, int_reso)
+                    # GH#65150 match the pattern in tslib.pyx: update creso
+                    #  first, then convert using creso as the output resolution.
                     item_reso = int_reso
-
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
+
+                    ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif is_float_object(item):
                 int_item = int(item)
@@ -503,20 +507,19 @@ def array_to_timedelta64(
                     if item == NPY_NAT:
                         ival = NPY_NAT
                     else:
-                        ival = _numeric_to_td64ns(item, parsed_unit, int_reso)
                         item_reso = int_reso
-
                         state.update_creso(item_reso)
                         if infer_reso:
                             creso = state.creso
-                else:
-                    ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
+                        ival = _numeric_to_td64ns(item, parsed_unit, creso)
+                else:
                     item_reso = NPY_FR_ns
-                    int_reso = NPY_FR_ns
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
+
+                    ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif isinstance(item, Day):
                 # GH#64240: support Day offsets in list-like conversion
@@ -2190,27 +2193,42 @@ class Timedelta(_Timedelta):
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
-            try:
-                value = np.timedelta64(
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
-                    + seconds, "ns"
-                )
-            except OverflowError as err:
-                # GH#55503
-                msg = (
-                    f"seconds={seconds}, milliseconds={ms}, "
-                    f"microseconds={us}, nanoseconds={ns}"
-                )
-                raise OutOfBoundsTimedelta(msg) from err
+            total_ns = (
+                int(ns)
+                + int(us * 1_000)
+                + int(ms * 1_000_000)
+                + seconds
+            )
 
-            if (
-                "nanoseconds" not in kwargs
-                and cnp.get_timedelta64_value(value) % 1000 == 0
-            ):
-                # If possible, give a microsecond unit
-                value = value.astype("m8[us]")
+            try:
+                value = np.timedelta64(total_ns, "ns")
+            except OverflowError:
+                # GH#46587 - fall back to coarser resolutions
+                if total_ns % 1_000 != 0:
+                    reso_value, reso_abbrev = total_ns, "ns"
+                elif total_ns % 1_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000, "us"
+                elif total_ns % 1_000_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000_000, "ms"
+                else:
+                    reso_value, reso_abbrev = total_ns // 1_000_000_000, "s"
+
+                try:
+                    value = np.timedelta64(reso_value, reso_abbrev)
+                except OverflowError as err:
+                    # GH#55503
+                    msg = (
+                        f"seconds={seconds}, milliseconds={ms}, "
+                        f"microseconds={us}, nanoseconds={ns}"
+                    )
+                    raise OutOfBoundsTimedelta(msg) from err
+            else:
+                if (
+                    "nanoseconds" not in kwargs
+                    and cnp.get_timedelta64_value(value) % 1000 == 0
+                ):
+                    # If possible, give a microsecond unit
+                    value = value.astype("m8[us]")
 
         disallow_ambiguous_unit(unit)
 
@@ -2355,17 +2373,24 @@ class Timedelta(_Timedelta):
     @cython.cdivision(True)
     def _round(self, freq, mode):
         cdef:
-            int64_t result, unit
+            int64_t result, nanos
             ndarray[int64_t] arr
+        freq_arg = freq
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
+        if nanos == 0:
+            if freq.nanos == 0:
+                raise ValueError("Division by zero in rounding")
 
-        unit = get_unit_for_round(freq, self._creso)
+            # e.g. self.unit == "s" and sub-second freq
+            return self
 
         arr = np.array([self._value], dtype="i8")
         try:
-            result = round_nsint64(arr, mode, unit)[0]
+            result = round_nsint64(arr, mode, nanos)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
-                f"Cannot round {self} to freq={freq} without overflow"
+                f"Cannot round {self} to freq={freq_arg} without overflow"
             ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 
@@ -2378,8 +2403,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the rounding resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
@@ -2392,9 +2417,9 @@ class Timedelta(_Timedelta):
 
         See Also
         --------
-            Timedelta.floor : Floor the Timedelta to the specified resolution.
-            Timedelta.round : Round the Timedelta to the nearest specified resolution.
-            Timestamp.ceil : Similar method for Timestamp objects.
+        Timedelta.floor : Floor the Timedelta to the specified resolution.
+        Timedelta.ceil : Ceil the Timedelta to the specified resolution.
+        Timestamp.round : Similar method for Timestamp objects.
 
         Examples
         --------
@@ -2402,6 +2427,11 @@ class Timedelta(_Timedelta):
         >>> td
         Timedelta('0 days 00:00:01.001000')
         >>> td.round('s')
+        Timedelta('0 days 00:00:01')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> td.round(freq=pd.Timedelta('1s'))
         Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
@@ -2415,8 +2445,8 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the flooring resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
             It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
@@ -2426,8 +2456,9 @@ class Timedelta(_Timedelta):
 
         See Also
         --------
-            Timestamp.ceil : Round the Timestamp up to the nearest specified resolution.
-            Timestamp.round : Round the Timestamp to the nearest specified resolution.
+        Timedelta.ceil : Ceil the Timedelta to the specified resolution.
+        Timedelta.round : Round the Timedelta to the specified resolution.
+        Timestamp.floor : Similar method for Timestamp objects.
 
         Examples
         --------
@@ -2435,6 +2466,11 @@ class Timedelta(_Timedelta):
         >>> td
         Timedelta('0 days 00:00:01.001000')
         >>> td.floor('s')
+        Timedelta('0 days 00:00:01')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> td.floor(freq=pd.Timedelta('1s'))
         Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.MINUS_INFTY)
@@ -2448,9 +2484,9 @@ class Timedelta(_Timedelta):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the ceiling resolution. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
+            Must be a fixed frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
 
@@ -2461,8 +2497,9 @@ class Timedelta(_Timedelta):
 
         See Also
         --------
-            Timedelta.floor : Floor the Timedelta to the specified resolution.
-            Timedelta.round : Round the Timedelta to the nearest specified resolution.
+        Timedelta.floor : Floor the Timedelta to the specified resolution.
+        Timedelta.round : Round the Timedelta to the specified resolution.
+        Timestamp.ceil : Similar method for Timestamp objects.
 
         Examples
         --------
@@ -2470,6 +2507,11 @@ class Timedelta(_Timedelta):
         >>> td
         Timedelta('0 days 00:00:01.001000')
         >>> td.ceil('s')
+        Timedelta('0 days 00:00:02')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> td.ceil(freq=pd.Timedelta('1s'))
         Timedelta('0 days 00:00:02')
         """
         return self._round(freq, RoundTo.PLUS_INFTY)

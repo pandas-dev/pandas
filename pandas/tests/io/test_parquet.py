@@ -1189,20 +1189,10 @@ class TestParquetPyArrow(Base):
         # GH#54431
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(temp_file, engine=pa)
-        with pd.option_context("future.infer_string", True):
-            result = read_parquet(temp_file, engine=pa)
-        dtype = pd.StringDtype(na_value=np.nan)
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]},
-            dtype=dtype,
-            index=pd.Index(["a", "b"], dtype=dtype),
-            columns=pd.Index(
-                ["a"],
-                dtype=(
-                    object if pa_version_under19p0 and not using_infer_string else dtype
-                ),
-            ),
-        )
+        result = read_parquet(temp_file, engine=pa)
+        expected = df.copy()
+        if pa_version_under19p0 and not using_infer_string:
+            expected.columns = expected.columns.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_roundtrip_decimal(self, temp_file, pa):
@@ -1225,14 +1215,8 @@ class TestParquetPyArrow(Base):
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
         pq.write_table(table, temp_file)
-
-        with pd.option_context("future.infer_string", True):
-            result = read_parquet(temp_file)
-        expected = pd.DataFrame(
-            data={"a": [None, "b", "c"]},
-            dtype=pd.StringDtype(na_value=np.nan),
-            columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
-        )
+        result = read_parquet(temp_file)
+        expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
     # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)

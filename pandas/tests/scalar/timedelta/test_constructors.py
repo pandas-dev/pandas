@@ -6,6 +6,10 @@ import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas import (
@@ -225,12 +229,39 @@ class TestTimedeltaConstructorUnitKeyword:
 
 def test_construct_from_kwargs_overflow():
     # GH#55503
-    msg = "seconds=86400000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(days=10**6)
-    msg = "seconds=60000000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
-    with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        Timedelta(minutes=10**9)
+    # Truly out of bounds even at second resolution
+    with pytest.raises(OutOfBoundsTimedelta):
+        Timedelta(days=10**15)
+
+
+def test_construct_from_kwargs_non_nano():
+    # GH#46587 - kwargs that overflow nanosecond resolution should
+    # fall back to coarser resolutions instead of raising
+    td = Timedelta(days=365 * 1000)
+    assert td.unit == "s"
+    assert td.days == 365_000
+
+    td = Timedelta(days=10**6)
+    assert td.unit == "s"
+    assert td.days == 10**6
+
+    td = Timedelta(minutes=10**9)
+    assert td.unit == "s"
+    assert td.days == 694444
+    assert td.components.hours == 10
+    assert td.components.minutes == 40
+
+    # microseconds kwarg -> us resolution
+    td = Timedelta(days=365 * 1000, microseconds=1)
+    assert td.unit == "us"
+
+    # milliseconds kwarg -> ms resolution
+    td = Timedelta(days=365 * 1000, milliseconds=1)
+    assert td.unit == "ms"
+
+    # nanoseconds kwarg -> ns when it fits
+    td = Timedelta(seconds=1, nanoseconds=1)
+    assert td.unit == "ns"
 
 
 def test_construct_with_weeks_unit_overflow():
@@ -527,7 +558,12 @@ def test_construction_out_of_bounds_td64ns(val, unit):
 
     # Timedelta.max is just under 106752 days
     td64 = np.timedelta64(val, unit)
-    assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
+    if is_numpy_dev or np_version_gt2_5:
+        # numpy now raises instead of silently overflowing
+        with pytest.raises(OverflowError, match="Overflow"):
+            td64.astype("m8[ns]")
+    else:
+        assert td64.astype("m8[ns]").view("i8") < 0  # i.e. naive astype will be wrong
 
     td = Timedelta(td64)
     if unit != "M":
@@ -544,7 +580,11 @@ def test_construction_out_of_bounds_td64ns(val, unit):
     assert Timedelta(td64 - one) == td64 - one
 
     td64 = np.timedelta64(-val, unit)
-    assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
+    if is_numpy_dev or np_version_gt2_5:
+        with pytest.raises(OverflowError, match="Overflow"):
+            td64.astype("m8[ns]")
+    else:
+        assert td64.astype("m8[ns]").view("i8") > 0  # i.e. naive astype will be wrong
 
     td2 = Timedelta(td64)
     msg = r"Cannot cast -1067\d\d days .* to unit='ns' without overflow"

@@ -197,7 +197,7 @@ class TestPreserves:
 
     @not_implemented
     def test_groupby(self):
-        # XXX: This is under tested
+        # Note: This is under tested
         # TODO:
         #  - apply
         #  - transform

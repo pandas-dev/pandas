@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timezone,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -37,6 +38,48 @@ def test_at_dateoffset_columns():
     # write access
     df.at[0, offsets[0]] = 1
     assert df.at[0, offsets[0]] == 1
+
+
+def test_at_multiindex_partial_date_string():
+    # GH#43395 - .at with partial date string on MultiIndex with DatetimeIndex level
+    timestamps = DatetimeIndex(
+        ["2021-08-01", "2021-08-01 12:00", "2021-08-02", "2021-08-02 12:00"]
+    )
+    index = MultiIndex.from_product(
+        [["A", "B"], timestamps], names=["ticker", "timestamp"]
+    )
+    df = DataFrame({"col": range(len(index))}, index=index)
+
+    # DataFrame.at with partial date string should not raise TypeError
+    result = df.at[("A", "2021-08-02"), "col"]
+    expected = np.array([2, 3], dtype=np.int64)
+    tm.assert_numpy_array_equal(result, expected)
+
+    # Series.at with partial date string
+    ser = df["col"]
+    result = ser.at[("A", "2021-08-02")]
+    expected = Series(
+        [2, 3],
+        index=MultiIndex.from_arrays(
+            [
+                ["A", "A"],
+                DatetimeIndex(
+                    ["2021-08-02", "2021-08-02 12:00"],
+                    dtype="datetime64[us]",
+                ),
+            ],
+            names=["ticker", "timestamp"],
+        ),
+        name="col",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_at_incompatible_type_decimal():
+    # GH#22740 - .at should not silently discard incompatible type
+    df = DataFrame({"A": [1, 2, 3]})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.at[0, "A"] = Decimal("1")
 
 
 def test_at_timezone():

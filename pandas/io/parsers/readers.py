@@ -2261,11 +2261,11 @@ def _refine_defaults_read(
         kwds["engine_specified"] = False
 
     if on_bad_lines == "error":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_ERROR
     elif on_bad_lines == "warn":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_WARN
     elif on_bad_lines == "skip":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_SKIP
     elif callable(on_bad_lines):
         if engine not in ["python", "pyarrow"]:
             raise ValueError(

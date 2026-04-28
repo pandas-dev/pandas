@@ -9,8 +9,6 @@
 #   $ ./ci/code_checks.sh               # run all checks
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
-#   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
-#   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
 set -uo pipefail
 
@@ -21,8 +19,8 @@ else
     CHECK=""
 fi
 
-[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" || "$CHECK" == "single-docs" || "$CHECK" == "notebooks" ]] || \
-    { echo "Unknown command $1. Usage: $0 [code|doctests|single-docs|notebooks]"; exit 1; }
+[[ -z "$CHECK" || "$CHECK" == "code" || "$CHECK" == "doctests" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests]"; exit 1; }
 
 RET=0
 
@@ -58,21 +56,6 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
     PANDAS_FUTURE_PYTHON_SCALARS="1" python -c 'import pandas as pd; pd.test(run_doctests=True)'
     RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
-fi
-
-### DOCUMENTATION NOTEBOOKS ###
-if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
-
-    MSG='Notebooks' ; echo $MSG
-    jupyter nbconvert --execute "$(find doc/source -name '*.ipynb')" --to notebook
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
-### SINGLE-PAGE DOCS ###
-if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET

@@ -90,6 +90,14 @@ def get_indexer_indexer(
     target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
     target = target._sort_levels_monotonic()
 
+    if (np.all(ascending) and target.is_monotonic_increasing) or (
+        not np.any(ascending) and target.is_monotonic_decreasing
+    ):
+        # GH#11080, GH#64883: on a non-MultiIndex, `level` is a no-op,
+        # so short-circuit even when level is specified.
+        if level is None or not isinstance(target, ABCMultiIndex):
+            return None
+
     if level is not None:
         _, indexer = target.sortlevel(
             level,  # type: ignore[arg-type]
@@ -97,11 +105,6 @@ def get_indexer_indexer(
             sort_remaining=sort_remaining,
             na_position=na_position,
         )
-    elif (np.all(ascending) and target.is_monotonic_increasing) or (
-        not np.any(ascending) and target.is_monotonic_decreasing
-    ):
-        # Check monotonic-ness before sort an index (GH 11080)
-        return None
     elif isinstance(target, ABCMultiIndex):
         codes = [lev.codes for lev in target._get_codes_for_sorting()]
         indexer = lexsort_indexer(
