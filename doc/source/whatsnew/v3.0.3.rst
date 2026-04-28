@@ -17,6 +17,9 @@ Fixed regressions
 - Fixed reading of Parquet files with timezone-aware timestamps or localizing of a timeseries with a ``pytz`` timezone when an older version of ``pytz`` was installed (:issue:`64978`)
 - Fixed regression in :func:`to_timedelta` ignoring the ``unit`` argument for round float values when mixed with non-round floats in a list (:issue:`65150`)
 - Fixed regression in :meth:`Series.rank` with custom extension dtypes (:issue:`64976`)
+- Fixed a regression in :func:`read_csv` with ``engine="c"`` where ``thousands=","``
+  could incorrectly parse non-numeric values like ``"1 ,"`` as integers
+  instead of strings (:issue:`64655`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.bug_fixes:
