@@ -20,7 +20,7 @@ def test_uuid_keeps_dtype_verify() -> None:
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
 
-    assert s.dtype != object
+    assert s.dtype == pd.ArrowDtype(pa.uuid())
 
     ser_array = s.array
     assert isinstance(ser_array, ArrowExtensionArray)
