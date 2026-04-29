@@ -4703,7 +4703,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "linear",
                 "midpoint",
             }:
-                return out.astype(inference)
+                out = out.astype(inference)
 
             return out
 

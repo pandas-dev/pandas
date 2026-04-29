@@ -3076,7 +3076,7 @@ class ExtensionArray:
         if inference is not None and not (
             is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}
         ):
-            return out.astype(inference)
+            out = out.astype(inference)
 
         return out
 
