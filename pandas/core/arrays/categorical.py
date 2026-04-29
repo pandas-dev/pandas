@@ -1641,7 +1641,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         na_val = np.nan
         if na_action is None and has_nans:
-            na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
+            if callable(mapper):
+                na_val = mapper(np.nan)
+            elif is_dict_like(mapper):
+                try:
+                    na_val = mapper[np.nan]
+                except KeyError:
+                    na_val = np.nan
 
         if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)

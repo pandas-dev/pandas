@@ -134,3 +134,30 @@ def test_map_with_dict_or_series(na_action):
     result = cat.map(mapper, na_action=na_action)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)
+
+
+def test_map_defaultdict_na_action_none():
+    # GH#62710 - defaultdict should honor its default_factory for NA values
+    # when na_action=None; previously mapper.get(np.nan) bypassed __missing__
+    # and returned None, which was then cast to float NaN
+    from collections import defaultdict
+
+    cat = Categorical(["one", "two", None])
+    mapper = defaultdict(lambda: True)
+    result = cat.map(mapper, na_action=None)
+    # All values including NA should be mapped to True via the default factory
+    expected = Index([True, True, True])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_defaultdict_na_action_ignore():
+    # GH#62710 - with na_action="ignore", NA values must be left as-is
+    # (not passed to the mapper), so NaN is preserved -- this is correct behavior
+    from collections import defaultdict
+
+    cat = Categorical(["one", "two", None])
+    mapper = defaultdict(lambda: True)
+    result = cat.map(mapper, na_action="ignore")
+    # NA stays NaN because na_action="ignore" skips it entirely
+    expected = Index([True, True, np.nan])
+    tm.assert_index_equal(result, expected)
