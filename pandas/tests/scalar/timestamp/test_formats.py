@@ -210,12 +210,12 @@ class TestTimestampStrftime:
     @pytest.mark.parametrize(
         "ts, fmt, expected",
         [
-            # GH#29461 - %n for nanoseconds
-            (ts_ns, "%Y-%m-%dT%H:%M:%S.%n", "2019-05-18T15:17:08.132263123"),
-            (ts_no_ns, "%n", "132263000"),
-            (ts_no_us, "%n", "000000123"),
-            # %%n should produce literal %n, not nanoseconds
-            (ts_ns, "%%n", "%n"),
+            # GH#29461 - %N for nanoseconds
+            (ts_ns, "%Y-%m-%dT%H:%M:%S.%N", "2019-05-18T15:17:08.132263123"),
+            (ts_no_ns, "%N", "132263000"),
+            (ts_no_us, "%N", "000000123"),
+            # %%N should produce literal %N, not nanoseconds
+            (ts_ns, "%%N", "%N"),
             # standard directives still work
             (ts_ns, "%Y-%m-%d %X", "2019-05-18 15:17:08"),
             (ts_ns, "%f", "132263"),

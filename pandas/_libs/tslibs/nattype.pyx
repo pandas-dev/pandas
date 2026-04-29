@@ -1004,7 +1004,7 @@ class NaTType(_NaT):
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        |Example|
         +===========+================================+=======+
-        | ``%n``    | Nanoseconds zero-padded to 9   |       |
+        | ``%N``    | Nanoseconds zero-padded to 9   |       |
         |           | digits.                        |000000 |
         +-----------+--------------------------------+-------+
 
@@ -1027,9 +1027,9 @@ class NaTType(_NaT):
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
 
-        Use ``%n`` to format nanoseconds:
+        Use ``%N`` to format nanoseconds:
 
-        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%n')
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
         '2020-03-14T15:32:52.192548651'
         """,
     )

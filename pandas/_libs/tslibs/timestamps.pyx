@@ -2311,7 +2311,7 @@ class Timestamp(_Timestamp):
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        |Example|
         +===========+================================+=======+
-        | ``%n``    | Nanoseconds zero-padded to 9   |       |
+        | ``%N``    | Nanoseconds zero-padded to 9   |       |
         |           | digits.                        |000000 |
         +-----------+--------------------------------+-------+
 
@@ -2334,19 +2334,19 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
 
-        Use ``%n`` to format nanoseconds:
+        Use ``%N`` to format nanoseconds:
 
-        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%n')
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
         '2020-03-14T15:32:52.192548651'
         """
-        # Handle %n (nanoseconds) before delegating to datetime.strftime.
-        # Replace %% with a placeholder first so that %%n is not misidentified.
+        # Handle %N (nanoseconds) before delegating to datetime.strftime.
+        # Replace %% with a placeholder first so that %%N is not misidentified.
         nano_placeholder = "^`NS`^"
         pct_placeholder = "^`PC`^"
         fmt = format.replace("%%", pct_placeholder)
-        has_nano = "%n" in fmt
+        has_nano = "%N" in fmt
         if has_nano:
-            fmt = fmt.replace("%n", nano_placeholder)
+            fmt = fmt.replace("%N", nano_placeholder)
         fmt = fmt.replace(pct_placeholder, "%%")
 
         try:
