@@ -134,8 +134,7 @@ def test_stat_method(pandasmethname, kwargs):
     s2 = pd.Series(data=[1, 2, 3, 4, 5, 6], dtype="Int64")
     pandasmeth = getattr(s2, pandasmethname)
     expected = pandasmeth(**kwargs)
-    # reductions computed in parallel may yield different results
-    tm.assert_almost_equal(result, expected)
+    assert expected == result
 
 
 def test_value_counts_na():
