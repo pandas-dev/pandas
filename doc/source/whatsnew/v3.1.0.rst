@@ -47,10 +47,16 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_310.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_310.notable_bug_fixes.timedelta_total_seconds_nanoseconds:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+``Timedelta.total_seconds`` now includes the nanosecond component
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`Timedelta.total_seconds` mirrored the stdlib
+:meth:`datetime.timedelta.total_seconds` formula and silently dropped the
+sub-microsecond nanosecond residual — e.g. ``Timedelta(nanoseconds=999).total_seconds()``
+returned ``0.0`` instead of ``9.99e-7``. The result now includes the
+nanosecond component (:issue:`46819`).
 
 .. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
 
@@ -232,7 +238,6 @@ Timedelta
 - Bug in :class:`DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions (:issue:`61862`)
 - Bug in :class:`Timedelta` constructor where keyword arguments (e.g. ``days=365000``) that exceeded nanosecond int64 bounds raised ``OutOfBoundsTimedelta`` instead of falling back to a coarser resolution (:issue:`46587`)
 - Bug in :func:`to_timedelta` where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
-- Bug in :meth:`Timedelta.total_seconds` silently dropping the sub-microsecond nanosecond component (:issue:`46819`)
 
 Timezones
 ^^^^^^^^^
