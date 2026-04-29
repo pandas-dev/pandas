@@ -4776,6 +4776,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3   rabbit
         dtype: str
 
+        `map` can also be used for element-wise transformations with functions:
+
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser.map(lambda x: x + 1)
+        0    2
+        1    3
+        2    4
+        dtype: int64
+
         ``map`` accepts a ``dict`` or a ``Series``. Values that are not found
         in the ``dict`` are converted to ``NaN``, unless the dict has a default
         value (e.g. ``defaultdict``):
