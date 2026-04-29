@@ -38,8 +38,9 @@ def test_uuid_isna() -> None:
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
 
-    result = s.isna().tolist()
-    assert result == [False, True]
+    result = s.isna()
+    assert not result[0]
+    assert result[1]
 
 
 def test_uuid_comparison_eq() -> None:
