@@ -289,7 +289,7 @@ Indexing
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with a dict value raising ``RecursionError`` when columns are a :class:`MultiIndex` with duplicate entries (:issue:`53498`)
--
+- Bug in :meth:`Series.combine_first` crashing when Series names are :class:`Timestamp` objects (:issue:`65333`)
 
 MultiIndex
 ^^^^^^^^^^

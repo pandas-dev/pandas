@@ -490,12 +490,11 @@ def concat(
         orig = result.index if orig_axis == 1 else result.columns
         if not no_sort_result_index.equals(orig):
             msg = (
-                "Sorting by default when concatenating all DatetimeIndex "
-                "is deprecated.  In the future, pandas will respect the "
-                "default of `sort=False`. Specify `sort=True` or "
-                "`sort=False` to silence this message. If you see this "
-                "warnings when not directly calling concat, report a "
-                "bug to pandas."
+                "Sorting by default when concatenating all DatetimeIndex is "
+                "deprecated.  In the future, pandas will respect the default "
+                "of `sort=False`. Specify `sort=True` or `sort=False` to "
+                "silence this message. If you see this warnings when not "
+                "directly calling concat, report a bug to pandas."
             )
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
