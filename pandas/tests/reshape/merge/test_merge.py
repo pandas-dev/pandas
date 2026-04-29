@@ -3174,6 +3174,41 @@ def test_merge_on_all_nan_column():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_on_nan_label():
+    # GH#48590 — equality test for join-key labels needs to handle NaN,
+    # which compares unequal to itself.
+    left = DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=np.nan, right_on=np.nan)
+    expected = DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_label_eq_raises():
+    # GH#48590 — pd.NA on one side of the label comparison makes `lk == rk`
+    # raise TypeError; that should be treated as "not equal", not propagated.
+    left = DataFrame({pd.NA: [1, 2, 3], "a": [10, 20, 30]})
+    right = DataFrame({"x": [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=pd.NA, right_on="x")
+    expected = DataFrame(
+        {np.nan: [1, 2, 3], "a": [10, 20, 30], "x": [1, 2, 3], "b": [40, 50, 60]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("left_on, right_on", [(np.nan, pd.NA), (np.nan, pd.NaT)])
+def test_merge_on_mismatched_na_labels(left_on, right_on):
+    # GH#48590 — different NA flavors on each side are not considered the same
+    # label: don't drop a column and don't raise from the equality check.
+    left = DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=left_on, right_on=right_on)
+    # Both NaN-labeled join-key columns are preserved (suffixed); nothing dropped.
+    assert "a" in result.columns and "b" in result.columns
+    assert sum(1 for col in result.columns if col is np.nan or col != col) == 1
+    assert "nan_x" in result.columns and "nan_y" in result.columns
+
+
 @pytest.mark.parametrize("suffixes", [("_dup", ""), ("", "_dup")])
 def test_merge_for_suffix_collisions(suffixes):
     # GH#61402
