@@ -2384,20 +2384,20 @@ def raise_construction_error(
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
+    tuples = enumerate(arrays)
+
     if not consolidate:
-        return _tuples_to_blocks_no_consolidate(enumerate(arrays), refs)
+        return _tuples_to_blocks_no_consolidate(tuples, refs)
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
 
-    # Group by dtype using a dict (faster than the old itertools.groupby).
-    # np.dtype has cheap hash/eq so it is used directly as the key. Extension
-    # dtypes each get their own block regardless, so id() is used to avoid
-    # a potentially expensive __hash__ (e.g. CategoricalDtype hashes all
-    # categories).
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
-    for i, arr in enumerate(arrays):
+    for i, arr in tuples:
         dtype = arr.dtype
+        # Extension dtypes each get their own block regardless, so use id()
+        # to avoid a potentially expensive __hash__ (e.g. CategoricalDtype
+        # hashes all categories).
         key = dtype if isinstance(dtype, np.dtype) else id(dtype)
         try:
             groups[key].append((i, arr))
