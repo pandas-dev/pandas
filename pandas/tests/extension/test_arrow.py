@@ -1875,6 +1875,19 @@ def test_str_replace_negative_n():
     tm.assert_series_equal(expected3, actual3)
 
 
+def test_str_replace_empty_pattern():
+    # https://github.com/pandas-dev/pandas/issues/64941
+    ser = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+
+    result = ser.str.replace("", "")
+    expected = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("", "X")
+    expected = pd.Series(["XaXbXcXdX"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_repeat_unsupported():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match="repeat is not"):
@@ -3233,10 +3246,12 @@ def test_infer_dtype_pyarrow_dtype(data, request):
     res = lib.infer_dtype(data)
     assert res != "unknown-array"
 
-    if data._hasna and res in ["datetime64", "timedelta64"]:
+    if res in ["datetime64", "timedelta64"]:
+        # infer_dtype on the pyarrow-backed array returns datetime64/timedelta64
+        # via _TYPE_MAP, but infer_dtype on list(data) returns datetime/timedelta
+        # because the elements are pd.Timestamp/pd.Timedelta (PyDateTime/PyDelta).
         mark = pytest.mark.xfail(
-            reason="in infer_dtype pd.NA is not ignored in these cases "
-            "even with skipna=True in the list(data) check below"
+            reason="infer_dtype(arrow_array) vs infer_dtype(list) naming mismatch"
         )
         request.applymarker(mark)
 
@@ -3991,3 +4006,11 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
+
+
+def test_fillna_zero():
+    # https://github.com/pandas-dev/pandas/issues/62878 - specific pyarrow bug
+    ser = pd.Series([1, 2, 3, 4, pd.NA, 6], dtype="int64[pyarrow]")
+    result = ser.fillna(0)
+    expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)

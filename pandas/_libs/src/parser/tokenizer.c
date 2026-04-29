@@ -1607,41 +1607,39 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-/* Copy a string without `char_to_remove` into `output`.
+/* Copy a numeric token without `tsep` into `output`.
  */
-static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, size_t str_len,
-                                    char char_to_remove) {
-  const char *left = str;
-  const char *end_ptr = str + str_len;
+static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
+                                    const char *str, char **endptr,
+                                    size_t str_len, char tsep) {
+  const char *p = str;
+  const char *end = str + str_len;
   size_t bytes_written = 0;
 
-  while (left < end_ptr) {
-    const size_t remaining_bytes_to_read = end_ptr - left;
-    const char *right = memchr(left, char_to_remove, remaining_bytes_to_read);
+  if (p < end && (*p == '+' || *p == '-')) {
+    output[bytes_written++] = *p++;
+  }
 
-    if (!right) {
-      // If it doesn't find the char to remove, just copy until EOS.
-      right = end_ptr;
+  while (p < end && (isdigit_ascii(*p) || (tsep != '\0' && *p == tsep))) {
+    if (*p != tsep) {
+      if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
+        return -1;
+      }
+      output[bytes_written++] = *p;
     }
-
-    const size_t chunk_size = right - left;
-
-    if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
-      return -1;
-    }
-    memcpy(&output[bytes_written], left, chunk_size);
-    bytes_written += chunk_size;
-
-    left = right + 1;
+    p++;
   }
 
   output[bytes_written] = '\0';
+  if (endptr != NULL) {
+    *endptr = (char *)p;
+  }
   return 0;
 }
 
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
+  char *number_end = NULL;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
@@ -1663,7 +1661,8 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   if (tsep != '\0') {
     const size_t str_len = strlen(p);
     if (memchr(p, tsep, str_len) != NULL) {
-      const int status = copy_string_without_char(buffer, p, str_len, tsep);
+      const int status =
+          copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
       if (status != 0) {
         // Word is too big, probably will cause an overflow
         *error = ERROR_OVERFLOW;
@@ -1675,6 +1674,9 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
 
   char *endptr;
   int64_t number = strtoll(p, &endptr, 10);
+  if (number_end != NULL) {
+    endptr = number_end;
+  }
 
   if (errno == ERANGE) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
@@ -1700,6 +1702,7 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
                        char tsep) {
   const char *p = p_item;
+  char *number_end = NULL;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
@@ -1725,7 +1728,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   if (tsep != '\0') {
     const size_t str_len = strlen(p);
     if (memchr(p, tsep, str_len) != NULL) {
-      const int status = copy_string_without_char(buffer, p, str_len, tsep);
+      const int status =
+          copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
       if (status != 0) {
         // Word is too big, probably will cause an overflow
         *error = ERROR_OVERFLOW;
@@ -1737,6 +1741,9 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
 
   char *endptr;
   uint64_t number = strtoull(p, &endptr, 10);
+  if (number_end != NULL) {
+    endptr = number_end;
+  }
 
   if (errno == ERANGE) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;

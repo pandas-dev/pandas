@@ -547,9 +547,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
         dtype = tz_to_dtype(tz, unit=unit)
-        result = cls._simple_new(dt64_values, dtype=dtype)
-        result._freq = freq
-        return result
+        return cls._simple_new(dt64_values, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface

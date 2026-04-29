@@ -219,6 +219,10 @@ Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
    )
    dfmi.sub(column, axis=0, level="second")
 
+When operating with a plain Python list, pandas aligns it to the **columns**
+of the DataFrame (not the rows); to broadcast row-wise, pass ``axis=0`` to
+the explicit method, e.g. ``df.add([1, 2, 3], axis=0)``.
+
 Series and Index also support the :func:`divmod` builtin. This function takes
 the floor division and modulo operation at the same time returning a two-tuple
 of the same type as the left hand side. For example:

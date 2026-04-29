@@ -67,10 +67,10 @@ class TestDataFrameRepr:
         df.index = index
         repr(df)
 
-        # this travels an improper code path
+        # GH#20285 unhashable elements (list) are now rejected
         index[0] = ["faz", "boo"]
-        df.index = index
-        repr(df)
+        with pytest.raises(TypeError, match="unhashable type"):
+            df.index = index
 
     def test_repr_with_mi_nat(self):
         df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
