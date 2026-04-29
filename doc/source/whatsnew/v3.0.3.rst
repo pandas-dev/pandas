@@ -34,6 +34,8 @@ Bug fixes
   raising an error instead of propagating the missing value (:issue:`64968`)
 - Fixed a bug in :meth:`Series.rank` with period dtype and missing values, always sorting missing values at the top, regardless of the ``na_option`` value (:issue:`64976`)
 
+- Fixed a hang in :meth:`Series.str.replace` for PyArrow-backed string data when replacing an empty pattern; behavior now matches Python's ``str.replace`` (:issue:`64941`).
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
 
