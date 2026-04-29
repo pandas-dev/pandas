@@ -487,6 +487,6 @@ def set_module(module) -> Callable[[F], F]:
                     pass
 
             func.__module__ = module
-        return func
+        return cast("F", func)
 
     return decorator
