@@ -1194,8 +1194,8 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         indices: Sequence[int] | np.ndarray,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value: object = None,
+        allow_fill: bool | lib.NoDefault = no_default,
+        fill_value: object = no_default,
         **kwargs: Any,
     ) -> Self:
         """
@@ -1209,20 +1209,27 @@ class Index(IndexOpsMixin, PandasObject):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-              from the right (the default). This is similar to
-              :func:`numpy.take`.
+              from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+              entries are set to ``fill_value`` (using the default NA value of
+              the caller's dtype if not supplied). Any other negative values
+              raise a ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
-            * True: negative values in `indices` indicate
-              missing values. These values are set to `fill_value`. Any
-              other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        fill_value : scalar, optional
+            If fill semantics apply (see ``allow_fill``), indices specified by
+            ``-1`` are filled with ``fill_value``. Not specifying ``fill_value``
+            or passing ``fill_value=None`` will fill using the default NA value
+            of the caller's dtype. If the Index's dtype cannot hold
+            ``fill_value``, the result is promoted to a common dtype (e.g. an
+            integer Index + ``np.nan`` fill is cast to float, while an integer
+            Index + a string fill is cast to object).
         **kwargs
             Required for compatibility with numpy.
 
@@ -1248,49 +1255,52 @@ class Index(IndexOpsMixin, PandasObject):
         if is_scalar(indices):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        if allow_fill is no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this one case,
+                # but warn since the sentinel-based default would otherwise
+                # flip it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not no_default
+
+        if allow_fill:
+            # Per the ExtensionArray convention, fill_value=None (or unsupplied)
+            # falls back to self._na_value.
+            if fill_value is no_default or fill_value is None:
+                fill_value = self._na_value
+            if (indices < -1).any():
+                raise ValueError("When allow_fill=True, all indices must be >= -1")
+        elif fill_value is no_default:
+            # algos.take does not understand the no_default sentinel; it will
+            # ignore fill_value anyway since allow_fill is False.
+            fill_value = None
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
 
-        # Note: we discard fill_value and use self._na_value, only relevant
-        #  in the case where allow_fill is True and fill_value is not None
         values = self._values
         if isinstance(values, np.ndarray):
             taken = algos.take(
-                values, indices, allow_fill=allow_fill, fill_value=self._na_value
+                values, indices, allow_fill=allow_fill, fill_value=fill_value
             )
         else:
             # algos.take passes 'axis' keyword which not all EAs accept
-            taken = values.take(
-                indices, allow_fill=allow_fill, fill_value=self._na_value
-            )
+            taken = values.take(indices, allow_fill=allow_fill, fill_value=fill_value)
         return self._constructor._simple_new(taken, name=self.name)  # pyright: ignore[reportArgumentType]
-
-    @final
-    def _maybe_disallow_fill(
-        self, allow_fill: bool, fill_value: object, indices: npt.NDArray[np.intp]
-    ) -> bool:
-        """
-        We only use pandas-style take when allow_fill is True _and_
-        fill_value is not None.
-        """
-        if allow_fill and fill_value is not None:
-            # only fill if we are passing a non-None fill_value
-            if self._can_hold_na:
-                if (indices < -1).any():
-                    raise ValueError(
-                        "When allow_fill=True and fill_value is not None, "
-                        "all indices must be >= -1"
-                    )
-            else:
-                cls_name = type(self).__name__
-                raise ValueError(
-                    f"Unable to fill values because {cls_name} cannot contain NA"
-                )
-        else:
-            allow_fill = False
-        return allow_fill
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Self:
         """
@@ -2399,23 +2409,11 @@ class Index(IndexOpsMixin, PandasObject):
         if len(new_levels) == 1:
             lev = new_levels[0]
 
-            if len(lev) == 0:
-                # If lev is empty, lev.take will fail GH#42055
-                if len(new_codes[0]) == 0:
-                    # GH#45230 preserve RangeIndex here
-                    #  see test_reset_index_empty_rangeindex
-                    result = lev[:0]
-                else:
-                    res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
-                    # _constructor instead of type(lev) for RangeIndex compat GH#35230
-                    result = lev._constructor._simple_new(res_values, name=new_names[0])
+            if len(lev) == 0 and len(new_codes[0]) == 0:
+                # GH#42055, GH#45230 preserve RangeIndex here
+                result = lev[:0]
             else:
-                # set nan if needed
-                mask = new_codes[0] == -1
-                result = new_levels[0].take(new_codes[0])
-                if mask.any():
-                    result = result.putmask(mask, np.nan)
-
+                result = lev.take(new_codes[0], allow_fill=True)
                 result._name = new_names[0]
 
             return result

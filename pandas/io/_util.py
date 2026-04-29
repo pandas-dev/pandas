@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Literal,
 )
+import zoneinfo
 
 import numpy as np
 
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     pa_version_under18p0,
     pa_version_under19p0,
@@ -33,6 +36,9 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
     )
+
+
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 
 def _arrow_dtype_mapping() -> dict:
@@ -120,7 +126,9 @@ def arrow_table_to_pandas(
         raise NotImplementedError
 
     df = table.to_pandas(types_mapper=types_mapper, **to_pandas_kwargs)
-    return _post_convert_dtypes(df, dtype_backend, dtype, names)
+    df = _post_convert_dtypes(df, dtype_backend, dtype, names)
+    df = _normalize_timezone_dtypes(df)
+    return df
 
 
 def _post_convert_dtypes(
@@ -201,5 +209,80 @@ def _post_convert_dtypes(
                         ordered=dtype.ordered,
                     )
                     df[col] = df[col].astype(cat_dtype)
+
+    return df
+
+
+def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
+    """
+    If the input tz is a pytz timezone, attempt to convert it to "default"
+    tzinfo object (zoneinfo or datetime.timezone).
+    """
+    if not type(tz).__module__.startswith("pytz"):
+        # isinstance(col.dtype.tz, pytz.BaseTzInfo) does not included
+        # fixed offsets
+        return tz
+
+    if timezones.is_utc(tz):
+        return dt.timezone.utc
+
+    if tz.zone is not None:  # type: ignore[attr-defined]
+        try:
+            return zoneinfo.ZoneInfo(tz.zone)  # type: ignore[attr-defined]
+        except Exception:
+            # some pytz timezones might not be available for zoneinfo
+            pass
+
+    if timezones.is_fixed_offset(tz):
+        # Convert pytz fixed offset to datetime.timezone
+        try:
+            offset = tz.utcoffset(None)
+            if offset is not None:
+                return dt.timezone(offset)
+        except Exception:
+            pass
+
+    return tz
+
+
+def _normalize_timezone_index(index: pd.Index) -> pd.Index:
+    if isinstance(index, pd.MultiIndex):
+        if any(isinstance(level.dtype, pd.DatetimeTZDtype) for level in index.levels):
+            levels = [_normalize_timezone_index(level) for level in index.levels]
+            return index.set_levels(levels)
+
+        return index
+
+    if isinstance(index.dtype, pd.DatetimeTZDtype):
+        normalized_tz = _normalize_pytz_timezone(index.dtype.tz)
+        if normalized_tz is not index.dtype.tz:
+            return index.tz_convert(normalized_tz)  # type: ignore[attr-defined]
+
+    return index
+
+
+def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    PyArrow uses pytz by default for timezones, but pandas uses
+    zoneinfo / datetime.timezone since pandas 3.0.
+
+    TODO: Starting with pyarrow 25, it will use zoneinfo by default, and then
+    this normalization can be skipped (https://github.com/apache/arrow/pull/49694).
+    """
+    if pytz is not None:
+        # Convert any pytz timezones to zoneinfo / fixed offset timezones
+        if any(
+            isinstance(dtype, pd.DatetimeTZDtype)
+            for dtype in df._mgr.get_unique_dtypes()
+        ):
+            col_indices = df._select_dtypes_indices(pd.DatetimeTZDtype)
+            for i in col_indices:
+                col = df.iloc[:, i]
+                normalized_tz = _normalize_pytz_timezone(col.dtype.tz)
+                if normalized_tz is not col.dtype.tz:
+                    df.isetitem(i, col.dt.tz_convert(normalized_tz))
+
+    df.index = _normalize_timezone_index(df.index)
+    df.columns = _normalize_timezone_index(df.columns)
 
     return df

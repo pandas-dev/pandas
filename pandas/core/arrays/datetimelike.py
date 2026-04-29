@@ -2492,7 +2492,7 @@ def ensure_arraylike_for_datetimelike(
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through maybe_convert_dtype,
         #  e.g. the categories are timedelta64s
-        data = data.categories.take(data.codes, fill_value=NaT)._values
+        data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
 
     return data, copy
