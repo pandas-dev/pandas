@@ -72,7 +72,7 @@ def to_numeric(
 
     Parameters
     ----------
-    arg : scalar, list, tuple, 1-d array, Index, or Series
+   arg : scalar, list, tuple, 1-d array, Index, or Series
         Argument to be converted.
 
     errors : {'raise', 'coerce'}, default 'raise'
@@ -101,12 +101,7 @@ def to_numeric(
         performed on the data.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
-<<<<<<< HEAD
-        Back-end data type applied to the resultant :class:`Series` or :class:`Index`
-=======
-        dtype_backend : {'numpy_nullable', 'pyarrow'}
-        Back-end data type applied to the result
->>>>>>> fix-to-numeric-docstring-v2
+        Back-end data type applied to the result    
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
         is as follows:
@@ -118,34 +113,18 @@ def to_numeric(
 
     Returns
     -------
-<<<<<<< HEAD
-    ret : int, float, Series, Index, or ndarray
-        Return type depends on input:
 
-       - scalar input: scalar (``int`` if possible, otherwise ``float``)
-        - :class:`Series` input: :class:`Series`
-        - :class:`Index` input: :class:`Index`
-        - list, tuple, or 1-d array: :class:`numpy.ndarray`
+    ret
+        For numeric scalars the type is preserved, whereas other scalars
+        return :class:`int` if possible, otherwise :class:`float`.
+        For 1-d: :class:`Series` if Series, :class:`Index` if Index,
+        otherwise an array as specified by ``dtype_backend``.
 
         If ``errors='coerce'``, un-parseable values become ``NaN``
-        (still a numeric float). If ``errors='raise'`` (default),
-=======
-    ret : int, float, Series, Index, ndarray, NumPy-nullable array, or ArrowExtensionArray
-        The return type depends on the input:
-
-    - scalar input: scalar (``int`` if possible, otherwise ``float``)
-    - :class:`Series` input: :class:`Series`
-    - :class:`Index` input: :class:`Index`
-    - list, tuple, or 1-d array: :class:`numpy.ndarray`
-      When ``dtype_backend`` is not default, may return
-      NumPy-nullable array or ArrowExtensionArray.
-
-        If ``errors='coerce'``, un-parseable values become ``NaN``
-        (or ``pd.NA`` if ``dtype_backend`` is not the default)
-         If ``errors='raise'`` (default),
->>>>>>> fix-to-numeric-docstring-v2
+        (or ``pd.NA`` if ``dtype_backend`` is not the default).
+        If ``errors='raise'`` (default),
         a :exc:`ValueError` is raised for invalid values.
-
+        
     Raises
     ------
     ValueError
@@ -204,11 +183,7 @@ def to_numeric(
     1    2.1
     2    3.0
     dtype: Float32
-<<<<<<< HEAD
     
-=======
-
->>>>>>> fix-to-numeric-docstring-v2
     Scalar input returns a scalar:
 
     >>> pd.to_numeric('42')
