@@ -282,7 +282,7 @@ def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
                 if normalized_tz is not col.dtype.tz:
                     df.isetitem(i, col.dt.tz_convert(normalized_tz))
 
-    df.index = _normalize_timezone_index(df.index)
-    df.columns = _normalize_timezone_index(df.columns)
+        df.index = _normalize_timezone_index(df.index)
+        df.columns = _normalize_timezone_index(df.columns)
 
     return df
