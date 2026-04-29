@@ -1158,8 +1158,9 @@ cdef class _Timedelta(timedelta):
     _docstring_min = """
     Returns the minimum bound possible for Timedelta.
 
-    This property provides access to the smallest possible value that
-    can be represented by a Timedelta object.
+    Accessed on the class (``pd.Timedelta.min``), this returns the minimum
+    bound for nanosecond resolution. Accessed on an instance, it returns the
+    minimum bound for that instance's resolution (see :attr:`Timedelta.unit`).
 
     Returns
     -------
@@ -1175,13 +1176,17 @@ cdef class _Timedelta(timedelta):
     --------
     >>> pd.Timedelta.min
     -106752 days +00:12:43.145224193
+
+    >>> pd.Timedelta(1, unit="s").min
+    -106751991167301 days +08:29:53
     """
 
     _docstring_max = """
     Returns the maximum bound possible for Timedelta.
 
-    This property provides access to the largest possible value that
-    can be represented by a Timedelta object.
+    Accessed on the class (``pd.Timedelta.max``), this returns the maximum
+    bound for nanosecond resolution. Accessed on an instance, it returns the
+    maximum bound for that instance's resolution (see :attr:`Timedelta.unit`).
 
     Returns
     -------
@@ -1197,13 +1202,18 @@ cdef class _Timedelta(timedelta):
     --------
     >>> pd.Timedelta.max
     106751 days 23:47:16.854775807
+
+    >>> pd.Timedelta(1, unit="s").max
+    106751991167300 days 15:30:07
     """
 
     _docstring_reso = """
     Returns the smallest possible difference between non-equal Timedelta objects.
 
-    The resolution value is determined by the underlying representation of time
-    units and is equivalent to Timedelta(nanoseconds=1).
+    Accessed on the class (``pd.Timedelta.resolution``), this returns the
+    resolution for nanosecond-unit Timedeltas (one nanosecond). Accessed on an
+    instance, it returns the step size of that instance's resolution (see
+    :attr:`Timedelta.unit`).
 
     Returns
     -------
@@ -1218,6 +1228,9 @@ cdef class _Timedelta(timedelta):
     --------
     >>> pd.Timedelta.resolution
     0 days 00:00:00.000000001
+
+    >>> pd.Timedelta(1, unit="s").resolution
+    0 days 00:00:01
     """
 
     min = MinMaxReso("min", _docstring_min)

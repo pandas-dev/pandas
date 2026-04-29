@@ -53,6 +53,7 @@ typedef struct {
   int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, size_t, int,
                                 NPY_DATETIMEUNIT);
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
+  void (*set_datetimestruct_days)(npy_int64, npy_datetimestruct *);
 } PandasDateTime_CAPI;
 
 // The capsule name appears limited to module.attributename; see bpo-32414
@@ -105,6 +106,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
                                               (utc), (base))
 #  define make_iso_8601_timedelta(tds, outstr, outlen)                         \
     PandasDateTimeAPI->make_iso_8601_timedelta((tds), (outstr), (outlen))
+#  define set_datetimestruct_days(days, dts)                                   \
+    PandasDateTimeAPI->set_datetimestruct_days((days), (dts))
 #endif /* !defined(_PANDAS_DATETIME_IMPL) */
 
 #ifdef __cplusplus

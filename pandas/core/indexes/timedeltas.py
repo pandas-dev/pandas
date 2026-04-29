@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 from pandas._libs import (
     index as libindex,
@@ -53,6 +54,30 @@ if TYPE_CHECKING:
         DtypeObj,
         TimeUnit,
     )
+
+
+def _new_TimedeltaIndex(cls, d):
+    """
+    This is called upon unpickling, rather than the default which doesn't
+    have arguments and breaks __new__
+    """
+    if "data" in d and not isinstance(d["data"], TimedeltaIndex):
+        data = d.pop("data")
+        if isinstance(data, TimedeltaArray):
+            tdarr = data
+        else:
+            tdarr = TimedeltaArray._simple_new(data, dtype=data.dtype)
+        # Legacy pickles stored freq on the TimedeltaArray; current pickles
+        # include it in ``d``. Migrate either up onto the Index.
+        freq = d.pop("freq", tdarr._freq)
+        tdarr._freq = None
+        result = cls._simple_new(tdarr, **d)
+        result._freq = freq
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = cls.__new__(cls, **d)
+    return result
 
 
 @inherit_names(
@@ -192,7 +217,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         ):
             if copy:
                 data = data.copy()
-            return cls._simple_new(data, name=name)
+            result = cls._simple_new(data, name=name)
+            result._freq = data._freq
+            return result
 
         if (
             isinstance(data, TimedeltaIndex)
@@ -208,6 +235,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         # - Cases checked above all return/raise before reaching here - #
 
         tdarr = TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+        # Stash any incoming freq on the DTA so _pin_freq can read it below.
+        if isinstance(data, TimedeltaIndex):
+            tdarr._freq = data.freq  # type: ignore[assignment]
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
@@ -215,6 +245,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         result = cls._simple_new(tdarr, name=name, refs=refs)
         result._pin_freq(freq, {})
         return result
+
+    def __reduce__(self):
+        d = {"data": self._data, "name": self.name, "freq": self._freq}
+        return _new_TimedeltaIndex, (type(self), d), None
 
     # -------------------------------------------------------------------
 
@@ -233,14 +267,14 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         result = self._data.__neg__()
         idx = type(self)._simple_new(result, name=self.name)
         if self.freq is not None:
-            idx._data._freq = -self.freq  # type: ignore[assignment]
+            idx._freq = -self.freq
         return idx
 
     def __pos__(self) -> TimedeltaIndex:
         result = self._data.__pos__()
         idx = type(self)._simple_new(result, name=self.name)
         if self.freq is not None:
-            idx._data._freq = self.freq  # type: ignore[assignment]
+            idx._freq = self.freq
         return idx
 
     def _arith_method(self, other: object, op: Callable) -> Index:
@@ -260,7 +294,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             new_freq = self._get_rsub_datetime_result_freq(other)
 
         if new_freq is not None:
-            result._data._freq = new_freq
+            result._freq = new_freq
         return result
 
     def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:
@@ -518,4 +552,6 @@ def timedelta_range(
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )
-    return TimedeltaIndex._simple_new(tdarr, name=name)
+    result = TimedeltaIndex._simple_new(tdarr, name=name)
+    result._freq = freq
+    return result
