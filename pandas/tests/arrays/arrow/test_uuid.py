@@ -90,10 +90,10 @@ def test_uuid_contains_behavior() -> None:
     s = pd.Series(arr)
 
     # Checks index
-    assert (s.iloc[0] in s) is False
+    assert (u in s) is False
 
     # Checks values
-    assert (s.iloc[0] in s.array) is True
+    assert (u in s.array) is True
     assert (None in s.array) is False
 
 
