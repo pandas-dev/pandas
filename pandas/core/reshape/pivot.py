@@ -517,7 +517,7 @@ def _add_margins(
             # GH#55484 margin_dummy may be object-dtype when row_margin was
             # initialized with dtype=object (len(cols)==0 path); cast back.
             margin_dummy[cols] = margin_dummy[cols].astype(dtype)
-        elif (margin_dummy[cols].dtypes == object).all() and dtype != object:
+        elif dtype != object and (margin_dummy[cols].dtypes == object).all():
             # GH#55484 object-initialized row_margin can leave non-EA columns
             # as object (mixed-values case); astype back to the target dtype.
             margin_dummy[cols] = margin_dummy[cols].astype(dtype)
