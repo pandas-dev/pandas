@@ -1699,11 +1699,31 @@ cdef class _Timestamp(ABCTimestamp):
         Timestamp.to_pydatetime : Convert the `Timestamp` to a `datetime` object.
         Timestamp.to_datetime64 : Converts `Timestamp` to `numpy.datetime64`.
 
+        Notes
+        -----
+        For tz-naive ``Timestamp`` objects, this method differs from
+        :meth:`datetime.datetime.timestamp`: pandas treats the wall time as UTC,
+        whereas the standard library interprets a naive ``datetime`` as local
+        time. As a result, ``pd.Timestamp.fromtimestamp(x).timestamp()`` only
+        round-trips to ``x`` when the local timezone is UTC. To get behavior
+        equivalent to ``datetime.datetime.timestamp`` on a naive ``Timestamp``,
+        first localize it to the local timezone with
+        :meth:`Timestamp.tz_localize`.
+
         Examples
         --------
+        For a tz-naive ``Timestamp``, the wall time is treated as UTC:
+
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
         >>> ts.timestamp()
         1584199972.192548
+
+        To reproduce :meth:`datetime.datetime.timestamp` semantics on a
+        tz-naive ``Timestamp``, first localize to the local timezone (e.g.
+        ``'US/Pacific'``):
+
+        >>> ts.tz_localize('US/Pacific').timestamp()
+        1584225172.192548
         """
         # GH 17329
         # Note: Naive timestamps will not match datetime.stdlib
