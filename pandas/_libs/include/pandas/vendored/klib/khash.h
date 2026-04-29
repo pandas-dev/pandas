@@ -642,6 +642,9 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
 #define KHASH_SET_INIT_INT(name)                                               \
   KHASH_INIT(name, khint32_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
 
+#define KHASH_SET_INIT_UINT(name)                                              \
+  KHASH_INIT(name, khuint32_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
 /*! @function
   @abstract     Instantiate a hash map containing integer keys
   @param  name  Name of the hash table [symbol]
@@ -687,6 +690,12 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
 #define KHASH_MAP_INIT_UINT16(name, khval_t)                                   \
   KHASH_INIT(name, khuint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+#define KHASH_SET_INIT_INT16(name)                                             \
+  KHASH_INIT(name, khint16_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_SET_INIT_UINT16(name)                                            \
+  KHASH_INIT(name, khuint16_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
 /*! @function
   @abstract     Instantiate a hash map containing 8bit-integer keys
   @param  name  Name of the hash table [symbol]
@@ -697,6 +706,12 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
 
 #define KHASH_MAP_INIT_UINT8(name, khval_t)                                    \
   KHASH_INIT(name, khuint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_SET_INIT_INT8(name)                                              \
+  KHASH_INIT(name, khint8_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_SET_INIT_UINT8(name)                                             \
+  KHASH_INIT(name, khuint8_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
 
 typedef const char *kh_cstr_t;
 /*! @function
@@ -725,6 +740,14 @@ typedef const char *kh_cstr_t;
 #define kh_exist_uint16(h, k) (kh_exist(h, k))
 #define kh_exist_int8(h, k) (kh_exist(h, k))
 #define kh_exist_uint8(h, k) (kh_exist(h, k))
+#define kh_exist_set_int64(h, k) (kh_exist(h, k))
+#define kh_exist_set_uint64(h, k) (kh_exist(h, k))
+#define kh_exist_set_int32(h, k) (kh_exist(h, k))
+#define kh_exist_set_uint32(h, k) (kh_exist(h, k))
+#define kh_exist_set_int16(h, k) (kh_exist(h, k))
+#define kh_exist_set_uint16(h, k) (kh_exist(h, k))
+#define kh_exist_set_int8(h, k) (kh_exist(h, k))
+#define kh_exist_set_uint8(h, k) (kh_exist(h, k))
 
 KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
@@ -735,5 +758,13 @@ KHASH_MAP_INIT_INT16(int16, size_t)
 KHASH_MAP_INIT_UINT16(uint16, size_t)
 KHASH_MAP_INIT_INT8(int8, size_t)
 KHASH_MAP_INIT_UINT8(uint8, size_t)
+KHASH_SET_INIT_INT64(set_int64)
+KHASH_SET_INIT_UINT64(set_uint64)
+KHASH_SET_INIT_INT(set_int32)
+KHASH_SET_INIT_UINT(set_uint32)
+KHASH_SET_INIT_INT16(set_int16)
+KHASH_SET_INIT_UINT16(set_uint16)
+KHASH_SET_INIT_INT8(set_int8)
+KHASH_SET_INIT_UINT8(set_uint8)
 
 #endif /* __AC_KHASH_H */

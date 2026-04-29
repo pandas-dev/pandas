@@ -413,14 +413,6 @@ class IndexingMixin:
                              max_speed  shield
         sidewinder          7       8
 
-        Index (same behavior as ``df.reindex``)
-
-        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-               max_speed  shield
-        foo
-        cobra          1       2
-        viper          4       5
-
         Conditional that returns a boolean Series
 
         >>> df.loc[df["shield"] > 6]
@@ -944,9 +936,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         # Capture dtype info cheaply between potential column expansion
-        # (above) and potential row expansion (below).  This replaces the
-        # much more expensive ``self.obj[:].iloc[:0].copy()`` that had to
-        # slice and copy every block.
+        # (above) and potential row expansion (below).
         if self.obj.ndim == 1:
             orig_dtype_info = self.obj.dtype
             orig_columns = None
@@ -1401,14 +1391,6 @@ class _LocIndexer(_LocationIndexer):
     >>> df.loc[pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])]
                          max_speed  shield
     sidewinder          7       8
-
-    Index (same behavior as ``df.reindex``)
-
-    >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-           max_speed  shield
-    foo
-    cobra          1       2
-    viper          4       5
 
     Conditional that returns a boolean Series
 
@@ -2581,7 +2563,11 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif _is_2d_value(value):
+            elif _is_2d_value(value) and not (
+                isinstance(value, list)
+                and isinstance(value[0], tuple)
+                and len(value[0]) != len(ilocs)
+            ):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -3547,6 +3533,13 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
         # [assignment]
         dtype = dtype.numpy_dtype  # type: ignore[assignment]
 
+    # _cast_pointwise_result may return NumpyExtensionArray; unwrap so
+    # maybe_downcast_to_dtype sees a plain np.ndarray it can downcast.
+    arr_type = None
+    if isinstance(new_arr.dtype, NumpyEADtype):
+        arr_type = type(new_arr)
+        new_arr = new_arr._ndarray
+
     if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
         new_arr = maybe_downcast_to_dtype(new_arr, dtype)
     elif (
@@ -3562,4 +3555,7 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
             # Only accept the conversion if no values were truncated
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
+
+    if arr_type is not None:
+        new_arr = arr_type(new_arr)
     return new_arr

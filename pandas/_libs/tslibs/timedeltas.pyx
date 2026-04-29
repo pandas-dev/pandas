@@ -488,12 +488,14 @@ def array_to_timedelta64(
                 if item == NPY_NAT:
                     ival = NPY_NAT
                 else:
-                    ival = _numeric_to_td64ns(item, parsed_unit, int_reso)
+                    # GH#65150 match the pattern in tslib.pyx: update creso
+                    #  first, then convert using creso as the output resolution.
                     item_reso = int_reso
-
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
+
+                    ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif is_float_object(item):
                 int_item = int(item)
@@ -505,20 +507,19 @@ def array_to_timedelta64(
                     if item == NPY_NAT:
                         ival = NPY_NAT
                     else:
-                        ival = _numeric_to_td64ns(item, parsed_unit, int_reso)
                         item_reso = int_reso
-
                         state.update_creso(item_reso)
                         if infer_reso:
                             creso = state.creso
-                else:
-                    ival = _numeric_to_td64ns(item, parsed_unit, NPY_FR_ns)
 
+                        ival = _numeric_to_td64ns(item, parsed_unit, creso)
+                else:
                     item_reso = NPY_FR_ns
-                    int_reso = NPY_FR_ns
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
+
+                    ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif isinstance(item, Day):
                 # GH#64240: support Day offsets in list-like conversion
@@ -2192,27 +2193,42 @@ class Timedelta(_Timedelta):
             ns = kwargs.get("nanoseconds", 0)
             us = kwargs.get("microseconds", 0)
             ms = kwargs.get("milliseconds", 0)
-            try:
-                value = np.timedelta64(
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
-                    + seconds, "ns"
-                )
-            except OverflowError as err:
-                # GH#55503
-                msg = (
-                    f"seconds={seconds}, milliseconds={ms}, "
-                    f"microseconds={us}, nanoseconds={ns}"
-                )
-                raise OutOfBoundsTimedelta(msg) from err
+            total_ns = (
+                int(ns)
+                + int(us * 1_000)
+                + int(ms * 1_000_000)
+                + seconds
+            )
 
-            if (
-                "nanoseconds" not in kwargs
-                and cnp.get_timedelta64_value(value) % 1000 == 0
-            ):
-                # If possible, give a microsecond unit
-                value = value.astype("m8[us]")
+            try:
+                value = np.timedelta64(total_ns, "ns")
+            except OverflowError:
+                # GH#46587 - fall back to coarser resolutions
+                if total_ns % 1_000 != 0:
+                    reso_value, reso_abbrev = total_ns, "ns"
+                elif total_ns % 1_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000, "us"
+                elif total_ns % 1_000_000_000 != 0:
+                    reso_value, reso_abbrev = total_ns // 1_000_000, "ms"
+                else:
+                    reso_value, reso_abbrev = total_ns // 1_000_000_000, "s"
+
+                try:
+                    value = np.timedelta64(reso_value, reso_abbrev)
+                except OverflowError as err:
+                    # GH#55503
+                    msg = (
+                        f"seconds={seconds}, milliseconds={ms}, "
+                        f"microseconds={us}, nanoseconds={ns}"
+                    )
+                    raise OutOfBoundsTimedelta(msg) from err
+            else:
+                if (
+                    "nanoseconds" not in kwargs
+                    and cnp.get_timedelta64_value(value) % 1000 == 0
+                ):
+                    # If possible, give a microsecond unit
+                    value = value.astype("m8[us]")
 
         disallow_ambiguous_unit(unit)
 
