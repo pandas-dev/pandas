@@ -26,6 +26,7 @@ from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos,
+    groupby as libgroupby,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -760,15 +761,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        from pandas import Index
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
 
         result = map_array(self, mapper, na_action=na_action)
-        result = Index(result)
-
-        if isinstance(result, ABCMultiIndex):
+        if isinstance(result, MultiIndex):
             return result.to_numpy()
-        else:
-            return result.array
+        if isinstance(result, Index):
+            result = result._data
+        return self._cast_pointwise_result(result)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
@@ -1707,6 +1710,55 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         res_values = res_values.view(self._ndarray.dtype)
         return self._from_backing_data(res_values)
 
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        nqs = len(qs)
+        mask = self.isna()
+        i8vals = self.asi8
+
+        # Block manager may store DatetimeArray/TimedeltaArray as 2D (1, N)
+        ncols = 1
+        if self.ndim == 2:
+            ncols = self._ndarray.shape[0]
+
+        out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+        for col in range(ncols):
+            if self.ndim == 2:
+                col_mask = mask[col]
+                col_vals = i8vals[col]
+            else:
+                col_mask = mask
+                col_vals = i8vals
+
+            libgroupby.group_quantile(
+                out[col],
+                values=col_vals,
+                mask=col_mask,
+                labels=ids,
+                qs=qs,
+                interpolation=interpolation,
+                starts=starts,
+                ends=ends,
+                result_mask=None,
+                is_datetimelike=True,
+            )
+
+        if self.ndim == 1:
+            out = out.ravel("K")  # type: ignore[assignment]
+        else:
+            out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
+
+        out = out.astype("i8").view(self._ndarray.dtype)
+        return self._from_backing_data(out)
+
 
 class DatelikeOps(DatetimeLikeArrayMixin):
     """
@@ -2490,7 +2542,7 @@ def ensure_arraylike_for_datetimelike(
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through maybe_convert_dtype,
         #  e.g. the categories are timedelta64s
-        data = data.categories.take(data.codes, fill_value=NaT)._values
+        data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
 
     return data, copy

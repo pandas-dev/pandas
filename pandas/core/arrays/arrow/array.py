@@ -2904,6 +2904,28 @@ class ArrowExtensionArray(
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)
 
+    def _to_groupby_compatible(self) -> ExtensionArray:
+        """Convert to a type compatible with groupby cython ops."""
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            return self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            return self._to_timedeltaarray()
+        else:
+            return self._to_masked()
+
+    def _groupby_result_to_arrow(self, result: ArrayLike) -> ArrayLike:
+        """Convert a groupby result from a delegated type back to Arrow."""
+        if isinstance(result, np.ndarray):
+            return result
+        elif isinstance(result, BaseMaskedArray):
+            pa_result = result.__arrow_array__()
+            return self._from_pyarrow_array(pa_result)
+        else:
+            # DatetimeArray, TimedeltaArray
+            pa_result = pa.array(result)
+            return self._from_pyarrow_array(pa_result)
+
     def _groupby_op(
         self,
         *,
@@ -2947,16 +2969,7 @@ class ArrowExtensionArray(
                 skipna=kwargs.get("skipna", True),
             )
 
-        # maybe convert to a compatible dtype optimized for groupby
-        values: ExtensionArray
-        pa_type = self._pa_array.type
-        if pa.types.is_timestamp(pa_type):
-            values = self._to_datetimearray()
-        elif pa.types.is_duration(pa_type):
-            values = self._to_timedeltaarray()
-        else:
-            values = self._to_masked()
-
+        values = self._to_groupby_compatible()
         result = values._groupby_op(
             how=how,
             has_dropped_na=has_dropped_na,
@@ -2965,15 +2978,35 @@ class ArrowExtensionArray(
             ids=ids,
             **kwargs,
         )
-        if isinstance(result, np.ndarray):
-            return result
-        elif isinstance(result, BaseMaskedArray):
-            pa_result = result.__arrow_array__()
-            return self._from_pyarrow_array(pa_result)
-        else:
-            # DatetimeArray, TimedeltaArray
-            pa_result = pa.array(result)
-            return self._from_pyarrow_array(pa_result)
+        return self._groupby_result_to_arrow(result)
+
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        from pandas.core.arrays.string_ import StringDtype
+
+        if isinstance(self.dtype, StringDtype):
+            raise TypeError(
+                f"dtype '{self.dtype}' does not support operation 'quantile'"
+            )
+
+        values = self._to_groupby_compatible()
+        result = values._groupby_quantile(
+            qs=qs,
+            interpolation=interpolation,
+            ids=ids,
+            ngroups=ngroups,
+            starts=starts,
+            ends=ends,
+        )
+        return self._groupby_result_to_arrow(result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""

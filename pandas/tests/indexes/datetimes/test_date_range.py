@@ -1154,7 +1154,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        assert rng2._data.freq == BDay()
+        assert rng2.freq == BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -1185,6 +1185,15 @@ class TestBusinessDateRange:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(start, periods=2, freq="B", unit="ns")
 
+    def test_bdate_range_end_weekend_periods(self):
+        # GH#64834
+        result = bdate_range(end="2026-03-21", periods=3)
+        expected = DatetimeIndex(["2026-03-18", "2026-03-19", "2026-03-20"])
+        tm.assert_index_equal(result, expected)
+
+        result = bdate_range(end="2026-03-22", periods=3)
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDateRange:
     def test_constructor(self):
@@ -1212,7 +1221,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        assert rng2._data.freq == CDay()
+        assert rng2.freq == CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)

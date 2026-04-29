@@ -1112,7 +1112,10 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        expected = DatetimeIndex(pi.to_timestamp(how=how))._data
+        # Array-level to_timestamp returns a freq-less DTA; freq computation
+        # lives on the wrapping PeriodIndex.
+        expected = pi.to_timestamp(how=how)._data
+        expected._freq = None
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArray)
 
@@ -1120,22 +1123,21 @@ class TestPeriodArray(SharedTests):
 
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"
-        dta = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")._data
-        parr = dta.to_period("B")
-        result = parr.to_timestamp()
+        dti = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")
+        pi = dti.to_period("B")
+        result = pi.to_timestamp()
         assert result.freq == "B"
-        tm.assert_extension_array_equal(result, dta.as_unit("us"))
+        tm.assert_index_equal(result, dti.as_unit("us"))
 
-        dta2 = dta[::2]
-        parr2 = dta2.to_period("2B")
-        result2 = parr2.to_timestamp()
+        pi2 = dti[::2].to_period("2B")
+        result2 = pi2.to_timestamp()
         assert result2.freq == "2B"
-        tm.assert_extension_array_equal(result2, dta2.as_unit("us"))
+        tm.assert_index_equal(result2, dti[::2].as_unit("us"))
 
-        parr3 = dta.to_period("2B")
-        result3 = parr3.to_timestamp()
+        pi3 = dti.to_period("2B")
+        result3 = pi3.to_timestamp()
         assert result3.freq == "B"
-        tm.assert_extension_array_equal(result3, dta.as_unit("us"))
+        tm.assert_index_equal(result3, dti.as_unit("us"))
 
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently

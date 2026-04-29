@@ -1603,38 +1603,38 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-/* Copy a string without `char_to_remove` into `output`.
+/* Copy a numeric token without `tsep` into `output`.
  *
  * Returns the number of bytes written (excluding NUL), or -1 on overflow.
+ * `*endptr` is set to the position in `str` where copying stopped (the first
+ * non-digit / non-tsep char or the end of input) so the caller can detect
+ * trailing garbage like "1 ," (GH#64631).
  */
-static int64_t copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
-                                        const char *str, size_t str_len,
-                                        char char_to_remove) {
-  const char *left = str;
-  const char *end_ptr = str + str_len;
+static int64_t copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
+                                        const char *str, const char **endptr,
+                                        size_t str_len, char tsep) {
+  const char *p = str;
+  const char *end = str + str_len;
   size_t bytes_written = 0;
 
-  while (left < end_ptr) {
-    const size_t remaining_bytes_to_read = end_ptr - left;
-    const char *right = memchr(left, char_to_remove, remaining_bytes_to_read);
+  if (p < end && (*p == '+' || *p == '-')) {
+    output[bytes_written++] = *p++;
+  }
 
-    if (!right) {
-      // If it doesn't find the char to remove, just copy until EOS.
-      right = end_ptr;
+  while (p < end && (isdigit_ascii(*p) || (tsep != '\0' && *p == tsep))) {
+    if (*p != tsep) {
+      if (bytes_written + 1 >= PROCESSED_WORD_CAPACITY) {
+        return -1;
+      }
+      output[bytes_written++] = *p;
     }
-
-    const size_t chunk_size = right - left;
-
-    if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
-      return -1;
-    }
-    memcpy(&output[bytes_written], left, chunk_size);
-    bytes_written += chunk_size;
-
-    left = right + 1;
+    p++;
   }
 
   output[bytes_written] = '\0';
+  if (endptr != NULL) {
+    *endptr = p;
+  }
   return (int64_t)bytes_written;
 }
 
@@ -1666,8 +1666,10 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
 
   char buffer[PROCESSED_WORD_CAPACITY];
   size_t str_len = strlen(p);
+  const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int64_t written = copy_string_without_char(buffer, p, str_len, tsep);
+    const int64_t written =
+        copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
     if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
@@ -1680,6 +1682,11 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   int64_t number;
   const char *endptr;
   const int status = pd_strtoll(p, p + str_len, &number, &endptr);
+  if (number_end != NULL) {
+    // GH#64631: detect trailing junk in the original input that
+    // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=',').
+    endptr = number_end;
+  }
   if (status == 1) {
     // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
     // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
@@ -1732,8 +1739,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
 
   char buffer[PROCESSED_WORD_CAPACITY];
   size_t str_len = strlen(p);
+  const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int64_t written = copy_string_without_char(buffer, p, str_len, tsep);
+    const int64_t written =
+        copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
     if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
@@ -1746,6 +1755,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   uint64_t number;
   const char *endptr;
   const int status = pd_strtoull(p, p + str_len, &number, &endptr);
+  if (number_end != NULL) {
+    // GH#64631: detect trailing junk in the original input.
+    endptr = number_end;
+  }
   if (status == 1) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
