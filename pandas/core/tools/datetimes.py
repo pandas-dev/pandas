@@ -218,6 +218,7 @@ def _maybe_cache(
     format: str | None,
     cache: bool,
     convert_listlike: Callable,
+    unit: str | None = None,
 ) -> Series:
     """
     Create a cache of unique dates from an array of dates
@@ -231,6 +232,8 @@ def _maybe_cache(
         True attempts to create a cache of converted values
     convert_listlike : function
         Conversion function to apply on dates
+    unit : str, optional
+        The unit of the arg.
 
     Returns
     -------
@@ -242,6 +245,19 @@ def _maybe_cache(
     cache_array = Series(dtype=object)
 
     if cache:
+        # GH#65380 O(1) bail for input shapes where caching cannot help
+        if unit is not None:
+            return cache_array
+        arg_dtype = getattr(arg, "dtype", None)
+        if (
+            lib.is_np_dtype(arg_dtype, "M")
+            or isinstance(arg_dtype, DatetimeTZDtype)
+            or (isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp)
+        ):
+            return cache_array
+        if format is not None and format != "mixed":
+            return cache_array
+
         # Perform a quicker unique check
         if not should_cache(arg):
             return cache_array
@@ -1078,7 +1094,7 @@ def to_datetime(
             else:
                 result = arg.tz_localize("utc")
     elif isinstance(arg, ABCSeries):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
@@ -1087,7 +1103,7 @@ def to_datetime(
     elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, utc)
     elif isinstance(arg, Index):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, name=arg.name)
         else:
@@ -1101,7 +1117,7 @@ def to_datetime(
             argc = cast(
                 "Union[list, tuple, ExtensionArray, np.ndarray, Series, Index]", arg
             )
-            cache_array = _maybe_cache(argc, format, cache, convert_listlike)
+            cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...

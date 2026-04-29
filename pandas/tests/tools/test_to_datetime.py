@@ -3461,6 +3461,87 @@ class TestShouldCache:
         assert tools.should_cache(listlike) is True
 
 
+class TestMaybeCacheEarlyBail:
+    # GH#65380 _maybe_cache should bail in O(1) for
+    # inputs where caching cannot help.
+
+    @pytest.mark.parametrize(
+        "arg, kwargs",
+        [
+            # Condition 1: unit is not None
+            (np.arange(100, dtype="int64"), {"unit": "s"}),
+            # Condition 2: arg.dtype is np.datetime64
+            (
+                date_range("2020-01-01", periods=100, freq="s").to_numpy(),
+                {},
+            ),
+            # Condition 3: arg.dtype is DatetimeTZDtype
+            (
+                date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
+                {},
+            ),
+            # Condition 5: format is not None and format != "mixed"
+            (
+                date_range("2020-01-01", periods=100, freq="s")
+                .strftime("%Y-%m-%dT%H:%M:%S")
+                .to_numpy(),
+                {"format": "%Y-%m-%dT%H:%M:%S"},
+            ),
+        ],
+    )
+    def test_maybe_cache_skips_should_cache(self, arg, kwargs, monkeypatch):
+        called = []
+        original = tools.should_cache
+
+        def tracking_should_cache(*args, **kwargs):
+            called.append(True)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(tools, "should_cache", tracking_should_cache)
+        to_datetime(arg, cache=True, **kwargs)
+        assert not called
+
+    @td.skip_if_no("pyarrow")
+    def test_maybe_cache_skips_should_cache_arrow(self, monkeypatch):
+        # Condition 4: ArrowDtype with Timestamp type
+        import pyarrow as pa
+
+        from pandas.core.arrays import ArrowExtensionArray
+
+        arr = ArrowExtensionArray(
+            pa.array(
+                date_range("2020-01-01", periods=100, freq="s").to_numpy(),
+                type=pa.timestamp("ns"),
+            )
+        )
+        idx = Index(arr)
+
+        called = []
+        original = tools.should_cache
+
+        def tracking_should_cache(*args, **kwargs):
+            called.append(True)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(tools, "should_cache", tracking_should_cache)
+        to_datetime(idx, cache=True)
+        assert not called
+
+    def test_cache_false_still_works(self, monkeypatch):
+        # Sanity: cache=False should never call should_cache either
+        called = []
+        original = tools.should_cache
+
+        def tracking_should_cache(*args, **kwargs):
+            called.append(True)
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(tools, "should_cache", tracking_should_cache)
+        arg = np.arange(100, dtype="int64")
+        to_datetime(arg, cache=False, unit="s")
+        assert not called
+
+
 def test_nullable_integer_to_datetime():
     # Test for #30050
     ser = Series([1, 2, None, 2**61, None], dtype="Int64")
