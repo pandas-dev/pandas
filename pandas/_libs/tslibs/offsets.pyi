@@ -339,5 +339,3 @@ def shift_months(
     day_opt: str | None = ...,
     reso: int = ...,
 ) -> npt.NDArray[np.int64]: ...
-
-_offset_map: dict[str, BaseOffset]

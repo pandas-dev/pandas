@@ -760,15 +760,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        from pandas import Index
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
 
         result = map_array(self, mapper, na_action=na_action)
-        result = Index(result)
-
-        if isinstance(result, ABCMultiIndex):
+        if isinstance(result, MultiIndex):
             return result.to_numpy()
-        else:
-            return result.array
+        if isinstance(result, Index):
+            result = result._data
+        return self._cast_pointwise_result(result)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
@@ -2490,7 +2492,7 @@ def ensure_arraylike_for_datetimelike(
         # GH#18664 preserve tz in going DTI->Categorical->DTI
         # TODO: cases where we need to do another pass through maybe_convert_dtype,
         #  e.g. the categories are timedelta64s
-        data = data.categories.take(data.codes, fill_value=NaT)._values
+        data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
 
     return data, copy
