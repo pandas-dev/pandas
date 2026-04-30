@@ -117,7 +117,7 @@ def test_small_int_followed_by_float(
     ],
 )
 def test_precise_xstrtod_large_mantissa(c_parser_only, value):
-    # GH#XXXXX
+    # GH#64357
     # When a 17-digit mantissa's 16-digit prefix crosses 2^53
     # (= 9007199254740992), the old per-digit FP accumulation
     #   number = number * 10. + digit
