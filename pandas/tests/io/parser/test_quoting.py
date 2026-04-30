@@ -57,12 +57,17 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
         (10, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
     ],
 )
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 def test_bad_quoting(all_parsers, quoting, msg):
     data = "1,2,3"
     parser = all_parsers
 
-    with pytest.raises(TypeError, match=msg):
+    if parser.engine == "pyarrow":
+        # pyarrow rejects ``quoting`` outright before any value validation.
+        msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+        err: type[Exception] = ValueError
+    else:
+        err = TypeError
+    with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), quoting=quoting)
 
 

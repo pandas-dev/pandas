@@ -477,6 +477,31 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
+    def _intersection(self, other: Index, sort: bool = False):
+        # For unordered CategoricalIndex, libjoin operates on integer codes.
+        # When two indexes have the same categories in different order, matching
+        # codes map to different values, giving incorrect results (GH#55335).
+        # Reorder other's categories to match self so the codes align.
+        if (
+            not self.ordered
+            and isinstance(other, CategoricalIndex)
+            and not self.categories.equals(other.categories)
+        ):
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
+        return super()._intersection(other, sort=sort)
+
+    def _union(self, other: Index, sort):
+        # See _intersection for explanation of GH#55335.
+        if (
+            not self.ordered
+            and isinstance(other, CategoricalIndex)
+            and not self.categories.equals(other.categories)
+        ):
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
+        return super()._union(other, sort)
+
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         """
         Map values using input an input mapping or function.

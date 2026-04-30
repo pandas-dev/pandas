@@ -65,6 +65,7 @@ class TestFreq:
         tdi2 = TimedeltaIndex(tda)._with_freq(None)
         assert tdi2.freq is None
 
-        # Original was not altered
+        # Original was not altered. freq is now Index-level state, so the
+        # underlying TimedeltaArray never carries a freq.
         assert tdi.freq == "2D"
-        assert tda.freq == "2D"
+        assert tda.freq is None
