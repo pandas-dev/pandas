@@ -1241,7 +1241,11 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{(dts.us):06d}")
 
-    elif freq_group == FR_NS and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%n"):
+    elif freq_group == FR_NS and (
+        is_fmt_none
+        or fmt == "%Y-%m-%d %H:%M:%S.%N"
+        or fmt == "%Y-%m-%d %H:%M:%S.%n"
+    ):
         return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
@@ -1259,15 +1263,30 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return _period_strftime(value, freq, fmt, dts)
 
 
+cdef _warn_period_strftime_n_deprecated():
+    import warnings
+
+    from pandas.errors import Pandas4Warning
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(
+        "The %n directive in Period.strftime is deprecated and will be "
+        "removed in a future version. Use %N instead to format nanoseconds.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%f", b"^`CD`^"),
                         (b"%F", b"^`EF`^"),
                         (b"%l", b"^`GH`^"),
                         (b"%u", b"^`IJ`^"),
-                        (b"%n", b"^`KL`^")]
+                        (b"%n", b"^`KL`^"),
+                        (b"%N", b"^`MN`^")]
 
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
-                            "^`GH`^", "^`IJ`^", "^`KL`^"]
+                            "^`GH`^", "^`IJ`^", "^`KL`^", "^`MN`^"]
 
 cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct dts):
     cdef:
@@ -1322,7 +1341,9 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
                 repl = f"{(us // 1_000):03d}"
             elif i == 4:  # %u, microseconds
                 repl = f"{(us):06d}"
-            elif i == 5:  # %n, nanoseconds
+            elif i == 5:  # %n, nanoseconds (deprecated, use %N instead)
+                repl = f"{((us * 1000) + (ps // 1000)):09d}"
+            elif i == 6:  # %N, nanoseconds
                 repl = f"{((us * 1000) + (ps // 1000)):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
@@ -1355,6 +1376,9 @@ def period_array_strftime(
         )
         object[::1] out_flat = out.ravel()
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
+
+    if date_format is not None and "%n" in date_format:
+        _warn_period_strftime_n_deprecated()
 
     for i in range(n):
         # Analogous to: ordinal = values[i]
@@ -2868,8 +2892,12 @@ cdef class _Period(PeriodMixin):
         When ``None``, the format will be determined from the frequency of the Period.
         The method recognizes the same directives as the :func:`time.strftime`
         function of the standard Python distribution, as well as the specific
-        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%N``.
         (formatting & docs originally from scikits.timeries).
+
+        .. deprecated:: 3.1.0
+            The ``%n`` directive for nanoseconds is deprecated; use ``%N`` instead.
+            ``%n`` conflicts with the POSIX standard meaning of a newline character.
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
@@ -2927,7 +2955,10 @@ cdef class _Period(PeriodMixin):
         | ``%u``    | Microsecond as a decimal number|       |
         |           | [000000,999999].               |       |
         +-----------+--------------------------------+-------+
-        | ``%n``    | Nanosecond as a decimal number |       |
+        | ``%N``    | Nanosecond as a decimal number |       |
+        |           | [000000000,999999999].         |       |
+        +-----------+--------------------------------+-------+
+        | ``%n``    | Nanosecond as a decimal number | \(6)  |
         |           | [000000000,999999999].         |       |
         +-----------+--------------------------------+-------+
         | ``%U``    | Week number of the year        | \(5)  |
@@ -3015,6 +3046,11 @@ cdef class _Period(PeriodMixin):
             The ``%U`` and ``%W`` directives are only used in calculations
             when the day of the week and the year are specified.
 
+        (6)
+            The ``%n`` directive is deprecated since pandas 3.1.0; use
+            ``%N`` instead. ``%n`` conflicts with the POSIX standard
+            meaning of a newline character.
+
         Examples
         --------
 
@@ -3032,6 +3068,8 @@ cdef class _Period(PeriodMixin):
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
+        if isinstance(fmt, str) and "%n" in fmt:
+            _warn_period_strftime_n_deprecated()
         base = self._dtype._dtype_code
         return period_format(self.ordinal, base, fmt)
 
