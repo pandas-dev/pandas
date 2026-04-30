@@ -1643,7 +1643,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if na_action is None and has_nans:
             if callable(mapper):
                 na_val = mapper(np.nan)
-            elif is_dict_like(mapper):
+            else:
                 try:
                     na_val = mapper[np.nan]
                 except KeyError:
