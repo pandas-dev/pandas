@@ -195,10 +195,10 @@ def _post_convert_dtypes(
     ):
         # Convert any StringDtype columns back to object dtype (pyarrow always
         # uses string dtype even when the infer_string option is False)
-        for col, dtype in zip(df.columns, df.dtypes, strict=True):
-            new_col = _maybe_convert_string_to_object(df[col])
+        for i in range(len(df.columns)):
+            new_col = _maybe_convert_string_to_object(df.iloc[:, i])
             if new_col is not None:
-                df[col] = new_col
+                df.isetitem(i, new_col)
 
         new_idx = _maybe_convert_string_index_to_object(df.index)
         if new_idx is not None:
