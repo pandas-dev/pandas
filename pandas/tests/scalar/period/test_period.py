@@ -845,13 +845,13 @@ class TestPeriodMethods:
         assert isinstance(res, str)
 
     def test_strftime_nanosecond_capital_N(self):
-        # GH#65422 %N is the new directive for nanoseconds
+        # GH#65432 %N is the new directive for nanoseconds
         per = Period("2000-1-1 12:34:12.123456789", freq="ns")
         res = per.strftime("%Y-%m-%d %H:%M:%S.%N")
         assert res == "2000-01-01 12:34:12.123456789"
 
     def test_strftime_nanosecond_lowercase_n_deprecated(self):
-        # GH#65422 %n conflicts with POSIX newline meaning, deprecated in
+        # GH#65432 %n conflicts with POSIX newline meaning, deprecated in
         # favor of %N
         per = Period("2000-1-1 12:34:12.123456789", freq="ns")
         msg = "The %n directive in Period.strftime is deprecated"
@@ -860,7 +860,7 @@ class TestPeriodMethods:
         assert res == "2000-01-01 12:34:12.123456789"
 
     def test_strftime_default_format_no_warning(self):
-        # GH#65422 the default format (fmt=None) for ns frequency must
+        # GH#65432 the default format (fmt=None) for ns frequency must
         # not raise the %n deprecation warning
         per = Period("2000-1-1 12:34:12.123456789", freq="ns")
         with tm.assert_produces_warning(None):

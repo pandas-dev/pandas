@@ -632,7 +632,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_nanoseconds_capital_N(self):
-        # GH#65422 %N is the new directive for nanoseconds
+        # GH#65432 %N is the new directive for nanoseconds
         ser = Series(
             period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
         )
@@ -647,7 +647,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_nanoseconds_lowercase_n_deprecated(self):
-        # GH#65422 %n collides with the POSIX newline directive; warn once
+        # GH#65432 %n collides with the POSIX newline directive; warn once
         # per call regardless of array length, and still produce nanoseconds
         ser = Series(
             period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
