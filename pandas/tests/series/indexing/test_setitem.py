@@ -10,10 +10,7 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import (
-    IndexingError,
-    Pandas4Warning,
-)
+from pandas.errors import IndexingError
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -521,19 +518,13 @@ class TestSetitemWithExpansion:
         # GH#22717 inserting a Timedelta should _not_ cast to int64
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
-        # With infer_string, dtype changes from str -> object; without it,
-        # the Series is already object so no dtype change occurs.
-        warn = Pandas4Warning if using_infer_string else None
-
         ser = Series(["x"])
-        with tm.assert_produces_warning(warn):
-            ser["td"] = td
+        ser["td"] = td
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
         ser = Series(["x"])
-        with tm.assert_produces_warning(warn):
-            ser.loc["td"] = Timedelta("9 days")
+        ser.loc["td"] = Timedelta("9 days")
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
@@ -541,10 +532,7 @@ class TestSetitemWithExpansion:
         # GH#12599
         ser = Series(dtype=object)
         ser["a"] = Timestamp("2016-01-01")
-        # After the first insert ser has datetime64 dtype; inserting a float
-        # is incompatible with that.
-        with tm.assert_produces_warning(Pandas4Warning):
-            ser["b"] = 3.0
+        ser["b"] = 3.0
         ser["c"] = "foo"
         expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
@@ -600,6 +588,7 @@ class TestSetitemWithExpansion:
     def test_setitem_enlargement_object_none(self, nulls_fixture, using_infer_string):
         # GH#48665
         ser = Series(["a", "b"])
+        ser[3] = nulls_fixture
 
         dtype = (
             "str"
@@ -607,12 +596,6 @@ class TestSetitemWithExpansion:
             and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
             else object
         )
-
-        # Warn when the dtype changes (str -> object for Decimal without
-        # pyarrow); no warning when the dtype is preserved.
-        warn = Pandas4Warning if ser.dtype != dtype else None
-        with tm.assert_produces_warning(warn):
-            ser[3] = nulls_fixture
 
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)

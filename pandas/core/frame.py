@@ -14492,9 +14492,7 @@ class DataFrame(NDFrame, OpsMixin):
             for i in range(len(self.columns)):
                 arr = self.iloc[:, i].array
 
-                casted = infer_and_maybe_downcast(
-                    arr, row_df.iloc[:, i]._values, warn_if_cast=False
-                )
+                casted = infer_and_maybe_downcast(arr, row_df.iloc[:, i]._values)
 
                 row_df.isetitem(i, casted)
 
