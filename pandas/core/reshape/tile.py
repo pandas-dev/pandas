@@ -158,7 +158,7 @@ def cut(
     ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
     to some predefined methods.
 
-    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+    See :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
     Examples
     --------
@@ -343,7 +343,8 @@ def qcut(
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
+    See :ref:`the user guide <reshaping.tile>` for more examples.
 
     Examples
     --------

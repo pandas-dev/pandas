@@ -991,11 +991,15 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
     if conn == "postgresql_adbc_conn" and not using_string_dtype():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
+        adbc_pg = pytest.importorskip("adbc_driver_postgresql")
+        if Version(adbc_pg.__version__) < Version("1.11"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "postgres ADBC driver < 1.11 cannot insert index with null type"
+                    ),
+                )
             )
-        )
 
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
@@ -3853,16 +3857,10 @@ def test_read_sql_string_inference(sqlite_engine):
     # GH#54430
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
+    expected = df.copy()
+
     df.to_sql(table, con=conn, index=False, if_exists="replace")
-
-    with pd.option_context("future.infer_string", True):
-        result = read_sql_table(table, conn)
-
-    dtype = pd.StringDtype(na_value=np.nan)
-    expected = DataFrame(
-        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
-    )
-
+    result = read_sql_table(table, conn)
     tm.assert_frame_equal(result, expected)
 
 

@@ -82,7 +82,6 @@ class TestDatetimeIndex:
         array = index._data
 
         arr = array[[0, 3, 2, 4, 1]]
-        assert arr.freq is None
 
         result = index._shallow_copy(arr)
         assert result.freq is None
@@ -1100,6 +1099,24 @@ class TestTimeSeries:
 
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
+
+    def test_constructor_equivalent_freq(self):
+        # GH#61086 - equivalent but not equal frequencies should be accepted
+        dti = date_range("2020-02-01", freq="QS-MAY", periods=3)
+
+        result = DatetimeIndex(dti, freq="QS-FEB")
+        expected = DatetimeIndex(
+            ["2020-02-01", "2020-05-01", "2020-08-01"], freq="QS-FEB"
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_equivalent_freq_raises(self):
+        # GH#61086 - non-equivalent frequencies should still raise
+        dti = date_range("2020-02-01", freq="QS-MAY", periods=3)
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="QS-JAN")
 
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721

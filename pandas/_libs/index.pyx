@@ -379,7 +379,8 @@ cdef class IndexEngine:
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -1250,7 +1251,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))

@@ -41,7 +41,9 @@ from pandas.core.arrays import (
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-ok_for_dt = DatetimeArray._datetimelike_ops
+# ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
+# directly rather than on the underlying array, so add it explicitly.
+ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq"]
 # GH#46768 - deprecated aliases that should be skipped in property access tests
 _deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 ok_for_dt_methods = [
@@ -59,7 +61,7 @@ ok_for_dt_methods = [
     "isocalendar",
     "as_unit",
 ]
-ok_for_td = TimedeltaArray._datetimelike_ops
+ok_for_td = [*TimedeltaArray._datetimelike_ops, "freq"]
 ok_for_td_methods = [
     "components",
     "to_pytimedelta",
@@ -591,6 +593,13 @@ class TestSeriesDatetimeValues:
         if using_infer_string:
             expected = expected.astype(StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
+
+    def test_strftime_literal_braces(self):
+        # Literal braces in the format string should be preserved
+        ser = Series(date_range("2024-01-01", periods=3))
+        result = ser.dt.strftime("{%Y}")
+        expected = Series(["{2024}", "{2024}", "{2024}"])
+        tm.assert_series_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])

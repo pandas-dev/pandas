@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import is_integer
 
@@ -1135,7 +1134,7 @@ class TestDataFrameIndexing:
         df["F"] = np.timedelta64("NaT", "ns")
         df.loc[df.index[:-1], "F"] = np.array([6 * one_hour] * 3, dtype="m8[ns]")
         df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3, unit="ns")
-        df["H"] = np.datetime64("NaT")
+        df["H"] = np.datetime64("NaT", "ns")
         result = df.dtypes
         expected = Series(
             [np.dtype("timedelta64[ns]")] * 6 + [np.dtype("datetime64[ns]")] * 2,
@@ -1190,22 +1189,30 @@ class TestDataFrameIndexing:
             df[df > 0.3] = 1
 
     def test_type_error_multiindex(self):
-        # See gh-12218
+        # See gh-12218, GH#26511
         mi = MultiIndex.from_product([["x", "y"], [0, 1]], names=[None, "c"])
         dg = DataFrame(
             [[1, 1, 2, 2], [3, 3, 4, 4]], columns=mi, index=Index(range(2), name="i")
         )
-        with pytest.raises(InvalidIndexError, match="slice"):
-            dg[:, 0]
 
+        # GH#26511: dg[:, 0] now works, selecting sub-column 0 across all
+        # top-level columns, with the selected level dropped
         index = Index(range(2), name="i")
+        result = dg[:, 0]
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=Index(["x", "y"]),
+            index=index,
+        )
+        tm.assert_frame_equal(result, expected)
+
         columns = MultiIndex(
             levels=[["x", "y"], [0, 1]], codes=[[0, 1], [0, 0]], names=[None, "c"]
         )
-        expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
+        expected_loc = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
 
         result = dg.loc[:, (slice(None), 0)]
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected_loc)
 
         name = ("x", 0)
         index = Index(range(2), name="i")
@@ -1851,31 +1858,29 @@ def test_adding_new_conditional_column() -> None:
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.parametrize(
-    ("dtype", "infer_string"),
-    [
-        (object, False),
-        (pd.StringDtype(na_value=np.nan), True),
-    ],
-)
-def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
+def test_adding_new_conditional_column_with_string(using_infer_string) -> None:
     # https://github.com/pandas-dev/pandas/issues/56204
     df = DataFrame({"a": [1, 2], "b": [3, 4]})
-    with pd.option_context("future.infer_string", infer_string):
-        df.loc[df["a"] == 1, "c"] = "1"
-    expected = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["1", float("nan")]}).astype(
-        {"a": "int64", "b": "int64", "c": dtype}
+    df.loc[df["a"] == 1, "c"] = "1"
+    expected = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["1", float("nan")]})
+    expected["c"] = expected["c"].astype(
+        pd.StringDtype(na_value=np.nan) if using_infer_string else object
     )
     tm.assert_frame_equal(df, expected)
 
 
-def test_add_new_column_infer_string():
+def test_add_new_column_infer_string(using_infer_string):
     # GH#55366
     df = DataFrame({"x": [1]})
-    with pd.option_context("future.infer_string", True):
-        df.loc[df["x"] == 1, "y"] = "1"
+    df.loc[df["x"] == 1, "y"] = "1"
     expected = DataFrame(
-        {"x": [1], "y": Series(["1"], dtype=pd.StringDtype(na_value=np.nan))},
+        {
+            "x": [1],
+            "y": Series(
+                ["1"],
+                dtype=pd.StringDtype(na_value=np.nan) if using_infer_string else object,
+            ),
+        },
         columns=Index(["x", "y"], dtype="str"),
     )
     tm.assert_frame_equal(df, expected)
@@ -1913,7 +1918,7 @@ class TestSetitemValidation:
         "1",
         "1.0",
         pd.NaT,
-        np.datetime64("NaT"),
+        np.datetime64("NaT", "ns"),
         np.timedelta64("NaT", "ns"),
     ]
     _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]

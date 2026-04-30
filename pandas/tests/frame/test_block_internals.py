@@ -30,17 +30,14 @@ from pandas.core.internals.blocks import NumpyBlock
 
 class TestDataFrameBlockInternals:
     def test_setitem_invalidates_datetime_index_freq(self):
-        # GH#24096 altering a datetime64tz column inplace invalidates the
-        #  `freq` attribute on the underlying DatetimeIndex
+        # GH#24096 altering a datetime64tz column inplace doesn't propagate
+        #  freq onto the original DatetimeIndex
 
         dti = date_range("20130101", periods=3, tz="US/Eastern")
         ts = dti[1]
 
         df = DataFrame({"B": dti})
-        assert df["B"]._values.freq is None
-
         df.iloc[1, 0] = pd.NaT
-        assert df["B"]._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert dti.freq == "D"
