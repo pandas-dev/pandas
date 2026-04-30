@@ -101,8 +101,8 @@ def to_numeric(
         performed on the data.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
-        Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). If not specified, the default behavior
+        Back-end data type applied to the result (still experimental).
+        If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
         is as follows:
 
@@ -114,8 +114,13 @@ def to_numeric(
     Returns
     -------
     ret
-        Numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray.
+        Numeric result of parsing.
+        Return type depends on input:
+
+        * For scalar inputs, the result is a numeric scalar (int or float).
+        * For 1-dimensional inputs, the result is a Series if the input is a Series,
+          an Index if the input is an Index, otherwise an array-like structure
+          depending on ``dtype_backend``.
 
     Raises
     ------
