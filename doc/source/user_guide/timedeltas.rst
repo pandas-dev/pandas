@@ -122,7 +122,7 @@ step size of that instance's resolution:
 
 .. ipython:: python
 
-   td = pd.Timedelta(1, unit="s")
+   td = pd.Timedelta(1, input_unit="s")
    td.min
    td.max
    td.resolution
