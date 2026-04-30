@@ -1097,7 +1097,11 @@ def nansem(
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
-    return np.sqrt(var) / np.sqrt(count)
+    # nanvar already propagates NaN per-slice when skipna=False and mask is
+    # set; derive sem element-wise so the shape is preserved correctly.
+    with np.errstate(invalid="ignore"):
+        result = np.sqrt(var) / np.sqrt(count)
+    return result
 
 
 def _nanminmax(meth, fill_value_typ):

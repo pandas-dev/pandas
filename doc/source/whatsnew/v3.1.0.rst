@@ -243,12 +243,12 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
 - Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
-- Fixed bug in :func:`~pandas.core.nanops.nansem` where passing ``mask`` with ``skipna=False`` and an ``axis`` argument incorrectly returned a scalar ``np.nan`` instead of an array of ``np.nan`` (:issue:`65373`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 - Fixed bug in :meth:`Series.mean` and :meth:`Series.sum` (and their :class:`DataFrame` counterparts) overflowing for ``float16`` dtypes instead of upcasting to ``float64`` (:issue:`43929`)
+- Fixed bug in :meth:`Series.sem` (and its :class:`DataFrame` counterpart) where passing ``skipna=False`` with a ``mask`` and an ``axis`` argument incorrectly returned a scalar ``np.nan`` instead of an array of ``np.nan`` (:issue:`65373`)
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)
-- Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
 
 Conversion
 ^^^^^^^^^^

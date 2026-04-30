@@ -1248,43 +1248,55 @@ def test_nanops_independent_of_mask_param(operation):
 
 def test_nansem_mask_skipna_false_axis_returns_array():
     # GH#65373 - nansem with mask + skipna=False + axis={0,1} was returning
-    # a scalar np.nan instead of an array of np.nan
+    # a scalar np.nan instead of an array of np.nan.
+    # Mask positions are deliberately *misaligned* from the NaN positions so
+    # the two sources of missingness are independent.
     rng = np.random.default_rng(2)
     n = 5
     values = rng.standard_normal((n, n))
 
-    # Place np.nan on the main diagonal so every slice along both axes
-    # contains an actual NaN value
+    # Place np.nan on the main diagonal
     np.fill_diagonal(values, np.nan)
 
-    # Shifted diagonal mask: one True per row and per column,
-    # so every slice has both a NaN value and a masked entry
+    # Shifted diagonal mask: True one column to the right of each NaN,
+    # so mask[i, (i+1)%n] is True while values[i, i] is NaN -> misaligned
     mask = np.zeros((n, n), dtype=bool)
     for i in range(n):
         mask[i, (i + 1) % n] = True
 
     expected = np.full(n, np.nan)
 
+    # skipna=False: any NaN or masked entry in a slice -> entire slice is NaN
     result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
     tm.assert_numpy_array_equal(result, expected)
 
     result = nanops.nansem(values, mask=mask, skipna=False, axis=1)
     tm.assert_numpy_array_equal(result, expected)
 
-    # axis=None: scalar nan expected (this behavior is correct and unchanged)
+    # axis=None with skipna=False: scalar nan (correct, unchanged behaviour)
     result = nanops.nansem(values, mask=mask, skipna=False, axis=None)
     assert np.isnan(result)
 
-    # partial mask: only [0, 0] masked -> only col 0 (axis=0) becomes nan,
-    # all other columns remain valid floats
+    # skipna=True: NaN values and masked entries are skipped,
+    # result should be a finite array (no NaN since enough valid data remains)
+    result_skipna = nanops.nansem(values, mask=mask, skipna=True, axis=0)
+    assert result_skipna.shape == (n,)
+    # Each column has 1 NaN (diagonal) + 1 masked entry (shifted diagonal)
+    # With n=5 we still have 3 valid values per column -> result is finite
+    assert not np.any(np.isnan(result_skipna))
+
+    # Partial mask: mask[0,1]=True misaligned from values[0,0]=NaN
+    # skipna=False -> col 0 is NaN (actual NaN), col 1 is NaN (masked entry),
+    # all other columns are finite
     values_partial = rng.standard_normal((n, n))
     values_partial[0, 0] = np.nan
     mask_partial = np.zeros((n, n), dtype=bool)
-    mask_partial[0, 0] = True
+    mask_partial[0, 1] = True  # misaligned: NaN at col 0, mask at col 1
 
     result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
-    assert np.isnan(result[0])
-    assert not np.any(np.isnan(result[1:]))
+    assert np.isnan(result[0])               # col 0: contains actual NaN
+    assert np.isnan(result[1])               # col 1: has a masked (NA) entry
+    assert not np.any(np.isnan(result[2:]))  # cols 2-4: all valid -> finite
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
