@@ -4,6 +4,7 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Literal,
+    cast,
 )
 import zoneinfo
 
@@ -210,7 +211,9 @@ def _post_convert_dtypes(
     return df
 
 
-def _maybe_convert_string_to_object(data: pd.Series | pd.Index) -> pd.Series | pd.Index:
+def _maybe_convert_string_to_object(
+    data: pd.Series | pd.Index,
+) -> pd.Series | pd.Index | None:
     if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
         return data.astype("object").fillna(None)
     elif isinstance(data.dtype, pd.CategoricalDtype):
@@ -226,7 +229,7 @@ def _maybe_convert_string_to_object(data: pd.Series | pd.Index) -> pd.Series | p
     return None
 
 
-def _maybe_convert_string_index_to_object(index: pd.Index) -> pd.Index:
+def _maybe_convert_string_index_to_object(index: pd.Index) -> pd.Index | None:
     if isinstance(index, pd.MultiIndex):
         if any(
             isinstance(level.dtype, pd.StringDtype) and level.dtype.na_value is np.nan
@@ -240,9 +243,10 @@ def _maybe_convert_string_index_to_object(index: pd.Index) -> pd.Index:
                 else:
                     new_levels.append(level)
             return index.set_levels(new_levels)
+        return None
 
     else:
-        return _maybe_convert_string_to_object(index)
+        return cast("pd.Index | None", _maybe_convert_string_to_object(index))
 
 
 def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:
