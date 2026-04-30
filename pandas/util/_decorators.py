@@ -526,7 +526,15 @@ def set_module(module) -> Callable[[F], F]:
 
     def decorator(func: F) -> F:
         if module is not None:
+            if isinstance(func, type):
+                # Store the original module for classes to ensure linkcode_resolve
+                # can resolve the true source location after re-exporting
+                try:
+                    func._module_source = func.__module__  # type: ignore[attr-defined]
+                except AttributeError:
+                    pass
+
             func.__module__ = module
-        return func
+        return cast("F", func)  # type: ignore[redundant-cast]
 
     return decorator
