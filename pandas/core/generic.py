@@ -10201,6 +10201,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
+        The where method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``True`` the
         element is used; otherwise the corresponding element from
         ``other`` is used. If the axis of ``other`` does not align with the caller
