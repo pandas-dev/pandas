@@ -1294,8 +1294,8 @@ def test_nansem_mask_skipna_false_axis_returns_array():
     mask_partial[0, 1] = True  # misaligned: NaN at col 0, mask at col 1
 
     result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
-    assert np.isnan(result[0])               # col 0: contains actual NaN
-    assert np.isnan(result[1])               # col 1: has a masked (NA) entry
+    assert np.isnan(result[0])  # col 0: contains actual NaN
+    assert np.isnan(result[1])  # col 1: has a masked (NA) entry
     assert not np.any(np.isnan(result[2:]))  # cols 2-4: all valid -> finite
 
 
