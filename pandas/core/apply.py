@@ -864,7 +864,8 @@ class NDFrameApply(Apply):
         if not all(isinstance(f, str) for f in func):
             return None
 
-        obj = self.obj
+        # Caller restricts this path to ndim == 2 (DataFrame); narrow for mypy.
+        obj = cast("DataFrame", self.obj)
         func_names = cast("list[str]", func)
 
         # Cannot reindex with duplicate column names
@@ -884,7 +885,7 @@ class NDFrameApply(Apply):
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
-        groups = obj.columns.groupby(obj.dtypes)  # type: ignore[arg-type]
+        groups = obj.columns.groupby(obj.dtypes)
         pieces = []
         for dtype in groups:
             cols = groups[dtype]
