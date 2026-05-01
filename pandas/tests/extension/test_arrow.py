@@ -3865,6 +3865,33 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         assert np.isnan(ser[2])
 
 
+def test_np_ufunc_pyarrow_distinguish_nan_na():
+    # GH#62506 - ufuncs on pyarrow arrays with distinguish_nan_and_na=True
+    # should work instead of raising TypeError from object dtype conversion.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1.0, float("nan"), None], dtype="double[pyarrow]")
+
+        result = np.isnan(ser)
+        expected = pd.Series([False, True, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.isfinite(ser)
+        expected = pd.Series([True, False, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.sqrt(pd.Series([1.0, 4.0, None], dtype="double[pyarrow]"))
+        expected = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        # multi-return ufunc (tuple path)
+        ser = pd.Series([1.5, 2.7, None], dtype="double[pyarrow]")
+        frac, integ = np.modf(ser)
+        expected_frac = pd.Series([0.5, 0.7, pd.NA], dtype="double[pyarrow]")
+        expected_integ = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(frac, expected_frac)
+        tm.assert_series_equal(integ, expected_integ)
+
+
 def test_pow_with_all_na_float():
     # GH#62520
 

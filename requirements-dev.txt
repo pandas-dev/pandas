@@ -67,9 +67,9 @@ sphinx-design
 sphinx-copybutton
 scipy-stubs
 types-python-dateutil
-types-PyMySQL
+types-pymysql
 types-pytz
-types-PyYAML
+types-pyyaml
 nbconvert>=7.11.0
 nbsphinx
 pandoc
