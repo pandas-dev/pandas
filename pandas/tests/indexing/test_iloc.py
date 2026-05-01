@@ -741,6 +741,17 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    @pytest.mark.parametrize("value", [[[1], [2, 3]], [[2, 3], [1]]])
+    def test_setitem_ragged_list_of_lists_raises(self, indexer, value):
+        # GH#64229
+        df = DataFrame({"a": [0.0, 0.0], "b": [0, 0], "c": [0.0, 0.0]})
+        with pytest.raises(ValueError, match="Must have equal len keys"):
+            if indexer == "loc":
+                df.loc[:, ["a", "c"]] = value
+            else:
+                df.iloc[:, [0, 2]] = value
+
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
     @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])

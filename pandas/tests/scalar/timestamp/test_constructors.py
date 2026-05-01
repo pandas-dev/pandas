@@ -790,7 +790,7 @@ class TestTimestampConstructors:
             Timestamp(Timestamp.min._value * 2)
 
     def test_out_of_bounds_value(self):
-        one_us = np.timedelta64(1).astype("timedelta64[us]")
+        one_us = np.timedelta64(1, "ns").astype("timedelta64[us]")
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
@@ -909,6 +909,14 @@ class TestTimestampConstructors:
         result = Timestamp(arg)
         expected = Timestamp(datetime(2013, 1, 1), tz=timezone(timedelta(hours=9)))
         assert result == expected
+
+    def test_comma_separated_fractional_seconds(self):
+        # GH#59256 - comma as decimal separator should parse correctly
+        ts_comma = Timestamp("2024-06-17T18:57:43,567")
+        ts_dot = Timestamp("2024-06-17T18:57:43.567")
+        assert ts_comma == ts_dot
+        assert ts_comma.unit == ts_dot.unit
+        assert ts_comma.microsecond == 567000
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
@@ -1097,7 +1105,20 @@ def test_non_nano_value():
     assert result == -52_700_112_000 * 10**6
 
 
-@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+def test_timestamp_constructor_np_str():
+    # GH#48974 np.str_ should not break Timestamp construction
+    result = Timestamp(np.str_("2023-01-01"))
+    expected = Timestamp("2023-01-01")
+    assert result == expected
+
+    result = Timestamp(np.str_("2023-01-01 12:34:56"))
+    expected = Timestamp("2023-01-01 12:34:56")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "na_value", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+)
 def test_timestamp_constructor_na_value(na_value):
     # GH45481
     result = Timestamp(na_value)

@@ -32,7 +32,6 @@ from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
-    maybe_convert_platform,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -690,18 +689,12 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy)
 
         else:
-            subarr = maybe_convert_platform(data)
-            if subarr.dtype == object:
-                subarr = cast("np.ndarray", subarr)
-                subarr = lib.maybe_convert_objects(
-                    subarr,
-                    # Here we do not convert numeric dtypes, as if we wanted that,
-                    #  numpy would have done it for us.
-                    convert_numeric=False,
-                    convert_non_numeric=True,
-                    convert_to_nullable_dtype=False,
-                    dtype_if_all_nat=np.dtype("M8[s]"),
-                )
+            subarr = construct_1d_object_array_from_listlike(data)
+            subarr = lib.maybe_convert_objects(
+                subarr,
+                convert_non_numeric=True,
+                dtype_if_all_nat=np.dtype("M8[s]"),
+            )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 

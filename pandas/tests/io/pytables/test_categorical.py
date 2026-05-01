@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
+    HDFStore,
     Series,
     _testing as tm,
     concat,
@@ -186,4 +187,18 @@ def test_convert_value(temp_h5_path, where: str, expected):
 
     df.to_hdf(temp_h5_path, key="df", format="table", min_itemsize=max_widths)
     result = read_hdf(temp_h5_path, where=f'col=="{where}"')
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_select_non_sorted_categories(temp_h5_path):
+    # GH#38131 - select() returned wrong rows for non-sorted category order
+    df = DataFrame(
+        {"col1": Categorical(["a", "b", "c", "a"], categories=["c", "b", "a"])}
+    )
+
+    with HDFStore(temp_h5_path) as store:
+        store.append("df", df, data_columns=df.columns)
+        result = store.select("df", "col1='a'")
+
+    expected = df[df["col1"] == "a"]
     tm.assert_frame_equal(result, expected)

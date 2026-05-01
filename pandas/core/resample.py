@@ -2617,6 +2617,22 @@ class TimeGrouper(Grouper):
             )
             return binner, [], labels
 
+        # GH#43486: filter NaTs up front, mirroring _get_period_bins
+        nat_count = 0
+        if ax.hasnans:
+            nat_count = ax.isna().sum()
+            ax = ax[~ax.isna()]
+
+        if len(ax) == 0:
+            # all-NaT case
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
+            bins = np.array([], dtype=np.int64)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
+            return binner, np.insert(bins, 0, nat_count), labels
+
         first, last = _get_timestamp_range_edges(
             ax.min(),  # type: ignore[arg-type]
             ax.max(),  # type: ignore[arg-type]
@@ -2648,18 +2664,19 @@ class TimeGrouper(Grouper):
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(
-            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-        )
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=False)
 
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]  # type: ignore[assignment]
+                labels = labels[1:]
         elif self.label == "right":
-            labels = labels[1:]  # type: ignore[assignment]
+            labels = labels[1:]
 
-        if ax.hasnans:
+        if nat_count > 0:
+            # shift bins by the number of NaT (they sort to the front of asi8)
+            bins = bins + nat_count
+            bins = np.insert(bins, 0, nat_count)
             binner = binner.insert(0, NaT)
             labels = labels.insert(0, NaT)
 
@@ -2667,7 +2684,7 @@ class TimeGrouper(Grouper):
         # adjust the labels
         # GH4076
         if len(bins) < len(labels):
-            labels = labels[: len(bins)]  # type: ignore[assignment]
+            labels = labels[: len(bins)]
 
         return binner, bins, labels
 
@@ -2704,7 +2721,7 @@ class TimeGrouper(Grouper):
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
-                binner = binner[:-1]  # type: ignore[assignment]
+                binner = binner[:-1]
         else:
             bin_edges = binner.asi8
         return binner, bin_edges

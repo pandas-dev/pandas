@@ -16,6 +16,7 @@ import numpy as np
 
 from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.nattype import NaTType
+from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas._typing import (
     OffsetCalendar,
     npt,
@@ -132,7 +133,10 @@ class Micro(Tick): ...
 class Nano(Tick): ...
 
 class RelativeDeltaOffset(BaseOffset):
+    _use_relativedelta: bool
     def __init__(self, n: int = ..., normalize: bool = ..., **kwds: Any) -> None: ...
+    @property
+    def _pd_timedelta(self) -> Timedelta: ...
 
 class BusinessMixin(SingleConstructorOffset):
     def __init__(
@@ -335,5 +339,3 @@ def shift_months(
     day_opt: str | None = ...,
     reso: int = ...,
 ) -> npt.NDArray[np.int64]: ...
-
-_offset_map: dict[str, BaseOffset]

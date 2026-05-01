@@ -14,7 +14,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     algos as libalgos,
@@ -336,6 +336,9 @@ class BaseBlockManager(PandasObject):
         blk = self.blocks[blkno]
         return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
+    def get_unique_dtypes(self) -> npt.NDArray[np.object_]:
+        return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
+
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
@@ -655,6 +658,11 @@ class BaseBlockManager(PandasObject):
     def _get_data_subset(self, predicate: Callable) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks)
+
+    def _get_data_subset_indices(self, predicate: Callable) -> np.ndarray:
+        blocks = [blk for blk in self.blocks if predicate(blk.values)]
+        indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
+        return indexer
 
     def get_bool_data(self) -> Self:
         """
@@ -1570,9 +1578,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = False
         self.blocks += (block,)
 
+        # len check is a cheap O(1) short-circuit to avoid the O(n) sum
+        # and the get_option overhead on every insert call (GH#57641)
+        warn_threshold = 100
         if (
-            get_option("performance_warnings")
-            and sum(not block.is_extension for block in self.blocks) > 100
+            len(self.blocks) > warn_threshold
+            and config["mode"]["performance_warnings"]
+            and sum(not block.is_extension for block in self.blocks) > warn_threshold
         ):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
@@ -1953,8 +1965,17 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._is_consolidated = True
             self._known_consolidated = True
             return
-        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
-        self._is_consolidated = len(dtypes) == len(set(dtypes))
+        # Exit early on first duplicate dtype rather than collecting all dtypes
+        dtypes: set[DtypeObj] = set()
+        for blk in self.blocks:
+            if blk._can_consolidate:
+                dtype = blk.dtype
+                if dtype in dtypes:
+                    self._is_consolidated = False
+                    self._known_consolidated = True
+                    return
+                dtypes.add(dtype)
+        self._is_consolidated = True
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
@@ -2370,17 +2391,18 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, DtypeObj]:
+def _grouping_key(tup: tuple[int, ArrayLike]) -> Hashable:
     dtype = tup[1].dtype
 
-    if is_1d_only_ea_dtype(dtype):
-        # We know these won't be consolidated, so don't need to group these.
-        # This avoids expensive comparisons of CategoricalDtype objects
-        sep = id(dtype)
+    if isinstance(dtype, np.dtype):
+        # Only numpy dtypes get stacked into 2D blocks in _form_blocks,
+        # so only they need real grouping by dtype.
+        return dtype.name
     else:
-        sep = 0
-
-    return sep, dtype
+        # Extension dtypes each get their own block regardless, so grouping
+        # doesn't matter. Use id() to avoid potentially expensive __hash__
+        # (e.g. CategoricalDtype hashes all categories).
+        return id(dtype)
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
@@ -2392,11 +2414,18 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
 
-    # group by dtype
-    grouper = itertools.groupby(tuples, _grouping_func)
+    # group by dtype using a dict faster than old itertools.groupby
+    groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
+    for tup in tuples:
+        key = _grouping_key(tup)
+        try:
+            groups[key].append(tup)
+        except KeyError:
+            groups[key] = [tup]
 
     nbs: list[Block] = []
-    for (_, dtype), tup_block in grouper:
+    for tup_block in groups.values():
+        dtype = tup_block[0][1].dtype
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
@@ -2483,19 +2512,19 @@ def _merge_blocks(
         new_values: ArrayLike
 
         if isinstance(blocks[0].dtype, np.dtype):
-            # error: List comprehension has incompatible type List[Union[ndarray,
-            # ExtensionArray]]; expected List[Union[complex, generic,
-            # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], SupportsArray]]
-            new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
+            # Use np.concatenate directly instead of np.vstack to avoid the
+            # overhead of atleast_2d calls (block values are always 2D)
+            new_values = np.concatenate([b.values for b in blocks], axis=0)
         else:
             bvals = [blk.values for blk in blocks]
             bvals2 = cast("Sequence[NDArrayBackedExtensionArray]", bvals)
             new_values = bvals2[0]._concat_same_type(bvals2, axis=0)
 
-        argsort = np.argsort(new_mgr_locs)
-        new_values = new_values[argsort]
-        new_mgr_locs = new_mgr_locs[argsort]
+        # Only sort if locations are not already in order
+        if not libalgos.is_monotonic(new_mgr_locs, False)[0]:
+            argsort = np.argsort(new_mgr_locs)
+            new_values = new_values[argsort]
+            new_mgr_locs = new_mgr_locs[argsort]
 
         bp = BlockPlacement(new_mgr_locs)
         return [new_block_2d(new_values, placement=bp)], True

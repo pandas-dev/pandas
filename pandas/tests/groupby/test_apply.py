@@ -438,7 +438,7 @@ def test_apply_frame_concat_series():
 
     result = df.groupby("A").apply(trans)
     exp = df.groupby("A")["C"].apply(trans2)
-    tm.assert_series_equal(result, exp, check_names=False)
+    tm.assert_series_equal(result, exp)
     assert result.name == "C"
 
 

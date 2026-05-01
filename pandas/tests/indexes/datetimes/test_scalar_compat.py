@@ -17,6 +17,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import timezones
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DatetimeIndex,
@@ -92,9 +93,7 @@ class TestDatetimeIndexOps:
     @pytest.mark.parametrize(
         "field",
         [
-            "dayofweek",
             "day_of_week",
-            "dayofyear",
             "day_of_year",
             "quarter",
             "days_in_month",
@@ -240,10 +239,10 @@ class TestDatetimeIndexOps:
         assert dti.minute[0] == 0
         assert dti.second[0] == 0
         assert dti.microsecond[0] == 0
-        assert dti.dayofweek[0] == 3
+        assert dti.day_of_week[0] == 3
 
-        assert dti.dayofyear[0] == 1
-        assert dti.dayofyear[120] == 121
+        assert dti.day_of_year[0] == 1
+        assert dti.day_of_year[120] == 121
 
         assert dti.isocalendar().week.iloc[0] == 1
         assert dti.isocalendar().week.iloc[120] == 18
@@ -279,8 +278,8 @@ class TestDatetimeIndexOps:
         assert len(dti.minute) == 365
         assert len(dti.second) == 365
         assert len(dti.microsecond) == 365
-        assert len(dti.dayofweek) == 365
-        assert len(dti.dayofyear) == 365
+        assert len(dti.day_of_week) == 365
+        assert len(dti.day_of_year) == 365
         assert len(dti.isocalendar()) == 365
         assert len(dti.quarter) == 365
         assert len(dti.is_month_start) == 365
@@ -290,11 +289,34 @@ class TestDatetimeIndexOps:
         assert len(dti.is_year_start) == 365
         assert len(dti.is_year_end) == 365
 
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
+        msg = f"DatetimeIndex.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            old_val = getattr(dti, old_attr)
+        tm.assert_index_equal(old_val, getattr(dti, new_attr))
+
+    def test_field_ops(self):
+        dti = date_range(freq="D", start="1/1/1998", periods=365)
         dti.name = "name"
 
         # non boolean accessors -> return Index
         for accessor in DatetimeArray._field_ops:
-            res = getattr(dti, accessor)
+            if accessor == "weekday":
+                # GH#12816 weekday is deprecated
+                with tm.assert_produces_warning(Pandas4Warning, match="weekday"):
+                    res = getattr(dti, accessor)
+            else:
+                res = getattr(dti, accessor)
             assert len(res) == 365
             assert isinstance(res, Index)
             assert res.name == "name"
@@ -310,7 +332,7 @@ class TestDatetimeIndexOps:
         exp = dti[[0, 90, 181, 273]]
         tm.assert_index_equal(res, exp)
         res = dti[dti.is_leap_year]
-        exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name").as_unit("ns")
+        exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name").as_unit(dti.unit)
         tm.assert_index_equal(res, exp)
 
     def test_dti_is_year_quarter_start(self):
