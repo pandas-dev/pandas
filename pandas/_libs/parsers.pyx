@@ -147,9 +147,9 @@ cdef extern from "pandas/parser/tokenizer.h":
     enum: ERROR_OVERFLOW, ERROR_INVALID_CHARS
 
     ctypedef enum BadLineHandleMethod:
-        ERROR,
-        WARN,
-        SKIP
+        BLHM_ERROR,
+        BLHM_WARN,
+        BLHM_SKIP
 
     ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                   int *status, const char *encoding_errors)
@@ -366,7 +366,7 @@ cdef class TextReader:
                   thousands=None,       # bytes | str
                   dtype=None,
                   usecols=None,
-                  on_bad_lines=ERROR,
+                  on_bad_lines=BLHM_ERROR,
                   bint na_filter=True,
                   na_values=None,       # dict[hashable, set[str]] | set[str]
                   na_fvalues=None,      # dict[hashable, set[float]] | set[float]
@@ -460,7 +460,7 @@ cdef class TextReader:
             self.usecols = usecols
 
         if skipfooter > 0:
-            self.parser.on_bad_lines = SKIP
+            self.parser.on_bad_lines = BLHM_SKIP
 
         self.delimiter = delimiter
 

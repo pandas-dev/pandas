@@ -1472,7 +1472,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-pandas currently supports three engines, the C engine, the python engine, and an experimental
+pandas currently supports three engines, the C engine, the python engine, and a
 pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
 on larger workloads and is equivalent in speed to the C engine on most other workloads.
 The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
@@ -3880,7 +3880,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to a few minor release.
+   :func:`read_pickle` is only guaranteed backwards compatible with pickles created by the current or previous major version of pandas. For example, in pandas 3.x.y, the earliest supported pickle would be from 2.0.0.
 
 .. _io.pickle.compression:
 
@@ -3977,6 +3977,14 @@ HDF5 (PyTables)
 the high performance HDF5 format using the excellent `PyTables
 <https://www.pytables.org/>`__ library. See the :ref:`cookbook <cookbook.hdf>`
 for some advanced strategies
+
+.. note::
+
+   pandas reads and writes HDF5 files using a pandas-specific layout built on
+   top of PyTables. :func:`read_hdf` and :class:`HDFStore` are intended for
+   round-tripping pandas objects and **do not read arbitrary HDF5 files**, such
+   as those produced directly by ``h5py`` or plain PyTables. To work with
+   general HDF5 files, use ``h5py`` or ``PyTables`` directly.
 
 .. warning::
 
