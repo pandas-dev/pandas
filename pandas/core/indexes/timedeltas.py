@@ -69,8 +69,8 @@ def _new_TimedeltaIndex(cls, d):
             tdarr = TimedeltaArray._simple_new(data, dtype=data.dtype)
         # Legacy pickles stored freq on the TimedeltaArray; current pickles
         # include it in ``d``. Migrate either up onto the Index.
-        freq = d.pop("freq", tdarr._freq)
-        tdarr._freq = None
+        legacy_freq = vars(tdarr).pop("_freq", None)
+        freq = d.pop("freq", legacy_freq)
         result = cls._simple_new(tdarr, **d)
         result._freq = freq
     else:
@@ -217,9 +217,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         ):
             if copy:
                 data = data.copy()
-            result = cls._simple_new(data, name=name)
-            result._freq = data._freq
-            return result
+            return cls._simple_new(data, name=name)
 
         if (
             isinstance(data, TimedeltaIndex)
@@ -234,16 +232,15 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         # - Cases checked above all return/raise before reaching here - #
 
+        inferred_freq = data.freq if isinstance(data, TimedeltaIndex) else None
+
         tdarr = TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
-        # Stash any incoming freq on the DTA so _pin_freq can read it below.
-        if isinstance(data, TimedeltaIndex):
-            tdarr._freq = data.freq  # type: ignore[assignment]
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
         result = cls._simple_new(tdarr, name=name, refs=refs)
-        result._pin_freq(freq, {})
+        result._pin_freq(freq, inferred_freq, {})
         return result
 
     def __reduce__(self):
