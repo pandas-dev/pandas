@@ -954,8 +954,8 @@ class PythonParser(ParserBase):
         Alert a user about a malformed row, depending on value of
         `self.on_bad_lines` enum.
 
-        If `self.on_bad_lines` is ERROR, the alert will be `ParserError`.
-        If `self.on_bad_lines` is WARN, the alert will be printed out.
+        If `self.on_bad_lines` is BLHM_ERROR, the alert will be `ParserError`.
+        If `self.on_bad_lines` is BLHM_WARN, the alert will be printed out.
 
         Parameters
         ----------
@@ -966,9 +966,9 @@ class PythonParser(ParserBase):
             Because this row number is displayed, we 1-index,
             even though we 0-index internally.
         """
-        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_WARN or callable(
             self.on_bad_lines
         ):
             warnings.warn(
@@ -997,8 +997,8 @@ class PythonParser(ParserBase):
             return line  # type: ignore[return-value]
         except csv.Error as e:
             if self.on_bad_lines in (
-                self.BadLineHandleMethod.ERROR,
-                self.BadLineHandleMethod.WARN,
+                self.BadLineHandleMethod.BLHM_ERROR,
+                self.BadLineHandleMethod.BLHM_WARN,
             ):
                 msg = str(e)
 
@@ -1217,12 +1217,12 @@ class PythonParser(ParserBase):
                             content.append(new_l)
 
                     elif self.on_bad_lines in (
-                        self.BadLineHandleMethod.ERROR,
-                        self.BadLineHandleMethod.WARN,
+                        self.BadLineHandleMethod.BLHM_ERROR,
+                        self.BadLineHandleMethod.BLHM_WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len, "normal"))
-                        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+                        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
                             break
                 else:
                     content.append(_content)

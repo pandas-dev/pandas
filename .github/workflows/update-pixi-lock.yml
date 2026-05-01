@@ -3,6 +3,7 @@ on:
   schedule:
     # 4:10 UTC every Sunday
     - cron: "10 4 * * 0"
+  workflow_dispatch:
 
 permissions: {}
 defaults:
@@ -31,7 +32,7 @@ jobs:
 
     - name: Generate lock files
       id: check-lock-file
-      run: pixi update --no-install
+      run: pixi update
 
     # There should be an update since pixi.toml references nightly packages
     # or use https://github.com/prefix-dev/pixi/issues/5813

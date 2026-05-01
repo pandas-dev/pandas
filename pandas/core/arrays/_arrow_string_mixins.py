@@ -239,6 +239,21 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
+        if pat == "":
+            # pyarrow hangs for empty patterns
+            # (https://github.com/apache/arrow/issues/39149)
+            # use same func definition as ObjectStringArrayMixin._str_replace
+            if regex:
+                count = n if n >= 0 else 0
+                func = lambda val: re.sub(pat, repl, val, count=count)
+            else:
+                func = lambda val: val.replace(pat, repl, n)
+
+            result = self._apply_elementwise(func)
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
+
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.

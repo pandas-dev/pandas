@@ -657,7 +657,12 @@ class Block(PandasObject, libinternals.Block):
         values = self.values
         refs: BlockValuesRefs | None
         if deep:
-            values = values.copy()
+            if isinstance(values, np.ndarray):
+                # "K" preserves memory layout; default "C" flips contiguity
+                # for non-C-order blocks (GH#60469).
+                values = values.copy(order="K")
+            else:
+                values = values.copy()
             refs = None
         else:
             values = values.view()
@@ -2249,11 +2254,6 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
-
-    if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:
-        # freq is only stored in DatetimeIndex/TimedeltaIndex, not in Series/DataFrame
-        values = values.view()
-        values._freq = None
 
     return values
 
