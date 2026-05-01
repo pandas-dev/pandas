@@ -7087,7 +7087,8 @@ class Index(IndexOpsMixin, PandasObject):
         if (
             self.dtype == object
             and target_index.dtype == object
-            and target_index._hasna
+            and not target_index._is_multi
+            and target_index.hasnans
         ):
             # GH#65419: Ensure pd.NA is treated as NaN for object-dtype index
             # for consistency with get_loc and list-input get_indexer.
