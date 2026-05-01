@@ -359,8 +359,8 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Fixed bug in :class:`ArrowExtensionArray` where PyArrow UUID arrays could fall back to ``object`` dtype during :class:`Series` and :class:`DataFrame` construction; Arrow-backed UUID arrays now preserve their type and correctly handle missing values, comparisons, scalar access, membership semantics, and chunked arrays (:issue:`63511`).
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
+- Fixed bug in :class:`ArrowExtensionArray` where PyArrow UUID arrays could fall back to ``object`` dtype during :class:`Series` and :class:`DataFrame` construction; Arrow-backed UUID arrays now preserve their type and correctly handle missing values, comparisons, scalar access, membership semantics, and chunked arrays (:issue:`63511`).
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 
