@@ -82,17 +82,36 @@ class TestEmptyFrameSetitemExpansion:
         # frame
         df = DataFrame()
 
-        msg = "cannot set a frame with no defined columns"
+        # GH#17895 setting a row on a DataFrame with no columns
+        # should expand the index
+        df.loc[1] = 1
+        expected = DataFrame(index=Index([1]))
+        tm.assert_frame_equal(df, expected)
 
-        with pytest.raises(ValueError, match=msg):
-            df.loc[1] = 1
+        df2 = DataFrame()
+        df2.loc[1] = Series([1], index=["foo"])
+        tm.assert_frame_equal(df2, expected)
 
-        with pytest.raises(ValueError, match=msg):
-            df.loc[1] = Series([1], index=["foo"])
-
+        df3 = DataFrame()
         msg = "cannot set a frame with no defined index and a scalar"
         with pytest.raises(ValueError, match=msg):
-            df.loc[:, 1] = 1
+            df3.loc[:, 1] = 1
+
+    def test_partial_set_empty_frame_existing_label(self):
+        # GH#17895 setting row on DataFrame with no columns is a no-op
+        # when the label is already in the index
+        df = DataFrame(index=[1, 2, 3])
+        df.loc[1] = 3
+        expected = DataFrame(index=Index([1, 2, 3]))
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame_new_label(self):
+        # GH#17895 setting row on DataFrame with no columns expands
+        # the index when the label is new
+        df = DataFrame(index=[1, 2, 3])
+        df.loc[4] = 3
+        expected = DataFrame(index=Index([1, 2, 3, 4]))
+        tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame2(self):
         # these work as they don't really change

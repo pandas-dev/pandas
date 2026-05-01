@@ -106,60 +106,29 @@ void add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes) {
 
 /*
  * Calculates the days offset from the 1970 epoch.
+ *
+ * Adapted from Hinnant's days_from_civil algorithm (public domain).
+ * See: https://howardhinnant.github.io/date_algorithms.html#days_from_civil
+ *
+ * The March-1 epoch trick places the leap day at the end of the year,
+ * eliminating special cases for February.
+ *
+ * Uses overflow-checked arithmetic to detect out-of-range inputs.
  */
 npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
-  int i, month;
-  npy_int64 year, days = 0;
-  const int *month_lengths;
+  npy_int64 y = dts->year - (dts->month <= 2);
+  npy_int64 era = (y >= 0 ? y : y - 399) / 400;
+  uint32_t yoe = (uint32_t)(y - era * 400); /* [0, 399] */
+  uint32_t doy =
+      (153 * (uint32_t)(dts->month > 2 ? dts->month - 3 : dts->month + 9) + 2) /
+          5 +
+      (uint32_t)dts->day - 1;                           /* [0, 365] */
+  uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy; /* [0, 146096] */
 
-  PD_CHECK_OVERFLOW(checked_sub(dts->year, 1970, &year));
-  PD_CHECK_OVERFLOW(checked_mul(year, 365, &days));
-
-  /* Adjust for leap years */
-  if (days >= 0) {
-    /*
-     * 1968 is the closest leap year before 1970.
-     * Exclude the current year, so add 1.
-     */
-    PD_CHECK_OVERFLOW(checked_add(year, 1, &year));
-    /* Add one day for each 4 years */
-    PD_CHECK_OVERFLOW(checked_add(days, year / 4, &days));
-    /* 1900 is the closest previous year divisible by 100 */
-    PD_CHECK_OVERFLOW(checked_add(year, 68, &year));
-    /* Subtract one day for each 100 years */
-    PD_CHECK_OVERFLOW(checked_sub(days, year / 100, &days));
-    /* 1600 is the closest previous year divisible by 400 */
-    PD_CHECK_OVERFLOW(checked_add(year, 300, &year));
-    /* Add one day for each 400 years */
-    PD_CHECK_OVERFLOW(checked_add(days, year / 400, &days));
-  } else {
-    /*
-     * 1972 is the closest later year after 1970.
-     * Include the current year, so subtract 2.
-     */
-    PD_CHECK_OVERFLOW(checked_sub(year, 2, &year));
-    /* Subtract one day for each 4 years */
-    PD_CHECK_OVERFLOW(checked_add(days, year / 4, &days));
-    /* 2000 is the closest later year divisible by 100 */
-    PD_CHECK_OVERFLOW(checked_sub(year, 28, &year));
-    /* Add one day for each 100 years */
-    PD_CHECK_OVERFLOW(checked_sub(days, year / 100, &days));
-    /* 2000 is also the closest later year divisible by 400 */
-    /* Subtract one day for each 400 years */
-    PD_CHECK_OVERFLOW(checked_add(days, year / 400, &days));
-  }
-
-  month_lengths = days_per_month_table[is_leapyear(dts->year)];
-  month = dts->month - 1;
-
-  /* Add the months */
-  for (i = 0; i < month; ++i) {
-    PD_CHECK_OVERFLOW(checked_add(days, month_lengths[i], &days));
-  }
-
-  /* Add the days */
-  PD_CHECK_OVERFLOW(checked_add(days, dts->day - 1, &days));
-
+  npy_int64 days;
+  PD_CHECK_OVERFLOW(checked_mul(era, (npy_int64)146097, &days));
+  PD_CHECK_OVERFLOW(checked_add(days, (npy_int64)doe, &days));
+  PD_CHECK_OVERFLOW(checked_sub(days, (npy_int64)719468, &days));
   return days;
 }
 
@@ -206,8 +175,55 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
 /*
  * Fills in the year, month, day in 'dts' based on the days
  * offset from 1970.
+ *
+ * Adapted from neri_schneider.hpp::to_date (MIT license) in:
+ * https://github.com/cassioneri/eaf
+ * SPDX-FileCopyrightText: 2022 Cassio Neri <cassio.neri@gmail.com>
+ * SPDX-FileCopyrightText: 2022 Lorenz Schneider <schneider@em-lyon.com>
+ *
+ * Algorithm: Neri C, Schneider L. "Euclidean Affine Functions and their
+ * Application to Calendar Algorithms." Software: Practice and Experience.
+ * 2023;53(4):937-970. doi:10.1002/spe.3172
+ *
+ * Falls back to the classical algorithm for dates beyond ~32K years
+ * before epoch or ~2.9M years after (effectively never reached in practice).
  */
-static void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts) {
+void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts) {
+  /* Neri-Schneider valid range: [-12699422, 1061042401] (~year -32800..2906945)
+   * s = 82, K = 719468 + 146097 * s, L = 400 * s. */
+  if (days >= -12699422LL && days <= 1061042401LL) {
+    const uint32_t K = 12699422u;
+    const uint32_t L = 32800u;
+
+    /* Rata die shift. */
+    uint32_t N = (uint32_t)(int32_t)days + K;
+
+    /* Century. */
+    uint32_t N_1 = 4 * N + 3;
+    uint32_t C = N_1 / 146097;
+    uint32_t N_C = N_1 % 146097 / 4;
+
+    /* Year. */
+    uint32_t N_2 = 4 * N_C + 3;
+    uint64_t P_2 = (uint64_t)2939745 * N_2;
+    uint32_t Z = (uint32_t)(P_2 / 4294967296);
+    uint32_t N_Y = (uint32_t)(P_2 % 4294967296) / 2939745 / 4;
+
+    /* Month and day. */
+    uint32_t N_3 = 2141 * N_Y + 197913;
+    uint32_t M = N_3 / 65536;
+    uint32_t D = N_3 % 65536 / 2141;
+
+    /* Map from March-based to January-based calendar. */
+    uint32_t J = N_Y >= 306;
+    uint32_t Y = 100 * C + Z;
+    dts->year = (npy_int64)((int32_t)(Y - L) + (int32_t)J);
+    dts->month = (npy_int32)(J ? M - 12 : M);
+    dts->day = (npy_int32)(D + 1);
+    return;
+  }
+
+  /* Fallback for extreme dates outside Neri-Schneider range */
   const int *month_lengths;
   int i;
 

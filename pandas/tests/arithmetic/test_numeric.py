@@ -348,7 +348,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         ids=repr,
     )
     @pytest.mark.filterwarnings(
-        "ignore:Using 'generic' unit for NumPy timedelta:DeprecationWarning"
+        "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
     )
     def test_add_sub_datetimedeltalike_invalid(
         self, numeric_idx, other, box_with_array
