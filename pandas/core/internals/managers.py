@@ -336,6 +336,9 @@ class BaseBlockManager(PandasObject):
         blk = self.blocks[blkno]
         return any(blk is ref() for ref in mgr.blocks[blkno].refs.referenced_blocks)
 
+    def get_unique_dtypes(self) -> npt.NDArray[np.object_]:
+        return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
+
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
@@ -655,6 +658,11 @@ class BaseBlockManager(PandasObject):
     def _get_data_subset(self, predicate: Callable) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks)
+
+    def _get_data_subset_indices(self, predicate: Callable) -> np.ndarray:
+        blocks = [blk for blk in self.blocks if predicate(blk.values)]
+        indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
+        return indexer
 
     def get_bool_data(self) -> Self:
         """

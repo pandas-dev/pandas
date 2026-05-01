@@ -2805,10 +2805,13 @@ def _left_join_on_index(
         # variable has type "ndarray[Any, dtype[signedinteger[Any]]]")
         rkey = right_ax._values  # type: ignore[assignment]
 
-    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort)
-    left_indexer, right_indexer = libjoin.left_outer_join(
-        left_key, right_key, count, sort=sort
-    )
+    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort, how="left")
+    if count == -1:
+        left_indexer, right_indexer = left_key, right_key
+    else:
+        left_indexer, right_indexer = libjoin.left_outer_join(
+            left_key, right_key, count, sort=sort
+        )
 
     if sort or len(left_ax) != len(left_indexer):
         # if asked to sort or there are 1-to-many matches

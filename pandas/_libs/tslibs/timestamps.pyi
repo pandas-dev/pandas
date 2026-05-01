@@ -196,25 +196,51 @@ class Timestamp(datetime):
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def normalize(self) -> Self: ...
-    # TODO: round/floor/ceil could return NaT?
+    @overload
+    def round(
+        self,
+        freq: Frequency | timedelta,
+        ambiguous: bool | Literal["raise"] = ...,
+        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
+        | timedelta = ...,
+    ) -> Self: ...
+    @overload
     def round(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
+    ) -> Self | NaTType: ...
+    @overload
+    def floor(
+        self,
+        freq: Frequency | timedelta,
+        ambiguous: bool | Literal["raise"] = ...,
+        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
+        | timedelta = ...,
     ) -> Self: ...
+    @overload
     def floor(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
+    ) -> Self | NaTType: ...
+    @overload
+    def ceil(
+        self,
+        freq: Frequency | timedelta,
+        ambiguous: bool | Literal["raise"] = ...,
+        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
+        | timedelta = ...,
     ) -> Self: ...
+    @overload
     def ceil(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     def day_name(self, locale: str | None = ...) -> str: ...
     def month_name(self, locale: str | None = ...) -> str: ...
     @property

@@ -467,7 +467,14 @@ jobs:
           actions-cache-folder: emsdk-cache
 
       - name: Install pyodide-build
-        run: pip install "pyodide-build>=0.29.2"
+        # TODO: switch back to a released `pyodide-build` once a version
+        # containing the fix from pyodide/pyodide-build#341 is published.
+        # Pinned to the merge commit to keep the build reproducible. Without
+        # this fix, `pyodide venv` produces a pip wrapper that fails to import
+        # because pip>=26.1 vendors a urllib3 whose Emscripten contrib imports
+        # `js` eagerly when sys.platform is patched to "emscripten".
+        # See pyodide/pyodide-build#339.
+        run: pip install "pyodide-build @ git+https://github.com/pyodide/pyodide-build.git@471889be97c53d160909dd7e5ef8aace17e30637"
 
       - name: Build pandas for Pyodide
         run: |
