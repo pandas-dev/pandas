@@ -86,14 +86,15 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 :class:`NA` semantics
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. warning::
+.. note::
 
-   Experimental: the behaviour of :class:`NA` can still change without warning.
+   :class:`NA` is the missing-value sentinel for nullable dtypes. Its
+   behaviour in some edge cases may still change in future releases.
 
-Starting from pandas 1.0, an experimental :class:`NA` value (singleton) is
-available to represent scalar missing values. The goal of :class:`NA` is provide a
-"missing" indicator that can be used consistently across data types
-(instead of ``np.nan``, ``None`` or ``pd.NaT`` depending on the data type).
+:class:`NA` is a scalar (singleton) used to represent missing values for
+nullable dtypes. The goal of :class:`NA` is to provide a "missing" indicator
+that can be used consistently across data types (instead of ``np.nan``,
+``None`` or ``pd.NaT`` depending on the data type).
 
 For example, when having missing values in a :class:`Series` with the nullable integer
 dtype, it will use :class:`NA`:

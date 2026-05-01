@@ -681,7 +681,9 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_index._values
+            # Pass the full Index (not ._values) so DatetimeIndex/TimedeltaIndex
+            # freq survives the trip through _with_infer.
+            uniques = self.grouping_vector.result_index  # type: ignore[assignment]
         elif self._uniques is not None:
             # GH#50486 Code grouping_vector using _uniques; allows
             # including uniques that are not present in grouping_vector.

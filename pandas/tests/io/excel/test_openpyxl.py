@@ -440,3 +440,116 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
         index=pd.MultiIndex.from_tuples([("A", "AA", "AAA"), ("A", "BB", "BBB")]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+class TestWriteOnly:
+    """Tests for write_only mode (GH#41681)."""
+
+    def test_write_only_not_default(self, tmp_excel):
+        with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
+            assert writer.book.write_only is False
+            DataFrame().to_excel(writer)
+
+    def test_write_only_opt_in(self, tmp_excel):
+        with ExcelWriter(
+            tmp_excel, engine="openpyxl", engine_kwargs={"write_only": True}
+        ) as writer:
+            assert writer.book.write_only is True
+            DataFrame().to_excel(writer)
+
+    def test_write_only_not_set_in_append_mode(self, tmp_excel):
+        DataFrame().to_excel(tmp_excel, engine="openpyxl")
+        with ExcelWriter(tmp_excel, engine="openpyxl", mode="a") as writer:
+            assert writer.book.write_only is False
+            DataFrame().to_excel(writer, sheet_name="Sheet2")
+
+    def test_write_only_roundtrip(self, tmp_excel):
+        # Verify basic data integrity through write-only path
+        df = DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+            index=False,
+        )
+        result = pd.read_excel(tmp_excel, engine="openpyxl")
+        tm.assert_frame_equal(result, df)
+
+    def test_write_only_multiple_sheets(self, tmp_excel):
+        df1 = DataFrame({"a": [1, 2]})
+        df2 = DataFrame({"b": [3, 4]})
+        with ExcelWriter(
+            tmp_excel, engine="openpyxl", engine_kwargs={"write_only": True}
+        ) as writer:
+            df1.to_excel(writer, sheet_name="one", index=False)
+            df2.to_excel(writer, sheet_name="two", index=False)
+        result1 = pd.read_excel(tmp_excel, sheet_name="one", engine="openpyxl")
+        result2 = pd.read_excel(tmp_excel, sheet_name="two", engine="openpyxl")
+        tm.assert_frame_equal(result1, df1)
+        tm.assert_frame_equal(result2, df2)
+
+    def test_write_only_freeze_panes(self, tmp_excel):
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+            freeze_panes=(1, 1),
+        )
+        wb = openpyxl.load_workbook(tmp_excel)
+        ws = wb.active
+        assert ws.freeze_panes == "B2"
+
+    def test_write_only_merge_cells(self, tmp_excel):
+        # MultiIndex columns produce merged header cells
+        df = DataFrame(
+            [[1, 2]],
+            columns=pd.MultiIndex.from_tuples([("a", "x"), ("a", "y")]),
+        )
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+        )
+        wb = openpyxl.load_workbook(tmp_excel)
+        ws = wb.active
+        assert len(ws.merged_cells.ranges) > 0
+
+    def test_write_only_styling(self, tmp_excel):
+        from pandas.io.formats.excel import ExcelCell
+
+        styled_cells = [
+            ExcelCell(
+                row=0,
+                col=0,
+                val="styled",
+                style={"font": {"bold": True, "color": "00FF0000"}},
+            ),
+        ]
+        with _OpenpyxlWriter(tmp_excel, engine_kwargs={"write_only": True}) as writer:
+            writer._write_cells(styled_cells, sheet_name="Sheet1")
+
+        wb = openpyxl.load_workbook(tmp_excel)
+        ws = wb["Sheet1"]
+        cell = ws["A1"]
+        assert cell.value == "styled"
+        assert cell.font.bold is True
+        assert cell.font.color.rgb == "00FF0000"
+
+    def test_write_only_startrow_startcol(self, tmp_excel):
+        df = DataFrame({"a": [1]})
+        df.to_excel(
+            tmp_excel,
+            engine="openpyxl",
+            engine_kwargs={"write_only": True},
+            startrow=3,
+            startcol=2,
+            index=False,
+        )
+        wb = openpyxl.load_workbook(tmp_excel)
+        ws = wb.active
+        # Header at row 4 (startrow=3, 1-indexed), col C (startcol=2, 1-indexed)
+        assert ws.cell(row=4, column=3).value == "a"
+        assert ws.cell(row=5, column=3).value == 1
+        # Cells before start should be empty
+        assert ws.cell(row=1, column=1).value is None
