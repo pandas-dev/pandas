@@ -36,3 +36,12 @@ def test_drop_pd_na_object_index():
     # Drop with np.nan should also work
     result = idx.drop([np.nan])
     tm.assert_index_equal(result, expected)
+
+
+def test_get_indexer_multiindex_no_crash():
+    # GH#65419: Ensure no crash when target is a MultiIndex
+    idx = pd.Index([np.nan, "b"])
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+    # This should not crash even if MultiIndex.hasnans raises NotImplementedError
+    res = idx.get_indexer(mi)
+    assert res.shape == (2,)
