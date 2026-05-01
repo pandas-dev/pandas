@@ -452,16 +452,17 @@ def test_split_with_name_series(any_string_dtype):
     tm.assert_frame_equal(res, exp)
 
 
-@pytest.mark.xfail(
-    reason="GH#20285 str.split on Index returns unhashable list elements"
-)
 def test_split_with_name_index():
     # GH 12617
     idx = Index(["a,b", "c,d"], name="xxx")
     res = idx.str.split(",")
-    assert res.nlevels == 1
-    assert list(res) == [["a", "b"], ["c", "d"]]
-    assert res.name == "xxx"
+    # GH#20285 list elements are unhashable, so the result is an ndarray
+    # rather than an Index.
+    assert isinstance(res, np.ndarray)
+    expected = np.empty(2, dtype=object)
+    expected[0] = ["a", "b"]
+    expected[1] = ["c", "d"]
+    tm.assert_numpy_array_equal(res, expected)
 
     res = idx.str.split(",", expand=True)
     exp = MultiIndex.from_tuples([("a", "b"), ("c", "d")])

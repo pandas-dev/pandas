@@ -264,6 +264,7 @@ class StringMethods(NoNewAttributesMixin):
         expand: bool | None = None,
         fill_value=np.nan,
         returns_string: bool = True,
+        returns_list: bool = False,
         dtype=None,
     ):
         from pandas import (
@@ -368,6 +369,10 @@ class StringMethods(NoNewAttributesMixin):
                     # better represented as a regular Index.
                     out = out.get_level_values(0)
                 return out
+            elif returns_list and isinstance(result, np.ndarray):
+                # GH#20285 list elements are unhashable, so we cannot wrap
+                # them in an Index; return the underlying ndarray instead.
+                return result
             else:
                 return Index(result, name=name, dtype=dtype, copy=False)
         else:
@@ -895,7 +900,11 @@ class StringMethods(NoNewAttributesMixin):
         else:
             dtype = object if self._data.dtype == object else None
         return self._wrap_result(
-            result, expand=expand, returns_string=expand, dtype=dtype
+            result,
+            expand=expand,
+            returns_string=expand,
+            returns_list=not expand,
+            dtype=dtype,
         )
 
     @forbid_nonstring_types(["bytes"])
@@ -1024,7 +1033,11 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_rsplit(pat, n=n)
         dtype = object if self._data.dtype == object else None
         return self._wrap_result(
-            result, expand=expand, returns_string=expand, dtype=dtype
+            result,
+            expand=expand,
+            returns_string=expand,
+            returns_list=not expand,
+            dtype=dtype,
         )
 
     @forbid_nonstring_types(["bytes"])
@@ -3326,7 +3339,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         result = self._data.array._str_findall(pat, flags)
-        return self._wrap_result(result, returns_string=False)
+        return self._wrap_result(result, returns_string=False, returns_list=True)
 
     @forbid_nonstring_types(["bytes"])
     def extract(

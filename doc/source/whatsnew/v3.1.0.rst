@@ -262,6 +262,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- :meth:`Index.str.split`, :meth:`Index.str.rsplit`, and :meth:`Index.str.findall` with ``expand=False`` now return an ``ndarray[object]`` instead of raising ``TypeError``; previously the per-row list elements could not be wrapped in an :class:`Index` (:issue:`20285`)
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 -
 
