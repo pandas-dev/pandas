@@ -1116,7 +1116,9 @@ def test_timestamp_constructor_np_str():
     assert result == expected
 
 
-@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+@pytest.mark.parametrize(
+    "na_value", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+)
 def test_timestamp_constructor_na_value(na_value):
     # GH45481
     result = Timestamp(na_value)

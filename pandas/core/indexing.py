@@ -413,14 +413,6 @@ class IndexingMixin:
                              max_speed  shield
         sidewinder          7       8
 
-        Index (same behavior as ``df.reindex``)
-
-        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-               max_speed  shield
-        foo
-        cobra          1       2
-        viper          4       5
-
         Conditional that returns a boolean Series
 
         >>> df.loc[df["shield"] > 6]
@@ -1399,14 +1391,6 @@ class _LocIndexer(_LocationIndexer):
     >>> df.loc[pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])]
                          max_speed  shield
     sidewinder          7       8
-
-    Index (same behavior as ``df.reindex``)
-
-    >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-           max_speed  shield
-    foo
-    cobra          1       2
-    viper          4       5
 
     Conditional that returns a boolean Series
 
@@ -2426,6 +2410,20 @@ class _iLocIndexer(_LocationIndexer):
                     take_split_path = True
                     break
 
+        # GH#44103 - setting a scalar row across columns with a list-like
+        # value must go through the split path so each column gets its
+        # corresponding scalar value.
+        if (
+            not take_split_path
+            and isinstance(indexer, tuple)
+            and len(indexer) == 2
+            and is_integer(indexer[0])
+            and not is_integer(indexer[1])
+            and is_list_like(value)
+            and not isinstance(value, (ABCSeries, ABCDataFrame))
+        ):
+            take_split_path = True
+
         return take_split_path
 
     def _setitem_new_column(self, indexer, key, value, name: str) -> None:
@@ -2871,8 +2869,12 @@ class _iLocIndexer(_LocationIndexer):
 
         elif self.ndim == 2:
             if not len(self.obj.columns):
-                # no columns and scalar
-                raise ValueError("cannot set a frame with no defined columns")
+                # GH#17895 no columns, just expand the index
+                new_index = self.obj.index.insert(len(self.obj.index), indexer)
+                self.obj._mgr = self.obj._constructor(
+                    index=new_index, columns=self.obj.columns
+                )._mgr
+                return
 
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
@@ -3221,33 +3223,36 @@ class _AtIndexer(_ScalarAccessIndexer):
         if self.ndim == 2:
             if not isinstance(key, tuple) or len(key) != 2:
                 return
-            check_key = key[0]
+            checks = [(key[0], self.obj.index), (key[1], self.obj.columns)]
         else:
             check_key = key
             if isinstance(key, tuple) and len(key) == 1:
                 check_key = key[0]
+            checks = [(check_key, self.obj.index)]
 
-        # Only check for scalar-like keys (including tuples for MultiIndex).
-        # Slices and list-likes are invalid for .at and will raise elsewhere.
-        if isinstance(check_key, slice) or is_list_like_indexer(check_key):
-            if not isinstance(check_key, tuple):
+        for check_key, axis in checks:
+            # Only check for scalar-like keys (including tuples for MultiIndex).
+            # Slices and list-likes are invalid for .at and will raise elsewhere.
+            if isinstance(check_key, slice) or is_list_like_indexer(check_key):
+                if not isinstance(check_key, tuple):
+                    continue
+
+            try:
+                is_expanding = check_key not in axis
+            except (TypeError, InvalidIndexError):
+                continue
+
+            if is_expanding:
+                obj_type = "DataFrame" if self.ndim == 2 else "Series"
+                warnings.warn(
+                    f"Setting a value on a {obj_type} via .at with a key "
+                    "that does not exist in the index is deprecated "
+                    "and will raise a KeyError in a future version. "
+                    "Use .loc instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
                 return
-
-        try:
-            is_expanding = check_key not in self.obj.index
-        except (TypeError, InvalidIndexError):
-            return
-
-        if is_expanding:
-            obj_type = "DataFrame" if self.ndim == 2 else "Series"
-            warnings.warn(
-                f"Setting a value on a {obj_type} via .at with a key "
-                "that does not exist in the index is deprecated "
-                "and will raise a KeyError in a future version. "
-                "Use .loc instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
 
     @property
     def _axes_are_unique(self) -> bool:
