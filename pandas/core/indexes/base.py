@@ -7083,6 +7083,16 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # Fill missing values to ensure consistent missing value representation
             target_index = target_index.fillna(np.nan)
+
+        if (
+            self.dtype == object
+            and target_index.dtype == object
+            and target_index._hasna
+        ):
+            # GH#65419: Ensure pd.NA is treated as NaN for object-dtype index
+            # for consistency with get_loc and list-input get_indexer.
+            target_index = target_index.fillna(np.nan)
+
         return target_index
 
     @final
