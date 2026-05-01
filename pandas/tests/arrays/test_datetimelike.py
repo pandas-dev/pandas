@@ -455,9 +455,6 @@ class SharedTests:
     )
     def test_setitem_object_dtype(self, box, arr1d):
         expected = arr1d.copy()[::-1]
-        if expected.dtype.kind in ["m", "M"]:
-            # __setitem__ no longer clears freq on the target array
-            expected._freq = arr1d._freq
 
         vals = expected
         if box is list:
@@ -496,9 +493,6 @@ class SharedTests:
     @pytest.mark.parametrize("as_index", [True, False])
     def test_setitem_categorical(self, arr1d, as_index):
         expected = arr1d.copy()[::-1]
-        if not isinstance(expected, PeriodArray):
-            # __setitem__ no longer clears freq on the target array
-            expected._freq = arr1d._freq
 
         cat = pd.Categorical(arr1d)
         if as_index:
@@ -552,16 +546,10 @@ class SharedTests:
 
         expected = arr + pd.Timedelta(days=1)
         arr += pd.Timedelta(days=1)
-        # Array __iadd__ no longer manages freq; arr keeps pre-iadd freq
-        # while `arr + x` returns a freq-stripped array.
-        if hasattr(arr, "_freq"):
-            expected._freq = arr._freq
         tm.assert_equal(arr, expected)
 
         expected = arr - pd.Timedelta(days=1)
         arr -= pd.Timedelta(days=1)
-        if hasattr(arr, "_freq"):
-            expected._freq = arr._freq
         tm.assert_equal(arr, expected)
 
     def test_shift_fill_int_deprecated(self, arr1d):
@@ -584,9 +572,6 @@ class SharedTests:
         arr[len(arr) // 2] = NaT
         if not isinstance(expected, Period):
             expected = arr[len(arr) // 2 - 1 : len(arr) // 2 + 2].mean()
-            # setitem no longer clears freq; result of median has freq=None
-            if hasattr(arr, "_freq"):
-                arr._freq = None
 
         assert arr.median(skipna=False) is NaT
 
@@ -664,7 +649,6 @@ class TestDatetimeArray(SharedTests):
         dta = dti._data
         result = dta.round(freq="2min")
         expected = expected._data.view()
-        expected._freq = None
         tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
@@ -818,7 +802,6 @@ class TestDatetimeArray(SharedTests):
         # in this case _bool_ops is just `is_leap_year`
         dti = self.index_cls(arr1d)
         arr = arr1d
-        assert dti.freq == arr.freq
 
         result = getattr(arr, propname)
         expected = np.array(getattr(dti, propname), dtype=result.dtype)
@@ -1112,7 +1095,9 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        expected = DatetimeIndex(pi.to_timestamp(how=how))._data
+        # Array-level to_timestamp returns a freq-less DTA; freq computation
+        # lives on the wrapping PeriodIndex.
+        expected = pi.to_timestamp(how=how)._data
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArray)
 
@@ -1120,22 +1105,21 @@ class TestPeriodArray(SharedTests):
 
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"
-        dta = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")._data
-        parr = dta.to_period("B")
-        result = parr.to_timestamp()
+        dti = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")
+        pi = dti.to_period("B")
+        result = pi.to_timestamp()
         assert result.freq == "B"
-        tm.assert_extension_array_equal(result, dta.as_unit("us"))
+        tm.assert_index_equal(result, dti.as_unit("us"))
 
-        dta2 = dta[::2]
-        parr2 = dta2.to_period("2B")
-        result2 = parr2.to_timestamp()
+        pi2 = dti[::2].to_period("2B")
+        result2 = pi2.to_timestamp()
         assert result2.freq == "2B"
-        tm.assert_extension_array_equal(result2, dta2.as_unit("us"))
+        tm.assert_index_equal(result2, dti[::2].as_unit("us"))
 
-        parr3 = dta.to_period("2B")
-        result3 = parr3.to_timestamp()
+        pi3 = dti.to_period("2B")
+        result3 = pi3.to_timestamp()
         assert result3.freq == "B"
-        tm.assert_extension_array_equal(result3, dta.as_unit("us"))
+        tm.assert_index_equal(result3, dti.as_unit("us"))
 
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643 previously overflowed silently
@@ -1240,10 +1224,6 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     for nat in casting_nats:
         arr = arr.copy()
         arr[0] = nat
-        if hasattr(arr, "_freq"):
-            # setitem no longer clears freq on the array; values are no longer
-            # on freq after introducing NaT, so match expected.
-            arr._freq = None
         tm.assert_equal(arr, expected)
 
 
