@@ -631,9 +631,6 @@ class TestTimedelta64ArithmeticUnsorted:
 
         orig_rng = rng
         rng += two_hours
-        if box_with_array is pd.array:
-            # Array __iadd__ no longer manages freq; rng retains pre-iadd freq.
-            expected._freq = rng._freq
         tm.assert_equal(rng, expected)
         if box_with_array is not Index:
             # Check that operation is actually inplace
@@ -660,9 +657,6 @@ class TestTimedelta64ArithmeticUnsorted:
 
         orig_rng = rng
         rng -= two_hours
-        if box_with_array is pd.array:
-            # See test_tdi_iadd_timedeltalike.
-            expected._freq = rng._freq
         tm.assert_equal(rng, expected)
         if box_with_array is not Index:
             # Check that operation is actually inplace

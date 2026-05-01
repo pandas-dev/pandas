@@ -1270,7 +1270,6 @@ cdef void rank_sorted_1d(
     # array that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
-    # TODO(cython3): de-duplicate once cython supports conditional nogil
     with gil(numeric_object_t is object):
         for i in range(N):
             at_end = i == N - 1

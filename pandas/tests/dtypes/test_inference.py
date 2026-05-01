@@ -1367,12 +1367,12 @@ class TestTypeInference:
     def test_infer_dtype_datetime(self, arr):
         assert lib.infer_dtype(np.array(arr), skipna=True) == "datetime"
 
-    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
+    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan, pd.NA])
     @pytest.mark.parametrize(
         "time_stamp", [Timestamp("2011-01-01"), datetime(2011, 1, 1)]
     )
     def test_infer_dtype_datetime_with_na(self, na_value, time_stamp):
-        # starts with nan
+        # GH#53023: pd.NA should be treated as a generic null
         arr = np.array([na_value, time_stamp])
         assert lib.infer_dtype(arr, skipna=True) == "datetime"
 
@@ -1390,12 +1390,12 @@ class TestTypeInference:
     def test_infer_dtype_timedelta(self, arr):
         assert lib.infer_dtype(arr, skipna=True) == "timedelta"
 
-    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
+    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan, pd.NA])
     @pytest.mark.parametrize(
         "delta", [Timedelta("1 days"), np.timedelta64(1, "D"), timedelta(1)]
     )
     def test_infer_dtype_timedelta_with_na(self, na_value, delta):
-        # starts with nan
+        # GH#53023: pd.NA should be treated as a generic null
         arr = np.array([na_value, delta])
         assert lib.infer_dtype(arr, skipna=True) == "timedelta"
 

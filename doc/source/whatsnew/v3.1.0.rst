@@ -93,6 +93,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
+- Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
 -
 
 .. ---------------------------------------------------------------------------
@@ -146,11 +147,13 @@ Performance improvements
 - Performance improvement in :func:`merge` for many-to-one joins with unique right keys (:issue:`38418`)
 - Performance improvement in :func:`merge` with ``how="cross"`` (:issue:`38082`)
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
+- Performance improvement in :func:`merge` with ``how="left"`` and ``sort=False`` when joining on a right index with unique keys (:issue:`65160`)
 - Performance improvement in :func:`merge` with ``sort=False`` for single-key ``how="left"``/``how="right"`` joins when the opposite join key is sorted, unique, and range-like (:issue:`64146`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_html` and the Python CSV parser when ``thousands`` is set, fixing catastrophic regex backtracking on cells with many comma-separated digit groups followed by non-numeric text (:issue:`52619`)
 - Performance improvement in :func:`read_sas` by reading page header fields directly in Cython instead of falling back to Python (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for SAS7BDAT files by pre-computing date/datetime column classification once during metadata parsing instead of per chunk (:issue:`47339`)
+- Performance improvement in :func:`read_sas` for SAS7BDAT files with full-precision (8-byte) numeric columns, with up to ~2x speedup on bulk reads (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for compressed SAS7BDAT files by reusing the decompression buffer instead of allocating per row (:issue:`47339`)
 - Performance improvement in :func:`read_sas` when decoding strings (:issue:`47339`)
 - Performance improvement in :func:`util.hash_pandas_object` for PyArrow-backed string and binary types by using PyArrow's ``dictionary_encode`` instead of converting to NumPy for factorization (:issue:`48964`)
@@ -176,6 +179,7 @@ Performance improvements
 - Performance improvement in :meth:`Index.join` and :meth:`Index.union` for :class:`RangeIndex` by avoiding unnecessary memory allocation in the libjoin fastpath (:issue:`54646`)
 - Performance improvement in :meth:`IntervalIndex.get_indexer` for monotonic non-overlapping indexes, which now uses binary search instead of the interval tree (:issue:`47614`)
 - Performance improvement in :meth:`NDFrame.__finalize__`, :meth:`Series.to_numpy`, :attr:`DataFrame.dtypes`, and :meth:`DataFrame.__getitem__` (:issue:`57431`)
+- Performance improvement in :meth:`Timedelta.total_seconds` (:issue:`65388`)
 - Performance improvement in :meth:`arrays.SparseArray.isna` by avoiding a dense-then-resparsify round-trip (:issue:`41023`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
 - Performance improvement in indexing a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`Interval` categories (:issue:`61928`)
@@ -213,6 +217,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` raising ``AttributeError`` when comparing against Arrow date types (date32, date64) (:issue:`62051`)
 - Bug in :class:`Timestamp` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Timestamp` constructor, :class:`Timedelta` constructor, :func:`to_datetime`, and :func:`to_timedelta` with non-round ``float`` input and ``unit`` failing to raise when the value is just outside the representable bounds (:issue:`57366`)
+- Bug in :func:`api.types.infer_dtype` returning ``"date"`` or ``"mixed"`` instead of ``"datetime"`` / ``"timedelta"`` for lists of :class:`Timestamp`/:class:`Timedelta` values mixed with ``pd.NA`` (:issue:`53023`)
 - Bug in :func:`date_range` where ``inclusive="left"`` and ``inclusive="right"`` returned a single-element result instead of empty when ``start`` equals ``end`` (:issue:`55293`)
 - Bug in :func:`date_range` where ``inclusive`` parameter failed to filter endpoints when only ``start`` and ``periods`` or ``end`` and ``periods`` were specified (:issue:`46331`)
 - Bug in :func:`date_range` where ``periods=1`` with offsets that disallow ``n=0`` (e.g. :class:`offsets.LastWeekOfMonth`, :class:`offsets.FY5253`) raised ``ValueError`` (:issue:`41563`)
@@ -279,6 +284,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row with a list-like value on a single-column :class:`DataFrame` with :class:`ExtensionArray` dtype (:issue:`44103`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` returning wrong results instead of raising ``KeyError`` when passing string keys for numeric index levels (:issue:`60104`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` where incorrect values were produced when ``other`` was a :class:`Series` with :class:`ExtensionArray` values (:issue:`64635`)
+- Bug in :meth:`DataFrame.rename` and :meth:`Series.rename` not preserving nullable extension dtype (e.g. ``Int64``, ``Float64``) when relabeling index or column labels (:issue:`65315`)
 - Bug in :meth:`DataFrame.where` and :meth:`DataFrame.mask` raising ``TypeError`` when ``cond`` is a :class:`Series` and ``axis=1`` (:issue:`58190`)
 - Bug in :meth:`DataFrame.xs` where ``drop_level=False`` was ignored for fully specified :class:`MultiIndex` keys when ``level`` was not explicitly provided (:issue:`6507`)
 - Bug in :meth:`Index.get_level_values` mishandling boolean, NA-like (``np.nan``, ``pd.NA``, ``pd.NaT``) and integer index names (:issue:`62169`)
@@ -352,6 +358,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 -
 -

@@ -259,8 +259,8 @@ Attribute "inferred_type" are different
 \\[left\\]:  mixed
 \\[right\\]: datetime"""
 
-    idx1 = Index([NA, np.datetime64("nat", "ns")])
-    idx2 = Index([NA, NaT])
+    idx1 = Index([NA, np.datetime64("nat", "ns")], dtype=object)
+    idx2 = Index([NA, NaT], dtype=object)
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2)
 
