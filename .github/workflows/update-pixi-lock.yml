@@ -32,7 +32,9 @@ jobs:
 
     - name: Generate lock files
       id: check-lock-file
-      run: pixi update
+      run: |
+        set -o pipefail
+        pixi update --json | pixi exec pixi-diff-to-markdown >> diff.md
 
     # There should be an update since pixi.toml references nightly packages
     # or use https://github.com/prefix-dev/pixi/issues/5813
@@ -43,8 +45,10 @@ jobs:
         # author same as default committer for this action
         author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
         branch: "ci/update-pixi-lock"
+        add-paths: pixi.lock
         delete-branch: true
         title: "CI: Update pixi.lock"
+        body-path: diff.md
         body: |
           Scheduled update by `.github/workflows/update-pixi-lock.yml`
 
