@@ -15,7 +15,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_uuid_keeps_dtype_verify() -> None:
-    #GH#63511: Verify that Arrow-backed UUIDs maintain their type during construction.
+    # GH#63511: Verify that Arrow-backed UUIDs maintain their type during construction.
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
@@ -33,7 +33,7 @@ def test_uuid_keeps_dtype_verify() -> None:
 
 
 def test_uuid_isna() -> None:
-    #GH#63511: Verify that Arrow-back UUIDs array handles NULL values.
+    # GH#63511: Verify that Arrow-back UUIDs array handles NULL values.
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
@@ -44,7 +44,7 @@ def test_uuid_isna() -> None:
 
 
 def test_uuid_comparison_eq() -> None:
-    #GH#63511: Verify that Arrow-back UUIDs array handles comparisons correctly. 
+    # GH#63511: Verify that Arrow-back UUIDs array handles comparisons correctly.
     u1 = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     u2 = uuid.UUID("550e8400-e29b-41d4-a716-446655440001")
     u3 = uuid.UUID("550e8400-e29b-41d4-a716-446655440002")
@@ -70,7 +70,7 @@ def test_uuid_comparison_eq() -> None:
 
 
 def test_uuid_getitem_scalar() -> None:
-    #GH#63511: Verify that iloc[i] works correctly with an Arrow-back UUID array.
+    # GH#63511: Verify that iloc[i] works correctly with an Arrow-back UUID array.
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     arr = pa.array([u.bytes, None], type=pa.uuid())
     s = pd.Series(arr)
@@ -84,7 +84,7 @@ def test_uuid_getitem_scalar() -> None:
 
 
 def test_uuid_contains_behavior() -> None:
-    #GH#63511: Verify that "x in s" checks index, "x in s.array" checks value
+    # GH#63511: Verify that "x in s" checks index, "x in s.array" checks value.
     u = uuid.uuid4()
     arr = pa.array([u.bytes], type=pa.uuid())
     s = pd.Series(arr)
@@ -98,7 +98,8 @@ def test_uuid_contains_behavior() -> None:
 
 
 def test_series_from_pyarrow_uuid_chunkedarray() -> None:
-    #GH#63511: Verify that chunked arrays correctly implement comparison and null values
+    # GH#63511: Verify that chunked arrays correctly
+    # implement comparison and null values
     u = uuid.UUID("550e8400-e29b-41d4-a716-446655440000")
     chunk1 = pa.array([u.bytes], type=pa.uuid())
     chunk2 = pa.array([None], type=pa.uuid())
