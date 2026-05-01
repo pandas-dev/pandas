@@ -256,7 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # GH#46768 - deprecated but still need to be accessible via .dt accessor
     _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "freq", "tz"]
+        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -282,7 +282,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Constructors
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
-    _freq: BaseOffset | None = None
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -315,9 +314,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             #  then values.dtype should be M8[us].
             assert dtype._creso == get_unit_from_dtype(values.dtype)
 
-        result = super()._simple_new(values, dtype)
-        result._freq = None
-        return result
+        return super()._simple_new(values, dtype)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
