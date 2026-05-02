@@ -10,7 +10,7 @@ project(
     default_options: [
         'buildtype=release',
         'c_std=c17',
-        'cpp_std=c++17',
+        'cpp_std=c++20',
         'warning_level=2',
     ],
 )
