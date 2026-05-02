@@ -130,6 +130,7 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -14523,7 +14524,11 @@ class DataFrame(NDFrame, OpsMixin):
                     # concat object + anything stays object; post-cast is a
                     # no-op, so pre-casting would only add overhead.
                     continue
-                arr = self.iloc[:, i].array
+                arr = self._get_column_array(i)
+                if isinstance(arr, np.ndarray):
+                    # infer_and_maybe_downcast expects an EA as its first
+                    # argument so it can dispatch to _cast_pointwise_result.
+                    arr = NumpyExtensionArray(arr)
                 casted = infer_and_maybe_downcast(arr, row_df._mgr.iget_values(i))
                 row_df.isetitem(i, casted)
 
