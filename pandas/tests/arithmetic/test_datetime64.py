@@ -797,11 +797,6 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, expected)
 
         rng += two_hours
-        if box_with_array is pd.array:
-            # Array-level __iadd__ no longer manages freq (Index manages freq);
-            # rng retains its pre-iadd freq even though `rng + x` would return
-            # a freq=None array.
-            expected._freq = rng._freq
         tm.assert_equal(rng, expected)
 
     def test_dt64arr_sub_timedeltalike_scalar(
@@ -821,9 +816,6 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, expected)
 
         rng -= two_hours
-        if box_with_array is pd.array:
-            # See test_dt64arr_add_timedeltalike_scalar.
-            expected._freq = rng._freq
         tm.assert_equal(rng, expected)
 
     def test_dt64_array_sub_dt_with_different_timezone(self, box_with_array):
@@ -1974,7 +1966,6 @@ class TestTimestampSeriesArithmetic:
         td1 = Series(pd.timedelta_range("1 days 1 min", periods=5, freq="h"))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
-        assert td2._values.freq is None
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
