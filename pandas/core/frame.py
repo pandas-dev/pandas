@@ -6376,7 +6376,7 @@ class DataFrame(NDFrame, OpsMixin):
         if inplace is not lib.no_default:
             # GH#63207
             warnings.warn(
-                "The 'inplace' keyword in DataFrame.rename is "
+                "The inplace keyword in DataFrame.rename is "
                 "deprecated and will be removed in future versions. "
                 "See `PDEP-8 for more details.",
                 Pandas4Warning,
