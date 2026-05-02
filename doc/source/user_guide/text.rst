@@ -908,10 +908,10 @@ Example:
    s_pyarrow = pd.Series(['ß'], dtype=pd.StringDtype(storage='pyarrow'))
    s_python.str.upper()
    # 0    SS
-   # dtype: string
+   # dtype: string[python]
    s_pyarrow.str.upper()
    # 0    ẞ
-   # dtype: string
+   # dtype: string[pyarrow]
 
 See `Apache Arrow #34599 <https://github.com/apache/arrow/issues/34599>`_
 for discussion on Unicode standard compliance.
