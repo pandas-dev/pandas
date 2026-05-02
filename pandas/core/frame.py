@@ -5562,9 +5562,7 @@ class DataFrame(NDFrame, OpsMixin):
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
             If the values are not callable, (e.g. a Series, scalar, or array),
-            they are simply assigned. Note that when a :class:`Series` is
-            passed, values are aligned by index label, not by position.
-            See the Notes section for more details.
+            they are simply assigned.
 
         Returns
         -------
@@ -5582,15 +5580,9 @@ class DataFrame(NDFrame, OpsMixin):
         Assigning multiple columns within the same ``assign`` is possible.
         Later items in '\*\*kwargs' may refer to newly created or modified
         columns in 'df'; items are computed and assigned into 'df' in order.
-
-        When a :class:`Series` is passed as a value, it is aligned to the
-        DataFrame's index by label, not by position. Labels present in the
-        DataFrame but missing in the Series will result in ``NaN`` values.
-        Labels present in the Series but not in the DataFrame are ignored.
-
-        When a list, :class:`numpy.ndarray`, or scalar is passed,
-        values are assigned positionally and the length must match the
-        number of rows in the DataFrame.
+        Non-callable values (Series, arrays, scalars) follows the same
+        alignment and broadcasting rules as :meth:`DataFrame.__setitem__`. See
+        that method's documentation for details.
 
         Examples
         --------
@@ -5632,25 +5624,6 @@ class DataFrame(NDFrame, OpsMixin):
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
-
-        When a Series is passed, values are aligned by index label, not by
-        position. Missing labels result in ``NaN``:
-
-        >>> df2 = pd.DataFrame({"x": [10, 20, 30]}, index=["a", "b", "c"])
-        >>> s = pd.Series([100, 200, 400], index=["b", "a", "d"])
-        >>> df2.assign(y=s)
-           x      y
-        a  10  200.0
-        b  20  100.0
-        c  30    NaN
-
-        In contrast, a list or ndarray is assigned positionally:
-
-        >>> df2.assign(y=[100, 200, 400])
-            x    y
-        a  10  100
-        b  20  200
-        c  30  400
         """
         data = self.copy(deep=False)
 
