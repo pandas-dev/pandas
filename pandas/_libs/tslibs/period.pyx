@@ -1617,7 +1617,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
-    # TODO: Change type to const object[:] when Cython supports that.
+    # TODO(cython#2485): once possible, use const object[:]
 
     cdef:
         Py_ssize_t i, n = len(values)
