@@ -181,6 +181,7 @@ pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
 
 [feature.typing.dependencies]
 pre-commit = ">=4.2.0"
+ipython = "*"
 mypy = "==1.17.1"
 scipy-stubs = "*"
 types-python-dateutil = "*"
