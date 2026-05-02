@@ -436,6 +436,17 @@ NaT   4"""
         result = repr(df)
         assert result == expected
 
+    def test_from_records_with_nested_structured_dtype_repr(self):
+        # GH#55011 structured ndarray (not np.rec.recarray) with a nested
+        # field-of-fields dtype
+        ar = np.array(
+            [((255, 0),), ((255, 1),), ((255, 2),)],
+            dtype=[("x", [("null", "u1"), ("val", "<i8")])],
+        )
+        df = DataFrame.from_records(ar)
+        expected = "          x\n0  (255, 0)\n1  (255, 1)\n2  (255, 2)"
+        assert repr(df) == expected
+
     def test_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(
