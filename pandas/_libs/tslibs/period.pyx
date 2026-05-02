@@ -33,7 +33,6 @@ from libc.stdlib cimport (
 )
 from libc.string cimport (
     memset,
-    strchr,
     strlen,
 )
 from libc.time cimport (
@@ -1274,21 +1273,18 @@ cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
 # CPython's allowlist for time.strftime on Windows. Pandas-specific
 # directives (q, f, F, l, u, n) are pre-extracted before validation, so they
 # are intentionally absent here.
-cdef const char* _VALID_STRFTIME_DIRECTIVES = b"aAbBcdHIjmMpSUwWxXyYzZ%"
+cdef frozenset _VALID_STRFTIME_DIRECTIVES = frozenset(b"aAbBcdHIjmMpSUwWxXyYzZ%")
 
 
 cdef _validate_strftime_format(bytes fmt):
     # Reject unknown %X directives so that C strftime is never asked to
     # handle them. Without this, MSVCRT crashes the process on Windows when
     # given a directive like %Q (GH#53562).
-    cdef:
-        const char* cfmt = fmt
-        const char* pct = strchr(cfmt, b"%"[0])
-
-    while pct is not NULL:
-        if pct[1] == 0 or strchr(_VALID_STRFTIME_DIRECTIVES, pct[1]) is NULL:
+    cdef Py_ssize_t idx = fmt.find(b"%")
+    while idx != -1:
+        if idx + 1 >= len(fmt) or fmt[idx + 1] not in _VALID_STRFTIME_DIRECTIVES:
             raise ValueError("Invalid format string")
-        pct = strchr(pct + 2, b"%"[0])
+        idx = fmt.find(b"%", idx + 2)
 
 
 cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct dts):
