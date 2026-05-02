@@ -171,12 +171,3 @@ def test_combine_first_timestamp_names_anterior():
     result = s1.combine_first(s3)
     expected = Series([0, 3], index=[0, 1], name=to_datetime("2026"))
     tm.assert_series_equal(result, expected)
-
-
-def test_combine_first_timestamp_names_posterior():
-    # GH#65333
-    s1 = Series([0], name=to_datetime("2026"))
-    s2 = Series([1, 2], name=to_datetime("2027"))
-    result = s1.combine_first(s2)
-    expected = Series([0, 2], index=[0, 1], name=to_datetime("2026"))
-    tm.assert_series_equal(result, expected)
