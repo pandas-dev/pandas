@@ -1591,7 +1591,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227
+        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
         ordinal = item
     else:
         try:
@@ -1617,7 +1617,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
-    # TODO: Change type to const object[:] when Cython supports that.
+    # TODO(cython#2485): once possible, use const object[:]
 
     cdef:
         Py_ssize_t i, n = len(values)

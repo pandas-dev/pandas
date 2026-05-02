@@ -68,7 +68,7 @@ class TestSearchsorted:
             pidx.searchsorted(other.astype("timedelta64[ns]"))
 
         with pytest.raises(TypeError, match=msg):
-            pidx.searchsorted(np.timedelta64(4))
+            pidx.searchsorted(np.timedelta64(4, "ns"))
 
         with pytest.raises(TypeError, match=msg):
             pidx.searchsorted(np.timedelta64("NaT", "ms"))

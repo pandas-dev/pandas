@@ -819,7 +819,7 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[5], 'E'] = 7
+   df.at[dates[5], 'A'] = 7
    df.iat[3, 0] = 7
 
 ``at`` previously could enlarge the object in-place if the indexer was missing,
@@ -1781,6 +1781,9 @@ Key Points:
 * Position/order in the Series doesn't matter
 * Missing index labels result in NaN values
 * This behavior is consistent across df[col] = series and df.loc[:, col] = series
+
+You can think of this as reindexing the Series to the DataFrame index before
+assignment (for example, ``df[col] = series.reindex(df.index)``).
 
 Examples:
 .. ipython:: python

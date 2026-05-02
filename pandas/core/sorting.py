@@ -90,6 +90,14 @@ def get_indexer_indexer(
     target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
     target = target._sort_levels_monotonic()
 
+    if (np.all(ascending) and target.is_monotonic_increasing) or (
+        not np.any(ascending) and target.is_monotonic_decreasing
+    ):
+        # GH#11080, GH#64883: on a non-MultiIndex, `level` is a no-op,
+        # so short-circuit even when level is specified.
+        if level is None or not isinstance(target, ABCMultiIndex):
+            return None
+
     if level is not None:
         _, indexer = target.sortlevel(
             level,  # type: ignore[arg-type]
@@ -97,11 +105,6 @@ def get_indexer_indexer(
             sort_remaining=sort_remaining,
             na_position=na_position,
         )
-    elif (np.all(ascending) and target.is_monotonic_increasing) or (
-        not np.any(ascending) and target.is_monotonic_decreasing
-    ):
-        # Check monotonic-ness before sort an index (GH 11080)
-        return None
     elif isinstance(target, ABCMultiIndex):
         codes = [lev.codes for lev in target._get_codes_for_sorting()]
         indexer = lexsort_indexer(
@@ -351,6 +354,30 @@ def lexsort_indexer(
             codes = cast("np.ndarray", k)
             n = codes.max() + 1 if len(codes) else 0
         else:
+            # Fast path for numeric numpy arrays: skip Categorical
+            # conversion and pass values directly to np.lexsort.
+            arr = extract_array(k, extract_numpy=True)
+            if isinstance(arr, np.ndarray) and arr.dtype.kind in "fiub":
+                if arr.dtype.kind == "f":
+                    # For float dtypes, np.lexsort sorts NaN to the end.
+                    mask = np.isnan(arr)
+                    has_na = mask.any()
+                    if not order:
+                        # Descending: negate values. NaN stays NaN
+                        # and still sorts last.
+                        arr = -arr
+                        if na_position == "first" and has_na:
+                            arr[mask] = -np.inf
+                    elif na_position == "first" and has_na:
+                        arr = arr.copy()
+                        arr[mask] = -np.inf
+                elif not order:
+                    # int/uint/bool: no NaN possible, use bitwise NOT
+                    # for descending to avoid overflow with negation.
+                    arr = ~arr
+                labels.append(arr)
+                continue
+
             cat = Categorical(k, ordered=True)
             codes = cat.codes
             n = len(cat.categories)

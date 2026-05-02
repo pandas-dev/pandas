@@ -3,6 +3,7 @@ Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
 
+import csv
 from datetime import datetime
 from inspect import signature
 from io import StringIO
@@ -106,6 +107,22 @@ def test_1000_sep(all_parsers, number_csv, expected_number, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), sep="|", thousands=",")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("value", ["1 ,", ", 1", ",1"])
+def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
+    parser = all_parsers
+    data = f"a\n{value}\n"
+    expected = DataFrame({"a": [value]})
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=";", thousands=",")
+        return
+
+    result = parser.read_csv(StringIO(data), sep=";", thousands=",")
     tm.assert_frame_equal(result, expected)
 
 
@@ -368,6 +385,40 @@ def test_escapechar(all_parsers):
     assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals series'
 
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
+
+
+@skip_pyarrow
+def test_escapechar_quoting_round_trip(all_parsers):
+    # GH#25501 - round-trip with escapechar before quotechar
+    parser = all_parsers
+    escape = "\\"
+    quote = '"'
+    sep = "|"
+
+    sample_data = [i * escape + quote for i in range(1, 11)]
+    initial_df = DataFrame(sample_data, columns=["column"])
+
+    csv_text = initial_df.to_csv(
+        sep=sep,
+        columns=None,
+        header=None,
+        index=False,
+        doublequote=False,
+        quoting=csv.QUOTE_ALL,
+        quotechar=quote,
+        escapechar=escape,
+    )
+
+    result = parser.read_csv(
+        StringIO(csv_text),
+        sep=sep,
+        escapechar=escape,
+        quoting=csv.QUOTE_ALL,
+        header=None,
+        doublequote=False,
+    )
+    expected = DataFrame(sample_data)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_ignore_leading_whitespace(all_parsers):

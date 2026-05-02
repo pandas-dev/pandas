@@ -183,6 +183,37 @@ class TestIndex:
         result = Index(data, dtype="float")
         tm.assert_index_equal(result, expected)
 
+    def test_index_replace_scalar(self):
+        idx = Index([1, 2, 3])
+
+        result = idx.replace(2, 9)
+
+        expected = Index([1, 9, 3])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_dict(self):
+        idx = Index(["a", "b", "c"])
+
+        result = idx.replace({"b": "x"})
+
+        expected = Index(["a", "x", "c"])
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_preserves_name(self):
+        idx = Index([1, 2, 3], name="test")
+
+        result = idx.replace(2, 9)
+
+        assert result.name == "test"
+
+    def test_index_replace_regex(self):
+        idx = Index(["foo", "bar", "baz"])
+        result = idx.replace("^ba", "x", regex=True)
+        expected = Index(["foo", "xr", "xz"])
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "klass,dtype,na_val",
         [
@@ -1040,8 +1071,22 @@ class TestIndex:
     @pytest.mark.parametrize(
         "expand,expected",
         [
-            (None, Index([["a", "b", "c"], ["d", "e"], ["f"]])),
-            (False, Index([["a", "b", "c"], ["d", "e"], ["f"]])),
+            pytest.param(
+                None,
+                None,
+                marks=pytest.mark.xfail(
+                    reason="GH#20285 str.split on Index returns unhashable "
+                    "list elements"
+                ),
+            ),
+            pytest.param(
+                False,
+                None,
+                marks=pytest.mark.xfail(
+                    reason="GH#20285 str.split on Index returns unhashable "
+                    "list elements"
+                ),
+            ),
             (
                 True,
                 MultiIndex.from_tuples(
@@ -1111,20 +1156,23 @@ class TestIndex:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = index.take(np.array([1, 0, -1]), fill_value=True)
+        result = index.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = Index(["B", "A", np.nan], name="xxx")
         tm.assert_index_equal(result, expected)
 
+        # fill_value is respected (not discarded in favor of _na_value)
+        result = index.take(np.array([1, 0, -1]), fill_value="X")
+        expected = Index(["B", "A", "X"], name="xxx")
+        tm.assert_index_equal(result, expected)
+
         # allow_fill=False
-        result = index.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = index.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index(["B", "A", "C"], name="xxx")
         tm.assert_index_equal(result, expected)
 
     def test_take_fill_value_none_raises(self):
         index = Index(list("ABC"), name="xxx")
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
 
         with pytest.raises(ValueError, match=msg):
             index.take(np.array([1, 0, -2]), fill_value=True)
@@ -1372,9 +1420,8 @@ class TestIndex:
 
 
 class TestMixedIntIndex:
-    # Mostly the tests from common.py for which the results differ
-    # in py2 and py3 because ints and strings are uncomparable in py3
-    # (GH 13514)
+    # (GH 13514) tests for mixed int/str indexes where ints and strings
+    # are not comparable
     @pytest.fixture
     def simple_index(self) -> Index:
         return Index([0, "a", 1, "b", 2, "c"])
@@ -1692,6 +1739,16 @@ def test_validate_1d_input(dtype):
     df = DataFrame(arr.reshape(4, 2))
     with pytest.raises(ValueError, match=msg):
         Index(df, dtype=dtype)
+
+    # GH#20285 unhashable elements should be rejected
+    with pytest.raises(TypeError, match="unhashable type"):
+        Index([[1, 2], [3, 4]])
+
+    with pytest.raises(TypeError, match="unhashable type"):
+        Index([1, [2, 3]])
+
+    with pytest.raises(TypeError, match="unhashable type"):
+        Index([{"a": 1}])
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not allowed
     ser = Series(0, range(4))

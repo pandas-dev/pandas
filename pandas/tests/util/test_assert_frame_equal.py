@@ -70,17 +70,17 @@ def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
     [
         # Index
         (
-            DataFrame.from_records({"a": [1, 2], "c": ["l1", "l2"]}, index=["a"]),
-            DataFrame.from_records({"a": [1.0, 2.0], "c": ["l1", "l2"]}, index=["a"]),
+            DataFrame({"a": [1, 2], "c": ["l1", "l2"]}).set_index("a"),
+            DataFrame({"a": [1.0, 2.0], "c": ["l1", "l2"]}).set_index("a"),
             "DataFrame\\.index are different",
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
             "DataFrame\\.index level \\[0\\] are different",
         ),

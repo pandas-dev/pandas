@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -381,7 +381,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> Self:
         # NB: This is not _quite_ as simple as the "usual" _simple_new
         codes = coerce_indexer_dtype(codes, dtype.categories)
-        dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+        if dtype.ordered is None:
+            dtype = CategoricalDtype._from_fastpath(dtype.categories, ordered=False)
         return super()._simple_new(codes, dtype)
 
     def __init__(
@@ -509,7 +510,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        dtype = CategoricalDtype(ordered=False).update_dtype(dtype)
+        if dtype.ordered is None:
+            dtype = CategoricalDtype._from_fastpath(dtype.categories, ordered=False)
         arr = coerce_indexer_dtype(codes, dtype.categories)
         super().__init__(arr, dtype)
 
@@ -557,7 +559,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "ignore",
                 "Constructing a Categorical with a dtype and values containing",
             )
-            cat = type(self)._from_sequence(res, dtype=self.dtype)
+            try:
+                cat = type(self)._from_sequence(res, dtype=self.dtype)
+            except (TypeError, ValueError):
+                return res
         if (cat.isna() == isna(res)).all():
             # i.e. the conversion was non-lossy
             return cat
@@ -1962,11 +1967,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=NaT)._values
+            return self.categories.take(
+                self._codes, allow_fill=True, fill_value=NaT
+            )._values
         elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
             return (
                 self.categories.astype("object")
-                .take(self._codes, fill_value=np.nan)
+                .take(self._codes, allow_fill=True, fill_value=np.nan)
                 ._values
             )
         return np.array(self)
@@ -2286,8 +2293,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         max_categories = (
             10
-            if _global_config["display"]["max_categories"] == 0
-            else _global_config["display"]["max_categories"]
+            if config["display"]["max_categories"] == 0
+            else config["display"]["max_categories"]
         )
         from pandas.io.formats import format as fmt
 
@@ -2322,28 +2329,31 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = str(self.categories.dtype)
         levheader = f"Categories ({len(self.categories)}, {dtype}): "
         width, _ = get_terminal_size()
-        max_width = _global_config["display"]["width"] or width
+        max_width = config["display"]["width"] or width
         if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
-        levstring = ""
+        parts: list[str] = []
         start = True
         cur_col_len = len(levheader)  # header
         sep_len, sep = (3, " < ") if self.ordered else (2, ", ")
         linesep = f"{sep.rstrip()}\n"  # remove whitespace
         for val in category_strs:
             if max_width != 0 and cur_col_len + sep_len + len(val) > max_width:
-                levstring += linesep + (" " * (len(levheader) + 1))
+                parts.append(linesep + (" " * (len(levheader) + 1)))
                 cur_col_len = len(levheader) + 1  # header + a whitespace
             elif not start:
-                levstring += sep
-                cur_col_len += len(val)
-            levstring += val
+                parts.append(sep)
+                cur_col_len += sep_len
+            parts.append(val)
+            cur_col_len += len(val)
             start = False
+        levstring = "".join(parts)
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
-    def _get_values_repr(self) -> str:
+    def _get_formatted_values(self) -> list[str]:
+        """Return formatted string representations of values."""
         from pandas.io.formats import format as fmt
 
         assert len(self) > 0
@@ -2356,11 +2366,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             na_rep="NaN",
             quoting=QUOTE_NONNUMERIC,
         )
+        return [val.strip() for val in fmt_values]
 
-        fmt_values = [i.strip() for i in fmt_values]
-        joined = ", ".join(fmt_values)
-        result = "[" + joined + "]"
-        return result
+    @staticmethod
+    def _format_values_line(fmt_values: list[str], max_width: int) -> str:
+        """Format a list of values into a bracketed, width-respecting string."""
+        if max_width == 0:
+            return "[" + ", ".join(fmt_values) + "]"
+
+        parts = ["["]
+        cur_col_len = 1  # account for the opening bracket
+        start = True
+        for val in fmt_values:
+            if not start:
+                if cur_col_len + 2 + len(val) > max_width:
+                    parts.append(",\n ")
+                    cur_col_len = 1  # 1 space indent
+                else:
+                    parts.append(", ")
+                    cur_col_len += 2
+            parts.append(val)
+            cur_col_len += len(val)
+            start = False
+        parts.append("]")
+        return "".join(parts)
 
     def __repr__(self) -> str:
         """
@@ -2369,17 +2398,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         footer = self._get_repr_footer()
         length = len(self)
         max_len = 10
+
+        width, _ = get_terminal_size()
+        max_width = config["display"]["width"] or width
+        if console.in_ipython_frontend():
+            max_width = 0
+
         if length > max_len:
             # In long cases we do not display all entries, so we add Length
             #  information to the __repr__.
             num = max_len // 2
-            head = self[:num]._get_values_repr()
-            tail = self[-(max_len - num) :]._get_values_repr()
-            body = f"{head[:-1]}, ..., {tail[1:]}"
+            head_vals = self[:num]._get_formatted_values()
+            tail_vals = self[-(max_len - num) :]._get_formatted_values()
+            all_vals = [*head_vals, "...", *tail_vals]
+            body = self._format_values_line(all_vals, max_width)
             length_info = f"Length: {len(self)}"
             result = f"{body}\n{length_info}\n{footer}"
         elif length > 0:
-            body = self._get_values_repr()
+            fmt_values = self._get_formatted_values()
+            body = self._format_values_line(fmt_values, max_width)
             result = f"{body}\n{footer}"
         else:
             # In the empty case we use a comma instead of newline to get

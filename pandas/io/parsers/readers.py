@@ -42,7 +42,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
-    is_file_like,
     is_float,
     is_integer,
     is_list_like,
@@ -434,8 +433,9 @@ def read_csv(
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -1009,8 +1009,9 @@ def read_table(
 
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -1523,7 +1524,8 @@ def read_fwf(
     ----------
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a text ``read()`` function.The string could be a URL.
+        object implementing a text ``read()`` function that accepts an optional
+        size argument. The string could be a URL.
         Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
         ``file://localhost/path/to/table.csv``.
@@ -1620,9 +1622,43 @@ def read_fwf(
 
 class TextFileReader(abc.Iterator):
     """
+    Iterator over chunks of a delimited text file.
 
-    Passed dialect overrides any of the related parser options
+    Returned by :func:`read_csv`, :func:`read_table`, and :func:`read_fwf`
+    when ``iterator=True`` or ``chunksize`` is given. Not intended to be
+    constructed directly by users.
 
+    A ``TextFileReader`` can be iterated over to yield successive chunks as
+    :class:`DataFrame` objects, used as a context manager to ensure the
+    underlying file handle is closed, or queried explicitly via
+    :meth:`~TextFileReader.read` and :meth:`~TextFileReader.get_chunk`.
+
+    Passed ``dialect`` overrides any of the related parser options.
+
+    Parameters
+    ----------
+    f : str, path object, or file-like object
+        Source to read from. Accepts the same inputs as :func:`read_csv`.
+    engine : {'c', 'python', 'pyarrow', 'python-fwf'}, optional
+        Parser engine to use. If not specified, defaults to ``'python'``.
+    **kwds
+        Any keyword argument accepted by :func:`read_csv`, :func:`read_table`,
+        or :func:`read_fwf`.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a DataFrame.
+    read_table : Read general delimited file into a DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into a DataFrame.
+
+    Examples
+    --------
+    >>> with pd.read_csv("data.csv", chunksize=1000) as reader:  # doctest: +SKIP
+    ...     for chunk in reader:
+    ...         process(chunk)
+
+    >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+    ...     first = reader.get_chunk(5)
     """
 
     def __init__(
@@ -1673,6 +1709,22 @@ class TextFileReader(abc.Iterator):
         self._engine = self._make_engine(f, self.engine)
 
     def close(self) -> None:
+        """
+        Close the underlying file handle and parser engine.
+
+        Called automatically when the ``TextFileReader`` is used as a context
+        manager.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file into a DataFrame.
+        TextFileReader.get_chunk : Read the next chunk of rows.
+
+        Examples
+        --------
+        >>> reader = pd.read_csv("data.csv", chunksize=5)  # doctest: +SKIP
+        >>> reader.close()  # doctest: +SKIP
+        """
         if self.handles is not None:
             self.handles.close()
         self._engine.close()
@@ -1724,15 +1776,6 @@ class TextFileReader(abc.Iterator):
         return options
 
     def _check_file_or_buffer(self, f, engine: CSVEngine) -> None:
-        # see gh-16530
-        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
-            # The C engine doesn't need the file-like to have the "__iter__"
-            # attribute. However, the Python engine needs "__iter__(...)"
-            # when iterating through such an object, meaning it
-            # needs to have that attribute
-            raise ValueError(
-                "The 'python' engine cannot iterate through this file buffer."
-            )
         if hasattr(f, "encoding"):
             file_encoding = f.encoding
             orig_reader_enc = self.orig_options.get("encoding", None)
@@ -1949,6 +1992,36 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows: int | None = None) -> DataFrame:
+        """
+        Read rows from the file into a :class:`DataFrame`.
+
+        Advances the internal cursor by the number of rows returned, so
+        successive calls yield later rows of the file. Used with readers
+        created via :func:`read_csv` or :func:`read_table` with
+        ``iterator=True`` or ``chunksize`` set.
+
+        Parameters
+        ----------
+        nrows : int, optional
+            Number of rows to read. If ``None``, read until end of file.
+            Ignored when the underlying engine is ``"pyarrow"``, which always
+            reads the full file.
+
+        Returns
+        -------
+        DataFrame
+            The parsed rows.
+
+        See Also
+        --------
+        TextFileReader.get_chunk : Read the next chunk of rows.
+        read_csv : Read a comma-separated values (csv) file into a DataFrame.
+
+        Examples
+        --------
+        >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+        ...     df = reader.read()
+        """
         if self.engine == "pyarrow":
             try:
                 # error: "ParserBase" has no attribute "read"
@@ -2020,6 +2093,40 @@ class TextFileReader(abc.Iterator):
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
+        """
+        Read the next chunk of rows from the file.
+
+        Convenience wrapper around :meth:`TextFileReader.read` that defaults
+        ``size`` to the ``chunksize`` passed to :func:`read_csv` or
+        :func:`read_table`, and respects a configured ``nrows`` limit by
+        raising ``StopIteration`` once it has been reached.
+
+        Parameters
+        ----------
+        size : int, optional
+            Number of rows to read in this chunk. Defaults to the ``chunksize``
+            passed when the reader was created.
+
+        Returns
+        -------
+        DataFrame
+            The next chunk of parsed rows.
+
+        Raises
+        ------
+        StopIteration
+            If ``nrows`` was set and has already been reached.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file into a DataFrame.
+        read_csv : Read a comma-separated values (csv) file into a DataFrame.
+
+        Examples
+        --------
+        >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+        ...     first_five = reader.get_chunk(5)
+        """
         if size is None:
             size = self.chunksize
         if self.nrows is not None:
@@ -2268,11 +2375,11 @@ def _refine_defaults_read(
         kwds["engine_specified"] = False
 
     if on_bad_lines == "error":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_ERROR
     elif on_bad_lines == "warn":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_WARN
     elif on_bad_lines == "skip":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_SKIP
     elif callable(on_bad_lines):
         if engine not in ["python", "pyarrow"]:
             raise ValueError(

@@ -3114,8 +3114,6 @@ cdef class BusinessHour(BusinessMixin):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
-        # used for detecting edge condition
-        nanosecond = getattr(other, "nanosecond", 0)
         # reset timezone and nanosecond
         # other may be a Timestamp, thus not use replace
         other = datetime(
@@ -3192,11 +3190,7 @@ cdef class BusinessHour(BusinessMixin):
             while bhour_remain != timedelta(0):
                 # business hour left in this business time interval
                 bhour = self._next_opening_time(other) - other
-                if (
-                    bhour_remain > bhour
-                    or bhour_remain == bhour
-                    and nanosecond != 0
-                ):
+                if bhour_remain >= bhour:
                     # finish adjusting if possible
                     other += bhour_remain
                     bhour_remain = timedelta(0)
@@ -7149,10 +7143,6 @@ _dont_uppercase = {"min", "h", "bh", "cbh", "s", "ms", "us", "ns"}
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
-# TODO: still needed?
-# cache of previously seen offsets
-_offset_map = {}
-
 
 deprec_to_valid_alias = {
     "H": "h",
@@ -7271,23 +7261,18 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name not in _offset_map:
-        try:
-            split = name.split("-")
-            klass = prefix_mapping[split[0]]
-            # handles case where there's no suffix (and will TypeError if too
-            # many '-')
-            offset = klass._from_name(*split[1:])
-        except (ValueError, TypeError, KeyError) as err:
-            # bad prefix or suffix
-            raise_invalid_freq(
-                freq=name,
-                extra_message=f"Failed to parse with error message: {repr(err)}."
-            )
-        # cache
-        _offset_map[name] = offset
-
-    return _offset_map[name]
+    try:
+        split = name.split("-")
+        klass = prefix_mapping[split[0]]
+        # handles case where there's no suffix (and will TypeError if too
+        # many '-')
+        return klass._from_name(*split[1:])
+    except (ValueError, TypeError, KeyError) as err:
+        # bad prefix or suffix
+        raise_invalid_freq(
+            freq=name,
+            extra_message=f"Failed to parse with error message: {repr(err)}."
+        )
 
 
 cpdef to_offset(freq, bint is_period=False):

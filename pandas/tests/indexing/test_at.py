@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timezone,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -15,12 +16,70 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
 )
 import pandas._testing as tm
+
+
+def test_at_dateoffset_columns():
+    # GH#20948 - .at with DateOffset columns
+    offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+    df = DataFrame(index=[0, 1], columns=Index(offsets))
+
+    # read access
+    result = df.at[0, offsets[0]]
+    assert result is np.nan
+
+    # write access
+    df.at[0, offsets[0]] = 1
+    assert df.at[0, offsets[0]] == 1
+
+
+def test_at_multiindex_partial_date_string():
+    # GH#43395 - .at with partial date string on MultiIndex with DatetimeIndex level
+    timestamps = DatetimeIndex(
+        ["2021-08-01", "2021-08-01 12:00", "2021-08-02", "2021-08-02 12:00"]
+    )
+    index = MultiIndex.from_product(
+        [["A", "B"], timestamps], names=["ticker", "timestamp"]
+    )
+    df = DataFrame({"col": range(len(index))}, index=index)
+
+    # DataFrame.at with partial date string should not raise TypeError
+    result = df.at[("A", "2021-08-02"), "col"]
+    expected = np.array([2, 3], dtype=np.int64)
+    tm.assert_numpy_array_equal(result, expected)
+
+    # Series.at with partial date string
+    ser = df["col"]
+    result = ser.at[("A", "2021-08-02")]
+    expected = Series(
+        [2, 3],
+        index=MultiIndex.from_arrays(
+            [
+                ["A", "A"],
+                DatetimeIndex(
+                    ["2021-08-02", "2021-08-02 12:00"],
+                    dtype="datetime64[us]",
+                ),
+            ],
+            names=["ticker", "timestamp"],
+        ),
+        name="col",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_at_incompatible_type_decimal():
+    # GH#22740 - .at should not silently discard incompatible type
+    df = DataFrame({"A": [1, 2, 3]})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.at[0, "A"] = Decimal("1")
 
 
 def test_at_timezone():
@@ -135,6 +194,34 @@ class TestAtSetItemWithExpansion:
             ser.at[5] = 6
         expected = Series([1, 2, 6], index=[0, 1, 5])
         tm.assert_series_equal(ser, expected)
+
+    def test_at_setitem_expansion_deprecated_new_column(self):
+        # GH#48323 - new column (existing row) also expands
+        df = DataFrame({"a": [1, 2]})
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, "b"] = 99
+        assert "b" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_rows(self):
+        # GH#48323 - new column on a frame with MultiIndex rows
+        mi = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
+        df = DataFrame({"x": [1, 2, 3]}, index=mi)
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[("a", 1), "y"] = 99
+        assert "y" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_cols(self):
+        # GH#48323 - new tuple column on a frame with MultiIndex columns
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_tuples([("a", 1), ("a", 2)]),
+        )
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, ("b", 1)] = 99
+        assert ("b", 1) in df.columns
 
     def test_at_setitem_no_warning_existing_key(self):
         # GH#48323 - no warning for existing keys

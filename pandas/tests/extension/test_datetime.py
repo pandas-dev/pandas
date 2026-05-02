@@ -115,7 +115,8 @@ class TestDatetimeArray(base.ExtensionTests):
 
     def test_series_constructor(self, data):
         # Series construction drops any .freq attr
-        data = data._with_freq(None)
+        data = data.view()
+        data._freq = None
         super().test_series_constructor(data)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])

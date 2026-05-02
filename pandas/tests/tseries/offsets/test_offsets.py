@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
     _get_offset,
-    _offset_map,
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
@@ -625,9 +624,6 @@ class TestCommon:
 
 
 class TestDateOffset:
-    def setup_method(self):
-        _offset_map.clear()
-
     def test_repr(self):
         repr(DateOffset())
         repr(DateOffset(2))
@@ -837,21 +833,10 @@ def test_get_offset_legacy():
 
 
 class TestOffsetAliases:
-    def setup_method(self):
-        _offset_map.clear()
-
-    def test_alias_equality(self):
-        for k, v in _offset_map.items():
-            if v is None:
-                continue
-            assert k == v.copy()
-
     def test_rule_code(self):
         lst = ["ME", "MS", "BME", "BMS", "D", "B", "h", "min", "s", "ms", "us"]
         for k in lst:
             assert k == _get_offset(k).rule_code
-            # should be cached - this is kind of an internals test...
-            assert k in _offset_map
             assert k == (_get_offset(k) * 3).rule_code
 
         suffix_lst = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
@@ -942,7 +927,6 @@ class TestReprNames:
         days = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
         names += ["W-" + day for day in days]
         names += ["WOM-" + week + day for week in ("1", "2", "3", "4") for day in days]
-        _offset_map.clear()
         for name in names:
             offset = _get_offset(name)
             assert offset.freqstr == name

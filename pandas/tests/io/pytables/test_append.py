@@ -36,7 +36,7 @@ def test_append(temp_hdfstore):
     temp_hdfstore.append("df1", df[10:])
     tm.assert_frame_equal(temp_hdfstore["df1"], df)
 
-    temp_hdfstore.put("df2", df[:10], format="table")
+    temp_hdfstore.put("df2", df[:10], format="table", track_times=False)
     temp_hdfstore.append("df2", df[10:])
     tm.assert_frame_equal(temp_hdfstore["df2"], df)
 
@@ -355,14 +355,18 @@ def test_append_with_strings(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("ss2"), df["B"])
 
     # min_itemsize in index without appending (GH 10381)
-    temp_hdfstore.put("ss3", df, format="table", min_itemsize={"index": 6})
+    temp_hdfstore.put(
+        "ss3", df, format="table", min_itemsize={"index": 6}, track_times=False
+    )
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")
     temp_hdfstore.append("ss3", df2)
     tm.assert_frame_equal(temp_hdfstore.select("ss3"), concat([df, df2]))
 
     # same as above, with a Series
-    temp_hdfstore.put("ss4", df["B"], format="table", min_itemsize={"index": 6})
+    temp_hdfstore.put(
+        "ss4", df["B"], format="table", min_itemsize={"index": 6}, track_times=False
+    )
     temp_hdfstore.append("ss4", df2["B"])
     tm.assert_series_equal(temp_hdfstore.select("ss4"), concat([df["B"], df2["B"]]))
 
@@ -656,7 +660,7 @@ def test_append_misc_empty_frame(temp_hdfstore):
 
     # store
     df = DataFrame(columns=list("ABC"))
-    temp_hdfstore.put("df2", df)
+    temp_hdfstore.put("df2", df, track_times=False)
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
 
 
@@ -783,7 +787,7 @@ def test_append_with_timedelta(temp_hdfstore, unit):
     tm.assert_frame_equal(result, df.iloc[4:])
 
     # fixed
-    temp_hdfstore.put("df2", df)
+    temp_hdfstore.put("df2", df, track_times=False)
     result = temp_hdfstore.select("df2")
     tm.assert_frame_equal(result, df)
 
