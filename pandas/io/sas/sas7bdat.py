@@ -33,7 +33,7 @@ from pandas._libs.byteswap import (
 )
 from pandas._libs.sas import (
     Parser,
-    get_subheader_index,
+    collect_page_subheaders,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas.errors import EmptyDataError
@@ -206,7 +206,11 @@ class SAS7BDATReader(SASReader):
         self.column_formats: list[str | bytes] = []
         self.columns: list[_Column] = []
 
-        self._current_page_data_subheader_pointers: list[tuple[int, int]] = []
+        # Data subheader (offset, length) pairs found on the current page. The
+        # arrays are sized once page_length is known (see _get_properties).
+        self._data_subheader_offsets: np.ndarray = np.empty(0, dtype=np.int64)
+        self._data_subheader_lengths: np.ndarray = np.empty(0, dtype=np.int64)
+        self._data_subheader_count: int = 0
         self._cached_page = None
         self._column_data_lengths: list[int] = []
         self._column_data_offsets: list[int] = []
@@ -328,6 +332,13 @@ class SAS7BDATReader(SASReader):
             const.page_size_offset + align1, const.page_size_length
         )
 
+        # Preallocate the per-page data-subheader arrays. The maximum number of
+        # subheader pointers a page can hold is bounded by the page size divided
+        # by the pointer size; +1 keeps a defensive margin.
+        max_subheaders = self._page_length // self._subheader_pointer_length + 1
+        self._data_subheader_offsets = np.empty(max_subheaders, dtype=np.int64)
+        self._data_subheader_lengths = np.empty(max_subheaders, dtype=np.int64)
+
     def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
         if da.empty:
@@ -408,11 +419,7 @@ class SAS7BDATReader(SASReader):
             self._process_page_metadata()
         is_data_page = self._current_page_type == const.page_data_type
         is_mix_page = self._current_page_type == const.page_mix_type
-        return bool(
-            is_data_page
-            or is_mix_page
-            or self._current_page_data_subheader_pointers != []
-        )
+        return bool(is_data_page or is_mix_page or self._data_subheader_count > 0)
 
     def _read_page_header(self) -> None:
         bit_offset = self._page_bit_offset
@@ -428,47 +435,14 @@ class SAS7BDATReader(SASReader):
         )
 
     def _process_page_metadata(self) -> None:
-        bit_offset = self._page_bit_offset
-
-        for i in range(self._current_page_subheaders_count):
-            offset = const.subheader_pointers_offset + bit_offset
-            total_offset = offset + self._subheader_pointer_length * i
-
-            subheader_offset = self._read_uint(total_offset, self._int_length)
-            total_offset += self._int_length
-
-            subheader_length = self._read_uint(total_offset, self._int_length)
-            total_offset += self._int_length
-
-            subheader_compression = self._read_uint(total_offset, 1)
-            total_offset += 1
-
-            subheader_type = self._read_uint(total_offset, 1)
-
-            if (
-                subheader_length == 0
-                or subheader_compression == const.truncated_subheader_id
-            ):
-                continue
-
-            subheader_signature = self._read_bytes(subheader_offset, self._int_length)
-            subheader_index = get_subheader_index(subheader_signature)
-            subheader_processor = self._subheader_processors[subheader_index]
-
-            if subheader_processor is None:
-                f1 = subheader_compression in (const.compressed_subheader_id, 0)
-                f2 = subheader_type == const.compressed_subheader_type
-                if self.compression and f1 and f2:
-                    self._current_page_data_subheader_pointers.append(
-                        (subheader_offset, subheader_length)
-                    )
-                else:
-                    self.close()
-                    raise ValueError(
-                        f"Unknown subheader signature {subheader_signature}"
-                    )
-            else:
-                subheader_processor(subheader_offset, subheader_length)
+        # Walk the page's subheader pointers in Cython, collecting data
+        # subheaders into self._data_subheader_offsets/_lengths and dispatching
+        # any non-data subheaders back to self._subheader_processors.
+        try:
+            self._data_subheader_count = collect_page_subheaders(self)
+        except Exception:
+            self.close()
+            raise
 
     def _process_rowsize_subheader(self, offset: int, length: int) -> None:
         int_len = self._int_length
@@ -710,7 +684,7 @@ class SAS7BDATReader(SASReader):
 
     def _read_page_data(self):
         """Read the next page from the file. Returns True if EOF."""
-        self._current_page_data_subheader_pointers = []
+        self._data_subheader_count = 0
         self._cached_page = self._path_or_buf.read(self._page_length)
         if len(self._cached_page) <= 0:
             return True
