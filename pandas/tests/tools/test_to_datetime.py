@@ -2781,9 +2781,6 @@ class TestToDatetimeMisc:
         expected = klass(expected)
 
         result = to_datetime(obj, utc=True)
-        if klass is not DatetimeIndex:
-            # Array methods no longer set freq; freq is managed by Index
-            expected._freq = None
         tm.assert_equal(result, expected)
 
 

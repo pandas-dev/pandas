@@ -76,7 +76,9 @@ class OpenpyxlWriter(ExcelWriter):
                 raise
             self._handles.handle.seek(0)
         else:
-            # Create workbook object with default optimized_write=True.
+            # Create workbook object. Users can opt into write_only mode
+            # for better memory efficiency with
+            # engine_kwargs={"write_only": True} (GH#41681).
             try:
                 self._book = Workbook(**engine_kwargs)
             except TypeError:
@@ -478,6 +480,120 @@ class OpenpyxlWriter(ExcelWriter):
             wks = self.book.create_sheet()
             wks.title = sheet_name
 
+        if self.book.write_only:
+            self._write_cells_write_only(
+                cells,
+                wks,
+                startrow,
+                startcol,
+                freeze_panes,
+                autofilter_range,
+                _style_cache,
+            )
+        else:
+            self._write_cells_normal(
+                cells,
+                wks,
+                startrow,
+                startcol,
+                freeze_panes,
+                autofilter_range,
+                _style_cache,
+            )
+
+    def _write_cells_write_only(
+        self,
+        cells,
+        wks,
+        startrow: int,
+        startcol: int,
+        freeze_panes: tuple[int, int] | None,
+        autofilter_range: str | None,
+        _style_cache: dict[str, dict[str, Serialisable]],
+    ) -> None:
+        # Write-only mode: buffer cells by row then append for memory
+        # efficiency (GH#41681). Cells may arrive column-by-column rather
+        # than row-by-row, so we must buffer all cells before writing.
+        from openpyxl.cell.cell import Cell
+        from openpyxl.utils import get_column_letter
+
+        if validate_freeze_panes(freeze_panes):
+            freeze_panes = cast("tuple[int, int]", freeze_panes)
+            col_letter = get_column_letter(freeze_panes[1] + 1)
+            wks.freeze_panes = f"{col_letter}{freeze_panes[0] + 1}"
+
+        # Buffer all cells indexed by (row, col)
+        rows: dict[int, dict[int, Cell]] = {}
+        merge_ranges: list[str] = []
+        max_col = -1
+
+        for cell in cells:
+            row_idx = startrow + cell.row
+            col_idx = startcol + cell.col
+            if col_idx > max_col:
+                max_col = col_idx
+
+            xcell = Cell(wks, row=1, column=1)
+            xcell.value, fmt = self._value_with_fmt(cell.val)
+            if fmt:
+                xcell.number_format = fmt
+
+            style_kwargs: dict[str, Serialisable] | None = {}
+            if cell.style:
+                key = str(cell.style)
+                style_kwargs = _style_cache.get(key)
+                if style_kwargs is None:
+                    style_kwargs = self._convert_to_style_kwargs(cell.style)
+                    _style_cache[key] = style_kwargs
+
+            if style_kwargs:
+                for attr, value in style_kwargs.items():
+                    setattr(xcell, attr, value)
+
+            rows.setdefault(row_idx, {})[col_idx] = xcell
+
+            if cell.mergestart is not None and cell.mergeend is not None:
+                # Build cell range string like "A1:B2" for merged_cells.add()
+                # since WriteOnlyWorksheet does not have merge_cells()
+                start_col_letter = get_column_letter(startcol + cell.col + 1)
+                end_col_letter = get_column_letter(startcol + cell.mergeend + 1)
+                merge_range = (
+                    f"{start_col_letter}{startrow + cell.row + 1}:"
+                    f"{end_col_letter}{startrow + cell.mergestart + 1}"
+                )
+                merge_ranges.append(merge_range)
+
+        # Write rows in order, filling gaps with empty rows
+        if rows:
+            max_row = max(rows)
+            for row_idx in range(max_row + 1):
+                if row_idx not in rows:
+                    wks.append([])
+                    continue
+                row_data = rows[row_idx]
+                row_cells: list[Cell | None] = [None] * (max_col + 1)
+                for col_idx, xcell in row_data.items():
+                    row_cells[col_idx] = xcell
+                wks.append(row_cells)
+
+        # Apply merge ranges via merged_cells.add() (WriteOnlyWorksheet
+        # does not support the merge_cells() method)
+        for merge_range in merge_ranges:
+            wks.merged_cells.add(merge_range)
+
+        if autofilter_range:
+            wks.auto_filter.ref = autofilter_range
+
+    def _write_cells_normal(
+        self,
+        cells,
+        wks,
+        startrow: int,
+        startcol: int,
+        freeze_panes: tuple[int, int] | None,
+        autofilter_range: str | None,
+        _style_cache: dict[str, dict[str, Serialisable]],
+    ) -> None:
         if validate_freeze_panes(freeze_panes):
             freeze_panes = cast("tuple[int, int]", freeze_panes)
             wks.freeze_panes = wks.cell(
@@ -501,8 +617,8 @@ class OpenpyxlWriter(ExcelWriter):
                     _style_cache[key] = style_kwargs
 
             if style_kwargs:
-                for k, v in style_kwargs.items():
-                    setattr(xcell, k, v)
+                for attr, value in style_kwargs.items():
+                    setattr(xcell, attr, value)
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_cells(
@@ -527,8 +643,8 @@ class OpenpyxlWriter(ExcelWriter):
                                 # Ignore first cell. It is already handled.
                                 continue
                             xcell = wks.cell(column=col, row=row)
-                            for k, v in style_kwargs.items():
-                                setattr(xcell, k, v)
+                            for attr, value in style_kwargs.items():
+                                setattr(xcell, attr, value)
 
         if autofilter_range:
             wks.auto_filter.ref = autofilter_range

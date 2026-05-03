@@ -961,6 +961,10 @@ def linkcode_resolve(domain, info) -> str | None:
         except AttributeError:
             return None
 
+    if isinstance(obj, type):
+        if hasattr(obj, "_module_source"):
+            obj.__module__, obj._module_source = obj._module_source, obj.__module__
+
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
@@ -987,6 +991,9 @@ def linkcode_resolve(domain, info) -> str | None:
         linespec = ""
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
+
+    if isinstance(obj, type) and hasattr(obj, "_module_source"):
+        obj.__module__, obj._module_source = obj._module_source, obj.__module__
 
     if "+" in version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
