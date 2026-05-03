@@ -197,7 +197,7 @@ class TestDateRanges:
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
-        # GH#???
+        # GH#24124
         freq = Timedelta(1)
 
         with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):
@@ -1154,7 +1154,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        assert rng2._data.freq == BDay()
+        assert rng2.freq == BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -1221,7 +1221,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        assert rng2._data.freq == CDay()
+        assert rng2.freq == CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)

@@ -198,7 +198,7 @@ operations.
 
 .. warning::
 
-   This is an experimental feature. Currently, many methods fail to
-   propagate the ``allows_duplicate_labels`` value. In future versions
-   it is expected that every method taking or returning one or more
-   DataFrame or Series objects will propagate ``allows_duplicate_labels``.
+   Many methods do not yet propagate the ``allows_duplicate_labels``
+   value through to their result. The long-term goal is for every
+   method that takes or returns a :class:`DataFrame` or :class:`Series`
+   to preserve it.

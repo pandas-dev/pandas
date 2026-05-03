@@ -24,6 +24,7 @@
 tags
 .cache/
 .vscode/
+.pixi/
 
 # Compiled source #
 ###################
