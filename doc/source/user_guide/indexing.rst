@@ -183,7 +183,7 @@ columns.
    .. ipython:: python
 
       df[['A', 'B']]
-      df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df.iloc[:, [1, 0]] = df[['A', 'B']].to_numpy()
       df[['A','B']]
 
 
