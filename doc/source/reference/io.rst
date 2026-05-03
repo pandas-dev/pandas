@@ -28,6 +28,18 @@ Flat file
    DataFrame.to_csv
    read_fwf
 
+.. currentmodule:: pandas.io.parsers
+
+.. autosummary::
+   :toctree: api/
+
+   TextFileReader
+   TextFileReader.read
+   TextFileReader.get_chunk
+   TextFileReader.close
+
+.. currentmodule:: pandas
+
 Clipboard
 ~~~~~~~~~
 .. autosummary::

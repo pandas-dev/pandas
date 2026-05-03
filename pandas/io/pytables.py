@@ -3111,8 +3111,8 @@ class GenericFixed(Fixed):
             def f(values, freq=None, tz=None):  # pyright: ignore[reportRedeclaration]
                 # data are already in UTC, localize and convert if tz present
                 dta = DatetimeArray._simple_new(values.values, dtype=values.dtype)
-                dta._freq = freq
                 result = DatetimeIndex._simple_new(dta, name=None)
+                result._freq = freq
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result

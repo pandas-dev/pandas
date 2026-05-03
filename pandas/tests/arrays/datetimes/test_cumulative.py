@@ -3,8 +3,6 @@ import pytest
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
-from pandas.tseries.frequencies import to_offset
-
 
 class TestAccumulator:
     def test_accumulators_freq(self):
@@ -17,7 +15,6 @@ class TestAccumulator:
             ],
             dtype="M8[ns]",
         )
-        arr._freq = to_offset(arr.inferred_freq)
         result = arr._accumulate("cummin")
         expected = DatetimeArray._from_sequence(["2000-01-01"] * 3, dtype="M8[ns]")
         tm.assert_datetime_array_equal(result, expected)
@@ -43,6 +40,5 @@ class TestAccumulator:
             ],
             dtype="M8[ns]",
         )
-        arr._freq = to_offset(arr.inferred_freq)
         with pytest.raises(TypeError, match=f"Accumulation {func}"):
             arr._accumulate(func)

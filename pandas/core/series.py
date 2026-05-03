@@ -1852,7 +1852,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {0: 1, 1: 2, 2: 3, 3: 4}
         >>> from collections import OrderedDict, defaultdict
         >>> s.to_dict(into=OrderedDict)
-        OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
+        OrderedDict({0: 1, 1: 2, 2: 3, 3: 4})
         >>> dd = defaultdict(list)
         >>> s.to_dict(into=dd)
         defaultdict(<class 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})

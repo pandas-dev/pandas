@@ -56,6 +56,5 @@ class TestFreq:
         dti2 = DatetimeIndex(dta)._with_freq(None)
         assert dti2.freq is None
 
-        # Original was not altered
+        # Original was not altered. freq is now Index-level state.
         assert dti.freq == "D"
-        assert dta.freq == "D"
