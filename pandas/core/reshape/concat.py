@@ -477,7 +477,8 @@ def concat(
         axis,
     )
 
-    if sort is lib.no_default:
+    # When result is a Series, there is no other axis to sort.
+    if sort is lib.no_default and not isinstance(result, ABCSeries):
         if orig_axis == 0:
             non_concat_axis = [
                 obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])

@@ -758,7 +758,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(cat.categories, idx)
 
     def test_categorical_extension_array_nullable(self, nulls_fixture):
-        # GH:
+        # GH#37611
         arr = pd.array([nulls_fixture] * 2, dtype=pd.StringDtype())
         result = Categorical(arr)
         assert arr.dtype == result.categories.dtype
