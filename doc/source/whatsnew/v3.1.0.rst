@@ -28,8 +28,8 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :func:`read_html` now accepts a ``strip_whitespace`` argument to decide if extra whitespaces should be trimmed in HTML tables (:issue:`24766`)
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
+- :func:`read_html` now accepts a ``strip_whitespace`` argument to decide if extra whitespaces should be trimmed in HTML tables (:issue:`24766`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
