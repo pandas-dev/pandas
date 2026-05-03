@@ -1485,22 +1485,11 @@ class _MergeOperation:
         -------
         Index
         """
-        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
-            # if final index requires values in other_index but not target
-            # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index. So, we set the last
-            # element to be the desired fill value. We do not use allow_fill
-            # and fill_value because it throws a ValueError on integer indices
-            mask = indexer == -1
-            if np.any(mask):
-                fill_value = na_value_for_dtype(index.dtype, compat=False)
-                if not index._can_hold_na:
-                    new_index = Index([fill_value])
-                else:
-                    new_index = Index([fill_value], dtype=index.dtype)
-                index = index.append(new_index)
         if indexer is None:
             return index.copy()
+        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
+            fill_value = na_value_for_dtype(index.dtype, compat=False)
+            return index.take(indexer, allow_fill=True, fill_value=fill_value)
         return index.take(indexer)
 
     @final
@@ -2816,10 +2805,13 @@ def _left_join_on_index(
         # variable has type "ndarray[Any, dtype[signedinteger[Any]]]")
         rkey = right_ax._values  # type: ignore[assignment]
 
-    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort)
-    left_indexer, right_indexer = libjoin.left_outer_join(
-        left_key, right_key, count, sort=sort
-    )
+    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort, how="left")
+    if count == -1:
+        left_indexer, right_indexer = left_key, right_key
+    else:
+        left_indexer, right_indexer = libjoin.left_outer_join(
+            left_key, right_key, count, sort=sort
+        )
 
     if sort or len(left_ax) != len(left_indexer):
         # if asked to sort or there are 1-to-many matches
