@@ -31,7 +31,7 @@ def test_pass_spec_to_storer(temp_hdfstore):
         index=Index([f"i-{i}" for i in range(30)], dtype=object),
     )
 
-    temp_hdfstore.put("df", df)
+    temp_hdfstore.put("df", df, track_times=False)
     msg = (
         "cannot pass a column specification when reading a Fixed format "
         "store. this store must be selected in its entirety"
@@ -52,10 +52,10 @@ def test_table_index_incompatible_dtypes(temp_hdfstore):
         {"a": [4, 5, 6]}, index=date_range("1/1/2000", periods=3, unit="ns")
     )
 
-    temp_hdfstore.put("frame", df1, format="table")
+    temp_hdfstore.put("frame", df1, format="table", track_times=False)
     msg = re.escape("incompatible kind in col [integer - datetime64[ns]]")
     with pytest.raises(TypeError, match=msg):
-        temp_hdfstore.put("frame", df2, format="table", append=True)
+        temp_hdfstore.put("frame", df2, format="table", append=True, track_times=False)
 
 
 def test_unimplemented_dtypes_table_columns(temp_hdfstore):
@@ -109,7 +109,7 @@ def test_invalid_terms(temp_hdfstore):
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
 
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
 
     # some invalid terms
     msg = re.escape("__init__() missing 1 required positional argument: 'where'")

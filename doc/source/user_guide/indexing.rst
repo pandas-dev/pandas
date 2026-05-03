@@ -819,14 +819,16 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[5], 'E'] = 7
+   df.at[dates[5], 'A'] = 7
    df.iat[3, 0] = 7
 
-``at`` may enlarge the object in-place as above if the indexer is missing.
+``at`` previously could enlarge the object in-place if the indexer was missing,
+but this behavior is deprecated. Use ``.loc`` instead for setting values with
+new keys:
 
 .. ipython:: python
 
-   df.at[dates[-1] + pd.Timedelta('1 day'), 0] = 7
+   df.loc[dates[-1] + pd.Timedelta('1 day'), 0] = 7
    df
 
 Boolean indexing
@@ -1779,6 +1781,9 @@ Key Points:
 * Position/order in the Series doesn't matter
 * Missing index labels result in NaN values
 * This behavior is consistent across df[col] = series and df.loc[:, col] = series
+
+You can think of this as reindexing the Series to the DataFrame index before
+assignment (for example, ``df[col] = series.reindex(df.index)``).
 
 Examples:
 .. ipython:: python

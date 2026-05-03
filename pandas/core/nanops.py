@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -66,7 +66,7 @@ def set_use_bottleneck(v: bool = True) -> None:
         _USE_BOTTLENECK = v
 
 
-set_use_bottleneck(get_option("compute.use_bottleneck"))
+set_use_bottleneck(config["compute"]["use_bottleneck"])
 
 
 class disallow:
@@ -157,7 +157,7 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
+    # Bottleneck chokes on datetime64, PeriodDtype (or an EA)
     if dtype != object and not needs_i8_conversion(dtype):
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision
@@ -371,7 +371,8 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
             if result == fill_value or np.isnan(result):
-                result = np.timedelta64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             elif np.fabs(result) > lib.i8max:
                 # raise if we have a timedelta64[ns] which is too large
@@ -634,7 +635,8 @@ def nansum(
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
     if dtype.kind == "f":
-        dtype_sum = dtype
+        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
     elif dtype.kind == "m":
         dtype_sum = np.dtype(np.float64)
 
@@ -708,7 +710,8 @@ def nanmean(
     elif dtype.kind in "iu":
         dtype_sum = np.dtype(np.float64)
     elif dtype.kind == "f":
-        dtype_sum = dtype
+        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
         dtype_count = dtype
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
@@ -1000,6 +1003,13 @@ def nanvar(
         values = values.astype("f8")
         if mask is not None:
             values[mask] = np.nan
+    elif dtype.kind == "c":
+        # https://en.wikipedia.org/wiki/Complex_random_variable#Variance_and_pseudo-variance
+        # The variance is equal to the sum of
+        # the variances of the real and imaginary part of the complex random variable.
+        return nanvar(
+            values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
+        ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     if values.dtype.kind == "f":
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
@@ -1019,11 +1029,8 @@ def nanvar(
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    if values.dtype.kind == "c":
-        # Need to use absolute value for complex numbers.
-        sqr = _ensure_numeric(abs(avg - values) ** 2)
-    else:
-        sqr = _ensure_numeric((avg - values) ** 2)
+
+    sqr = _ensure_numeric((avg - values) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d
@@ -1077,13 +1084,17 @@ def nansem(
     nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     mask = _maybe_get_mask(values, skipna, mask)
-    if values.dtype.kind != "f":
+    # Convert to bottleneck return a float
+    if values.dtype.kind not in "fc":
         values = values.astype("f8")
 
     if not skipna and mask is not None and mask.any():
         return np.nan
 
-    count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    dtype_count = np.dtype(np.float64)
+    if values.dtype.kind == "f":
+        dtype_count = values.dtype
+    count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     return np.sqrt(var) / np.sqrt(count)

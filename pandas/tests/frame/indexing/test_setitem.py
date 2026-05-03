@@ -777,10 +777,8 @@ class TestDataFrameSetItem:
 
     def test_setitem_string_option_object_index(self):
         # GH#55638
-        pytest.importorskip("pyarrow")
         df = DataFrame({"a": [1, 2]})
-        with pd.option_context("future.infer_string", True):
-            df["b"] = Index(["a", "b"], dtype=object)
+        df["b"] = Index(["a", "b"], dtype=object)
         expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
         tm.assert_frame_equal(df, expected)
 
@@ -1312,13 +1310,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         [
             "a",
             ["a"],
-            pytest.param(
-                [True, False],
-                marks=pytest.mark.xfail(
-                    reason="Boolean indexer incorrectly setting inplace",
-                    strict=False,  # passing on some builds, no obvious pattern
-                ),
-            ),
+            [True, False],
         ],
     )
     @pytest.mark.parametrize(

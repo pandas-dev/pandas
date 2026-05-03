@@ -987,6 +987,20 @@ class TestNanvarFixedValues:
         assert np.isnan(std[3])
 
     @pytest.mark.parametrize("ddof", range(3))
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    @pytest.mark.parametrize("method", ["var", "std", "sem"])
+    def test_complex_nanvar(self, ddof, axis, method):
+        arr = self.prng.standard_normal((5, 4)) + self.prng.standard_normal((5, 4)) * 1j
+        nanops_method = getattr(nanops, f"nan{method}")
+        if method in {"var", "std"}:
+            comparator_method = getattr(np, method)
+        elif method == "sem":
+            comparator_method = pytest.importorskip("scipy.stats").sem
+        result = nanops_method(arr, axis=axis, ddof=ddof)
+        expected = comparator_method(arr, axis=axis, ddof=ddof)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("ddof", range(3))
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
@@ -1265,6 +1279,16 @@ def test_check_below_min_count_large_shape(min_count, expected_result):
 def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
     # GH 42878 bottleneck sometimes produces unreliable results for mean and sum
     assert not nanops._bn_ok_dtype(np.dtype(any_real_numpy_dtype).type, func)
+
+
+def test_nanmean_float16_overflow(disable_bottleneck):
+    # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
+    ser = Series([60000.0, 60000.0], dtype=np.float16)
+    result = ser.mean()
+    assert result == 60000.0
+
+    result = ser.sum()
+    assert result == 120000.0
 
 
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])

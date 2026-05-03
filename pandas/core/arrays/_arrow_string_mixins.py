@@ -34,7 +34,7 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _from_pyarrow_array(self, pa_array) -> Self:
+    def _from_pyarrow_array(self, pa_array: pa.Array | pa.ChunkedArray) -> Self:
         raise NotImplementedError
 
     def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
@@ -239,6 +239,21 @@ class ArrowStringArrayMixin:
                 "named group references (\\g<...>)"
             )
 
+        if pat == "":
+            # pyarrow hangs for empty patterns
+            # (https://github.com/apache/arrow/issues/39149)
+            # use same func definition as ObjectStringArrayMixin._str_replace
+            if regex:
+                count = n if n >= 0 else 0
+                func = lambda val: re.sub(pat, repl, val, count=count)
+            else:
+                func = lambda val: val.replace(pat, repl, n)
+
+            result = self._apply_elementwise(func)
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
+
         func = pc.replace_substring_regex if regex else pc.replace_substring
         # https://github.com/apache/arrow/issues/39149
         # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
@@ -401,6 +416,13 @@ class ArrowStringArrayMixin:
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if not pc.all(pc.string_is_ascii(self._pa_array)).as_py():
+            # GH#64123 - pc.find_substring returns byte offsets instead of
+            # character offsets for multi-byte UTF-8 characters, so we fall back
+            # to Python str.find which correctly returns character offsets.
+            res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
+            return self._convert_int_result(pa.chunked_array(res_list))
+
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
         else:
@@ -423,4 +445,5 @@ class ArrowStringArrayMixin:
             found = pc.not_equal(result, pa.scalar(-1, type=result.type))
             offset_result = pc.add(result, start_offset)
             result = pc.if_else(found, offset_result, -1)
+        result = result.cast(pa.int64())
         return self._convert_int_result(result)

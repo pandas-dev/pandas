@@ -196,7 +196,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_sub_td64_nat(self):
         td = Timedelta(10, unit="D")
-        td_nat = np.timedelta64("NaT")
+        td_nat = np.timedelta64("NaT", "ns")
 
         result = td - td_nat
         assert result is NaT
@@ -256,7 +256,7 @@ class TestTimedeltaAdditionSubtraction:
         result = NaT - td
         assert result is NaT
 
-        result = np.datetime64("NaT") - td
+        result = np.datetime64("NaT", "ns") - td
         assert result is NaT
 
     def test_td_rsub_offset(self):
@@ -374,9 +374,7 @@ class TestTimedeltaMultiplicationDivision:
     # ---------------------------------------------------------------
     # Timedelta.__mul__, __rmul__
 
-    @pytest.mark.parametrize(
-        "td_nat", [NaT, np.timedelta64("NaT", "ns"), np.timedelta64("NaT")]
-    )
+    @pytest.mark.parametrize("td_nat", [NaT, np.timedelta64("NaT", "ns")])
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
     def test_td_mul_nat(self, op, td_nat):
         # GH#19819
@@ -566,12 +564,12 @@ class TestTimedeltaMultiplicationDivision:
         result = None / td
         assert np.isnan(result)
 
-        result = np.timedelta64("NaT") / td
+        result = np.timedelta64("NaT", "ns") / td
         assert np.isnan(result)
 
         msg = r"unsupported operand type\(s\) for /: 'numpy.datetime64' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
-            np.datetime64("NaT") / td
+            np.datetime64("NaT", "ns") / td
 
         msg = r"unsupported operand type\(s\) for /: 'float' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
@@ -625,7 +623,7 @@ class TestTimedeltaMultiplicationDivision:
 
         assert td // np.nan is NaT
         assert np.isnan(td // NaT)
-        assert np.isnan(td // np.timedelta64("NaT"))
+        assert np.isnan(td // np.timedelta64("NaT", "ns"))
 
     def test_td_floordiv_offsets(self):
         # GH#19738
@@ -671,7 +669,9 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
-        res = (10 * td) // np.array([scalar.to_timedelta64(), np.timedelta64("NaT")])
+        res = (10 * td) // np.array(
+            [scalar.to_timedelta64(), np.timedelta64("NaT", "ns")]
+        )
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)
 
@@ -705,7 +705,7 @@ class TestTimedeltaMultiplicationDivision:
         td = Timedelta(hours=3, minutes=3)
 
         assert np.isnan(td.__rfloordiv__(NaT))
-        assert np.isnan(td.__rfloordiv__(np.timedelta64("NaT")))
+        assert np.isnan(td.__rfloordiv__(np.timedelta64("NaT", "ns")))
 
     def test_td_rfloordiv_offsets(self):
         # GH#19738
@@ -757,7 +757,7 @@ class TestTimedeltaMultiplicationDivision:
         expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
-        arr = np.array([(10 * scalar).to_timedelta64(), np.timedelta64("NaT")])
+        arr = np.array([(10 * scalar).to_timedelta64(), np.timedelta64("NaT", "ns")])
         res = td.__rfloordiv__(arr)
         expected = np.array([10, np.nan])
         tm.assert_numpy_array_equal(res, expected)

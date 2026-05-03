@@ -44,8 +44,12 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_float_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -159,6 +163,8 @@ class ExtensionArray:
     _from_sequence
     _from_sequence_of_strings
     _hash_pandas_object
+    _is_monotonic_decreasing
+    _is_monotonic_increasing
     _pad_or_backfill
     _reduce
     _values_for_argsort
@@ -1977,6 +1983,9 @@ class ExtensionArray:
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
 
+        Scalar values for `indices` are not supported. If needed,
+        use a list-like wrapping a single element (e.g. ``[index]``).
+
         Examples
         --------
         Here's an example implementation, which relies on casting the
@@ -2686,6 +2695,73 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
+    @property
+    def _is_monotonic_increasing(self) -> bool:
+        """
+        Return True if the array values are monotonically increasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically increasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_decreasing : Check for monotonically
+            decreasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._is_monotonic_increasing
+        True
+        """
+        return self._monotonic_check()[0]
+
+    @property
+    def _is_monotonic_decreasing(self) -> bool:
+        """
+        Return True if the array values are monotonically decreasing.
+
+        Subclasses can override this for performance. The default
+        implementation falls back to computing ranks via ``_rank``.
+
+        Returns
+        -------
+        bool
+            Whether the array values are monotonically decreasing.
+
+        See Also
+        --------
+        ExtensionArray._is_monotonic_increasing : Check for monotonically
+            increasing values.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 2, 1])
+        >>> arr._is_monotonic_decreasing
+        True
+        """
+        return self._monotonic_check()[1]
+
+    def _monotonic_check(self) -> tuple[bool, bool]:
+        """
+        Return (is_monotonic_increasing, is_monotonic_decreasing).
+
+        Default implementation using ranks. Subclasses should override
+        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
+        instead of this method.
+        """
+        try:
+            ranks = self._rank()
+        except TypeError:
+            return False, False
+        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
+        return bool(inc), bool(dec)
+
     def _rank(
         self,
         *,
@@ -2702,12 +2778,13 @@ class ExtensionArray:
             raise NotImplementedError
 
         return rank(
-            self,
+            self._values_for_argsort(),
             axis=axis,
             method=method,
             na_option=na_option,
             ascending=ascending,
             pct=pct,
+            mask=np.asarray(self.isna(), dtype="bool") if self._hasna else None,
         )
 
     @classmethod
@@ -2820,7 +2897,10 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        return map_array(self, mapper, na_action=na_action)
+        result = map_array(self, mapper, na_action=na_action)
+        if isinstance(result, np.ndarray):
+            return self._cast_pointwise_result(result)
+        return result
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
@@ -2935,6 +3015,77 @@ class ExtensionArray:
 
         else:
             raise NotImplementedError
+
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        """
+        Dispatch GroupBy quantile operation.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+            Quantile(s) to compute.
+        interpolation : {'linear', 'lower', 'higher', 'nearest', 'midpoint'}
+        ids : np.ndarray[np.intp]
+            Group labels.
+        ngroups : int
+        starts : np.ndarray[int64]
+        ends : np.ndarray[int64]
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        from pandas.core.arrays.string_ import StringDtype
+
+        if isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype):
+            raise TypeError(
+                f"dtype '{self.dtype}' does not support operation 'quantile'"
+            )
+        if is_bool_dtype(self.dtype):
+            raise TypeError("Cannot use quantile with bool dtype")
+
+        mask = np.asarray(isna(self))
+        nqs = len(qs)
+
+        if is_integer_dtype(self.dtype) or is_float_dtype(self.dtype):
+            vals = self.to_numpy(dtype=float, na_value=np.nan)
+        else:
+            vals = np.asarray(self)
+
+        inference: np.dtype | None = (
+            np.dtype(np.int64) if is_integer_dtype(self.dtype) else None
+        )
+
+        out = np.empty((ngroups, nqs), dtype=np.float64)
+        libgroupby.group_quantile(
+            out,
+            values=vals,
+            mask=mask,  # type: ignore[arg-type]
+            labels=ids,
+            qs=qs,
+            interpolation=interpolation,
+            starts=starts,
+            ends=ends,
+            result_mask=None,
+            is_datetimelike=False,
+        )
+        out = out.ravel("K")  # type: ignore[assignment]
+
+        if inference is not None and not (
+            is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}
+        ):
+            out = out.astype(inference)
+
+        return out
 
     def _groupby_first_last(
         self,

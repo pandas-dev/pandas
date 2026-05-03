@@ -67,10 +67,9 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     expected = DataFrame(
         {"a": [1, 1, 2], "b": Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
     )
-    if parser.engine == "pyarrow":
+    if parser.engine == "pyarrow" and any(isinstance(key, int) for key in dtype):
         mark = pytest.mark.xfail(
-            strict=False,
-            reason="Flaky test sometimes gives object dtype instead of Categorical",
+            reason="pyarrow doesn't support specifying dtype by column index",
         )
         request.applymarker(mark)
 

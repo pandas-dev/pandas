@@ -412,6 +412,23 @@ numpydoc_validation_exclude = {
     r"pandas\.DatetimeIndex\.is_year_start$",
     r"pandas\.DatetimeIndex\.is_year_end$",
     r"pandas\.DatetimeIndex\.is_leap_year$",
+    # Deprecated aliases (GH#46768)
+    r"pandas\.Timestamp\.dayofweek$",
+    r"pandas\.Timestamp\.dayofyear$",
+    r"pandas\.Timestamp\.daysinmonth$",
+    r"pandas\.Period\.dayofweek$",
+    r"pandas\.Period\.dayofyear$",
+    r"pandas\.DatetimeIndex\.daysinmonth$",
+    r"pandas\.PeriodIndex\.dayofweek$",
+    r"pandas\.PeriodIndex\.dayofyear$",
+    r"pandas\.PeriodIndex\.daysinmonth$",
+    r"pandas\.Series\.dt\.dayofweek$",
+    r"pandas\.Series\.dt\.dayofyear$",
+    r"pandas\.Series\.dt\.daysinmonth$",
+    # Deprecated weekday property (GH#12816)
+    r"pandas\.Period\.weekday$",
+    r"pandas\.PeriodIndex\.weekday$",
+    r"pandas\.Series\.dt\.weekday$",
 }
 
 # matplotlib plot directive
@@ -744,11 +761,9 @@ latex_documents = [
 
 if include_api:
     intersphinx_mapping = {
-        "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
         "python": ("https://docs.python.org/3/", None),
-        "scipy": ("https://docs.scipy.org/doc/scipy/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
@@ -946,6 +961,10 @@ def linkcode_resolve(domain, info) -> str | None:
         except AttributeError:
             return None
 
+    if isinstance(obj, type):
+        if hasattr(obj, "_module_source"):
+            obj.__module__, obj._module_source = obj._module_source, obj.__module__
+
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
@@ -972,6 +991,9 @@ def linkcode_resolve(domain, info) -> str | None:
         linespec = ""
 
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
+
+    if isinstance(obj, type) and hasattr(obj, "_module_source"):
+        obj.__module__, obj._module_source = obj._module_source, obj.__module__
 
     if "+" in version:
         return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"

@@ -97,6 +97,9 @@ def data_for_compare(request):
 
 
 class TestSparseArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
@@ -237,21 +240,6 @@ class TestSparseArray(base.ExtensionTests):
     def test_fillna_no_op_returns_copy(self, data, request):
         super().test_fillna_no_op_returns_copy(data)
 
-    def test_fillna_readonly(self, data_missing):
-        # copy keyword is ignored by SparseArray.fillna
-        # -> copy=True vs False doesn't make a difference
-        data = data_missing.copy()
-        data._readonly = True
-
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is ignored -> so same result as above
-        result = data.fillna(data_missing[1], copy=False)
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
         # this one looks doable.
@@ -355,15 +343,10 @@ class TestSparseArray(base.ExtensionTests):
         self._check_unsupported(data)
         super().test_argmin_argmax_all_na(method, data, na_value)
 
-    @pytest.mark.fails_arm_wheels
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
-
-    @pytest.mark.fails_arm_wheels
-    def test_equals_same_data_different_object(self, data):
-        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",

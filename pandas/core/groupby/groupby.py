@@ -48,7 +48,6 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
-    DtypeObj,
     IndexLabel,
     IntervalClosedType,
     NDFrameT,
@@ -72,7 +71,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
-    is_float_dtype,
     is_hashable,
     is_integer,
     is_integer_dtype,
@@ -81,7 +79,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
@@ -99,9 +96,7 @@ from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
     ExtensionArray,
-    FloatingArray,
     IntegerArray,
-    SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import ArrowStringArray
@@ -825,7 +820,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -1527,7 +1522,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#37850 For numpy boolean data, any==max and all==min.
             # The min/max Cython path is faster (fused types, no mask overhead).
             # Excludes nullable BooleanDtype which needs Kleene logic.
-            if how in ["any", "all"] and values.dtype == np.dtype("bool"):
+            use_bool_fastpath = how in ["any", "all"] and values.dtype == np.dtype(
+                "bool"
+            )
+            if use_bool_fastpath:
                 _how = "max" if how == "any" else "min"
             else:
                 _how = how
@@ -1545,12 +1543,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                # TODO: avoid special casing SparseArray here
-                if how in ["any", "all"] and isinstance(values, SparseArray):
-                    pass
-                elif alt is None or how in ["any", "all", "std", "sem"]:
+                if alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
+                if use_bool_fastpath and result.dtype.kind == "f":
+                    fill = 0.0 if how == "any" else 1.0
+                    result = np.where(
+                        np.isnan(result), fill, np.asarray(result)
+                    ).astype(bool)
                 return result
 
             assert alt is not None
@@ -2775,12 +2775,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.sum : Return the sum of the values over the requested axis.
+        DataFrame.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
@@ -2984,12 +2980,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.min : Return the minimum of the values over the requested axis.
+        DataFrame.min : Return the minimum of the values over the requested axis.
 
         Examples
         --------
@@ -3105,12 +3097,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.max : Return the maximum of the values over the requested axis.
+        DataFrame.max : Return the maximum of the values over the requested axis.
 
         Examples
         --------
@@ -3431,6 +3419,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self.obj._constructor_expanddim(
                 res_values, index=self._grouper.result_index, columns=agg_names
             )
+            if not self.as_index:
+                result = result.reset_index()
             return result
 
         result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
@@ -4629,94 +4619,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if isinstance(vals.dtype, StringDtype) or is_object_dtype(vals.dtype):
-                raise TypeError(
-                    f"dtype '{vals.dtype}' does not support operation 'quantile'"
-                )
-
-            inference: DtypeObj | None = None
-            if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
-                inference = vals.dtype
-            elif is_integer_dtype(vals.dtype):
-                if isinstance(vals, ExtensionArray):
-                    out = vals.to_numpy(dtype=float, na_value=np.nan)
-                else:
-                    out = vals
-                inference = np.dtype(np.int64)
-            elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
-            elif is_bool_dtype(vals.dtype):
-                # GH#51424 remove to match Series/DataFrame behavior
-                raise TypeError("Cannot use quantile with bool dtype")
-            elif needs_i8_conversion(vals.dtype):
-                inference = vals.dtype
-                # In this case we need to delay the casting until after the
-                #  np.lexsort below.
-                # error: Incompatible return value type (got
-                # "Tuple[Union[ExtensionArray, ndarray[Any, Any]], Union[Any,
-                # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
-                # Optional[Union[dtype[Any], ExtensionDtype]]]")
-                return vals, inference  # type: ignore[return-value]
-            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
-                inference = np.dtype(np.float64)
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
-            else:
-                out = np.asarray(vals)
-
-            return out, inference
-
-        def post_processor(
-            vals: np.ndarray,
-            inference: DtypeObj | None,
-            result_mask: np.ndarray | None,
-            orig_vals: ArrayLike,
-        ) -> ArrayLike:
-            if inference:
-                # Check for edge case
-                if isinstance(orig_vals, BaseMaskedArray):
-                    assert result_mask is not None  # for mypy
-
-                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(
-                        orig_vals
-                    ):
-                        return FloatingArray(vals, result_mask)
-                    else:
-                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
-                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
-                        # [union-attr]
-                        with warnings.catch_warnings():
-                            # vals.astype with nan can warn with numpy >1.24
-                            warnings.filterwarnings("ignore", category=RuntimeWarning)
-                            return type(orig_vals)(
-                                vals.astype(
-                                    inference.numpy_dtype  # type: ignore[union-attr]
-                                ),
-                                result_mask,
-                            )
-
-                elif not (
-                    is_integer_dtype(inference)
-                    and interpolation in {"linear", "midpoint"}
-                ):
-                    if needs_i8_conversion(inference):
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any]]" has no attribute "_ndarray"
-                        vals = vals.astype("i8").view(
-                            orig_vals._ndarray.dtype  # type: ignore[union-attr]
-                        )
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any]]" has no attribute "_from_backing_data"
-                        return orig_vals._from_backing_data(  # type: ignore[union-attr]
-                            vals
-                        )
-
-                    assert isinstance(inference, np.dtype)  # for mypy
-                    return vals.astype(inference)
-
-            return vals
-
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
             pass_qs: None | np.ndarray = None
@@ -4741,17 +4643,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
         def blk_func(values: ArrayLike) -> ArrayLike:
-            orig_vals = values
-            if isinstance(values, BaseMaskedArray):
-                mask = values._mask
-                result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
-            else:
-                mask = isna(values)
-                result_mask = None
+            if isinstance(values, ExtensionArray):
+                return values._groupby_quantile(
+                    qs=qs,
+                    interpolation=interpolation,
+                    ids=ids,
+                    ngroups=ngroups,
+                    starts=starts,
+                    ends=ends,
+                )
 
-            is_datetimelike = needs_i8_conversion(values.dtype)
+            # ndarray path
+            if is_object_dtype(values.dtype):
+                raise TypeError(
+                    f"dtype '{values.dtype}' does not support operation 'quantile'"
+                )
+            if is_bool_dtype(values.dtype):
+                # GH#51424 remove to match Series/DataFrame behavior
+                raise TypeError("Cannot use quantile with bool dtype")
 
-            vals, inference = pre_processor(values)
+            mask = isna(values)
+            inference: np.dtype | None = (
+                np.dtype(np.int64) if is_integer_dtype(values.dtype) else None
+            )
+            vals = np.asarray(values)
 
             ncols = 1
             if vals.ndim == 2:
@@ -4759,17 +4674,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
 
-            if is_datetimelike:
-                vals = vals.view("i8")
-
             if vals.ndim == 1:
-                # EA is always 1d
                 func(
                     out[0],
                     values=vals,
                     mask=mask,  # type: ignore[arg-type]
-                    result_mask=result_mask,
-                    is_datetimelike=is_datetimelike,
+                    result_mask=None,
+                    is_datetimelike=False,
                 )
             else:
                 for i in range(ncols):
@@ -4778,17 +4689,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         values=vals[i],
                         mask=mask[i],
                         result_mask=None,
-                        is_datetimelike=is_datetimelike,
+                        is_datetimelike=False,
                     )
 
             if vals.ndim == 1:
                 out = out.ravel("K")  # type: ignore[assignment]
-                if result_mask is not None:
-                    result_mask = result_mask.ravel("K")  # type: ignore[assignment]
             else:
                 out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
-            return post_processor(out, inference, result_mask, orig_vals)
+            if inference is not None and interpolation not in {
+                "linear",
+                "midpoint",
+            }:
+                out = out.astype(inference)
+
+            return out
 
         res_mgr = sdata._mgr.grouped_reduce(blk_func)
 

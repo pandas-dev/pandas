@@ -19,7 +19,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 import pandas._libs.sparse as splib
@@ -44,6 +44,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
     find_common_type,
     maybe_box_datetimelike,
 )
@@ -289,6 +290,10 @@ def _wrap_result(
     return SparseArray(
         data, sparse_index=sparse_index, fill_value=fill_value, dtype=dtype
     )
+
+
+_BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
+_BOOL_SPARSE_DTYPE_TRUE_FILL = SparseDtype(bool, True)
 
 
 @set_module("pandas.arrays")
@@ -589,7 +594,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # a datetime64 with pandas NaT.
                 if fill_value is NaT:
                     # Can't put pd.NaT in a datetime64[ns]
-                    fill_value = np.datetime64("NaT")
+                    unit = np.datetime_data(self.sp_values.dtype)[0]
+                    fill_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
@@ -619,7 +625,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return cls(values, dtype=original.dtype)
 
     def _cast_pointwise_result(self, values):
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_non_numeric=True)
         if result.dtype.kind == self.dtype.kind:
             try:
@@ -786,12 +793,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def isna(self) -> Self:  # type: ignore[override]
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
-        dtype = SparseDtype(bool, self._null_fill_value)
         if self._null_fill_value:
-            return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
-        mask = np.full(len(self), False, dtype=np.bool_)
-        mask[self.sp_index.indices] = isna(self.sp_values)
-        return type(self)(mask, fill_value=False, dtype=dtype)
+            return type(self)._simple_new(
+                isna(self.sp_values),
+                self.sp_index,
+                _BOOL_SPARSE_DTYPE_TRUE_FILL,
+            )
+        # GH#41023 - avoid densify-then-resparsify round-trip.
+        # The NA positions are exactly the subset of sp_index where sp_values
+        # are NA; we can construct the sparse index directly.
+        sp_mask = isna(self.sp_values)
+        na_indices = self.sp_index.indices[sp_mask]
+        new_sp_index = make_sparse_index(len(self), na_indices, self.kind)
+        return type(self)._simple_new(
+            np.ones(len(na_indices), dtype=bool),
+            new_sp_index,
+            _BOOL_SPARSE_DTYPE_FALSE_FILL,
+        )
 
     def fillna(
         self,
@@ -826,6 +844,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         When ``self.fill_value`` is not NA, the result dtype will be
         ``self.dtype``. Again, this preserves the amount of memory used.
         """
+        if isinstance(value, dict):
+            raise TypeError(
+                "ExtensionArray.fillna does not support filling with a dict. "
+                "Use Series.fillna instead."
+            )
         if limit is not None:
             raise ValueError("limit must be None")
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
@@ -1224,7 +1247,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
-        if get_option("performance_warnings"):
+        if config["mode"]["performance_warnings"]:
             msg = "searchsorted requires high memory usage."
             warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
         v = np.asarray(v)
@@ -1351,7 +1374,25 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             values = ensure_wrapped_if_datetimelike(values)
             return astype_array(values, dtype=future_dtype, copy=False)
 
+        # GH#49631: save whether the original arg was a string (e.g.
+        # "Sparse[int64]") vs an explicit SparseDtype object, since
+        # update_dtype will overwrite dtype below.
+        dtype_from_string = not isinstance(dtype, SparseDtype)
         dtype = self.dtype.update_dtype(dtype)
+
+        # When dtype came from a string, update_dtype returns it with the
+        # default fill_value (e.g. 0 for int64) rather than converting the
+        # source fill_value (e.g. NaT -> iNaT). Fix that here.
+        if (
+            dtype_from_string
+            and self.dtype._is_na_fill_value
+            and not dtype._is_na_fill_value
+        ):
+            fv_arr = np.atleast_1d(np.array(self.fill_value))
+            fv_arr = ensure_wrapped_if_datetimelike(fv_arr)
+            converted_fv = np.asarray(astype_array(fv_arr, dtype.subtype))
+            dtype = SparseDtype(dtype.subtype, fill_value=converted_fv[0])
+
         subtype = pandas_dtype(dtype._subtype_with_str)
         subtype = cast("np.dtype", subtype)  # ensured by update_dtype
         values = ensure_wrapped_if_datetimelike(self.sp_values)
@@ -1415,6 +1456,46 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         sp_values = [func(x) for x in self.sp_values]
 
         return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_val)
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ):
+        # first/last are handled by the base class to preserve EA type
+        if how in ["first", "last"]:
+            return self._groupby_first_last(
+                how=how,
+                min_count=min_count,
+                ngroups=ngroups,
+                ids=ids,
+                skipna=kwargs.get("skipna", True),
+            )
+
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+
+        # Convert to dense for the cython operation.
+        # The cython code handles NaN detection on dense float arrays natively.
+        npvalues = self.to_dense()
+
+        res_values = op._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=None,
+            **kwargs,
+        )
+
+        return res_values
 
     def to_dense(self) -> np.ndarray:
         """

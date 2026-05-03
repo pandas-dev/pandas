@@ -245,7 +245,7 @@ def test_corrupt_read(datapath):
     # We don't really care about the exact failure, the important thing is
     # that the resource should be cleaned up afterwards (BUG #35566)
     fname = datapath("io", "sas", "data", "corrupt.sas7bdat")
-    msg = "'SAS7BDATReader' object has no attribute 'row_count'"
+    msg = "'SAS7BDATReader' object has no attribute 'column_count'"
     with pytest.raises(AttributeError, match=msg):
         pd.read_sas(fname)
 
@@ -333,14 +333,14 @@ def test_null_date(datapath):
             "datecol": np.array(
                 [
                     datetime(9999, 12, 31),
-                    np.datetime64("NaT"),
+                    np.datetime64("NaT", "ns"),
                 ],
                 dtype="M8[s]",
             ),
             "datetimecol": np.array(
                 [
                     datetime(9999, 12, 31, 23, 59, 59, 999000),
-                    np.datetime64("NaT"),
+                    np.datetime64("NaT", "ns"),
                 ],
                 dtype="M8[ms]",
             ),

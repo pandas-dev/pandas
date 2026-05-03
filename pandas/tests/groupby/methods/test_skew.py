@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 def test_groupby_skew_equivalence():
-    # Test that that groupby skew method (which uses libgroupby.group_skew)
+    # Test that the groupby skew method (which uses libgroupby.group_skew)
     #  matches the results of operating group-by-group (which uses nanops.nanskew)
     nrows = 1000
     ngroups = 3

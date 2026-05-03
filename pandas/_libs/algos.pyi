@@ -86,6 +86,18 @@ def backfill_2d_inplace(
     mask: np.ndarray,  # const uint8_t[:, :]
     limit=...,
 ) -> None: ...
+def scalar_fillna_inplace(
+    values: np.ndarray,  # numeric_object_t[:]
+    fill_val: Any,  # numeric_object_t
+    mask: np.ndarray | None = ...,  # uint8_t[:] or None
+    is_datetimelike: bool = ...,
+    limit: int | None = ...,
+) -> int: ...
+def scalar_fillna_2d_inplace(
+    values: np.ndarray,  # numeric_object_t[:, :]
+    fill_val: Any,  # numeric_object_t
+    limit: int | None = ...,
+) -> int: ...
 def is_monotonic(
     arr: np.ndarray,  # ndarray[numeric_object_t, ndim=1]
     timelike: bool,

@@ -123,8 +123,8 @@ class TestIndexConstructorInference:
     @pytest.mark.parametrize(
         "klass,dtype,ctor",
         [
-            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat")),
-            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("nat")),
+            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat", "ns")),
+            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("NaT", "ns")),
         ],
     )
     def test_constructor_infer_nat_dt_like(
@@ -164,7 +164,7 @@ class TestIndexConstructorInference:
     @pytest.mark.parametrize("swap_objs", [True, False])
     def test_constructor_mixed_nat_objs_infers_object(self, swap_objs):
         # mixed np.datetime64/timedelta64 nat results in object
-        data = [np.datetime64("nat"), np.timedelta64("nat")]
+        data = [np.datetime64("nat", "ns"), np.timedelta64("NaT", "ns")]
         if swap_objs:
             data = data[::-1]
 
