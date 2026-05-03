@@ -564,8 +564,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Returns True if this PeriodIndex is range-like in that all Periods
-        between start and end are present, in order.
+        Return True if the index contains all periods from start to end
+        (inclusive) with no gaps.
+
+        Requires monotonic increasing order. Duplicate periods are allowed.
         """
         if len(self) == 0:
             return True
