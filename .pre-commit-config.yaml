@@ -132,7 +132,7 @@ repos:
     -   id: mypy
         # note: assumes python env is setup and activated
         name: mypy
-        entry: mypy
+        entry: python -m mypy
         language: system
         pass_filenames: false
         types: [python]
