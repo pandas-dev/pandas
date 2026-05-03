@@ -2455,8 +2455,6 @@ class _iLocIndexer(_LocationIndexer):
                 # if not Series (in which case we need to align),
                 #  we can short-circuit
                 if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
-                    # NumPy 1.25+ rejects assigning a length-1 sequence to a
-                    #  scalar slot, so unwrap to broadcast per GH#46268.
                     arr = arr[0]
                 empty_value[indexer[0]] = arr
                 self.obj[key] = empty_value
@@ -2474,8 +2472,6 @@ class _iLocIndexer(_LocationIndexer):
             taker = -1 * np.ones(len(self.obj), dtype=np.intp)
             empty_value = algos.take_nd(arr, taker)
             if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
-                # NumPy 1.25+ rejects assigning a length-1 sequence to a
-                #  scalar slot, so unwrap to broadcast per GH#46268.
                 arr = arr[0]
             empty_value[indexer[0]] = arr
             self.obj[key] = empty_value
