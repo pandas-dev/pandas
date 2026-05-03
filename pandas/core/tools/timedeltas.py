@@ -237,7 +237,7 @@ def _convert_listlike(
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
         return arg
 
-    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+    td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)
 
     from pandas import TimedeltaIndex
 

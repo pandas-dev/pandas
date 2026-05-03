@@ -58,13 +58,11 @@ from pandas.core.dtypes.dtypes import (
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
     ABCNumpyExtensionArray,
     ABCSeries,
-    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -354,6 +352,14 @@ def unique(values):
     --------
     Index.unique : Return unique values from an Index.
     Series.unique : Return unique values of Series object.
+
+    Notes
+    -----
+    When working with object-dtype arrays, boolean and integer values may not
+    be distinguished since ``True == 1`` and ``False == 0`` in Python.
+
+    >>> pd.unique(np.array([True, 1, False, 0], dtype=object))
+    array([True, False], dtype=object)
 
     Examples
     --------
@@ -701,6 +707,15 @@ def factorize(
     -----
     Reference :ref:`the user guide <reshaping.factorize>` for more examples.
 
+    When working with object-dtype arrays, boolean and integer values may not
+    be distinguished since ``True == 1`` and ``False == 0`` in Python.
+
+    >>> codes, uniques = pd.factorize(np.array([True, 1, False, 0], dtype=object))
+    >>> codes
+    array([0, 0, 1, 1])
+    >>> uniques
+    array([True, False], dtype=object)
+
     Examples
     --------
     These examples all show factorize as a top-level method like
@@ -789,16 +804,7 @@ def factorize(
     values = _ensure_arraylike(values, func_name="factorize")
     original = values
 
-    if (
-        isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
-        and values.freq is not None
-    ):
-        # The presence of 'freq' means we can fast-path sorting and know there
-        #  aren't NAs
-        codes, uniques = values.factorize(sort=sort)
-        return codes, uniques
-
-    elif not isinstance(values, np.ndarray):
+    if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
 
@@ -1044,6 +1050,7 @@ def rank(
     na_option: str = "keep",
     ascending: bool = True,
     pct: bool = False,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
@@ -1067,6 +1074,8 @@ def rank(
     pct : bool, default False
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
+    mask : bool ndarray, optional
+        Boolean array indicating which elements to exclude from ranking.
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
@@ -1079,8 +1088,10 @@ def rank(
             ascending=ascending,
             na_option=na_option,
             pct=pct,
+            mask=mask,
         )
     elif values.ndim == 2:
+        assert mask is None
         ranks = algos.rank_2d(
             values,
             axis=axis,

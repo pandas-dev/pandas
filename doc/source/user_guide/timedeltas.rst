@@ -106,14 +106,29 @@ is numeric:
 Timedelta limitations
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas represents ``Timedeltas`` in nanosecond resolution using
-64 bit integers. As such, the 64 bit integer limits determine
-the ``Timedelta`` limits.
+:class:`Timedelta` uses a 64-bit integer to represent time, so the representable
+range depends on the chosen resolution (``unit``). The class-level attributes
+:attr:`Timedelta.min`, :attr:`Timedelta.max`, and :attr:`Timedelta.resolution`
+default to nanosecond limits:
 
 .. ipython:: python
 
    pd.Timedelta.min
    pd.Timedelta.max
+   pd.Timedelta.resolution
+
+On a :class:`Timedelta` *instance*, the same attributes reflect the bounds and
+step size of that instance's resolution:
+
+.. ipython:: python
+
+   td = pd.Timedelta(1, unit="s")
+   td.min
+   td.max
+   td.resolution
+
+Different resolutions can be converted to each other through
+:meth:`Timedelta.as_unit`.
 
 .. _timedeltas.operations:
 

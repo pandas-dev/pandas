@@ -770,7 +770,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(
+                result, copy=copy, convert_na_value=False, skipna=False
+            )
             result[na_values] = na_value
 
         else:
@@ -830,10 +832,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return arr, self.dtype.na_value
 
     def _validate_setitem_value(self, value):
-        return self._maybe_convert_setitem_value(value)
-
-    def _maybe_convert_setitem_value(self, value):
-        """Maybe convert value to be StringArray compatible."""
+        """Validate / convert value to be StringArray compatible."""
         if lib.is_scalar(value):
             if isna(value):
                 value = self.dtype.na_value
@@ -864,7 +863,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
 
-        value = self._maybe_convert_setitem_value(value)
+        value = self._validate_setitem_value(value)
 
         key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)

@@ -27,8 +27,7 @@ class TestToTimestamp:
 
         result = pi._data[::2].to_timestamp()
         expected = dti._data[::2].as_unit("us")
-        # TODO: can we get the freq to round-trip?
-        tm.assert_datetime_array_equal(result, expected, check_freq=False)
+        tm.assert_datetime_array_equal(result, expected)
 
         result = pi[::-1].to_timestamp()
         expected = dti[::-1].as_unit("us")
@@ -36,7 +35,7 @@ class TestToTimestamp:
 
         result = pi._data[::-1].to_timestamp()
         expected = dti._data[::-1].as_unit("us")
-        tm.assert_datetime_array_equal(result, expected, check_freq=False)
+        tm.assert_datetime_array_equal(result, expected)
 
         result = pi[::2][::-1].to_timestamp()
         expected = dti[::2][::-1].as_unit("us")
@@ -44,7 +43,7 @@ class TestToTimestamp:
 
         result = pi._data[::2][::-1].to_timestamp()
         expected = dti._data[::2][::-1].as_unit("us")
-        tm.assert_datetime_array_equal(result, expected, check_freq=False)
+        tm.assert_datetime_array_equal(result, expected)
 
     def test_to_timestamp_freq(self):
         idx = period_range("2017", periods=12, freq="Y-DEC")
