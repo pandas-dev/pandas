@@ -1196,7 +1196,6 @@ class TestDataFrameToCSV:
         # GH11619
         idx = date_range(start, end, freq="h", tz="Europe/Paris", unit="ns")
         idx = idx._with_freq(None)  # freq does not round-trip
-        idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
 
         df.to_csv(temp_file, index=True)
