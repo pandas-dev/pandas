@@ -10369,7 +10369,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         element in the caller, if ``cond`` is ``False`` the
         element is used; otherwise the corresponding element from
         ``other`` is used. If the axis of ``other`` does not align with
-        the caller Series/DataFrame, the values of ``cond`` on misaligned 
+        the caller Series/DataFrame, the values of ``cond`` on misaligned
         index positions will be filled with True.
 
         The signature for :func:`Series.where` or
