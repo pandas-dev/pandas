@@ -49,6 +49,7 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
+    to_offset,
 )
 from pandas._libs.tslibs.fields import (
     RoundTo,
