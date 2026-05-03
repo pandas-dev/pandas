@@ -500,9 +500,9 @@ def test_to_timedelta_subint64_with_unit(dtype):
     # GH#56996 NumPy 2 / NEP 50 made `np.int32(x) - py_int` return np.int32,
     # which then overflowed when multiplied by a unit factor that exceeds
     # the dtype's range (e.g. 86_400_000_000_000 ns/day for int32).
-    assert to_timedelta(dtype(0), unit="D") == pd.Timedelta(0, unit="D")
-    assert to_timedelta(dtype(1), unit="D") == pd.Timedelta(1, unit="D")
-    assert pd.Timedelta(dtype(1), unit="D") == pd.Timedelta(1, unit="D")
+    assert to_timedelta(dtype(0), input_unit="D") == pd.Timedelta(0, input_unit="D")
+    assert to_timedelta(dtype(1), input_unit="D") == pd.Timedelta(1, input_unit="D")
+    assert pd.Timedelta(dtype(1), input_unit="D") == pd.Timedelta(1, input_unit="D")
 
 
 @pytest.mark.parametrize("unit", ["ns", "ms"])
