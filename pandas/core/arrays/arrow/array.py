@@ -741,15 +741,13 @@ class ArrowExtensionArray(
         type is unchanged.
         """
         assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
-        obj = type(self).__new__(type(self))
         if isinstance(pa_array, pa.Array):
             pa_array = pa.chunked_array([pa_array])
-        obj._pa_array = pa_array
         pa_type = pa_array.type
-        obj._dtype = (
+        dtype = (
             self._dtype if pa_type == self._dtype.pyarrow_dtype else ArrowDtype(pa_type)
         )
-        return obj
+        return type(self)._simple_new(pa.table({"0": pa_array}), ndim=1, dtype=dtype)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:

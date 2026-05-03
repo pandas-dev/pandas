@@ -170,12 +170,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
         if not pa.types.is_large_string(pa_array.type):
             pa_array = pa_array.cast(pa.large_string())
-        obj = type(self).__new__(type(self))
         if isinstance(pa_array, pa.Array):
             pa_array = pa.chunked_array([pa_array])
-        obj._pa_array = pa_array
-        obj._dtype = self._dtype
-        return obj
+        return type(self)._simple_new(
+            pa.table({"0": pa_array}),
+            ndim=1,
+            dtype=self._dtype,  # type: ignore[arg-type]
+        )
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:
