@@ -450,7 +450,7 @@ jobs:
       - name: Set up Emscripten toolchain
         uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
-          version: '5.0.7'
+          version: '3.1.58'
           actions-cache-folder: emsdk-cache
 
       - name: Set up Python
