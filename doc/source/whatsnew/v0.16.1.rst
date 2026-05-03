@@ -266,9 +266,6 @@ enhancements make string operations easier and more consistent with standard pyt
 
      idx = pd.Index(["a,b", "a,c", "b,c"])
 
-     # return Index
-     idx.str.split(",")
-
      # return MultiIndex
      idx.str.split(",", expand=True)
 
