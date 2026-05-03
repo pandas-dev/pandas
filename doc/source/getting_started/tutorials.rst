@@ -24,8 +24,8 @@ This book provides 200 exercises with pandas. From the description:
    becoming second nature—no more trips to StackOverflow for what is now a natural part
    of your skillset.
 
-Bamboo Weekly by Ruben Lerner
------------------------------
+Bamboo Weekly by Reuven Lerner
+------------------------------
 
 `Bamboo Weekly <https://www.bambooweekly.com>`_ is a mailing list that provides weekly,
 hands on data analysis exercises to practice using pandas.

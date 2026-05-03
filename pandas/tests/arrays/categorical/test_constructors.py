@@ -336,7 +336,6 @@ class TestCategoricalConstructors:
         c = Categorical(s)
 
         expected = type(dtl)(s)
-        expected._data._freq = None
 
         tm.assert_index_equal(c.categories, expected)
         tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
@@ -347,7 +346,6 @@ class TestCategoricalConstructors:
         c = Categorical(s2)
 
         expected = type(dtl)(s2.dropna())
-        expected._data._freq = None
 
         tm.assert_index_equal(c.categories, expected)
 
@@ -760,7 +758,7 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(cat.categories, idx)
 
     def test_categorical_extension_array_nullable(self, nulls_fixture):
-        # GH:
+        # GH#37611
         arr = pd.array([nulls_fixture] * 2, dtype=pd.StringDtype())
         result = Categorical(arr)
         assert arr.dtype == result.categories.dtype

@@ -455,9 +455,6 @@ class SharedTests:
     )
     def test_setitem_object_dtype(self, box, arr1d):
         expected = arr1d.copy()[::-1]
-        if expected.dtype.kind in ["m", "M"]:
-            # __setitem__ no longer clears freq on the target array
-            expected._freq = arr1d._freq
 
         vals = expected
         if box is list:
@@ -496,9 +493,6 @@ class SharedTests:
     @pytest.mark.parametrize("as_index", [True, False])
     def test_setitem_categorical(self, arr1d, as_index):
         expected = arr1d.copy()[::-1]
-        if not isinstance(expected, PeriodArray):
-            # __setitem__ no longer clears freq on the target array
-            expected._freq = arr1d._freq
 
         cat = pd.Categorical(arr1d)
         if as_index:
@@ -552,16 +546,10 @@ class SharedTests:
 
         expected = arr + pd.Timedelta(days=1)
         arr += pd.Timedelta(days=1)
-        # Array __iadd__ no longer manages freq; arr keeps pre-iadd freq
-        # while `arr + x` returns a freq-stripped array.
-        if hasattr(arr, "_freq"):
-            expected._freq = arr._freq
         tm.assert_equal(arr, expected)
 
         expected = arr - pd.Timedelta(days=1)
         arr -= pd.Timedelta(days=1)
-        if hasattr(arr, "_freq"):
-            expected._freq = arr._freq
         tm.assert_equal(arr, expected)
 
     def test_shift_fill_int_deprecated(self, arr1d):
@@ -584,9 +572,6 @@ class SharedTests:
         arr[len(arr) // 2] = NaT
         if not isinstance(expected, Period):
             expected = arr[len(arr) // 2 - 1 : len(arr) // 2 + 2].mean()
-            # setitem no longer clears freq; result of median has freq=None
-            if hasattr(arr, "_freq"):
-                arr._freq = None
 
         assert arr.median(skipna=False) is NaT
 
@@ -664,7 +649,6 @@ class TestDatetimeArray(SharedTests):
         dta = dti._data
         result = dta.round(freq="2min")
         expected = expected._data.view()
-        expected._freq = None
         tm.assert_datetime_array_equal(result, expected)
 
     def test_array_interface(self, datetime_index):
@@ -818,7 +802,6 @@ class TestDatetimeArray(SharedTests):
         # in this case _bool_ops is just `is_leap_year`
         dti = self.index_cls(arr1d)
         arr = arr1d
-        assert dti.freq == arr.freq
 
         result = getattr(arr, propname)
         expected = np.array(getattr(dti, propname), dtype=result.dtype)
@@ -1115,7 +1098,6 @@ class TestPeriodArray(SharedTests):
         # Array-level to_timestamp returns a freq-less DTA; freq computation
         # lives on the wrapping PeriodIndex.
         expected = pi.to_timestamp(how=how)._data
-        expected._freq = None
         result = arr.to_timestamp(how=how)
         assert isinstance(result, DatetimeArray)
 
@@ -1242,10 +1224,6 @@ def test_casting_nat_setitem_array(arr, casting_nats):
     for nat in casting_nats:
         arr = arr.copy()
         arr[0] = nat
-        if hasattr(arr, "_freq"):
-            # setitem no longer clears freq on the array; values are no longer
-            # on freq after introducing NaT, so match expected.
-            arr._freq = None
         tm.assert_equal(arr, expected)
 
 
