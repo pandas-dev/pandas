@@ -226,6 +226,7 @@ class TestDataFrameMisc:
         cp.loc[0, "A"] = 10
         assert not float_frame.equals(cp)
 
+    @pytest.mark.filterwarnings('ignore:The inplace keyword in DataFrame.rename is')
     def test_inplace_return_self(self):
         # GH 1893
 
