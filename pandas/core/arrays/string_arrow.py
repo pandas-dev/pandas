@@ -162,10 +162,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _from_pyarrow_array(self, pa_array):
         """
-        Construct from the pyarrow array result of an operation, retaining
-        self.dtype.na_value.
+        Construct from a pyarrow Array/ChunkedArray result of an operation.
+
+        Avoids full __init__ overhead (type checking, pc.cast, ArrowDtype
+        construction, etc.).
         """
-        return type(self)(pa_array, dtype=self.dtype)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
+        if not pa.types.is_large_string(pa_array.type):
+            pa_array = pa_array.cast(pa.large_string())
+        obj = type(self).__new__(type(self))
+        if isinstance(pa_array, pa.Array):
+            pa_array = pa.chunked_array([pa_array])
+        obj._pa_array = pa_array
+        obj._dtype = self._dtype
+        return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:
