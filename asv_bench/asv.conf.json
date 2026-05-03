@@ -14,7 +14,8 @@
         "scipy": [],
         "numba": [],
         "numexpr": [],
-        "pytables": [],
+        "pytables": [null, ""],
+        "tables": [null, ""],
         "pyarrow": [],
         "openpyxl": [],
         "xlsxwriter": [],
@@ -24,6 +25,12 @@
         "meson-python": [],
         "python-build": []
     },
+    "exclude": [
+        {"environment_type": "conda|rattler", "tables": ""},
+        {"environment_type": "conda|rattler", "pytables": null},
+        {"environment_type": "(?!(?:conda|rattler)).*", "tables": null},
+        {"environment_type": "(?!(?:conda|rattler)).*", "pytables": ""}
+    ],
     "conda_channels": ["conda-forge"],
     "build_cache_size": 8,
     "regressions_first_commits": {
