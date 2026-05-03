@@ -1315,7 +1315,7 @@ class TestLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         # assigning the entire column using __setitem__ swaps in the new array
-        # GH#???
+        # GH#38896
         result["A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
