@@ -960,11 +960,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # range without requiring the user to pass ambiguous to the
         # DatetimeIndex constructor.
         validate_kwds: dict = {}
-        if (
-            len(dtarr) > 0
-            and dtarr.tz is not None
-            and not timezones.is_utc(dtarr.tz)
-        ):
+        if len(dtarr) > 0 and dtarr.tz is not None and not timezones.is_utc(dtarr.tz):
             local_i8 = dtarr[:1]._local_timestamps()
             dst_i8 = tzconversion.tz_localize_to_utc(
                 local_i8,
