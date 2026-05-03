@@ -83,13 +83,6 @@ jobs:
           --editable \
           -Csetup-args="--werror"
 
-    # - name: Use existing environment for type checking
-    #   run: |
-    #     echo $PATH >> $GITHUB_PATH
-    #     echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
-    #     echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-    #   if: ${{ steps.build.outcome == 'success' && always() }}
-
     - name: Typing Checks
       run: pixi run --environment typing ci-typing
 
