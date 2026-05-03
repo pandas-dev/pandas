@@ -197,7 +197,7 @@ class TestDateRanges:
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
-        # GH#???
+        # GH#24124
         freq = Timedelta(1)
 
         with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):

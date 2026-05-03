@@ -5151,12 +5151,6 @@ class Index(IndexOpsMixin, PandasObject):
         #  which negates the performance benefit of libjoin.
         # Also exclude RangeIndex which allocates memory in _get_join_target,
         #  negating the performance benefit of the fastpath.
-        if isinstance(self, ABCCategoricalIndex) and not self.ordered:
-            # For unordered CategoricalIndex, dtype equality does not
-            # guarantee matching category order across indexes. Since libjoin
-            # operates on codes, mismatched category order leads to incorrect
-            # results. GH#55335
-            return False
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex, ABCRangeIndex))
 
     # --------------------------------------------------------------------

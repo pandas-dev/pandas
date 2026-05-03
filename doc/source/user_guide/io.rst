@@ -3880,7 +3880,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to a few minor release.
+   :func:`read_pickle` is only guaranteed backwards compatible with pickles created by the current or previous major version of pandas. For example, in pandas 3.x.y, the earliest supported pickle would be from 2.0.0.
 
 .. _io.pickle.compression:
 
