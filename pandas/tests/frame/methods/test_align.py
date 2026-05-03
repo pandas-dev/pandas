@@ -309,7 +309,7 @@ class TestDataFrameAlign:
             df.align(series)
 
     def test_align_series_check_copy(self):
-        # GH#
+        # GH#49473
         df = DataFrame({0: [1, 2]})
         ser = Series([1], name=0)
         expected = ser.copy()
