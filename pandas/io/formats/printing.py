@@ -21,7 +21,7 @@ from unicodedata import east_asian_width
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -130,9 +130,7 @@ def _pprint_seq(
     if max_seq_items is False:
         max_items = None
     else:
-        max_items = (
-            max_seq_items or _global_config["display"]["max_seq_items"] or len(seq)
-        )
+        max_items = max_seq_items or config["display"]["max_seq_items"] or len(seq)
 
     s = iter(seq)
     # handle sets, no slicing
@@ -146,7 +144,7 @@ def _pprint_seq(
             # GH#60503
             from pandas.io.formats.format import _trim_zeros_single_float
 
-            precision = _global_config["display"]["precision"]
+            precision = config["display"]["precision"]
             item = _trim_zeros_single_float(f"{item:.{precision}f}")
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
@@ -174,7 +172,7 @@ def _pprint_dict(
     if max_seq_items is False:
         nitems = len(seq)
     else:
-        nitems = max_seq_items or _global_config["display"]["max_seq_items"] or len(seq)
+        nitems = max_seq_items or config["display"]["max_seq_items"] or len(seq)
 
     for k, v in list(seq.items())[:nitems]:
         pairs.append(
@@ -231,7 +229,7 @@ def pprint_thing(
         return str(thing)
     elif (
         isinstance(thing, Mapping)
-        and _nest_lvl < _global_config["display"]["pprint_nest_depth"]
+        and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_dict(
             thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
@@ -255,7 +253,7 @@ def pprint_thing(
                 ABCNDFrame,
             ),
         )
-        and _nest_lvl < _global_config["display"]["pprint_nest_depth"]
+        and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_seq(
             # error: Argument 1 to "_pprint_seq" has incompatible type "object";
@@ -377,7 +375,7 @@ def format_object_summary(
     """
     display_width, _ = get_console_size()
     if display_width is None:
-        display_width = _global_config["display"]["width"] or 80
+        display_width = config["display"]["width"] or 80
     if name is None:
         name = type(obj).__name__
 
@@ -396,7 +394,7 @@ def format_object_summary(
         sep = ",\n " + " " * len(name)
     else:
         sep = ","
-    max_seq_items = _global_config["display"]["max_seq_items"] or n
+    max_seq_items = config["display"]["max_seq_items"] or n
 
     # are we a truncated display
     is_truncated = n > max_seq_items
@@ -565,7 +563,7 @@ class PrettyDict(dict[_KT, _VT]):
 
 class _TextAdjustment:
     def __init__(self) -> None:
-        self.encoding = _global_config["display"]["encoding"]
+        self.encoding = config["display"]["encoding"]
 
     def len(self, text: str) -> int:
         return len(text)
@@ -588,7 +586,7 @@ class _TextAdjustment:
 class _EastAsianTextAdjustment(_TextAdjustment):
     def __init__(self) -> None:
         super().__init__()
-        if _global_config["display"]["unicode"]["ambiguous_as_wide"]:
+        if config["display"]["unicode"]["ambiguous_as_wide"]:
             self.ambiguous_width = 2
         else:
             self.ambiguous_width = 1
@@ -625,7 +623,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
 
 
 def get_adjustment() -> _TextAdjustment:
-    use_east_asian_width = _global_config["display"]["unicode"]["east_asian_width"]
+    use_east_asian_width = config["display"]["unicode"]["east_asian_width"]
     if use_east_asian_width:
         return _EastAsianTextAdjustment()
     else:

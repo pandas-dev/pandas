@@ -16,7 +16,9 @@ import pandas._testing as tm
 
 
 class TestInsert:
-    @pytest.mark.parametrize("null", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+    @pytest.mark.parametrize(
+        "null", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+    )
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)

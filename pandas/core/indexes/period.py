@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
-    cache_readonly,
     set_module,
 )
 
@@ -179,11 +178,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
 
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        # for compat with DatetimeIndex
-        return self.dtype._resolution_obj
-
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
@@ -290,8 +284,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
-        arr = self._data.to_timestamp(freq, how)
-        return DatetimeIndex._simple_new(arr, name=self.name)
+        parr = self._data
+        arr = parr.to_timestamp(freq, how)
+        result = DatetimeIndex._simple_new(arr, name=self.name)
+        result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
+        return result
 
     @property
     def hour(self) -> Index:

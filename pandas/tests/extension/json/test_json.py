@@ -140,6 +140,16 @@ class TestJSONArray(base.ExtensionTests):
         return super().test_unstack(data, index)
 
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_scalar(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_scalar(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_readonly(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_readonly(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_series()
@@ -189,10 +199,13 @@ class TestJSONArray(base.ExtensionTests):
                 data_missing, limit_area, input_ilocs, expected_ilocs
             )
 
-    def test_value_counts(self, all_data, dropna, request):
-        if len(all_data) == 10 or dropna:
-            request.applymarker(unhashable)
+    @unhashable
+    def test_value_counts(self, all_data, dropna):
         super().test_value_counts(all_data, dropna)
+
+    @unhashable
+    def test_value_counts_with_normalize(self, data):
+        super().test_value_counts_with_normalize(data)
 
     @unhashable
     def test_sort_values_frame(self):

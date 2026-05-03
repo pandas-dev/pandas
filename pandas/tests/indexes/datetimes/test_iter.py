@@ -7,7 +7,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
-from pandas.core.arrays import datetimes
+from pandas.core.arrays import datetimelike
 
 
 class TestDatetimeIndexIteration:
@@ -69,7 +69,7 @@ class TestDatetimeIndexIteration:
         )
         num = 0
         with monkeypatch.context() as m:
-            m.setattr(datetimes, "_ITER_CHUNKSIZE", chunksize)
+            m.setattr(datetimelike, "_ITER_CHUNKSIZE", chunksize)
             for stamp in index:
                 assert index[num] == stamp
                 num += 1
