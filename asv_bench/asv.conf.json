@@ -8,6 +8,7 @@
     "show_commit_url": "https://github.com/pandas-dev/pandas/commit/",
     "matrix": {
         "pip+build": [],
+        "versioneer[toml]": [],
         "Cython": [],
         "matplotlib": [],
         "sqlalchemy": [],
@@ -30,5 +31,5 @@
         ".*": "0409521665"
     },
     "build_command":
-    ["python -m build -Cbuilddir=builddir --wheel --outdir {build_cache_dir} {build_dir}"]
+    ["python -m build -Cbuilddir=builddir --no-isolation --wheel --outdir {build_cache_dir} {build_dir}"]
 }

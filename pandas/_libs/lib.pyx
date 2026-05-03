@@ -2087,7 +2087,9 @@ cdef class TemporalValidator(Validator):
     cdef bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
-            bint is_generic_null = value is None or util.is_nan(value)
+            bint is_generic_null = (
+                value is None or value is C_NA or util.is_nan(value)
+            )
         if not is_generic_null:
             self.all_generic_na = False
         return self.is_value_typed(value) or is_typed_null or is_generic_null

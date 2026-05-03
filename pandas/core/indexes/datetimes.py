@@ -93,16 +93,16 @@ def _new_DatetimeIndex(cls, d):
             tz = d.pop("tz")
             freq = d.pop("freq")
             dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz))
-            dta._freq = freq
         else:
             dta = data
-            for key in ["tz", "freq"]:
-                # These are already stored in our DatetimeArray; if they are
-                #  also in the pickle and don't match, we have a problem.
-                if key in d:
-                    assert d[key] == getattr(dta, key)
-                    d.pop(key)
+            if "tz" in d:
+                assert d.pop("tz") == dta.tz
+            # Legacy pickles stored freq on the DatetimeArray; current pickles
+            # include it in ``d``. Migrate either up onto the Index.
+            legacy_freq = vars(dta).pop("_freq", None)
+            freq = d.pop("freq", legacy_freq)
         result = cls._simple_new(dta, **d)
+        result._freq = freq
     else:
         with warnings.catch_warnings():
             # TODO: If we knew what was going in to **d, we might be able to
@@ -497,8 +497,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
         arr = self._data.normalize()
-        arr._freq = to_offset(arr.inferred_freq)
-        return type(self)._simple_new(arr, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        result._freq = to_offset(arr.inferred_freq)
+        return result
 
     def tz_convert(self, tz) -> Self:
         """
@@ -572,10 +573,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                         dtype='datetime64[us]', freq='h')
         """  # noqa: E501
         arr = self._data.tz_convert(tz)
-        freq = self._data.freq
-        if isinstance(freq, Tick):
-            arr._freq = freq
-        return type(self)._simple_new(arr, name=self.name, refs=self._references)
+        result = type(self)._simple_new(arr, name=self.name, refs=self._references)
+        if isinstance(self.freq, Tick):
+            result._freq = self.freq
+        return result
 
     def tz_localize(
         self,
@@ -722,16 +723,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
         """  # noqa: E501
-        freq = self._data.freq
+        freq = self._freq
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
+        result = type(self)._simple_new(arr, name=self.name)
         if timezones.is_utc(arr.tz) or (len(arr) == 1 and arr[0] is not NaT):
             # we can preserve freq
             # TODO: Also for fixed-offsets
-            arr._freq = freq
+            result._freq = freq
         elif arr.tz is None and self._data.tz is None:
             # no-op
-            arr._freq = freq
-        return type(self)._simple_new(arr, name=self.name)
+            result._freq = freq
+        return result
 
     def to_period(self, freq=None) -> PeriodIndex:
         """
@@ -902,14 +904,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
-        # Extract freq from incoming data before array conversion strips it
-        inferred_freq = None
-        if isinstance(data, DatetimeArray):
-            inferred_freq = data.freq
-        elif isinstance(data, (Index, ABCSeries)):
-            values = data._values
-            if isinstance(values, DatetimeArray):
-                inferred_freq = values.freq
+        inferred_freq = data.freq if isinstance(data, DatetimeIndex) else None
 
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
@@ -921,15 +916,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             ambiguous=ambiguous,
         )
 
-        if inferred_freq is not None:
-            dtarr._freq = inferred_freq
-
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
-        subarr._pin_freq(freq, {"ambiguous": ambiguous})
+        subarr._pin_freq(freq, inferred_freq, {"ambiguous": ambiguous})
         return subarr
 
     # --------------------------------------------------------------------
@@ -952,7 +944,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return self._values._is_dates_only
 
     def __reduce__(self):
-        d = {"data": self._data, "name": self.name}
+        d = {"data": self._data, "name": self.name, "freq": self._freq}
         return _new_DatetimeIndex, (type(self), d), None
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -1099,7 +1091,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     s = t1
             dta[i] = s
 
-        dta._freq = None
         return DatetimeIndex._simple_new(dta, name=self.name)
 
     # --------------------------------------------------------------------
@@ -1763,7 +1754,9 @@ def date_range(
         unit=unit,
         **kwargs,
     )
-    return DatetimeIndex._simple_new(dtarr, name=name)
+    result = DatetimeIndex._simple_new(dtarr, name=name)
+    result._freq = freq
+    return result
 
 
 @set_module("pandas")
