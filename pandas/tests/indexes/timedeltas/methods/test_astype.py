@@ -138,15 +138,13 @@ class TestTimedeltaIndex:
         res = tdi.astype("m8[s]")
         exp_values = np.asarray(tdi).astype("m8[s]")
         exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
-        exp_tda._freq = tdi.freq
         expected = Index(exp_tda)
+        expected._freq = tdi.freq
         assert expected.dtype == "m8[s]"
         tm.assert_index_equal(res, expected)
 
         # check this matches Series and TimedeltaArray
-        # freq is not preserved at the array level; Index handles freq
-        exp_arr = expected._values.view()
-        exp_arr._freq = None
+        exp_arr = expected._values
 
         res = tdi._data.astype("m8[s]")
         tm.assert_equal(res, exp_arr)
