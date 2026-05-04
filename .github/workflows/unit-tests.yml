@@ -468,7 +468,7 @@ jobs:
           python-version: '3.12'
           pip-install: pyodide-build
 
-      - name: Set up Emscripten version
+      - name: Save Emscripten version
         run: echo EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) >> $GITHUB_ENV
 
       - name: Set up Emscripten toolchain
