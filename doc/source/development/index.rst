@@ -21,6 +21,7 @@ Development
     copy_on_write
     debugging_extensions
     extending
+    arrow_fallbacks
     developer
     policies
     community

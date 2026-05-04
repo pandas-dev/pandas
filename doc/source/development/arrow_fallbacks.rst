@@ -3,7 +3,7 @@
 {{ header }}
 
 ***************
-Arrow Fallbacks
+Arrow fallbacks
 ***************
 
 This document shows the runtime behavior of pandas methods on
@@ -65,7 +65,7 @@ Legend
 .. |mixed| replace:: ~ Mixed
 
 
-String Methods (Series.str.*)
+String methods (Series.str.*)
 =============================
 
 .. list-table::
@@ -188,7 +188,7 @@ String Methods (Series.str.*)
      - |error|
    * - ``normalize``
      - |arrow|
-     - |elementwise|
+     - |arrow|
    * - ``pad(side=both)``
      - |arrow|
      - |arrow|
@@ -277,7 +277,7 @@ String Methods (Series.str.*)
      - |arrow|
      - |arrow|
 
-Datetime Methods (Series.dt.*)
+Datetime methods (Series.dt.*)
 ==============================
 
 .. list-table::
@@ -367,7 +367,7 @@ Datetime Methods (Series.dt.*)
    * - ``year``
      - |arrow|
 
-Timedelta Methods (Series.dt.*)
+Timedelta methods (Series.dt.*)
 ===============================
 
 .. list-table::
@@ -391,7 +391,7 @@ Timedelta Methods (Series.dt.*)
    * - ``total_seconds``
      - |arrow|
 
-Aggregation Methods
+Aggregation methods
 ===================
 
 .. list-table::
@@ -444,7 +444,7 @@ Aggregation Methods
      - |arrow|
      - |arrow|
 
-Array Methods
+Array methods
 =============
 
 .. list-table::
@@ -727,7 +727,7 @@ Array Methods
      - |arrow|
      - |arrow|
 
-Algorithmic Methods
+Algorithmic methods
 ===================
 
 These methods have behavior that may vary across versions.
@@ -782,7 +782,7 @@ Explicit kwargs are used for deterministic results.
      - |arrow|
      - |arrow|
 
-Arithmetic Operations
+Arithmetic operations
 =====================
 
 .. list-table::
@@ -814,7 +814,7 @@ Arithmetic Operations
      - |arrow|
      - |arrow|
 
-Comparison Operations
+Comparison operations
 =====================
 
 .. list-table::
@@ -845,7 +845,7 @@ Comparison Operations
 
 .. _arrow-version-gated:
 
-Version-Gated Methods
+Version-gated methods
 =====================
 
 The following methods have behavior that depends on your installed PyArrow

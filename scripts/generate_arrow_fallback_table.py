@@ -1209,7 +1209,7 @@ def run_all_tests() -> dict[str, list[OperationResult]]:
 
 def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
     """Format results as RST tables."""
-    title = "Arrow Fallbacks"
+    title = "Arrow fallbacks"
     lines = [
         ".. _arrow-fallbacks:",
         "",
@@ -1294,7 +1294,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "String Methods (Series.str.*)",
+                "String methods (Series.str.*)",
                 "=============================",
                 "",
             ]
@@ -1306,7 +1306,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Datetime Methods (Series.dt.*)",
+                "Datetime methods (Series.dt.*)",
                 "==============================",
                 "",
             ]
@@ -1318,7 +1318,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Timedelta Methods (Series.dt.*)",
+                "Timedelta methods (Series.dt.*)",
                 "===============================",
                 "",
             ]
@@ -1330,7 +1330,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Aggregation Methods",
+                "Aggregation methods",
                 "===================",
                 "",
             ]
@@ -1342,7 +1342,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Array Methods",
+                "Array methods",
                 "=============",
                 "",
             ]
@@ -1354,7 +1354,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Algorithmic Methods",
+                "Algorithmic methods",
                 "===================",
                 "",
                 "These methods have behavior that may vary across versions.",
@@ -1371,7 +1371,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Arithmetic Operations",
+                "Arithmetic operations",
                 "=====================",
                 "",
             ]
@@ -1383,7 +1383,7 @@ def format_rst_table(all_results: dict[str, list[OperationResult]]) -> str:
         lines.extend(
             [
                 "",
-                "Comparison Operations",
+                "Comparison operations",
                 "=====================",
                 "",
             ]
@@ -1402,7 +1402,7 @@ def _format_version_gated_section() -> list[str]:
         "",
         ".. _arrow-version-gated:",
         "",
-        "Version-Gated Methods",
+        "Version-gated methods",
         "=====================",
         "",
         "The following methods have behavior that depends on your installed PyArrow",
@@ -1529,7 +1529,7 @@ def _format_method_table(
         lines.append(f"   * - ``{method}``")
         for g in groups:
             status = get_group_status(by_method[method], g)
-            lines.append(f"     - {status}")
+            lines.append(f"     - {status}".rstrip())
 
     return lines
 
@@ -1789,7 +1789,7 @@ def main():
 
     # Check mode
     if args.check:
-        target = Path("doc/source/user_guide/arrow_fallbacks.rst")
+        target = Path("doc/source/development/arrow_fallbacks.rst")
         if not target.exists():
             print(f"ERROR: {target} does not exist.", file=sys.stderr)
             sys.exit(1)

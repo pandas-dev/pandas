@@ -450,7 +450,7 @@ class TestCLI:
             text=True,
         )
         # The --check mode compares against a fixed path
-        # (doc/source/user_guide/arrow_fallbacks.rst), so we cannot
+        # (doc/source/development/arrow_fallbacks.rst), so we cannot
         # easily test it with a temp file. Instead verify the file
         # was written correctly.
         content = Path(outpath).read_text()
