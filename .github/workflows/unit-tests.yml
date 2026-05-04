@@ -457,12 +457,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Emscripten toolchain
-        uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
-        with:
-          version: '3.1.58'
-          actions-cache-folder: emsdk-cache
-
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
@@ -473,6 +467,15 @@ jobs:
         with:
           python-version: '3.12'
           pip-install: pyodide-build
+
+      - name: Set up Emscripten version
+        run: echo EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) >> $GITHUB_ENV
+
+      - name: Set up Emscripten toolchain
+        uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: emsdk-cache
 
       - name: Build pandas for Pyodide
         run: pyodide build
