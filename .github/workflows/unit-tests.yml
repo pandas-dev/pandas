@@ -491,4 +491,4 @@ jobs:
         run: |
           source .venv-pyodide/bin/activate
           python -m pip install pytest hypothesis pytest-cov
-          pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
