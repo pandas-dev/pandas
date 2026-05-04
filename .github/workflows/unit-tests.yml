@@ -472,7 +472,7 @@ jobs:
 
       - name: Set up Pyodide virtual environment
         run: |
-          pyodide install 0.29.3
+          pyodide xbuildenv install 0.29.3
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           python -m pip install dist/*.whl
