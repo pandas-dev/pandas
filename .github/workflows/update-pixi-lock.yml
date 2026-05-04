@@ -4,6 +4,9 @@ on:
     # 4:10 UTC every Sunday
     - cron: "10 4 * * 0"
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 permissions: {}
 defaults:
@@ -35,18 +38,22 @@ jobs:
         "Scheduled update by `.github/workflows/update-pixi-lock.yml`.\n\nMark the PR as ready for review to trigger CI. If CI jobs fail, modify this pull request as needed.\n\n" > diff.md
         pixi update --json | pixi exec pixi-diff-to-markdown >> diff.md
 
-    # There should be an update since pixi.toml references nightly packages
-    # or use https://github.com/prefix-dev/pixi/issues/5813
-    - name: Create pull request
-      uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-      with:
-        commit-message: Update pixi.lock
-        add-paths: pixi.lock
-        # author same as default committer for this action
-        author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
-        branch: "ci/update-pixi-lock"
-        delete-branch: true
-        title: "CI: Update pixi.lock"
-        body-path: diff.md
-        labels: "CI"
-        draft: always-true
+    # TMP cat diff.md
+    - name: Show diff
+      run: cat diff.md
+
+    # # There should be an update since pixi.toml references nightly packages
+    # # or use https://github.com/prefix-dev/pixi/issues/5813
+    # - name: Create pull request
+    #   uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+    #   with:
+    #     commit-message: Update pixi.lock
+    #     add-paths: pixi.lock
+    #     # author same as default committer for this action
+    #     author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+    #     branch: "ci/update-pixi-lock"
+    #     delete-branch: true
+    #     title: "CI: Update pixi.lock"
+    #     body-path: diff.md
+    #     labels: "CI"
+    #     draft: always-true
