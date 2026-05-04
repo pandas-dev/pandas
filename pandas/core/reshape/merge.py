@@ -1426,7 +1426,11 @@ class _MergeOperation:
                 else:
                     # When left is empty, create default index based on merge type
                     if self.how in ("right", "outer"):
-                        n = len(right_ax) if right_indexer is None else len(right_indexer)
+                        n = (
+                            len(right_ax)
+                            if right_indexer is None
+                            else len(right_indexer)
+                        )
                     elif self.how == "inner":
                         n = 0
                     else:  # left
@@ -1452,7 +1456,11 @@ class _MergeOperation:
                 else:
                     # When right is empty, create default index based on merge type
                     if self.how == "right":
-                        n = len(right_ax) if right_indexer is None else len(right_indexer)
+                        n = (
+                            len(right_ax)
+                            if right_indexer is None
+                            else len(right_indexer)
+                        )
                     elif self.how == "inner":
                         n = 0
                     elif self.how == "left":
