@@ -1,9 +1,9 @@
+from _csv import Error
 import io
 import os
 import sys
 from zipfile import ZipFile
 
-from _csv import Error
 import numpy as np
 import pytest
 
