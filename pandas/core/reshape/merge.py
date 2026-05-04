@@ -1423,10 +1423,15 @@ class _MergeOperation:
                         left_indexer,
                         how="right",
                     )
-                elif right_indexer is None:
-                    join_index = right_ax.copy()
                 else:
-                    join_index = right_ax.take(right_indexer)
+                    # When left is empty, create default index based on merge type
+                    if self.how in ("right", "outer"):
+                        n = len(right_ax) if right_indexer is None else len(right_indexer)
+                    elif self.how == "inner":
+                        n = 0
+                    else:  # left
+                        n = 0
+                    join_index = default_index(n)
             elif self.left_index:
                 if self.how == "asof":
                     # GH#33463 asof should always behave like a left merge
@@ -1444,10 +1449,17 @@ class _MergeOperation:
                         right_indexer,
                         how="left",
                     )
-                elif left_indexer is None:
-                    join_index = left_ax.copy()
                 else:
-                    join_index = left_ax.take(left_indexer)
+                    # When right is empty, create default index based on merge type
+                    if self.how == "right":
+                        n = len(right_ax) if right_indexer is None else len(right_indexer)
+                    elif self.how == "inner":
+                        n = 0
+                    elif self.how == "left":
+                        n = len(left_ax) if left_indexer is None else len(left_indexer)
+                    else:  # outer
+                        n = len(left_ax) if left_indexer is None else len(left_indexer)
+                    join_index = default_index(n)
             else:
                 n = len(left_ax) if left_indexer is None else len(left_indexer)
                 join_index = default_index(n)

@@ -2792,6 +2792,34 @@ def test_merge_result_empty_index_and_on():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+def test_merge_empty_dataframe_index_name_consistency(how):
+    # GH 22921: Test for consistency in index naming when merging with empty DataFrames
+    # using left_on/right_index or left_index/right_on patterns
+
+    # Case 1: left_on/right_index with empty left DataFrame
+    b = DataFrame({"dataB": ["pff"]}, index=Index([1], name="refB"))
+    a_full = DataFrame({"refA": [1], "dataA": ["bla"]})
+    m_full = a_full.merge(b, left_on="refA", right_index=True, how=how)
+
+    a_empty = DataFrame(columns=["refA", "dataA"])
+    m_empty = a_empty.merge(b, left_on="refA", right_index=True, how=how)
+
+    # Index names should be consistent
+    assert m_full.index.name == m_empty.index.name
+
+    # Case 2: left_index/right_on with empty right DataFrame
+    a = DataFrame({"dataA": ["bla"]}, index=Index([1], name="refA"))
+    b_full = DataFrame({"refB": [1], "dataB": ["pff"]})
+    m_full = a.merge(b_full, left_index=True, right_on="refB", how=how)
+
+    b_empty = DataFrame(columns=["refB", "dataB"])
+    m_empty = a.merge(b_empty, left_index=True, right_on="refB", how=how)
+
+    # Index names should be consistent
+    assert m_full.index.name == m_empty.index.name
+
+
 def test_merge_suffixes_produce_dup_columns_raises():
     # GH#22818; Enforced in 2.0
     left = DataFrame({"a": [1, 2, 3], "b": 1, "b_x": 2})
