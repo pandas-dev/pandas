@@ -143,7 +143,7 @@ jobs:
       # These extra locales will be available for locale.setlocale() calls in tests
       run: |
         apt-get update
-        apt-get ${{ matrix.extra_apt }}
+        apt-get install --yes ${{ matrix.extra_apt }}
         locale-gen ${{ matrix.extra_loc }}
       if: ${{ matrix.extra_loc && matrix.extra_apt }}
 
