@@ -1543,23 +1543,27 @@ def test_groupby_apply_store_copy():
     tm.assert_frame_equal(store[1], expected_out_1)
 
 
-def test_apply_as_index_false_empty_index_name():
+@pytest.mark.parametrize("test_empty", [False, True])
+def test_apply_as_index_false_empty_index_name(test_empty):
+    # https://github.com/pandas-dev/pandas/issues/48135
     df = DataFrame({"A": [4, 4, 4], "B": [9, 9, 9]})
-    result = df.groupby("A", as_index=False).apply(lambda x: x)
 
-    empty_df = df.iloc[:0]
-    result_empty = empty_df.groupby("A", as_index=False).apply(lambda x: x)
+    if test_empty:
+        df = df.iloc[:0]
 
-    expected = DataFrame(
-        {"B": [9, 9, 9]},
-        index=Index([0, 1, 2], dtype="int64"),
-    )
+    gb = df.groupby("A", as_index=False)
+    result = gb.apply(lambda x: x)
+
+    if test_empty:
+        expected = DataFrame(
+            {"B": Series([], dtype="int64")},
+            index=Index([], dtype="int64"),
+        )
+    else:
+        expected = DataFrame(
+            {"B": [9, 9, 9]},
+            index=Index([0, 1, 2], dtype="int64"),
+        )
+
     expected.index.name = None
     tm.assert_frame_equal(result, expected)
-
-    expected_empty = DataFrame(
-        {"B": Series([], dtype="int64")},
-        index=Index([], dtype="int64"),
-    )
-    expected_empty.index.name = None
-    tm.assert_frame_equal(result_empty, expected_empty)
