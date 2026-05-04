@@ -142,9 +142,9 @@ jobs:
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests
       run: |
-        apt-get update
-        apt-get install --yes ${{ matrix.extra_apt }}
-        locale-gen ${{ matrix.extra_loc }}
+        sudo apt-get update
+        sudo apt-get install --yes ${{ matrix.extra_apt }}
+        sudo locale-gen ${{ matrix.extra_loc }}
       if: ${{ matrix.extra_loc && matrix.extra_apt }}
 
     - name: Create virtual environment with Pixi
