@@ -1996,8 +1996,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('col1', OrderedDict([('row1', 1), ('row2', 2)])),
-                     ('col2', OrderedDict([('row1', 0.5), ('row2', 0.75)]))])
+        OrderedDict({'col1': OrderedDict({'row1': 1, 'row2': 2}),
+                     'col2': OrderedDict({'row1': 0.5, 'row2': 0.75})})
 
         If you want a `defaultdict`, you need to initialize it:
 
@@ -5431,7 +5431,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        blk_dtypes = self._mgr.get_unique_dtypes()
         if (
             np.object_ in include
             and str not in include
@@ -5458,12 +5458,24 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
+    def _select_dtypes_indices(self, dtype_class) -> np.ndarray:
+        """
+        Return the indices of the columns of a given dtype.
+
+        Currently only works given a class, so mostly useful for ExtensionDtypes.
+        """
+
+        def predicate(arr: ArrayLike) -> bool:
+            return isinstance(arr.dtype, dtype_class)
+
+        return self._mgr._get_data_subset_indices(predicate)
+
     def insert(
         self,
         loc: int,
         column: Hashable,
         value: object,
-        allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        allow_duplicates: bool = False,
     ) -> None:
         """
         Insert column into DataFrame at specified location.
@@ -5479,7 +5491,7 @@ class DataFrame(NDFrame, OpsMixin):
             Label of the inserted column.
         value : Scalar, Series, or array-like
             Content of the inserted column.
-        allow_duplicates : bool, optional, default lib.no_default
+        allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
         See Also
@@ -5512,8 +5524,6 @@ class DataFrame(NDFrame, OpsMixin):
         0   NaN   100     1      99     3
         1   5.0   100     2      99     4
         """
-        if allow_duplicates is lib.no_default:
-            allow_duplicates = False
         if allow_duplicates and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'allow_duplicates=True' when "
@@ -6955,7 +6965,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame: ...
 
@@ -6968,7 +6978,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> None: ...
 
@@ -6981,7 +6991,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
-        allow_duplicates: bool | lib.NoDefault = ...,
+        allow_duplicates: bool = ...,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None: ...
 
@@ -6993,7 +7003,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
-        allow_duplicates: bool | lib.NoDefault = lib.no_default,
+        allow_duplicates: bool = False,
         names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
@@ -7020,7 +7030,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
-        allow_duplicates : bool, optional, default lib.no_default
+        allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
@@ -7160,8 +7170,7 @@ class DataFrame(NDFrame, OpsMixin):
             new_obj = self
         else:
             new_obj = self.copy(deep=False)
-        if allow_duplicates is not lib.no_default:
-            allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
+        allow_duplicates = validate_bool_kwarg(allow_duplicates, "allow_duplicates")
 
         new_index = default_index(len(new_obj))
         if level is not None:
@@ -17963,9 +17972,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         index = data._get_axis(axis)
-        result = algorithms.take(
-            index._values, indices, allow_fill=True, fill_value=index._na_value
-        )
+        result = index.take(indices, allow_fill=True)._values
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
@@ -18064,9 +18071,7 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         index = data._get_axis(axis)
-        result = algorithms.take(
-            index._values, indices, allow_fill=True, fill_value=index._na_value
-        )
+        result = index.take(indices, allow_fill=True)._values
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmax")
 

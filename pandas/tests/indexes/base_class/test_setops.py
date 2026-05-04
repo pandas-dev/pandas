@@ -30,7 +30,7 @@ class TestIndexSetOps:
         with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
             getattr(idx1, method)(idx2, sort=2)
 
-        # sort=True is supported as of GH#??
+        # sort=True is supported as of GH#25151
         getattr(idx1, method)(idx2, sort=True)
 
     def test_setops_preserve_object_dtype(self):

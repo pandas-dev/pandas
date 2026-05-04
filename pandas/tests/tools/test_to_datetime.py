@@ -2781,9 +2781,6 @@ class TestToDatetimeMisc:
         expected = klass(expected)
 
         result = to_datetime(obj, utc=True)
-        if klass is not DatetimeIndex:
-            # Array methods no longer set freq; freq is managed by Index
-            expected = expected._with_freq(None)
         tm.assert_equal(result, expected)
 
 
@@ -3472,9 +3469,9 @@ def test_nullable_integer_to_datetime():
         [
             np.datetime64("1970-01-01 00:00:00.000000001"),
             np.datetime64("1970-01-01 00:00:00.000000002"),
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
             np.datetime64("2043-01-25 23:56:49.213693952"),
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ]
     )
     tm.assert_series_equal(res, expected)
