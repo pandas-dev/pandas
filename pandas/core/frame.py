@@ -5580,7 +5580,7 @@ class DataFrame(NDFrame, OpsMixin):
         Assigning multiple columns within the same ``assign`` is possible.
         Later items in '\*\*kwargs' may refer to newly created or modified
         columns in 'df'; items are computed and assigned into 'df' in order.
-        Non-callable values (Series, arrays, scalars) follows the same
+        Non-callable values (Series, arrays, scalars) follow the same
         alignment and broadcasting rules as :meth:`DataFrame.__setitem__`. See
         that method's documentation for details.
 
