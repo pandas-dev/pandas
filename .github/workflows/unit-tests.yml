@@ -456,6 +456,11 @@ jobs:
           version: '3.1.58'
           actions-cache-folder: emsdk-cache
 
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
@@ -465,14 +470,9 @@ jobs:
       - name: Build pandas for Pyodide
         run: pyodide build
 
-      - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
-        with:
-          node-version: 24
-
       - name: Set up Pyodide virtual environment
         run: |
-          pyodide xbuildenv install 0.29.3
+          pyodide xbuildenv install 0.27.1
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           python -m pip install dist/*.whl
