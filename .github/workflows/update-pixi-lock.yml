@@ -35,7 +35,7 @@ jobs:
 
     - name: Update lock files
       run: |
-        "Scheduled update by `.github/workflows/update-pixi-lock.yml`.\n\nMark the PR as ready for review to trigger CI. If CI jobs fail, modify this pull request as needed.\n\n" > diff.md
+        echo "Scheduled update by `.github/workflows/update-pixi-lock.yml`.\n\nMark the PR as ready for review to trigger CI. If CI jobs fail, modify this pull request as needed.\n\n" > diff.md
         pixi update --json | pixi exec pixi-diff-to-markdown >> diff.md
 
     # TMP cat diff.md
