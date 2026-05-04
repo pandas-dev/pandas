@@ -101,7 +101,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default to False
+    sort : bool, default False
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -123,7 +123,7 @@ class Grouper:
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
-    offset : Timedelta or str, default is None
+    offset : Timedelta or str, default None
         An offset timedelta added to the origin.
 
     dropna : bool, default True
@@ -427,7 +427,7 @@ class Grouping:
     obj : DataFrame or Series
     name : Label
     level :
-    observed : bool, default False
+    observed : bool, default True
         If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
@@ -460,7 +460,7 @@ class Grouping:
         obj: NDFrame | None = None,
         level=None,
         sort: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         in_axis: bool = False,
         dropna: bool = True,
         uniques: ArrayLike | None = None,
@@ -681,7 +681,9 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_index._values
+            # Pass the full Index (not ._values) so DatetimeIndex/TimedeltaIndex
+            # freq survives the trip through _with_infer.
+            uniques = self.grouping_vector.result_index  # type: ignore[assignment]
         elif self._uniques is not None:
             # GH#50486 Code grouping_vector using _uniques; allows
             # including uniques that are not present in grouping_vector.
@@ -738,7 +740,7 @@ def get_grouper(
     key=None,
     level=None,
     sort: bool = True,
-    observed: bool = False,
+    observed: bool = True,
     validate: bool = True,
     dropna: bool = True,
 ) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:

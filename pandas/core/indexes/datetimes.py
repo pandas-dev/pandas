@@ -92,16 +92,17 @@ def _new_DatetimeIndex(cls, d):
             #  a DatetimeArray to adapt to the newer _simple_new signature
             tz = d.pop("tz")
             freq = d.pop("freq")
-            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
+            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz))
         else:
             dta = data
-            for key in ["tz", "freq"]:
-                # These are already stored in our DatetimeArray; if they are
-                #  also in the pickle and don't match, we have a problem.
-                if key in d:
-                    assert d[key] == getattr(dta, key)
-                    d.pop(key)
+            if "tz" in d:
+                assert d.pop("tz") == dta.tz
+            # Legacy pickles stored freq on the DatetimeArray; current pickles
+            # include it in ``d``. Migrate either up onto the Index.
+            legacy_freq = vars(dta).pop("_freq", None)
+            freq = d.pop("freq", legacy_freq)
         result = cls._simple_new(dta, **d)
+        result._freq = freq
     else:
         with warnings.catch_warnings():
             # TODO: If we knew what was going in to **d, we might be able to
@@ -116,7 +117,15 @@ def _new_DatetimeIndex(cls, d):
     [
         method
         for method in DatetimeArray._datetimelike_methods
-        if method not in ("tz_localize", "tz_convert", "strftime")
+        if method
+        not in (
+            "tz_localize",
+            "tz_convert",
+            "normalize",
+            "to_period",
+            "strftime",
+            "as_unit",
+        )
     ],
     DatetimeArray,
     wrap=True,
@@ -166,7 +175,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order. Requires that the timestamps are monotonically increasing.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -373,27 +382,27 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def is_month_start(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_month_start
+        return self._data._get_start_end_field("is_month_start", self.freq)
 
     @property
     def is_month_end(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_month_end
+        return self._data._get_start_end_field("is_month_end", self.freq)
 
     @property
     def is_quarter_start(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_quarter_start
+        return self._data._get_start_end_field("is_quarter_start", self.freq)
 
     @property
     def is_quarter_end(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_quarter_end
+        return self._data._get_start_end_field("is_quarter_end", self.freq)
 
     @property
     def is_year_start(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_year_start
+        return self._data._get_start_end_field("is_year_start", self.freq)
 
     @property
     def is_year_end(self) -> npt.NDArray[np.bool_]:
-        return self._data.is_year_end
+        return self._data._get_start_end_field("is_year_end", self.freq)
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
@@ -447,6 +456,50 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         arr = self._data.strftime(date_format)
         return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
+
+    def normalize(self) -> Self:
+        """
+        Convert times to midnight.
+
+        The time component of the date-time is converted to midnight i.e.
+        00:00:00. This is useful in cases, when the time does not matter.
+        Length is unaltered. The timezones are unaffected.
+
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on Datetime Array/Index.
+
+        Returns
+        -------
+        DatetimeArray, DatetimeIndex or Series
+            The same type as the original data. Series will have the same
+            name and index. DatetimeIndex will have the same name.
+
+        See Also
+        --------
+        floor : Floor the datetimes to the specified freq.
+        ceil : Ceil the datetimes to the specified freq.
+        round : Round the datetimes to the specified freq.
+
+        Examples
+        --------
+        >>> idx = pd.date_range(
+        ...     start="2014-08-01 10:00", freq="h", periods=3, tz="Asia/Calcutta"
+        ... )
+        >>> idx
+        DatetimeIndex(['2014-08-01 10:00:00+05:30',
+                       '2014-08-01 11:00:00+05:30',
+                       '2014-08-01 12:00:00+05:30'],
+                        dtype='datetime64[us, Asia/Calcutta]', freq='h')
+        >>> idx.normalize()
+        DatetimeIndex(['2014-08-01 00:00:00+05:30',
+                       '2014-08-01 00:00:00+05:30',
+                       '2014-08-01 00:00:00+05:30'],
+                       dtype='datetime64[us, Asia/Calcutta]', freq=None)
+        """
+        arr = self._data.normalize()
+        result = type(self)._simple_new(arr, name=self.name)
+        result._freq = to_offset(arr.inferred_freq)
+        return result
 
     def tz_convert(self, tz) -> Self:
         """
@@ -520,7 +573,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                         dtype='datetime64[us]', freq='h')
         """  # noqa: E501
         arr = self._data.tz_convert(tz)
-        return type(self)._simple_new(arr, name=self.name, refs=self._references)
+        result = type(self)._simple_new(arr, name=self.name, refs=self._references)
+        if isinstance(self.freq, Tick):
+            result._freq = self.freq
+        return result
 
     def tz_localize(
         self,
@@ -552,7 +608,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order
+              order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -667,8 +723,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
         """  # noqa: E501
+        freq = self._freq
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
-        return type(self)._simple_new(arr, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        if timezones.is_utc(arr.tz) or (len(arr) == 1 and arr[0] is not NaT):
+            # we can preserve freq
+            # TODO: Also for fixed-offsets
+            result._freq = freq
+        elif arr.tz is None and self._data.tz is None:
+            # no-op
+            result._freq = freq
+        return result
 
     def to_period(self, freq=None) -> PeriodIndex:
         """
@@ -721,8 +786,25 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         PeriodIndex(['2017-01-01', '2017-01-02'],
                     dtype='period[D]')
         """
+        from pandas.core.dtypes.dtypes import PeriodDtype
+
         from pandas.core.indexes.api import PeriodIndex
 
+        from pandas.tseries.frequencies import get_period_alias
+
+        if freq is None:
+            dt_freq = self.freq
+            freq = self.freqstr
+            if dt_freq is not None and hasattr(dt_freq, "_period_dtype_code"):
+                freq = PeriodDtype(dt_freq)._freqstr
+
+            if freq is None:
+                freq = self.inferred_freq
+
+            if freq is not None:
+                res = get_period_alias(freq)
+                if res is not None:
+                    freq = res
         arr = self._data.to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
@@ -785,10 +867,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         df = self._data.isocalendar()
         return df.set_index(self)
 
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        return self._data._resolution_obj
-
     # --------------------------------------------------------------------
     # Constructors
 
@@ -826,21 +904,24 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 data = data.copy()
             return cls._simple_new(data, name=name)
 
+        inferred_freq = data.freq if isinstance(data, DatetimeIndex) else None
+
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
             copy=copy,
             tz=tz,
-            freq=freq,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
             ambiguous=ambiguous,
         )
+
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
         subarr = cls._simple_new(dtarr, name=name, refs=refs)
+        subarr._pin_freq(freq, inferred_freq, {"ambiguous": ambiguous})
         return subarr
 
     # --------------------------------------------------------------------
@@ -863,7 +944,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return self._values._is_dates_only
 
     def __reduce__(self):
-        d = {"data": self._data, "name": self.name}
+        d = {"data": self._data, "name": self.name, "freq": self._freq}
         return _new_DatetimeIndex, (type(self), d), None
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -1456,7 +1537,7 @@ def date_range(
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order. Requires that the timestamps are monotonically increasing.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -1673,7 +1754,9 @@ def date_range(
         unit=unit,
         **kwargs,
     )
-    return DatetimeIndex._simple_new(dtarr, name=name)
+    result = DatetimeIndex._simple_new(dtarr, name=name)
+    result._freq = freq
+    return result
 
 
 @set_module("pandas")
