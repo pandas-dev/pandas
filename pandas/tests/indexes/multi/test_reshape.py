@@ -66,9 +66,7 @@ def test_insert(idx):
         columns=["1st", "2nd", "3rd"],
     )
     right.set_index(["1st", "2nd"], inplace=True)
-    # FIXME data types changes to float because
-    # of intermediate nan insertion;
-    tm.assert_frame_equal(left, right, check_dtype=False)
+    tm.assert_frame_equal(left, right)
     tm.assert_series_equal(ts, right["3rd"])
 
 
