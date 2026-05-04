@@ -998,15 +998,8 @@ class NaTType(_NaT):
         format string, using the same directives as the standard library's
         :meth:`datetime.datetime.strftime`.
 
-        In addition to the standard directives, the following extra directive
-        is supported:
-
-        +-----------+--------------------------------+-------+
-        | Directive | Meaning                        |Example|
-        +===========+================================+=======+
-        | ``%N``    | Nanoseconds zero-padded to 9   |       |
-        |           | digits.                        |000000 |
-        +-----------+--------------------------------+-------+
+        In addition to the standard directives, ``%N`` is supported to format
+        the nanoseconds as a 9-digit zero-padded number.
 
         Parameters
         ----------
