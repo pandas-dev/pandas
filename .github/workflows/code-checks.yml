@@ -10,25 +10,22 @@ on:
       - main
       - 3.0.x
 
-env:
-  ENV_FILE: environment.yml
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
 
 permissions: {}
 
-# pre-commit run by https://pre-commit.ci/
 jobs:
-  docstring_typing_manual_hooks:
-    name: Docstring validation, typing, and other manual pre-commit hooks
+  doctest:
+    name: Doctests
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-    defaults:
-      run:
-        shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-code-checks
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-doctests
       cancel-in-progress: true
 
     steps:
@@ -37,51 +34,63 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: "doctests"
 
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
-
-    # The following checks are independent of each other and should still be run if one fails
-    - name: Extra installs
-      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
-      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment doctests \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
 
     - name: Run doctests
-      run: cd ci && ./code_checks.sh doctests
-      if: ${{ steps.build.outcome == 'success' && always() }}
+      run: pixi run --environment doctests ci-doctests
 
-    - name: Run checks on imported code
-      run: ci/code_checks.sh code
-      if: ${{ steps.build.outcome == 'success' && always() }}
+    - name: Run scripts tests
+      run: pixi run --environment doctests ci-scripts-tests
 
-    - name: Use existing environment for type checking
-      run: |
-        echo $PATH >> $GITHUB_PATH
-        echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
-        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-      if: ${{ steps.build.outcome == 'success' && always() }}
+  type-checking:
+    name: Type Checking
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
-    - name: Typing
-      uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-typechecking
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
-        extra_args: --verbose --hook-stage manual --all-files
-      if: ${{ steps.build.outcome == 'success' && always() }}
+        fetch-depth: 0
 
-    - name: Run docstring validation script tests
-      run: pytest scripts
-      if: ${{ steps.build.outcome == 'success' && always() }}
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: "typing"
+
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment typing \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
+
+    - name: Typing Checks
+      run: pixi run --environment typing ci-typing
 
   asv-benchmarks:
     name: ASV Benchmarks
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-    defaults:
-      run:
-        shell: bash -euox pipefail {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -124,8 +133,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         id: setup_python
@@ -133,10 +140,8 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          pip-install: '-r requirements-dev.txt'
           cache-dependency-path: 'requirements-dev.txt'
-
-      - name: Install requirements-dev.txt
-        run: pip install -r requirements-dev.txt
 
       - name: Check Pip Cache Hit
         run: echo ${{ steps.setup_python.outputs.cache-hit }}
