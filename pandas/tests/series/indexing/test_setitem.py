@@ -8,6 +8,7 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
@@ -417,8 +418,8 @@ class TestSetitemBooleanMask:
 
 class TestSetitemViewCopySemantics:
     def test_setitem_invalidates_datetime_index_freq(self):
-        # GH#24096 altering a datetime64tz Series inplace invalidates the
-        #  `freq` attribute on the underlying DatetimeIndex
+        # GH#24096 altering a datetime64tz Series inplace does not propagate
+        #  back to the underlying DatetimeIndex
 
         dti = date_range("20130101", periods=3, tz="US/Eastern")
         ts = dti[1]
@@ -427,7 +428,6 @@ class TestSetitemViewCopySemantics:
         assert ser._values._ndarray.base is dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
-        assert ser._values.freq is None
 
         # check that the DatetimeIndex was not altered in place
         assert ser._values is not dti
@@ -515,10 +515,6 @@ class TestSetitemWithExpansion:
     )
     def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
-        if using_infer_string and not isinstance(td, Timedelta):
-            # TODO: GH#56010
-            request.applymarker(pytest.mark.xfail(reason="inferred as string"))
-
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
         ser = Series(["x"])
@@ -592,17 +588,22 @@ class TestSetitemWithExpansion:
         # GH#48665
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
+
         dtype = (
             "str"
-            if using_infer_string and not isinstance(nulls_fixture, Decimal)
+            if using_infer_string
+            and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
             else object
         )
+
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
-        if using_infer_string:
+        if dtype == "str":
             ser[3] is np.nan
-        else:
+        elif using_infer_string:
             assert ser[3] is nulls_fixture
+        else:
+            assert type(ser[3]) is type(nulls_fixture)
 
 
 def test_setitem_scalar_into_readonly_backing_data():

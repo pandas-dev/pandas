@@ -5,14 +5,13 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import period_array
 
 
 @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
 def test_astype_int(dtype):
     # We choose to ignore the sign and size of integers for
     # Period/Datetime/Timedelta astype
-    arr = period_array(["2000", "2001", None], freq="D")
+    arr = pd.PeriodIndex(["2000", "2001", None], freq="D").array
 
     if np.dtype(dtype) != np.int64:
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
@@ -25,7 +24,7 @@ def test_astype_int(dtype):
 
 
 def test_astype_copies():
-    arr = period_array(["2000", "2001", None], freq="D")
+    arr = pd.PeriodIndex(["2000", "2001", None], freq="D").array
     result = arr.astype(np.int64, copy=False)
 
     # Add the `.base`, since we now use `.asi8` which returns a view.
@@ -38,7 +37,7 @@ def test_astype_copies():
 
 
 def test_astype_categorical():
-    arr = period_array(["2000", "2001", "2001", None], freq="D")
+    arr = pd.PeriodIndex(["2000", "2001", "2001", None], freq="D").array
     result = arr.astype("category")
     categories = pd.PeriodIndex(["2000", "2001"], freq="D")
     expected = pd.Categorical.from_codes([0, 1, 1, -1], categories=categories)
@@ -46,15 +45,15 @@ def test_astype_categorical():
 
 
 def test_astype_period():
-    arr = period_array(["2000", "2001", None], freq="D")
+    arr = pd.PeriodIndex(["2000", "2001", None], freq="D").array
     result = arr.astype(PeriodDtype("M"))
-    expected = period_array(["2000", "2001", None], freq="M")
+    expected = pd.PeriodIndex(["2000", "2001", None], freq="M").array
     tm.assert_period_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 def test_astype_datetime(dtype):
-    arr = period_array(["2000", "2001", None], freq="D")
+    arr = pd.PeriodIndex(["2000", "2001", None], freq="D").array
     # slice off the [ns] so that the regex matches.
     if dtype == "timedelta64[ns]":
         with pytest.raises(TypeError, match=dtype[:-4]):

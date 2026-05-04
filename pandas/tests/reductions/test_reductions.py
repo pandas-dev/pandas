@@ -782,11 +782,15 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
-    def test_var_complex_array(self):
-        # GH#61645
-        ser = Series([-1j, 0j, 1j], dtype=complex)
-        assert ser.var(ddof=1) == 1.0
-        assert ser.std(ddof=1) == 1.0
+    @pytest.mark.parametrize(
+        "values,expected", [([-1j, 0j, 1j], 1.0), ([1 + 2j, 2 + 3j, 3 + 4j], 2.0)]
+    )
+    def test_var_complex_array(self, values, expected):
+        # GH 61645, 62421
+        ser = Series(values, dtype=complex)
+        tm.assert_almost_equal(ser.var(ddof=1), expected)
+        tm.assert_almost_equal(ser.std(ddof=1), np.sqrt(expected))
+        tm.assert_almost_equal(ser.sem(ddof=1), np.sqrt(expected / len(values)))
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):

@@ -21,6 +21,7 @@ from pandas.util._decorators import (
     deprecate_kwarg,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -188,7 +189,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
 def assert_index_equal(
     left: Index,
     right: Index,
-    exact: bool | str = "equiv",
+    exact: bool | str | lib.NoDefault = lib.no_default,
     check_names: bool = True,
     check_exact: bool = True,
     check_categorical: bool = True,
@@ -200,6 +201,10 @@ def assert_index_equal(
     """
     Check that left and right Index are equal.
 
+    This function compares two Index objects and raises an ``AssertionError``
+    if they are not equal. It provides fine-grained control over which
+    attributes to check, including dtype, names, and categorical properties.
+
     Parameters
     ----------
     left : Index
@@ -210,6 +215,11 @@ def assert_index_equal(
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Index with an int64 dtype as well.
+
+        .. deprecated:: 3.1.0
+            The default value of 'equiv' has been deprecated and will be changed to
+            True in the future.
+
     check_names : bool, default True
         Whether to check the names attribute.
     check_exact : bool, default True
@@ -244,6 +254,30 @@ def assert_index_equal(
 
     if obj is None:
         obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
+
+    def _check_rangeindex_index_int(left, right) -> bool:
+        return (
+            isinstance(left, RangeIndex)
+            and isinstance(right, Index)
+            and not isinstance(right, RangeIndex)
+            and is_integer_dtype(right.dtype)
+        ) or (
+            isinstance(right, RangeIndex)
+            and isinstance(left, Index)
+            and not isinstance(left, RangeIndex)
+            and is_integer_dtype(left.dtype)
+        )
+
+    if exact is lib.no_default:
+        if _check_rangeindex_index_int(left, right):
+            warnings.warn(
+                "The default value of 'equiv' for the `exact` parameter is deprecated "
+                "and will be changed to 'True' in a future version. Please set exact "
+                "to the desired value to avoid seeing this warning",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        exact = "equiv"
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
@@ -541,13 +575,8 @@ def assert_interval_array_equal(
     """
     _check_isinstance(left, right, IntervalArray)
 
-    kwargs = {}
-    if left._left.dtype.kind in "mM":
-        # We have a DatetimeArray or TimedeltaArray
-        kwargs["check_freq"] = False
-
-    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
-    assert_equal(left._right, right._right, obj=f"{obj}.right", **kwargs)
+    assert_equal(left._left, right._left, obj=f"{obj}.left")
+    assert_equal(left._right, right._right, obj=f"{obj}.right")
 
     assert_attr_equal("closed", left, right, obj=obj)
 
@@ -559,26 +588,18 @@ def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     assert_attr_equal("dtype", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(
-    left, right, obj: str = "DatetimeArray", check_freq: bool = True
-) -> None:
+def assert_datetime_array_equal(left, right, obj: str = "DatetimeArray") -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(
-    left, right, obj: str = "TimedeltaArray", check_freq: bool = True
-) -> None:
+def assert_timedelta_array_equal(left, right, obj: str = "TimedeltaArray") -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
 
 
 def raise_assert_detail(
@@ -879,6 +900,10 @@ def assert_series_equal(
 ) -> None:
     """
     Check that left and right Series are equal.
+
+    This function compares two Series and raises an ``AssertionError`` if they
+    are not equal. It provides fine-grained control over which attributes to
+    check, including dtype, index, names, and categorical properties.
 
     Parameters
     ----------

@@ -40,6 +40,8 @@ objects.
       api.extensions.ExtensionArray._from_sequence
       api.extensions.ExtensionArray._from_sequence_of_strings
       api.extensions.ExtensionArray._hash_pandas_object
+      api.extensions.ExtensionArray._is_monotonic_decreasing
+      api.extensions.ExtensionArray._is_monotonic_increasing
       api.extensions.ExtensionArray._pad_or_backfill
       api.extensions.ExtensionArray._reduce
       api.extensions.ExtensionArray._values_for_argsort
@@ -47,6 +49,7 @@ objects.
       api.extensions.ExtensionArray.argsort
       api.extensions.ExtensionArray.astype
       api.extensions.ExtensionArray.copy
+      api.extensions.ExtensionArray.count
       api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
       api.extensions.ExtensionArray.duplicated

@@ -45,7 +45,12 @@ class BaseAccessor:
 )
 class SparseAccessor(BaseAccessor, PandasDelegate):
     """
-    Accessor for SparseSparse from other sparse matrix data types.
+    Accessor for SparseArray from other sparse matrix data types.
+
+    Provides methods and properties to work with the underlying sparse data
+    in a Series or DataFrame. It allows accessing sparse-specific attributes
+    such as fill value, density, and stored non-fill values, as well as
+    converting to and from scipy sparse matrices.
 
     Parameters
     ----------

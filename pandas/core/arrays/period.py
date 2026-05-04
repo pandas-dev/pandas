@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Timedelta,
     add_overflowsafe,
     astype_overflowsafe,
@@ -50,10 +51,12 @@ from pandas._libs.tslibs.period import (
     get_period_field_arr,
     period_asfreq_arr,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -71,8 +74,12 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays import (
+    ExtensionArray,
+    datetimelike as dtl,
+)
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -97,7 +104,6 @@ if TYPE_CHECKING:
         DatetimeArray,
         TimedeltaArray,
     )
-    from pandas.core.arrays.base import ExtensionArray
 
 
 BaseOffsetT = TypeVar("BaseOffsetT", bound=BaseOffset)
@@ -115,9 +121,7 @@ def _field_accessor(name: str, docstring: str | None = None):
 
 
 @set_module("pandas.arrays")
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
+class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -180,7 +184,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
-    _infer_matches = ("period",)
 
     @property
     def _scalar_type(self) -> type[Period]:
@@ -200,16 +203,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "weekofyear",
         "weekday",
         "week",
-        "dayofweek",
         "day_of_week",
-        "dayofyear",
         "day_of_year",
         "quarter",
         "qyear",
         "days_in_month",
-        "daysinmonth",
     ]
-    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
+    # GH#46768 - deprecated but still need to be accessible via .dt accessor
+    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
+    _datetimelike_ops: list[str] = (
+        _field_ops + _object_ops + _bool_ops + _deprecated_ops
+    )
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype
@@ -267,23 +271,49 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     ) -> Self:
         if dtype is not None:
             dtype = pandas_dtype(dtype)
-        if dtype and isinstance(dtype, PeriodDtype):
-            unit = dtype._freqstr
-        else:
-            unit = None
 
+        # Note: we can't do extract_array until after from_datetime64 path
+        #  bc of GH#64241
+        data_dtype = getattr(scalars, "dtype", None)
+        if lib.is_np_dtype(data_dtype, "M"):
+            freq = dtype._freq if dtype is not None else None  # type: ignore[union-attr]
+            return cls._from_datetime64(scalars, freq)
+
+        scalars = extract_array(scalars, extract_numpy=True)
         if isinstance(scalars, cls):
-            validate_dtype_freq(scalars.dtype, dtype)
-            if copy:
-                scalars = scalars.copy()
+            if dtype is not None:
+                return scalars.astype(dtype, copy=copy)
+            elif copy:
+                return scalars.copy()
             return scalars
 
-        periods = np.asarray(scalars, dtype=object)
+        if not isinstance(
+            scalars, (np.ndarray, list, tuple, ABCSeries, ABCIndex, ExtensionArray)
+        ):
+            # test_constructor_empty_special has a case with an iter object
+            scalars = list(scalars)
 
-        unit = unit or libperiod.extract_period_unit(periods)
-        dtype = PeriodDtype(unit)
-        ordinals = libperiod.extract_ordinals(periods, dtype)
-        return cls(ordinals, dtype=dtype)
+        arrdata = np.asarray(scalars)
+        if arrdata.dtype.kind == "f" and len(arrdata) > 0:
+            if not np.isnan(arrdata).all():
+                raise TypeError(
+                    "PeriodArray does not allow floating point in construction"
+                )
+            ordinals = np.full(arrdata.shape, iNaT, dtype=np.int64)
+            return cls(ordinals, dtype=dtype)
+
+        elif arrdata.dtype.kind in "iu":
+            arr = arrdata.astype(np.int64, copy=False)
+            ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
+            return cls(ordinals, dtype=dtype)
+        else:
+            periods = ensure_object(arrdata)
+
+            if dtype is None:
+                dtype_base = libperiod.extract_period_unit(periods)
+                dtype = PeriodDtype(dtype_base)
+            ordinals = libperiod.extract_ordinals(periods, dtype)  # type: ignore[arg-type]
+            return cls(ordinals, dtype=dtype)
 
     @classmethod
     def _from_sequence_of_strings(
@@ -374,9 +404,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Cannot override writeable attribute with read-only property
     @property
-    def freq(self) -> BaseOffset:  # type: ignore[override]
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -385,6 +414,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     @property
     def freqstr(self) -> str:
         return PeriodDtype(self.freq)._freqstr
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        freqstr = self.freqstr
+        try:
+            return Resolution.get_reso_from_freqstr(freqstr)
+        except KeyError:
+            return None  # type: ignore[return-value]
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -447,6 +484,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The year of the period.
 
+        Returns the year component for each period in the index.
+
         See Also
         --------
         PeriodIndex.day_of_year : The ordinal day of the year.
@@ -468,6 +507,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The month as January=1, December=12.
 
+        Returns the month component for each period in the index as an
+        integer, where January is 1 and December is 12.
+
         See Also
         --------
         PeriodIndex.days_in_month : The number of days in the month.
@@ -484,6 +526,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "day",
         """
         The days of the period.
+
+        Returns the day-of-month component for each period in the index.
 
         See Also
         --------
@@ -507,6 +551,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The hour of the period.
 
+        Returns the hour component for each period in the index.
+
         See Also
         --------
         PeriodIndex.minute : The minute of the period.
@@ -524,6 +570,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "minute",
         """
         The minute of the period.
+
+        Returns the minute component for each period in the index.
 
         See Also
         --------
@@ -544,6 +592,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The second of the period.
 
+        Returns the second component for each period in the index.
+
         See Also
         --------
         PeriodIndex.hour : The hour of the period.
@@ -562,6 +612,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "week",
         """
         The week ordinal of the year.
+
+        Returns the week number (1 through 53) for each period in the index.
 
         See Also
         --------
@@ -584,6 +636,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The day of the week with Monday=0, Sunday=6.
 
+        Returns the day-of-week component for each period, following the
+        Python convention where Monday is 0 and Sunday is 6.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -598,16 +653,55 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
-        >>> idx.weekday
+        >>> idx.day_of_week
         Index([6, 0, 1], dtype='int64')
         """,
     )
-    dayofweek = day_of_week
-    weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor(
+
+    @property
+    def weekday(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        # GH#12816
+        warnings.warn(
+            f"{type(self).__name__}.weekday is deprecated and will be removed "
+            "in a future version. Use PeriodIndex.day_of_week or "
+            "Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_week` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.dayofweek is deprecated and will be removed in a "
+            "future version. Use PeriodArray.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_week
+
+    day_of_year = _field_accessor(
         "day_of_year",
         """
         The ordinal day of the year.
+
+        Returns the day-of-year component for each period, ranging from
+        1 (January 1st) to 365 or 366 for leap years.
 
         See Also
         --------
@@ -623,20 +717,42 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([10, 32, 60], dtype='int64')
 
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
         >>> idx
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
-        >>> idx.dayofyear
+        >>> idx.day_of_year
         Index([365, 366, 365], dtype='int64')
         """,
     )
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.day_of_year` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.dayofyear is deprecated and will be removed in a "
+            "future version. Use PeriodArray.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.day_of_year
+
     quarter = _field_accessor(
         "quarter",
         """
         The quarter of the date.
+
+        Returns the quarter (1 through 4) for each period in the index.
 
         See Also
         --------
@@ -699,6 +815,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The number of days in the month.
 
+        Returns the total number of days in the month of each period,
+        accounting for leap years.
+
         See Also
         --------
         PeriodIndex.day : The days of the period.
@@ -730,12 +849,33 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Index([31, 28, 31], dtype='int64')
         """,
     )
-    daysinmonth = days_in_month
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`PeriodIndex.days_in_month` instead.
+        """
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PeriodArray.daysinmonth is deprecated and will be removed in a "
+            "future version. Use PeriodArray.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self.days_in_month
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
+
+        Returns a boolean array where ``True`` indicates the period's year
+        is a leap year.
 
         See Also
         --------
@@ -837,30 +977,48 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
+        return dta
 
-        if self.freq.name == "B":
+    def _to_timestamp_freq(
+        self, dta: DatetimeArray, target_freq, how: str
+    ) -> BaseOffset | None:
+        """
+        Determine the freq to stamp on the DatetimeArray returned by
+        ``self.to_timestamp(target_freq, how)``.
+
+        Called by ``PeriodIndex.to_timestamp`` so the array-level
+        ``to_timestamp`` can return a bare DatetimeArray.
+        """
+        how = libperiod.validate_end_alias(how)
+        if how == "E":
+            # For the "end" case, to_timestamp routes through arithmetic that
+            # does not preserve freq; match that behavior here.
+            return None
+
+        if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
             #  len(self) is too small for infer_freq to distinguish between them
             diffs = libalgos.unique_deltas(self.asi8)
             if len(diffs) == 1:
                 diff = diffs[0]
                 if diff == self.dtype._n:
-                    dta._freq = self.freq
+                    return self.freq
                 elif diff == 1:
-                    dta._freq = self.freq.base
+                    return self.freq.base
                 # TODO: other cases?
-            return dta
-        else:
-            dta = dta._with_freq("infer")
-            if freq is not None:
-                freq = to_offset(freq)
-                if (
-                    isinstance(dta.freq, Day)
-                    and not isinstance(freq, Day)
-                    and Timedelta(freq) == Timedelta(days=dta.freq.n)
-                ):
-                    dta._freq = freq
-            return dta
+            return None
+
+        result_freq = to_offset(dta.inferred_freq)
+        if target_freq is not None:
+            # match the normalization applied in to_timestamp
+            target_freq = Period._maybe_convert_freq(target_freq)
+            if (
+                isinstance(result_freq, Day)
+                and not isinstance(target_freq, Day)
+                and Timedelta(target_freq) == Timedelta(days=result_freq.n)
+            ):
+                result_freq = target_freq
+        return result_freq
 
     # --------------------------------------------------------------------
 
@@ -1196,8 +1354,7 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
 
 def period_array(
     data: Sequence[Period | str | None] | AnyArrayLike,
-    freq: str | Tick | BaseOffset | None = None,
-    copy: bool = False,
+    dtype: PeriodDtype | None = None,
 ) -> PeriodArray:
     """
     Construct a new PeriodArray from a sequence of Period scalars.
@@ -1208,11 +1365,8 @@ def period_array(
         A sequence of Period objects. These are required to all have
         the same ``freq.`` Missing values can be indicated by ``None``
         or ``pandas.NaT``.
-    freq : str, Tick, or Offset
-        The frequency of every element of the array. This can be specified
-        to avoid inferring the `freq` from `data`.
-    copy : bool, default False
-        Whether to ensure a copy of the data is made.
+    dtype : PeriodDtype or None, default None
+        The dtype for the array. If not specified, is inferred from the data.
 
     Returns
     -------
@@ -1237,54 +1391,20 @@ def period_array(
 
     Integers that look like years are handled
 
-    >>> period_array([2000, 2001, 2002], freq="D")
+    >>> period_array([2000, 2001, 2002], dtype=PeriodDtype("D"))
     <PeriodArray>
     ['2000-01-01', '2001-01-01', '2002-01-01']
     Length: 3, dtype: period[D]
 
     Datetime-like strings may also be passed
 
-    >>> period_array(["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q")
+    >>> period_array(
+    ...     ["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], dtype=PeriodDtype("Q")
+    ... )
     <PeriodArray>
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]
     """
-    data_dtype = getattr(data, "dtype", None)
-
-    if lib.is_np_dtype(data_dtype, "M"):
-        return PeriodArray._from_datetime64(data, freq)
-    if isinstance(data_dtype, PeriodDtype):
-        out = PeriodArray(data)
-        if freq is not None:
-            if freq == data_dtype.freq:
-                return out
-            return out.asfreq(freq)
-        return out
-
-    # other iterable of some kind
-    if not isinstance(data, (np.ndarray, list, tuple, ABCSeries)):
-        data = list(data)
-
-    arrdata = np.asarray(data)
-
-    dtype: PeriodDtype | None
-    if freq:
-        dtype = PeriodDtype(freq)
-    else:
-        dtype = None
-
-    if arrdata.dtype.kind == "f" and len(arrdata) > 0:
-        raise TypeError("PeriodIndex does not allow floating point in construction")
-
-    if arrdata.dtype.kind in "iu":
-        arr = arrdata.astype(np.int64, copy=False)
-        ordinals = libperiod.from_calendar_ordinals(arr, dtype)  # type: ignore[arg-type]
-        return PeriodArray(ordinals, dtype=dtype)
-
-    data = ensure_object(arrdata)
-    if freq is None:
-        freq = libperiod.extract_period_unit(data)
-    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 

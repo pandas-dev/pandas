@@ -3,6 +3,7 @@ import pytest
 from pandas import (
     Index,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
@@ -97,3 +98,29 @@ def test_drop_index_ea_dtype(any_numeric_ea_dtype):
     result = df.drop(idx)
     expected = Series(100, index=Index([1], dtype=any_numeric_ea_dtype))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Pacific"])
+def test_drop_preserves_datetimeindex_freq_and_tz(tz, unit):
+    dti = date_range(
+        "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz, unit=unit
+    )
+    ts = Series(
+        1,
+        index=dti,
+    )
+    # preserve freq
+    result = ts.drop(ts.index[:5]).index
+    expected = dti[5:]
+    tm.assert_index_equal(result, expected)
+    assert result.name == expected.name
+    assert result.freq == expected.freq
+    assert result.tz == expected.tz
+
+    # reset freq to None
+    result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
+    expected = dti[::2]._with_freq(None)
+    tm.assert_index_equal(result, expected)
+    assert result.name == expected.name
+    assert result.freq == expected.freq
+    assert result.tz == expected.tz

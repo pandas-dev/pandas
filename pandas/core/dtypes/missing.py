@@ -240,11 +240,11 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         # error: Incompatible types in assignment (expression has type
-        # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
+        # "Union[ndarray[Any, Any], ExtensionArrayNaResult]", variable has
         # type "ndarray[Any, dtype[bool_]]")
         result = values.isna()  # type: ignore[assignment]
-    elif isinstance(values, np.rec.recarray):
-        # GH 48526
+    elif dtype.names is not None:
+        # GH#48526 (np.rec.recarray), GH#55011 (structured np.ndarray)
         result = _isna_recarray_dtype(values)
     elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values)
@@ -273,7 +273,7 @@ def _isna_string_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
     return result
 
 
-def _isna_recarray_dtype(values: np.rec.recarray) -> npt.NDArray[np.bool_]:
+def _isna_recarray_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
         record_as_array = np.array(record.tolist())
@@ -451,7 +451,7 @@ def array_equivalent(
 
     # Slow path when we allow comparing different dtypes.
     # Object arrays can contain None, NaN and NaT.
-    # string dtypes must be come to this path for NumPy 1.7.1 compat
+    # string dtypes must come to this path for NumPy 1.7.1 compat
     if left.dtype.kind in "OSU" or right.dtype.kind in "OSU":
         # Note: `in "OSU"` is non-trivially faster than `in ["O", "S", "U"]`
         #  or `in ("O", "S", "U")`
@@ -625,7 +625,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    np.datetime64('NaT')
+    np.datetime64('NaT','ns')
     """
 
     if isinstance(dtype, ExtensionDtype):

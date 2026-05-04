@@ -519,7 +519,7 @@ def shares_memory(left, right) -> bool:
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
             return left_buf1.address == right_buf1.address
         else:
-            # if we have one one ArrowExtensionArray and one other array, assume
+            # if we have one ArrowExtensionArray and one other array, assume
             # they can only share memory if they share the same numpy buffer
             return np.shares_memory(left, right)
 

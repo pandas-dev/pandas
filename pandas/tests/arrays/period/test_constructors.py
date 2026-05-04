@@ -28,18 +28,28 @@ from pandas.core.arrays import (
     ],
 )
 def test_period_array_ok(data, freq, expected):
-    result = period_array(data, freq=freq).asi8
+    result = pd.PeriodIndex(data, freq=freq).array.asi8
     expected = np.asarray(expected, dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
+
+    dtype = pd.PeriodDtype(freq) if freq is not None else None
+    result = PeriodArray._from_sequence(data, dtype=dtype)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
+    result = pd.PeriodIndex(data, dtype=dtype)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
+    result = pd.PeriodIndex(data, freq=freq)
+    tm.assert_numpy_array_equal(result.asi8, expected)
 
 
 def test_period_array_readonly_object():
     # https://github.com/pandas-dev/pandas/issues/25403
-    pa = period_array([pd.Period("2019-01-01")])
+    pa = pd.PeriodIndex([pd.Period("2019-01-01")]).array
     arr = np.asarray(pa, dtype="object")
     arr.setflags(write=False)
 
-    result = period_array(arr)
+    result = pd.PeriodIndex(arr).array
     tm.assert_period_array_equal(result, pa)
 
     result = pd.Series(arr)
@@ -53,7 +63,9 @@ def test_from_datetime64_freq_changes():
     # https://github.com/pandas-dev/pandas/issues/23438
     arr = pd.date_range("2017", periods=3, freq="D")
     result = PeriodArray._from_datetime64(arr, freq="M")
-    expected = period_array(["2017-01-01", "2017-01-01", "2017-01-01"], freq="M")
+    expected = pd.PeriodIndex(
+        ["2017-01-01", "2017-01-01", "2017-01-01"], freq="M"
+    ).array
     tm.assert_period_array_equal(result, expected)
 
 
@@ -63,7 +75,7 @@ def test_from_datetime64_freq_2M(freq):
         ["2020-01-01T00:00:00", "2020-01-02T00:00:00"], dtype="datetime64[ns]"
     )
     result = PeriodArray._from_datetime64(arr, freq)
-    expected = period_array(["2020-01", "2020-01"], freq=freq)
+    expected = pd.PeriodIndex(["2020-01", "2020-01"], freq=freq).array
     tm.assert_period_array_equal(result, expected)
 
 
@@ -80,7 +92,7 @@ def test_from_datetime64_freq_2M(freq):
 )
 def test_period_array_raises(data, freq, msg):
     with pytest.raises(IncompatibleFrequency, match=msg):
-        period_array(data, freq)
+        pd.PeriodIndex(data, freq)
 
 
 def test_period_array_non_period_series_raies():
@@ -90,7 +102,7 @@ def test_period_array_non_period_series_raies():
 
 
 def test_period_array_freq_mismatch():
-    arr = period_array(["2000", "2001"], freq="D")
+    arr = pd.PeriodIndex(["2000", "2001"], freq="D").array
     with pytest.raises(IncompatibleFrequency, match="freq"):
         PeriodArray(arr, dtype="period[M]")
 
@@ -99,15 +111,25 @@ def test_period_array_freq_mismatch():
         PeriodArray(arr, dtype=dtype)
 
 
-def test_from_sequence_disallows_i8():
-    arr = period_array(["2000", "2001"], freq="D")
+def test_from_sequence_allows_i8():
+    # GH#64227 this used to be allowed for PeriodIndex and period_array
+    # but not PeriodArray._from_sequence
+    arr = period_array(["1975", "1976"], dtype="period[D]")
 
-    msg = str(arr[0].ordinal)
-    with pytest.raises(TypeError, match=msg):
-        PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
+    expected = pd.PeriodIndex([pd.Period(x, freq=arr.freq) for x in arr.asi8]).array
 
-    with pytest.raises(TypeError, match=msg):
-        PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
+    result1 = pd.PeriodIndex(arr.asi8, dtype=arr.dtype).array
+    result2 = period_array(arr.asi8, dtype=arr.dtype)
+    result3 = PeriodArray._from_sequence(arr.asi8, dtype=arr.dtype)
+    # FIXME: GH#64227 this goes through a different path and gives different behavior
+    # result4 = PeriodArray._from_sequence(arr.asi8.astype(object), dtype=arr.dtype)
+    result5 = PeriodArray._from_sequence(list(arr.asi8), dtype=arr.dtype)
+
+    tm.assert_period_array_equal(result1, expected)
+    tm.assert_period_array_equal(result2, expected)
+    tm.assert_period_array_equal(result3, expected)
+    # tm.assert_period_array_equal(result4, expected)
+    tm.assert_period_array_equal(result5, expected)
 
 
 def test_from_td64nat_sequence_raises():
@@ -141,5 +163,5 @@ def test_period_array_from_datetime64():
     )
     result = PeriodArray._from_datetime64(arr, freq=MonthEnd(2))
 
-    expected = period_array(["2020-01-01", "2020-02-01"], freq=MonthEnd(2))
+    expected = pd.PeriodIndex(["2020-01-01", "2020-02-01"], freq=MonthEnd(2)).array
     tm.assert_period_array_equal(result, expected)

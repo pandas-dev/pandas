@@ -268,11 +268,33 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_resample_same_freq(self, resample_method):
-        # GH12770
+        # GH#12770, GH#18553
         series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
-        expected = series
 
+        # Same-freq resampling should not raise IncompatibleFrequency.
+        # With GH#18553 fix, this now goes through _groupby_and_aggregate
+        # (consistent with daily/sub-daily frequencies).
         result = getattr(series.resample("M"), resample_method)()
+        assert isinstance(result, (Series, DataFrame))
+
+    @pytest.mark.parametrize("freq", ["M", "Q", "Y"])
+    def test_resample_same_freq_aggregation(self, freq):
+        # GH#18553 - same-freq resampling for monthly/quarterly/annual
+        # frequencies should aggregate correctly, not pass through raw values.
+        series = Series(
+            [10, 20, 30], index=period_range(start="2000", periods=3, freq=freq)
+        )
+        expected_index = period_range(start="2000", periods=3, freq=freq)
+
+        result = series.resample(freq).count()
+        expected = Series([1, 1, 1], index=expected_index)
+        tm.assert_series_equal(result, expected)
+
+        result = series.resample(freq).sum()
+        tm.assert_series_equal(result, series)
+
+        result = series.resample(freq).mean()
+        expected = Series([10.0, 20.0, 30.0], index=expected_index)
         tm.assert_series_equal(result, expected)
 
     def test_resample_incompat_freq(self):

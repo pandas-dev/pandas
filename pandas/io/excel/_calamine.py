@@ -105,11 +105,11 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
     ) -> list[list[Scalar | NaTType | time]]:
         def _convert_cell(value: _CellValue) -> Scalar | NaTType | time:
             if isinstance(value, float):
-                val = int(value)
-                if val == value:
-                    return val
-                else:
-                    return value
+                # GH#54564 - is_integer() returns False for NaN/Inf,
+                # so this safely avoids int() on non-finite values
+                if value.is_integer():
+                    return int(value)
+                return value
             elif isinstance(value, (datetime, timedelta)):
                 # Return as-is to match openpyxl behavior (GH#59186)
                 return value

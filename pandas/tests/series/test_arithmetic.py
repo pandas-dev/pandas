@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -894,8 +895,11 @@ class TestTimeSeriesArithmetic:
         ts2 = ts_slice.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts + ts2
-        result2 = ts2 + ts
+        # GH#62158 alignment joins date-object Index with DatetimeIndex
+        msg = "Alignment of a DataFrame/Series with a DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts + ts2
+            result2 = ts2 + ts
         expected = ts + ts[5:]
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
@@ -925,7 +929,13 @@ class TestNamePreservation:
             if is_logical:
                 # Series doesn't have these as flex methods
                 return
-            result = getattr(left, name)(right)
+
+            warn = None
+            tuple_msg = "with a tuple is deprecated"
+            if box is tuple:
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=tuple_msg):
+                result = getattr(left, name)(right)
         else:
             if is_logical and box in [list, tuple]:
                 with pytest.raises(TypeError, match=msg):

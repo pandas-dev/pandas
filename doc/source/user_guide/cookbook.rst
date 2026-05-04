@@ -239,6 +239,23 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    df[~((df.AAA <= 6) & (df.index.isin([0, 2, 4])))]
 
+`How to randomly extract n contiguous rows in a pandas DataFrame?
+<https://stackoverflow.com/questions/67349588/how-to-randomly-extract-n-contiguous-rows-in-a-pandas-dataframe>`__
+
+.. ipython:: python
+
+    df = pd.DataFrame({
+        'A': range(10),
+        'B': range(10),
+        'C': range(10)
+    })
+
+    window_size = 5
+
+    start_idx = np.random.randint(0, len(df) - window_size + 1)
+
+    df.iloc[start_idx:start_idx+window_size]
+
 New columns
 ***********
 
@@ -1314,7 +1331,7 @@ Storing Attributes to a group node
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore("test.h5")
-   store.put("df", df)
+   store["df"] = df
 
    # you can store an arbitrary Python object via pickle
    store.get_storer("df").attrs.my_attribute = {"A": 10}

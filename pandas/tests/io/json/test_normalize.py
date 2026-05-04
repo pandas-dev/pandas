@@ -511,16 +511,18 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
-    def test_json_normalize_non_dict_items(self):
-        # gh-62829
+    @pytest.mark.parametrize("max_level", [0, None])
+    def test_json_normalize_non_dict_items(self, max_level):
+        # gh-62829, gh-64188
         data_list = [np.nan, {"id": 12}, {"id": 13}]
-        msg = "All items in data must be of type dict, found float"
 
-        with pytest.raises(TypeError, match=msg):
-            json_normalize(data_list, max_level=0)
+        result = json_normalize(data_list, max_level=max_level)
+        expected = DataFrame({"id": [np.nan, 12, 13]})
+        tm.assert_frame_equal(result, expected)
 
+        msg = "All items in data must be of type dict or NA-like, found float"
         with pytest.raises(TypeError, match=msg):
-            json_normalize(data_list)
+            json_normalize([1.0, {"id": 12}], max_level=max_level)
 
     def test_nested_flattening_consistent(self):
         # see gh-21537

@@ -20,6 +20,11 @@ from cpython.datetime cimport (
     time,
     timedelta,
 )
+from cpython.exc cimport (
+    PyErr_Clear,
+    PyErr_ExceptionMatches,
+    PyErr_Occurred,
+)
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
@@ -158,6 +163,10 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
+
+    This function determines whether a given Python object is a scalar
+    value rather than a collection. Scalars include numeric types,
+    strings, bytes, dates, timedeltas, intervals, periods, and ``None``.
 
     Parameters
     ----------
@@ -392,6 +401,8 @@ def dicts_to_array(dicts: list, columns: list):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def fast_zip(list ndarrays) -> ndarray[object]:
     """
     For zipping multiple ndarrays into an ndarray of tuples.
@@ -434,6 +445,8 @@ def fast_zip(list ndarrays) -> ndarray[object]:
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     """
     Reverse indexing operation.
@@ -505,6 +518,8 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, intp_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
@@ -1185,6 +1200,10 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``bool`` type. It does not return True for numeric values like ``0``
+    or ``1`` that can evaluate as booleans.
+
     Parameters
     ----------
     obj : object
@@ -1215,6 +1234,9 @@ def is_bool(obj: object) -> bool:
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
+
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``complex`` type or numpy's complex type (e.g., ``numpy.complex128``).
 
     Parameters
     ----------
@@ -2065,7 +2087,9 @@ cdef class TemporalValidator(Validator):
     cdef bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
-            bint is_generic_null = value is None or util.is_nan(value)
+            bint is_generic_null = (
+                value is None or value is C_NA or util.is_nan(value)
+            )
         if not is_generic_null:
             self.all_generic_na = False
         return self.is_value_typed(value) or is_typed_null or is_generic_null
@@ -2124,6 +2148,8 @@ cdef bint is_datetime_or_datetime64_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -2251,6 +2277,8 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
@@ -2563,6 +2591,46 @@ def maybe_convert_numeric(
     elif seen.uint_:
         return (uints, None)
     return (ints, None)
+
+
+cdef extern from "Python.h":
+    # Declare without exception propagation so we can inspect the error
+    # ourselves. The cpython.object declaration uses `except? -1` which
+    # causes Cython to auto-raise before we can check the error type.
+    Py_hash_t _PyObject_Hash "PyObject_Hash"(object) noexcept
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def check_all_hashable(ndarray[object] values) -> None:
+    """
+    Check that all elements in an object array are hashable.
+
+    Raises
+    ------
+    TypeError
+        If any element is not hashable.
+    """
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val
+
+    for i in range(n):
+        val = values[i]
+        if is_scalar(val):
+            # Scalars are always hashable, so skip the PyObject_Hash call.
+            # This is a fast path to avoid the overhead of hashing every
+            # element in the common case where all values are scalars.
+            continue
+        if _PyObject_Hash(val) == -1 and PyErr_Occurred():
+            if PyErr_ExceptionMatches(TypeError):
+                PyErr_Clear()
+                raise TypeError(
+                    f"unhashable type: '{type(val).__name__}'"
+                )
+            # Clear non-TypeError exceptions (e.g. ValueError from
+            # numpy timedelta64 without units)
+            PyErr_Clear()
 
 
 @cython.boundscheck(False)
@@ -3082,6 +3150,8 @@ def map_infer(
         return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def to_object_array(rows: object, min_width: int = 0) -> ndarray:
     """
     Convert a list of lists into an object array.
@@ -3142,6 +3212,8 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def to_object_array_tuples(rows: object) -> np.ndarray:
     """
     Convert a list of tuples into an object array. Any subclass of
@@ -3250,6 +3322,8 @@ def is_bool_list(obj: list) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     """
     Check for `arr == key`, treating all values as not-equal to pd.NA.

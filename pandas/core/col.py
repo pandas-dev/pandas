@@ -3,10 +3,12 @@ from __future__ import annotations
 from collections.abc import (
     Callable,
     Hashable,
+    Sequence,
 )
 from typing import (
     TYPE_CHECKING,
     Any,
+    NoReturn,
 )
 
 from pandas.util._decorators import set_module
@@ -47,10 +49,10 @@ _OP_SYMBOLS = {
 }
 
 
-def _parse_args(df: DataFrame, *args: Any) -> tuple[Series]:
+def _parse_args(df: DataFrame, *args: Any) -> tuple[Any, ...]:
     # Parse `args`, evaluating any expressions we encounter.
     return tuple(
-        [x._eval_expression(df) if isinstance(x, Expression) else x for x in args]
+        x._eval_expression(df) if isinstance(x, Expression) else x for x in args
     )
 
 
@@ -149,6 +151,22 @@ class Expression:
     def __rmul__(self, other: Any) -> Expression:
         self_repr, other_repr = self._maybe_wrap_parentheses(other)
         return self._with_op("__rmul__", other, f"{other_repr} * {self_repr}")
+
+    def __matmul__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__matmul__", other, f"{self_repr} @ {other_repr}")
+
+    def __rmatmul__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rmatmul__", other, f"{other_repr} @ {self_repr}")
+
+    def __pow__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__pow__", other, f"{self_repr} ** {other_repr}")
+
+    def __rpow__(self, other: Any) -> Expression:
+        self_repr, other_repr = self._maybe_wrap_parentheses(other)
+        return self._with_op("__rpow__", other, f"{other_repr} ** {self_repr}")
 
     def __truediv__(self, other: Any) -> Expression:
         self_repr, other_repr = self._maybe_wrap_parentheses(other)
@@ -304,8 +322,48 @@ class Expression:
         repr_str += f".{name}"
         return Expression(lambda df: getattr(self._eval_expression(df), name), repr_str)
 
+    def case_when(self, caselist: Sequence[tuple[Any, Any]]) -> Expression:
+        """
+        Create an expression that evaluates :meth:`Series.case_when` in a DataFrame
+        context.
+
+        This is intended to enable patterns like::
+
+            df.assign(result=pd.col("a").case_when([(pd.col("b") > 0, 1)]))
+
+        where conditions/replacements may reference other columns via ``pd.col``.
+        """
+
+        def func(df: DataFrame) -> Any:
+            ser = self._eval_expression(df)
+            evaluated = []
+            for condition, replacement in caselist:
+                if isinstance(condition, Expression):
+                    condition = condition._eval_expression(df)
+                if isinstance(replacement, Expression):
+                    replacement = replacement._eval_expression(df)
+                evaluated.append((condition, replacement))
+            return ser.case_when(evaluated)
+
+        # Keep repr compact; caselist may be large.
+        repr_str = f"{self!r}.case_when(...)"
+        return Expression(func, repr_str)
+
     def __repr__(self) -> str:
         return self._repr_str or "Expr(...)"
+
+    # Unsupported ops
+    def __bool__(self) -> NoReturn:
+        raise TypeError("boolean value of an expression is ambiguous")
+
+    def __iter__(self) -> NoReturn:
+        raise TypeError("Expression objects are not iterable")
+
+    def __copy__(self) -> NoReturn:
+        raise TypeError("Expression objects are not copiable")
+
+    def __deepcopy__(self, memo: dict[int, Any] | None) -> NoReturn:
+        raise TypeError("Expression objects are not copiable")
 
 
 @set_module("pandas")

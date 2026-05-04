@@ -19,6 +19,7 @@ from pandas import (
     DatetimeIndex,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     date_range,
     period_range,
@@ -150,7 +151,7 @@ class TestSetIndex:
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame
-        idx = Index(np.arange(len(df) - 1, -1, -1, dtype=np.int64))
+        idx = RangeIndex(start=29, stop=-1, step=-1)
 
         df = df.set_index(idx)
         tm.assert_index_equal(df.index, idx)
@@ -715,17 +716,12 @@ class TestSetIndexCustomLabelType:
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")
-        df = DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
 
-        msg = 'The parameter "keys" may be a column key, .*'
-
+        # GH#20285 unhashable elements are now rejected at Index construction,
+        # so the DataFrame cannot even be created with unhashable columns.
+        msg = "unhashable type: 'Thing'"
         with pytest.raises(TypeError, match=msg):
-            # use custom label directly
-            df.set_index(thing2)
-
-        with pytest.raises(TypeError, match=msg):
-            # custom label wrapped in list
-            df.set_index([thing2])
+            DataFrame([[0, 2], [1, 3]], columns=[thing1, thing2])
 
     def test_set_index_periodindex(self):
         # GH#6631
