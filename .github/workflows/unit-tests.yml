@@ -491,4 +491,6 @@ jobs:
         run: |
           source .venv-pyodide/bin/activate
           python -m pip install pytest hypothesis pytest-cov
-          pytest --import-mode=importlib -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
+          # do not import pandas from the checked out repo
+          cd ..
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
