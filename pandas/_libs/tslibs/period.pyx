@@ -2888,16 +2888,16 @@ cdef class _Period(PeriodMixin):
         r"""
         Returns a formatted string representation of the :class:`Period`.
 
+        .. deprecated:: 3.1.0
+            The ``%n`` directive for nanoseconds is deprecated; use ``%N`` instead.
+            ``%n`` conflicts with the POSIX standard meaning of a newline character.
+
         ``fmt`` must be ``None`` or a string containing one or several directives.
         When ``None``, the format will be determined from the frequency of the Period.
         The method recognizes the same directives as the :func:`time.strftime`
         function of the standard Python distribution, as well as the specific
         additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%N``.
         (formatting & docs originally from scikits.timeries).
-
-        .. deprecated:: 3.1.0
-            The ``%n`` directive for nanoseconds is deprecated; use ``%N`` instead.
-            ``%n`` conflicts with the POSIX standard meaning of a newline character.
 
         +-----------+--------------------------------+-------+
         | Directive | Meaning                        | Notes |
