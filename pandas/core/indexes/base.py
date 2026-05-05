@@ -6436,8 +6436,14 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.get_indexer : Computes indexer and mask for new index given
             the current index.
-        Index.get_non_unique : Returns indexer and masks for new index given
+        Index.get_indexer_non_unique : Returns indexer and masks for new index given
             the current index.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "a"])
+        >>> idx.get_indexer_for(["a"])
+        array([0, 2])
         """
         if self._index_as_unique:
             return self.get_indexer(target)
