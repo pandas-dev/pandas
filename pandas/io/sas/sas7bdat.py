@@ -16,6 +16,7 @@ Reference for binary data compression:
 
 from __future__ import annotations
 
+import codecs
 from datetime import datetime
 import sys
 from typing import TYPE_CHECKING
@@ -36,6 +37,7 @@ from pandas._libs.sas import (
     get_subheader_index,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import EmptyDataError
 
 import pandas as pd
@@ -58,6 +60,22 @@ if TYPE_CHECKING:
 
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
+
+# Cython hot-loop modes for encodings that turn into utf-8 in place, keyed
+# by codecs canonical name: 0 = source bytes are already valid utf-8
+# (utf-8/ascii), 1 = single-byte latin-1, expanded to utf-8 inline.
+_FAST_PATH_ENCODINGS = {"utf-8": 0, "ascii": 0, "iso8859-1": 1}
+
+
+def _fast_path_encoding_mode(encoding: str | None) -> int | None:
+    if not encoding:
+        return None
+    try:
+        canonical = codecs.lookup(encoding).name
+    except LookupError:
+        return None
+    return _FAST_PATH_ENCODINGS.get(canonical)
+
 
 # SAS uses a modified Gregorian calendar where years divisible by 4000 are
 # not leap years (unlike proleptic Gregorian). These are the SAS day counts
@@ -695,8 +713,8 @@ class SAS7BDATReader(SASReader):
         nd = self._column_types.count(b"d")
         ns = self._column_types.count(b"s")
 
-        self._string_chunk = np.empty((ns, nrows), dtype=object)
         self._byte_chunk = np.zeros((nd, 8 * nrows), dtype=np.uint8)
+        self._setup_string_buffers(ns, nrows)
 
         self._current_row_in_chunk_index = 0
         p = Parser(self)
@@ -707,6 +725,51 @@ class SAS7BDATReader(SASReader):
             rslt = rslt.set_index(self.index)
 
         return rslt
+
+    def _setup_string_buffers(self, ns: int, nrows: int) -> None:
+        # Choose the Cython hot-loop output for string columns:
+        #   pyarrow path: write utf-8 bytes + int64 offsets + valid bytes
+        #     into flat buffers, wrapped as a large_string array later.
+        #   direct-str path: write str objects (PyUnicode_FromStringAndSize
+        #     for utf-8/ascii, PyUnicode_DecodeLatin1 for latin-1) into the
+        #     object array.
+        #   raw-bytes path: write bytes objects; caller decodes per cell.
+        enc_mode = _fast_path_encoding_mode(
+            self.encoding if self.convert_text else None
+        )
+        use_pa = ns > 0 and enc_mode is not None and using_string_dtype()
+        if use_pa:
+            try:
+                import_optional_dependency("pyarrow")
+            except ImportError:
+                use_pa = False
+
+        if not use_pa:
+            self._use_pyarrow_strings = False
+            self._string_chunk = np.empty((ns, nrows), dtype=object)
+            # 0 = raw bytes, 1 = utf-8/ascii str, 2 = latin-1 str
+            self._str_object_mode = 0 if enc_mode is None else enc_mode + 1
+            return
+
+        # Per-column upper bound on utf-8 bytes: latin-1 -> utf-8 doubles
+        # the worst case; utf-8/ascii is 1:1.
+        expansion = 2 if enc_mode == 1 else 1
+        col_starts = np.empty(ns, dtype=np.int64)
+        running = 0
+        js = 0
+        for j in range(self.column_count):
+            if self._column_types[j] == b"s":
+                col_starts[js] = running
+                running += self._column_data_lengths[j] * nrows * expansion
+                js += 1
+
+        self._use_pyarrow_strings = True
+        self._str_object_mode = 0
+        self._str_encoding_mode = enc_mode
+        self._str_col_starts = col_starts
+        self._str_values_buf = np.empty(running, dtype=np.uint8)
+        self._str_offsets = np.zeros((ns, nrows + 1), dtype=np.int64)
+        self._str_valid = np.ones((ns, nrows), dtype=np.uint8)
 
     def _read_page_data(self):
         """Read the next page from the file. Returns True if EOF."""
@@ -745,34 +808,82 @@ class SAS7BDATReader(SASReader):
         n = self._current_row_in_chunk_index
         m = self._current_row_in_file_index
         ix = range(m - n, m)
-        rslt = {}
 
-        js, jb = 0, 0
         infer_string = using_string_dtype()
+        arrays: list = []
+        js, jb = 0, 0
         for j in range(self.column_count):
-            name = self.column_names[j]
-
             if self._column_types[j] == b"d":
                 col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
+                series = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
                 convert_type = self._column_convert_types[j]
                 if convert_type is not None:
-                    rslt[name] = _convert_datetimes(rslt[name], convert_type)
+                    series = _convert_datetimes(series, convert_type)
+                arrays.append(series._values)
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
-                if self.convert_text and (self.encoding is not None):
-                    rslt[name] = self._decode_string(rslt[name].str)
-                    if infer_string:
-                        rslt[name] = rslt[name].astype("str")
-
+                arrays.append(self._build_string_column(js, n, infer_string))
                 js += 1
             else:
                 self.close()
                 raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
-        df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
+        df = DataFrame._from_arrays(
+            arrays,
+            columns=self.column_names[: len(arrays)],
+            index=ix,
+            verify_integrity=False,
+        )
+        if len(arrays) != len(self.column_names):
+            # GH#47099: corrupt files can have column_count < len(column_names);
+            # surface the missing names as NaN columns.
+            df = df.reindex(columns=self.column_names)
         return df
+
+    def _build_string_column(self, js: int, nrows: int, infer_string: bool):
+        if self._use_pyarrow_strings:
+            return self._build_pyarrow_string_column(js, nrows)
+
+        col_obj = self._string_chunk[js, :]
+        if not (self.convert_text and self.encoding is not None):
+            # encoding=None or convert_text=False: leave as raw bytes.
+            return col_obj
+        if self._str_object_mode != 0:
+            # Cython already produced str cells; just promote dtype if asked.
+            if infer_string:
+                return pd.Series(col_obj, copy=False).astype("str")._values
+            return col_obj
+        # Fallback: per-cell Series.str.decode for arbitrary encodings.
+        decoded = self._decode_string(pd.Series(col_obj, copy=False).str)
+        if infer_string:
+            decoded = decoded.astype("str")
+        return decoded._values
+
+    def _build_pyarrow_string_column(self, js: int, nrows: int):
+        # Wrap the Cython-populated buffers as a large_string ArrowStringArray
+        # with StringDtype(na_value=nan), matching the legacy astype("str") output.
+        import pyarrow as pa
+
+        from pandas.core.arrays.string_arrow import ArrowStringArray
+
+        offsets = np.ascontiguousarray(self._str_offsets[js, : nrows + 1])
+        col_start = int(self._str_col_starts[js])
+        values = self._str_values_buf[col_start : col_start + int(offsets[-1])]
+
+        valid = self._str_valid[js, :nrows]
+        if valid.all():
+            validity_buf = None
+        else:
+            validity_buf = pa.py_buffer(np.packbits(valid, bitorder="little").tobytes())
+
+        pa_arr = pa.Array.from_buffers(
+            pa.large_string(),
+            nrows,
+            [validity_buf, pa.py_buffer(offsets), pa.py_buffer(values)],
+        )
+        return ArrowStringArray(
+            pa.chunked_array([pa_arr]), dtype=pd.StringDtype(na_value=np.nan)
+        )
 
     def _decode_string(self, b):
         return b.decode(self.encoding or self.default_encoding)
