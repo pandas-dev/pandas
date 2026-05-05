@@ -1611,9 +1611,9 @@ int uint64_conflict(uint_state *self) {
  * non-digit / non-tsep char or the end of input) so the caller can detect
  * trailing garbage like "1 ," (GH#64631).
  */
-static int64_t copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
-                                        const char *str, const char **endptr,
-                                        size_t str_len, char tsep) {
+static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
+                                    const char *str, const char **endptr,
+                                    size_t str_len, char tsep) {
   const char *p = str;
   const char *end = str + str_len;
   size_t bytes_written = 0;
@@ -1636,7 +1636,7 @@ static int64_t copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   if (endptr != NULL) {
     *endptr = p;
   }
-  return (int64_t)bytes_written;
+  return (int)bytes_written;
 }
 
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
@@ -1662,7 +1662,7 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   size_t str_len = strlen(p);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int64_t written =
+    const int written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
     if (written < 0) {
       // Word is too big, probably will cause an overflow
@@ -1735,7 +1735,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   size_t str_len = strlen(p);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int64_t written =
+    const int written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
     if (written < 0) {
       // Word is too big, probably will cause an overflow
