@@ -6438,12 +6438,6 @@ class Index(IndexOpsMixin, PandasObject):
             the current index.
         Index.get_non_unique : Returns indexer and masks for new index given
             the current index.
-
-        Examples
-        --------
-        >>> idx = pd.Index([np.nan, "var1", np.nan])
-        >>> idx.get_indexer_for([np.nan])
-        array([0, 2])
         """
         if self._index_as_unique:
             return self.get_indexer(target)
