@@ -6136,8 +6136,8 @@ class DataFrame(NDFrame, OpsMixin):
         Drop columns and/or rows of MultiIndex DataFrame
 
         >>> midx = pd.MultiIndex(
-        ...     levels=[["cow", "falcon", "llama"], ["length", "speed", "weight"]],
-        ...     codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [1, 2, 0, 1, 2, 0, 1, 2, 0]],
+        ...     levels=[["cow", "falcon", "llama"], ["speed", "weight", "length"]],
+        ...     codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]],
         ... )
         >>> df = pd.DataFrame(
         ...     index=midx,
