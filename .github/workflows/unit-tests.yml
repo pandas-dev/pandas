@@ -167,6 +167,13 @@ jobs:
           ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
       shell: bash -euox pipefail {0}
 
+    - name: Import check
+      run: |
+        pixi run \
+          --environment ${{ matrix.environment }} \
+          ci-check-import
+      shell: bash -euox pipefail {0}
+
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       id: test-not-single-cpu
