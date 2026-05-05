@@ -261,6 +261,47 @@ jobs:
           pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
           pytest_target: 'pandas'
 
+  Ubuntu-no-SIMD:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    name: Ubuntu (no SIMD)
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-ubuntu-no-simd
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      with:
+        fetch-depth: 0
+
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: py313
+
+    - name: Build pandas
+      id: build
+      run: |
+        pixi run \
+          --environment py313 \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror" -- \
+          -Csetup-args="-Dsimd=disabled"
+      shell: bash -euox pipefail {0}
+
+    - name: Test
+      uses: ./.github/actions/run-tests
+      with:
+        environment: py313
+        numprocesses: 'auto'
+        pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
+        pytest_target: 'pandas'
+
   Linux-32-bit:
     runs-on: ubuntu-24.04
     permissions:

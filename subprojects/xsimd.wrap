@@ -1,0 +1,9 @@
+[wrap-file]
+directory = xsimd-14.1.0
+source_url = https://github.com/xtensor-stack/xsimd/archive/refs/tags/14.1.0.tar.gz
+source_filename = xsimd-14.1.0.tar.gz
+source_hash = 8da77b66214e73565f6111ba494322c853552b7b40cff69779b42e2100eed16f
+patch_directory = xsimd
+
+[provide]
+dependency_names = xsimd
