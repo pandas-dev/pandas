@@ -4041,3 +4041,30 @@ def test_fillna_zero():
     result = ser.fillna(0)
     expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        pd.offsets.MonthEnd(),
+        pd.offsets.MonthBegin(),
+        pd.offsets.Day(5),
+        pd.DateOffset(years=1),
+    ],
+)
+def test_date32_pyarrow_dateoffset_add(offset):
+    s = pd.Series([date(2022, 12, 30)], dtype="date32[pyarrow]")
+    result = s + offset
+    expected_date = offset + date(2022, 12, 30)
+    # Normalize both sides to datetime.date for comparison
+    if isinstance(expected_date, pd.Timestamp):
+        expected_date = expected_date.date()
+    assert result.dtype == ArrowDtype(pa.date32())
+    assert result[0] == expected_date
+
+
+def test_date32_pyarrow_dateoffset_with_nulls():
+    s = pd.Series([date(2022, 12, 30), None], dtype="date32[pyarrow]")
+    result = s + pd.offsets.MonthEnd()
+    assert result[0] == date(2022, 12, 31)
+    assert pd.isna(result[1])  # handles NA, NaT, None uniformly

@@ -203,6 +203,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :class:`ArrowExtensionArray` where adding a :class:`DateOffset` to a ``date32[pyarrow]`` or ``date64[pyarrow]`` Series raised an ``ArrowTypeError`` (:issue:`57168`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 

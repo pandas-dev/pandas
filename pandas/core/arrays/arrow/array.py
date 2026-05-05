@@ -26,6 +26,7 @@ from pandas._config import is_nan_na
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
+    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -96,6 +97,7 @@ from pandas.core.nanops import check_below_min_count
 
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import DateOffset
 
 if HAS_PYARROW:
     import pyarrow as pa
@@ -1152,6 +1154,25 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if isinstance(other, DateOffset):
+            # For date32/date64 PyArrow types, apply DateOffset element-wise
+            if pa.types.is_date(self._pa_array.type):
+                if op is operator.add or op.__name__ == "__add__":
+                    result_list = [
+                        (other + val) if val is not NaT and val is not None else None
+                        for val in self._pa_array.to_pylist()
+                    ]
+                elif op is operator.sub or op.__name__ == "__sub__":
+                    result_list = [
+                        (val - other) if val is not NaT and val is not None else None
+                        for val in self._pa_array.to_pylist()
+                    ]
+                else:
+                    raise TypeError(f"unsupported op {op} for DateOffset")
+                result_pa = pa.chunked_array(
+                    [pa.array(result_list, type=self._pa_array.type)]
+                )
+                return type(self)(result_pa)
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
