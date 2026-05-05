@@ -7084,27 +7084,21 @@ class Index(IndexOpsMixin, PandasObject):
             # Fill missing values to ensure consistent missing value representation
             target_index = target_index.fillna(np.nan)
 
+        # GH#65419: Normalize pd.NA/None to np.nan for object-dtype Index matching
         if (
             self.dtype == object
             and target_index.dtype == object
             and not target_index._is_multi
             and target_index.hasnans
         ):
-            # GH#65419: Normalize non-float NA values (pd.NA, None) to np.nan
-            # for consistency with get_loc and list-input get_indexer.
-            # We cannot use fillna(np.nan) here because that produces an
-            # object-dtype Index that still has hasnans=True (np.nan is NaN),
-            # which would cause infinite recursion when get_indexer_non_unique
-            # calls itself and re-enters this method.  Instead we only replace
-            # values where isinstance(v, float) is False, so that after
-            # normalization all NA values are float np.nan and this branch is
-            # skipped on the next call.
-            arr = target_index._data
-            mask = np.array([isna(v) and not is_float(v) for v in arr])
-            if mask.any():
-                new_arr = arr.copy()
-                new_arr[mask] = np.nan
-                target_index = Index(new_arr, dtype=object)
+            # Only normalize if we have non-float NAs. We check only the NA values
+            # to be efficient and safe for non-scalar elements.
+            values = target_index.values
+            mask = isna(values)
+            if any(not is_float(v) for v in values[mask]):
+                target_index = target_index.fillna(np.nan)
+                if target_index.dtype != object:
+                    target_index = target_index.astype(object)
 
         return target_index
 
