@@ -177,7 +177,7 @@ class TestRename:
         renamed.loc[:, "foo"] = 1.0
         assert not (float_frame["C"] == 1.0).all()
 
-    @pytest.mark.filterwarnings('ignore:The inplace keyword in DataFrame.rename is')
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
     def test_rename_inplace(self, float_frame):
         float_frame.rename(columns={"C": "foo"})
         assert "C" in float_frame
@@ -195,9 +195,11 @@ class TestRename:
         assert float_frame["foo"] is not c_values
 
     def test_rename_inplace_depr(self, float_frame):
-        msg="The inplace keyword in DataFrame.rename is "\
-            "deprecated and will be removed in future versions. "\
+        msg = (
+            "The inplace keyword in DataFrame.rename is "
+            "deprecated and will be removed in future versions. "
             "See `PDEP-8 for more details."
+        )
 
         # uses keyword, sets to true, warning
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -208,7 +210,6 @@ class TestRename:
         # does not use keyword, no warning
         with tm.assert_produces_warning(False):
             float_frame.rename(columns={"C": "foo"})
-
 
     def test_rename_bug(self):
         # GH 5344
@@ -490,7 +491,7 @@ class TestRename:
             result.columns, Index([(1, 1), (2, 2)], tupleize_cols=False)
         )
 
-    @pytest.mark.filterwarnings('ignore:The inplace keyword in DataFrame.rename is')
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
     def test_rename_non_unique_index_series(self):
         # GH#58621
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
