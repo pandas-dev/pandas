@@ -4,40 +4,37 @@ std::from_chars is locale-independent and skips errno, making it measurably
 faster than libc strtoll/strtoull on platforms where those functions consult
 the current locale on every call.
 */
+#include "pandas/parser/pd_strtoi.h"
+
 #include <charconv>
-#include <cstdint>
 #include <system_error>
 
 extern "C" {
 
-// Returns:
-//   0  on success (*endptr points past the last digit consumed)
-//   1  on overflow / underflow
-//  -1  on invalid input (no digits parsed)
-int pd_strtoll(const char *start, const char *end, int64_t *value,
-               const char **endptr) {
+pd_strtoi_status pd_strtoll(const char *start, const char *end, int64_t *value,
+                            const char **endptr) {
   auto result = std::from_chars(start, end, *value, 10);
   *endptr = result.ptr;
   if (result.ec == std::errc()) {
-    return 0;
+    return PD_STRTOI_OK;
   }
   if (result.ec == std::errc::result_out_of_range) {
-    return 1;
+    return PD_STRTOI_OVERFLOW;
   }
-  return -1;
+  return PD_STRTOI_INVALID;
 }
 
-int pd_strtoull(const char *start, const char *end, uint64_t *value,
-                const char **endptr) {
+pd_strtoi_status pd_strtoull(const char *start, const char *end,
+                             uint64_t *value, const char **endptr) {
   auto result = std::from_chars(start, end, *value, 10);
   *endptr = result.ptr;
   if (result.ec == std::errc()) {
-    return 0;
+    return PD_STRTOI_OK;
   }
   if (result.ec == std::errc::result_out_of_range) {
-    return 1;
+    return PD_STRTOI_OVERFLOW;
   }
-  return -1;
+  return PD_STRTOI_INVALID;
 }
 
 } // extern "C"

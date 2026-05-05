@@ -17,6 +17,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
 #include "pandas/parser/tokenizer.h"
+#include "pandas/parser/pd_strtoi.h"
 #include "pandas/portable.h"
 
 #include <ctype.h>
@@ -1638,13 +1639,6 @@ static int64_t copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int64_t)bytes_written;
 }
 
-// Defined in pd_strtoi.cpp — locale-independent integer parsing via
-// std::from_chars. Faster than libc strtoll/strtoull.
-int pd_strtoll(const char *start, const char *end, int64_t *value,
-               const char **endptr);
-int pd_strtoull(const char *start, const char *end, uint64_t *value,
-                const char **endptr);
-
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
@@ -1681,20 +1675,20 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
 
   int64_t number;
   const char *endptr;
-  const int status = pd_strtoll(p, p + str_len, &number, &endptr);
+  const pd_strtoi_status status = pd_strtoll(p, p + str_len, &number, &endptr);
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input that
     // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=',').
     endptr = number_end;
   }
-  if (status == 1) {
+  if (status == PD_STRTOI_OVERFLOW) {
     // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
     // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
     // at NUL) → OVERFLOW (caller retries as uint64).
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
-  if (status == -1) {
+  if (status == PD_STRTOI_INVALID) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
@@ -1754,16 +1748,16 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
 
   uint64_t number;
   const char *endptr;
-  const int status = pd_strtoull(p, p + str_len, &number, &endptr);
+  const pd_strtoi_status status = pd_strtoull(p, p + str_len, &number, &endptr);
   if (number_end != NULL) {
     // GH#64631: detect trailing junk in the original input.
     endptr = number_end;
   }
-  if (status == 1) {
+  if (status == PD_STRTOI_OVERFLOW) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     return 0;
   }
-  if (status == -1) {
+  if (status == PD_STRTOI_INVALID) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
