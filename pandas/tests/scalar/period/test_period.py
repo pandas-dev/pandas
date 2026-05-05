@@ -844,6 +844,14 @@ class TestPeriodMethods:
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
 
+    @pytest.mark.parametrize("fmt", ["%Y-Q%Q", "%Q", "%E", "%Y%"])
+    def test_strftime_invalid_format(self, fmt):
+        # GH#53562 - unknown directives previously crashed on Windows via
+        # MSVCRT's invalid-parameter handler; now raise ValueError.
+        per = Period("2023-Q2")
+        with pytest.raises(ValueError, match="Invalid format string"):
+            per.strftime(fmt)
+
 
 class TestPeriodProperties:
     """Test properties such as year, month, weekday, etc...."""

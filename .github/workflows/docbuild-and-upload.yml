@@ -22,8 +22,9 @@ on:
         type: boolean
         default: false
 
-env:
-  ENV_FILE: environment.yml
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
 
 permissions: {}
 
@@ -38,10 +39,6 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
       cancel-in-progress: true
-
-    defaults:
-      run:
-        shell: bash -el {0}
 
     steps:
     - name: Set pandas version
@@ -60,6 +57,8 @@ jobs:
         elif [[ "$EVENT_NAME" == "push" && "$GITHUB_REF_NAME" =~ $tag_version_pat ]]; then
           PANDAS_VERSION="${GITHUB_REF_NAME:1}"
           echo "PANDAS_VERSION=$PANDAS_VERSION" >> "$GITHUB_ENV"
+        else
+          PANDAS_VERSION=""
         fi
 
         if [[ "$EVENT_NAME" == "push" && -n "$PANDAS_VERSION" ]]; then
@@ -83,33 +82,68 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: docs-and-web
 
-    - name: Build Pandas
-      uses: ./.github/actions/build_pandas
-
-    - name: Extra installs
-      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
-      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
 
     - name: Test website
-      run: python -m pytest web/
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-test-website
+
+    - name: Test build single page doc
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-test-single-page-doc pandas.Series.value_counts
+        pixi run \
+          --environment docs-and-web \
+          ci-test-single-page-doc pandas.Series.str.split
+
+    - name: Test nbconvert doc notebooks
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-test-nbconvert-doc-notebooks "$(find doc/source -name '*.ipynb')"
 
     - name: Build website
-      run: python web/pandas_web.py web/pandas --target-path=web/build
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-build-website
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build documentation
-      run: doc/make.py --warnings-are-errors
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-build-documentation \
+          html
 
     - name: Build the interactive terminal
       working-directory: web/interactive_terminal
-      run: jupyter lite build
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-build-interactive_terminal
 
     - name: Build documentation zip
-      run: doc/make.py zip_html
+      run: |
+        pixi run \
+          --environment docs-and-web \
+          ci-build-documentation \
+          zip_html
 
     - name: Install ssh key
       run: |
@@ -138,7 +172,7 @@ jobs:
       run: mv doc/build/html web/build/docs
 
     - name: Save website as an artifact
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
       with:
         name: website
         path: web/build

@@ -440,7 +440,7 @@ def test_setops_sort_validation(method):
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
         getattr(idx1, method)(idx2, sort=2)
 
-    # sort=True is supported as of GH#?
+    # sort=True is supported as of GH#25151
     getattr(idx1, method)(idx2, sort=True)
 
 
@@ -625,8 +625,9 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_union_duplicates(index, request):
+def test_union_duplicates(index_sortable, request):
     # GH#38977
+    index = index_sortable
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
