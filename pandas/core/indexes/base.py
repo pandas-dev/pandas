@@ -7083,6 +7083,15 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # Fill missing values to ensure consistent missing value representation
             target_index = target_index.fillna(np.nan)
+        elif (
+            hasattr(target, "dtype")
+            and self.dtype == object
+            and target.dtype == object
+        ):
+            # GH#65419: Normalize pd.NA to np.nan for consistent matching
+            # When target is an ndarray (has dtype) with object dtype,
+            # ensure pd.NA is converted to np.nan for consistent matching
+            target_index = target_index.fillna(np.nan)
         return target_index
 
     @final
