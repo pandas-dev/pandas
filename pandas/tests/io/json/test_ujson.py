@@ -412,6 +412,18 @@ class TestUltraJSONTests:
             ujson.ujson_loads(jibberish)
 
     @pytest.mark.parametrize(
+        "bad_input, expected_pos",
+        [
+            ("[1, 2,", 5),
+            ('{"a": fzz}', 5),
+            ("[[[true", 7),
+        ],
+    )
+    def test_decode_error_includes_position(self, bad_input, expected_pos):
+        with pytest.raises(ValueError, match=f"at position {expected_pos}$"):
+            ujson.ujson_loads(bad_input)
+
+    @pytest.mark.parametrize(
         "broken_json",
         [
             "[",  # Broken array start.
