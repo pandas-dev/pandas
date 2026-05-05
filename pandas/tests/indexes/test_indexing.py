@@ -282,6 +282,34 @@ class TestGetIndexer:
         expected = np.array([-1, -1, -1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_pd_na_matches_nan_object_index(self):
+        # GH#65419: pd.NA should match NaN labels in object-dtype Index
+        # for ndarray and Index inputs (consistent with list input and get_loc)
+        idx = Index([np.nan, "b"])
+
+        # Scalar lookup - already worked
+        assert idx.get_loc(NA) == 0
+
+        # List lookup - already worked
+        res_list = idx.get_indexer([NA])
+        tm.assert_numpy_array_equal(res_list, np.array([0], dtype=np.intp))
+
+        # ndarray lookup - was broken, now fixed
+        res_ndarray = idx.get_indexer(np.array([NA], dtype=object))
+        tm.assert_numpy_array_equal(res_ndarray, np.array([0], dtype=np.intp))
+
+        # Index lookup - was broken, now fixed
+        res_index = idx.get_indexer(Index([NA]))
+        tm.assert_numpy_array_equal(res_index, np.array([0], dtype=np.intp))
+
+    def test_get_indexer_multiindex_target_no_crash(self):
+        # GH#65419: MultiIndex target should not crash in _maybe_cast_listlike_indexer
+        idx = Index([np.nan, "b"])
+        mi = MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        # Should not crash - MultiIndex is excluded from the pd.NA normalization
+        res = idx.get_indexer(mi)
+        assert res.shape == (2,)
+
 
 class TestConvertSliceIndexer:
     def test_convert_almost_null_slice(self, index):
