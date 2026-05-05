@@ -7090,9 +7090,23 @@ class Index(IndexOpsMixin, PandasObject):
             and not target_index._is_multi
             and target_index.hasnans
         ):
-            # GH#65419: Ensure pd.NA is treated as NaN for object-dtype index
+            # GH#65419: Normalize non-float NA values (pd.NA, None) to np.nan
             # for consistency with get_loc and list-input get_indexer.
-            target_index = target_index.fillna(np.nan)
+            # We cannot use fillna(np.nan) here because that produces an
+            # object-dtype Index that still has hasnans=True (np.nan is NaN),
+            # which would cause infinite recursion when get_indexer_non_unique
+            # calls itself and re-enters this method.  Instead we only replace
+            # values where isinstance(v, float) is False, so that after
+            # normalization all NA values are float np.nan and this branch is
+            # skipped on the next call.
+            arr = target_index._data
+            mask = np.array(
+                [lib.checknull(v) and not is_float(v) for v in arr]
+            )
+            if mask.any():
+                new_arr = arr.copy()
+                new_arr[mask] = np.nan
+                target_index = Index(new_arr, dtype=object)
 
         return target_index
 
