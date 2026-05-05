@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Self,
+    TypeAlias,
+    TypeVar,
     cast,
     final,
 )
@@ -91,6 +93,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         DtypeObj,
+        Scalar,
         T,
         npt,
     )
@@ -100,6 +103,16 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.base import IndexOpsMixin
+
+    _IndexSliceTuple: TypeAlias = tuple[IndexOpsMixin | Scalar | Sequence | slice, ...]
+
+    _IndexSliceUnion: TypeAlias = (
+        Scalar | Sequence | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
+    )
+
+    _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
+
 
 # "null slice"
 _NS = slice(None, None)
@@ -154,7 +167,7 @@ class _IndexSlice:
            B1   10   11
     """
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: _IndexSliceUnionT) -> _IndexSliceUnionT:
         return arg
 
 
