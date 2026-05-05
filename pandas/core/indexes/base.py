@@ -7100,7 +7100,7 @@ class Index(IndexOpsMixin, PandasObject):
             # normalization all NA values are float np.nan and this branch is
             # skipped on the next call.
             arr = target_index._data
-            mask = np.array([lib.checknull(v) and not is_float(v) for v in arr])
+            mask = np.array([isna(v) and not is_float(v) for v in arr])
             if mask.any():
                 new_arr = arr.copy()
                 new_arr[mask] = np.nan
