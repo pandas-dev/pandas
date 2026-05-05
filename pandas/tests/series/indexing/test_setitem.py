@@ -1479,6 +1479,22 @@ class TestCoercionFloat32(CoercionTest):
             # the xfail would xpass bc test_slice_key short-circuits
             raise AssertionError("xfail not relevant for this test.")
 
+    def test_index_where(self, obj, key, expected, raises, val):
+        super().test_index_where(obj, key, expected, raises, val)
+
+        if isinstance(val, float) and not np_version_gt2:
+            # Index.where delegates to Series.where, so the comparison is
+            #  trivially satisfied and the xfail would xpass
+            raise AssertionError("xfail not relevant for this test.")
+
+    def test_index_putmask(self, obj, key, expected, raises, val):
+        super().test_index_putmask(obj, key, expected, raises, val)
+
+        if isinstance(val, float) and not np_version_gt2:
+            # Index.putmask delegates to Series.where, so the comparison is
+            #  trivially satisfied and the xfail would xpass
+            raise AssertionError("xfail not relevant for this test.")
+
 
 @pytest.mark.parametrize(
     "exp_dtype",
