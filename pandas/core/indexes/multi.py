@@ -3370,8 +3370,8 @@ class MultiIndex(Index):
                 if isinstance(loc, slice):
                     indexers.extend(range(*loc.indices(len(self))))
                 elif isinstance(loc, np.ndarray) and loc.dtype == bool:
-                    indexers.extend(np.where(loc)[0])
-                elif isinstance(loc, (int, np.integer)):
+                    indexers.extend(loc.nonzero()[0])
+                elif lib.is_integer(loc):
                     indexers.append(int(loc))
                 else:
                     indexers.extend(loc)
