@@ -40,7 +40,10 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    NA,
+    is_matching_na,
+)
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
@@ -7096,7 +7099,7 @@ class Index(IndexOpsMixin, PandasObject):
             # check avoids infinite recursion and crashes with non-scalars.
             values = target_index.values
             mask = isna(values)
-            if any(v is lib.NA or v is None for v in values[mask]):
+            if any(v is NA or v is None for v in values[mask]):
                 target_index = target_index.fillna(np.nan)
                 if target_index.dtype != object:
                     target_index = target_index.astype(object)
