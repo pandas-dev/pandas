@@ -26,7 +26,6 @@ from pandas._config import is_nan_na
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
-    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -1154,25 +1153,34 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
-        if isinstance(other, DateOffset):
-            # For date32/date64 PyArrow types, apply DateOffset element-wise
-            if pa.types.is_date(self._pa_array.type):
-                if op is operator.add or op.__name__ == "__add__":
-                    result_list = [
-                        (other + val) if val is not NaT and val is not None else None
-                        for val in self._pa_array.to_pylist()
-                    ]
-                elif op is operator.sub or op.__name__ == "__sub__":
-                    result_list = [
-                        (val - other) if val is not NaT and val is not None else None
-                        for val in self._pa_array.to_pylist()
-                    ]
-                else:
-                    raise TypeError(f"unsupported op {op} for DateOffset")
-                result_pa = pa.chunked_array(
-                    [pa.array(result_list, type=self._pa_array.type)]
+        if isinstance(other, DateOffset) and pa.types.is_date(self._pa_array.type):
+            from pandas.core.indexes.datetimes import DatetimeIndex
+
+            if op is operator.add or op.__name__ == "__add__":
+                # lift to DatetimeIndex, apply offset, cast back
+                dt_index = DatetimeIndex(
+                    self._pa_array.cast(pa.timestamp("us")).to_pandas()
                 )
-                return type(self)(result_pa)
+                shifted = dt_index + other
+                date_array = pa.array(
+                    shifted.date,  # back to datetime.date objects
+                    type=self._pa_array.type,  # preserve date32 or date64
+                    from_pandas=True,  # handles NaT → null
+                )
+                return type(self)(pa.chunked_array([date_array]))
+            elif op is operator.sub or op.__name__ == "__sub__":
+                dt_index = DatetimeIndex(
+                    self._pa_array.cast(pa.timestamp("us")).to_pandas()
+                )
+                shifted = dt_index - other
+                date_array = pa.array(
+                    shifted.date,
+                    type=self._pa_array.type,
+                    from_pandas=True,
+                )
+                return type(self)(pa.chunked_array([date_array]))
+            else:
+                raise TypeError(f"unsupported op {op} for DateOffset on date32/date64")
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
