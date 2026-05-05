@@ -180,10 +180,15 @@ columns.
 
    This will modify ``df`` because the column alignment is not done before value assignment.
 
+  .. note::
+      ``.copy()`` is used on the right-hand side to avoid aliasing with ``df``.
+      Without it, referencing the exact same memory causes pandas to fall back 
+      to aligning the axes.
+
    .. ipython:: python
 
       df[['A', 'B']]
-      df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df.iloc[:, [1, 0]] = df[['A', 'B']].copy()
       df[['A','B']]
 
 
