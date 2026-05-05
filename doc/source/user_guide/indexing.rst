@@ -182,7 +182,7 @@ columns.
 
   .. note::
       ``.copy()`` is used on the right-hand side to avoid aliasing with ``df``.
-      Without it, referencing the exact same memory causes pandas to fall back 
+      Without it, referencing the exact same memory causes pandas to fall back
       to aligning the axes.
 
    .. ipython:: python
