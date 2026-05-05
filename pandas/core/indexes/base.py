@@ -7091,11 +7091,12 @@ class Index(IndexOpsMixin, PandasObject):
             and not target_index._is_multi
             and target_index.hasnans
         ):
-            # Only normalize if we have non-float NAs. We check only the NA values
-            # to be efficient and safe for non-scalar elements.
+            # Only normalize if we have pd.NA or None. These are the ones
+            # that cause the mismatch and have non-float types. This specific
+            # check avoids infinite recursion and crashes with non-scalars.
             values = target_index.values
             mask = isna(values)
-            if any(not is_float(v) for v in values[mask]):
+            if any(v is lib.NA or v is None for v in values[mask]):
                 target_index = target_index.fillna(np.nan)
                 if target_index.dtype != object:
                     target_index = target_index.astype(object)
