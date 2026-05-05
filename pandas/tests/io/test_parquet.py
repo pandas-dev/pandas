@@ -1195,18 +1195,43 @@ class TestParquetPyArrow(Base):
         expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
-    # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)
-    # @pytest.mark.slow
-    # def test_string_column_above_2GB(self, tmp_path, pa):
-    #     # https://github.com/pandas-dev/pandas/issues/55606
-    #     # above 2GB of string data
-    #     v1 = b"x" * 100000000
-    #     v2 = b"x" * 147483646
-    #     df = pd.DataFrame({"strings": [v1] * 20 + [v2] + ["x"] * 20}, dtype="string")
-    #     df.to_parquet(tmp_path / "test.parquet")
-    #     result = read_parquet(tmp_path / "test.parquet")
-    #     assert result["strings"].dtype == "string"
-    # FIXME: don't leave commented-out
+    def test_string_column_above_2GB(self, pa):
+        # GH#55606: when a parquet file's string column exceeds 2GB total,
+        # pyarrow returns a multi-chunk pa.string() ChunkedArray (each chunk
+        # capped by int32 offsets). __from_arrow__ must handle this without
+        # combining the chunks into a single int32-offset array.
+        #
+        # We construct the pathological ChunkedArray directly via buffer
+        # aliasing rather than allocating multi-GB strings: a single ~150MB
+        # data buffer is referenced by 20 single-string chunks, giving ~3GB
+        # logical with ~150MB physical memory.
+        import pyarrow as pa
+
+        chunk_bytes = 150_000_000
+        data_buffer = pa.py_buffer(b"x" * chunk_bytes)
+        offsets_buffer = pa.py_buffer(
+            np.array([0, chunk_bytes], dtype=np.int32).tobytes()
+        )
+        single_chunk = pa.Array.from_buffers(
+            pa.string(),
+            length=1,
+            buffers=[None, offsets_buffer, data_buffer],
+        )
+        n_chunks = 20
+        chunked = pa.chunked_array([single_chunk] * n_chunks)
+        assert sum(chunk.nbytes for chunk in chunked.chunks) > 2**31
+
+        # Sanity: combining without first casting to large_string is exactly
+        # the failure mode the fix avoids.
+        with pytest.raises(
+            pa.ArrowInvalid, match="offset overflow while concatenating arrays"
+        ):
+            chunked.combine_chunks()
+
+        result = pd.StringDtype(storage="pyarrow").__from_arrow__(chunked)
+        assert isinstance(result.dtype, pd.StringDtype)
+        assert result.dtype.storage == "pyarrow"
+        assert len(result) == n_chunks
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
