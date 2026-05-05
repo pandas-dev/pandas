@@ -12,10 +12,7 @@ import numpy as np
 
 from pandas._config.config import _global_config
 
-from pandas._libs import (
-    algos as libalgos,
-    lib,
-)
+from pandas._libs import lib
 import pandas._libs.reshape as libreshape
 from pandas.errors import (
     Pandas4Warning,
@@ -29,7 +26,6 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    ensure_int64,
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_integer,
@@ -850,7 +846,7 @@ def _stack_multi_columns(
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = mi_cols = roll_columns
 
-    if sort and not libalgos.is_lexsorted([ensure_int64(c) for c in mi_cols.codes]):
+    if not mi_cols._is_lexsorted() and sort:
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
