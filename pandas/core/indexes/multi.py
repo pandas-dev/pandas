@@ -33,6 +33,7 @@ from pandas._libs.hashtable import duplicated
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
+    Pandas4Warning,
     PerformanceWarning,
     UnsortedIndexError,
 )
@@ -2044,12 +2045,8 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        if lev._can_hold_na:
-            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
-        else:
-            # Index.take raises for integer dtypes with -1 (NA) codes
-            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-            result = lev._shallow_copy(filled, name=name)
+        result = lev.take(level_codes, allow_fill=True)
+        result._name = name
         return result
 
     def get_level_values(self, level) -> Index:
@@ -2580,8 +2577,8 @@ class MultiIndex(Index):
         self: MultiIndex,
         indices,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value=None,
+        allow_fill: bool | lib.NoDefault = lib.no_default,
+        fill_value=lib.no_default,
         **kwargs,
     ) -> MultiIndex:
         """
@@ -2595,20 +2592,22 @@ class MultiIndex(Index):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-            from the right (the default). This is similar to
-            :func:`numpy.take`.
+              from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+              entries are set to NA. Any other negative values raise a
+              ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
-            * True: negative values in `indices` indicate
-            missing values. These values are set to `fill_value`. Any other
-            other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        fill_value : scalar, optional
+            Retained for API compatibility with :meth:`Index.take`; ``-1``
+            entries are always represented as NA in each level regardless of
+            the value passed.
         **kwargs
             Required for compatibility with numpy.
 
@@ -2641,13 +2640,32 @@ class MultiIndex(Index):
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
-        # only fill if we are passing a non-None fill_value
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill is lib.no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this case, but
+                # warn since the sentinel-based default would otherwise flip
+                # it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not lib.no_default
+
+        if allow_fill and (indices < -1).any():
+            raise ValueError("When allow_fill=True, all indices must be >= -1")
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
-
-        na_value = -1
 
         taken = [lab.take(indices) for lab in self.codes]
         if allow_fill:
@@ -2656,7 +2674,7 @@ class MultiIndex(Index):
                 masked = []
                 for new_label in taken:
                     label_values = new_label
-                    label_values[mask] = na_value
+                    label_values[mask] = -1
                     masked.append(np.asarray(label_values))
                 taken = masked
 
@@ -3653,19 +3671,21 @@ class MultiIndex(Index):
                 f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
             )
 
-        if keylen == self.nlevels and self.is_unique:
+        if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
             #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
             except KeyError as err:
                 raise KeyError(key) from err
-            except TypeError:
-                # e.g. test_partial_slicing_with_multiindex partial string slicing
+            except (TypeError, ValueError):
+                # TypeError: e.g. test_partial_slicing_with_multiindex
+                #  partial string slicing
+                # ValueError: e.g. IntervalIndex level (GH#27456)
                 loc, _ = self.get_loc_level(key, range(self.nlevels))
                 return loc
 
-        # -- partial selection or non-unique index
+        # -- partial selection
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
@@ -3699,9 +3719,16 @@ class MultiIndex(Index):
         loc = np.arange(start, stop, dtype=np.intp)
 
         for i, k in enumerate(follow_key, len(lead_key)):
-            mask = self.codes[i][loc] == self._get_loc_single_level_index(
-                self.levels[i], k
-            )
+            level_idx = self._get_loc_single_level_index(self.levels[i], k)
+            if is_integer(level_idx):
+                mask = self.codes[i][loc] == level_idx
+            else:
+                # GH#27456: level_idx may be a slice or bool ndarray
+                # (e.g. overlapping IntervalIndex). Normalize to a
+                # boolean mask over the level, then map via codes.
+                level_mask = np.zeros(len(self.levels[i]), dtype=bool)
+                level_mask[level_idx] = True
+                mask = level_mask[self.codes[i][loc]]
             if not mask.all():
                 loc = loc[mask]
             if not len(loc):
@@ -3832,16 +3859,22 @@ class MultiIndex(Index):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-                if len(key) == self.nlevels and self.is_unique:
-                    # Complete key in unique index -> standard get_loc
+                if len(key) == self.nlevels:
+                    # Complete key -> standard get_loc
                     try:
-                        return (self._engine.get_loc(key), None)
+                        loc = self._engine.get_loc(key)
                     except KeyError as err:
                         raise KeyError(key) from err
-                    except TypeError:
-                        # e.g. partial string indexing
+                    except (TypeError, ValueError):
+                        # TypeError: e.g. partial string indexing
                         #  test_partial_string_timestamp_multiindex
-                        pass
+                        # ValueError: e.g. IntervalIndex level where the
+                        #  engine can't convert scalar to interval code
+                        #  (GH#27456)
+                        loc = None
+
+                    if is_integer(loc):
+                        return loc, None
 
                 # partial selection
                 indexer = self.get_loc(key)
@@ -3864,6 +3897,14 @@ class MultiIndex(Index):
                         and key[i] != slice(None, None)
                     ]
                     if len(ilevels) == self.nlevels:
+                        # GH#27456: if the indexer is a boolean mask with a
+                        # single match (e.g. scalar in overlapping
+                        # IntervalIndex level), reduce to int so callers
+                        # get scalar semantics.
+                        if isinstance(indexer, np.ndarray) and indexer.dtype == bool:
+                            (inds,) = indexer.nonzero()
+                            if len(inds) == 1:
+                                return inds[0].item(), None
                         # TODO: why?
                         ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
@@ -4010,15 +4051,31 @@ class MultiIndex(Index):
 
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
-                if isinstance(idx, slice):
-                    # test_get_loc_partial_timestamp_multiindex
-                    locs = (level_codes >= idx.start) & (level_codes < idx.stop)
-                    return locs
-
-                locs = np.asarray(level_codes == idx, dtype=bool)
+                if is_integer(idx):
+                    locs = np.asarray(level_codes == idx, dtype=bool)
+                else:
+                    # GH#27456: idx is a slice or bool ndarray
+                    # (e.g. overlapping IntervalIndex). Normalize to a
+                    # boolean mask over the level, then map to row positions.
+                    level_mask = np.zeros(len(level_index), dtype=bool)
+                    level_mask[idx] = True
+                    locs = level_mask[level_codes]
+                    locs[level_codes == -1] = False
 
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            if isinstance(idx, np.ndarray):
+                # GH#27456: idx is a bool ndarray (e.g. overlapping
+                # IntervalIndex); searchsorted can only handle scalars, so
+                # fall back to the mask approach.
+                level_mask = np.zeros(len(level_index), dtype=bool)
+                level_mask[idx] = True
+                locs = level_mask[level_codes]
+                locs[level_codes == -1] = False
+                if not locs.any():
                     raise KeyError(key)
                 return locs
 
