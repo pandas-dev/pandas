@@ -12482,7 +12482,7 @@ class DataFrame(NDFrame, OpsMixin):
         by=None,
         level: IndexLabel | None = None,
         as_index: bool = True,
-        sort: bool = True,
+        sort: bool | lib.NoDefault = lib.no_default,
         group_keys: bool = True,
         observed: bool = True,
         dropna: bool = True,
@@ -12520,7 +12520,7 @@ class DataFrame(NDFrame, OpsMixin):
             such as ``head()``, ``tail()``, ``nth()`` and in transformations
             (see the `transformations in the user guide
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
-        sort : bool, default True
+        sort : bool | lib.NoDefault, default lib.no_default
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
@@ -12537,6 +12537,14 @@ class DataFrame(NDFrame, OpsMixin):
 
                 Specifying ``sort=False`` with an ordered categorical grouper will no
                 longer sort the values.
+                
+            .. deprecated:: 3.1.0
+                  
+                  The default value of ``sort`` will change from ``True`` to 
+                  ``False`` in pandas 4.0. Pass ``sort=True`` to retain the 
+                  current behaviour or ``sort=False`` to silence the warning and 
+                  opt into the new default.    
+    
 
         group_keys : bool, default True
             When calling apply and the ``by`` argument produces a like-indexed
@@ -12698,7 +12706,16 @@ class DataFrame(NDFrame, OpsMixin):
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
+        
+        if sort is lib.no_default:
+            warnings.warn(
+                "The default value of sort in pd.Series.groupby is changing from True to False in a future version. "
+                "Pass sort=True to retain the current behavior or sort=False to silence this warning and opt into the new default.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
+            sort = True
         return DataFrameGroupBy(
             obj=self,
             keys=by,
