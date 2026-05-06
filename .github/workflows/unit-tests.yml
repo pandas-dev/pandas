@@ -493,4 +493,4 @@ jobs:
           python -m pip install pytest hypothesis pytest-cov
           # do not import pandas from the checked out repo
           cd ..
-          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas/pandas
