@@ -134,17 +134,11 @@ class BaseReduceTests:
 
         kwargs = {}
         if op_name == "mean" and isinstance(ser.array, pd.arrays.SparseArray):
-            # TODO: Missing skipna argument
+            # https://github.com/pandas-dev/pandas/issues/65478
+            # SparseArray.mean is missing the skipna argument
             pass
         elif op_name != "count":
             kwargs["skipna"] = skipna
-
-        if "DecimalArray" in str(type(ser.array)) and op_name != "count":
-            # DecimalArray does not implement sum et all directly.
-            msg = f"object has no attribute '{op_name}'"
-            with pytest.raises(AttributeError, match=msg):
-                getattr(ser.array, op_name)(**kwargs)
-            return
 
         if not self._supports_reduction(ser, op_name):
             # TODO: the message being checked here isn't actually checking anything
@@ -162,9 +156,7 @@ class BaseReduceTests:
                     r"complex\(\) first argument must be a string or a number",
                 ]
             )
-            with pytest.raises(
-                (TypeError, NotImplementedError, AttributeError), match=msg
-            ):
+            with pytest.raises((TypeError, AttributeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
             return
         if (

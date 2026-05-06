@@ -1654,7 +1654,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if self.ndim == 2 and kwargs.get("axis", 0) is not None:
-            # Result must be 1d
+            # TODO: Do we need to return 2d in the case keepdims=True?
             return result
 
         if keepdims:
