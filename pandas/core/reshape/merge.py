@@ -1454,14 +1454,10 @@ class _MergeOperation:
                 else:
                     # When right is empty, create default index based on merge type
                     if self.how in ("left", "outer"):
-                        n = (
-                            len(left_ax)
-                            if left_indexer is None
-                            else len(left_indexer)
-                        )
+                        n = len(left_ax) if left_indexer is None else len(left_indexer)
                     else:
                         n = 0
-                        
+
                     join_index = default_index(n)
             else:
                 n = len(left_ax) if left_indexer is None else len(left_indexer)
