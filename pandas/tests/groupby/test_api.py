@@ -9,10 +9,15 @@ import inspect
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
+    Index,
     Series,
 )
+import pandas._testing as tm
+
 from pandas.core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,
@@ -272,3 +277,95 @@ def test_series_consistency(request, groupby_func):
     result -= exclude_result
     expected -= exclude_expected
     assert result == expected
+    
+class TestGroupbySortDefaultDeprecation:
+
+    sort_msg = (
+        "The default value of 'sort' in "
+        "DataFrame.groupby/Series.groupby is being deprecated and "
+        "will change from True to False in pandas 4.0."
+    )
+
+    def test_dataframe_groupby_sort_default_warns(self):
+        df = DataFrame(
+            {"a": (2, 1, 2, 1), "b": (1, 2, 3, 4)}
+        )
+
+        with tm.assert_produces_warning(
+            Pandas4Warning,
+            match=self.sort_msg,
+        ):
+            df.groupby("a")
+
+    def test_series_groupby_sort_default_warns(self):
+        ser = Series(
+            [1, 2, 3, 4],
+            index=Index(["b", "a", "b", "a"]),
+        )
+
+        with tm.assert_produces_warning(
+            Pandas4Warning,
+            match=self.sort_msg,
+        ):
+            ser.groupby(level=0)
+
+    @pytest.mark.parametrize("sort", (True, False))
+    def test_dataframe_groupby_sort_explicit_does_not_warn(
+        self, sort
+    ):
+        df = DataFrame(
+            {"a": (2, 1, 2, 1), "b": (1, 2, 3, 4)}
+        )
+
+        with tm.assert_produces_warning(None):
+            df.groupby("a", sort=sort)
+
+    @pytest.mark.parametrize("sort", (True, False))
+    def test_series_groupby_sort_explicit_does_not_warn(
+        self, sort
+    ):
+        ser = Series(
+            [1, 2, 3, 4],
+            index=Index(["b", "a", "b", "a"]),
+        )
+
+        with tm.assert_produces_warning(None):
+            ser.groupby(level=0, sort=sort)
+
+    def test_dataframe_groupby_default_behavior_preserved(
+        self,
+    ):
+        """
+        During the deprecation window the resolved default
+        must still be equivalent to sort=True.
+        """
+
+        df = DataFrame(
+            {"a": (2, 1, 2, 1), "b": (1, 2, 3, 4)}
+        )
+
+        with tm.assert_produces_warning(
+            Pandas4Warning,
+            match=self.sort_msg,
+        ):
+            result = df.groupby("a").sum()
+
+        expected = df.groupby("a", sort=True).sum()
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_series_groupby_default_behavior_preserved(self):
+        ser = Series(
+            [1, 2, 3, 4],
+            index=Index(["b", "a", "b", "a"]),
+        )
+
+        with tm.assert_produces_warning(
+            Pandas4Warning,
+            match=self.sort_msg,
+        ):
+            result = ser.groupby(level=0).sum()
+
+        expected = ser.groupby(level=0, sort=True).sum()
+
+        tm.assert_series_equal(result, expected)    

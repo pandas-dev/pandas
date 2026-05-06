@@ -555,7 +555,9 @@ class TestDataFrameGroupByPlots:
         # _check_plot_works adds an ax so catch warning. see GH #13188 GH 6769
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(
-                df.groupby(gb_key).boxplot, column="height", return_type="dict"
+                df.groupby(gb_key, sort = True).boxplot,
+                column="height",
+                return_type="dict",
             )
         _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=axes_num, layout=(rows, 2))
 
@@ -588,7 +590,7 @@ class TestDataFrameGroupByPlots:
         df = hist_df
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(
-                df.groupby("category").boxplot,
+                df.groupby("category", sort=True).boxplot,
                 column="height",
                 layout=(3, cols),
                 return_type="dict",
@@ -627,7 +629,7 @@ class TestDataFrameGroupByPlots:
         # which has earlier alphabetical order
         with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             _, axes = mpl.pyplot.subplots(2, 2)
-            df.groupby("category").boxplot(column="height", return_type="axes", ax=axes)
+            df.groupby("category", sort=True).boxplot(column="height", return_type="axes", ax=axes)
             _check_axes_shape(mpl.pyplot.gcf().axes, axes_num=4, layout=(2, 2))
 
     @pytest.mark.slow
@@ -649,7 +651,7 @@ class TestDataFrameGroupByPlots:
 
         # draw on second row
         with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
-            returned = df.groupby("classroom").boxplot(
+            returned = df.groupby("classroom", sort=True).boxplot(
                 column=["height", "weight", "category"], return_type="axes", ax=axes[1]
             )
         returned = np.array(list(returned.values))
@@ -666,7 +668,7 @@ class TestDataFrameGroupByPlots:
         with pytest.raises(ValueError, match=msg):
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
-                axes = df.groupby("classroom").boxplot(ax=axes)
+                axes = df.groupby("classroom", sort=True).boxplot(ax=axes)
 
     def test_fontsize(self):
         df = DataFrame({"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]})
