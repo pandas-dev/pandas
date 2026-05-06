@@ -12,18 +12,16 @@ supported_simd_archs = {}
 if get_option('simd').allowed()
     if host_machine.cpu_family() == 'aarch64'
         supported_simd_archs += {'neon': []}
+        simd_config.set('PANDAS_HAVE_NEON', 1)
     elif host_machine.cpu_family() in ['x86', 'x86_64']
         foreach name, flags : simd_x86_flags
             if cxx.has_multi_arguments(flags)
                 supported_simd_archs += {name: flags}
+                simd_config.set('PANDAS_HAVE_@0@'.format(name.to_upper()), 1)
             endif
         endforeach
     endif
 endif
-
-foreach arch_name, arch_flags : supported_simd_archs
-    simd_config.set('PANDAS_HAVE_@0@'.format(arch_name.to_upper()), 1)
-endforeach
 
 # Ensure scalar version on all architectures for now...
 simd_config.set('PANDAS_HAVE_SCALAR', 1)
