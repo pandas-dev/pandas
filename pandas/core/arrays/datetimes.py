@@ -256,7 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # GH#46768 - deprecated but still need to be accessible via .dt accessor
     _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "freq", "tz"]
+        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -282,7 +282,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Constructors
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
-    _freq: BaseOffset | None = None
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -303,7 +302,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.datetime64],
-        freq: BaseOffset | None = None,
         dtype: np.dtype[np.datetime64] | DatetimeTZDtype = DT64NS_DTYPE,
     ) -> Self:
         assert isinstance(values, np.ndarray)
@@ -316,9 +314,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             #  then values.dtype should be M8[us].
             assert dtype._creso == get_unit_from_dtype(values.dtype)
 
-        result = super()._simple_new(values, dtype)
-        result._freq = freq
-        return result
+        return super()._simple_new(values, dtype)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
@@ -332,7 +328,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         dtype=None,
         copy: bool = False,
         tz=lib.no_default,
-        freq: str | BaseOffset | lib.NoDefault | None = lib.no_default,
         dayfirst: bool = False,
         yearfirst: bool = False,
         ambiguous: TimeAmbiguous = "raise",
@@ -360,9 +355,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data, copy = dtl.ensure_arraylike_for_datetimelike(
             data, copy, cls_name="DatetimeArray"
         )
-        inferred_freq = None
-        if isinstance(data, DatetimeArray):
-            inferred_freq = data.freq
 
         subarr, tz = _sequence_to_dt64(
             data,
@@ -384,7 +376,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         data_unit = np.datetime_data(subarr.dtype)[0]
         data_unit = cast("TimeUnit", data_unit)
         data_dtype = tz_to_dtype(tz, data_unit)
-        result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
+        result = cls._simple_new(subarr, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
             # error: Argument 1 to "as_unit" of "TimelikeOps" has
@@ -392,8 +384,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # [arg-type]
             result = result.as_unit(unit)  # type: ignore[arg-type]
 
-        validate_kwds = {"ambiguous": ambiguous}
-        result._maybe_pin_freq(freq, validate_kwds)
         return result
 
     @classmethod
@@ -554,7 +544,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
         dtype = tz_to_dtype(tz, unit=unit)
-        return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
+        return cls._simple_new(dt64_values, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -721,7 +711,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)
                 res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+                return type(self)._simple_new(res_values, dtype=dtype)
 
         elif (
             self.tz is None
@@ -815,7 +805,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._simple_new(res_values, dtype=self.dtype)
             if offset.normalize:
                 result = result.normalize()
-                result._freq = None
             return result
 
         if self.tz is not None:
@@ -850,7 +839,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             if offset.normalize:
                 result = result.normalize()
-                result._freq = None
 
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
@@ -953,7 +941,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=None)
+        return self._simple_new(self._ndarray, dtype=dtype)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -1130,7 +1118,7 @@ default 'raise'
         new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
         dtype = tz_to_dtype(tz, unit=self.unit)
 
-        return self._simple_new(new_dates_dt64, dtype=dtype, freq=None)
+        return self._simple_new(new_dates_dt64, dtype=dtype)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1272,11 +1260,7 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.freqstr or self.inferred_freq
-            if isinstance(self.freq, BaseOffset) and hasattr(
-                self.freq, "_period_dtype_code"
-            ):
-                freq = PeriodDtype(self.freq)._freqstr
+            freq = self.inferred_freq
 
             if freq is None:
                 raise ValueError(

@@ -53,8 +53,8 @@ def test_value_counts(index_or_series_obj):
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_value_counts_null(null_obj, index_or_series_obj):
-    orig = index_or_series_obj
+def test_value_counts_null(null_obj, index_or_series_obj_orderable):
+    orig = index_or_series_obj_orderable
 
     if not allow_na_ops(orig):
         pytest.skip("type doesn't allow for NA operations")

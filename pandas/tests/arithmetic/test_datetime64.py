@@ -502,8 +502,8 @@ class TestDatetimeIndexComparisons:
             [
                 np.datetime64("2014-02-01 00:00"),
                 np.datetime64("2014-03-01 00:00"),
-                np.datetime64("nat"),
-                np.datetime64("nat"),
+                np.datetime64("nat", "ns"),
+                np.datetime64("nat", "ns"),
                 np.datetime64("2014-06-01 00:00"),
                 np.datetime64("2014-07-01 00:00"),
             ]
@@ -1966,7 +1966,6 @@ class TestTimestampSeriesArithmetic:
         td1 = Series(pd.timedelta_range("1 days 1 min", periods=5, freq="h"))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
-        assert td2._values.freq is None
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)

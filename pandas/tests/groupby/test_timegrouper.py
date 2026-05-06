@@ -390,7 +390,7 @@ class TestGroupBy:
         expected = (
             df.groupby("user_id")["whole_cost"]
             .resample(freq)
-            .sum(min_count=1)  # XXX
+            .sum(min_count=1)  # TODO: can we drop min_count=1 + dropna() below?
             .dropna()
             .reorder_levels(["date", "user_id"])
             .sort_index()

@@ -197,8 +197,10 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 1.0
-    provided the object was serialized with to_pickle.
+    read_pickle is only guaranteed to be backwards compatible with pickles
+    created by the current or previous major version of pandas, provided the
+    object was serialized with to_pickle. For example, in pandas 3.x.y, the
+    earliest supported pickle would be from 2.0.0.
 
     Examples
     --------
