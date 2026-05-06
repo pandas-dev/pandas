@@ -526,17 +526,43 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-The limits of timestamp representation depend on the chosen resolution. For
-nanosecond resolution, the time span that
-can be represented using a 64-bit integer is limited to approximately 584 years:
+:class:`Timestamp` uses a 64-bit integer to represent time, so the representable
+range depends on the chosen resolution (``unit``). For the default nanosecond
+resolution the span is limited to approximately 584 years; coarser resolutions
+such as second extend the range to roughly ``+/- 2.9e11`` years.
+
+The class-level attributes :attr:`Timestamp.min`, :attr:`Timestamp.max`, and
+:attr:`Timestamp.resolution` default to nanosecond limits:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+   pd.Timestamp.resolution
 
-When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
-Different resolutions can be converted to each other through ``as_unit``.
+On a :class:`Timestamp` *instance*, the same attributes reflect the bounds and
+step size of that instance's resolution:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2262-04-12").as_unit("s")
+   ts.min
+   ts.max
+   ts.resolution
+
+Because :class:`Timestamp` construction automatically picks a resolution wide
+enough to represent the input, a value outside the nanosecond range (such as
+``"3000-06-10"``) is parsed using a coarser unit rather than raising
+:class:`OutOfBoundsDatetime`:
+
+.. ipython:: python
+
+   far_future = pd.Timestamp("3000-06-10")
+   far_future
+   far_future.unit
+
+Different resolutions can be converted to each other through
+:meth:`Timestamp.as_unit`.
 
 .. seealso::
 
@@ -897,7 +923,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.DateOffset`, None, "Generic offset class, defaults to absolute 24 hours"
     :class:`~pandas.tseries.offsets.BDay` or :class:`~pandas.tseries.offsets.BusinessDay`, ``'B'``,"business day (weekday)"
     :class:`~pandas.tseries.offsets.CDay` or :class:`~pandas.tseries.offsets.CustomBusinessDay`, ``'C'``, "custom business day"
-    :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
+    :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week (the anchor day is the last day of the weekly period)"
     :class:`~pandas.tseries.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
     :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
     :class:`~pandas.tseries.offsets.MonthEnd`, ``'ME'``, "calendar month end"
@@ -1080,7 +1106,7 @@ Let's map to the weekday names:
 
     dts = pd.date_range(dt, periods=5, freq=bday_egypt)
 
-    pd.Series(dts.weekday, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    pd.Series(dts.day_of_week, dts).map(pd.Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
 Holiday calendars can be used to provide the list of holidays.  See the
 :ref:`holiday calendar<timeseries.holiday>` section for more information.
@@ -1267,7 +1293,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "B", "business day frequency"
     "C", "custom business day frequency"
     "D", "calendar day frequency"
-    "W", "weekly frequency"
+    "W", "weekly frequency (default anchored to Sunday, i.e. W\-SUN)"
     "ME", "month end frequency"
     "SME", "semi-month end frequency (15th and end of month)"
     "BME", "business month end frequency"
@@ -1337,7 +1363,7 @@ frequencies. We will refer to these aliases as *period aliases*.
 
     "B", "business day frequency"
     "D", "calendar day frequency"
-    "W", "weekly frequency"
+    "W", "weekly frequency (default anchored to Sunday, i.e. W\-SUN)"
     "M", "monthly frequency"
     "Q", "quarterly frequency"
     "Y", "yearly frequency"
@@ -1378,13 +1404,13 @@ For some frequencies you can specify an anchoring suffix:
     :header: "Alias", "Description"
     :widths: 15, 100
 
-    "W\-SUN", "weekly frequency (Sundays). Same as 'W'"
-    "W\-MON", "weekly frequency (Mondays)"
-    "W\-TUE", "weekly frequency (Tuesdays)"
-    "W\-WED", "weekly frequency (Wednesdays)"
-    "W\-THU", "weekly frequency (Thursdays)"
-    "W\-FRI", "weekly frequency (Fridays)"
-    "W\-SAT", "weekly frequency (Saturdays)"
+    "W\-SUN", "weekly frequency, week ends on Sunday. Same as 'W'"
+    "W\-MON", "weekly frequency, week ends on Monday"
+    "W\-TUE", "weekly frequency, week ends on Tuesday"
+    "W\-WED", "weekly frequency, week ends on Wednesday"
+    "W\-THU", "weekly frequency, week ends on Thursday"
+    "W\-FRI", "weekly frequency, week ends on Friday"
+    "W\-SAT", "weekly frequency, week ends on Saturday"
     "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
     "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
     "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
@@ -2645,17 +2671,19 @@ This method can convert between different timezone-aware dtypes.
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   By converting to an object array of Timestamps, it preserves the time zone
-   information. For example, when converting back to a Series:
-
-   .. ipython:: python
-
-      pd.Series(s_aware.to_numpy())
-
-   However, if you want an actual NumPy ``datetime64`` array (with the values
-   converted to UTC) instead of an array of objects, you can specify the
-   ``dtype`` argument:
+   This object-dtype default is significantly slower and more memory-intensive
+   than a native ``datetime64`` array. For better performance, pass an explicit
+   ``dtype``:
 
    .. ipython:: python
 
       s_aware.to_numpy(dtype="datetime64[us]")
+
+   This converts to UTC and drops the timezone, returning a native
+   ``datetime64`` array. If you need to preserve per-element timezone
+   information (e.g. when converting back to a Series), use
+   ``dtype=object`` explicitly:
+
+   .. ipython:: python
+
+      pd.Series(s_aware.to_numpy(dtype=object))

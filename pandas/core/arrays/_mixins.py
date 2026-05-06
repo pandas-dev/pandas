@@ -238,7 +238,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         Parameters
         ----------

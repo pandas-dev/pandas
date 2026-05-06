@@ -1,0 +1,18 @@
+name: Set up Conda environment with Pixi
+description: Create a Conda environment based on the environments section in pixi.toml
+inputs:
+  environment:
+    description: Pixi environment name in pyproject.toml to use.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install ${{ inputs.environment }}
+      uses: prefix-dev/setup-pixi@a0af7a228712d6121d37aba47adf55c1332c9c2e # v0.9.4
+      with:
+        pixi-version: v0.66.0
+        log-level: vv
+        manifest-path: pixi.toml
+        environments: ${{ inputs.environment }}
+        cache: true
+        cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}

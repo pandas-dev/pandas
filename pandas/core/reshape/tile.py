@@ -158,7 +158,7 @@ def cut(
     ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
     to some predefined methods.
 
-    Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
+    See :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
     Examples
     --------
@@ -343,7 +343,8 @@ def qcut(
 
     Notes
     -----
-    Out of bounds values will be NA in the resulting Categorical object
+    Out of bounds values will be NA in the resulting Categorical object.
+    See :ref:`the user guide <reshaping.tile>` for more examples.
 
     Examples
     --------
@@ -407,7 +408,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     rng = (x_idx.min(), x_idx.max())
     mn, mx = rng
 
-    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):
+    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):  # type: ignore[call-overload]
         # GH#24314
         raise ValueError(
             "cannot specify integer `bins` when input data contains infinity"
@@ -424,11 +425,15 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
-                start=mn - td, end=mx + td, periods=nbins + 1, freq=None, unit=unit
+                start=mn - td,  # type: ignore[operator]
+                end=mx + td,  # type: ignore[operator]
+                periods=nbins + 1,
+                freq=None,
+                unit=unit,
             )
         else:
-            mn -= 0.001 * abs(mn) if mn != 0 else 0.001
-            mx += 0.001 * abs(mx) if mx != 0 else 0.001
+            mn -= 0.001 * abs(mn) if mn != 0 else 0.001  # type: ignore[operator, arg-type]
+            mx += 0.001 * abs(mx) if mx != 0 else 0.001  # type: ignore[operator, arg-type]
 
             bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
     else:  # adjust end points after binning
@@ -444,8 +449,8 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
                 start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
         else:
-            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
-        adj = (mx - mn) * 0.001  # 0.1% of the range
+            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)  # type: ignore[call-overload]
+        adj = (mx - mn) * 0.001  # type: ignore[operator]  # 0.1% of the range
         if right:
             bins[0] -= adj
         else:

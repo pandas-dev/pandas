@@ -1511,7 +1511,7 @@ class TestExcelWriter:
     @pytest.mark.parametrize("with_index", [True, False])
     def test_autofilter(self, engine, with_index, tmp_excel):
         # GH 61194
-        df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+        df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
 
         if engine in ["odf"]:
             with pytest.raises(
@@ -1532,7 +1532,7 @@ class TestExcelWriter:
 
     def test_autofilter_with_startrow_startcol(self, engine, tmp_excel):
         # GH 61194
-        df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+        df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
 
         if engine in ["odf"]:
             # odf does not support autofilter

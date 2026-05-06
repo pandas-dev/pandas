@@ -501,6 +501,19 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
         if arg.dtype.kind in "iu":
             # Note we can't do "f" here because that could induce unwanted
             #  rounding GH#14156, GH#20445
+
+            # GH#60677 unsigned integers > int64 max overflow silently
+            # when cast to datetime64 (which is backed by int64)
+            if arg.dtype == np.dtype("uint64"):
+                mask = arg > np.iinfo(np.int64).max
+                if mask.any():
+                    if errors == "raise":
+                        raise OutOfBoundsDatetime(
+                            f"cannot convert input with unit '{unit}'"
+                        )
+
+                    arg = arg.astype(object)
+                    return _to_datetime_with_unit(arg, unit, name, utc, errors)
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
             dtype = get_supported_dtype(arr.dtype)
             try:
@@ -513,10 +526,16 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
+            mask = np.isnan(arg)
             with np.errstate(invalid="ignore"):
                 int_values = arg.astype(np.int64)
-            mask = np.isnan(arg)
-            if (mask | (arg == int_values)).all():
+            # On ARM, float-to-int64 overflow saturates to INT64_MAX
+            # instead of wrapping, which makes the arg == int_values
+            # check pass incorrectly for OOB values like float(2**63).
+            # Exclude values outside the int64 domain from the check.
+            i64 = np.iinfo(np.int64)
+            in_int64_range = (arg >= np.float64(i64.min)) & (arg < np.float64(i64.max))
+            if (mask | (in_int64_range & (arg == int_values))).all():
                 # With all-round-or-NaN entries, we give the requested unit
                 #  back like with integers
                 result = _to_datetime_with_unit(
@@ -525,7 +544,6 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 result._data[mask] = NaT
                 return result
 
-            # if we have float32, cast to float64
             arg = arg.astype("float64", copy=False)
             with np.errstate(over="raise"):
                 try:
@@ -732,7 +750,7 @@ def to_datetime(
         - If :const:`True` parses dates with the year first, e.g.
           :const:`"10/11/12"` is parsed as :const:`2010-11-12`.
         - If both `dayfirst` and `yearfirst` are :const:`True`, `yearfirst` is
-          preceded (same as :mod:`dateutil`).
+          preceded (same as ``dateutil``).
 
         .. warning::
 
@@ -775,6 +793,15 @@ def to_datetime(
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
 
+        .. note::
+
+            When using ``format``, any datetime components not present in the
+            format string default to ``1900-01-01 00:00:00``, consistent with
+            Python's :meth:`datetime.datetime.strptime` behavior. For example,
+            ``to_datetime(["1", "2"], format="%d")`` returns dates in January 1900.
+            The ``origin`` parameter does not affect string parsing via ``format``;
+            it only applies to numeric input interpreted through ``unit``.
+
     exact : bool, default True
         Control how `format` is used:
 
@@ -784,13 +811,22 @@ def to_datetime(
 
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
-        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
-        integer or float number. This will be based off the origin.
-        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
-        the number of milliseconds to the unix epoch start.
+        The unit of the numeric arg (Y, M, W, D, h, m, s, ms, us, ns, ps,
+        fs, as). Specifies the unit of the input values when `arg` is numeric
+        (int or float), interpreted relative to ``origin``.
+        For example, with ``unit='ms'`` and ``origin='unix'``, the input values
+        are treated as millisecond offsets from the Unix epoch (1970-01-01).
+
+        This does not truncate or round datetime-like inputs to the given unit.
+        To change the resolution of the result, use :meth:`Series.dt.as_unit`.
+        To truncate datetime values, use :meth:`Series.dt.floor` or
+        :meth:`Series.dt.normalize`.
+
+        Only applicable to numeric input; has no effect on datetime-like input
+        or when ``format`` is specified.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
-        of units (defined by `unit`) since this reference date.
+        of units (defined by ``unit``) since this reference date.
 
         - If :const:`'unix'` (or POSIX) time; origin is set to 1970-01-01.
         - If :const:`'julian'`, unit must be :const:`'D'`, and origin is set to
@@ -800,6 +836,12 @@ def to_datetime(
           string), origin is set to Timestamp identified by origin.
         - If a float or integer, origin is the difference
           (in units determined by the ``unit`` argument) relative to 1970-01-01.
+
+        .. note::
+
+            This parameter only affects numeric input used with ``unit``.
+            It does not affect string parsing via ``format``. See the ``format``
+            parameter for how defaults are handled during string parsing.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing

@@ -570,6 +570,10 @@ def read_json(
         expected. A local file could be:
         ``file://localhost/path/to/table.json``.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 

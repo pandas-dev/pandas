@@ -16,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -87,7 +87,8 @@ class Styler(StylerRenderer):
     The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
     styling, allowing users to control colors, font styles, and other visual aspects of
     tabular data. It is particularly useful for presenting DataFrame objects in a
-    Jupyter Notebook environment or when exporting styled tables for reports and
+    Jupyter Notebook environment or when exporting styled tables for reports or
+    other human-readable documents.
 
     Parameters
     ----------
@@ -238,11 +239,11 @@ class Styler(StylerRenderer):
         )
 
         # validate ordered args
-        thousands = thousands or get_option("styler.format.thousands")
-        decimal = decimal or get_option("styler.format.decimal")
-        na_rep = na_rep or get_option("styler.format.na_rep")
-        escape = escape or get_option("styler.format.escape")
-        formatter = formatter or get_option("styler.format.formatter")
+        thousands = thousands or config["styler"]["format"]["thousands"]
+        decimal = decimal or config["styler"]["format"]["decimal"]
+        na_rep = na_rep or config["styler"]["format"]["na_rep"]
+        escape = escape or config["styler"]["format"]["escape"]
+        formatter = formatter or config["styler"]["format"]["formatter"]
         # precision is handled by superclass as default for performance
 
         self.format(
@@ -375,12 +376,12 @@ class Styler(StylerRenderer):
         Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
         default if an object is returned at the end of a cell.
         """
-        if get_option("styler.render.repr") == "html":
+        if config["styler"]["render"]["repr"] == "html":
             return self.to_html()
         return None
 
     def _repr_latex_(self) -> str | None:
-        if get_option("styler.render.repr") == "latex":
+        if config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         return None
 
@@ -793,7 +794,7 @@ class Styler(StylerRenderer):
               - `"all;index"`: as above with lines extending only the width of the
                 index entries.
               - `"skip-last;data"`: a cline is added for each index value except the
-                last level (which is never sparsified), extending the widtn of the
+                last level (which is never sparsified), extending the width of the
                 table.
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
@@ -1032,7 +1033,7 @@ class Styler(StylerRenderer):
 
         **CSS Conversion**
 
-        This method can convert a Styler constructured with HTML-CSS to LaTeX using
+        This method can convert a Styler constructed with HTML-CSS to LaTeX using
         the following limited conversions.
 
         ================== ==================== ============= ==========================
@@ -1247,7 +1248,7 @@ class Styler(StylerRenderer):
                 overwrite=False,
             )
 
-        hrules = get_option("styler.latex.hrules") if hrules is None else hrules
+        hrules = config["styler"]["latex"]["hrules"] if hrules is None else hrules
         if hrules:
             obj.set_table_styles(
                 [
@@ -1268,12 +1269,12 @@ class Styler(StylerRenderer):
             obj.set_caption(caption)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
-        environment = environment or get_option("styler.latex.environment")
-        multicol_align = multicol_align or get_option("styler.latex.multicol_align")
-        multirow_align = multirow_align or get_option("styler.latex.multirow_align")
+            sparse_columns = config["styler"]["sparse"]["columns"]
+        environment = environment or config["styler"]["latex"]["environment"]
+        multicol_align = multicol_align or config["styler"]["latex"]["multicol_align"]
+        multirow_align = multirow_align or config["styler"]["latex"]["multirow_align"]
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
@@ -1286,7 +1287,7 @@ class Styler(StylerRenderer):
         )
 
         encoding = (
-            (encoding or get_option("styler.render.encoding"))
+            (encoding or config["styler"]["render"]["encoding"])
             if isinstance(buf, str)  # i.e. a filepath
             else encoding
         )
@@ -1387,9 +1388,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         text = obj._render_typst(
             sparse_columns=sparse_columns,
@@ -1551,9 +1552,9 @@ class Styler(StylerRenderer):
             obj.set_table_attributes(table_attributes)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         if bold_headers:
             obj.set_table_styles(
@@ -1570,7 +1571,7 @@ class Styler(StylerRenderer):
             max_rows=max_rows,
             max_cols=max_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding or get_option("styler.render.encoding"),
+            encoding=encoding or config["styler"]["render"]["encoding"],
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -1671,9 +1672,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         text = obj._render_string(
             sparse_columns=sparse_columns,
@@ -1802,7 +1803,7 @@ class Styler(StylerRenderer):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
                 i = self.index.get_loc(rn)
-                self.ctx[(i, j)].extend(css_list)
+                self.ctx[(i, j)].extend(css_list)  # type: ignore[index]
 
     def _update_ctx_header(self, attrs: DataFrame, axis: AxisInt) -> None:
         """
@@ -2870,7 +2871,11 @@ class Styler(StylerRenderer):
         elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            idf = (
+                f".{self.css['row']}"  # pyright: ignore[reportOptionalSubscript]
+                if axis == 1
+                else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            )
 
             table_styles = [
                 {
@@ -3086,10 +3091,15 @@ class Styler(StylerRenderer):
             )
         else:
             if axis == 0:
-                subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+                subset_1 = IndexSlice[
+                    subset, :
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_1)
             else:
-                subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
-            subset = non_reducing_slice(subset_)
+                subset_2 = IndexSlice[
+                    :, subset
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_2)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)
@@ -3106,7 +3116,7 @@ class Styler(StylerRenderer):
         # Returns a boolean mask indicating where `self.data` has numerical columns.
         # Choosing a mask as opposed to the column names also works for
         # boolean column labels (GH47838).
-        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))  # type: ignore[arg-type]
 
     def background_gradient(
         self,

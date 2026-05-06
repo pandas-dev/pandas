@@ -187,6 +187,8 @@ class MPLPlot(ABC):
         # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
         if isinstance(data, ABCDataFrame):
+            if self._kind in ("hist", "box") and not data.columns.is_unique:
+                raise ValueError("plotting requires unique column names")
             if column:
                 self.columns = com.maybe_make_list(column)
             elif self.by is None:
@@ -422,7 +424,7 @@ class MPLPlot(ABC):
                     "When subplots is an iterable, each entry "
                     "should be a list/tuple of column names."
                 )
-            idx_locs = columns.get_indexer_for(group)
+            idx_locs = columns.get_indexer_for(group)  # type: ignore[arg-type]
             if (idx_locs == -1).any():
                 bad_labels = np.extract(idx_locs == -1, group)
                 raise ValueError(
@@ -438,7 +440,7 @@ class MPLPlot(ABC):
             seen_columns = seen_columns.union(unique_columns)
             out.append(tuple(idx_locs))
 
-        unseen_columns = columns.difference(seen_columns)
+        unseen_columns = columns.difference(seen_columns)  # type: ignore[arg-type]
         for column in unseen_columns:
             idx_loc = columns.get_loc(column)
             out.append((idx_loc,))
@@ -1522,8 +1524,7 @@ class HexBinPlot(PlanePlot):
         x, y, data, C = self.x, self.y, self.data, self.C
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
-        cmap = self.colormap or "BuGn"
-        cmap = mpl.colormaps.get_cmap(cmap)
+        cmap = mpl.colormaps.get_cmap(self.colormap) if self.colormap else None
         cb = self.colorbar
 
         if C is None:

@@ -961,7 +961,7 @@ class TestSeriesPlots:
     @pytest.mark.slow
     def test_plot_no_warning(self, ts):
         # GH 55138
-        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        # TODO(4.0): this can be removed once Period[B] deprecation is enforced
         with tm.assert_produces_warning(False):
             _ = ts.plot()
 

@@ -767,6 +767,22 @@ class TestDataFrameToString:
         )
         assert result == expected
 
+    def test_to_string_na_rep_datetime_and_timedelta(self):
+        # GH#55426
+        df = DataFrame(
+            {
+                "dt": to_datetime(["2021-01-01", NaT, "2021-01-03"]),
+                "td": timedelta_range("1 day", periods=3),
+                "dt_tz": to_datetime(["2021-01-01", NaT, "2021-01-03"]).tz_localize(
+                    "US/Eastern"
+                ),
+            }
+        )
+        df.loc[1, "td"] = NaT
+        result = df.to_string(na_rep="MISSING")
+        assert "NaT" not in result
+        assert result.count("MISSING") == 3
+
     def test_to_string_string_dtype(self):
         # GH#50099
         pytest.importorskip("pyarrow")

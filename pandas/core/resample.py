@@ -1588,6 +1588,11 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.var : Compute variance of groups, excluding missing
             values.
 
+        Notes
+        -----
+        To use the same divisor as ``numpy.std``, use ``ddof=0`` instead of
+        the default ``ddof=1``.
+
         Examples
         --------
 
@@ -2617,9 +2622,25 @@ class TimeGrouper(Grouper):
             )
             return binner, [], labels
 
+        # GH#43486: filter NaTs up front, mirroring _get_period_bins
+        nat_count = 0
+        if ax.hasnans:
+            nat_count = ax.isna().sum()
+            ax = ax[~ax.isna()]
+
+        if len(ax) == 0:
+            # all-NaT case
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
+            bins = np.array([], dtype=np.int64)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
+            return binner, np.insert(bins, 0, nat_count), labels
+
         first, last = _get_timestamp_range_edges(
-            ax.min(),
-            ax.max(),
+            ax.min(),  # type: ignore[arg-type]
+            ax.max(),  # type: ignore[arg-type]
             self.freq,
             unit=ax.unit,
             closed=self.closed,
@@ -2648,9 +2669,7 @@ class TimeGrouper(Grouper):
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
         # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(
-            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-        )
+        bins = lib.generate_bins_dt64(ax_values, bin_edges, self.closed, hasnans=False)
 
         if self.closed == "right":
             labels = binner
@@ -2659,7 +2678,10 @@ class TimeGrouper(Grouper):
         elif self.label == "right":
             labels = labels[1:]
 
-        if ax.hasnans:
+        if nat_count > 0:
+            # shift bins by the number of NaT (they sort to the front of asi8)
+            bins = bins + nat_count
+            bins = np.insert(bins, 0, nat_count)
             binner = binner.insert(0, NaT)
             labels = labels.insert(0, NaT)
 
@@ -2730,7 +2752,7 @@ class TimeGrouper(Grouper):
         start, end = ax.min(), ax.max()
 
         if self.closed == "right":
-            end += self.freq
+            end += self.freq  # type: ignore[operator]
 
         labels = binner = timedelta_range(
             start=start, end=end, freq=self.freq, name=ax.name
@@ -2800,8 +2822,8 @@ class TimeGrouper(Grouper):
 
         freq_mult = self.freq.n
 
-        start = ax.min().asfreq(self.freq, how=self.convention)
-        end = ax.max().asfreq(self.freq, how="end")
+        start = ax.min().asfreq(self.freq, how=self.convention)  # type: ignore[attr-defined]
+        end = ax.max().asfreq(self.freq, how="end")  # type: ignore[attr-defined]
         bin_shift = 0
 
         if isinstance(self.freq, Tick):

@@ -162,3 +162,12 @@ class TestCombineFirst:
         result = s1.combine_first(s2)
         expected = Series([None] * 4, index=["a", "b", "c", "d"])
         tm.assert_series_equal(result, expected)
+
+
+def test_combine_first_timestamp_names_anterior():
+    # GH#65333
+    s1 = Series([0], name=to_datetime("2026"))
+    s3 = Series([1, 3], name=to_datetime("2025"))
+    result = s1.combine_first(s3)
+    expected = Series([0, 3], index=[0, 1], name=to_datetime("2026"))
+    tm.assert_series_equal(result, expected)

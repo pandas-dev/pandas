@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -416,3 +418,72 @@ def test_hash_object_none_key():
     result = pd.util.hash_pandas_object(Series(["a", "b"]), hash_key=None)
     expected = Series([4578374827886788867, 17338122309987883691], dtype="uint64")
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+class TestHashArrow:
+    """Tests for ArrowExtensionArray._hash_pandas_object (GH#48964)."""
+
+    @pytest.mark.parametrize(
+        "pa_type",
+        ["string[pyarrow]", "binary[pyarrow]"],
+    )
+    @pytest.mark.parametrize("categorize", [True, False])
+    def test_hash_arrow_string_categorize(self, pa_type, categorize):
+        # GH#48964 - categorize=True uses pc.dictionary_encode path;
+        # categorize=False uses the fallback _hash_ndarray path.
+        # Both should produce identical hashes for non-null values.
+        if pa_type == "binary[pyarrow]":
+            vals = [b"a", b"b", b"c", b"a", b"b"]
+        else:
+            vals = ["a", "b", "c", "a", "b"]
+
+        ser = Series(vals, dtype=pa_type)
+        result_cat = hash_pandas_object(ser, categorize=True, index=False)
+        result_nocat = hash_pandas_object(ser, categorize=False, index=False)
+        tm.assert_series_equal(result_cat, result_nocat)
+
+    @pytest.mark.parametrize(
+        "pa_type",
+        ["string[pyarrow]", "binary[pyarrow]"],
+    )
+    def test_hash_arrow_string_with_nulls(self, pa_type):
+        # GH#48964 - null positions should hash to u8max
+        # when using the dictionary_encode path (categorize=True).
+        if pa_type == "binary[pyarrow]":
+            vals = [b"a", None, b"b", None, b"a"]
+        else:
+            vals = ["a", None, "b", None, "a"]
+
+        ser = Series(vals, dtype=pa_type)
+        result = hash_pandas_object(ser, categorize=True, index=False)
+        assert result.iloc[1] == np.iinfo(np.uint64).max
+        assert result.iloc[3] == np.iinfo(np.uint64).max
+        # Non-null duplicates should still match
+        assert result.iloc[0] == result.iloc[4]
+
+    def test_hash_arrow_string_empty(self):
+        # GH#48964 - empty arrow array should return empty hash
+        ser = Series([], dtype="string[pyarrow]")
+        result = hash_pandas_object(ser, categorize=True, index=False)
+        expected = Series([], dtype="uint64")
+        tm.assert_series_equal(result, expected)
+
+    def test_hash_arrow_string_all_null(self):
+        # GH#48964 - all-null array should hash all positions to u8max
+        ser = Series([None, None, None], dtype="string[pyarrow]")
+        result = hash_pandas_object(ser, categorize=True, index=False)
+        expected_val = np.iinfo(np.uint64).max
+        assert (result == expected_val).all()
+
+    def test_hash_arrow_string_chunked(self):
+        # GH#48964 - multi-chunked arrow arrays should be handled
+        # correctly by combine_chunks() before dictionary_encode.
+        import pyarrow as pa
+
+        chunked = pa.chunked_array([pa.array(["a", "b"]), pa.array(["a", "c"])])
+        ser = Series(chunked, dtype="string[pyarrow]")
+        result = hash_pandas_object(ser, categorize=True, index=False)
+        # Duplicate values across chunks should hash the same
+        assert result.iloc[0] == result.iloc[2]
+        assert len(result) == 4

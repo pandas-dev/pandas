@@ -12,12 +12,8 @@ pd_version = getattr(pd, "__version__", "")
 
 # fail early if pandas is not installed
 if not pd_version:
-    # fail on the CI, soft fail during local development
     warnings.warn("You need to install the development version of pandas", stacklevel=1)
-    if pd.compat.is_ci_environment():
-        sys.exit(1)
-    else:
-        sys.exit(0)
+    sys.exit(1)
 
 # GH 48260
 if "dev" not in pd_version:

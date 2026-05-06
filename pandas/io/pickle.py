@@ -48,6 +48,10 @@ def to_pickle(
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function.
         Also accepts URL. URL has to be of S3 or GCS.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     compression : str or dict, default 'infer'
         For on-the-fly compression of the output data. If 'infer' and
         'filepath_or_buffer' is path-like, then detect compression from the
@@ -147,6 +151,10 @@ def read_pickle(
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``readlines()`` function.
         Also accepts URL. URL is not limited to S3 and GCS.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
         'filepath_or_buffer' is path-like, then detect compression from the
@@ -189,8 +197,10 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 1.0
-    provided the object was serialized with to_pickle.
+    read_pickle is only guaranteed to be backwards compatible with pickles
+    created by the current or previous major version of pandas, provided the
+    object was serialized with to_pickle. For example, in pandas 3.x.y, the
+    earliest supported pickle would be from 2.0.0.
 
     Examples
     --------

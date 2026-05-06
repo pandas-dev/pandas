@@ -243,7 +243,7 @@ cdef class BlockPlacement:
                 return self
 
             if start >= loc and stop >= loc:
-                # We are entirely above, we can efficiently increment out slice
+                # We are entirely above, we can efficiently increment our slice
                 nv = slice(start + 1, stop + 1, step)
                 return BlockPlacement(nv)
 
@@ -724,6 +724,7 @@ cdef class BlockManager:
         public tuple blocks
         public list axes
         public bint _known_consolidated, _is_consolidated
+        public object _interleaved_dtype
         ndarray __blknos, __blklocs
 
     def __cinit__(
@@ -744,9 +745,10 @@ cdef class BlockManager:
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
 
-        # Populate known_consolidate, blknos, and blklocs lazily
+        # Populate known_consolidated, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
+        self._interleaved_dtype = None
         self._blknos = None
         self._blklocs = None
 
@@ -879,6 +881,7 @@ cdef class BlockManager:
     def _post_setstate(self) -> None:
         self._is_consolidated = False
         self._known_consolidated = False
+        self._interleaved_dtype = None
         self._rebuild_blknos_and_blklocs()
 
     # -------------------------------------------------------------------

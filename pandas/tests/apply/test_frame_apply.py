@@ -1314,6 +1314,45 @@ def test_agg_multiple_mixed():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_multiple_mixed_numeric_only_column_order():
+    # GH#65218
+    mdf = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "C": ["foo", "bar", "baz"],
+            "B": [1.0, 2.0, 3.0],
+        }
+    )
+    expected = DataFrame(
+        {"A": [6.0, 2.0], "B": [6.0, 2.0]},
+        index=["sum", "mean"],
+    )
+    result = mdf.agg(["sum", "mean"], numeric_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_numeric_only_all_non_numeric():
+    # GH#65218
+    mdf = DataFrame({"C": ["foo", "bar", "baz"], "D": ["a", "b", "c"]})
+    expected = DataFrame(index=["sum", "mean"], columns=mdf.columns[:0])
+    result = mdf.agg(["sum", "mean"], numeric_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_bool_only():
+    # GH#65218
+    mdf = DataFrame(
+        {
+            "A": [True, False, True],
+            "B": [1, 2, 3],
+            "C": ["foo", "bar", "baz"],
+        }
+    )
+    expected = DataFrame({"A": [True, False]}, index=["any", "all"])
+    result = mdf.agg(["any", "all"], bool_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_multiple_mixed_raises():
     # GH 20909
     mdf = DataFrame(
@@ -1866,3 +1905,17 @@ def test_agg_dist_like_and_nonunique_columns():
 def test_wrong_engine(engine_name):
     with pytest.raises(ValueError, match="Unknown engine "):
         DataFrame().apply(lambda x: x, engine=engine_name)
+
+
+def test_apply_timedelta_preserves_resolution():
+    # GH#52411 - UDFs via apply should preserve datetime resolution
+    # rather than always returning nanoseconds
+    df = DataFrame(
+        {
+            "a": Series(["2023-01-01", "2023-01-02"], dtype="datetime64[s]"),
+            "b": Series(["2023-01-02", "2023-01-03"], dtype="datetime64[s]"),
+        }
+    )
+    direct = df["a"] - df["b"]
+    applied = df.apply(lambda row: row["a"] - row["b"], axis=1)
+    assert applied.dtype == direct.dtype

@@ -1847,6 +1847,24 @@ The repeated labels are:\n-+\nwolof
         with pytest.raises(ValueError, match=msg):
             original.to_stata(path, convert_dates={"wrong_name": "tc"})
 
+    def test_convert_dates_with_renamed_columns(self, temp_file):
+        # GH#60536 - convert_dates should not raise when a different column
+        # is renamed for Stata compatibility
+        df = DataFrame(
+            {
+                "1bad_name": [1, 2, 3],
+                "date_col": pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"]),
+            }
+        )
+        path = temp_file
+        msg = "Not all pandas column names were valid Stata variable names"
+        with tm.assert_produces_warning(InvalidColumnName, match=msg):
+            df.to_stata(path, convert_dates={"date_col": "td"})
+
+        result = self.read_dta(path)
+        assert "_1bad_name" in result.columns
+        assert "date_col" in result.columns
+
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_nonfile_writing(self, version, temp_file):
         # GH 21041

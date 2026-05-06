@@ -63,8 +63,8 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=complex)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    def test_factorize(self, index_or_series_obj, sort):
-        obj = index_or_series_obj
+    def test_factorize(self, index_or_series_obj_orderable, sort):
+        obj = index_or_series_obj_orderable
         result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
@@ -1057,7 +1057,7 @@ class TestIsin:
         # nan is special, because from " a is b" doesn't follow "a == b"
         # at least, isin() should follow python's "np.nan in [nan] == True"
         # casting to -> np.float64 -> another float-object somewhere on
-        # the way could lead jeopardize this behavior
+        # the way could jeopardize this behavior
         comps = np.array([np.nan], dtype=object)  # could be casted to float64
         values = [np.nan]
         expected = np.array([True])
@@ -1251,7 +1251,7 @@ class TestValueCounts:
             algos.value_counts_internal(np.array(["1", 1], dtype=object), bins=1)
 
     def test_value_counts_nat(self):
-        td = Series([np.timedelta64(10000), NaT], dtype="timedelta64[ns]")
+        td = Series([np.timedelta64(10000, "ns"), NaT], dtype="timedelta64[ns]")
         dt = to_datetime(["NaT", "2014-01-01"])
 
         for ser in [td, dt]:
@@ -1264,7 +1264,7 @@ class TestValueCounts:
         result_dt = algos.value_counts_internal(dt)
         tm.assert_series_equal(result_dt, exp_dt)
 
-        exp_td = Series([1], index=[np.timedelta64(10000)], name="count")
+        exp_td = Series([1], index=[np.timedelta64(10000, "ns")], name="count")
         result_td = algos.value_counts_internal(td)
         tm.assert_series_equal(result_td, exp_td)
 
@@ -1593,7 +1593,7 @@ class TestDuplicated:
             np.array([Timestamp(d) for d in dt]),
             np.array([Timestamp(d, tz="US/Eastern") for d in dt]),
             np.array([Period(d, freq="D") for d in dt]),
-            np.array([np.datetime64(d) for d in dt]),
+            np.array([np.datetime64(d, "ns") for d in dt]),
             np.array([Timedelta(d) for d in td]),
         ]
 

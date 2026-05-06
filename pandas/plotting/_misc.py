@@ -287,9 +287,9 @@ def radviz(
     the value on each Series. Highly correlated `Series` in the `DataFrame`
     are placed closer on the unit circle.
 
-    RadViz allow to project an N-dimensional data set into a 2D space where the
-    influence of each dimension can be interpreted as a balance between the
-    influence of all dimensions.
+    RadViz allows you to project an N-dimensional data set into a 2D space
+    where the influence of each dimension can be interpreted as a balance
+    between the influence of all dimensions.
 
     More info available at the `original article
     <https://doi.org/10.1145/331770.331775>`_

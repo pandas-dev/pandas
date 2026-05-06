@@ -99,6 +99,7 @@ class IOArgs:
     mode: str
     compression: CompressionDict
     should_close: bool = False
+    close_handles: list[Any] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
@@ -447,9 +448,10 @@ def _get_filepath_or_buffer(
             pass
 
         try:
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
             if storage_options is None:
@@ -458,14 +460,16 @@ def _get_filepath_or_buffer(
                 # don't mutate user input.
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
 
         return IOArgs(
             filepath_or_buffer=file_obj,
             encoding=encoding,
             compression=compression,
+            close_handles=[open_file],
             should_close=True,
             mode=fsspec_mode,
         )
@@ -483,8 +487,6 @@ def _get_filepath_or_buffer(
             mode=mode,
         )
 
-    # is_file_like requires (read | write) & __iter__ but __iter__ is only
-    # needed for read_csv(engine=python)
     if not (
         hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
     ):
@@ -846,7 +848,14 @@ def get_handle(
                 handles.append(handle)
                 zip_names = handle.buffer.namelist()
                 if len(zip_names) == 1:
-                    handle = handle.buffer.open(zip_names.pop())
+                    # Read the entire zip entry into memory rather than
+                    # returning a streaming ZipExtFile via .open(). On
+                    # Python <3.12, ZipExtFile has poor buffering that
+                    # causes O(n²) performance with pickle.load() and
+                    # other consumers that issue many small reads
+                    # (GH#59279). Can be reverted to .open() once the
+                    # minimum Python version is 3.12.
+                    handle = BytesIO(handle.buffer.read(zip_names.pop()))
                 elif not zip_names:
                     raise ValueError(f"Zero files found in ZIP file {path_or_buf}")
                 else:
@@ -976,6 +985,7 @@ def get_handle(
     if ioargs.should_close:
         assert not isinstance(ioargs.filepath_or_buffer, str)
         handles.append(ioargs.filepath_or_buffer)
+        handles.extend(ioargs.close_handles)
 
     return IOHandles(
         # error: Argument "handle" to "IOHandles" has incompatible type

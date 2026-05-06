@@ -36,13 +36,6 @@ See LICENSE for the license
  *  functions.
  */
 
-// #define VERBOSE
-#if defined(VERBOSE)
-#  define TRACE(X) printf X;
-#else
-#  define TRACE(X)
-#endif // VERBOSE
-
 #define PARSER_OUT_OF_MEMORY -1
 
 /*
@@ -78,7 +71,7 @@ typedef enum {
   QUOTE_NONE
 } QuoteStyle;
 
-typedef enum { ERROR, WARN, SKIP } BadLineHandleMethod;
+typedef enum { BLHM_ERROR, BLHM_WARN, BLHM_SKIP } BadLineHandleMethod;
 
 typedef char *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                              int *status, const char *encoding_errors);
@@ -177,7 +170,7 @@ parser_t *parser_new(void);
 
 int parser_init(parser_t *self);
 
-int parser_consume_rows(parser_t *self, size_t nrows);
+int parser_consume_rows(parser_t *self, uint64_t nrows);
 
 int parser_trim_buffers(parser_t *self);
 
@@ -191,7 +184,7 @@ void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
 
-int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors);
+int tokenize_nrows(parser_t *self, uint64_t nrows, const char *encoding_errors);
 
 int tokenize_all_rows(parser_t *self, const char *encoding_errors);
 
@@ -211,13 +204,7 @@ int uint64_conflict(uint_state *self);
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
                        char tsep);
 int64_t str_to_int64(const char *p_item, int *error, char tsep);
-double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-               int skip_trailing, int *error, int *maybe_int);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
-
-// GH-15140 - round_trip requires and acquires the GIL on its own
-double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing, int *error, int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);

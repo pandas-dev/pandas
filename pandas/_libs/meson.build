@@ -51,6 +51,8 @@ _khash_primitive_helper_dep = declare_dependency(
 )
 
 m_dep = cc.find_library('m', required: false)
+fast_float = subproject('fast_float')
+fast_float_dep = fast_float.get_variable('fast_float_dep')
 
 subdir('tslibs')
 
@@ -86,7 +88,14 @@ libs_sources = {
         'sources': ['join.pyx', _khash_primitive_helper],
         'deps': _khash_primitive_helper_dep,
     },
-    'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
+    'lib': {
+        'sources': [
+            'lib.pyx',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
+        ],
+        'deps': [fast_float_dep],
+    },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
         'sources': [
@@ -99,13 +108,20 @@ libs_sources = {
     'pandas_parser': {
         'sources': [
             'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
+        'deps': [fast_float_dep],
     },
     'parsers': {
-        'sources': ['parsers.pyx', 'src/parser/tokenizer.c', 'src/parser/io.c'],
-        'deps': _khash_primitive_helper_dep,
+        'sources': [
+            'parsers.pyx',
+            'src/parser/tokenizer.c',
+            'src/parser/fast_float_strtod.cpp',
+            'src/parser/io.c',
+        ],
+        'deps': [fast_float_dep, _khash_primitive_helper_dep],
     },
     '_ujson': {
         'sources': [

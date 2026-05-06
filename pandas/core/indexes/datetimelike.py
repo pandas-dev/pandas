@@ -6,8 +6,9 @@ from __future__ import annotations
 
 from abc import (
     ABC,
-    abstractmethod,
 )
+from itertools import pairwise
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -16,6 +17,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -25,24 +27,30 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     Resolution,
     Tick,
     Timedelta,
     Timestamp,
+    get_resolution,
     parsing,
+    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.offsets import FY5253Mixin
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
     NullFrequencyError,
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -54,6 +62,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -61,6 +70,8 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 import pandas.core.common as com
+from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import (
     Index,
 )
@@ -69,7 +80,10 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from datetime import datetime
 
     from pandas._typing import (
@@ -168,12 +182,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> datetimeindex.freq
         <Hour>
         """
-        return self._data.freq
-
-    @freq.setter
-    def freq(self, value) -> None:
-        # error: Property "freq" defined in "PeriodArray" is read-only  [misc]
-        self._data.freq = value  # type: ignore[misc]
+        # PeriodIndex reads from the array (derived from dtype);
+        # DatetimeTimedeltaMixin overrides to read from self._freq.
+        return self._data.freq  # type: ignore[union-attr]
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
@@ -254,26 +265,28 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> idx.freqstr
         'M'
         """
-        from pandas import PeriodIndex
-
-        if self._data.freqstr is not None and isinstance(
-            self._data, (PeriodArray, PeriodIndex)
-        ):
-            freq = PeriodDtype(self._data.freq)._freqstr
-            return freq
-        else:
-            return self._data.freqstr  # type: ignore[return-value]
+        freq = self.freq
+        if freq is None:
+            return freq  # type: ignore[return-value]
+        if isinstance(self._data, PeriodArray):
+            return PeriodDtype(freq)._freqstr
+        return freq.freqstr
 
     @cache_readonly
-    @abstractmethod
-    def _resolution_obj(self) -> Resolution: ...
+    def _resolution_obj(self) -> Resolution:
+        if isinstance(self.dtype, PeriodDtype):
+            return self.dtype._resolution_obj
+        elif self.dtype.kind == "M":
+            return get_resolution(self.asi8, self.tz, reso=self._data._creso)  # type: ignore[attr-defined,union-attr]
+        else:
+            return get_resolution(self.asi8, tz=None, reso=self._data._creso)  # type: ignore[union-attr]
 
     @cache_readonly
     def resolution(self) -> str:
         """
         Returns day, hour, minute, second, millisecond or microsecond
         """
-        return self._data.resolution
+        return self._resolution_obj.attrname
 
     # ------------------------------------------------------------------------
 
@@ -293,23 +306,61 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
-            should_try = False
-            inferable = self._data._infer_matches
             if other.dtype == object:
-                should_try = other.inferred_type in inferable
+                converted = lib.maybe_convert_objects(
+                    np.asarray(other), convert_non_numeric=True
+                )
+                converted = ensure_wrapped_if_datetimelike(converted)
+                if isinstance(converted, type(self._data)):
+                    other = type(self)._simple_new(converted)
+                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a future "
+                        "version, these will be left as object dtype. Use "
+                        "pd.to_datetime to explicitly convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
             elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
-                should_try = other.categories.inferred_type in inferable
-
-            if should_try:
-                try:
-                    other = type(self)(other)
-                except (ValueError, TypeError, OverflowError):
-                    # e.g.
-                    #  ValueError -> cannot parse str entry, or OutOfBoundsDatetime
-                    #  TypeError  -> trying to convert IntervalIndex to DatetimeIndex
-                    #  OverflowError -> Index([very_large_timedeltas])
-                    return False
+                cat_vals = np.asarray(other.categories)
+                if cat_vals.dtype == object:
+                    converted = lib.maybe_convert_objects(
+                        cat_vals, convert_non_numeric=True
+                    )
+                    converted = ensure_wrapped_if_datetimelike(converted)
+                else:
+                    converted = ensure_wrapped_if_datetimelike(cat_vals)
+                if isinstance(converted, type(self._data)):
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
+                elif (
+                    self.dtype.kind == "M"
+                    and cat_vals.dtype == object
+                    and lib.infer_dtype(other.categories) == "date"
+                ):
+                    # GH#65056
+                    warnings.warn(
+                        "Inferring datetime64 from data containing "
+                        "datetime.date objects is deprecated. In a "
+                        "future version, these will be left as object "
+                        "dtype. Use pd.to_datetime to explicitly "
+                        "convert to datetime64.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    try:
+                        other = type(self)(other)
+                    except (ValueError, TypeError, OverflowError):
+                        return False
 
         if type(self) != type(other):
             return False
@@ -384,9 +435,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
-    @property
-    def _formatter_func(self):
-        return self._data._formatter()
+    def _formatter_func(self, val) -> str:
+        return self._data._formatter()(val)
 
     def _format_attrs(self):
         """
@@ -456,7 +506,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         reso = Resolution.from_attrname(reso_str)
         return parsed, reso
 
-    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:
+    def _get_string_slice(self, key: str) -> slice | npt.NDArray[np.intp]:  # type: ignore[override]
         # overridden by TimedeltaIndex
         parsed, reso = self._parse_with_reso(key)
         try:
@@ -494,12 +544,26 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 # we are out of range
                 raise KeyError
 
-            # TODO: does this depend on being monotonic _increasing_?
-
-            # a monotonic (sorted) series can be sliced
+            # a monotonic increasing series can be sliced
+            #  (searchsorted requires ascending order)
             left = vals.searchsorted(unbox(t1), side="left")
             right = vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
+
+        elif self.is_monotonic_decreasing:
+            if len(self) and (
+                (t1 > self[0] and t2 > self[0]) or (t1 < self[-1] and t2 < self[-1])
+            ):
+                # we are out of range
+                raise KeyError
+
+            # searchsorted requires ascending order, so search the reversed
+            #  array and convert the indices back
+            reversed_vals = vals[::-1]
+            nvals = len(vals)
+            rev_left = reversed_vals.searchsorted(unbox(t1), side="left")
+            rev_right = reversed_vals.searchsorted(unbox(t2), side="right")
+            return slice(nvals - rev_right, nvals - rev_left)
 
         else:
             lhs_mask = vals >= unbox(t1)
@@ -600,11 +664,217 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _data: DatetimeArray | TimedeltaArray
     _comparables = ["name", "freq"]
     _attributes = ["name", "freq"]
+    _freq: BaseOffset | None = None
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        """
+        Return the frequency object if it is set, otherwise None.
+
+        To learn more about the frequency strings, please see
+        :ref:`this link<timeseries.offset_aliases>`.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
+        PeriodIndex.freq : Return the frequency object if it is set, otherwise None.
+
+        Examples
+        --------
+        >>> datetimeindex = pd.date_range(
+        ...     "2022-02-22 02:22:22", periods=10, tz="America/Chicago", freq="h"
+        ... )
+        >>> datetimeindex
+        DatetimeIndex(['2022-02-22 02:22:22-06:00', '2022-02-22 03:22:22-06:00',
+                       '2022-02-22 04:22:22-06:00', '2022-02-22 05:22:22-06:00',
+                       '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
+                       '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
+                       '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
+                      dtype='datetime64[us, America/Chicago]', freq='h')
+        >>> datetimeindex.freq
+        <Hour>
+        """
+        return self._freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        arr = self._data
+        if value is not None:
+            value = to_offset(value)
+            arr._validate_frequency(arr, value)
+            if arr.dtype.kind == "m" and not isinstance(value, (Tick, Day)):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+
+            if arr.ndim > 1:
+                raise ValueError("Cannot set freq with ndim > 1")
+
+        self._freq = value
+
+    def astype(self, dtype, copy: bool = True):
+        result = super().astype(dtype, copy=copy)
+        if isinstance(result, type(self)):
+            # Preserve freq for unit conversions (e.g. datetime64[ns] -> [us])
+            result._freq = self._freq
+        return result
+
+    def putmask(self, mask, value) -> Index:
+        # GH#24555 putmask may modify values out-of-sequence; drop freq
+        result = super().putmask(mask, value)
+        if isinstance(result, type(self)):
+            result._freq = None
+        return result
+
+    def _view(self) -> Self:
+        result = super()._view()
+        result._freq = self._freq
+        return result
+
+    def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
+        result = super().copy(name=name, deep=deep)
+        result._freq = self._freq
+        return result
+
+    def _pin_freq(self, freq, inferred, validate_kwds: dict) -> None:
+        """
+        Constructor helper to pin the appropriate ``freq`` attribute on self.
+
+        ``inferred`` is the frequency inferred from the input data (or ``None``
+        if no freq could be inferred), as determined by the caller before
+        wrapping the array in this Index.
+        """
+        arr = self._data
+        if freq is None:
+            # user explicitly passed None -> override any inferred_freq
+            self._freq = None
+        elif freq == "infer":
+            if inferred is not None:
+                # already inferred during construction
+                self._freq = inferred
+            else:
+                # Set _freq directly to bypass duplicative _validate_frequency
+                # check.
+                self._freq = to_offset(self.inferred_freq)
+        elif freq is lib.no_default:
+            # user did not specify anything, keep inferred freq if the original
+            #  data had one, otherwise leave as None (class default)
+            self._freq = inferred
+        elif inferred is None:
+            # We cannot inherit a freq from the data, so we need to validate
+            #  the user-passed freq
+            freq = to_offset(freq)
+            type(arr)._validate_frequency(self, freq, **validate_kwds)
+            self._freq = freq
+        else:
+            # Otherwise we just need to check that the user-passed freq
+            #  doesn't conflict with the one we already have.
+            freq = to_offset(freq)
+            if freq != inferred:
+                # GH#61086 freq may be equivalent but not equal (e.g.
+                # QS-FEB vs QS-MAY), so validate against the actual data.
+                if len(self) == 0:
+                    pass
+                elif len(self) == 1:
+                    if not freq.is_on_offset(self[0]):
+                        raise ValueError(
+                            f"Inferred frequency {inferred} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
+                elif self[0] + freq == self[1]:
+                    # For standard offsets, the step is a deterministic
+                    # function of the date, so agreement on one step proves
+                    # equivalence. For Custom/FY5253 offsets, external
+                    # state (holidays, 52/53-week patterns) could cause
+                    # later steps to diverge, so we validate fully.
+                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
+                        type(arr)._validate_frequency(self, freq, **validate_kwds)
+                else:
+                    raise ValueError(
+                        f"Inferred frequency {inferred} from passed "
+                        "values does not conform to passed frequency "
+                        f"{freq.freqstr}"
+                    )
+            self._freq = freq
+
+    def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
+        """
+        Check if we can preserve self.freq in addition or subtraction.
+        """
+        if not lib.is_scalar(other):
+            return None
+
+        # Normalize scalar types to their pandas equivalents.
+        # Array arithmetic methods internally convert Tick/timedelta/
+        # np.timedelta64 → Timedelta and datetime/np.datetime64 → Timestamp.
+        # Since we receive the original user argument, normalize here.
+        if isinstance(other, Tick):
+            other = Timedelta(other)
+        elif isinstance(other, np.timedelta64):
+            other = Timedelta(other)
+        elif isinstance(other, np.datetime64):
+            other = Timestamp(other)
+        elif not isinstance(other, (Timedelta, Timestamp)):
+            # Handles datetime.timedelta, datetime.datetime
+            try:
+                other = Timedelta(other)
+            except (ValueError, TypeError, OverflowError):
+                try:
+                    other = Timestamp(other)
+                except (ValueError, TypeError, OverflowError):
+                    return None
+
+        if isinstance(self.freq, Tick):
+            return self.freq
+        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
+            return self.freq
+        elif (
+            self.dtype.kind == "m"
+            and isinstance(other, Timestamp)
+            and (other.tz is None or timezones.is_utc(other.tz))
+        ):
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(self.freq, Day)
+            and isinstance(other, (Timedelta, Timestamp))
+        ):
+            return self.freq
+
+        return None
+
+    def _arith_method(self, other, op):
+        result = super()._arith_method(other, op)
+        if result is NotImplemented:
+            return result
+        if op in (operator.add, roperator.radd, operator.sub, roperator.rsub):
+            new_freq = self._get_arithmetic_result_freq(other)
+            if new_freq is not None and isinstance(result, DatetimeTimedeltaMixin):
+                if op is roperator.rsub:
+                    new_freq = -new_freq
+                result._freq = new_freq
+        return result
+
+    def factorize(
+        self,
+        sort: bool = False,
+        use_na_sentinel: bool = True,
+    ):
+        if self.freq is not None:
+            # We must be unique, so can short-circuit (and retain freq)
+            if sort and self.freq.n < 0:
+                codes = np.arange(len(self) - 1, -1, -1, dtype=np.intp)
+                uniques = self[::-1]
+            else:
+                codes = np.arange(len(self), dtype=np.intp)
+                uniques = self.copy()
+            uniques._name = None
+            return codes, uniques
+        return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
     @property
     def unit(self) -> TimeUnit:
@@ -693,11 +963,26 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
-        return type(self)._simple_new(arr, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        result._freq = self.freq
+        return result
 
     def _with_freq(self, freq):
-        arr = self._data._with_freq(freq)
-        return type(self)._simple_new(arr, name=self._name)
+        # GH#29843
+        if freq is None:
+            pass
+        elif isinstance(freq, BaseOffset):
+            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
+                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+        elif freq == "infer":
+            freq = to_offset(self.inferred_freq)
+        else:
+            raise ValueError(f"Invalid frequency: {freq!r}")
+
+        arr = self._data.view()
+        result = type(self)._simple_new(arr, name=self._name)
+        result._freq = freq
+        return result
 
     @property
     def values(self) -> np.ndarray:
@@ -752,10 +1037,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Note: in the DatetimeTZ case, _generate_range will infer the
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
-        result = self._data._generate_range(
+        arr = self._data._generate_range(
             start=start, end=end, periods=None, freq=self.freq, unit=self.unit
         )
-        return type(self)._simple_new(result, name=self.name)
+        result = type(self)._simple_new(arr, name=self.name)
+        result._freq = self.freq
+        return result
 
     @cache_readonly
     def inferred_freq(self) -> str | None:
@@ -826,15 +1113,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # This raising is incorrect, as 'on_freq' is incorrect. This will
         # be fixed by GH#41493
         res_values = res_i8.values.view(self._data._ndarray.dtype)
-        result = type(self._data)._simple_new(
+        arr = type(self._data)._simple_new(
             # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
             # incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
             # "Union[dtype[datetime64], DatetimeTZDtype]"
             res_values,
             dtype=self.dtype,  # type: ignore[arg-type]
-            freq=new_freq,  # type: ignore[arg-type]
         )
-        return cast("Self", self._wrap_setop_result(other, result))
+        result = cast("Self", self._wrap_setop_result(other, arr))
+        result._freq = new_freq
+        return result
 
     def _range_intersect(self, other, sort) -> Self:
         # Dispatch to RangeIndex intersection logic.
@@ -886,11 +1174,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         start = right[0]
 
         if end < start:
-            result = self[:0]
-        else:
-            lslice = slice(*left.slice_locs(start, end))
-            result = left._values[lslice]
+            return self[:0]
 
+        lslice = slice(*left.slice_locs(start, end))
+        arr = left._values[lslice]
+        result = type(self)._simple_new(arr, name=self.name)
+        result._freq = self.freq
         return result
 
     def _can_fast_intersect(self, other: Self) -> bool:
@@ -956,6 +1245,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             result = type(self)._simple_new(dates, name=self.name)
+            result._freq = self.freq
             return result
         else:
             left, right = other, self
@@ -971,10 +1261,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
             assert isinstance(dates, type(self._data))
-            # error: Item "ExtensionArray" of "ExtensionArray |
-            # ndarray[Any, Any]" has no attribute "_freq"
-            assert dates._freq == self.freq  # type: ignore[union-attr]
             result = type(self)._simple_new(dates)
+            result._freq = self.freq
             return result
         else:
             return left
@@ -988,12 +1276,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             return self._range_union(other, sort=sort)
 
         if self._can_fast_union(other):
-            result = self._fast_union(other, sort=sort)
             # in the case with sort=None, the _can_fast_union check ensures
             #  that result.freq == self.freq
-            return result
+            return self._fast_union(other, sort=sort)
         else:
-            return super()._union(other, sort)._with_freq("infer")
+            # super()._union can return an ArrayLike; wrap into an Index first
+            result = self._wrap_setop_result(other, super()._union(other, sort))
+            return result._with_freq("infer")  # type: ignore[attr-defined]
 
     # --------------------------------------------------------------------
     # Join Methods
@@ -1019,7 +1308,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         join_index, lidx, ridx = super()._wrap_join_result(
             joined, other, lidx, ridx, how
         )
-        join_index._data._freq = self._get_join_freq(other)
+        join_index._freq = self._get_join_freq(other)
         return join_index, lidx, ridx
 
     def _get_engine_target(self) -> np.ndarray:
@@ -1049,6 +1338,59 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     # --------------------------------------------------------------------
     # List-like Methods
+
+    def _getitem_slice(self, slobj: slice) -> Self:
+        result = super()._getitem_slice(slobj)
+        result._freq = self._get_getitem_freq(slobj)
+        return result
+
+    def __getitem__(self, key):
+        result = super().__getitem__(key)
+        if isinstance(result, type(self)):
+            result._freq = self._get_getitem_freq(key)
+        return result
+
+    def _get_getitem_freq(self, key) -> BaseOffset | None:
+        """
+        Find the `freq` attribute to assign to the result of a __getitem__ lookup.
+        """
+        key = check_array_indexer(self._data, key)  # maybe ndarray[bool] -> slice
+        freq = None
+        if isinstance(key, slice):
+            if self.freq is not None and key.step is not None:
+                freq = key.step * self.freq
+            else:
+                freq = self.freq
+        elif key is Ellipsis:
+            # GH#21282 indexing with Ellipsis is similar to a full slice,
+            #  should preserve `freq` attribute
+            freq = self.freq
+        elif com.is_bool_indexer(key):
+            new_key = lib.maybe_booleans_to_slice(key.view(np.uint8))
+            if isinstance(new_key, slice):
+                return self._get_getitem_freq(new_key)
+        return freq
+
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
+        result = super()._concat(to_concat, name)
+
+        # GH#3232: If the concat result is evenly spaced, we can retain the
+        # original frequency
+        obj = cast("DatetimeTimedeltaMixin", to_concat[0])
+        to_concat_nonempty = cast(
+            "list[DatetimeTimedeltaMixin]",
+            [idx for idx in to_concat if len(idx)],
+        )
+        if (
+            isinstance(result, type(self))
+            and obj.freq is not None
+            and all(idx.freq == obj.freq for idx in to_concat_nonempty)
+        ):
+            pairs = pairwise(to_concat_nonempty)
+            if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
+                result._freq = obj.freq
+
+        return result
 
     def _get_delete_freq(self, loc: int | slice | Sequence[int]):
         """
@@ -1127,7 +1469,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Index(['b'], dtype='str')
         """
         result = super().delete(loc)
-        result._data._freq = self._get_delete_freq(loc)
+        result._freq = self._get_delete_freq(loc)
         return result
 
     def insert(self, loc: int, item):
@@ -1161,7 +1503,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         result = super().insert(loc, item)
         if isinstance(result, type(self)):
             # i.e. parent class method did not cast
-            result._data._freq = self._get_insert_freq(loc, item)
+            result._freq = self._get_insert_freq(loc, item)
         return result
 
     # --------------------------------------------------------------------
@@ -1171,12 +1513,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         self,
         indices,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value=None,
+        allow_fill: bool | lib.NoDefault = lib.no_default,
+        fill_value=lib.no_default,
         **kwargs,
     ) -> Self:
         """
         Return a new Index of the values selected by the indices.
+
         For internal compatibility with numpy arrays.
 
         Parameters
@@ -1185,17 +1528,21 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
+
             * False: negative values in `indices` indicate positional indices
-                from the right (the default). This is similar to
-                :func:`numpy.take`.
-            * True: negative values in `indices` indicate
-                missing values. These values are set to `fill_value`. Any other
-                other negative values raise a ``ValueError``.
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+                from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+                entries are set to ``fill_value`` (defaulting to ``NaT`` if not
+                supplied). Any other negative values raise a ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless
+                ``fill_value`` is explicitly provided, in which case fill
+                semantics apply (``allow_fill=True``).
+        fill_value : scalar, optional
+            If fill semantics apply (see ``allow_fill``), indices specified by
+            ``-1`` are filled with ``fill_value``. Passing ``fill_value=None``
+            is equivalent to passing ``self._na_value`` (``NaT``).
         **kwargs
             Required for compatibility with numpy.
 
@@ -1212,9 +1559,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         Examples
         --------
-        >>> idx = pd.Index(["a", "b", "c"])
-        >>> idx.take([2, 2, 1, 2])
-        Index(['c', 'c', 'b', 'c'], dtype='str')
+        >>> idx = pd.date_range("2024-01-01", periods=3)
+        >>> idx.take([2, 1, 0])
+        DatetimeIndex(['2024-01-03', '2024-01-02', '2024-01-01'],
+                      dtype='datetime64[us]', freq='-1D')
         """
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
@@ -1225,6 +1573,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
-            freq = self._data._get_getitem_freq(maybe_slice)
-            result._data._freq = freq
+            freq = self._get_getitem_freq(maybe_slice)
+            result._freq = freq
         return result

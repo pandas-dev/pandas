@@ -38,6 +38,7 @@ visualization,user_guide/visualization
 10min,user_guide/10min
 basics,user_guide/basics
 dsintro,user_guide/dsintro
+user_guide/migration-3-strings,user_guide/migration
 
 # development
 contributing,development/contributing

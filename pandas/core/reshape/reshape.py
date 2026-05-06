@@ -10,8 +10,9 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
+from pandas._libs import lib
 import pandas._libs.reshape as libreshape
 from pandas.errors import (
     Pandas4Warning,
@@ -158,7 +159,7 @@ class _Unstacker:
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
-        if get_option("performance_warnings"):
+        if config["mode"]["performance_warnings"]:
             # Bug fix GH 20601
             # If the data frame is too big, the number of unique index combination
             # will cause int32 overflow on windows environments.
@@ -209,7 +210,21 @@ class _Unstacker:
             return [line.take(indexer) for line in to_sort]
         return to_sort
 
+    @cache_readonly
+    def _indexer_is_identity(self) -> bool:
+        # Fast check for the common case: sorted MI unstacking the last level
+        if (
+            self.sort
+            and self.level == self.index.nlevels - 1
+            and self.index.is_monotonic_increasing
+        ):
+            return True
+        indexer, _ = self._indexer_and_to_sort
+        return lib.is_range_indexer(indexer, len(self.index))
+
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
+        if self._indexer_is_identity:
+            return values
         indexer, _ = self._indexer_and_to_sort
         sorted_values = algos.take_nd(values, indexer, axis=0, allow_fill=False)
         return sorted_values
@@ -294,9 +309,10 @@ class _Unstacker:
 
         # we can simply reshape if we don't have a mask
         if mask_all and len(values):
-            # TODO: Under what circumstances can we rely on sorted_values
-            #  matching values?  When that holds, we can slice instead
-            #  of take (in particular for EAs)
+            # sorted_values matches values when _indexer_is_identity,
+            #  i.e. when the MI is already sorted and we're unstacking
+            #  the last level.  _make_sorted_values short-circuits that
+            #  case and returns values directly.
             new_values = (
                 sorted_values.reshape(length, width, stride)
                 .swapaxes(1, 2)
@@ -864,7 +880,7 @@ def _stack_multi_columns(
         # but if unsorted can get a boolean
         # indexer
         if not isinstance(loc, slice):
-            slice_len = len(loc)
+            slice_len = len(loc)  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
         else:
             slice_len = loc.stop - loc.start
 
@@ -1012,7 +1028,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         assert isinstance(stack_cols, MultiIndex)
         ordered_stack_cols = stack_cols._reorder_ilevels(sorter)
     else:
-        ordered_stack_cols = stack_cols
+        ordered_stack_cols = stack_cols  # type: ignore[assignment]
     ordered_stack_cols_unique = ordered_stack_cols.unique()
     if isinstance(ordered_stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
@@ -1111,7 +1127,7 @@ def stack_reshape(
             # concat column order may be different from dropping the levels
             new_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
         else:
-            new_columns = [0]
+            new_columns = [0]  # type: ignore[assignment]
         result = DataFrame(columns=new_columns, dtype=frame._values.dtype)
 
     if len(level) < frame.columns.nlevels:

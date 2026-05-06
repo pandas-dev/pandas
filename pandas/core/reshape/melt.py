@@ -351,7 +351,7 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
         pivot_cols.append(target)
         all_cols = all_cols.union(names)
 
-    id_cols = list(data.columns.difference(all_cols))
+    id_cols = list(data.columns.difference(all_cols))  # type: ignore[arg-type]
     for col in id_cols:
         mdata[col] = np.tile(data[col]._values, K)
 
@@ -562,7 +562,9 @@ def wide_to_long(
     ...     set(
     ...         [
     ...             match[0]
-    ...             for match in df.columns.str.findall(r"[A-B]\(.*\)").values
+    ...             for match in df.columns.to_series()
+    ...             .str.findall(r"[A-B]\(.*\)")
+    ...             .values
     ...             if match != []
     ...         ]
     ...     )

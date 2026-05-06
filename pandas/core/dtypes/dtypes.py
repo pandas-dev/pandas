@@ -23,7 +23,7 @@ import zoneinfo
 
 import numpy as np
 
-from pandas._config.config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -514,11 +514,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 hashed = hash((tuple(categories), ordered))
                 return hashed
 
-            if DatetimeTZDtype.is_dtype(categories.dtype):
-                # Avoid future warning.
-                categories = categories.view("datetime64[ns]")
-
-            cat_array = hash_array(np.asarray(categories), categorize=False)
+            cat_array = hash_array(categories._values, categorize=False)
         if ordered:
             cat_array = np.vstack(
                 [cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)]
@@ -632,7 +628,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         )
         new_ordered = dtype.ordered if dtype.ordered is not None else self.ordered
 
-        return CategoricalDtype(new_categories, new_ordered)
+        return CategoricalDtype._from_fastpath(new_categories, new_ordered)
 
     @property
     def categories(self) -> Index:
@@ -2153,7 +2149,7 @@ class SparseDtype(ExtensionDtype):
 
         # np.nan isn't a singleton, so we may end up with multiple
         # NaNs here, so we ignore the all NA case too.
-        if get_option("performance_warnings") and (
+        if config["mode"]["performance_warnings"] and (
             not (len(set(fill_values)) == 1 or isna(fill_values).all())
         ):
             warnings.warn(

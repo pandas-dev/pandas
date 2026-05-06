@@ -36,7 +36,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY312,
-    is_ci_environment,
     is_platform_windows,
     pa_version_under14p0,
     pa_version_under19p0,
@@ -74,7 +73,7 @@ from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 def _require_timezone_database(request):
-    if is_platform_windows() and is_ci_environment() and pa_version_under22p0:
+    if is_platform_windows() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
@@ -272,6 +271,9 @@ def data_for_twos(data):
 
 
 class TestArrowArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _construct_for_combine_add(self, left, right):
         dtype = left.dtype
 
@@ -297,21 +299,6 @@ class TestArrowArray(base.ExtensionTests):
         ser = pd.Series(data)
         range_test = range(len(ser))
         self._compare_other(ser, range_test, comparison_op, range_test)
-
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action, using_nan_is_na):
-        if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
-            tm.assert_numpy_array_equal(result, expected)
-        else:
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            if data_missing.dtype == "float32[pyarrow]" and using_nan_is_na:
-                # map roundtrips through objects, which converts to float64
-                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
-            else:
-                expected = data_missing.to_numpy()
-            tm.assert_numpy_array_equal(result, expected)
 
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -672,21 +659,6 @@ class TestArrowArray(base.ExtensionTests):
         result = data.fillna(valid)
         assert result is not data
         tm.assert_extension_array_equal(result, data)
-
-    def test_fillna_readonly(self, data_missing):
-        data = data_missing.copy()
-        data._readonly = True
-
-        # by default fillna(copy=True), then this works fine
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is generally not honored by Arrow-backed array,
-        # but always returns new data -> same result as above
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
 
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
@@ -1313,6 +1285,40 @@ def test_arrow_string_multiplication_scalar_repeat():
     tm.assert_series_equal(reflected_result, expected)
 
 
+def test_arrow_string_addition_mixed_string_types():
+    # https://github.com/pandas-dev/pandas/issues/65220
+    left = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    right = pd.Series(["b", "c"], dtype=ArrowDtype(pa.large_string()))
+
+    result = left + right
+    expected = pd.Series(["ab", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(result, expected)
+
+    reflected_result = right + left
+    expected_reflected = pd.Series(["ba", None], dtype=ArrowDtype(pa.large_string()))
+    tm.assert_series_equal(reflected_result, expected_reflected)
+
+
+@pytest.mark.parametrize("string_type", [pa.string(), pa.large_string()])
+def test_arrow_string_addition_mixed_with_binary_raises(string_type):
+    left = pd.Series(["a", None], dtype=ArrowDtype(string_type))
+    right = pd.Series([b"b", b"c"], dtype=ArrowDtype(pa.binary()))
+
+    msg = (
+        f"operation 'add' not supported for dtype '{left.dtype}' "
+        f"with dtype '{right.dtype}'"
+    )
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        left + right
+
+    reflected_msg = (
+        f"operation 'add' not supported for dtype '{right.dtype}' "
+        f"with dtype '{left.dtype}'"
+    )
+    with pytest.raises(TypeError, match=re.escape(reflected_msg)):
+        right + left
+
+
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )
@@ -1860,6 +1866,19 @@ def test_str_replace_negative_n():
     tm.assert_series_equal(expected3, actual3)
 
 
+def test_str_replace_empty_pattern():
+    # https://github.com/pandas-dev/pandas/issues/64941
+    ser = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+
+    result = ser.str.replace("", "")
+    expected = pd.Series(["abcd"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.replace("", "X")
+    expected = pd.Series(["XaXbXcXdX"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_repeat_unsupported():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match="repeat is not"):
@@ -1920,18 +1939,18 @@ def test_str_fullmatch(pat, case, na, exp):
 
 
 @pytest.mark.parametrize(
-    "sub, start, end, exp, exp_type",
+    "sub, start, end, exp",
     [
-        ["ab", 0, None, [0, None], pa.int32()],
-        ["bc", 1, 3, [1, None], pa.int64()],
-        ["ab", 1, 3, [-1, None], pa.int64()],
-        ["ab", -3, -3, [-1, None], pa.int64()],
+        ["ab", 0, None, [0, None]],
+        ["bc", 1, 3, [1, None]],
+        ["ab", 1, 3, [-1, None]],
+        ["ab", -3, -3, [-1, None]],
     ],
 )
-def test_str_find(sub, start, end, exp, exp_type):
+def test_str_find(sub, start, end, exp):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
-    expected = pd.Series(exp, dtype=ArrowDtype(exp_type))
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2412,10 +2431,8 @@ def test_unsupported_dt(data):
         ["year", 2023],
         ["day", 2],
         ["day_of_week", 0],
-        ["dayofweek", 0],
         ["weekday", 0],
         ["day_of_year", 2],
-        ["dayofyear", 2],
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
@@ -2445,7 +2462,13 @@ def test_dt_properties(prop, expected):
         ],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
-    result = getattr(ser.dt, prop)
+    if prop == "weekday":
+        # GH#12816
+        warn = Pandas4Warning
+    else:
+        warn = None
+    with tm.assert_produces_warning(warn, match="weekday"):
+        result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
         exp_type = pa.date32()
@@ -2534,7 +2557,7 @@ def test_dt_is_quarter_start_end():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("method", ["days_in_month", "daysinmonth"])
+@pytest.mark.parametrize("method", ["days_in_month"])
 def test_dt_days_in_month(method):
     ser = pd.Series(
         [
@@ -3214,10 +3237,12 @@ def test_infer_dtype_pyarrow_dtype(data, request):
     res = lib.infer_dtype(data)
     assert res != "unknown-array"
 
-    if data._hasna and res in ["datetime64", "timedelta64"]:
+    if res in ["datetime64", "timedelta64"]:
+        # infer_dtype on the pyarrow-backed array returns datetime64/timedelta64
+        # via _TYPE_MAP, but infer_dtype on list(data) returns datetime/timedelta
+        # because the elements are pd.Timestamp/pd.Timedelta (PyDateTime/PyDelta).
         mark = pytest.mark.xfail(
-            reason="in infer_dtype pd.NA is not ignored in these cases "
-            "even with skipna=True in the list(data) check below"
+            reason="infer_dtype(arrow_array) vs infer_dtype(list) naming mismatch"
         )
         request.applymarker(mark)
 
@@ -3666,13 +3691,11 @@ def test_cast_dictionary_different_value_dtype(arrow_type):
     assert result.dtypes.iloc[0] == data_type
 
 
-def test_map_numeric_na_action(using_nan_is_na):
+def test_map_numeric_na_action():
+    # GH#62164 - _cast_pointwise_result retains Arrow dtype
     ser = pd.Series([32, 40, None], dtype="int64[pyarrow]")
     result = ser.map(lambda x: 42, na_action="ignore")
-    if not using_nan_is_na:
-        expected = pd.Series([42.0, 42.0, pd.NA], dtype="object")
-    else:
-        expected = pd.Series([42.0, 42.0, np.nan], dtype="float64")
+    expected = pd.Series([42, 42, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
@@ -3764,7 +3787,7 @@ def test_date_vs_timestamp_scalar_comparison():
 # TODO: reuse assert_invalid_comparison?
 def test_date_vs_timestamp_array_comparison():
     # GH#62157 match non-pyarrow behavior
-    # GH#
+    # GH#60937
     ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser2 = ser.astype("timestamp[ns][pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
@@ -3831,6 +3854,33 @@ def test_setitem_float_nan_is_na(using_nan_is_na):
         ser[2] = np.nan
         assert isinstance(ser[2], float)
         assert np.isnan(ser[2])
+
+
+def test_np_ufunc_pyarrow_distinguish_nan_na():
+    # GH#62506 - ufuncs on pyarrow arrays with distinguish_nan_and_na=True
+    # should work instead of raising TypeError from object dtype conversion.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1.0, float("nan"), None], dtype="double[pyarrow]")
+
+        result = np.isnan(ser)
+        expected = pd.Series([False, True, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.isfinite(ser)
+        expected = pd.Series([True, False, pd.NA], dtype="bool[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        result = np.sqrt(pd.Series([1.0, 4.0, None], dtype="double[pyarrow]"))
+        expected = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(result, expected)
+
+        # multi-return ufunc (tuple path)
+        ser = pd.Series([1.5, 2.7, None], dtype="double[pyarrow]")
+        frac, integ = np.modf(ser)
+        expected_frac = pd.Series([0.5, 0.7, pd.NA], dtype="double[pyarrow]")
+        expected_integ = pd.Series([1.0, 2.0, pd.NA], dtype="double[pyarrow]")
+        tm.assert_series_equal(frac, expected_frac)
+        tm.assert_series_equal(integ, expected_integ)
 
 
 def test_pow_with_all_na_float():
@@ -3974,3 +4024,11 @@ def test_timestamp_reduction_consistency(unit, method):
         f"{method} for {unit} returned {type(result)}"
     )
     assert result.unit == unit
+
+
+def test_fillna_zero():
+    # https://github.com/pandas-dev/pandas/issues/62878 - specific pyarrow bug
+    ser = pd.Series([1, 2, 3, 4, pd.NA, 6], dtype="int64[pyarrow]")
+    result = ser.fillna(0)
+    expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)

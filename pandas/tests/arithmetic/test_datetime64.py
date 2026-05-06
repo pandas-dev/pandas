@@ -110,15 +110,14 @@ class TestDatetime64ArrayLikeComparisons:
     ):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="ns", periods=10, tz=tz)._data
+        dta = date_range("2000-01-01", freq="ns", periods=10, tz=tz)._data
         obj = tm.box_expected(dta, box_with_array)
         assert_invalid_comparison(obj, other, box_with_array)
 
     def test_dt64arr_cmp_mixed_invalid(self, tz_naive_fixture):
         tz = tz_naive_fixture
 
-        dta = date_range("1970-01-01", freq="h", periods=5, tz=tz)._data
-
+        dta = date_range("2000-01-01", freq="h", periods=5, tz=tz)._data
         other = np.array([0, 1, 2, dta[3], Timedelta(days=1)])
         result = dta == other
         expected = np.array([False, False, False, True, False])
@@ -503,8 +502,8 @@ class TestDatetimeIndexComparisons:
             [
                 np.datetime64("2014-02-01 00:00"),
                 np.datetime64("2014-03-01 00:00"),
-                np.datetime64("nat"),
-                np.datetime64("nat"),
+                np.datetime64("nat", "ns"),
+                np.datetime64("nat", "ns"),
                 np.datetime64("2014-06-01 00:00"),
                 np.datetime64("2014-07-01 00:00"),
             ]
@@ -512,7 +511,7 @@ class TestDatetimeIndexComparisons:
 
         cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, idx2 in cases:
                 result = idx1 < idx2
@@ -559,7 +558,7 @@ class TestDatetimeIndexComparisons:
                 expected = np.array([True, True, True, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
 
-        # Check pd.NaT is handles as the same as np.nan
+        # Check pd.NaT is handled the same as np.nan
         with tm.assert_produces_warning(None):
             for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
                 result = idx1 < val
@@ -785,7 +784,7 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
         expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz, unit="ns")
-        if tz is not None:
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -807,7 +806,7 @@ class TestDatetime64Arithmetic:
 
         rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
         expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz, unit="ns")
-        if tz is not None:
+        if tz is not None or box_with_array is pd.array:
             expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
@@ -879,7 +878,7 @@ class TestDatetime64Arithmetic:
         tz = tz_naive_fixture
 
         dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS", unit="ns")
-        other = np.timedelta64("NaT")
+        other = np.timedelta64("NaT", "ns")
         expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
         obj = tm.box_expected(dti, box_with_array)
@@ -1273,6 +1272,9 @@ class TestDatetime64DateOffsetArithmetic:
             freq="h",
             tz=tz,
         ).as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
+            dates = dates._with_freq(None)
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1597,6 +1599,40 @@ class TestDatetime64DateOffsetArithmetic:
             dtype="datetime64[ns]",
         )
         tm.assert_index_equal(result, expected)
+
+    def test_dt64arr_add_dateoffset_near_dst(self, unit):
+        # GH#28610 - vectorized DatetimeIndex + DateOffset should match
+        # scalar Timestamp + DateOffset near DST transitions.
+        # Europe/Berlin switched to DST on 2000-03-26 (02:00 -> 03:00).
+        dti = DatetimeIndex(
+            ["2000-03-26 04:00", "2000-03-26 01:00"],
+            tz="Europe/Berlin",
+        ).as_unit(unit)
+
+        offset = DateOffset(hours=-2)
+        result = dti + offset
+        expected = DatetimeIndex(
+            ["2000-03-26 01:00:00+01:00", "2000-03-25 23:00:00+01:00"],
+            dtype=f"datetime64[{unit}, Europe/Berlin]",
+        )
+        tm.assert_index_equal(result, expected)
+        pointwise = DatetimeIndex([x + offset for x in dti])
+        tm.assert_index_equal(result, pointwise)
+
+        # Also test the reverse direction (adding into DST)
+        dti2 = DatetimeIndex(
+            ["2000-03-26 01:00"],
+            tz="Europe/Berlin",
+        ).as_unit(unit)
+        offset2 = DateOffset(hours=2)
+        result2 = dti2 + offset2
+        expected2 = DatetimeIndex(
+            ["2000-03-26 04:00:00+02:00"],
+            dtype=f"datetime64[{unit}, Europe/Berlin]",
+        )
+        tm.assert_index_equal(result2, expected2)
+        pointwise2 = DatetimeIndex([x + offset2 for x in dti2])
+        tm.assert_index_equal(result2, pointwise2)
 
 
 class TestDatetime64OverflowHandling:
@@ -1930,7 +1966,6 @@ class TestTimestampSeriesArithmetic:
         td1 = Series(pd.timedelta_range("1 days 1 min", periods=5, freq="h"))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
-        assert td2._values.freq is None
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
@@ -2429,11 +2464,11 @@ def test_non_nano_dt64_addsub_np_nat_scalars_unitless():
     # GH 52295
     # TODO: Can we default to the ser unit?
     ser = Series([1233242342344, 232432434324, 332434242344], dtype="datetime64[ms]")
-    result = ser - np.datetime64("nat")
+    result = ser - np.datetime64("nat", "ms")
     expected = Series([NaT] * 3, dtype="timedelta64[ms]")
     tm.assert_series_equal(result, expected)
 
-    result = ser + np.timedelta64("nat")
+    result = ser + np.timedelta64("NaT", "ms")
     expected = Series([NaT] * 3, dtype="datetime64[ms]")
     tm.assert_series_equal(result, expected)
 
