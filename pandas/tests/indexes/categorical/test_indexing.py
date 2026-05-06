@@ -25,7 +25,7 @@ class TestTake:
         tm.assert_categorical_equal(result.values, expected.values)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = CategoricalIndex([2, 1, np.nan], categories=[1, 2, 3], name="xxx")
         tm.assert_index_equal(result, expected)
         tm.assert_categorical_equal(result.values, expected.values)
@@ -48,7 +48,7 @@ class TestTake:
         tm.assert_categorical_equal(result.values, expected.values)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = CategoricalIndex(
             ["B", "C", np.nan], categories=list("ABC"), ordered=True, name="xxx"
         )
@@ -63,13 +63,11 @@ class TestTake:
         tm.assert_index_equal(result, expected)
         tm.assert_categorical_equal(result.values, expected.values)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -2]), fill_value=True)
+            idx.take(np.array([1, 0, -2]), fill_value=np.nan)
         with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -5]), fill_value=True)
+            idx.take(np.array([1, 0, -5]), fill_value=np.nan)
 
         msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
@@ -87,7 +85,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
         expected = pd.DatetimeIndex(["2011-02-01", "2011-01-01", "NaT"], name="xxx")
         exp_cats = pd.DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"])
         expected = CategoricalIndex(expected, categories=exp_cats)
@@ -101,13 +99,11 @@ class TestTake:
         expected = CategoricalIndex(expected)
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -2]), fill_value=True)
+            idx.take(np.array([1, 0, -2]), fill_value=pd.NaT)
         with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -5]), fill_value=True)
+            idx.take(np.array([1, 0, -5]), fill_value=pd.NaT)
 
         msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):

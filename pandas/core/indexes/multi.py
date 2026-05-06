@@ -33,6 +33,7 @@ from pandas._libs.hashtable import duplicated
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
+    Pandas4Warning,
     PerformanceWarning,
     UnsortedIndexError,
 )
@@ -2044,12 +2045,8 @@ class MultiIndex(Index):
         name = self._names[level]
         if unique:
             level_codes = algos.unique(level_codes)
-        if lev._can_hold_na:
-            result = lev.take(level_codes, fill_value=lev._na_value).rename(name)
-        else:
-            # Index.take raises for integer dtypes with -1 (NA) codes
-            filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
-            result = lev._shallow_copy(filled, name=name)
+        result = lev.take(level_codes, allow_fill=True)
+        result._name = name
         return result
 
     def get_level_values(self, level) -> Index:
@@ -2580,8 +2577,8 @@ class MultiIndex(Index):
         self: MultiIndex,
         indices,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value=None,
+        allow_fill: bool | lib.NoDefault = lib.no_default,
+        fill_value=lib.no_default,
         **kwargs,
     ) -> MultiIndex:
         """
@@ -2595,20 +2592,22 @@ class MultiIndex(Index):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-            from the right (the default). This is similar to
-            :func:`numpy.take`.
+              from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+              entries are set to NA. Any other negative values raise a
+              ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
-            * True: negative values in `indices` indicate
-            missing values. These values are set to `fill_value`. Any other
-            other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        fill_value : scalar, optional
+            Retained for API compatibility with :meth:`Index.take`; ``-1``
+            entries are always represented as NA in each level regardless of
+            the value passed.
         **kwargs
             Required for compatibility with numpy.
 
@@ -2641,13 +2640,32 @@ class MultiIndex(Index):
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
-        # only fill if we are passing a non-None fill_value
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill is lib.no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this case, but
+                # warn since the sentinel-based default would otherwise flip
+                # it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not lib.no_default
+
+        if allow_fill and (indices < -1).any():
+            raise ValueError("When allow_fill=True, all indices must be >= -1")
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
-
-        na_value = -1
 
         taken = [lab.take(indices) for lab in self.codes]
         if allow_fill:
@@ -2656,7 +2674,7 @@ class MultiIndex(Index):
                 masked = []
                 for new_label in taken:
                     label_values = new_label
-                    label_values[mask] = na_value
+                    label_values[mask] = -1
                     masked.append(np.asarray(label_values))
                 taken = masked
 

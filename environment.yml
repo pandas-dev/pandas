@@ -97,9 +97,9 @@ dependencies:
   # static typing
   - scipy-stubs
   - types-python-dateutil
-  - types-PyMySQL
+  - types-pymysql
   - types-pytz
-  - types-PyYAML
+  - types-pyyaml
 
   # documentation (jupyter notebooks)
   - nbconvert>=7.11.0

@@ -46,9 +46,9 @@ class TestDatetimeArrayConstructor:
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
 
         result = DatetimeArray._from_sequence(arr, dtype="M8[ns]")
-        result._freq = pd.tseries.frequencies.to_offset(result.inferred_freq)
 
         expected = pd.date_range("1970-01-01", periods=5, freq="h", unit="ns")._data
+        # freq is now Index-level state, so neither array carries one
         tm.assert_datetime_array_equal(result, expected)
 
     def test_bool_dtype_raises(self):
