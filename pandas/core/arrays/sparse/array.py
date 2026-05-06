@@ -1689,7 +1689,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mean : float
         """
         nv.validate_mean(args, kwargs)
-        
+
         if not skipna and self.isna().any():
             return np.nan
 
