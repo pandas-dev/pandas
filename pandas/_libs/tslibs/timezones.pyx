@@ -229,25 +229,7 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
         return tz.utcoffset(obj)
 
 
-cdef tuple _get_zoneinfo_fixed_offset(object tz_py):
-    # We construct zoneinfo._zoneinfo.ZoneInfo, so the Python fallback's
-    # private _fixed_offset/_tz_after attributes are available here.
-    if tz_py._fixed_offset:
-        return True, int(tz_py._tz_after.utcoff.total_seconds())
-    return False, 0
-
-
-cdef inline bint _zoneinfo_has_future_dst(object tz_py):
-    return (
-        hasattr(tz_py, "_tz_after")
-        and tz_py._tz_after is not None
-        and hasattr(tz_py._tz_after, "transitions")
-    )
-
-
 cpdef inline bint is_fixed_offset(tzinfo tz):
-    cdef bint is_fixed
-
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
@@ -261,8 +243,10 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 0
     elif is_zoneinfo(tz):
         tz_py = _ZoneInfo(tz.key)
-        is_fixed, _ = _get_zoneinfo_fixed_offset(tz_py)
-        return is_fixed
+        if tz_py._fixed_offset:
+            return 1
+        else:
+            return 0
     # This also implicitly accepts datetime.timezone objects which are
     # considered fixed
     return 1
@@ -360,24 +344,26 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         True if this is a fixed-offset timezone with no transitions.
     """
     cdef:
-        bint is_fixed
         int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
         list trans_utc, deltas_seconds, future_trans
         int year, last_year, std_offset, dst_offset
 
     tz_py = _ZoneInfo(tz.key)
 
-    is_fixed, fixed_offset_seconds = _get_zoneinfo_fixed_offset(tz_py)
-    if is_fixed:
+    if tz_py._fixed_offset:
+        fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
         trans = np.array([NPY_NAT + 1], dtype=np.int64)
         deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
         return trans, deltas, True
 
-    has_future_dst = _zoneinfo_has_future_dst(tz_py)
-
     trans_utc = list(tz_py._trans_utc)
     deltas_seconds = [int(info.utcoff.total_seconds()) for info in tz_py._ttinfos]
 
+    has_future_dst = (
+        hasattr(tz_py, "_tz_after")
+        and tz_py._tz_after is not None
+        and hasattr(tz_py._tz_after, "transitions")
+    )
     if has_future_dst:
         # ZoneInfo's _trans_utc only contains historical data (typically up to
         # the late 1990s for many timezones). POSIX TZ rules stored in _tz_after
