@@ -185,6 +185,13 @@ def test_zoneinfo_fixed_offset(tz_name):
     assert timezones.is_fixed_offset(tz)
 
 
+def test_zoneinfo_not_fixed_offset_with_historical_transition():
+    # GH#64363
+    zoneinfo = pytest.importorskip("zoneinfo")
+    tz = zoneinfo.ZoneInfo("Africa/Lusaka")
+    assert not timezones.is_fixed_offset(tz)
+
+
 def test_maybe_get_tz_offset_only():
     # see gh-36004
 
