@@ -701,7 +701,6 @@ class BaseBlockManager(PandasObject):
                 return self.make_empty(axes)
             return self.make_empty()
 
-        # FIXME: optimization potential
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
@@ -1280,9 +1279,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-
-        # FIXME: refactor, clearly separate broadcasting & zip-like assignment
-        #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
