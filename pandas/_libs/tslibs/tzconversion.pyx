@@ -134,7 +134,6 @@ cdef class Localizer:
             return utc_val + self.delta
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
-
             if fold is not NULL:
                 fold[0] = _infer_dateutil_fold(
                     utc_val, self.trans, self.deltas, pos[0]

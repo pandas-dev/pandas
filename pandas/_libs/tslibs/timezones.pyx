@@ -288,41 +288,6 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef tuple _get_trans_and_deltas_from_dateutil_tz(tzinfo dateutil_tz):
-    """
-    Parameters
-    ----------
-    dateutil_tz : tzinfo
-        A dateutil timezone object with _trans_list and _trans_idx attributes.
-
-    Returns
-    -------
-    trans : ndarray[int64_t]
-        Nanosecond UTC times of DST transitions.
-    deltas : ndarray[int64_t]
-        Nanosecond UTC offsets corresponding to DST transitions.
-    """
-    cdef:
-        int64_t first_offset_seconds
-
-    first_offset_seconds = int(dateutil_tz._ttinfo_before.offset)
-
-    trans_list = _get_utc_trans_times_from_dateutil_tz(dateutil_tz)
-    trans = np.hstack([
-        np.array([0], dtype="M8[s]"),
-        np.array(trans_list, dtype="M8[s]")
-    ]).astype("M8[ns]")
-    trans = trans.view("i8")
-    trans[0] = NPY_NAT + 1
-
-    deltas = np.array(
-        [first_offset_seconds] + [v.offset for v in dateutil_tz._trans_idx],
-        dtype="i8"
-    )
-    deltas *= 1_000_000_000
-    return trans, deltas
-
-
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
     Get transition times and UTC offsets for a ZoneInfo timezone.
@@ -449,7 +414,19 @@ cdef object get_dst_info(tzinfo tz):
 
         elif treat_tz_as_dateutil(tz):
             if len(tz._trans_list):
-                trans, deltas = _get_trans_and_deltas_from_dateutil_tz(tz)
+                # get utc trans times
+                trans_list = _get_utc_trans_times_from_dateutil_tz(tz)
+                trans = np.hstack([
+                    np.array([0], dtype="M8[s]"),  # place holder for 1st item
+                    np.array(trans_list, dtype="M8[s]")]).astype(
+                    "M8[ns]")  # all trans listed
+                trans = trans.view("i8")
+                trans[0] = NPY_NAT + 1
+
+                # deltas
+                deltas = np.array([v.offset for v in (
+                    tz._ttinfo_before,) + tz._trans_idx], dtype="i8")
+                deltas *= 1_000_000_000
                 typ = "dateutil"
 
             elif is_fixed_offset(tz):
