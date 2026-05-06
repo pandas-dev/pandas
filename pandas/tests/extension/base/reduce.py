@@ -154,6 +154,7 @@ class BaseReduceTests:
                     "setting an array element with a sequence",
                     "can't multiply sequence by non-int of type",
                     r"complex\(\) first argument must be a string or a number",
+                    r"complex\(\) argument must be a string or a number",
                 ]
             )
             with pytest.raises((TypeError, AttributeError), match=msg):
