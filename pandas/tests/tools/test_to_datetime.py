@@ -46,7 +46,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    DatetimeArray,
+)
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
 
@@ -3461,26 +3464,26 @@ class TestShouldCache:
         assert tools.should_cache(listlike) is True
 
 
-class TestMaybeCacheEarlyBail:
-    # GH#65380 _maybe_cache should bail in O(1) for
+class TestShouldCacheEarlyBail:
+    # GH#65380 should_cache returns False in O(1) for
     # inputs where caching cannot help.
 
     @pytest.mark.parametrize(
         "arg, kwargs",
         [
-            # Condition 1: unit is not None
+            # unit is not None
             (np.arange(100, dtype="int64"), {"unit": "s"}),
-            # Condition 2: arg.dtype is np.datetime64
+            # arg.dtype is np.datetime64
             (
                 date_range("2020-01-01", periods=100, freq="s").to_numpy(),
                 {},
             ),
-            # Condition 3: arg.dtype is DatetimeTZDtype
+            # arg.dtype is DatetimeTZDtype
             (
                 date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
                 {},
             ),
-            # Condition 5: format is not None and format != "mixed"
+            # format is not None and format != "mixed"
             (
                 date_range("2020-01-01", periods=100, freq="s")
                 .strftime("%Y-%m-%dT%H:%M:%S")
@@ -3489,24 +3492,13 @@ class TestMaybeCacheEarlyBail:
             ),
         ],
     )
-    def test_maybe_cache_skips_should_cache(self, arg, kwargs, monkeypatch):
-        called = []
-        original = tools.should_cache
-
-        def tracking_should_cache(*args, **kwargs):
-            called.append(True)
-            return original(*args, **kwargs)
-
-        monkeypatch.setattr(tools, "should_cache", tracking_should_cache)
-        to_datetime(arg, cache=True, **kwargs)
-        assert not called
+    def test_should_cache_returns_false(self, arg, kwargs):
+        assert tools.should_cache(arg, **kwargs) is False
 
     @td.skip_if_no("pyarrow")
-    def test_maybe_cache_skips_should_cache_arrow(self, monkeypatch):
-        # Condition 4: ArrowDtype with Timestamp type
+    def test_should_cache_returns_false_arrow(self):
+        # ArrowDtype with Timestamp type
         import pyarrow as pa
-
-        from pandas.core.arrays import ArrowExtensionArray
 
         arr = ArrowExtensionArray(
             pa.array(
@@ -3515,31 +3507,12 @@ class TestMaybeCacheEarlyBail:
             )
         )
         idx = Index(arr)
+        assert tools.should_cache(idx) is False
 
-        called = []
-        original = tools.should_cache
-
-        def tracking_should_cache(*args, **kwargs):
-            called.append(True)
-            return original(*args, **kwargs)
-
-        monkeypatch.setattr(tools, "should_cache", tracking_should_cache)
-        to_datetime(idx, cache=True)
-        assert not called
-
-    def test_cache_false_still_works(self, monkeypatch):
-        # Sanity: cache=False should never call should_cache either
-        called = []
-        original = tools.should_cache
-
-        def tracking_should_cache(*args, **kwargs):
-            called.append(True)
-            return original(*args, **kwargs)
-
-        monkeypatch.setattr(tools, "should_cache", tracking_should_cache)
-        arg = np.arange(100, dtype="int64")
-        to_datetime(arg, cache=False, unit="s")
-        assert not called
+    def test_should_cache_format_mixed_not_skipped(self):
+        # format="mixed" should NOT trigger the early bail
+        arg = Index(["2020-01-01", "01/02/2020"] * 50)
+        assert tools.should_cache(arg, format="mixed") is True
 
 
 def test_nullable_integer_to_datetime():

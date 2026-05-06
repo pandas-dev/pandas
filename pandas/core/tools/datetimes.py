@@ -154,7 +154,11 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
 
 
 def should_cache(
-    arg: ArrayConvertible, unique_share: float = 0.7, check_count: int | None = None
+    arg: ArrayConvertible,
+    unique_share: float = 0.7,
+    check_count: int | None = None,
+    format: str | None = None,
+    unit: str | None = None,
 ) -> bool:
     """
     Decides whether to do caching.
@@ -169,6 +173,10 @@ def should_cache(
         0 < unique_share < 1
     check_count: int, optional
         0 <= check_count <= len(arg)
+    format : str or None, default None
+        Strftime format to parse time.
+    unit : str or None, default None
+        The unit of the arg (e.g. 's', 'ms').
 
     Returns
     -------
@@ -182,6 +190,20 @@ def should_cache(
     than 5000, then we check only the first 500 elements.
     All constants were chosen empirically by.
     """
+    # GH#65380 O(1) bail for input shapes where caching cannot help:
+    # numeric+unit, already-datetime dtypes, or explicit strptime format.
+    if unit is not None:
+        return False
+    if format is not None and format != "mixed":
+        return False
+    arg_dtype = getattr(arg, "dtype", None)
+    if (
+        lib.is_np_dtype(arg_dtype, "M")
+        or isinstance(arg_dtype, DatetimeTZDtype)
+        or (isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp)
+    ):
+        return False
+
     do_caching = True
 
     # default realization
@@ -245,21 +267,8 @@ def _maybe_cache(
     cache_array = Series(dtype=object)
 
     if cache:
-        # GH#65380 O(1) bail for input shapes where caching cannot help
-        if unit is not None:
-            return cache_array
-        arg_dtype = getattr(arg, "dtype", None)
-        if (
-            lib.is_np_dtype(arg_dtype, "M")
-            or isinstance(arg_dtype, DatetimeTZDtype)
-            or (isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp)
-        ):
-            return cache_array
-        if format is not None and format != "mixed":
-            return cache_array
-
         # Perform a quicker unique check
-        if not should_cache(arg):
+        if not should_cache(arg, format=format, unit=unit):
             return cache_array
 
         if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
