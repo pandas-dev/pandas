@@ -1277,12 +1277,14 @@ def test_nansem_mask_skipna_false_axis_returns_array():
     result = nanops.nansem(values, mask=mask, skipna=False, axis=None)
     assert np.isnan(result)
 
-    # skipna=True: NaN values and masked entries are skipped,
-    # result should be a finite array (no NaN since enough valid data remains)
-    result_skipna = nanops.nansem(values, mask=mask, skipna=True, axis=0)
+    # skipna=True: masked entries are skipped; use values with no actual NaN
+    # so only the mask drives missingness (1 masked entry per column -> 4 valid).
+    # _maybe_get_mask does not merge isna(values) when mask is already provided,
+    # so actual NaN values would contaminate sums even with skipna=True.
+    values_no_nan = rng.standard_normal((n, n))  # no NaN; only mask marks missing
+    result_skipna = nanops.nansem(values_no_nan, mask=mask, skipna=True, axis=0)
     assert result_skipna.shape == (n,)
-    # Each column has 1 NaN (diagonal) + 1 masked entry (shifted diagonal)
-    # With n=5 we still have 3 valid values per column -> result is finite
+    # Each column has 1 masked entry (shifted diagonal), 4 valid values -> finite
     assert not np.any(np.isnan(result_skipna))
 
     # Partial mask: mask[0,1]=True misaligned from values[0,0]=NaN
