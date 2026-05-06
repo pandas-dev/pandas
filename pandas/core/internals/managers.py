@@ -195,6 +195,7 @@ class BaseBlockManager(PandasObject):
 
     _blknos: npt.NDArray[np.intp]
     _blklocs: npt.NDArray[np.intp]
+    _dtypes_cache: npt.NDArray[np.object_] | None
     blocks: tuple[Block, ...]
     axes: list[Index]
 
