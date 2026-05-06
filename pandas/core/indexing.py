@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Self,
+    TypeAlias,
+    TypeVar,
     cast,
     final,
 )
@@ -91,6 +93,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         DtypeObj,
+        Scalar,
         T,
         npt,
     )
@@ -100,6 +103,16 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.base import IndexOpsMixin
+
+    _IndexSliceTuple: TypeAlias = tuple[IndexOpsMixin | Scalar | Sequence | slice, ...]
+
+    _IndexSliceUnion: TypeAlias = (
+        Scalar | Sequence | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
+    )
+
+    _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
+
 
 # "null slice"
 _NS = slice(None, None)
@@ -154,7 +167,7 @@ class _IndexSlice:
            B1   10   11
     """
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: _IndexSliceUnionT) -> _IndexSliceUnionT:
         return arg
 
 
@@ -3223,33 +3236,36 @@ class _AtIndexer(_ScalarAccessIndexer):
         if self.ndim == 2:
             if not isinstance(key, tuple) or len(key) != 2:
                 return
-            check_key = key[0]
+            checks = [(key[0], self.obj.index), (key[1], self.obj.columns)]
         else:
             check_key = key
             if isinstance(key, tuple) and len(key) == 1:
                 check_key = key[0]
+            checks = [(check_key, self.obj.index)]
 
-        # Only check for scalar-like keys (including tuples for MultiIndex).
-        # Slices and list-likes are invalid for .at and will raise elsewhere.
-        if isinstance(check_key, slice) or is_list_like_indexer(check_key):
-            if not isinstance(check_key, tuple):
+        for check_key, axis in checks:
+            # Only check for scalar-like keys (including tuples for MultiIndex).
+            # Slices and list-likes are invalid for .at and will raise elsewhere.
+            if isinstance(check_key, slice) or is_list_like_indexer(check_key):
+                if not isinstance(check_key, tuple):
+                    continue
+
+            try:
+                is_expanding = check_key not in axis
+            except (TypeError, InvalidIndexError):
+                continue
+
+            if is_expanding:
+                obj_type = "DataFrame" if self.ndim == 2 else "Series"
+                warnings.warn(
+                    f"Setting a value on a {obj_type} via .at with a key "
+                    "that does not exist in the index is deprecated "
+                    "and will raise a KeyError in a future version. "
+                    "Use .loc instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
                 return
-
-        try:
-            is_expanding = check_key not in self.obj.index
-        except (TypeError, InvalidIndexError):
-            return
-
-        if is_expanding:
-            obj_type = "DataFrame" if self.ndim == 2 else "Series"
-            warnings.warn(
-                f"Setting a value on a {obj_type} via .at with a key "
-                "that does not exist in the index is deprecated "
-                "and will raise a KeyError in a future version. "
-                "Use .loc instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
 
     @property
     def _axes_are_unique(self) -> bool:

@@ -1,9 +1,9 @@
+import csv
 import io
 import os
 import sys
 from zipfile import ZipFile
 
-from _csv import Error
 import numpy as np
 import pytest
 
@@ -98,7 +98,7 @@ $1$,$2$
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected
 
-        with pytest.raises(Error, match="escapechar"):
+        with pytest.raises(csv.Error, match="escapechar"):
             df.to_csv(temp_file, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self, temp_file):

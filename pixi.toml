@@ -173,6 +173,22 @@ pytest = "*"
 pyyaml = "*"
 requests = "*"
 
+[feature.doctests.dependencies]
+pytest-cython = ">=0.4.0"
+natsort = "*" # DataFrame.sort_values doctest
+tokenize-rt = "*" # scripts/check_for_inconsistent_pandas_namespace.py
+pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
+
+[feature.typing.dependencies]
+pre-commit = ">=4.2.0"
+ipython = "*"
+mypy = "==1.17.1"
+scipy-stubs = "*"
+types-python-dateutil = "*"
+types-PyMySQL = "*"
+types-pytz = "*"
+types-PyYAML = "*"
+
 [environments]
 py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
 py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
@@ -185,6 +201,9 @@ numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
+doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests" ] }
+# https://github.com/apache/arrow/issues/49831 for "pyarrow23" in typing
+typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing" ] }
 docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website" ]}
 mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
 
@@ -223,6 +242,45 @@ cmd = [
   "--cov-report=xml",
   "--cov-append",
   "{{ pytest_target }}",
+]
+
+[tasks.ci-doctests]
+# Avoids NumPy scalar reprs in docstrings.
+env = { PANDAS_FUTURE_PYTHON_SCALARS = "1" }
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "--doctest-modules",
+  "--doctest-cython",
+  "--ignore=pandas/tests",
+  "pandas",
+]
+
+[tasks.ci-check-import]
+cmd = [
+  "python",
+  "-W",
+  "error",
+  "ci/import_pandas_check.py",
+]
+
+[tasks.ci-typing]
+cmd = [
+  "pre-commit",
+  "run",
+  "--verbose",
+  "--hook-stage",
+  "manual",
+  "--all-files",
+]
+
+[tasks.ci-scripts-tests]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "scripts",
 ]
 
 [tasks.ci-asv]

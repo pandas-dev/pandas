@@ -1588,6 +1588,11 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.var : Compute variance of groups, excluding missing
             values.
 
+        Notes
+        -----
+        To use the same divisor as ``numpy.std``, use ``ddof=0`` instead of
+        the default ``ddof=1``.
+
         Examples
         --------
 
