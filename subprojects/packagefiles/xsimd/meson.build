@@ -3,7 +3,7 @@ project(
     'cpp',
     meson_version: '>=0.58.0',
     license: 'BSD-3-Clause',
-    version: '14.1.0',
+    version: '14.2.0',
 )
 
 xsimd_inc = include_directories('include')
