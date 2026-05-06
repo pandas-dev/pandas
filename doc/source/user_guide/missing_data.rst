@@ -320,6 +320,19 @@ The descriptive statistics and computational methods discussed in the
 <api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
+The default behavior differs from many NumPy reduction functions. For example,
+pandas reductions such as :meth:`Series.std` and :meth:`DataFrame.std`
+skip missing values by default, while :func:`numpy.std` returns ``nan``
+when the input contains ``nan`` values. To include missing values in
+pandas reductions, pass ``skipna=False``.
+
+.. ipython:: python
+
+   ser = pd.Series([1.0, np.nan, 3.0])
+   ser.std()
+   ser.std(skipna=False)
+   np.std(ser.to_numpy(), ddof=1)
+
 When summing data, NA values or empty data will be treated as zero.
 
 .. ipython:: python
