@@ -1653,6 +1653,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
+        if self.ndim == 2 and kwargs.get("axis", 0) is not None:
+            # Result must be 1d
+            return result
+
         if keepdims:
             if isna(result):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
@@ -1764,20 +1768,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._wrap_reduction_result("median", result, skipna=skipna, axis=axis)
 
     def kurt(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
-        # TODO: Does not exist?
-        # nv.validate_kurt((), kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="kurt")
         result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
     def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
-        # TODO: Does not exist?
-        # nv.validate_sem((), kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
         result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
     def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
-        # TODO: Does not exist?
-        # nv.validate_skew((), kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
         result = self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("skew", result, skipna=skipna, axis=axis)
 
