@@ -123,7 +123,6 @@ class TestDatetimeConcat:
         # Non-monotonic index result
         result = concat([expected[50:], expected[:50]])
         expected = DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
-        expected.index._data._freq = None
         tm.assert_frame_equal(result, expected)
 
     def test_concat_datetimeindex_tz_convert_freq(self):
