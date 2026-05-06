@@ -1287,17 +1287,17 @@ def test_nansem_mask_skipna_false_axis_returns_array():
     # Each column has 1 masked entry (shifted diagonal), 4 valid values -> finite
     assert not np.any(np.isnan(result_skipna))
 
-    # Partial mask: mask[0,1]=True misaligned from values[0,0]=NaN
-    # skipna=False -> col 0 is NaN (actual NaN), col 1 is NaN (masked entry),
-    # all other columns are finite
+    # Partial mask: only col 0 has an actual NaN -> only col 0 result is NaN.
+    # skipna=False relies on nanvar to propagate NaN, which only triggers on
+    # actual NaN values in the array, not on mask positions alone.
     values_partial = rng.standard_normal((n, n))
     values_partial[0, 0] = np.nan
     mask_partial = np.zeros((n, n), dtype=bool)
-    mask_partial[0, 1] = True  # misaligned: NaN at col 0, mask at col 1
+    mask_partial[0, 1] = True  # col 1 masked but value is real -> result finite
 
     result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
-    assert np.isnan(result[0])  # col 0: contains actual NaN
-    assert np.isnan(result[1])  # col 1: has a masked (NA) entry
+    assert np.isnan(result[0])      # col 0: actual NaN -> sem is NaN
+    assert not np.isnan(result[1])  # col 1: masked but value is real -> finite
     assert not np.any(np.isnan(result[2:]))  # cols 2-4: all valid -> finite
 
 
