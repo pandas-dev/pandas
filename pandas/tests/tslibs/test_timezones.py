@@ -217,7 +217,7 @@ def test_maybe_get_tz_offset_only():
 def test_zoneinfo_utc_to_local_post_2037():
     # GH#64363 - verify that ZoneInfo DST transitions after 2037
     # (generated from POSIX TZ string rules) produce correct local times.
-    tz = ZoneInfo("US/Pacific")
+    tz = zoneinfo.ZoneInfo("US/Pacific")
     utc_times = date_range("2040-07-01", periods=24, freq="h", tz="UTC")
     local = utc_times.tz_convert(tz)
 
@@ -237,13 +237,13 @@ def test_zoneinfo_utc_to_local_pre_first_transition(key):
     # transition (LMT era) match what ZoneInfo itself returns. The "before"
     # offset must be utcoff[0] from the TZ data (matching CPython's C
     # implementation), NOT the first non-DST transition offset.
-    tz = ZoneInfo(key)
+    tz = zoneinfo.ZoneInfo(key)
     ts = Timestamp("1850-01-01", tz="UTC").tz_convert(tz)
 
     expected = datetime(1850, 1, 1, tzinfo=timezone.utc).astimezone(tz)
     assert ts.minute == expected.minute
-    
-    
+
+
 def test_normalize_pytz_timezone():
     pytz = pytest.importorskip("pytz")
 
