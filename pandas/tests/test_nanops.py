@@ -1296,7 +1296,7 @@ def test_nansem_mask_skipna_false_axis_returns_array():
     mask_partial[0, 1] = True  # col 1 masked but value is real -> result finite
 
     result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
-    assert np.isnan(result[0])      # col 0: actual NaN -> sem is NaN
+    assert np.isnan(result[0])  # col 0: actual NaN -> sem is NaN
     assert not np.isnan(result[1])  # col 1: masked but value is real -> finite
     assert not np.any(np.isnan(result[2:]))  # cols 2-4: all valid -> finite
 
