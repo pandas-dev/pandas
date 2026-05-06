@@ -26,7 +26,7 @@ from typing import (
 import warnings
 import zipfile
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -205,6 +205,9 @@ def read_excel(
     Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
     read from a local filesystem or URL. Supports an option to read
     a single sheet or a list of sheets.
+
+    This function requires an external library depending on the
+    file format; see the ``engine`` parameter below.
 
     Parameters
     ----------
@@ -1179,7 +1182,7 @@ class ExcelWriter(Generic[_WorkbookT]):
                     ext = "xlsx"
 
                 try:
-                    engine = _global_config["io"]["excel"][ext]["writer"]
+                    engine = config["io"]["excel"][ext]["writer"]
                     if engine == "auto":
                         engine = get_default_engine(ext, mode="writer")
                 except KeyError as err:
@@ -1623,7 +1626,7 @@ class ExcelFile:
                     )
 
             if engine is None:
-                engine = _global_config["io"]["excel"][ext]["reader"]
+                engine = config["io"]["excel"][ext]["reader"]
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="reader")
 

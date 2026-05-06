@@ -913,8 +913,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 #  below would create float64 columns in this example, which
                 #  would successfully hold 7, so we would end up with the wrong
                 #  dtype.
-                indexer = np.arange(len(keys), dtype=np.intp)
-                indexer[len(self.obj.columns) :] = -1
+                indexer = self.obj.columns.get_indexer(keys)
                 new_mgr = self.obj._mgr.reindex_indexer(
                     keys, indexer=indexer, axis=0, only_slice=True, use_na_proxy=True
                 )
@@ -3550,4 +3549,17 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
 
     if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
         new_arr = maybe_downcast_to_dtype(new_arr, dtype)
+    elif (
+        isinstance(dtype, ExtensionDtype)
+        and dtype.kind in "iu"
+        and new_arr.dtype.kind == "f"
+    ):
+        try:
+            converted = new_arr.astype(orig.dtype)
+        except (ValueError, TypeError):
+            pass
+        else:
+            # Only accept the conversion if no values were truncated
+            if (converted.astype(new_arr.dtype) == new_arr).all():
+                new_arr = converted
     return new_arr

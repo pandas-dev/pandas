@@ -58,13 +58,11 @@ from pandas.core.dtypes.dtypes import (
     NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
-    ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
     ABCNumpyExtensionArray,
     ABCSeries,
-    ABCTimedeltaArray,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -789,16 +787,7 @@ def factorize(
     values = _ensure_arraylike(values, func_name="factorize")
     original = values
 
-    if (
-        isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray))
-        and values.freq is not None
-    ):
-        # The presence of 'freq' means we can fast-path sorting and know there
-        #  aren't NAs
-        codes, uniques = values.factorize(sort=sort)
-        return codes, uniques
-
-    elif not isinstance(values, np.ndarray):
+    if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
 
