@@ -9,8 +9,6 @@ the current locale on every call.
 #include <charconv>
 #include <system_error>
 
-extern "C" {
-
 pd_strtoi_status pd_strtoll(const char *start, const char *end, int64_t *value,
                             const char **endptr) {
   auto result = std::from_chars(start, end, *value, 10);
@@ -36,5 +34,3 @@ pd_strtoi_status pd_strtoull(const char *start, const char *end,
   }
   return PD_STRTOI_INVALID;
 }
-
-} // extern "C"
