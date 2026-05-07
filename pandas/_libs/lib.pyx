@@ -41,6 +41,7 @@ from cython cimport (
 from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
+from pandas.compat import PYARROW_INSTALLED
 from pandas.util._decorators import set_module
 
 import_datetime()
@@ -122,13 +123,12 @@ i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
 
 
-cdef bint PYARROW_INSTALLED = False
+cdef bint c_PYARROW_INSTALLED = PYARROW_INSTALLED
 
-try:
+
+if c_PYARROW_INSTALLED:
     import pyarrow as pa
-
-    PYARROW_INSTALLED = True
-except ImportError:
+else:
     pa = None
 
 
@@ -1326,7 +1326,7 @@ def is_pyarrow_array(obj):
     -------
     bool
     """
-    if PYARROW_INSTALLED:
+    if c_PYARROW_INSTALLED:
         return isinstance(obj, (pa.Array, pa.ChunkedArray))
     return False
 
