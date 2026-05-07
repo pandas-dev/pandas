@@ -105,6 +105,8 @@ def pytest_addoption(parser) -> None:
     parser.addoption(
         "--no-strict-data-files",
         action="store_false",
+        dest="strict_data_files",
+        default=True,
         help="Don't fail if a test is skipped for missing data file.",
     )
 
@@ -1217,7 +1219,7 @@ def strict_data_files(pytestconfig):
     """
     Returns the configuration for the test setting `--no-strict-data-files`.
     """
-    return pytestconfig.getoption("--no-strict-data-files")
+    return pytestconfig.getoption("strict_data_files")
 
 
 @pytest.fixture
