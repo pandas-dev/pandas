@@ -559,7 +559,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "ignore",
                 "Constructing a Categorical with a dtype and values containing",
             )
-            cat = type(self)._from_sequence(res, dtype=self.dtype)
+            try:
+                cat = type(self)._from_sequence(res, dtype=self.dtype)
+            except (TypeError, ValueError):
+                return res
         if (cat.isna() == isna(res)).all():
             # i.e. the conversion was non-lossy
             return cat
@@ -1638,7 +1641,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         na_val = np.nan
         if na_action is None and has_nans:
-            na_val = mapper(np.nan) if callable(mapper) else mapper.get(np.nan, np.nan)
+            if callable(mapper):
+                na_val = mapper(np.nan)
+            else:
+                try:
+                    na_val = mapper[np.nan]
+                except KeyError:
+                    na_val = np.nan
 
         if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
@@ -1964,11 +1973,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=NaT)._values
+            return self.categories.take(
+                self._codes, allow_fill=True, fill_value=NaT
+            )._values
         elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
             return (
                 self.categories.astype("object")
-                .take(self._codes, fill_value=np.nan)
+                .take(self._codes, allow_fill=True, fill_value=np.nan)
                 ._values
             )
         return np.array(self)

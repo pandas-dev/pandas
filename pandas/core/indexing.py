@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Self,
+    TypeAlias,
+    TypeVar,
     cast,
     final,
 )
@@ -58,7 +60,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     construct_1d_array_from_inferred_fill_value,
-    infer_fill_value,
     is_valid_na_for_dtype,
     na_value_for_dtype,
 )
@@ -68,6 +69,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -91,6 +93,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         DtypeObj,
+        Scalar,
         T,
         npt,
     )
@@ -100,6 +103,16 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.base import IndexOpsMixin
+
+    _IndexSliceTuple: TypeAlias = tuple[IndexOpsMixin | Scalar | Sequence | slice, ...]
+
+    _IndexSliceUnion: TypeAlias = (
+        Scalar | Sequence | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
+    )
+
+    _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
+
 
 # "null slice"
 _NS = slice(None, None)
@@ -154,7 +167,7 @@ class _IndexSlice:
            B1   10   11
     """
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: _IndexSliceUnionT) -> _IndexSliceUnionT:
         return arg
 
 
@@ -412,14 +425,6 @@ class IndexingMixin:
         ... ]
                              max_speed  shield
         sidewinder          7       8
-
-        Index (same behavior as ``df.reindex``)
-
-        >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-               max_speed  shield
-        foo
-        cobra          1       2
-        viper          4       5
 
         Conditional that returns a boolean Series
 
@@ -944,9 +949,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         self._has_valid_setitem_indexer(key)
 
         # Capture dtype info cheaply between potential column expansion
-        # (above) and potential row expansion (below).  This replaces the
-        # much more expensive ``self.obj[:].iloc[:0].copy()`` that had to
-        # slice and copy every block.
+        # (above) and potential row expansion (below).
         if self.obj.ndim == 1:
             orig_dtype_info = self.obj.dtype
             orig_columns = None
@@ -1047,7 +1050,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # It is unambiguous what axis this Ellipsis is indexing,
                 #  treat as a single null slice.
                 i = tup.index(Ellipsis)
-                # FIXME: this assumes only one Ellipsis
                 new_key = (*tup[:i], _NS, *tup[i + 1 :])
                 return new_key
 
@@ -1401,14 +1403,6 @@ class _LocIndexer(_LocationIndexer):
     >>> df.loc[pd.Series([False, True, False], index=["viper", "sidewinder", "cobra"])]
                          max_speed  shield
     sidewinder          7       8
-
-    Index (same behavior as ``df.reindex``)
-
-    >>> df.loc[pd.Index(["cobra", "viper"], name="foo")]
-           max_speed  shield
-    foo
-    cobra          1       2
-    viper          4       5
 
     Conditional that returns a boolean Series
 
@@ -2428,6 +2422,20 @@ class _iLocIndexer(_LocationIndexer):
                     take_split_path = True
                     break
 
+        # GH#44103 - setting a scalar row across columns with a list-like
+        # value must go through the split path so each column gets its
+        # corresponding scalar value.
+        if (
+            not take_split_path
+            and isinstance(indexer, tuple)
+            and len(indexer) == 2
+            and is_integer(indexer[0])
+            and not is_integer(indexer[1])
+            and is_list_like(value)
+            and not isinstance(value, (ABCSeries, ABCDataFrame))
+        ):
+            take_split_path = True
+
         return take_split_path
 
     def _setitem_new_column(self, indexer, key, value, name: str) -> None:
@@ -2460,8 +2468,7 @@ class _iLocIndexer(_LocationIndexer):
                 # if not Series (in which case we need to align),
                 #  we can short-circuit
                 if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
-                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-                    arr = arr[0, ...]
+                    arr = arr[0]
                 empty_value[indexer[0]] = arr
                 self.obj[key] = empty_value
                 return
@@ -2472,8 +2479,16 @@ class _iLocIndexer(_LocationIndexer):
                 value, len(self.obj)
             )
         else:
-            # FIXME: GH#42099#issuecomment-864326014
-            self.obj[key] = infer_fill_value(value)
+            # GH#42099 list-like (non-array-like): convert to an array first
+            #  so we can preserve dtype the same way as the is_array_like path
+            arr = sanitize_array(value, Index(range(len(value))), copy=False)
+            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+            empty_value = algos.take_nd(arr, taker)
+            if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+                arr = arr[0]
+            empty_value[indexer[0]] = arr
+            self.obj[key] = empty_value
+            return
 
         new_indexer = convert_from_missing_indexer_tuple(indexer, self.obj.axes)
         self._setitem_with_indexer(new_indexer, value, name)
@@ -2581,7 +2596,11 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif _is_2d_value(value):
+            elif _is_2d_value(value) and not (
+                isinstance(value, list)
+                and isinstance(value[0], tuple)
+                and len(value[0]) != len(ilocs)
+            ):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2869,8 +2888,12 @@ class _iLocIndexer(_LocationIndexer):
 
         elif self.ndim == 2:
             if not len(self.obj.columns):
-                # no columns and scalar
-                raise ValueError("cannot set a frame with no defined columns")
+                # GH#17895 no columns, just expand the index
+                new_index = self.obj.index.insert(len(self.obj.index), indexer)
+                self.obj._mgr = self.obj._constructor(
+                    index=new_index, columns=self.obj.columns
+                )._mgr
+                return
 
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
@@ -3219,33 +3242,36 @@ class _AtIndexer(_ScalarAccessIndexer):
         if self.ndim == 2:
             if not isinstance(key, tuple) or len(key) != 2:
                 return
-            check_key = key[0]
+            checks = [(key[0], self.obj.index), (key[1], self.obj.columns)]
         else:
             check_key = key
             if isinstance(key, tuple) and len(key) == 1:
                 check_key = key[0]
+            checks = [(check_key, self.obj.index)]
 
-        # Only check for scalar-like keys (including tuples for MultiIndex).
-        # Slices and list-likes are invalid for .at and will raise elsewhere.
-        if isinstance(check_key, slice) or is_list_like_indexer(check_key):
-            if not isinstance(check_key, tuple):
+        for check_key, axis in checks:
+            # Only check for scalar-like keys (including tuples for MultiIndex).
+            # Slices and list-likes are invalid for .at and will raise elsewhere.
+            if isinstance(check_key, slice) or is_list_like_indexer(check_key):
+                if not isinstance(check_key, tuple):
+                    continue
+
+            try:
+                is_expanding = check_key not in axis
+            except (TypeError, InvalidIndexError):
+                continue
+
+            if is_expanding:
+                obj_type = "DataFrame" if self.ndim == 2 else "Series"
+                warnings.warn(
+                    f"Setting a value on a {obj_type} via .at with a key "
+                    "that does not exist in the index is deprecated "
+                    "and will raise a KeyError in a future version. "
+                    "Use .loc instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
                 return
-
-        try:
-            is_expanding = check_key not in self.obj.index
-        except (TypeError, InvalidIndexError):
-            return
-
-        if is_expanding:
-            obj_type = "DataFrame" if self.ndim == 2 else "Series"
-            warnings.warn(
-                f"Setting a value on a {obj_type} via .at with a key "
-                "that does not exist in the index is deprecated "
-                "and will raise a KeyError in a future version. "
-                "Use .loc instead.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
 
     @property
     def _axes_are_unique(self) -> bool:
@@ -3547,6 +3573,13 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
         # [assignment]
         dtype = dtype.numpy_dtype  # type: ignore[assignment]
 
+    # _cast_pointwise_result may return NumpyExtensionArray; unwrap so
+    # maybe_downcast_to_dtype sees a plain np.ndarray it can downcast.
+    arr_type = None
+    if isinstance(new_arr.dtype, NumpyEADtype):
+        arr_type = type(new_arr)
+        new_arr = new_arr._ndarray
+
     if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
         new_arr = maybe_downcast_to_dtype(new_arr, dtype)
     elif (
@@ -3562,4 +3595,7 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
             # Only accept the conversion if no values were truncated
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
+
+    if arr_type is not None:
+        new_arr = arr_type(new_arr)
     return new_arr

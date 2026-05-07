@@ -819,7 +819,7 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[5], 'E'] = 7
+   df.at[dates[5], 'A'] = 7
    df.iat[3, 0] = 7
 
 ``at`` previously could enlarge the object in-place if the indexer was missing,

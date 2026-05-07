@@ -5,10 +5,12 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    array,
     merge,
 )
 import pandas._testing as tm
@@ -410,6 +412,64 @@ class TestRename:
             index=["foo", "bar", "bah"],
         )
         tm.assert_frame_equal(res, exp)
+
+    def test_rename_preserves_nullable_int_index(self):
+        # GH#65315
+        df = DataFrame(
+            {"val": [1, 2, 3]},
+            index=Index(array([1, 2, 3], dtype="Int64"), name="id"),
+        )
+        result = df.rename({1: 9})
+        expected = Index(array([9, 2, 3], dtype="Int64"), name="id")
+        tm.assert_index_equal(result.index, expected)
+
+    def test_rename_preserves_nullable_float_columns(self):
+        # GH#65315
+        df = DataFrame(
+            [[1, 2, 3]],
+            columns=Index(array([1.0, 2.0, 3.0], dtype="Float64")),
+        )
+        result = df.rename(columns={1.0: 9.0})
+        expected = Index(array([9.0, 2.0, 3.0], dtype="Float64"))
+        tm.assert_index_equal(result.columns, expected)
+
+    def test_rename_nullable_index_to_na(self):
+        # GH#65315
+        df = DataFrame(
+            {"val": [1, 2, 3]},
+            index=Index(array([1, 2, 3], dtype="Int64")),
+        )
+        result = df.rename({1: NA})
+        expected = Index(array([NA, 2, 3], dtype="Int64"))
+        tm.assert_index_equal(result.index, expected)
+
+    def test_rename_empty_nullable_index(self):
+        # GH#65315
+        df = DataFrame({"val": []}, index=Index(array([], dtype="Int64")))
+        result = df.rename(index={})
+        tm.assert_index_equal(result.index, df.index)
+
+    def test_rename_nullable_index_type_change_widens(self):
+        # GH#65315
+        df = DataFrame(
+            {"val": [1, 2, 3]},
+            index=Index(array([1, 2, 3], dtype="Int64")),
+        )
+        result = df.rename(lambda x: f"label_{x}")
+        assert list(result.index) == ["label_1", "label_2", "label_3"]
+        assert result.index.dtype != "Int64"
+
+    def test_rename_tuple_columns_not_multiindex(self):
+        # GH#65315
+        df = DataFrame(
+            [[1, 2]],
+            columns=Index(array([1, 2], dtype="Int64")),
+        )
+        result = df.rename(columns=lambda x: (x, x))
+        assert not isinstance(result.columns, MultiIndex)
+        tm.assert_index_equal(
+            result.columns, Index([(1, 1), (2, 2)], tupleize_cols=False)
+        )
 
     def test_rename_non_unique_index_series(self):
         # GH#58621

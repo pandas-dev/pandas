@@ -63,8 +63,8 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=complex)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    def test_factorize(self, index_or_series_obj, sort):
-        obj = index_or_series_obj
+    def test_factorize(self, index_or_series_obj_orderable, sort):
+        obj = index_or_series_obj_orderable
         result_codes, result_uniques = obj.factorize(sort=sort)
 
         constructor = Index
@@ -1593,7 +1593,7 @@ class TestDuplicated:
             np.array([Timestamp(d) for d in dt]),
             np.array([Timestamp(d, tz="US/Eastern") for d in dt]),
             np.array([Period(d, freq="D") for d in dt]),
-            np.array([np.datetime64(d) for d in dt]),
+            np.array([np.datetime64(d, "ns") for d in dt]),
             np.array([Timedelta(d) for d in td]),
         ]
 

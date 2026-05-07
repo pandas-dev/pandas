@@ -66,8 +66,7 @@ class StringFormatter:
         return bool(self.fmt.max_cols is None or self.fmt.max_cols > 0)
 
     def _insert_dot_separators(self, strcols: list[list[str]]) -> list[list[str]]:
-        str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)
-        index_length = len(str_index)
+        index_length = len(strcols[0])
 
         if self.fmt.is_truncated_horizontally:
             strcols = self._insert_dot_separator_horizontal(strcols, index_length)
@@ -184,11 +183,28 @@ class StringFormatter:
         max_cols_fitted = max(max_cols_fitted, 2)
         self.fmt.max_cols_fitted = max_cols_fitted
 
-        # Call again _truncate to cut frame appropriately
-        # and then generate string representation
-        self.fmt.truncate()
-        strcols = self._get_strcols()
-        return self.adj.adjoin(1, *strcols)
+        # Reuse already-formatted columns instead of re-truncating and
+        # re-formatting the entire DataFrame.
+        num_data_cols = len(strcols) - self.fmt.index
+        if max_cols_fitted >= num_data_cols:
+            # All data columns fit (can happen due to the max(..., 2) above)
+            return self.adj.adjoin(1, *strcols)
+
+        col_num = max_cols_fitted // 2
+        has_index = self.fmt.index
+        if has_index:
+            # strcols[0] is the index
+            kept = strcols[: col_num + 1] + strcols[-col_num:]
+            insert_pos = col_num + 1
+        else:
+            kept = strcols[:col_num] + strcols[-col_num:]
+            insert_pos = col_num
+
+        # Insert horizontal "..." separator column
+        row_count = len(kept[0]) if kept else 0
+        kept.insert(insert_pos, [" ..."] * row_count)
+
+        return self.adj.adjoin(1, *kept)
 
 
 def _binify(cols: list[int], line_width: int) -> list[int]:
