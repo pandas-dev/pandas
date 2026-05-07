@@ -157,7 +157,7 @@ class TestSetitem:
         result = IntervalArray.from_arrays(left, right, copy=True)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
-            msg = "'value' should be an interval type, got <.*NaTType'> instead."
+            msg = "can only insert Interval objects and NA into an IntervalArray"
             with pytest.raises(TypeError, match=msg):
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
@@ -266,7 +266,7 @@ class TestReductions:
 
 def test_fillna_non_scalar_raises():
     arr = IntervalArray.from_tuples([None, (0, 1)])
-    msg = "can only insert Interval objects and NA into an IntervalArray"
+    msg = "'value' should be an interval type, got <class 'list'> instead."
     with pytest.raises(TypeError, match=msg):
         arr.fillna([1, 1])
 

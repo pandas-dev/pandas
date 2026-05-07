@@ -2683,6 +2683,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
+        .. note::
+
+           Files produced by this method use a pandas-specific layout on top
+           of PyTables and are intended to be read back with :func:`read_hdf`
+           or :class:`HDFStore`. They are valid HDF5 files but are not a
+           general-purpose interchange format for arbitrary HDF5 consumers.
+
         .. warning::
 
            One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
@@ -4311,11 +4318,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 result.index = new_index
                 return result
 
-            new_mgr = self._mgr.fast_xs(loc)
-
-            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            result._name = self.index[loc]
-            result = result.__finalize__(self)
+            result = self._ixs(loc, axis=0)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
@@ -7144,7 +7147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if axis == 1:
                 # Check that all columns in result have the same dtype
                 # otherwise don't bother with fillna and losing accurate dtypes
-                unique_dtypes = algos.unique(self._mgr.get_dtypes())
+                unique_dtypes = self._mgr.get_unique_dtypes()
                 if len(unique_dtypes) > 1:
                     raise ValueError(
                         "All columns must have the same dtype, but got dtypes: "

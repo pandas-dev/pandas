@@ -575,13 +575,8 @@ def assert_interval_array_equal(
     """
     _check_isinstance(left, right, IntervalArray)
 
-    kwargs = {}
-    if left._left.dtype.kind in "mM":
-        # We have a DatetimeArray or TimedeltaArray
-        kwargs["check_freq"] = False
-
-    assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
-    assert_equal(left._right, right._right, obj=f"{obj}.right", **kwargs)
+    assert_equal(left._left, right._left, obj=f"{obj}.left")
+    assert_equal(left._right, right._right, obj=f"{obj}.right")
 
     assert_attr_equal("closed", left, right, obj=obj)
 
@@ -593,26 +588,18 @@ def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     assert_attr_equal("dtype", left, right, obj=obj)
 
 
-def assert_datetime_array_equal(
-    left, right, obj: str = "DatetimeArray", check_freq: bool = True
-) -> None:
+def assert_datetime_array_equal(left, right, obj: str = "DatetimeArray") -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, DatetimeArray)
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
     assert_attr_equal("tz", left, right, obj=obj)
 
 
-def assert_timedelta_array_equal(
-    left, right, obj: str = "TimedeltaArray", check_freq: bool = True
-) -> None:
+def assert_timedelta_array_equal(left, right, obj: str = "TimedeltaArray") -> None:
     __tracebackhide__ = True
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
 
 
 def raise_assert_detail(

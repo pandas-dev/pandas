@@ -373,6 +373,7 @@ Other enhancements
 - ``Index.take`` now handles ``allow_fill`` and ``fill_value`` consistently (:issue:`12631`)
 
   .. ipython:: python
+     :okwarning:
 
      idx = pd.Index([1.0, 2.0, 3.0, 4.0], dtype="float")
 
