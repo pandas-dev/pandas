@@ -4737,7 +4737,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
-            `func`.
+            ``func``.
 
             .. versionadded:: 3.0.0
 
