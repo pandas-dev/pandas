@@ -11,10 +11,6 @@ from typing import (
     Literal,
 )
 import warnings
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
 
 from pandas._config.config import _global_config as config
 
@@ -79,6 +75,9 @@ def get_engine(engine: str) -> BaseImpl:
     if engine == "pyarrow":
         return PyArrowImpl()
     elif engine == "fastparquet":
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
         warnings.warn(
             "The 'fastparquet' engine is deprecated and will be removed in a "
             "future version. Use 'pyarrow' instead.",
@@ -202,6 +201,24 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
 
         from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
+        if partition_cols is not None:
+            import inspect
+
+            valid_params = inspect.signature(
+                self.api.parquet.write_to_dataset
+            ).parameters
+        else:
+            import inspect
+
+            valid_params = inspect.signature(self.api.parquet.write_table).parameters
+
+        for key in kwargs:
+            if key not in valid_params:
+                raise TypeError(
+                    f"to_parquet() got an unexpected keyword argument '{key}' "
+                    f"for engine 'pyarrow'"
+                )
+
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
@@ -255,6 +272,17 @@ class PyArrowImpl(BaseImpl):
         to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
+        import inspect
+
+        import pyarrow.parquet as pq
+
+        valid_params = inspect.signature(pq.read_table).parameters
+
+        for key in kwargs:
+            if key not in valid_params:
+                raise TypeError(
+                    f"read_parquet() got an unexpected keyword argument '{key}'"
+                )
         kwargs["use_pandas_metadata"] = True
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
@@ -271,11 +299,11 @@ class PyArrowImpl(BaseImpl):
                 filters=filters,
                 **kwargs,
             )
-            with catch_warnings():
-                filterwarnings(
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
                     "ignore",
-                    "make_block is deprecated",
-                    Pandas4Warning,
+                    message="make_block is deprecated",
+                    category=Pandas4Warning,
                 )
                 result = arrow_table_to_pandas(
                     pa_table,
@@ -326,6 +354,19 @@ class FastParquetImpl(BaseImpl):
         if partition_cols is not None:
             kwargs["file_scheme"] = "hive"
 
+        import inspect
+
+        from fastparquet import write as fp_write
+
+        valid_params = inspect.signature(fp_write).parameters
+
+        for key in kwargs:
+            if key not in valid_params:
+                raise TypeError(
+                    f"to_parquet() got an unexpected keyword argument '{key}' "
+                    f"for engine 'fastparquet'"
+                )
+
         if filesystem is not None:
             raise NotImplementedError(
                 "filesystem is not implemented for the fastparquet engine."
@@ -345,7 +386,7 @@ class FastParquetImpl(BaseImpl):
                 "storage_options passed with file object or non-fsspec file path"
             )
 
-        with catch_warnings(record=True):
+        with warnings.catch_warnings(record=True):
             self.api.write(
                 path,
                 df,
@@ -365,6 +406,14 @@ class FastParquetImpl(BaseImpl):
         to_pandas_kwargs: dict | None = None,
         **kwargs,
     ) -> DataFrame:
+        import inspect
+
+        valid_params = inspect.signature(self.api.ParquetFile).parameters
+        for key in kwargs:
+            if key not in valid_params:
+                raise TypeError(
+                    f"read_parquet() got an unexpected keyword argument '{key}'"
+                )
         parquet_kwargs: dict[str, Any] = {}
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
         # We are disabling nullable dtypes for fastparquet pending discussion
@@ -399,11 +448,11 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            with catch_warnings():
-                filterwarnings(
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
                     "ignore",
-                    "make_block is deprecated",
-                    Pandas4Warning,
+                    message="make_block is deprecated",
+                    category=Pandas4Warning,
                 )
                 return parquet_file.to_pandas(
                     columns=columns, filters=filters, **kwargs
@@ -531,13 +580,12 @@ def to_parquet(
 @set_module("pandas")
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],
-    engine: str | lib.NoDefault = lib.no_default,
+    engine: str | None = "auto",
     columns: list[str] | None = None,
     storage_options: StorageOptions | None = None,
+    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filesystem: Any = None,
-    filters: list[tuple] | list[list[tuple]] | None = None,
-    to_pandas_kwargs: dict | None = None,
+    filesystem: str | None = None,
     **kwargs,
 ) -> DataFrame:
     """
