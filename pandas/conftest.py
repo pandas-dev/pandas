@@ -100,6 +100,15 @@ pytz = import_optional_dependency("pytz", errors="ignore")
 # ----------------------------------------------------------------
 # pytest
 
+PANDAS_MARKERS = [
+    "single_cpu: tests that should run on a single cpu only",
+    "slow: mark a test as slow",
+    "network: mark a test as network",
+    "db: tests requiring a database (mysql or postgres)",
+    "clipboard: mark a pd.read_clipboard test",
+    "arm_slow: mark a test as slow for arm64 architecture",
+]
+
 
 def pytest_addoption(parser) -> None:
     parser.addoption(
@@ -109,6 +118,11 @@ def pytest_addoption(parser) -> None:
         default=True,
         help="Don't fail if a test is skipped for missing data file.",
     )
+
+
+def pytest_configure(config) -> None:
+    for marker in PANDAS_MARKERS:
+        config.addinivalue_line("markers", marker)
 
 
 def pytest_sessionstart(session):
