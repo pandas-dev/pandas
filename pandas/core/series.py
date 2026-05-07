@@ -9583,6 +9583,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.median : Return the median of the values over the requested axis.
         Series.mode : Return the mode(s) of the Series.
 
+        Notes
+        -----
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
+
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])

@@ -210,6 +210,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :meth:`Categorical.__repr__` where the values and categories lines could exceed ``display.width`` (:issue:`12066`)
+- Bug in :meth:`Categorical.map` where mapping with a ``defaultdict`` and ``na_action=None`` would bypass the default factory by using ``dict.get``, causing ``NA`` values to be replaced with ``NaN`` instead of the mapper's default value (:issue:`62710`)
 - Bug in :meth:`CategoricalIndex.union` and :meth:`CategoricalIndex.intersection` giving incorrect results when the two indexes have the same unordered categories in different orders (:issue:`55335`)
 - Bug in :meth:`Index.fillna` raising ``TypeError`` when filling with a tuple value (e.g. on object-dtype or :class:`CategoricalIndex` with tuple categories) (:issue:`37681`)
 -
@@ -286,6 +287,7 @@ Indexing
 - Bug in :meth:`DataFrame.iloc` setitem raising ``AttributeError`` when assigning a :class:`Series` or :class:`Index` with a nullable EA dtype (e.g. ``Int64``, ``Float64``, ``boolean``) into a column with a NumPy dtype (:issue:`47776`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when assigning a list of tuples to an object-dtype column with a boolean mask on a mixed-dtype DataFrame (:issue:`37629`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row with a list-like value on a single-column :class:`DataFrame` with :class:`ExtensionArray` dtype (:issue:`44103`)
+- Bug in :meth:`DataFrame.loc` setitem-with-expansion writing the truncated string ``"n"`` (or raising ``TypeError``) into rows outside the indexer when adding a new column from a list of strings or booleans (:issue:`42099`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` returning wrong results instead of raising ``KeyError`` when passing string keys for numeric index levels (:issue:`60104`)
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` where incorrect values were produced when ``other`` was a :class:`Series` with :class:`ExtensionArray` values (:issue:`64635`)
 - Bug in :meth:`DataFrame.rename` and :meth:`Series.rename` not preserving nullable extension dtype (e.g. ``Int64``, ``Float64``) when relabeling index or column labels (:issue:`65315`)
