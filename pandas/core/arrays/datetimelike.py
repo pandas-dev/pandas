@@ -2026,7 +2026,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
-    def round(
+    def round(  # type: ignore[override]
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",

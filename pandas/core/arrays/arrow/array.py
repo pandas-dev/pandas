@@ -1763,6 +1763,11 @@ class ArrowExtensionArray(
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
+        if not self.dtype._is_numeric or self.dtype._is_boolean:
+            # pc.round raises ArrowNotImplementedError on boolean and
+            # non-numeric types; defer to the base for the (copy / TypeError)
+            # contract.
+            return super().round(decimals, *args, **kwargs)
         return self._from_pyarrow_array(pc.round(self._pa_array, ndigits=decimals))
 
     def searchsorted(

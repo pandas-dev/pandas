@@ -1,6 +1,7 @@
 import inspect
 from io import StringIO
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -857,3 +858,26 @@ class BaseMethodsTests:
         result: str = ser.to_json()
         ser_new = pd.read_json(StringIO(result), typ="series", dtype=data.dtype)
         tm.assert_series_equal(ser_new, ser)
+
+    def test_round(self, data):
+        # GH#49387
+        if data.dtype._is_boolean:
+            result = data.round()
+            tm.assert_extension_array_equal(result, data)
+            return
+        if not data.dtype._is_numeric:
+            msg = re.escape(f"Cannot round dtype {data.dtype} as it is non-numeric")
+            with pytest.raises(TypeError, match=msg):
+                data.round()
+            return
+        result = pd.Series(data).round()
+        expected = pd.Series(
+            type(data)._from_sequence(
+                [
+                    round(item) if not item_isna else item
+                    for item, item_isna in zip(data, data.isna(), strict=True)
+                ],
+                dtype=data.dtype,
+            )
+        )
+        tm.assert_series_equal(result, expected)
