@@ -704,6 +704,90 @@ class TestnanopsDataFrame:
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
 
+    @pytest.mark.parametrize("dtype", [np.float64, np.float32, np.int64])
+    def test_nancorr_pearson_matches_corrcoef_1d_numeric(self, dtype):
+        a = np.array([1, 2, 4, 8, 16], dtype=dtype)
+        b = np.array([2, 3, 5, 9, 17], dtype=dtype)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a, b)[0, 1]
+
+        assert type(result) is type(expected)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (
+                np.array([1 + 1j, 2 + 2j, 4 + 4j]),
+                np.array([2 + 2j, 3 + 3j, 5 + 5j]),
+            ),
+            (
+                np.array([[1.0, 2.0], [4.0, 8.0]]),
+                np.array([[2.0, 3.0], [5.0, 9.0]]),
+            ),
+        ],
+    )
+    def test_nancorr_pearson_fallback_matches_corrcoef(self, a, b):
+        corr_func = nanops.get_corr_func("pearson")
+
+        result = corr_func(a, b)
+        expected = np.corrcoef(a, b)[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
+        a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
+        b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
+        valid = ~isna(a) & ~isna(b)
+
+        result = nanops.nancorr(a, b, method="pearson")
+        expected = np.corrcoef(a[valid], b[valid])[0, 1]
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b, expected",
+        [
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e100, 2e100, 3e100]),
+                1.0,
+            ),
+            (
+                np.array([1e-160, 2e-160, 3e-160]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([1e-160, 2e-160, 3e-160]),
+                1.0,
+            ),
+            (
+                np.array([1e100, 2e100, 3e100]),
+                np.array([3e-160, 2e-160, 1e-160]),
+                -1.0,
+            ),
+        ],
+    )
+    def test_nancorr_pearson_extreme_magnitudes(self, a, b, expected):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "a, b",
+        [
+            (np.array([1.0]), np.array([2.0])),
+            (np.array([1.0, 1.0, 1.0]), np.array([2.0, 3.0, 4.0])),
+        ],
+    )
+    def test_nancorr_pearson_not_well_defined(self, a, b):
+        result = nanops.nancorr(a, b, method="pearson")
+
+        assert isna(result)
+
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
 
