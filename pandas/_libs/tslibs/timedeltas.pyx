@@ -1415,12 +1415,14 @@ cdef class _Timedelta(timedelta):
             int64_t int_seconds = (
                 self._d * 86400 + self._h * 3600 + self._m * 60 + self._s
             )
-            int64_t sub_ns = (
-                self._ms * 1_000_000 + self._us * 1_000 + self._ns
-            )
+            int64_t sub_ns
             double result
-        if sub_ns == 0:
-            return float(int_seconds)
+        if self._ns == 0:
+            # Without a sub-microsecond residual, sub-second contributions are
+            # large enough relative to ulp(int_seconds) that float rounding
+            # cannot collapse the result onto an integer-second boundary.
+            return int_seconds + (self._ms * 1000 + self._us) / 1_000_000
+        sub_ns = self._ms * 1_000_000 + self._us * 1_000 + self._ns
         result = int_seconds + sub_ns / 1e9
         # sub_ns puts the true value strictly inside (int_seconds, int_seconds + 1),
         # so guard against float rounding collapsing onto the boundary; otherwise
