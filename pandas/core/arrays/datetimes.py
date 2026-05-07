@@ -2485,6 +2485,9 @@ default 'raise'
         >>> idx.to_julian_date()
         Index([2461995.5375, 2461995.5875], dtype='float64')
         """
+        if self.tz is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            return self.tz_convert("UTC").tz_localize(None).to_julian_date()
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
         year = np.asarray(self.year)
