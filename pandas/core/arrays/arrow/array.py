@@ -1768,7 +1768,10 @@ class ArrowExtensionArray(
             # non-numeric types; defer to the base for the (copy / TypeError)
             # contract.
             return super().round(decimals, *args, **kwargs)
-        return self._from_pyarrow_array(pc.round(self._pa_array, ndigits=decimals))
+        # pyarrow < 14 upcasts integer inputs to double; cast back so the
+        # output dtype matches the input.
+        result = pc.round(self._pa_array, ndigits=decimals)
+        return self._from_pyarrow_array(result.cast(self._pa_array.type))
 
     def searchsorted(
         self,
