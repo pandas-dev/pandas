@@ -604,9 +604,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
-            if not self.as_index and not_indexed_same:
-                result = self._insert_inaxis_grouper(result)
-                result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
         else:
             # GH #6265 #24880
