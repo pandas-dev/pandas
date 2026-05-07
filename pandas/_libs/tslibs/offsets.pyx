@@ -7390,9 +7390,7 @@ cpdef to_offset(freq, bint is_period=False):
                 # the last element must be blank
                 raise ValueError("last element must be blank")
 
-            # split has 4*N + 1 elements where N is the number of segments;
-            # walking by index avoids three list-slice copies + zip overhead
-            # vs ``zip(split[0::4], split[1::4], split[2::4])``.
+            # split has 4*N + 1 elements where N is the number of segments
             n_segments = (len(split) - 1) // 4
             for n in range(n_segments):
                 sep = split[n * 4]
