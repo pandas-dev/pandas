@@ -526,17 +526,43 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-The limits of timestamp representation depend on the chosen resolution. For
-nanosecond resolution, the time span that
-can be represented using a 64-bit integer is limited to approximately 584 years:
+:class:`Timestamp` uses a 64-bit integer to represent time, so the representable
+range depends on the chosen resolution (``unit``). For the default nanosecond
+resolution the span is limited to approximately 584 years; coarser resolutions
+such as second extend the range to roughly ``+/- 2.9e11`` years.
+
+The class-level attributes :attr:`Timestamp.min`, :attr:`Timestamp.max`, and
+:attr:`Timestamp.resolution` default to nanosecond limits:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+   pd.Timestamp.resolution
 
-When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
-Different resolutions can be converted to each other through ``as_unit``.
+On a :class:`Timestamp` *instance*, the same attributes reflect the bounds and
+step size of that instance's resolution:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2262-04-12").as_unit("s")
+   ts.min
+   ts.max
+   ts.resolution
+
+Because :class:`Timestamp` construction automatically picks a resolution wide
+enough to represent the input, a value outside the nanosecond range (such as
+``"3000-06-10"``) is parsed using a coarser unit rather than raising
+:class:`OutOfBoundsDatetime`:
+
+.. ipython:: python
+
+   far_future = pd.Timestamp("3000-06-10")
+   far_future
+   far_future.unit
+
+Different resolutions can be converted to each other through
+:meth:`Timestamp.as_unit`.
 
 .. seealso::
 
