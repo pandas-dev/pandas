@@ -6753,6 +6753,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. deprecated:: 3.0.0
 
+                The ``verify_integrity`` keyword is deprecated and will be
+                removed in a future version. Check ``result.index.is_unique``
+                directly instead.
+
         Returns
         -------
         DataFrame or None
@@ -14164,10 +14168,10 @@ class DataFrame(NDFrame, OpsMixin):
             Choose the execution engine to use. If not provided the function
             will be executed by the regular Python interpreter.
 
-            Other options include JIT compilers such Numba and Bodo, which in some
+            Other options include JIT compilers such as Numba and Bodo, which in some
             cases can speed up the execution. To use an executor you can provide
             the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
-            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
+            also provide the decorator with parameters, like ``numba.jit(nogil=True)``.
 
             Not all functions can be executed with all execution engines. In general,
             JIT compilers will require type stability in the function (no variable
