@@ -844,3 +844,44 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
         raise OverflowError("Overflow in int64 addition") from err
 
     return iresult
+
+
+@cython.overflowcheck(True)
+cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+    """
+    Overflow-safe multiplication for timedelta64 dtype with int64 multiplier.
+
+    `right` may either be zero-dim or broadcastable to `left`'s shape.
+    NaT values in `left` are propagated.
+    """
+    cdef:
+        Py_ssize_t N = left.size
+        int64_t lval, rval, res_value
+        ndarray iresult = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    # Note: doing this try/except outside the loop improves performance over
+    #  doing it inside the loop.
+    try:
+        for i in range(N):
+            # Analogous to: lval = lvalues[i]
+            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            # Analogous to: rval = rvalues[i]
+            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+            if lval == NPY_DATETIME_NAT:
+                res_value = NPY_DATETIME_NAT
+            else:
+                res_value = lval * rval
+
+            # Analogous to: result[i] = res_value
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        raise OverflowError("Overflow in int64 multiplication") from err
+
+    return iresult

@@ -20,6 +20,7 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.algos as libalgos
+from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -375,8 +376,8 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             elif np.fabs(result) > lib.i8max:
-                # raise if we have a timedelta64[ns] which is too large
-                raise ValueError("overflow in timedelta operation")
+                # GH#43178: raise if the result is too large for the dtype's unit
+                raise OutOfBoundsTimedelta("overflow in timedelta operation")
             else:
                 # return a timedelta64 with the original unit
                 result = np.int64(result).astype(dtype, copy=False)

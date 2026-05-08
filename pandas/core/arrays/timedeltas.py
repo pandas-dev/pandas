@@ -26,6 +26,7 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     iNaT,
     is_supported_dtype,
+    mul_overflowsafe,
     periods_per_second,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -438,6 +439,29 @@ class TimedeltaArray(dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
+    def _mul_float_overflowsafe(self, other) -> Self:
+        # GH#43178: detect float multiplication that would saturate on the int64
+        #  cast, instead of silently clipping to int64.max
+        i8 = self.asi8
+        self_mask = i8 == iNaT
+        if self_mask.any():
+            # zero out NaT positions so they don't trigger the bounds check
+            i8 = np.where(self_mask, 0, i8)
+        f_result = i8 * other
+        nan_mask = np.isnan(f_result)
+        finite = f_result[~nan_mask]
+        if finite.size and np.max(np.abs(finite), initial=0.0) > lib.i8max:
+            raise OverflowError("Overflow in timedelta multiplication")
+        # NaN-to-int cast is platform-dependent; substitute 0 then re-mask as NaT
+        if nan_mask.any():
+            f_result = np.where(nan_mask, 0.0, f_result)
+        i8_result = f_result.astype("i8")
+        nat_out = self_mask | nan_mask
+        if nat_out.any():
+            i8_result[nat_out] = iNaT
+        result = i8_result.view(self._ndarray.dtype)
+        return type(self)._simple_new(result, dtype=result.dtype)
+
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> Self:
         if is_scalar(other):
@@ -446,7 +470,14 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
                     "integers instead"
                 )
-            # numpy will accept float and int, raise TypeError for others
+            if lib.is_integer(other):
+                # GH#43178: detect int64 overflow rather than silently wrapping
+                i8_result = mul_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
+                result = i8_result.view(self._ndarray.dtype)
+                return type(self)._simple_new(result, dtype=result.dtype)
+            if lib.is_float(other):
+                return self._mul_float_overflowsafe(other)
+            # numpy will raise TypeError for non-numeric scalar
             result = self._ndarray * other
             if result.dtype.kind != "m":
                 # numpy >= 2.1 may not raise a TypeError
@@ -482,7 +513,16 @@ class TimedeltaArray(dtl.TimelikeOps):
             result = np.array(result)
             return type(self)._simple_new(result, dtype=result.dtype)
 
-        # numpy will accept float or int dtype, raise TypeError for others
+        if other.dtype.kind in "iu":
+            # GH#43178: detect int64 overflow rather than silently wrapping
+            i8_result = mul_overflowsafe(self.asi8, other.astype("i8", copy=False))
+            result = i8_result.view(self._ndarray.dtype)
+            return type(self)._simple_new(result, dtype=result.dtype)
+
+        if other.dtype.kind == "f":
+            return self._mul_float_overflowsafe(other)
+
+        # numpy will raise TypeError for non-numeric dtype
         result = self._ndarray * other
         if result.dtype.kind != "m":
             # numpy >= 2.1 may not raise a TypeError

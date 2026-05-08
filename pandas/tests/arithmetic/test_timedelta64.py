@@ -1544,6 +1544,39 @@ class TestTimedeltaArraylikeMulDivOps:
         result = 1 * idx
         tm.assert_equal(result, idx)
 
+    def test_td64arr_mul_int_overflow(self, box_with_array):
+        # GH#43178: int multiplication on timedelta64[ns] used to silently wrap
+        td = Timedelta(100000, "D").as_unit("ns")
+        tdi = TimedeltaIndex([td, td])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OverflowError, match=msg):
+            tdi * 2
+        with pytest.raises(OverflowError, match=msg):
+            2 * tdi
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.int64(2)
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.array([2, 2], dtype="i8")
+
+    def test_td64arr_mul_float_overflow(self, box_with_array):
+        # GH#43178: float multiplication on timedelta64[ns] used to silently
+        #  saturate to int64.max
+        td = Timedelta(100000, "D").as_unit("ns")
+        tdi = TimedeltaIndex([td, td])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OverflowError, match=msg):
+            tdi * 2.5
+        with pytest.raises(OverflowError, match=msg):
+            2.5 * tdi
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.float64(2.5)
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.array([2.5, 2.5])
+
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
