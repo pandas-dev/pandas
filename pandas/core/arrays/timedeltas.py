@@ -509,9 +509,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             #  are int or float scalars, so we will end up with
             #  timedelta64[ns]-dtyped result
             arr = self._ndarray
-            result = [arr[n] * other[n] for n in range(len(self))]
-            result = np.array(result)
-            return type(self)._simple_new(result, dtype=result.dtype)
+            obj_result = np.array([arr[n] * other[n] for n in range(len(self))])
+            return type(self)._simple_new(obj_result, dtype=obj_result.dtype)
 
         if other.dtype.kind in "iu":
             # GH#43178: detect int64 overflow rather than silently wrapping
