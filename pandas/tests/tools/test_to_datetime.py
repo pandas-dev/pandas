@@ -3455,6 +3455,21 @@ class TestOrigin:
         expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
         tm.assert_index_equal(result, expected)
 
+    def test_origin_errors_coerce_overflow(self):
+        # GH#63419: errors="coerce" should turn out-of-bounds offsets into NaT
+        # rather than raising
+        origin = Timestamp("2016-01-01")
+        result = to_datetime([1, 2, 10**18], unit="D", origin=origin, errors="coerce")
+        expected = DatetimeIndex(
+            ["2016-01-02", "2016-01-03", "NaT"], dtype="datetime64[us]"
+        )
+        tm.assert_index_equal(result, expected)
+
+        # errors="raise" still raises
+        msg = "Cannot cast .* without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_datetime([1, 2, 10**18], unit="D", origin=origin)
+
 
 class TestShouldCache:
     @pytest.mark.parametrize(

@@ -585,7 +585,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
     return result
 
 
-def _adjust_to_origin(arg, origin, unit):
+def _adjust_to_origin(arg, origin, unit, errors: DateTimeErrorChoices = "raise"):
     """
     Helper function for to_datetime.
     Adjust input argument to the specified origin
@@ -598,6 +598,9 @@ def _adjust_to_origin(arg, origin, unit):
         origin offset for the arg
     unit : str
         passed unit from to_datetime, must be 'D'
+    errors : {'raise', 'coerce'}, default 'raise'
+        propagated to ``to_timedelta`` for the non-julian path so values that
+        would overflow the chosen resolution become ``NaT`` under ``"coerce"``.
 
     Returns
     -------
@@ -647,7 +650,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        arg = offset + extract_array(to_timedelta(arg, unit=unit))
+        arg = offset + extract_array(to_timedelta(arg, unit=unit, errors=errors))
     return arg
 
 
@@ -1048,25 +1051,21 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
-        from pandas import Series
-
+        # Capture name/index before _adjust_to_origin replaces arg with a
+        # DatetimeArray (or Timestamp scalar) for non-julian origins.
         arg_name = getattr(arg, "name", None)
-        is_series = False
-        if isinstance(arg, Series):
-            arg_idx = getattr(arg, "index", None)
-            is_series = True
-        arg = _adjust_to_origin(arg, origin, unit)
+        arg_index = arg.index if isinstance(arg, ABCSeries) else None
+        is_series = isinstance(arg, ABCSeries)
+        arg = _adjust_to_origin(arg, origin, unit, errors=errors)
         if origin != "julian":
-            # GH#63419 _adjust_to_origin returned the final datetime result
+            # GH#63419 _adjust_to_origin already produced the final datetime
+            # result; localize and re-wrap into the input's container type.
             if utc:
-                if isinstance(arg, Timestamp):
-                    arg = arg.tz_localize("utc")
-                elif isinstance(arg, ABCSeries):
-                    arg = arg.dt.tz_localize("utc")
-                elif hasattr(arg, "tz_localize"):
-                    arg = arg.tz_localize("utc")  # type: ignore[union-attr]
+                arg = arg.tz_localize("utc")  # type: ignore[union-attr]
             if is_series:
-                return Series(arg, index=arg_idx, name=arg_name)
+                from pandas import Series
+
+                return Series(arg, index=arg_index, name=arg_name)
             if is_list_like(arg):
                 return DatetimeIndex(arg, name=arg_name)
             else:
