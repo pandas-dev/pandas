@@ -63,7 +63,6 @@ def test_transform_listlike_func_with_args():
     tm.assert_frame_equal(result, expected)
 
 
-
 @pytest.mark.parametrize("box", [dict, Series])
 def test_transform_dictlike(string_series, box):
     # GH 35964
