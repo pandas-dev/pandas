@@ -50,6 +50,7 @@ from pandas._typing import (
     ArrayLike,
     IndexLabel,
     IntervalClosedType,
+    ListLike,
     NDFrameT,
     PositionalIndexer,
     RandomState,
@@ -5761,7 +5762,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         n: int | None = None,
         frac: float | None = None,
         replace: bool = False,
-        weights: Sequence | Series | None = None,
+        weights: ListLike | None = None,
         random_state: RandomState | None = None,
     ):
         """

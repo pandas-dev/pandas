@@ -584,7 +584,6 @@ module = [
   "pandas.core.missing", # TODO
   "pandas.core.nanops", # TODO
   "pandas.core.resample", # TODO
-  "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
