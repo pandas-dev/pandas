@@ -3717,6 +3717,10 @@ default 'raise'
         """
         from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 
+        if self.tzinfo is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            return self.tz_convert("UTC").tz_localize(None).to_julian_date()
+
         year = self._year
         month = self.month
         day = self.day
