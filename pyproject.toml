@@ -597,7 +597,6 @@ module = [
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
   "pandas.io.excel._openpyxl", # TODO
-  "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
   "pandas.io.formats.excel", # TODO
