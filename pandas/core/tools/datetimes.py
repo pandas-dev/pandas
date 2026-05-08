@@ -23,7 +23,6 @@ from pandas._libs import (
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
-    Timedelta,
     Timestamp,
     astype_overflowsafe,
     get_supported_dtype,
@@ -77,6 +76,7 @@ from pandas.core.arrays.datetimes import (
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -601,7 +601,7 @@ def _adjust_to_origin(arg, origin, unit):
 
     Returns
     -------
-    ndarray or scalar of adjusted date(s)
+    DatetimeArray, ndarray, or scalar of adjusted date(s)
     """
     if origin == "julian":
         original = arg
@@ -647,16 +647,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        td_offset = offset - Timestamp(0)
-
-        # convert the offset to the unit of the arg
-        # this should be lossless in terms of precision
-        ioffset = td_offset // Timedelta(1, unit=unit)
-
-        # scalars & ndarray-like can handle the addition
-        if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
-            arg = np.asarray(arg)
-        arg = arg + ioffset
+        arg = offset + extract_array(to_timedelta(arg, unit=unit))
     return arg
 
 
@@ -959,7 +950,7 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
 
     **Differences with strptime behavior**
 
@@ -1057,7 +1048,29 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
+        from pandas import Series
+
+        arg_name = getattr(arg, "name", None)
+        is_series = False
+        if isinstance(arg, Series):
+            arg_idx = getattr(arg, "index", None)
+            is_series = True
         arg = _adjust_to_origin(arg, origin, unit)
+        if origin != "julian":
+            # GH#63419 _adjust_to_origin returned the final datetime result
+            if utc:
+                if isinstance(arg, Timestamp):
+                    arg = arg.tz_localize("utc")
+                elif isinstance(arg, ABCSeries):
+                    arg = arg.dt.tz_localize("utc")
+                elif hasattr(arg, "tz_localize"):
+                    arg = arg.tz_localize("utc")  # type: ignore[union-attr]
+            if is_series:
+                return Series(arg, index=arg_idx, name=arg_name)
+            if is_list_like(arg):
+                return DatetimeIndex(arg, name=arg_name)
+            else:
+                return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
         _convert_listlike_datetimes,

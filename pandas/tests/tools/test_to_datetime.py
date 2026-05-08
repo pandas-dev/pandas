@@ -3305,18 +3305,24 @@ class TestOrigin:
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
     @pytest.mark.parametrize(
-        "epochs",
+        "epochs, origin_unit",
         [
-            Timestamp(1960, 1, 1),
-            datetime(1960, 1, 1),
-            "1960-01-01",
-            np.datetime64("1960-01-01"),
+            (Timestamp(1960, 1, 1), "us"),
+            (datetime(1960, 1, 1), "us"),
+            ("1960-01-01", "us"),
+            (np.datetime64("1960-01-01"), "s"),
         ],
     )
-    def test_epoch(self, units, epochs):
+    def test_epoch(self, units, epochs, origin_unit):
+        # GH 63419: after v3.0.0 default resolution is microseconds
         epoch_1960 = Timestamp(1960, 1, 1)
         units_from_epochs = np.arange(5, dtype=np.int64)
-        exp_unit = "s" if units == "D" else units
+        # result resolution is max of origin resolution and unit resolution
+        unit_reso = "s" if units == "D" else units
+        reso_order = ["s", "ms", "us", "ns"]
+        exp_unit = reso_order[
+            max(reso_order.index(origin_unit), reso_order.index(unit_reso))
+        ]
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
             dtype=f"M8[{exp_unit}]",
@@ -3331,17 +3337,11 @@ class TestOrigin:
             ("random_string", ValueError),
             ("epoch", ValueError),
             ("13-24-1990", ValueError),
-            (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
     def test_invalid_origins(self, origin, exc, units):
-        msg = "|".join(
-            [
-                f"origin {origin} is Out of Bounds",
-                f"origin {origin} cannot be converted to a Timestamp",
-                "Cannot cast .* to unit='ns' without overflow",
-            ]
-        )
+        # GH 63419
+        msg = f"origin {origin} cannot be converted to a Timestamp"
         with pytest.raises(exc, match=msg):
             to_datetime(list(range(5)), unit=units, origin=origin)
 
@@ -3415,6 +3415,44 @@ class TestOrigin:
         arg = "2019-01-01T00:00:00.000" + offset
         result = to_datetime([arg], unit="ns", utc=utc)
         expected = to_datetime([exp]).as_unit("us")
+        tm.assert_index_equal(result, expected)
+
+    def test_invalid_origins_oob(self):
+        # GH 63419 datetime(1, 1, 1) overflows only for unit='ns'
+        msg = "Cannot cast .* to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(list(range(5)), unit="ns", origin=datetime(1, 1, 1))
+
+    def test_preserve_origin_time_resolution(self):
+        # GH 63419
+        ts = Timestamp("2016-01-01 00:00:00.000001")
+        result = to_datetime([1, 2, 3], unit="D", origin=ts)
+        expected = DatetimeIndex(
+            [
+                "2016-01-02 00:00:00.000001",
+                "2016-01-03 00:00:00.000001",
+                "2016-01-04 00:00:00.000001",
+            ],
+            dtype="datetime64[us]",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_preserve_series_and_name(self):
+        # GH 63419
+        origin = Timestamp("2016-01-01")
+        data = ["2016-01-02", "2016-01-03", "2016-01-04"]
+        arg = Series([1, 2, 3], name="foo")
+        result = to_datetime(arg, unit="D", origin=origin)
+        assert isinstance(result, Series)
+        expected = Series(
+            [Timestamp(x) for x in data], dtype="datetime64[us]", name="foo"
+        )
+        tm.assert_series_equal(result, expected)
+
+        arg = Index([1, 2, 3], name="foo")
+        result = to_datetime(arg, unit="D", origin=origin)
+        assert isinstance(result, DatetimeIndex)
+        expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
         tm.assert_index_equal(result, expected)
 
 
