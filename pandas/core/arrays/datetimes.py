@@ -963,8 +963,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
-            Time zone to convert timestamps to. Passing ``None`` will
-            remove the time zone information preserving local time.
+            Time zone to attach to the tz-naive timestamps; the wall time is
+            preserved. Passing ``None`` detaches the time zone from a tz-aware
+            Array/Index, returning a tz-naive result with the same wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -1028,8 +1029,8 @@ default 'raise'
                        '2018-03-03 09:00:00-05:00'],
                       dtype='datetime64[us, US/Eastern]', freq=None)
 
-        With the ``tz=None``, we can remove the time zone information
-        while keeping the local time (not converted to UTC):
+        With ``tz=None`` we can remove the time zone information while
+        preserving the wall time (no conversion to UTC):
 
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
