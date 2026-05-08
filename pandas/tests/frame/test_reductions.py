@@ -1967,6 +1967,34 @@ class TestDataFrameReductions:
                 check_names=False,
             )
 
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_with_nat(self, method):
+        # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
+        # must skip NaT under skipna=True, matching the transpose path.
+        ts = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        df = DataFrame({"a": [ts, ts], "b": [ts, pd.NaT]})
+        # Two separate blocks (CoW), same EA dtype.
+        assert len(df._mgr.blocks) == 2
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([ts, ts], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        # skipna=False propagates NaT.
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
+        # GH#65500: different tz across blocks must not enter the EA fast
+        # path (which would silently produce a wrong-dtype result); fall
+        # through to the slow path so the result has object dtype.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, ts2]})
+        result = df.max(axis=1)
+        assert result.dtype == object
+
     def test_frame_any_with_timedelta(self):
         # GH#17667
         df = DataFrame(
