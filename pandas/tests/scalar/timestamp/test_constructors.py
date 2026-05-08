@@ -163,6 +163,28 @@ class TestTimestampConstructorFoldKeyword:
         expected = fold
         assert result == expected
 
+    def test_timestamp_constructor_string_tz_respects_fold(self):
+        # GH#55932 fold must be respected when tz is given as a plain string
+        #  (which now resolves to zoneinfo, not pytz)
+        utc0 = Timestamp("2023-11-05T08:30:00Z")
+        utc1 = Timestamp("2023-11-05T09:30:00Z")
+
+        ts0 = Timestamp(
+            year=2023, month=11, day=5, hour=1, minute=30, fold=0, tz="US/Pacific"
+        )
+        ts1 = Timestamp(
+            year=2023, month=11, day=5, hour=1, minute=30, fold=1, tz="US/Pacific"
+        )
+        assert ts0 == utc0
+        assert ts1 == utc1
+
+        # Naive datetime + string tz + fold (second case in GH#55932 thread)
+        naive = datetime(2022, 11, 6, 1, 6, 58)
+        ts0 = Timestamp(naive, tz="America/New_York", fold=0)
+        ts1 = Timestamp(naive, tz="America/New_York", fold=1)
+        assert ts0 != ts1
+        assert (ts1 - ts0) == Timedelta(hours=1)
+
     @pytest.mark.parametrize(
         "tz",
         [
