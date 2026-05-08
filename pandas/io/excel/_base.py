@@ -971,11 +971,16 @@ class ExcelWriter(Generic[_WorkbookT]):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use:
+    The default ``engine`` is chosen based on the file extension. The values
+    below are the engine strings (i.e. valid values for the ``engine``
+    keyword); the package each one wraps is shown in parentheses:
 
-    * `xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter
-      is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__
-    * `odf <https://pypi.org/project/odfpy/>`__ for ods files
+    * ``.xlsx``: ``"xlsxwriter"`` (`XlsxWriter
+      <https://pypi.org/project/XlsxWriter/>`__) if installed, otherwise
+      ``"openpyxl"`` (`openpyxl <https://pypi.org/project/openpyxl/>`__).
+    * ``.xlsm``: ``"openpyxl"`` (`openpyxl
+      <https://pypi.org/project/openpyxl/>`__).
+    * ``.ods``: ``"odf"`` (`odfpy <https://pypi.org/project/odfpy/>`__).
 
     See :meth:`DataFrame.to_excel` for typical usage.
 
@@ -985,11 +990,18 @@ class ExcelWriter(Generic[_WorkbookT]):
     Parameters
     ----------
     path : str or typing.BinaryIO
-        Path to xls or xlsx or ods file.
-    engine : str (optional)
-        Engine to use for writing. If None, defaults to
-        ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword
-        argument.
+        Path to xlsx, xlsm, or ods file.
+    engine : {'openpyxl', 'xlsxwriter', 'odf'}, optional
+        Engine to use for writing, given as the engine string (not the
+        package name). Which engines are accepted depends on the file
+        extension:
+
+        * ``.xlsx``: ``"openpyxl"`` or ``"xlsxwriter"``.
+        * ``.xlsm``: ``"openpyxl"``.
+        * ``.ods``: ``"odf"`` (provided by the ``odfpy`` package).
+
+        If None, defaults to ``io.excel.<extension>.writer``.  NOTE: can only
+        be passed as a keyword argument.
     date_format : str, default None
         Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
     datetime_format : str, default None
@@ -1018,13 +1030,16 @@ class ExcelWriter(Generic[_WorkbookT]):
           but possibly over top of, the existing contents.
 
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine. These will be passed to
-        the following functions of the respective engines:
+        Keyword arguments to be passed into the engine. The bullets below
+        are keyed by the ``engine`` string (not the package name); for
+        each engine, ``engine_kwargs`` is forwarded as follows:
 
-        * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
-        * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
-        * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
-        * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * ``"xlsxwriter"``: ``xlsxwriter.Workbook(file, **engine_kwargs)``
+        * ``"openpyxl"`` (write mode): ``openpyxl.Workbook(**engine_kwargs)``
+        * ``"openpyxl"`` (append mode):
+          ``openpyxl.load_workbook(file, **engine_kwargs)``
+        * ``"odf"``:
+          ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
 
     See Also
     --------
