@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
-
 from pandas import (
     DataFrame,
     MultiIndex,
@@ -64,13 +62,6 @@ def test_transform_listlike_func_with_args():
     expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
     tm.assert_frame_equal(result, expected)
 
-
-def test_transform_dup_func_name_raises():
-    # GH#54929 - duplicate function names should raise SpecificationError
-    ser = Series([0.0, 1.0, 4.0])
-    msg = "Function names must be unique if there is no new column names assigned"
-    with pytest.raises(SpecificationError, match=msg):
-        ser.transform(["sqrt", "sqrt"])
 
 
 @pytest.mark.parametrize("box", [dict, Series])

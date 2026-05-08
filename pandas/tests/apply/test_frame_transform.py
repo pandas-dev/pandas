@@ -266,9 +266,9 @@ def test_transform_empty_dataframe():
     tm.assert_series_equal(result, df["col1"])
 
 
-def test_transform_dup_func_name_raises():
+def test_transform_dup_func_name_raises(frame_or_series):
     # GH#54929 - duplicate function names should raise SpecificationError
-    df = DataFrame({"A": [0.0, 1.0, 4.0]})
+    obj = frame_or_series([0.0, 1.0, 4.0])
     msg = "Function names must be unique if there is no new column names assigned"
     with pytest.raises(SpecificationError, match=msg):
-        df.transform(["sqrt", "sqrt"])
+        obj.transform(["sqrt", "sqrt"])
