@@ -2,9 +2,8 @@
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
-from locale import LC_TIME
-
 from _strptime import LocaleTime
+from locale import LC_TIME
 
 cimport cython
 from cython cimport Py_ssize_t
