@@ -129,14 +129,6 @@ Time-specific operations
 
 Combining / joining / set operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. note::
-   Prior to pandas 2.0, the ``&``, ``|``, and ``^`` operators on :class:`Index`
-   were aliases for :meth:`Index.intersection`, :meth:`Index.union`, and
-   :meth:`Index.symmetric_difference` respectively. They now perform elementwise
-   logical (or bitwise) operations, matching :class:`Series` behavior — use the
-   named methods above for set operations.
-
 .. autosummary::
    :toctree: api/
 
