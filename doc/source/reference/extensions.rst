@@ -73,6 +73,18 @@ objects.
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
 
+   .. autosummary::
+      :toctree: api/
+
+      api.extensions.ExtensionDtype.construct_array_type
+      api.extensions.ExtensionDtype.construct_from_string
+      api.extensions.ExtensionDtype.is_dtype
+      api.extensions.ExtensionDtype.kind
+      api.extensions.ExtensionDtype.name
+      api.extensions.ExtensionDtype.names
+      api.extensions.ExtensionDtype.na_value
+      api.extensions.ExtensionDtype.type
+
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.
 
