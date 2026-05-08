@@ -411,6 +411,12 @@ Replace NA with a scalar value
    df
    df.fillna(0)
 
+Replace NA with column-specific values using a dict
+
+.. ipython:: python
+
+   df.fillna({"np": 0, "arrow": 1})
+
 When the data has object dtype, you can control what type of NA values are present.
 
 .. ipython:: python
