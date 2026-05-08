@@ -3710,7 +3710,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self, rule, *args, include_groups: bool = False, **kwargs
     ) -> Resampler:
         """
-        Provide resampling when using a TimeGrouper.
+        Provide resampling within each group of a groupby.
 
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
@@ -3722,9 +3722,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
-        *args
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
+        closed : {'right', 'left'}, optional
+            Which side of bin interval is closed. See :meth:`Series.resample`.
+        label : {'right', 'left'}, optional
+            Which bin edge label to label bucket with. See :meth:`Series.resample`.
+        convention : {'start', 'end', 's', 'e'}, default 'start'
+            For ``PeriodIndex`` only. See :meth:`Series.resample`.
         include_groups : bool, default True
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
@@ -3737,17 +3740,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                The default was changed to False, and True is no longer allowed.
 
-        **kwargs
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
+        on : str, optional
+            For a DataFrame, column to use instead of index for resampling.
+            Column must be datetime-like.
+        origin : Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. See
+            :meth:`Series.resample` for accepted string values.
+        offset : Timedelta or str, optional
+            An offset timedelta added to the origin.
+        group_keys : bool, default False
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object.
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimdeltaResampler
+        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
             Resampler object for the type of the index.
 
         See Also
         --------
+        Series.resample : Resample a Series.
+        DataFrame.resample : Resample a DataFrame.
         Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
