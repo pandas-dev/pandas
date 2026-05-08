@@ -762,7 +762,34 @@ class TimedeltaArray(dtl.TimelikeOps):
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
         """
         pps = periods_per_second(self._creso)
-        return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
+        asi8 = self.asi8
+        result = asi8 / pps
+        if self.unit == "ns":
+            # For us/ms resolutions, the smallest sub-second residual (1us /
+            # 1ms) exceeds half-ulp(t) for any t in the representable range
+            # except at exotic magnitudes (>~290 years for us, >~290k years
+            # for ms), so we mirror the scalar's `_ns != 0` gate and only
+            # apply the boundary correction at ns resolution.
+            floor_s, residual = np.divmod(asi8, pps)
+            has_residual = residual != 0
+            if has_residual.any():
+                # Sub-second residuals put the true value strictly inside
+                # (floor, floor + 1); guard against float rounding collapsing
+                # onto either boundary, otherwise bisect-style lookups (e.g.
+                # dateutil DST, GH#31043) misclassify the timestamp as on a
+                # transition.
+                floor_f = floor_s.astype(np.float64)
+                on_floor = has_residual & (result == floor_f)
+                on_ceil = has_residual & (result == floor_f + 1.0)
+                if on_floor.any():
+                    result = np.where(
+                        on_floor, np.nextafter(result, result + 1.0), result
+                    )
+                if on_ceil.any():
+                    result = np.where(
+                        on_ceil, np.nextafter(result, result - 1.0), result
+                    )
+        return self._maybe_mask_results(result, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
