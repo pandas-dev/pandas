@@ -46,7 +46,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    DatetimeArray,
+)
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
 
@@ -3494,6 +3497,57 @@ class TestShouldCache:
     def test_no_slicing_errors_in_should_cache(self, listlike):
         # GH#29403
         assert tools.should_cache(listlike) is True
+
+
+class TestShouldCacheEarlyBail:
+    # GH#65380 should_cache returns False in O(1) for
+    # inputs where caching cannot help.
+
+    @pytest.mark.parametrize(
+        "arg, kwargs",
+        [
+            # unit is not None
+            (np.arange(100, dtype="int64"), {"unit": "s"}),
+            # arg.dtype is np.datetime64
+            (
+                date_range("2020-01-01", periods=100, freq="s").to_numpy(),
+                {},
+            ),
+            # arg.dtype is DatetimeTZDtype
+            (
+                date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
+                {},
+            ),
+            # format is not None and format != "mixed"
+            (
+                date_range("2020-01-01", periods=100, freq="s")
+                .strftime("%Y-%m-%dT%H:%M:%S")
+                .to_numpy(),
+                {"format": "%Y-%m-%dT%H:%M:%S"},
+            ),
+        ],
+    )
+    def test_should_cache_returns_false(self, arg, kwargs):
+        assert tools.should_cache(arg, **kwargs) is False
+
+    @td.skip_if_no("pyarrow")
+    def test_should_cache_returns_false_arrow(self):
+        # ArrowDtype with Timestamp type
+        import pyarrow as pa
+
+        arr = ArrowExtensionArray(
+            pa.array(
+                date_range("2020-01-01", periods=100, freq="s").to_numpy(),
+                type=pa.timestamp("ns"),
+            )
+        )
+        idx = Index(arr)
+        assert tools.should_cache(idx) is False
+
+    def test_should_cache_format_mixed_not_skipped(self):
+        # format="mixed" should NOT trigger the early bail
+        arg = Index(["2020-01-01", "01/02/2020"] * 50)
+        assert tools.should_cache(arg, format="mixed") is True
 
 
 def test_nullable_integer_to_datetime():
