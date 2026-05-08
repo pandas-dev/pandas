@@ -17,12 +17,12 @@ objects.
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
-   api.extensions.ExtensionDtype
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
+   api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
    arrays.NumpyExtensionArray
 
