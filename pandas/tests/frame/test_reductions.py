@@ -498,6 +498,11 @@ class TestDataFrameAnalytics:
         result = df.mean()
         expected = Series([1.0, Timestamp("2000", tz=tz)], index=["A", "B"])
         tm.assert_series_equal(result, expected)
+        
+    def test_mean_skipna_false(self):
+        arr = SparseArray([1, np.nan, 3])
+        result = arr.mean(skipna=False)
+        assert np.isnan(result)
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_mean_includes_datetimes(self, tz):

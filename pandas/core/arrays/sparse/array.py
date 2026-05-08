@@ -1680,7 +1680,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis: Axis = 0, *args, **kwargs):
+    def mean(
+        self,
+        axis: Axis = 0,
+        skipna: bool = True,
+        *args,
+        **kwargs,
+):
         """
         Mean of non-NA/null values
 
@@ -1689,6 +1695,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mean : float
         """
         nv.validate_mean(args, kwargs)
+        has_na = self.sp_index.ngaps > 0 and not self._null_fill_value
+
+        if has_na and not skipna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
+        
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         ct = len(valid_vals)
