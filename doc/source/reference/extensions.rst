@@ -72,10 +72,6 @@ objects.
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
-
-   .. autosummary::
-      :toctree: api/
-
       api.extensions.ExtensionDtype.construct_array_type
       api.extensions.ExtensionDtype.construct_from_string
       api.extensions.ExtensionDtype.is_dtype
