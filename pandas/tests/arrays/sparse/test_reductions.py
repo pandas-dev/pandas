@@ -171,8 +171,18 @@ class TestReductions:
         assert out == 4.5
 
         data[5] = np.nan
+
+        # default skipna=True behavior
         out = SparseArray(data).mean()
         assert out == 40.0 / 9
+
+        # explicit skipna=True
+        out = SparseArray(data).mean(skipna=True)
+        assert out == 40.0 / 9
+
+        # skipna=False should propagate missing value
+        out = SparseArray(data).mean(skipna=False)
+        assert np.isnan(out)
 
     def test_numpy_mean(self):
         data = np.arange(10).astype(float)
