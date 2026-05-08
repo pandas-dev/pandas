@@ -2253,6 +2253,15 @@ class Rolling(RollingAndExpandingMixin):
         Series.apply : Aggregating apply for Series.
         DataFrame.apply : Aggregating apply for DataFrame.
 
+        Notes
+        -----
+        When ``raw=False``, the :class:`Series` passed to ``func`` is indexed by the
+        column or :class:`Index` used to compute the rolling window. If
+        :meth:`DataFrame.rolling` was called with ``on=col``, the index of the
+        passed :class:`Series` will be the values of ``col`` rather than the
+        original :class:`DataFrame` index. When ``on`` is not specified, the
+        index of the passed :class:`Series` is the original index of the input.
+
         Examples
         --------
         >>> ser = pd.Series([1, 6, 5, 4])

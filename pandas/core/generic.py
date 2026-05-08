@@ -12104,6 +12104,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Provided integer column is ignored and excluded from result since
             an integer index is not used to calculate the rolling window.
 
+            When ``on`` is specified, the values of that column also become the
+            index of the :class:`Series` passed to :meth:`Rolling.apply` when
+            ``raw=False``, in place of the original :class:`DataFrame` index.
+
         closed : str, default None
             Determines the inclusivity of points in the window
 
