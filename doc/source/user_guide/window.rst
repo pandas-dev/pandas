@@ -16,7 +16,7 @@ necessary parameters and then subsequently call the aggregation function.
    s = pd.Series(range(5))
    s.rolling(window=2).sum()
 
-The windows are comprised by looking back the length of the window from the current observation.
+The windows are formed by looking back the length of the window from the current observation.
 The result above can be derived by taking the sum of the following windowed partitions of data:
 
 .. ipython:: python
@@ -40,10 +40,10 @@ pandas supports 4 types of windowing operations:
 =============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
 Concept                         Method             Returned Object                                 Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
 =============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
-Rolling window                  ``rolling``        ``pandas.typing.api.Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
-Weighted window                 ``rolling``        ``pandas.typing.api.Window``                    No                           No                        No                                   No
-Expanding window                ``expanding``      ``pandas.typing.api.Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
-Exponentially Weighted window   ``ewm``            ``pandas.typing.api.ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
+Rolling window                  ``rolling``        ``pandas.api.typing.Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
+Weighted window                 ``rolling``        ``pandas.api.typing.Window``                    No                           No                        No                                   No
+Expanding window                ``expanding``      ``pandas.api.typing.Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
+Exponentially Weighted window   ``ewm``            ``pandas.api.typing.ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
 =============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
 
 As noted above, some operations support specifying a window based on a time offset:
@@ -68,7 +68,7 @@ which will first group the data by the specified keys and then perform a windowi
 
 .. warning::
 
-    Some windowing aggregation, ``mean``, ``sum``, ``var`` and ``std`` methods may suffer from numerical
+    Some windowing aggregation methods (``mean``, ``sum``, ``var``, and ``std``) may suffer from numerical
     imprecision due to the underlying windowing algorithms accumulating sums. When values differ
     with magnitude ``1/np.finfo(np.double).eps`` (approximately :math:`4.5 \times 10^{15}`),
     this results in truncation. It must be
@@ -102,7 +102,7 @@ Some windowing operations also support an ``online`` method after constructing a
 which returns a new object that supports passing in new :class:`DataFrame` or :class:`Series` objects
 to continue the windowing calculation with the new values (i.e. online calculations).
 
-The methods on this new windowing objects must call the aggregation method first to "prime" the initial
+The methods on this new windowing object must call the aggregation method first to "prime" the initial
 state of the online calculation. Then, new :class:`DataFrame` or :class:`Series` objects can be passed in
 the ``update`` argument to continue the windowing calculation.
 
@@ -120,7 +120,7 @@ the ``update`` argument to continue the windowing calculation.
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
-``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows
+``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows.
 
 .. ipython:: python
 
@@ -131,7 +131,7 @@ non-``np.nan`` values a window must have; otherwise, the resulting value is ``np
    s.rolling(window=3, min_periods=None).sum()
 
 
-Additionally, all windowing operations supports the ``aggregate`` method for returning a result
+Additionally, all windowing operations support the ``aggregate`` method for returning a result
 of multiple aggregations applied to a window.
 
 .. ipython:: python
@@ -237,7 +237,7 @@ Custom window rolling
 In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts
 a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds.
 The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
-a tuple of two arrays, the first being the starting indices of the windows and second being the
+a tuple of two arrays, the first being the starting indices of the windows and the second being the
 ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed``
 and ``step`` will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
@@ -293,8 +293,8 @@ rolling operations over a non-fixed offset like a ``BusinessDay``.
 For some problems knowledge of the future is available for analysis. For example, this occurs when
 each data point is a full time series read from an experiment, and the task is to extract underlying
 conditions. In these cases it can be useful to perform forward-looking rolling window computations.
-:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
-This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
+The :class:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
+This :class:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
 forward-looking rolling window, and we can use it as follows:
 
 .. ipython:: python
@@ -359,7 +359,7 @@ The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
 and the apply for loop over each window.
 
-``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
+``mean``, ``median``, ``max``, ``min``, ``sum``, ``std``, and ``var`` also support the ``engine`` and ``engine_kwargs`` arguments.
 
 .. _window.cov_corr:
 
@@ -435,8 +435,8 @@ can even be omitted:
 Weighted window
 ---------------
 
-The ``win_type`` argument in ``.rolling`` generates a weighted windows that are commonly used in filtering
-and spectral estimation. ``win_type`` must be string that corresponds to a `scipy.signal window function
+The ``win_type`` argument in ``.rolling`` generates a weighted window that is commonly used in filtering
+and spectral estimation. ``win_type`` must be a string that corresponds to a `scipy.signal window function
 <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__.
 Scipy must be installed in order to use these windows, and supplementary arguments
 that the Scipy window methods take must be specified in the aggregation function.
@@ -554,7 +554,7 @@ point.
 
 One must have :math:`0 < \alpha \leq 1`, and while it is possible to pass
 :math:`\alpha` directly, it's often easier to think about either the
-**span**, **center  of mass (com)** or **half-life** of an EW moment:
+**span**, **center of mass (com)** or **half-life** of an EW moment:
 
 .. math::
 
@@ -590,7 +590,7 @@ The following formula is used to compute exponentially weighted mean with an inp
 
 .. math::
 
-    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 
 ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how
@@ -612,7 +612,7 @@ Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
         \frac{(1-\alpha) \cdot 3 + 1 \cdot 5}{(1-\alpha) + 1}.
 
-The :meth:`~Ewm.var`, :meth:`~Ewm.std`, and :meth:`~Ewm.cov` functions have a ``bias`` argument,
+The :meth:`~ExponentialMovingWindow.var`, :meth:`~ExponentialMovingWindow.std`, and :meth:`~ExponentialMovingWindow.cov` functions have a ``bias`` argument,
 specifying whether the result should contain biased or unbiased statistics.
 For example, if ``bias=True``, ``ewmvar(x)`` is calculated as
 ``ewmvar(x) = ewma(x**2) - ewma(x)**2``;
