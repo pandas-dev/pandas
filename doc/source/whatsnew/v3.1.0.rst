@@ -387,9 +387,10 @@ Styler
 Other
 ^^^^^
 
+- Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+
 .. ***DO NOT USE THIS SECTION***
 
--
 -
 
 .. ---------------------------------------------------------------------------
