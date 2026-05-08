@@ -527,7 +527,6 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._config.config", # TODO
   "pandas._libs.*",
   "pandas._testing.*", # TODO
   "pandas.compat.numpy.function", # TODO
