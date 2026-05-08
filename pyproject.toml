@@ -530,7 +530,6 @@ module = [
   "pandas._config.config", # TODO
   "pandas._libs.*",
   "pandas._testing.*", # TODO
-  "pandas.compat.numpy.function", # TODO
   "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO
