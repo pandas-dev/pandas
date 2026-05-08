@@ -176,6 +176,19 @@ class TestSeriesStatReductions:
         string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("max", np.max, string_series, check_objects=True)
 
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_minmax_object_timestamp_nat_returns_scalar(self, method):
+        # GH#65500
+        val = pd.Timestamp("2026-01-01 15:13:44.01234567", tz="Europe/Budapest")
+        ser = Series([val, pd.NaT], dtype=object)
+
+        result = getattr(ser, method)()
+        assert isinstance(result, pd.Timestamp)
+        assert result == val
+
+        result = getattr(ser, method)(skipna=False)
+        assert result is pd.NaT
+
     def test_var_std(self):
         string_series = Series(range(20), dtype=np.float64, name="series")
         datetime_series = Series(

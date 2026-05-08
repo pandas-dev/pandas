@@ -1734,6 +1734,30 @@ class TestDataFrameReductions:
             expected = Series([pd.NaT, pd.NaT, val])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "method, first_expected",
+        [("min", "time2"), ("max", "time1")],
+    )
+    def test_minmax_tzaware_mixed_tz_with_nat_axis1(self, method, first_expected):
+        # GH#65500
+        one_tz = Timestamp("2026-01-01 15:13:44.01234567", tz="Europe/Budapest")
+        other_tz = Timestamp("2026-01-01 15:13:44.01234567", tz="Europe/Moscow")
+        df = DataFrame({"time1": [one_tz, one_tz], "time2": [other_tz, pd.NaT]})
+
+        result = getattr(df, method)(axis=1)
+        expected = Series(
+            [df.loc[0, first_expected], one_tz],
+            dtype=df[first_expected].dtype,
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series(
+            [df.loc[0, first_expected], pd.NaT],
+            dtype=df[first_expected].dtype,
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.fixture(
         params=[
             DataFrame(
