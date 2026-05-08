@@ -40,10 +40,10 @@ pandas supports 4 types of windowing operations:
 =============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
 Concept                         Method             Returned Object                                 Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
 =============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
-Rolling window                  ``rolling``        ``pandas.api.typing.Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
+Rolling window                  ``rolling``        ``pandas.api.typing.Rolling``                   Yes                          Yes                       Yes                                  No
 Weighted window                 ``rolling``        ``pandas.api.typing.Window``                    No                           No                        No                                   No
-Expanding window                ``expanding``      ``pandas.api.typing.Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
-Exponentially Weighted window   ``ewm``            ``pandas.api.typing.ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
+Expanding window                ``expanding``      ``pandas.api.typing.Expanding``                 No                           Yes                       Yes                                  No
+Exponentially Weighted window   ``ewm``            ``pandas.api.typing.ExponentialMovingWindow``   No                           Yes                       No                                   Yes
 =============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
 
 As noted above, some operations support specifying a window based on a time offset:
