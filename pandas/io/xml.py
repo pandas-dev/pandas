@@ -903,6 +903,27 @@ def read_xml(
         `xmlns='<URI>'` without a prefix, you must assign any temporary
         namespace prefix such as 'doc' to the URI in order to parse
         underlying nodes and/or attributes.
+        For example, given an XML document with a default namespace:
+
+        .. code-block:: xml
+
+            <?xml version='1.0' encoding='utf-8'?>
+            <data xmlns="http://example.com">
+              <row><shape>square</shape><degrees>360</degrees></row>
+            </data>
+
+        You must assign a temporary prefix and update the xpath:
+
+        >>> from io import StringIO
+        >>> xml = (\"\"\"<?xml version='1.0' encoding='utf-8'?>
+        ... <data xmlns="http://example.com">
+        ...   <row><shape>square</shape><degrees>360</degrees></row>
+        ... </data>\"\"\")
+        >>> pd.read_xml(StringIO(xml),
+        ...             xpath="//doc:row",
+        ...             namespaces={"doc": "http://example.com"})
+          shape  degrees
+        0  square      360
 
     elems_only : bool, optional, default False
         Parse only the child elements at the specified ``xpath``. By default,
