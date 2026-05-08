@@ -69,26 +69,44 @@ class OpsMixin:
 
     @unpack_zerodim_and_defer("__and__")
     def __and__(self, other):
+        """
+        Return elementwise ``self & other``.
+
+        Logical AND for boolean operands, bitwise AND for integer operands.
+        """
         return self._logical_method(other, operator.and_)
 
     @unpack_zerodim_and_defer("__rand__")
     def __rand__(self, other):
+        """Return elementwise ``other & self``."""
         return self._logical_method(other, roperator.rand_)
 
     @unpack_zerodim_and_defer("__or__")
     def __or__(self, other):
+        """
+        Return elementwise ``self | other``.
+
+        Logical OR for boolean operands, bitwise OR for integer operands.
+        """
         return self._logical_method(other, operator.or_)
 
     @unpack_zerodim_and_defer("__ror__")
     def __ror__(self, other):
+        """Return elementwise ``other | self``."""
         return self._logical_method(other, roperator.ror_)
 
     @unpack_zerodim_and_defer("__xor__")
     def __xor__(self, other):
+        """
+        Return elementwise ``self ^ other``.
+
+        Logical XOR for boolean operands, bitwise XOR for integer operands.
+        """
         return self._logical_method(other, operator.xor)
 
     @unpack_zerodim_and_defer("__rxor__")
     def __rxor__(self, other):
+        """Return elementwise ``other ^ self``."""
         return self._logical_method(other, roperator.rxor)
 
     # -------------------------------------------------------------
