@@ -693,3 +693,23 @@ def test_select_dtypes_python_type_resolves_to_ea(using_infer_string):
     df = DataFrame({"s": ["a", "b"], "n": [1, 2]})
     result = df.select_dtypes(include=str)
     tm.assert_frame_equal(result, df[["s"]])
+
+
+def test_select_dtypes_include_exclude_overlap_raises():
+    df = DataFrame({"a": [1, 2], "b": pd.array([1, 2], dtype="Int64")})
+
+    # numpy-set overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=[np.int64], exclude=[np.int64])
+
+    # EA-class overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=pd.Int64Dtype, exclude=pd.Int64Dtype)
+
+    # EA-instance overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=pd.Int64Dtype(), exclude=pd.Int64Dtype())
+
+    # kind-string overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include="int64", exclude="int64")
