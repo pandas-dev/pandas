@@ -1297,7 +1297,14 @@ class Block(PandasObject, libinternals.Block):
         else:
             other = casted
             alt = setitem_datetimelike_compat(values, icond.sum(), other)
-            if alt is not other:
+            if isinstance(other, tuple) and values.dtype == _dtype_obj:
+                # GH#37681 np.where/np.putmask unpack tuples, so wrap in an
+                #  object array to ensure the tuple is treated as a scalar.
+                fill_arr = np.empty(1, dtype=object)
+                fill_arr[0] = other
+                result = values.copy()
+                np.putmask(result, icond, fill_arr)
+            elif alt is not other:
                 if is_list_like(other) and len(other) < len(values):
                     # call np.where with other to get the appropriate ValueError
                     np.where(~icond, values, other)

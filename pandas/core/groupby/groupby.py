@@ -2213,6 +2213,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series.std : Apply function std to a Series.
         DataFrame.std : Apply function std to each row or column of a DataFrame.
 
+        Notes
+        -----
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
+
         Examples
         --------
         For SeriesGroupBy:
