@@ -18,8 +18,8 @@ containers for the axis labels:
 * :class:`Index`: the generic "ordered set" object, holding axis labels of
   any supported dtype (numpy numeric dtypes, ``object``, ``str``, or an
   :class:`ExtensionArray` dtype). The labels must be hashable (and
-  likely immutable) and unique. Populates a dict of label to location in
-  Cython to do ``O(1)`` lookups.
+  likely immutable) but need not be unique. Populates a dict of label
+  to location in Cython to do ``O(1)`` lookups.
 * :class:`MultiIndex`: the standard hierarchical index object
 * :class:`DatetimeIndex`: An :class:`Index` object backed by a :class:`DatetimeArray`, exposing :class:`Timestamp` boxed elements
 * :class:`TimedeltaIndex`: An :class:`Index` object backed by a :class:`TimedeltaArray`, exposing :class:`Timedelta` boxed elements
