@@ -812,6 +812,24 @@ class HDFStore:
     def is_open(self) -> bool:
         """
         Return a boolean indicating whether the file is open.
+
+        ``HDFStore`` instances open the underlying PyTables file in their
+        constructor, but the file can be closed and reopened on the same
+        instance via :meth:`close` and :meth:`open`.
+
+        See Also
+        --------
+        HDFStore.open : Open the underlying file in the specified mode.
+        HDFStore.close : Close the underlying PyTables file handle.
+
+        Examples
+        --------
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.is_open  # doctest: +SKIP
+        True
+        >>> store.close()  # doctest: +SKIP
+        >>> store.is_open  # doctest: +SKIP
+        False
         """
         if self._handle is None:
             return False
@@ -821,10 +839,18 @@ class HDFStore:
         """
         Force all buffered modifications to be written to disk.
 
+        Useful when sharing access between processes -- call ``flush`` (with
+        ``fsync=True`` if needed) before releasing a write lock so that
+        readers see the latest data.
+
         Parameters
         ----------
         fsync : bool, default False
           Call ``os.fsync()`` on the file handle to force writing to disk.
+
+        See Also
+        --------
+        HDFStore.close : Close the underlying PyTables file handle.
 
         Notes
         -----
@@ -832,6 +858,14 @@ class HDFStore:
         to disk. With fsync, the operation will block until the OS claims the
         file has been written; however, other caching layers may still
         interfere.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.flush(fsync=True)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         if self._handle is not None:
             self._handle.flush()
@@ -1010,6 +1044,21 @@ class HDFStore:
         -------
         Index
             The row labels matching the selection.
+
+        See Also
+        --------
+        HDFStore.select : Retrieve a stored object, optionally filtered by
+            ``where``.
+        HDFStore.select_as_multiple : Retrieve pandas objects from multiple
+            tables.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table")  # doctest: +SKIP
+        >>> store.select_as_coordinates("data", "A>1")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         where = _ensure_term(where, scope_level=1)
         tbl = self.get_storer(key)
@@ -1060,6 +1109,23 @@ class HDFStore:
         ValueError
             If the column cannot be extracted individually (e.g. it is part
             of a data block).
+
+        See Also
+        --------
+        HDFStore.select : Retrieve a stored object, optionally filtered by
+            ``where``.
+        HDFStore.select_as_coordinates : Return the matching row labels as
+            an Index.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", data_columns=["A"]
+        ... )  # doctest: +SKIP
+        >>> store.select_column("data", "A")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         tbl = self.get_storer(key)
         if not isinstance(tbl, Table):
@@ -1126,6 +1192,22 @@ class HDFStore:
             If ``keys`` is not a list or tuple.
         ValueError
             If the tables do not all have the same number of rows.
+
+        See Also
+        --------
+        HDFStore.append_to_multiple : Append to multiple tables, splitting a
+            single object into a dict of column groups.
+        HDFStore.select : Retrieve a single stored object.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["C", "D"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("t1", df1, format="table")  # doctest: +SKIP
+        >>> store.append("t2", df2, format="table")  # doctest: +SKIP
+        >>> store.select_as_multiple(["t1", "t2"])  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         # default to single select
         where = _ensure_term(where, scope_level=1)
@@ -1349,6 +1431,11 @@ class HDFStore:
         """
         Remove pandas object partially by specifying the where condition.
 
+        If ``where`` is not provided, the entire object stored at ``key``
+        (and any of its child nodes) is removed. When ``where`` is given,
+        only matching rows are deleted, which requires the object to be in
+        ``table`` format.
+
         Parameters
         ----------
         key : str
@@ -1369,6 +1456,19 @@ class HDFStore:
         ------
         KeyError
             If ``key`` is not a valid store.
+
+        See Also
+        --------
+        HDFStore.append : Append data to an existing table.
+        HDFStore.put : Store an object in the file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.remove("data")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         where = _ensure_term(where, scope_level=1)
         try:
@@ -1564,6 +1664,11 @@ class HDFStore:
         """
         Append to multiple tables.
 
+        Splits ``value`` column-wise according to ``d`` and appends each
+        slice to the corresponding table. The ``selector`` table is the one
+        you query against; its columns are made data_columns so they can be
+        used in ``where`` clauses.
+
         Parameters
         ----------
         d : dict
@@ -1590,6 +1695,21 @@ class HDFStore:
                 instead.
         **kwargs
             Additional keyword arguments forwarded to :meth:`HDFStore.append`.
+
+        See Also
+        --------
+        HDFStore.append : Append to a single table.
+        HDFStore.select_as_multiple : Read from multiple tables with a
+            single ``where``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})  # doctest: +SKIP
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append_to_multiple(
+        ...     {"t1": ["A", "B"], "t2": None}, df, selector="t1"
+        ... )  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         if axes is not None:
             raise TypeError(
@@ -1677,6 +1797,12 @@ class HDFStore:
         """
         Create a pytables index on the table.
 
+        Indexes are automatically created on indexable axes and
+        ``data_columns`` during ``append``/``put``. This method lets you
+        add or rebuild indexes after the fact, which is **highly
+        encouraged** because it greatly speeds up ``select`` calls that
+        filter on the indexed dimension.
+
         Parameters
         ----------
         key : str
@@ -1698,6 +1824,20 @@ class HDFStore:
         ------
         TypeError
             If the node is not a table.
+
+        See Also
+        --------
+        HDFStore.append : Append data to an existing table; columns are
+            indexed automatically by default.
+        HDFStore.select : Filter on indexed columns for fast retrieval.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table", index=False)  # doctest: +SKIP
+        >>> store.create_table_index("data", columns=["A"])  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         # version requirements
         _tables()
@@ -1836,6 +1976,11 @@ class HDFStore:
         """
         Return the storer object for a key.
 
+        The storer is the low-level wrapper around the stored pandas object.
+        It exposes implementation details such as ``nrows`` (the row count
+        on disk) and ``table`` (the underlying PyTables ``Table``), which
+        can be useful for inspecting a store without loading its data.
+
         Parameters
         ----------
         key : str
@@ -1851,6 +1996,19 @@ class HDFStore:
         ------
         KeyError
             If ``key`` is not in the file.
+
+        See Also
+        --------
+        HDFStore.get : Read the stored object back into pandas.
+        HDFStore.info : Print a summary of the store's contents.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table")  # doctest: +SKIP
+        >>> store.get_storer("data").nrows  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         group = self.get_node(key)
         if group is None:
@@ -1873,6 +2031,11 @@ class HDFStore:
     ) -> HDFStore:
         """
         Copy the existing store to a new file, updating in place.
+
+        Each object stored in the current ``HDFStore`` is read and re-written
+        to the destination file, which can be useful for repacking (to
+        reclaim space after deletes), changing compression options, or
+        cloning a subset of keys.
 
         Parameters
         ----------
@@ -1898,6 +2061,20 @@ class HDFStore:
         -------
         HDFStore
             Open file handle of the new store.
+
+        See Also
+        --------
+        HDFStore.put : Write an object to the store.
+        HDFStore.append : Append to an existing table.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> new_store = store.copy("store_copy.h5")  # doctest: +SKIP
+        >>> new_store.close()  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         new_store = HDFStore(
             file, mode=mode, complib=complib, complevel=complevel, fletcher32=fletcher32
