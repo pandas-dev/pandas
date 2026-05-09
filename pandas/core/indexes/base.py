@@ -595,10 +595,16 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#65524: DatetimeIndex/TimedeltaIndex don't support refs in __init__
             # and don't support ArrowExtensionArray in _simple_new.
             # Passing through the constructor converts to DatetimeArray/TimedeltaArray.
-            result = klass(arr, name=name)
+            out = klass(arr, name=name)
             if refs is not None:
-                result._references = refs
-            return result
+                out._references = refs
+            # Preserve freq when wrapping a DatetimeIndex/TimedeltaIndex input,
+            # since _simple_new doesn't copy Index-level attributes like _freq.
+            if isinstance(data, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
+                out, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            ):
+                out._freq = data._freq
+            return out  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
         out = klass._simple_new(arr, name, refs=refs)
