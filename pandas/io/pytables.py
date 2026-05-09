@@ -811,7 +811,7 @@ class HDFStore:
     @property
     def is_open(self) -> bool:
         """
-        return a boolean indicating whether the file is open
+        Return a boolean indicating whether the file is open.
         """
         if self._handle is None:
             return False
@@ -823,8 +823,8 @@ class HDFStore:
 
         Parameters
         ----------
-        fsync : bool (default False)
-          call ``os.fsync()`` on the file handle to force writing to disk.
+        fsync : bool, default False
+          Call ``os.fsync()`` on the file handle to force writing to disk.
 
         Notes
         -----
@@ -984,7 +984,7 @@ class HDFStore:
         stop: int | None = None,
     ):
         """
-        return the selection as an Index
+        Return the selection as an Index.
 
         .. warning::
 
@@ -994,13 +994,22 @@ class HDFStore:
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
-
         Parameters
         ----------
         key : str
+            Object being retrieved from file.
         where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
+            Conditions to apply to the selection. ``start`` and ``stop`` are
+            applied to the table before ``where``.
+        start : int, optional
+            Row number to start selection.
+        stop : int, optional
+            Row number to stop selection.
+
+        Returns
+        -------
+        Index
+            The row labels matching the selection.
         """
         where = _ensure_term(where, scope_level=1)
         tbl = self.get_storer(key)
@@ -1016,8 +1025,9 @@ class HDFStore:
         stop: int | None = None,
     ):
         """
-        return a single column from the table. This is generally only useful to
-        select an indexable
+        Return a single column from the table.
+
+        This is generally only useful to select an indexable.
 
         .. warning::
 
@@ -1030,18 +1040,26 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object being retrieved from file.
         column : str
             The column of interest.
         start : int or None, default None
+            Row number to start selection.
         stop : int or None, default None
+            Row number to stop selection.
+
+        Returns
+        -------
+        Series
+            A ``Series`` of the column's values, indexed by row number.
 
         Raises
         ------
-        raises KeyError if the column is not found (or key is not a valid
-            store)
-        raises ValueError if the column can not be extracted individually (it
-            is part of a data block)
-
+        KeyError
+            If the column is not found, or ``key`` is not a valid store.
+        ValueError
+            If the column cannot be extracted individually (e.g. it is part
+            of a data block).
         """
         tbl = self.get_storer(key)
         if not isinstance(tbl, Table):
@@ -1073,22 +1091,41 @@ class HDFStore:
 
         Parameters
         ----------
-        keys : a list of the tables
-        selector : the table to apply the where criteria (defaults to keys[0]
-            if not supplied)
-        columns : the columns I want back
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
-        iterator : bool, return an iterator, default False
-        chunksize : nrows to include in iteration, return an iterator
+        keys : list of str
+            Names of the tables to read.
+        where : list, optional
+            List of Term (or convertible) objects.
+        selector : str, optional
+            The table to apply the where criteria to. Defaults to ``keys[0]``.
+        columns : list, optional
+            Columns to return.
+        start : int, optional
+            Row number to start selection. Applied to each table before
+            ``where`` is evaluated.
+        stop : int, optional
+            Row number to stop selection. Applied to each table before
+            ``where`` is evaluated.
+        iterator : bool, default False
+            Return an iterator.
+        chunksize : int, optional
+            Number of rows to include in each iteration; implies
+            ``iterator=True``.
         auto_close : bool, default False
             Should automatically close the store when finished.
 
+        Returns
+        -------
+        DataFrame
+            Concatenated result from the selected tables.
+
         Raises
         ------
-        raises KeyError if keys or selector is not found or keys is empty
-        raises TypeError if keys is not a list or tuple
-        raises ValueError if the tables are not ALL THE SAME DIMENSIONS
+        KeyError
+            If ``keys`` or ``selector`` is not found, or ``keys`` is empty.
+        TypeError
+            If ``keys`` is not a list or tuple.
+        ValueError
+            If the tables do not all have the same number of rows.
         """
         # default to single select
         where = _ensure_term(where, scope_level=1)
@@ -1310,24 +1347,28 @@ class HDFStore:
 
     def remove(self, key: str, where=None, start=None, stop=None) -> int | None:
         """
-        Remove pandas object partially by specifying the where condition
+        Remove pandas object partially by specifying the where condition.
 
         Parameters
         ----------
         key : str
-            Node to remove or delete rows from
+            Node to remove or delete rows from.
         where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
+            Conditions selecting which rows to remove.
+        start : int, optional
+            Row number to start selection.
+        stop : int, optional
+            Row number to stop selection.
 
         Returns
         -------
-        number of rows removed (or None if not a Table)
+        int or None
+            Number of rows removed (or ``None`` if the object is not a Table).
 
         Raises
         ------
-        raises KeyError if key is not a valid store
-
+        KeyError
+            If ``key`` is not a valid store.
         """
         where = _ensure_term(where, scope_level=1)
         try:
@@ -1521,30 +1562,34 @@ class HDFStore:
         **kwargs,
     ) -> None:
         """
-        Append to multiple tables
+        Append to multiple tables.
 
         Parameters
         ----------
-        d : a dict of table_name to table_columns, None is acceptable as the
-            values of one node (this will get all the remaining columns)
-        value : a pandas object
-        selector : a string that designates the indexable table; all of its
-            columns will be designed as data_columns, unless data_columns is
-            passed, in which case these are used
-        data_columns : list of columns to create as data columns, or True to
-            use all columns
-        dropna : if evaluates to True, drop rows from all tables if any single
-                 row in each table has all NaN. Default False.
+        d : dict
+            Mapping of table_name to table_columns. ``None`` is acceptable as
+            the values for one node (that table will get all the remaining
+            columns).
+        value : DataFrame or Series
+            Pandas object to split across the tables.
+        selector : str
+            Designates the indexable table; all of its columns will be made
+            data_columns unless ``data_columns`` is passed, in which case
+            those are used.
+        data_columns : list of str or True, optional
+            Columns to create as data columns, or ``True`` to use all columns.
+        axes : default None
+            This parameter is currently not accepted.
+        dropna : bool, default False
+            If ``True``, drop rows from all tables if any single row in each
+            table has all NaN.
 
             .. deprecated:: 3.1.0
                 The ``dropna`` keyword is deprecated and will be removed in a
                 future version. Use :meth:`DataFrame.dropna` before writing
                 instead.
-
-        Notes
-        -----
-        axes parameter is currently not accepted
-
+        **kwargs
+            Additional keyword arguments forwarded to :meth:`HDFStore.append`.
         """
         if axes is not None:
             raise TypeError(
@@ -1635,6 +1680,7 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object stored in the file to index.
         columns : None, bool, or listlike[str]
             Indicate which columns to create an index on.
 
@@ -1650,7 +1696,8 @@ class HDFStore:
 
         Raises
         ------
-        TypeError: raises if the node is not a table
+        TypeError
+            If the node is not a table.
         """
         # version requirements
         _tables()
@@ -1786,7 +1833,25 @@ class HDFStore:
         return node
 
     def get_storer(self, key: str) -> GenericFixed | Table:
-        """return the storer object for a key, raise if not in the file"""
+        """
+        Return the storer object for a key.
+
+        Parameters
+        ----------
+        key : str
+            Object stored in the file.
+
+        Returns
+        -------
+        GenericFixed or Table
+            The storer wrapping the stored object. ``Table`` instances expose
+            attributes such as ``nrows`` and ``table``.
+
+        Raises
+        ------
+        KeyError
+            If ``key`` is not in the file.
+        """
         group = self.get_node(key)
         if group is None:
             raise KeyError(f"No object named {key} in the file")
@@ -1811,17 +1876,28 @@ class HDFStore:
 
         Parameters
         ----------
+        file : str or path-like
+            Destination file to write to.
+        mode : str, default 'w'
+            File mode for the destination, see :class:`HDFStore`.
         propindexes : bool, default True
             Restore indexes in copied file.
         keys : list, optional
             List of keys to include in the copy (defaults to all).
+        complib : str, optional
+            Compression library, see :class:`HDFStore`.
+        complevel : int, optional
+            Compression level, see :class:`HDFStore`.
+        fletcher32 : bool, default False
+            Whether to use the Fletcher32 checksum, see :class:`HDFStore`.
         overwrite : bool, default True
-            Whether to overwrite (remove and replace) existing nodes in the new store.
-        mode, complib, complevel, fletcher32 same as in HDFStore.__init__
+            Whether to overwrite (remove and replace) existing nodes in the
+            new store.
 
         Returns
         -------
-        open file handle of the new store
+        HDFStore
+            Open file handle of the new store.
         """
         new_store = HDFStore(
             file, mode=mode, complib=complib, complevel=complevel, fletcher32=fletcher32
@@ -2057,7 +2133,12 @@ class HDFStore:
             # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
             if not s.is_table or (s.is_table and format == "fixed" and s.is_exists):
-                raise ValueError("Can only append to Tables")
+                raise ValueError(
+                    "Can only append to Tables; the existing object stored at "
+                    f"{key!r} uses the 'fixed' format, which is not appendable. "
+                    "Re-create it with format='table' (or remove it first) to "
+                    "enable appending."
+                )
             if not s.is_exists:
                 s.set_object_info()
         else:
