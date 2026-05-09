@@ -982,6 +982,9 @@ class ExcelWriter(Generic[_WorkbookT]):
       <https://pypi.org/project/openpyxl/>`__).
     * ``.ods``: ``"odf"`` (`odfpy <https://pypi.org/project/odfpy/>`__).
 
+    These defaults can be overridden via the ``engine`` argument or by
+    setting the ``io.excel.<extension>.writer`` option.
+
     See :meth:`DataFrame.to_excel` for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
