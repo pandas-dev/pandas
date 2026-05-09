@@ -571,7 +571,6 @@ module = [
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
-  "pandas.core.window.online", # TODO
   "pandas.core.window.rolling", # TODO
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
