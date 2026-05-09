@@ -6,6 +6,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    cast,
 )
 import warnings
 
@@ -484,6 +485,6 @@ def set_module(module: str | None) -> Callable[[F], F]:
                     pass
 
             func.__module__ = module
-        return func
+        return cast("F", func)  # type: ignore[redundant-cast]
 
     return decorator
