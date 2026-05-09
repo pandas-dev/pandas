@@ -1586,7 +1586,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # GH#44382 if e.g. self[1] is np.nan and other[1] is pd.NA, we are NOT
         #  equal.
-        if not np.array_equal(self._mask, other._mask):
+        if not lib.array_equivalent_bytes(self._mask, other._mask):
             return False
 
         left = self._data[~self._mask]

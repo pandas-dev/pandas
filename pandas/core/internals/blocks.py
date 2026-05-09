@@ -2364,7 +2364,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
 
 
 def extract_pandas_array(
-    values: ArrayLike, dtype: DtypeObj | None, ndim: int
+    values: ArrayLike, dtype: DtypeObj | None, ndim: int | None
 ) -> tuple[ArrayLike, DtypeObj | None]:
     """
     Ensure that we don't allow NumpyExtensionArray / NumpyEADtype in internals.
