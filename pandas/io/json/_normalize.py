@@ -328,11 +328,13 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        String to prefix records with dotted path, e.g. foo.bar.field if
-        meta is ['foo', 'bar'].
+        If not ``None``, the supplied string is literally prepended to each
+        meta-derived column name, e.g. ``meta_prefix="foo."`` produces
+        columns named ``"foo.<original_meta_name>"``.
     record_prefix : str, default None
-        String to prefix records with dotted path, e.g. foo.bar.field if
-        path to records is ['foo', 'bar'].
+        If not ``None``, the supplied string is literally prepended to each
+        record-derived column name, e.g. ``record_prefix="foo."`` produces
+        columns named ``"foo.<original_record_name>"``.
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
 
