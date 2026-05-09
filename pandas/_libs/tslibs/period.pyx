@@ -3068,8 +3068,8 @@ cdef class _Period(PeriodMixin):
 
         (6)
             The ``%n`` directive is deprecated since pandas 3.1.0; use
-            ``%N`` instead. ``%n`` conflicts with the POSIX standard
-            meaning of a newline character.
+            ``%N`` instead. ``%n`` is a newline directive in C ``strftime``
+            (and Python's ``time.strftime`` / ``datetime.strftime``).
 
         Examples
         --------
