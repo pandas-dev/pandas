@@ -1654,7 +1654,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if self.ndim == 2 and kwargs.get("axis", 0) is not None:
-            # TODO: Do we need to return 2d in the case keepdims=True?
+            if keepdims:
+                raise NotImplementedError(
+                    "keepdims=True is not implemented for 2D MaskedArray "
+                    "reductions with axis"
+                )
             return result
 
         if keepdims:
