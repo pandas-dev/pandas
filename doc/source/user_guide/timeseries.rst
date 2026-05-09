@@ -387,8 +387,19 @@ To invert the operation from above, namely, to convert from a ``Timestamp`` to a
    stamps = pd.date_range("2012-10-08 18:15:05", periods=4, freq="D")
    stamps
 
-We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by the
-"unit" (1 second).
+For a single :class:`Timestamp`, the most concise approach is the
+:meth:`Timestamp.timestamp` method, which returns the POSIX timestamp as
+a ``float`` number of seconds:
+
+.. ipython:: python
+
+   pd.Timestamp("2012-10-08 18:15:05").timestamp()
+
+For a :class:`DatetimeIndex` (or any datetime-like array), subtract the
+epoch (midnight at January 1, 1970 UTC) and floor divide by the desired
+"unit". This is also the recommended form when an integer count is required
+(e.g. for serialization), since :meth:`Timestamp.timestamp` returns a
+``float``:
 
 .. ipython:: python
 
