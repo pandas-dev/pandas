@@ -4257,7 +4257,13 @@ class DataFrame(NDFrame, OpsMixin):
         if is_single_key:
             if self.columns.nlevels > 1:
                 return self._getitem_multilevel(key)
-            indexer = self.columns.get_loc(key)
+            try:
+                indexer = self.columns.get_loc(key)
+            except KeyError:
+                raise KeyError(
+                        f"Column '{key}' not found in DataFrame. "
+                        f"Available columns: {list(self.columns)}"
+                    )
             if is_integer(indexer):
                 indexer = [indexer]  # type: ignore[assignment]
         else:

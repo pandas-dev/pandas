@@ -177,6 +177,14 @@ class TestGetitemListLike:
         with pytest.raises(KeyError, match=r"\['y'\] not in index"):
             df[["x", "y", "z"]]
 
+    def test_getitem_missing_column_error_message(self):
+        df = DataFrame({"Name": ["Pradip"]})
+
+        with pytest.raises(KeyError) as exc:
+            df["Age"]
+
+        assert "Age" in str(exc.value)
+
     def test_getitem_list_duplicates(self):
         # GH#1943
         df = DataFrame(
