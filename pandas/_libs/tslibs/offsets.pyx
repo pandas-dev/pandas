@@ -7259,6 +7259,8 @@ cdef _validate_to_offset_alias(str alias, bint is_period):
         str alias_upper, renamed, period_alias
 
     if not is_period:
+        if alias in deprec_to_valid_alias:
+            raise_invalid_freq(freq=alias)
         alias_upper = alias.upper()
         renamed = c_OFFSET_RENAMED_FREQSTR.get(alias_upper)
         if renamed is not None:
