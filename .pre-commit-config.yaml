@@ -180,7 +180,6 @@ repos:
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep

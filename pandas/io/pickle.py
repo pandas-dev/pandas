@@ -69,12 +69,9 @@ def to_pickle(
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
     protocol : int
         Int which indicates which protocol should be used by the pickler,
-        default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
-        values for this parameter depend on the version of Python. For Python
-        2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a valid value.
-        For Python >= 3.4, 4 is a valid value. A negative value for the
-        protocol parameter is equivalent to setting its value to
-        HIGHEST_PROTOCOL.
+        default ``pickle.HIGHEST_PROTOCOL`` (see [1]_). A negative value for
+        the protocol parameter is equivalent to setting its value to
+        ``pickle.HIGHEST_PROTOCOL``.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -149,7 +146,7 @@ def read_pickle(
     ----------
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a binary ``readlines()`` function.
+        object implementing a binary ``read()`` function.
         Also accepts URL. URL is not limited to S3 and GCS.
 
         Certain URL schemes may require additional packages. For example, S3
