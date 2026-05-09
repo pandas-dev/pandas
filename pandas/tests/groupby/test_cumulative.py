@@ -373,6 +373,21 @@ def test_nullable_int_dtype_preserved_with_na_group_key(method, expected_values)
     tm.assert_series_equal(result, expected)
 
 
+def test_cumprod_nullable_int_no_precision_loss_with_na_group_key():
+    # GH#65550
+    df = DataFrame(
+        {
+            "key": ["a", pd.NA],
+            "val": pd.array([9007199254740993, 0], dtype="Int64"),
+        }
+    )
+    gb = df.groupby("key")["val"]
+
+    result = gb.cumprod()
+    expected = Series([9007199254740993, pd.NA], dtype="Int64", name="val")
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_api2(as_index):
     # this takes the fast apply path
 
