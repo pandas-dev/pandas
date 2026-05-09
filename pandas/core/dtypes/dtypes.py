@@ -2306,6 +2306,19 @@ class ArrowDtype(StorageExtensionDtype):
         return f"{self.pyarrow_dtype!s}[{self.storage}]"
 
     @cache_readonly
+    def index_class(self):
+        pa_type = self.pyarrow_dtype
+        if pa.types.is_timestamp(pa_type):
+            from pandas import DatetimeIndex
+
+            return DatetimeIndex
+        elif pa.types.is_duration(pa_type):
+            from pandas import TimedeltaIndex
+
+            return TimedeltaIndex
+        return super().index_class
+
+    @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
         if pa.types.is_timestamp(self.pyarrow_dtype):

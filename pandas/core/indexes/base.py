@@ -582,6 +582,24 @@ class Index(IndexOpsMixin, PandasObject):
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
+        from pandas import (
+            DatetimeIndex,
+            TimedeltaIndex,
+        )
+
+        if (
+            isinstance(arr, ArrowExtensionArray)
+            and issubclass(klass, (DatetimeIndex, TimedeltaIndex))
+            and not isinstance(arr, klass._data_cls)
+        ):
+            # GH#65524: DatetimeIndex/TimedeltaIndex don't support refs in __init__
+            # and don't support ArrowExtensionArray in _simple_new.
+            # Passing through the constructor converts to DatetimeArray/TimedeltaArray.
+            result = klass(arr, name=name)
+            if refs is not None:
+                result._references = refs
+            return result
+
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
         out = klass._simple_new(arr, name, refs=refs)
         # Preserve freq when wrapping a DatetimeIndex/TimedeltaIndex input,
