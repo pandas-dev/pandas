@@ -594,10 +594,25 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # GH#65524: DatetimeIndex/TimedeltaIndex don't support refs in __init__
             # and don't support ArrowExtensionArray in _simple_new.
-            # Passing through the constructor converts to DatetimeArray/TimedeltaArray.
-            out = klass(arr, name=name)
-            if refs is not None:
-                out._references = refs
+            out: Index
+            if dtype is not None:
+                out = klass(arr, name=name, dtype=dtype)
+            else:
+                # Manually initialize to preserve PyArrow backend
+                # (DatetimeIndex(arr) defaults to numpy-backed DatetimeArray)
+                out = object.__new__(klass)
+                out._data = arr
+                out._name = name
+                out._cache = {}
+                out._reset_identity()
+                if refs is not None:
+                    out._references = refs
+                else:
+                    out._references = BlockValuesRefs()
+
+                # CRITICAL: Add index reference for memory management
+                out._references.add_index_reference(out)
+
             # Preserve freq when wrapping a DatetimeIndex/TimedeltaIndex input,
             # since _simple_new doesn't copy Index-level attributes like _freq.
             if isinstance(data, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
@@ -608,6 +623,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
         out = klass._simple_new(arr, name, refs=refs)  # type: ignore[assignment]
+
         # Preserve freq when wrapping a DatetimeIndex/TimedeltaIndex input,
         # since _simple_new doesn't copy Index-level attributes like _freq.
         if isinstance(data, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
@@ -615,7 +631,6 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             out._freq = data._freq
         return out  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
-
     @classmethod
     def _ensure_array(cls, data: ArrayLike, dtype: DtypeObj, copy: bool) -> ArrayLike:
         """
