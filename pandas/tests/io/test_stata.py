@@ -211,16 +211,7 @@ class TestStata:
             parsed_115 = self.read_dta(path2)
         with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_117 = self.read_dta(path3)
-            # FIXME: don't leave commented-out
-            # 113 is buggy due to limits of date format support in Stata
-            # parsed_113 = self.read_dta(
-            # datapath("io", "data", "stata", "stata2_113.dta")
-            # )
 
-        # FIXME: don't leave commented-out
-        # buggy test because of the NaT comparison on certain platforms
-        # Format 113 test fails since it does not support tc and tC formats
-        # tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)
         tm.assert_frame_equal(parsed_117, expected)

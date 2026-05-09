@@ -215,8 +215,8 @@ def check_round_trip(
             if "string_with_nan" in expected:
                 expected.loc[1, "string_with_nan"] = None
             tm.assert_frame_equal(
-                expected,
                 actual,
+                expected,
                 check_names=check_names,
                 check_like=check_like,
                 check_dtype=check_dtype,
