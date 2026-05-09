@@ -557,7 +557,6 @@ module = [
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
   "pandas.core.internals", # TODO
-  "pandas.core.internals.api", # TODO
   "pandas.core.internals.blocks", # TODO
   "pandas.core.internals.concat", # TODO
   "pandas.core.internals.construction", # TODO
