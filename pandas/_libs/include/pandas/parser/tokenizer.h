@@ -71,7 +71,7 @@ typedef enum {
   QUOTE_NONE
 } QuoteStyle;
 
-typedef enum { ERROR, WARN, SKIP } BadLineHandleMethod;
+typedef enum { BLHM_ERROR, BLHM_WARN, BLHM_SKIP } BadLineHandleMethod;
 
 typedef char *(*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                              int *status, const char *encoding_errors);

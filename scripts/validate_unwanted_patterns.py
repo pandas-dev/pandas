@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 """
-Unwanted patterns test cases.
-
-The reason this file exist despite the fact we already have
-`ci/code_checks.sh`,
-(see https://github.com/pandas-dev/pandas/blob/master/ci/code_checks.sh)
-
-is that some of the test cases are more complex/impossible to validate via regex.
-So this file is somewhat an extensions to `ci/code_checks.sh`
+Unwanted patterns test cases that are more complex/impossible to validate via regex.
 """
 
 import argparse

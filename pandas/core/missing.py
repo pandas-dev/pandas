@@ -64,6 +64,11 @@ def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     """
     Validate the size of the values passed to ExtensionArray.fillna.
     """
+    if isinstance(value, dict):
+        raise TypeError(
+            "ExtensionArray.fillna does not support filling with a dict. "
+            "Use Series.fillna instead."
+        )
     if is_array_like(value):
         if len(value) != length:
             raise ValueError(

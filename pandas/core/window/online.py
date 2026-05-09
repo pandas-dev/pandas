@@ -6,11 +6,17 @@ import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 
 def generate_online_numba_ewma_func(
     nogil: bool,
     parallel: bool,
-):
+) -> Callable[
+    [np.ndarray, np.ndarray, int, float, float, np.ndarray, bool, bool],
+    tuple[np.ndarray, np.ndarray],
+]:
     """
     Generate a numba jitted groupby ewma function specified by values
     from engine_kwargs.
@@ -41,7 +47,7 @@ def generate_online_numba_ewma_func(
         old_wt: np.ndarray,
         adjust: bool,
         ignore_na: bool,
-    ):
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Compute online exponentially weighted mean per column over 2D values.
 
@@ -84,7 +90,13 @@ def generate_online_numba_ewma_func(
 
 
 class EWMMeanState:
-    def __init__(self, com, adjust, ignore_na, shape) -> None:
+    def __init__(
+        self,
+        com: float,
+        adjust: bool,
+        ignore_na: bool,
+        shape: tuple[int, ...],
+    ) -> None:
         alpha = 1.0 / (1.0 + com)
         self.shape = shape
         self.adjust = adjust
@@ -92,9 +104,18 @@ class EWMMeanState:
         self.new_wt = 1.0 if adjust else alpha
         self.old_wt_factor = 1.0 - alpha
         self.old_wt = np.ones(self.shape[-1])
-        self.last_ewm = None
+        self.last_ewm: np.ndarray | None = None
 
-    def run_ewm(self, weighted_avg, deltas, min_periods, ewm_func):
+    def run_ewm(
+        self,
+        weighted_avg: np.ndarray,
+        deltas: np.ndarray,
+        min_periods: int,
+        ewm_func: Callable[
+            [np.ndarray, np.ndarray, int, float, float, np.ndarray, bool, bool],
+            tuple[np.ndarray, np.ndarray],
+        ],
+    ) -> np.ndarray:
         result, old_wt = ewm_func(
             weighted_avg,
             deltas,

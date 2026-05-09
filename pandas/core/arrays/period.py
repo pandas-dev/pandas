@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Day,
     NaT,
     NaTType,
+    Resolution,
     Timedelta,
     add_overflowsafe,
     astype_overflowsafe,
@@ -183,7 +184,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
-    _infer_matches = ("period",)
 
     @property
     def _scalar_type(self) -> type[Period]:
@@ -404,9 +404,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Cannot override writeable attribute with read-only property
     @property
-    def freq(self) -> BaseOffset:  # type: ignore[override]
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -415,6 +414,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     @property
     def freqstr(self) -> str:
         return PeriodDtype(self.freq)._freqstr
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution_obj(self) -> Resolution:
+        freqstr = self.freqstr
+        try:
+            return Resolution.get_reso_from_freqstr(freqstr)
+        except KeyError:
+            return None  # type: ignore[return-value]
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -970,6 +977,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
+        return dta
+
+    def _to_timestamp_freq(
+        self, dta: DatetimeArray, target_freq, how: str
+    ) -> BaseOffset | None:
+        """
+        Determine the freq to stamp on the DatetimeArray returned by
+        ``self.to_timestamp(target_freq, how)``.
+
+        Called by ``PeriodIndex.to_timestamp`` so the array-level
+        ``to_timestamp`` can return a bare DatetimeArray.
+        """
+        how = libperiod.validate_end_alias(how)
+        if how == "E":
+            # For the "end" case, to_timestamp routes through arithmetic that
+            # does not preserve freq; match that behavior here.
+            return None
 
         if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
@@ -978,22 +1002,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             if len(diffs) == 1:
                 diff = diffs[0]
                 if diff == self.dtype._n:
-                    dta._freq = self.freq
+                    return self.freq
                 elif diff == 1:
-                    dta._freq = self.freq.base
+                    return self.freq.base
                 # TODO: other cases?
-            return dta
-        else:
-            dta = dta._with_freq("infer")
-            if freq is not None:
-                freq = to_offset(freq)
-                if (
-                    isinstance(dta.freq, Day)
-                    and not isinstance(freq, Day)
-                    and Timedelta(freq) == Timedelta(days=dta.freq.n)
-                ):
-                    dta._freq = freq
-            return dta
+            return None
+
+        result_freq = to_offset(dta.inferred_freq)
+        if target_freq is not None:
+            # match the normalization applied in to_timestamp
+            target_freq = Period._maybe_convert_freq(target_freq)
+            if (
+                isinstance(result_freq, Day)
+                and not isinstance(target_freq, Day)
+                and Timedelta(target_freq) == Timedelta(days=result_freq.n)
+            ):
+                result_freq = target_freq
+        return result_freq
 
     # --------------------------------------------------------------------
 

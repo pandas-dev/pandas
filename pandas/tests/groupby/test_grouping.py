@@ -674,6 +674,21 @@ class TestGrouping:
         with pytest.raises(ValueError, match=msg):
             df.groupby(level="foo")
 
+    def test_groupby_duplicate_index_level_names(self):
+        # GH#49434
+        df = DataFrame(
+            {"a": [1, 1, 2], "b": [3, 4, 5]},
+            index=MultiIndex.from_tuples([(1, 1), (1, 2), (1, 3)], names=["f", "f"]),
+        )
+        msg = "Grouping by index level 'f' which matches multiple index levels"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.groupby("f").sum()
+        expected = DataFrame(
+            {"a": [4], "b": [12]},
+            index=Index([1], name="f"),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
         index = MultiIndex(
