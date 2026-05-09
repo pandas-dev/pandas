@@ -3436,15 +3436,15 @@ class TestOrigin:
         tm.assert_index_equal(result, expected)
 
     def test_invalid_origins_oob(self):
-        # GH 63419 datetime(1, 1, 1) overflows only for unit='ns'
+        # GH 63419 datetime(1, 1, 1) overflows only for input_unit='ns'
         msg = "Cannot cast .* to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            to_datetime(list(range(5)), unit="ns", origin=datetime(1, 1, 1))
+            to_datetime(list(range(5)), input_unit="ns", origin=datetime(1, 1, 1))
 
     def test_preserve_origin_time_resolution(self):
         # GH 63419
         ts = Timestamp("2016-01-01 00:00:00.000001")
-        result = to_datetime([1, 2, 3], unit="D", origin=ts)
+        result = to_datetime([1, 2, 3], input_unit="D", origin=ts)
         expected = DatetimeIndex(
             [
                 "2016-01-02 00:00:00.000001",
@@ -3460,7 +3460,7 @@ class TestOrigin:
         origin = Timestamp("2016-01-01")
         data = ["2016-01-02", "2016-01-03", "2016-01-04"]
         arg = Series([1, 2, 3], name="foo")
-        result = to_datetime(arg, unit="D", origin=origin)
+        result = to_datetime(arg, input_unit="D", origin=origin)
         assert isinstance(result, Series)
         expected = Series(
             [Timestamp(x) for x in data], dtype="datetime64[us]", name="foo"
@@ -3468,7 +3468,7 @@ class TestOrigin:
         tm.assert_series_equal(result, expected)
 
         arg = Index([1, 2, 3], name="foo")
-        result = to_datetime(arg, unit="D", origin=origin)
+        result = to_datetime(arg, input_unit="D", origin=origin)
         assert isinstance(result, DatetimeIndex)
         expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
         tm.assert_index_equal(result, expected)
