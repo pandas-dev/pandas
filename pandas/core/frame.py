@@ -14177,6 +14177,16 @@ class DataFrame(NDFrame, OpsMixin):
             applied function: list-like results will be returned as a Series
             of those. However if the apply function returns a Series these
             are expanded to columns.
+
+            .. note::
+
+                ``result_type`` has no effect when ``func`` is a NumPy
+                universal function (e.g. ``np.sqrt``). In that case the
+                ufunc is applied directly to the underlying values and the
+                result has the same shape as the input, regardless of
+                ``axis`` or ``result_type``. To use ``result_type`` with a
+                ufunc, wrap it in a Python function (e.g.
+                ``lambda x: np.sqrt(x)``).
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
