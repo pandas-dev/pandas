@@ -4046,6 +4046,23 @@ def test_fillna_zero():
 @pytest.mark.parametrize(
     "offset",
     [
+        pd.offsets.Hour(),
+        pd.offsets.Minute(),
+        pd.offsets.Second(),
+        pd.offsets.Milli(),
+        pd.offsets.Micro(),
+        pd.offsets.Nano(),
+    ],
+)
+def test_date32_pyarrow_intraday_offset_raises(offset):
+    s = pd.Series([date(2022, 12, 30)], dtype="date32[pyarrow]")
+    with pytest.raises(TypeError, match="intra-day"):
+        s + offset
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
         pd.offsets.MonthEnd(),
         pd.offsets.MonthBegin(),
         pd.offsets.Day(5),

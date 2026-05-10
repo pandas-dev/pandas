@@ -1209,17 +1209,6 @@ cdef class BaseOffset:
         """
         return ts._get_start_end_field("is_year_end", self)
 
-    def _add_date_array(self, other):
-        # other is an ArrowExtensionArray with date32/date64 type
-        # Default: apply element-wise via _apply
-        return type(other)._from_sequence(
-            [
-                self._apply(date_val) if date_val is not None else None
-                for date_val in other._pa_array.to_pylist()
-            ],
-            dtype=other.dtype,
-        )
-
 
 cdef class SingleConstructorOffset(BaseOffset):
     @classmethod

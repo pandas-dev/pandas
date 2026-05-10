@@ -26,6 +26,7 @@ from pandas._config import is_nan_na
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
+    Tick,
     Timedelta,
     Timestamp,
     timezones,
@@ -1154,10 +1155,41 @@ class ArrowExtensionArray(
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
         if isinstance(other, DateOffset) and pa.types.is_date(self._pa_array.type):
+            from pandas.core.indexes.datetimes import DatetimeIndex
+
+            if (
+                isinstance(other, Tick)
+                and other.nanos % (24 * 3_600 * 1_000_000_000) != 0
+            ):
+                raise TypeError(
+                    f"DateOffset {other} is intra-day and cannot be "
+                    f"applied to date32/date64 arrays"
+                )
             if op is operator.add or op.__name__ == "__add__":
-                return other._add_date_array(self)
+                # lift to DatetimeIndex, apply offset, cast back
+                dt_index = DatetimeIndex(
+                    self._pa_array.cast(pa.timestamp("us")).to_pandas()
+                )
+                shifted = dt_index + other
+                date_array = pa.array(
+                    shifted.date,  # back to datetime.date objects
+                    type=self._pa_array.type,  # preserve date32 or date64
+                    from_pandas=True,  # handles NaT → null
+                )
+                return type(self)(pa.chunked_array([date_array]))
             elif op is operator.sub or op.__name__ == "__sub__":
-                return other._add_date_array(-self)  # or _sub_date_array
+                dt_index = DatetimeIndex(
+                    self._pa_array.cast(pa.timestamp("us")).to_pandas()
+                )
+                shifted = dt_index - other
+                date_array = pa.array(
+                    shifted.date,
+                    type=self._pa_array.type,
+                    from_pandas=True,
+                )
+                return type(self)(pa.chunked_array([date_array]))
+            else:
+                raise TypeError(f"unsupported op {op} for DateOffset on date32/date64")
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
