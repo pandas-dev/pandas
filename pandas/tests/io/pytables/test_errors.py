@@ -13,6 +13,7 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
+    Series,
     date_range,
     read_hdf,
 )
@@ -252,6 +253,25 @@ def test_to_hdf_unsupported_extension_dtype_index(idx, dtype_match, fmt, temp_h5
     msg = rf"Cannot store an Index with dtype {dtype_match}"
     with pytest.raises(NotImplementedError, match=msg):
         df.to_hdf(temp_h5_path, key="df", format=fmt)
+
+
+def test_to_hdf_multiindex_level_named_index_raises(temp_hdfstore):
+    # GH#6208 a MultiIndex level named 'index' collides with the table
+    # format's implicit row index; surface a clear error instead of the
+    # confusing reshape failure that used to come from write_data
+    mi = MultiIndex.from_tuples(
+        [("foo", "one"), ("foo", "two"), ("bar", "one")],
+        names=["index", "second"],
+    )
+    df = DataFrame({"A": [1, 2, 3]}, index=mi)
+    msg = "cannot store a MultiIndex with a level named 'index' as a table"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put("df", df, format="table", track_times=False)
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, format="table")
+    series = Series([1, 2, 3], index=mi, name="vals")
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put("s", series, format="table", track_times=False)
 
 
 def test_unsupported_hdf_file_error(datapath):
