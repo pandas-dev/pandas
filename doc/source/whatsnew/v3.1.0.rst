@@ -333,6 +333,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` where ``formatters`` dict was applied to wrong columns when output was horizontally truncated via ``max_cols`` (:issue:`35410`)
 - Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` to return an empty DataFrame (:issue:`64025`)
 - Fixed bug in :meth:`HDFStore.select` where passing ``where`` as a list of conditions referencing caller-scope variables failed on Python 3.12+ due to :pep:`709` inlining list comprehension stack frames (:issue:`64881`)
+- Hardened :func:`read_xml` and :meth:`DataFrame.to_xml` ``lxml`` parser configuration to disable XML external entity (XXE) resolution by setting ``resolve_entities=False`` and ``no_network=True`` (:issue:`64979`)
 
 Period
 ^^^^^^

@@ -654,7 +654,11 @@ class _LxmlFrameParser(_XMLFrameParser):
         )
 
         with handle_data as xml_data:
-            curr_parser = XMLParser(encoding=self.encoding)
+            curr_parser = XMLParser(
+                encoding=self.encoding,
+                resolve_entities=False,
+                no_network=True,
+            )
 
             if isinstance(xml_data, io.StringIO):
                 if self.encoding is None:
