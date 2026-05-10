@@ -28,7 +28,7 @@ _TimeLike: TypeAlias = datetime | timedelta | Period | np.datetime64 | np.timede
 _TimeDelta: TypeAlias = timedelta | np.timedelta64
 
 class NaTType:
-    _value: np.int64
+    _value: int
     @property
     def value(self) -> int: ...
     @property

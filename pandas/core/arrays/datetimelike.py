@@ -494,7 +494,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise InvalidComparison(other) from err
 
         if isinstance(other, self._recognized_scalars) or other is NaT:
-            other = self._scalar_type(other)
+            # error: Argument 1 to "Timestamp" has incompatible type "object";
+            # expected "integer[Any] | float | str | date | datetime |
+            # datetime64[date | int | None]"  [arg-type]
+            other = self._scalar_type(other)  # type: ignore[arg-type]
             try:
                 self._check_compatible_with(other)
             except TypeError as err:

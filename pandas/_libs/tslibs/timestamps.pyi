@@ -40,8 +40,7 @@ class Timestamp(datetime):
 
     resolution: ClassVar[Timedelta]
     _value: int  # np.int64
-    # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
-    def __new__(  # type: ignore[misc]
+    def __new__(
         cls: type[Self],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         year: int | None = ...,
@@ -57,7 +56,7 @@ class Timestamp(datetime):
         tz: _TimeZones = ...,
         unit: str | int | None = ...,
         fold: int | None = ...,
-    ) -> Self | NaTType: ...
+    ) -> Self: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _TimeZones
@@ -201,8 +200,9 @@ class Timestamp(datetime):
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] = ...,
-        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
-        | timedelta = ...,
+        nonexistent: (
+            Literal["raise", "shift_forward", "shift_backward"] | timedelta
+        ) = ...,
     ) -> Self: ...
     @overload
     def round(
@@ -216,8 +216,9 @@ class Timestamp(datetime):
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] = ...,
-        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
-        | timedelta = ...,
+        nonexistent: (
+            Literal["raise", "shift_forward", "shift_backward"] | timedelta
+        ) = ...,
     ) -> Self: ...
     @overload
     def floor(
@@ -231,8 +232,9 @@ class Timestamp(datetime):
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] = ...,
-        nonexistent: Literal["raise", "shift_forward", "shift_backward"]
-        | timedelta = ...,
+        nonexistent: (
+            Literal["raise", "shift_forward", "shift_backward"] | timedelta
+        ) = ...,
     ) -> Self: ...
     @overload
     def ceil(

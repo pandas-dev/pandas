@@ -373,8 +373,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         value: Period | NaTType,
     ) -> np.int64:
         if value is NaT:
-            # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value._value)  # type: ignore[union-attr]
+            return np.int64(value._value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -1557,11 +1556,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast("int", FreqGroup.FR_QTR.value)
+            base = FreqGroup.FR_QTR.value
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast("int", FreqGroup.FR_QTR.value):
+            if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr

@@ -1677,7 +1677,6 @@ class ExtensionArray:
         """
         if type(self) != type(other):
             return False
-        other = cast("ExtensionArray", other)
         if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):

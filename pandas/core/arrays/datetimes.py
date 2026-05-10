@@ -553,6 +553,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if not isinstance(value, self._scalar_type) and value is not NaT:
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
+        # We know it is Timestamp or NaT here, but mypy doesn't
+        assert isinstance(value, (Timestamp, NaTType))
         if value is NaT:
             return np.datetime64(value._value, self.unit)
         else:
@@ -3175,7 +3177,9 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     start = Timestamp(start)  # type: ignore[arg-type]
-    if start is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    #  right operand type: "NaTType")
+    if start is not NaT:  # type: ignore[comparison-overlap]
         start = start.as_unit(unit)
     else:
         start = None
@@ -3183,7 +3187,9 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
-    if end is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    #  right operand type: "NaTType")
+    if end is not NaT:  # type: ignore[comparison-overlap]
         end = end.as_unit(unit)
     else:
         end = None

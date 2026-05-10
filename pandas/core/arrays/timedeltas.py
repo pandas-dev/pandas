@@ -313,6 +313,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value._value, self.unit)
         else:
+            # We know it is a Timedelta here, but mypy doesn't
+            assert isinstance(value, Timedelta)
             return value.as_unit(self.unit, round_ok=False).asm8
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
