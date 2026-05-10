@@ -1080,12 +1080,14 @@ def nansem(
      np.float64(0.5773502691896258)
     """
 
-    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
     mask = _maybe_get_mask(values, skipna, mask)
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
+    if not skipna and mask is not None and axis is None and mask.any():
+        return np.nan
     dtype_count = np.dtype(np.float64)
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
+    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
     return np.sqrt(var) / np.sqrt(count)
 
 
