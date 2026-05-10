@@ -129,7 +129,7 @@ Deprecations
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
--
+- Deprecated the default value of ``sort`` in :meth: `DataFrame.groupby` and :meth:`Series.groupby`. In a future version, the default will change from ``True`` to ``False`` so that the implicit per-call overhead is opt-in. Pass ``sort=True`` to retain the current behavior or ``sort=False`` to silence the warning (:issue:`62414`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:
