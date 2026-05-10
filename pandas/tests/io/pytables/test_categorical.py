@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     HDFStore,
     Series,
@@ -187,6 +188,92 @@ def test_convert_value(temp_h5_path, where: str, expected):
 
     df.to_hdf(temp_h5_path, key="df", format="table", min_itemsize=max_widths)
     result = read_hdf(temp_h5_path, where=f'col=="{where}"')
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_roundtrip(fmt, temp_h5_path):
+    # GH#33909 (fixed), GH#16118 (table)
+    df = DataFrame(
+        {"x": [1, 2, 3]}, index=Categorical(["A", "B", "A"], categories=["A", "B"])
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_preserves_metadata(fmt, temp_h5_path):
+    # GH#33909, GH#16118 - ordered flag, custom name, and a non-sorted
+    # category order all need to round-trip.
+    ci = CategoricalIndex(
+        ["b", "a", "c"], categories=["c", "b", "a"], ordered=True, name="ix"
+    )
+    df = DataFrame({"v": [1.0, 2.0, 3.0]}, index=ci)
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+    assert result.index.ordered is True
+    assert list(result.index.categories) == ["c", "b", "a"]
+    assert result.index.name == "ix"
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_with_nan(fmt, temp_h5_path):
+    # GH#33909, GH#16118 - missing entries (code -1) round-trip
+    df = DataFrame(
+        {"x": [1, 2, 3]},
+        index=CategoricalIndex(["a", None, "b"], categories=["a", "b"]),
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_categorical_index_numeric_categories(fmt, temp_h5_path):
+    # GH#33909, GH#16118 - non-string categories
+    df = DataFrame(
+        {"x": [1, 2, 3]},
+        index=CategoricalIndex([10, 20, 30], categories=[10, 20, 30, 40]),
+    )
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_columns_axis_fixed_format(temp_h5_path):
+    # GH#33909 - the columns axis is also a CategoricalIndex; fixed format
+    df = DataFrame(
+        [[1, 2], [3, 4]],
+        index=["r1", "r2"],
+        columns=CategoricalIndex(["a", "b"]),
+    )
+    df.to_hdf(temp_h5_path, key="df")
+    result = read_hdf(temp_h5_path, key="df")
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_index_series_fixed_format(temp_h5_path):
+    # GH#33909 - Series with a CategoricalIndex
+    ser = Series(
+        [10, 20, 30],
+        index=CategoricalIndex(["x", "y", "z"], categories=["x", "y", "z"]),
+        name="vals",
+    )
+    ser.to_hdf(temp_h5_path, key="ser")
+    result = read_hdf(temp_h5_path, key="ser")
+    tm.assert_series_equal(result, ser)
+
+
+def test_categorical_index_table_append(temp_h5_path):
+    # GH#16118 - appending rows with the same CategoricalIndex categories
+    ci = CategoricalIndex(["a", "b", "c"], categories=["a", "b", "c"], name="ix")
+    df = DataFrame({"v": [1.0, 2.0, 3.0]}, index=ci)
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    df.to_hdf(temp_h5_path, key="df", format="table", append=True)
+    result = read_hdf(temp_h5_path, key="df")
+    expected = concat([df, df])
     tm.assert_frame_equal(result, expected)
 
 
