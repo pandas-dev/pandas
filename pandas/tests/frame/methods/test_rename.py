@@ -195,11 +195,7 @@ class TestRename:
         assert float_frame["foo"] is not c_values
 
     def test_rename_inplace_depr(self, float_frame):
-        msg = (
-            "The inplace keyword in DataFrame.rename is "
-            "deprecated and will be removed in future versions. "
-            "See `PDEP-8 for more details."
-        )
+        msg = "The inplace keyword in DataFrame.rename is deprecated"
 
         # uses keyword, sets to true, warning
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
