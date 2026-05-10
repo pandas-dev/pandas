@@ -837,6 +837,29 @@ class TestParquetPyArrow(Base):
         else:
             check_round_trip(df, temp_file, pa)
 
+    @pytest.mark.skipif(
+        not using_string_dtype(),
+        reason="Schema unification across null/string batches relies on the "
+        "default string dtype; with infer_string disabled batches are written "
+        "as object/null and pyarrow cannot reconcile them.",
+    )
+    def test_read_parquet_first_batch_all_null_GH55731(self, pa, tmp_path):
+        # GH#55731 reading a multi-file parquet directory raised
+        # ArrowNotImplementedError when the first file was entirely null and
+        # a later file held a non-null value, because the first batch was
+        # written with a "null" type that could not be cast to "string".
+        n = 200
+        non_null_idx = n // 2 + 5
+        col = [None] * n
+        col[non_null_idx] = "funny"
+        expected = pd.DataFrame({"funny_col": col})
+
+        expected.iloc[: n // 2].to_parquet(tmp_path / "part-00.parquet", engine=pa)
+        expected.iloc[n // 2 :].to_parquet(tmp_path / "part-01.parquet", engine=pa)
+
+        result = read_parquet(tmp_path, engine=pa)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.xfail(
         is_platform_windows(),
         reason=(
