@@ -1079,29 +1079,14 @@ def nansem(
     >>> nanops.nansem(s.values)
      np.float64(0.5773502691896258)
     """
-    # This checks if non-numeric-like data is passed with numeric_only=False
-    # and raises a TypeError otherwise
-    nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
+    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
     mask = _maybe_get_mask(values, skipna, mask)
-    # Convert to bottleneck return a float
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
-
-    if not skipna and mask is not None and axis is None and mask.any():
-        return np.nan
-
     dtype_count = np.dtype(np.float64)
-    if values.dtype.kind == "f":
-        dtype_count = values.dtype
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
-    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
-
-    # nanvar already propagates NaN per-slice when skipna=False and mask is
-    # set; derive sem element-wise so the shape is preserved correctly.
-    with np.errstate(invalid="ignore"):
-        result = np.sqrt(var) / np.sqrt(count)
-    return result
+    return np.sqrt(var) / np.sqrt(count)
 
 
 def _nanminmax(meth, fill_value_typ):
