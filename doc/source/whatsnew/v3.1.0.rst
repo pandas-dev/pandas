@@ -129,8 +129,8 @@ Deprecations
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
-- Deprecated ``inplace`` keyword :meth:`DataFrame.rename`. This keyword will be removed in a future version (:issue:`63207`);
-  see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
+- Deprecated ``inplace`` keyword :meth:`DataFrame.rename`. This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.performance:
 
