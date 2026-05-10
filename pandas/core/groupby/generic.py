@@ -2827,6 +2827,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if is_dict_like(func):
             # ── dict / NamedAgg path ─────────────────────────────────────────
+            func = cast("dict", func)
             results: list[Series] = []
             for name, agg in func.items():
                 if isinstance(agg, NamedAgg):
