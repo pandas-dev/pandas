@@ -2823,6 +2823,13 @@ class DataCol(IndexCol):
                 converted = np.asarray(converted, dtype="m8[ns]")
             else:
                 converted = np.asarray(converted, dtype=dtype)
+        elif dtype.startswith("period"):
+            # GH#41978 PeriodArray values are stored as i8 ordinals; the
+            # PyTables atom has shape (1,) per row, so ravel before wrapping.
+            pdtype = PeriodDtype.construct_from_string(dtype)
+            converted = PeriodArray._simple_new(
+                np.asarray(converted, dtype="i8").ravel(), dtype=pdtype
+            )
         elif dtype == "date":
             try:
                 converted = np.asarray(
@@ -3215,6 +3222,10 @@ class GenericFixed(Fixed):
                 else:
                     ret = np.asarray(ret, dtype=dtype)
 
+            elif dtype and dtype.startswith("period"):
+                pdtype = PeriodDtype.construct_from_string(dtype)
+                ret = PeriodArray._simple_new(np.asarray(ret, dtype="i8"), dtype=pdtype)
+
         if transposed:
             return ret.T
         else:
@@ -3462,6 +3473,16 @@ class GenericFixed(Fixed):
             elif lib.is_np_dtype(value.dtype, "m"):
                 self._handle.create_array(self.group, key, value.view("i8"))
                 getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif isinstance(value.dtype, PeriodDtype):
+                # GH#41978 store PeriodArray as i8 ordinals + freq attr
+                # error: "ExtensionArray" has no attribute "asi8"
+                self._handle.create_array(
+                    self.group,
+                    key,
+                    value.asi8,  # type: ignore[attr-defined]
+                )
+                node = getattr(self.group, key)
+                node._v_attrs.value_type = str(value.dtype)
             elif empty_array:
                 self.write_array_empty(key, value)
             else:
@@ -5592,7 +5613,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
 
-    elif isinstance(data, PeriodIndex):
+    elif isinstance(data, (PeriodIndex, PeriodArray)):
         data = data.asi8
 
     data = np.asarray(data)
