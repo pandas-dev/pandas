@@ -7879,7 +7879,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting duplicate rows.
 
-        Considering certain columns is optional.
+        Rows are considered duplicated when the same values appear more than
+        once across the requested columns. Considering certain columns is
+        optional.
 
         Parameters
         ----------
@@ -7896,7 +7898,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Boolean series for each duplicated rows.
+            Boolean Series indicating whether each row is a duplicated row
+            according to ``keep``.
 
         See Also
         --------
