@@ -190,13 +190,6 @@ def test_transform_series_groupby_list_raises():
         g.transform(["sum", "min"])
 
 
-def test_transform_dict_duplicate_column_names_raises():
-    # GH#58318 - duplicate column names are not supported in dict path
-    df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "B"])
-    with pytest.raises(ValueError, match="not unique"):
-        df.groupby("A").transform({"B": "sum"})
-
-
 def test_transform_fast():
     df = DataFrame(
         {

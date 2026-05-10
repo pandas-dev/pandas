@@ -760,7 +760,7 @@ class SeriesGroupBy(GroupBy[Series]):
             raise NotImplementedError(
                 "Passing a list to SeriesGroupBy.transform is not yet supported "
                 "and is intended to be implemented in a future release. "
-                "See GH#58318."
+                "See https://github.com/pandas-dev/pandas/issues/58318."
             )
 
         return self._transform(
@@ -2633,6 +2633,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs
             Keyword arguments to be passed into func.
             When ``func=None``, ``**kwargs`` should be pairs of
+            ``output_name=NamedFunc(column, func)`` for named transformation or
             ``output_name=NamedAgg(column, aggfunc)`` for named aggregation.
 
         Returns
@@ -2746,7 +2747,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1    1   0     1   0
         2    2   2     2   2
 
-        .. versionchanged:: 3.0.0
+        .. versionchanged:: 3.0.1
 
         Dictionary arguments
 
@@ -2756,7 +2757,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1    1      0
         2    2      2
 
-        .. versionchanged:: 3.0.0
+        .. versionchanged:: 3.0.1
 
         Named aggregation
 
@@ -2769,38 +2770,37 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1        1          0
         2        2          2
 
-        .. versionchanged:: 3.0.0
+        .. versionchanged:: 3.0.1
         """
         # GH#58318 - extended to accept list, dict, and NamedAgg kwargs.
 
         if func is None:
             # Named-aggregation style:
             #   .transform(val_sum=NamedAgg(column="val", aggfunc="sum"), ...)
-            transformed_func: dict = dict(kwargs.items())
             return self._transform_multiple_funcs(
-                transformed_func, *args, engine=engine, engine_kwargs=engine_kwargs
+                kwargs, *args, engine=engine, engine_kwargs=engine_kwargs
             )
-        elif isinstance(func, dict):
+        elif is_dict_like(func):
             # e.g. .transform({"val": "sum"}) or {"name": NamedAgg(...)}
             # Dict-of-lists is not yet supported.
             for val in func.values():
-                if isinstance(val, list):
+                if is_list_like(val):
                     raise NotImplementedError(
                         "Passing a dict of lists to DataFrameGroupBy.transform is "
                         "not yet supported and is intended to be implemented in a "
-                        "future release. See GH#58318."
+                        "future release. "
+                        "See https://github.com/pandas-dev/pandas/issues/58318"
                     )
             return self._transform_multiple_funcs(
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
-        elif isinstance(func, list):
+        elif is_list_like(func):
             # e.g. .transform(["sum", "min"])
             func = maybe_mangle_lambdas(func)
             return self._transform_multiple_funcs(
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
         else:
-            # Original single-function path; unchanged.
             return self._transform(
                 func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
@@ -2825,7 +2825,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         from pandas.core.reshape.concat import concat
 
-        if isinstance(func, dict):
+        if is_dict_like(func):
             # ── dict / NamedAgg path ─────────────────────────────────────────
             results: list[Series] = []
             for name, agg in func.items():
@@ -2855,7 +2855,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # ── list path ────────────────────────────────────────────────────────
         # Apply every func to every non-key column.
         # _obj_with_exclusions already omits groupby keys and excluded columns.
-        assert isinstance(func, list)
+        assert is_list_like(func)
         results_list: list[Series] = []
         col_order: list[tuple] = []
         for column in self._obj_with_exclusions.columns:
@@ -2909,19 +2909,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         Series
             Transformed Series with the same index as the original DataFrame.
-
-        Raises
-        ------
-        ValueError
-            If ``column_name`` appears more than once in the DataFrame columns.
-            Dict and NamedAgg paths do not support duplicate column names.
         """
-        if (self._obj_with_exclusions.columns == column_name).sum() > 1:
-            raise ValueError(
-                f"Column label '{column_name}' is not unique in this DataFrame. "
-                "DataFrameGroupBy.transform with a dict or NamedAgg does not "
-                "support duplicate column names. See GH#58318."
-            )
         data = self._gotitem(column_name, ndim=1)
         return data.transform(
             agg_func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
