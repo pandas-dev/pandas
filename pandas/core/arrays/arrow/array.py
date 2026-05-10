@@ -1172,7 +1172,7 @@ class ArrowExtensionArray(
                 )
                 shifted = dt_index + other
                 date_array = pa.array(
-                    shifted.date,  # back to datetime.date objects
+                    shifted.date,  # type: ignore[attr-defined] # back to datetime.date objects
                     type=self._pa_array.type,  # preserve date32 or date64
                     from_pandas=True,  # handles NaT → null
                 )
@@ -1183,7 +1183,7 @@ class ArrowExtensionArray(
                 )
                 shifted = dt_index - other
                 date_array = pa.array(
-                    shifted.date,
+                    shifted.date,  # type: ignore[attr-defined]
                     type=self._pa_array.type,
                     from_pandas=True,
                 )
