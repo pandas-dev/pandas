@@ -556,13 +556,22 @@ def _can_use_pyarrow_string_fastpath() -> bool:
     """
     Whether the default-string fast path in ``sanitize_array`` is available.
 
-    Returns True only when pyarrow is importable, since the fast path
-    constructs an :class:`~pandas.arrays.ArrowStringArray` directly via
-    ``pa.array``.
+    Returns True only when pyarrow is importable AND the resolved default
+    string storage is ``"pyarrow"`` (either explicitly set or via the
+    ``"auto"`` default that picks pyarrow when available). Otherwise the
+    user expects ``StringDtype(storage="python")`` and the fast path's
+    pyarrow-only construction would produce a wrong-storage result.
     """
     from pandas.compat import HAS_PYARROW
 
-    return HAS_PYARROW
+    if not HAS_PYARROW:
+        return False
+    from pandas._config import get_option
+
+    storage = get_option("mode.string_storage")
+    # ``"auto"`` resolves to pyarrow when HAS_PYARROW is True (mirrors
+    # StringDtype.__init__ resolution logic).
+    return storage in ("auto", "pyarrow")
 
 
 def _is_list_of_str_or_na(data: list) -> bool:
