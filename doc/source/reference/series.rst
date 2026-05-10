@@ -109,9 +109,15 @@ Binary operator functions
    Series.ge
    Series.ne
    Series.eq
-   Series.__invert__
    Series.product
    Series.dot
+
+Unary operator functions
+-------------------------
+.. autosummary::
+   :toctree: api/
+
+   Series.__invert__
 
 Function application, GroupBy & window
 --------------------------------------
