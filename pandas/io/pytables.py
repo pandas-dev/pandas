@@ -3167,7 +3167,22 @@ class GenericFixed(Fixed):
             kwargs["copy"] = False
 
         if "freq" in attrs:
-            kwargs["freq"] = attrs["freq"]
+            freq_attr = attrs["freq"]
+            if isinstance(freq_attr, bytes):
+                # GH#35917: HDF5 files written by old (Python 2) pandas
+                #  stored freq as a Python 2 pickle byte-string, which
+                #  pytables can't unpickle in Python 3. The original
+                #  freq is unrecoverable, so drop it. The index data
+                #  itself is unaffected; users can manually reassign
+                #  via `df.index.freq = df.index.inferred_freq`.
+                warnings.warn(
+                    "Could not decode freq attribute on stored index; "
+                    "the file was likely written by an older pandas "
+                    "version. Setting freq=None.",
+                    stacklevel=find_stack_level(),
+                )
+                freq_attr = None
+            kwargs["freq"] = freq_attr
             if index_class is Index:
                 # DTI/PI would be gotten by _alias_to_class
                 factory = TimedeltaIndex
