@@ -552,6 +552,52 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     return data
 
 
+def _can_use_pyarrow_string_fastpath() -> bool:
+    """
+    Whether the default-string fast path in ``sanitize_array`` is available.
+
+    Returns True only when pyarrow is importable, since the fast path
+    constructs an :class:`~pandas.arrays.ArrowStringArray` directly via
+    ``pa.array``.
+    """
+    from pandas.compat import HAS_PYARROW
+
+    return HAS_PYARROW
+
+
+def _is_list_of_str_or_na(data: list) -> bool:
+    """
+    Whether ``data`` contains at least one ``str`` and no other non-NA values.
+
+    Returns True when every element of ``data`` is a ``str`` or an NA-like
+    value (``None``, ``float('nan')``, ``pd.NA``) AND at least one element
+    is a ``str``. The "at least one ``str``" requirement preserves existing
+    inference for all-NA lists like ``Series([np.nan, np.nan])`` (float64)
+    and ``Series([None])`` (object).
+
+    Used to gate the GH#64429 fast path in :func:`sanitize_array` that skips
+    the intermediate ``ndarray[object]`` allocation when a raw list of
+    strings is being turned into a pyarrow-backed string Series.
+    """
+    if not data:
+        return False
+    from pandas._libs import missing as libmissing
+
+    NA = libmissing.NA
+    seen_str = False
+    for value in data:
+        if isinstance(value, str):
+            seen_str = True
+            continue
+        if value is None or value is NA:
+            continue
+        if isinstance(value, float) and value != value:
+            # NaN check via x != x avoids importing math.isnan in the hot loop
+            continue
+        return False
+    return seen_str
+
+
 def sanitize_array(
     data,
     index: Index | None,
@@ -687,6 +733,25 @@ def sanitize_array(
 
         elif dtype is not None:
             subarr = _try_cast(data, dtype, copy)
+
+        elif (
+            using_string_dtype()
+            and _can_use_pyarrow_string_fastpath()
+            and _is_list_of_str_or_na(data)
+        ):
+            # GH#64429 fast path: avoid the ndarray[object] intermediate when
+            # constructing a (default) pyarrow-backed string Series from a raw
+            # list of strings. Skips ``construct_1d_object_array_from_listlike``
+            # and ``ensure_string_array``'s object-array allocation by passing
+            # ``data`` straight to ``pa.array``.
+            import pyarrow as pa
+
+            from pandas.core.arrays.string_ import StringDtype
+            from pandas.core.arrays.string_arrow import ArrowStringArray
+
+            str_dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+            pa_arr = pa.array(data, type=pa.large_string(), from_pandas=True)
+            subarr = ArrowStringArray(pa_arr, dtype=str_dtype)
 
         else:
             subarr = construct_1d_object_array_from_listlike(data)
