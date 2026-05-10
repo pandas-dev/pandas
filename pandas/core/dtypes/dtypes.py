@@ -2338,6 +2338,14 @@ class ArrowDtype(StorageExtensionDtype):
         return self.numpy_dtype.kind
 
     @cache_readonly
+    def index_class(self):
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            from pandas import DatetimeIndex
+
+            return DatetimeIndex
+        return super().index_class
+
+    @cache_readonly
     def itemsize(self) -> int:
         """
         Return the number of bytes in this dtype.

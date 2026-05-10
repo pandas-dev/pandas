@@ -333,6 +333,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` where ``formatters`` dict was applied to wrong columns when output was horizontally truncated via ``max_cols`` (:issue:`35410`)
 - Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` to return an empty DataFrame (:issue:`64025`)
 - Fixed bug in :meth:`HDFStore.select` where passing ``where`` as a list of conditions referencing caller-scope variables failed on Python 3.12+ due to :pep:`709` inlining list comprehension stack frames (:issue:`64881`)
+- Fixed :meth:`DataFrame.set_index` to return a :class:`DatetimeIndex` when setting a PyArrow timestamp column as the index, which also fixes :func:`read_excel` with ``index_col``, ``parse_dates=True``, and ``dtype_backend="pyarrow"`` returning a generic :class:`Index` (:issue:`60561`, :issue:`65524`)
 
 Period
 ^^^^^^

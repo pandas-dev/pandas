@@ -13,6 +13,7 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 from pandas import (
+    ArrowDtype,
     Categorical,
     CategoricalIndex,
     DataFrame,
@@ -67,6 +68,40 @@ class TestSetIndex:
         index = MultiIndex.from_tuples(df["tuples"])
         # it works!
         df.set_index(index)
+
+    def test_set_index_arrow_timestamp_creates_datetime_index(self):
+        pa = pytest.importorskip("pyarrow")
+
+        dtype = ArrowDtype(pa.timestamp("us"))
+        df = DataFrame(
+            {
+                "date": Series(
+                    ["2024-01-01 00:00:00", "2024-02-01 00:00:00"],
+                    dtype=dtype,
+                ),
+                "value": [1, 2],
+            }
+        )
+
+        result = df.set_index("date")
+
+        expected_index = Index(
+            Series(
+                ["2024-01-01 00:00:00", "2024-02-01 00:00:00"],
+                dtype=dtype,
+            ).array,
+            name="date",
+        )
+        expected = DataFrame({"value": [1, 2]}, index=expected_index)
+        tm.assert_frame_equal(result, expected)
+        assert isinstance(result.index, DatetimeIndex)
+        assert result.index.dtype == dtype
+        tm.assert_frame_equal(result.loc["2024-01"], expected.iloc[[0]])
+        assert "2024-01-01" in result.loc["2024-01"].to_string()
+        tm.assert_index_equal(
+            result.index.to_period("M"),
+            period_range("2024-01", periods=2, freq="M", name="date"),
+        )
 
     def test_set_index_empty_column(self):
         # GH#1971

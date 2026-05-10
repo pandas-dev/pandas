@@ -189,8 +189,13 @@ class _FrequencyInferer:
         if isinstance(index, ABCIndex):
             # error: Item "ndarray[Any, Any]" of "Union[ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "_ndarray"
+            data = (
+                index._data_for_engine_target()
+                if hasattr(index, "_data_for_engine_target")
+                else index._data
+            )
             self._creso = get_unit_from_dtype(
-                index._data._ndarray.dtype  # type: ignore[union-attr]
+                data._ndarray.dtype  # type: ignore[union-attr]
             )
         else:
             # otherwise we have DTA/TDA

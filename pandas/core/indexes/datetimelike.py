@@ -514,6 +514,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         except KeyError as err:
             raise KeyError(key) from err
 
+    def _data_for_partial_date_slice(self):
+        return self._data
+
     @final
     def _partial_date_slice(
         self,
@@ -534,8 +537,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             raise ValueError
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
-        vals = self._data._ndarray
-        unbox = self._data._unbox
+        data = self._data_for_partial_date_slice()
+        vals = data._ndarray
+        unbox = data._unbox
 
         if self.is_monotonic_increasing:
             if len(self) and (
@@ -639,12 +643,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     # --------------------------------------------------------------------
 
+    def _data_for_listlike_indexer(self):
+        return self._data
+
     def _maybe_cast_listlike_indexer(self, keyarr):
         """
         Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
         """
         try:
-            res = self._data._validate_listlike(keyarr, allow_object=True)
+            res = self._data_for_listlike_indexer()._validate_listlike(
+                keyarr, allow_object=True
+            )
         except (ValueError, TypeError):
             if not isinstance(keyarr, ExtensionArray):
                 # e.g. we don't want to cast DTA to ndarray[object]
@@ -987,7 +996,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
-        data = self._data._ndarray
+        data = self._data_for_engine_target()._ndarray
         data = data.view()
         data.flags.writeable = False
         return data
@@ -1311,14 +1320,21 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         join_index._freq = self._get_join_freq(other)
         return join_index, lidx, ridx
 
+    def _data_for_engine_target(self):
+        return self._data
+
     def _get_engine_target(self) -> np.ndarray:
         # engine methods and libjoin methods need dt64/td64 values cast to i8
-        return self._data._ndarray.view("i8")
+        return self._data_for_engine_target()._ndarray.view("i8")
+
+    def _data_from_join_target(self, result: np.ndarray):
+        return self._data._from_backing_data(result)
 
     def _from_join_target(self, result: np.ndarray):
         # view e.g. i8 back to M8[ns]
-        result = result.view(self._data._ndarray.dtype)
-        return self._data._from_backing_data(result)
+        data = self._data_for_engine_target()
+        result = result.view(data._ndarray.dtype)
+        return self._data_from_join_target(result)
 
     def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if (
@@ -1414,12 +1430,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                         freq = self.freq
         return freq
 
+    def _data_for_insert_freq(self):
+        return self._data
+
     def _get_insert_freq(self, loc: int, item):
         """
         Find the `freq` for self.insert(loc, item).
         """
-        value = self._data._validate_scalar(item)
-        item = self._data._box_func(value)
+        data = self._data_for_insert_freq()
+        value = data._validate_scalar(item)
+        item = data._box_func(value)
 
         freq = None
         if self.freq is not None:

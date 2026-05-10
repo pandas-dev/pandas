@@ -21,12 +21,14 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     Timedelta,
+    get_resolution,
     periods_per_day,
     timezones,
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
+    BaseOffset,
     DateOffset,
     prefix_mapping,
 )
@@ -45,6 +47,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
+from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
     tz_to_dtype,
@@ -133,8 +136,6 @@ def _new_DatetimeIndex(cls, d):
 @inherit_names(["is_normalized"], DatetimeArray, cache=True)
 @inherit_names(
     [
-        "tz",
-        "tzinfo",
         "dtype",
         "to_pydatetime",
         "date",
@@ -272,7 +273,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _typ = "datetimeindex"
 
-    _data_cls = DatetimeArray
+    _data_cls = (DatetimeArray, ArrowExtensionArray)  # type: ignore[assignment]
     _supports_partial_string_indexing = True
 
     @property
@@ -281,7 +282,45 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     _data: DatetimeArray
     _values: DatetimeArray
-    tz: dt.tzinfo | None
+
+    def _data_as_datetimearray(self) -> DatetimeArray:
+        data = self._data
+        if isinstance(data, ArrowExtensionArray):
+            return data._to_datetimearray()
+        return data
+
+    def _data_for_partial_date_slice(self) -> DatetimeArray:
+        return self._data_as_datetimearray()
+
+    def _data_for_engine_target(self) -> DatetimeArray:
+        return self._data_as_datetimearray()
+
+    def _data_for_listlike_indexer(self) -> DatetimeArray:
+        return self._data_as_datetimearray()
+
+    def _data_for_insert_freq(self) -> DatetimeArray:
+        return self._data_as_datetimearray()
+
+    def _data_from_join_target(self, result: np.ndarray):
+        if isinstance(self._data, ArrowExtensionArray):
+            return type(self._data)._from_sequence(result, dtype=self.dtype)
+        return self._data._from_backing_data(result)
+
+    def _with_freq(self, freq):
+        result = super()._with_freq(freq)
+        if isinstance(self._data, ArrowExtensionArray):
+            result._freq = None
+        return result
+
+    @property
+    def freq(self) -> BaseOffset | None:
+        if isinstance(self._data, ArrowExtensionArray):
+            return None
+        return super().freq
+
+    @freq.setter
+    def freq(self, value) -> None:
+        self._freq = value
 
     # field_ops: wrap result in Index
 
@@ -807,7 +846,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 res = get_period_alias(freq)
                 if res is not None:
                     freq = res
-        arr = self._data.to_period(freq)
+        arr = self._data_as_datetimearray().to_period(freq)
         return PeriodIndex._simple_new(arr, name=self.name)
 
     def to_julian_date(self) -> Index:
@@ -943,7 +982,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if delta % dt.timedelta(days=1) != dt.timedelta(days=0):
                 return False
 
-        return self._values._is_dates_only
+        return self._data_as_datetimearray()._is_dates_only
 
     def __reduce__(self):
         d = {"data": self._data, "name": self.name, "freq": self._freq}
@@ -977,6 +1016,26 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # Rendering Methods
+
+    def _format_with_header(
+        self,
+        *,
+        header: list[str],
+        na_rep: str,
+        date_format: str | None = None,
+    ) -> list[str]:
+        if isinstance(self._data, ArrowExtensionArray):
+            index = type(self)._simple_new(
+                self._data_as_datetimearray(),
+                name=self.name,
+            )
+            return index._format_with_header(
+                header=header, na_rep=na_rep, date_format=date_format
+            )
+
+        return super()._format_with_header(
+            header=header, na_rep=na_rep, date_format=date_format
+        )
 
     def _formatter_func(self, val) -> str:
         # Note this is equivalent to the DatetimeIndexOpsMixin method but
@@ -1147,22 +1206,51 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         parsed = Timestamp(parsed)
 
-        if self.tz is not None and parsed.tzinfo is None:
+        tz = self._data_as_datetimearray().tz
+        if tz is not None and parsed.tzinfo is None:
             # we special-case timezone-naive strings and timezone-aware
             #  DatetimeIndex
             # https://github.com/pandas-dev/pandas/pull/36148#issuecomment-687883081
-            parsed = parsed.tz_localize(self.tz)
+            parsed = parsed.tz_localize(tz)
 
         return parsed, reso
+
+    @property
+    def tz(self) -> dt.tzinfo | None:
+        return self._data_as_datetimearray().tz
+
+    @tz.setter
+    def tz(self, value) -> None:
+        self._data_as_datetimearray().tz = value
+
+    @property
+    def tzinfo(self) -> dt.tzinfo | None:
+        return self.tz
+
+    @property
+    def asi8(self) -> np.ndarray:
+        return self._data_as_datetimearray().asi8
+
+    @property
+    def unit(self) -> TimeUnit:
+        return self._data_as_datetimearray().unit
+
+    @cache_readonly
+    def _resolution_obj(self):
+        data = self._data_as_datetimearray()
+        return get_resolution(data.asi8, data.tz, reso=data._creso)
+
+    @cache_readonly
+    def inferred_freq(self) -> str | None:
+        return self._data_as_datetimearray().inferred_freq
 
     def _disallow_mismatched_indexing(self, key) -> None:
         """
         Check for mismatched-tzawareness indexing and re-raise as KeyError.
         """
-        # we get here with isinstance(key, self._data._recognized_scalars)
         try:
             # GH#36148
-            self._data._assert_tzawareness_compat(key)
+            self._data_as_datetimearray()._assert_tzawareness_compat(key)
         except TypeError as err:
             raise KeyError(key) from err
 
@@ -1180,7 +1268,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if is_valid_na_for_dtype(key, self.dtype):
             key = NaT
 
-        if isinstance(key, self._data._recognized_scalars):
+        if isinstance(key, DatetimeArray._recognized_scalars):
             # needed to localize naive datetimes
             self._disallow_mismatched_indexing(key)
             key = Timestamp(key)
