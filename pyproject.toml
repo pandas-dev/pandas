@@ -472,6 +472,15 @@ filterwarnings = [
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  # GH#57108 default value of sort in DataFrame.groupby/Series.groupby
+  # is being deprecated; suppress for the duration of the deprecation
+  # window so that existing tests that rely on the implicit sort=True
+  # default keep passing.
+  # Tests that explicitly assert this warning use
+  # tm.assert_produces_warning, which uses filter_level="always"
+  # and overrides this filter.
+  "ignore:The default value of 'sort' in DataFrame.groupby:pandas.errors.Pandas4Warning",
+  "ignore:The default value of 'sort' in Series.groupby:pandas.errors.Pandas4Warning",
 ]
 junit_family = "xunit2"
 
