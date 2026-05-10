@@ -86,6 +86,25 @@ class SeriesConstructors:
         Series(self.data, index=self.index)
 
 
+class SeriesConstructionFromListOfStrings:
+    # GH#64429: avoid the ndarray[object] intermediate when constructing
+    # a (default) pyarrow-backed string Series from a raw list of strings.
+    params = [1, 100, 10_000]
+    param_names = ["size"]
+
+    def setup(self, size):
+        self.list_str = [f"i-{i}" for i in range(size)]
+        self.list_str_with_na = (
+            [f"i-{i}" for i in range(size - 1)] + [None] if size > 0 else []
+        )
+
+    def time_list_str(self, size):
+        Series(self.list_str)
+
+    def time_list_str_with_na(self, size):
+        Series(self.list_str_with_na)
+
+
 class SeriesDtypesConstructors:
     def setup(self):
         N = 10**4
