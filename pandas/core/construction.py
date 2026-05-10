@@ -574,6 +574,43 @@ def _can_use_pyarrow_string_fastpath() -> bool:
     return storage in ("auto", "pyarrow")
 
 
+def _try_pyarrow_string_fastpath(data) -> ExtensionArray | None:
+    """
+    Try the GH#64429 fast path for constructing a pyarrow-backed string Series
+    from a raw ``list`` of strings.
+
+    Returns the constructed :class:`ArrowStringArray` if every precondition
+    is met and ``pa.array`` accepts the input, otherwise ``None`` so the
+    caller can fall through to the slow path.
+
+    Preconditions are O(1): ``data`` must be a non-empty ``list`` whose first
+    element is ``str``. Element-by-element type validation is delegated to
+    ``pa.array`` (Apache Arrow's C++ ``ConvertPySequence``); a mixed-type
+    input raises ``ArrowInvalid`` / ``ArrowTypeError`` and we return ``None``.
+    """
+    if not (
+        _can_use_pyarrow_string_fastpath()
+        and isinstance(data, list)
+        and len(data) > 0
+        and isinstance(data[0], str)
+    ):
+        return None
+
+    import pyarrow as pa
+
+    try:
+        pa_arr = pa.array(data, type=pa.large_string(), from_pandas=True)
+    except (pa.ArrowInvalid, pa.ArrowTypeError):
+        return None
+
+    from pandas.core.arrays.string_ import StringDtype
+    from pandas.core.arrays.string_arrow import ArrowStringArray
+
+    return ArrowStringArray(
+        pa_arr, dtype=StringDtype(storage="pyarrow", na_value=np.nan)
+    )
+
+
 def sanitize_array(
     data,
     index: Index | None,
@@ -711,40 +748,17 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy)
 
         else:
-            # GH#64429: when the input is a list whose first element is a
-            # ``str`` and the resolved default dtype is pyarrow-backed string,
-            # hand the list straight to ``pa.array`` instead of allocating an
-            # ``ndarray[object]`` intermediate. The first-element check is
-            # O(1); element-by-element validation happens in C inside
-            # ``pa.array`` itself. Mixed-type lists (a non-str / non-NA
-            # element later in the list) raise ``ArrowInvalid`` and we fall
-            # through to the slow path below.
-            subarr = None
-            if (
-                using_string_dtype()
-                and _can_use_pyarrow_string_fastpath()
-                and isinstance(data, list)
-                and len(data) > 0
-                and isinstance(data[0], str)
-            ):
-                import pyarrow as pa
-
-                try:
-                    pa_arr = pa.array(
-                        data, type=pa.large_string(), from_pandas=True
-                    )
-                except (pa.ArrowInvalid, pa.ArrowTypeError):
-                    pa_arr = None
-                if pa_arr is not None:
-                    from pandas.core.arrays.string_ import StringDtype
-                    from pandas.core.arrays.string_arrow import ArrowStringArray
-
-                    subarr = ArrowStringArray(
-                        pa_arr,
-                        dtype=StringDtype(storage="pyarrow", na_value=np.nan),
-                    )
-
-            if subarr is None:
+            # GH#64429: try a pyarrow-string fast path for ``list[str]`` input
+            # (skips the ndarray[object] intermediate). The helper returns
+            # ``None`` whenever a precondition is not met or ``pa.array``
+            # rejects the input, in which case we fall through to the slow
+            # path below.
+            fastpath_subarr = (
+                _try_pyarrow_string_fastpath(data) if using_string_dtype() else None
+            )
+            if fastpath_subarr is not None:
+                subarr = fastpath_subarr
+            else:
                 subarr = construct_1d_object_array_from_listlike(data)
                 subarr = lib.maybe_convert_objects(
                     subarr,
