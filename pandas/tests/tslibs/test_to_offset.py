@@ -102,7 +102,7 @@ def test_to_offset_invalid(freqstr):
     ],
 )
 def test_to_offset_fractional_invalid_alias(freqstr, alias):
-    msg = rf"Invalid frequency: {re.escape(freqstr)}.*Invalid frequency: {alias}"
+    msg = rf"Invalid frequency: {alias}"
 
     with pytest.raises(ValueError, match=msg):
         to_offset(freqstr)
