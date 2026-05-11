@@ -192,7 +192,7 @@ Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with s
    sdf.head()
    sdf.dtypes
 
-All sparse formats are supported, but matrices that are not in :class:`~scipy.sparse.csc_matrix` format will be converted, copying data as needed.
+All sparse formats are supported, but matrices that are not in Compressed Sparse Column (CSC) matrix format will be converted, copying data as needed.
 To convert a :class:`DataFrame` back to a sparse SciPy matrix in COO format, you can use the :meth:`DataFrame.sparse.to_coo` method:
 
 .. ipython:: python
