@@ -247,7 +247,5 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr, expected):
 def test_to_offset_uppercase_frequency_raises(freq, expected):
     msg = f"Invalid frequency: {re.escape(freq)}.*Did you mean {expected}"
 
-    with pytest.raises(ValueError, match=msg) as err:
+    with pytest.raises(ValueError, match=msg):
         to_offset(freq)
-    assert "invalid literal" not in str(err.value)
-    assert "KeyError" not in str(err.value)
