@@ -695,7 +695,7 @@ def sanitize_array(
         else:
             # GH#64429: fast path for raw ``list[str]`` under the default
             # pyarrow-backed string mode.
-            subarr = None
+            fastpath_arr: ExtensionArray | None = None
             if (
                 using_string_dtype()
                 and HAS_PYARROW
@@ -703,8 +703,10 @@ def sanitize_array(
             ):
                 from pandas.core.arrays.string_arrow import ArrowStringArray
 
-                subarr = ArrowStringArray._maybe_from_python_list(data)
-            if subarr is None:
+                fastpath_arr = ArrowStringArray._maybe_from_python_list(data)
+            if fastpath_arr is not None:
+                subarr = fastpath_arr
+            else:
                 subarr = construct_1d_object_array_from_listlike(data)
                 subarr = lib.maybe_convert_objects(
                     subarr,
