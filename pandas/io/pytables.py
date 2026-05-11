@@ -1262,6 +1262,13 @@ class HDFStore:
         HDFStore.info : Prints detailed information on the store.
         HDFStore.get_storer : Returns the storer object for a key.
 
+        Notes
+        -----
+        Writing an empty ``DataFrame`` or ``Series`` with ``format='table'``
+        or ``append=True`` is a no-op: no key is created in the HDFStore and a
+        ``UserWarning`` is emitted. Use ``format='fixed'`` to store an empty
+        object, or guard the call with ``if not value.empty``.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -1457,6 +1464,10 @@ class HDFStore:
         -----
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
+
+        Appending an empty ``DataFrame`` or ``Series`` is a no-op: no key is
+        created in the HDFStore and a ``UserWarning`` is emitted. Guard the
+        call with ``if not value.empty`` to suppress the warning.
 
         Examples
         --------
@@ -2048,6 +2059,14 @@ class HDFStore:
         # we don't want to store a table node at all if our object is 0-len
         # as there are not dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
+            warnings.warn(
+                "Writing an empty DataFrame or Series with format='table' "
+                "or append=True is a no-op; no key will be created in the "
+                "HDFStore. To store an empty object, use format='fixed', "
+                "or guard the call with `if not value.empty`. See GH#13016.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
             return
 
         group = self._identify_group(key, append)
@@ -3855,6 +3874,11 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
+        if len(values) == 0:
+            # PyTables cannot store a zero-len array; the read path already
+            # treats a missing metadata node as an empty categories Index,
+            # so skipping the write is the contract we've relied on.
+            return
         self.parent.put(
             self._get_metadata_path(key),
             Series(values, copy=False),
