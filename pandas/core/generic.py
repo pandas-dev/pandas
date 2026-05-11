@@ -11080,8 +11080,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         tz : str or tzinfo or None
-            Time zone to localize. Passing ``None`` will remove the
-            time zone information and preserve local time.
+            Time zone to attach to the index; the wall time of each index
+            label is preserved. Passing ``None`` detaches the time zone from
+            a tz-aware index, returning a tz-naive index with the same wall
+            time.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to localize
         level : int, str, default None
@@ -11147,7 +11149,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Localize local times:
+        Attach a time zone to tz-naive timestamps:
 
         >>> s = pd.Series(
         ...     [1],
@@ -11157,7 +11159,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
-        Pass None to convert to tz-naive index and preserve local time:
+        Pass None to detach the time zone from tz-aware timestamps:
 
         >>> s = pd.Series([1], index=pd.DatetimeIndex(["2018-09-15 01:30:00+02:00"]))
         >>> s.tz_localize(None)
@@ -11674,7 +11676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # We want to restore the original index
             rs = rs.loc[~rs.index.duplicated()]
             rs = rs.reindex_like(self)
-        return rs.__finalize__(self, method="pct_change")
+        return rs.__finalize__(self, method="pct_change")  # type: ignore[return-value]
 
     @final
     def _logical_func(
@@ -12117,6 +12119,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Provided integer column is ignored and excluded from result since
             an integer index is not used to calculate the rolling window.
+
+            When ``on`` is specified, the values of that column also become the
+            index of the :class:`Series` passed to :meth:`Rolling.apply` when
+            ``raw=False``, in place of the original :class:`DataFrame` index.
 
         closed : str, default None
             Determines the inclusivity of points in the window

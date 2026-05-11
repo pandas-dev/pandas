@@ -330,6 +330,12 @@ class Apply(metaclass=abc.ABCMeta):
 
         if is_list_like(func) and not is_dict_like(func):
             func = cast("list[AggFuncTypeBase]", func)
+            # GH#54929 - raise if duplicate function names are passed
+            if len(func) > len(set(func)):
+                raise SpecificationError(
+                    "Function names must be unique if there is no new column names "
+                    "assigned"
+                )
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}

@@ -3263,10 +3263,9 @@ Excel files
 -----------
 
 The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
-using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
-can be read using ``xlrd``. Binary Excel (``.xlsb``)
-files can be read using ``pyxlsb``. All formats can be read
-using :ref:`calamine<io.calamine>` engine.
+using the ``openpyxl`` Python module. Excel 2003 (``.xls``) and Binary Excel
+(``.xlsb``) files can be read using the :ref:`calamine<io.calamine>` engine,
+which also supports all other Excel formats.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3278,9 +3277,15 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
-   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used
+     if installed (deprecated), and ``calamine`` otherwise.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used
+     if installed (deprecated), and ``calamine`` otherwise.
    - Otherwise ``openpyxl`` will be used.
+
+   The ``xlrd`` and ``pyxlsb`` engines emit a deprecation warning and will be
+   removed in a future version. Pass ``engine="calamine"`` to opt in to the
+   replacement now.
 
 .. _io.excel_reader:
 
@@ -3296,9 +3301,9 @@ using internally.
 
 * For the engine openpyxl, pandas is using :func:`openpyxl.load_workbook` to read in (``.xlsx``) and (``.xlsm``) files.
 
-* For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
+* For the engine xlrd (deprecated), pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
 
-* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+* For the engine pyxlsb (deprecated), pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
 
@@ -3363,20 +3368,6 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     data = pd.read_excel(
         "path_to_file.xls", ["Sheet1", "Sheet2"], index_col=None, na_values=["NA"]
     )
-
-``ExcelFile`` can also be called with a ``xlrd.book.Book`` object
-as a parameter. This allows the user to control how the excel file is read.
-For example, sheets can be loaded on demand by calling ``xlrd.open_workbook()``
-with ``on_demand=True``.
-
-.. code-block:: python
-
-    import xlrd
-
-    xlrd_book = xlrd.open_workbook("path_to_file.xls", on_demand=True)
-    with pd.ExcelFile(xlrd_book) as xls:
-        df1 = pd.read_excel(xls, "Sheet1")
-        df2 = pd.read_excel(xls, "Sheet2")
 
 .. _io.excel.specifying_sheets:
 
@@ -3652,8 +3643,7 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 .. note::
 
     ``engine`` is optional but recommended.  Setting the engine determines
-    the version of workbook produced. Setting ``engine='xlrd'`` will produce an
-    Excel 2003-format workbook (xls).  Using either ``'openpyxl'`` or
+    the version of workbook produced. Using either ``'openpyxl'`` or
     ``'xlsxwriter'`` will produce an Excel 2007-format workbook (xlsx). If
     omitted, an Excel 2007-formatted workbook is produced.
 
@@ -3758,16 +3748,19 @@ Binary Excel (.xlsb) files
 --------------------------
 
 The :func:`~pandas.read_excel` method can also read binary Excel files
-using the ``pyxlsb`` module. The semantics and features for reading
-binary Excel files mostly match what can be done for `Excel files`_ using
-``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
-in files and will return floats instead (you can use :ref:`calamine<io.calamine>`
-if you need recognize datetime types).
+using the :ref:`calamine<io.calamine>` engine. The semantics and features
+for reading binary Excel files mostly match what can be done for
+`Excel files`_.
 
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xlsb", engine="pyxlsb")
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
+
+.. note::
+
+   The ``pyxlsb`` engine is also available for reading ``.xlsb`` files but is
+   deprecated; prefer ``engine="calamine"``.
 
 .. note::
 
@@ -6306,7 +6299,7 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
+    with pd.read_sas("sas_xport.xpt", chunksize=100000) as rdr:
         for chunk in rdr:
             do_something(chunk)
 
