@@ -2686,9 +2686,17 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, dtype[Any]]" has no
-        # attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[union-attr]
+        # GH#26144, GH#38305, GH#42070. CategoricalDtype/DatetimeTZDtype have
+        # working code paths below; PeriodDtype is handled in a separate effort.
+        if isinstance(dtype, ExtensionDtype) and not isinstance(
+            dtype, (CategoricalDtype, DatetimeTZDtype, PeriodDtype)
+        ):
+            raise NotImplementedError(
+                f"Cannot store a column with dtype {dtype} in an HDF5 file. "
+                "HDFStore supports NumPy dtypes, datetime64 with timezone, "
+                "categorical, and string extension types."
+            )
+        itemsize = dtype.itemsize
 
         shape = values.shape
         if values.ndim == 1:
@@ -3486,6 +3494,17 @@ class GenericFixed(Fixed):
             elif empty_array:
                 self.write_array_empty(key, value)
             else:
+                # GH#26144, GH#38305, GH#42070. PeriodDtype intentionally falls
+                # through here; it is handled in a separate effort.
+                if isinstance(value.dtype, ExtensionDtype) and not isinstance(
+                    value.dtype, PeriodDtype
+                ):
+                    raise NotImplementedError(
+                        f"Cannot store a column with dtype {value.dtype} in "
+                        'an HDF5 file with format="fixed". HDFStore supports '
+                        "NumPy dtypes, datetime64 with timezone, categorical, "
+                        "and string extension types."
+                    )
                 self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
@@ -5266,6 +5285,25 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     assert isinstance(name, str)
 
     index_name = index.name
+    # GH#26144, GH#38305, GH#42070: most extension dtypes cannot be stored as
+    # an Index in HDF5. Allow the ones that have working code paths below
+    # (DatetimeTZ/Period via i8 conversion, BooleanDtype via is_bool_dtype,
+    # StringDtype, CategoricalDtype) and reject everything else early before
+    # _dtype_to_kind / _get_atom choke with a low-level error.
+    # CategoricalDtype is intentionally not caught here; that is handled in
+    # a separate effort. BooleanDtype round-trips lossily but does not error
+    # on main, so it remains carved out here.
+    if (
+        isinstance(index.dtype, ExtensionDtype)
+        and not needs_i8_conversion(index.dtype)
+        and not is_bool_dtype(index.dtype)
+        and not isinstance(index.dtype, (StringDtype, CategoricalDtype))
+    ):
+        raise NotImplementedError(
+            f"Cannot store an Index with dtype {index.dtype} in an HDF5 file. "
+            "HDFStore supports NumPy dtypes, datetime64 with timezone, "
+            "categorical, and string extension types."
+        )
     # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
     # expected "Union[ExtensionArray, ndarray]"
     converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
