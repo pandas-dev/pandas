@@ -2901,8 +2901,13 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
+            # Old files may have been written without nan_rep persisted; the
+            # writer (write_data) defaulted None to "nan", so do the same here.
             converted = _unconvert_string_array(
-                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
+                converted,
+                nan_rep=nan_rep if nan_rep is not None else "nan",
+                encoding=encoding,
+                errors=errors,
             )
 
         return self.values, converted
@@ -5543,7 +5548,10 @@ def _unconvert_string_array(
     Parameters
     ----------
     data : np.ndarray[fixed-length-string]
-    nan_rep : the storage repr of NaN
+    nan_rep : the storage repr of NaN, or None to skip substitution.
+        Pass None when the writer did not encode NaN as a sentinel string
+        (e.g. for string indices); otherwise legitimate occurrences of the
+        sentinel value would be incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -5569,10 +5577,8 @@ def _unconvert_string_array(
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
-    if nan_rep is None:
-        nan_rep = "nan"
-
-    libwriters.string_array_replace_from_nan_rep(data, nan_rep)
+    if nan_rep is not None:
+        libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 
