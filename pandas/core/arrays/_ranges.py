@@ -152,7 +152,13 @@ def generate_daily_offset_range(
     i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
 
     if abs_n > 1:
-        i8values = i8values[::abs_n]
+        # When trimming from the end (end+periods case), anchor stride on
+        # the last on-offset date so e.g. freq="2B" with end on a Sunday
+        # yields the last business day, last-2, last-4, ... (GH#64834).
+        if trim_from_end:
+            i8values = i8values[::-1][::abs_n][::-1]
+        else:
+            i8values = i8values[::abs_n]
 
     if trim_to is not None:
         if trim_from_end:
