@@ -764,12 +764,12 @@ class TimedeltaArray(dtl.TimelikeOps):
         pps = periods_per_second(self._creso)
         asi8 = self.asi8
         result = asi8 / pps
-        if self.unit == "ns":
-            # For us/ms resolutions, the smallest sub-second residual (1us /
-            # 1ms) exceeds half-ulp(t) for any t in the representable range
-            # except at exotic magnitudes (>~290 years for us, >~290k years
-            # for ms), so we mirror the scalar's `_ns != 0` gate and only
-            # apply the boundary correction at ns resolution.
+        if self.unit == "ns" and (asi8 % 1000).any():
+            # Boundary collapse requires a sub-microsecond residual whose
+            # float representation rounds onto an integer-second boundary;
+            # us/ms residuals and us-aligned ns values are safely off the
+            # boundary at all representable magnitudes. Mirrors the scalar's
+            # `_ns != 0` gate in `_Timedelta.total_seconds`.
             floor_s, residual = np.divmod(asi8, pps)
             has_residual = residual != 0
             if has_residual.any():
