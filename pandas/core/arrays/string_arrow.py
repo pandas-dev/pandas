@@ -292,6 +292,24 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
+    @classmethod
+    def _maybe_from_python_list(cls, data) -> Self | None:
+        # GH#64429: fast path for raw ``list[str]`` — route directly to
+        # ``pa.array`` and bypass ``__init__`` validation (same pattern as
+        # ``_from_pyarrow_array``). Returns ``None`` to fall back to the
+        # generic slow path when the input is not a non-empty list of
+        # strings or pyarrow rejects it.
+        if not (isinstance(data, list) and data and isinstance(data[0], str)):
+            return None
+        try:
+            pa_arr = pa.array(data, type=pa.large_string(), from_pandas=True)
+        except (pa.ArrowInvalid, pa.ArrowTypeError):
+            return None
+        obj = cls.__new__(cls)
+        obj._pa_array = pa.chunked_array([pa_arr])
+        obj._dtype = StringDtype(storage="pyarrow", na_value=np.nan)
+        return obj
+
     @property
     def dtype(self) -> StringDtype:  # type: ignore[override]
         """
