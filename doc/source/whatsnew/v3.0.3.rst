@@ -36,6 +36,7 @@ Fixed regressions
 - Fixed a regression in :func:`read_csv` with ``engine="c"`` where ``thousands=","``
   could incorrectly parse non-numeric values like ``"1 ,"`` as integers
   instead of strings (:issue:`64655`)
+- Fixed a performance regression when working with timezone-aware timeseries data using a default ``zoneinfo`` time zone, i.e. slowdown when accessing components or localizing a naive timeseries (:issue:`64363`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.bug_fixes:
