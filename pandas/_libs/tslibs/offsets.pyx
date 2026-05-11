@@ -7416,6 +7416,8 @@ cpdef to_offset(freq, bint is_period=False):
                     stride = 1
 
                 tick_info = _tick_klass_factor.get(name)
+                if tick_info is None:
+                    offset = _get_offset(name)
                 if tick_info is not None and isinstance(stride, str) and \
                         "." in stride:
                     # For these prefixes, fractional strides like "2.5min"
@@ -7438,7 +7440,7 @@ cpdef to_offset(freq, bint is_period=False):
                         klass, factor = tick_info
                         offset = klass(int_stride * factor)
                     else:
-                        offset = _get_offset(name) * int_stride
+                        offset = offset * int_stride
 
                 if result is None:
                     result = offset
