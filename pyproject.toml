@@ -545,7 +545,6 @@ module = [
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.accessors", # TODO
   "pandas.core.indexes.api", # TODO
-  "pandas.core.indexes.category", # TODO
   "pandas.core.indexes.datetimelike", # TODO
   "pandas.core.indexes.datetimes", # TODO
   "pandas.core.indexes.extension", # TODO
