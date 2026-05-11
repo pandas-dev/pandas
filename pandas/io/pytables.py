@@ -144,8 +144,13 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
-# versioning attribute
-_version = "0.15.2"
+
+def _get_pandas_version() -> str:
+    """Return the actual installed pandas version for the pandas_version attr."""
+    from pandas import __version__
+
+    return __version__
+
 
 # encoding
 _default_encoding = "UTF-8"
@@ -2969,9 +2974,12 @@ class Fixed:
         """compute and set our version"""
         version = getattr(self.group._v_attrs, "pandas_version", None)
         if isinstance(version, str):
-            version_tup = tuple(int(x) for x in version.split("."))
-            if len(version_tup) == 2:
-                version_tup = (*version_tup, 0)
+            # Tolerate non-numeric trailing components (e.g. "3.0.0.dev0+abc"
+            # or "2.3.3rc1"); extract up to the first three numeric pieces.
+            nums = re.findall(r"\d+", version)[:3]
+            version_tup = tuple(int(x) for x in nums)
+            if len(version_tup) < 3:
+                version_tup = (*version_tup, *([0] * (3 - len(version_tup))))
             assert len(version_tup) == 3  # needed for mypy
             return version_tup
         else:
@@ -2995,7 +3003,7 @@ class Fixed:
     def set_object_info(self) -> None:
         """set my pandas type & version"""
         self.attrs.pandas_type = str(self.pandas_kind)
-        self.attrs.pandas_version = str(_version)
+        self.attrs.pandas_version = _get_pandas_version()
 
     def copy(self) -> Fixed:
         new_self = copy.copy(self)

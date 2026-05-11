@@ -222,9 +222,10 @@ def test_versioning(temp_hdfstore):
     )
     store.append("df1", df[:10])
     store.append("df1", df[10:])
-    assert store.root.a._v_attrs.pandas_version == "0.15.2"
-    assert store.root.b._v_attrs.pandas_version == "0.15.2"
-    assert store.root.df1._v_attrs.pandas_version == "0.15.2"
+    # GH#62792 - pandas_version reflects the actual installed pandas version
+    assert store.root.a._v_attrs.pandas_version == pd.__version__
+    assert store.root.b._v_attrs.pandas_version == pd.__version__
+    assert store.root.df1._v_attrs.pandas_version == pd.__version__
 
     # write a file and wipe its versioning
     store.append("df2", df)
