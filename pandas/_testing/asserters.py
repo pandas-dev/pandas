@@ -1260,6 +1260,15 @@ def assert_frame_equal(
     assert_series_equal : Equivalent method for asserting Series equality.
     DataFrame.equals : Check DataFrame equality.
 
+    Notes
+    -----
+    When ``check_exact=True``, object-dtype columns containing nested
+    array-like objects are compared with respect to the nested objects
+    themselves. Different nested container types, such as a pandas
+    :class:`~pandas.api.extensions.ExtensionArray`, :class:`numpy.ndarray`,
+    Python ``list``, or ``tuple``, are not considered equivalent merely
+    because they contain the same values.
+
     Examples
     --------
     This example shows comparing two DataFrames that are equal
