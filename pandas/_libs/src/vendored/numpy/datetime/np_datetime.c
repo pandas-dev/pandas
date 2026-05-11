@@ -20,9 +20,15 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
-#include "pandas/vendored/numpy/datetime/np_datetime.h"
+// GH-65569: NO_IMPORT_ARRAY and PY_ARRAY_UNIQUE_SYMBOL must be defined before
+// any header transitively pulls in numpy/ndarraytypes.h. On numpy >= 2.5 that
+// header includes __multiarray_api.h where the rename machinery for
+// PyArray_RUNTIME_VERSION fires; defining them too late leaves it a TU-local
+// static int=0 that the compiler constant-folds, breaking
+// PyDataType_C_METADATA.
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include "pandas/portable.h"
 #include <numpy/ndarrayobject.h>
 #include <numpy/npy_common.h>
