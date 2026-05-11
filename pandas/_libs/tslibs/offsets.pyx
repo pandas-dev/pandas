@@ -7440,7 +7440,7 @@ cpdef to_offset(freq, bint is_period=False):
                         klass, factor = tick_info
                         offset = klass(int_stride * factor)
                     else:
-                        offset = offset * int_stride
+                        offset *= int_stride
 
                 if result is None:
                     result = offset
