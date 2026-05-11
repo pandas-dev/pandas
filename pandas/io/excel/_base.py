@@ -88,6 +88,7 @@ if TYPE_CHECKING:
     )
 
 EXCEL_ROWS_MAX = 1_048_576
+ExcelHyperlinkStyle = Literal["label", "destination"]
 
 
 @overload
@@ -122,6 +123,7 @@ def read_excel(
     decimal: str = ...,
     comment: str | None = ...,
     skipfooter: int = ...,
+    hyperlinks: ExcelHyperlinkStyle = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame: ...
@@ -159,6 +161,7 @@ def read_excel(
     decimal: str = ...,
     comment: str | None = ...,
     skipfooter: int = ...,
+    hyperlinks: ExcelHyperlinkStyle = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> dict[IntStrT, DataFrame]: ...
@@ -195,6 +198,7 @@ def read_excel(
     decimal: str = ".",
     comment: str | None = None,
     skipfooter: int = 0,
+    hyperlinks: ExcelHyperlinkStyle = "label",
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
@@ -382,6 +386,17 @@ def read_excel(
         comment string and the end of the current line is ignored.
     skipfooter : int, default 0
         Rows at the end to skip (0-indexed).
+    hyperlinks : {'label', 'destination'}, default 'label'
+        Controls how Excel hyperlinks are read:
+
+        * ``"label"``: return visible cell text.
+        * ``"destination"``: return hyperlink destinations where available.
+
+        When ``"destination"`` is used, cells without hyperlinks keep their
+        visible cell values. Hyperlink destination extraction is currently
+        supported by the ``openpyxl`` engine.
+
+        .. versionadded:: 3.1.0
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -494,11 +509,17 @@ def read_excel(
             storage_options=storage_options,
             engine=engine,
             engine_kwargs=engine_kwargs,
+            hyperlinks=hyperlinks,
         )
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
+        )
+    elif hyperlinks != io.hyperlinks:
+        raise ValueError(
+            "Hyperlinks option should not be specified when passing "
+            "an ExcelFile - ExcelFile already has the hyperlinks option set"
         )
 
     try:
@@ -538,15 +559,30 @@ _WorkbookT = TypeVar("_WorkbookT")
 
 class BaseExcelReader(Generic[_WorkbookT]):
     book: _WorkbookT
+    _supports_hyperlink_destination = False
 
     def __init__(
         self,
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        hyperlinks: ExcelHyperlinkStyle = "label",
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
+
+        if hyperlinks not in ("label", "destination"):
+            raise ValueError(
+                f"'{hyperlinks}' is not valid for hyperlinks. "
+                "Valid options are 'label' and 'destination'."
+            )
+        if hyperlinks == "destination" and not self._supports_hyperlink_destination:
+            engine_name = type(self).__name__.removesuffix("Reader").lower()
+            raise ValueError(
+                "'destination' is not supported for hyperlinks with "
+                f"the '{engine_name}' engine."
+            )
+        self._hyperlinks = hyperlinks
 
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
@@ -1585,6 +1621,7 @@ class ExcelFile:
         engine: str | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        hyperlinks: ExcelHyperlinkStyle = "label",
     ) -> None:
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -1632,11 +1669,13 @@ class ExcelFile:
         assert engine is not None
         self.engine = engine
         self.storage_options = storage_options
+        self.hyperlinks = hyperlinks
 
         self._reader = self._engines[engine](
             self._io,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            hyperlinks=hyperlinks,
         )
 
     def __fspath__(self):

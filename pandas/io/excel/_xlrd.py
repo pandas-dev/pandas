@@ -28,6 +28,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        hyperlinks: str = "label",
     ) -> None:
         """
         Reader using xlrd engine.
@@ -48,6 +49,9 @@ class XlrdReader(BaseExcelReader["Book"]):
             highlight=storage_options#reading-writing-remote-files>`__.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
+        hyperlinks : {'label', 'destination'}, default 'label'
+            Determines how hyperlinks are read. See :func:`~pandas.read_excel`
+            for full documentation.
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
@@ -61,6 +65,7 @@ class XlrdReader(BaseExcelReader["Book"]):
             filepath_or_buffer,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            hyperlinks=hyperlinks,
         )
 
     @property

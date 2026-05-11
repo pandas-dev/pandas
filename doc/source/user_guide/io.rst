@@ -3315,6 +3315,23 @@ using internally.
    # Returns a DataFrame
    pd.read_excel("path_to_file.xls", sheet_name="Sheet1")
 
+Use the ``hyperlinks`` argument to control whether linked cells return the
+displayed label or link destination.
+
+.. code-block:: python
+
+   # Return visible cell text (default)
+   pd.read_excel("path_to_file.xlsx", hyperlinks="label")
+
+   # Return hyperlink destination where present; otherwise keep visible value
+   pd.read_excel(
+       "path_to_file.xlsx",
+       engine="openpyxl",
+       hyperlinks="destination",
+   )
+
+The ``"destination"`` mode is currently supported by the ``openpyxl`` engine.
+
 
 .. _io.excel.excelfile_class:
 

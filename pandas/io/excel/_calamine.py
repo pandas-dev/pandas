@@ -39,6 +39,7 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        hyperlinks: str = "label",
     ) -> None:
         """
         Reader using calamine engine (xlsx/xls/xlsb/ods).
@@ -58,12 +59,16 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
             highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
+        hyperlinks : {'label', 'destination'}, default 'label'
+            Determines how hyperlinks are read. See :func:`~pandas.read_excel`
+            for full documentation.
         """
         import_optional_dependency("python_calamine")
         super().__init__(
             filepath_or_buffer,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            hyperlinks=hyperlinks,
         )
 
     @property

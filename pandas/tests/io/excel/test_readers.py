@@ -1817,3 +1817,94 @@ def test_pyxlsb_engine_deprecated(datapath):
         Pandas4Warning, match="pyxlsb engine is deprecated"
     ):
         pd.read_excel(path, engine="pyxlsb")
+
+
+@td.skip_if_no("openpyxl")
+def test_read_excel_hyperlinks(tmp_path):
+    from openpyxl import Workbook
+
+    path = tmp_path / "hyperlinks.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws["A1"] = "pandas"
+    ws["A1"].hyperlink = "https://pandas.pydata.org"
+    ws["A2"] = "plain"
+    wb.save(path)
+
+    expected_label = DataFrame(["pandas", "plain"])
+    result_label = pd.read_excel(
+        path,
+        header=None,
+        engine="openpyxl",
+        hyperlinks="label",
+    )
+    tm.assert_frame_equal(result_label, expected_label)
+
+    expected_destination = DataFrame(["https://pandas.pydata.org", "plain"])
+    result_destination = pd.read_excel(
+        path,
+        header=None,
+        engine="openpyxl",
+        hyperlinks="destination",
+    )
+    tm.assert_frame_equal(result_destination, expected_destination)
+
+
+@td.skip_if_no("openpyxl")
+def test_excel_file_parse_hyperlinks(tmp_path):
+    from openpyxl import Workbook
+
+    path = tmp_path / "hyperlinks_parse.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws["A1"] = "docs"
+    ws["A1"].hyperlink = "https://pandas.pydata.org/docs"
+    ws["A2"] = "plain"
+    wb.save(path)
+
+    expected = DataFrame(["https://pandas.pydata.org/docs", "plain"])
+    with pd.ExcelFile(path, engine="openpyxl", hyperlinks="destination") as excel:
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="ExcelFile.parse is deprecated"
+        ):
+            result = excel.parse(header=None)
+
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("openpyxl")
+def test_read_excel_hyperlinks_invalid_value(datapath):
+    path = datapath("io", "data", "excel", "test1.xlsx")
+    msg = "Valid options are 'label' and 'destination'"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_excel(path, engine="openpyxl", hyperlinks="invalid")
+
+
+@pytest.mark.parametrize(
+    "engine, ext, warning",
+    [
+        pytest.param("xlrd", ".xls", Pandas4Warning, marks=td.skip_if_no("xlrd")),
+        pytest.param(
+            "pyxlsb",
+            ".xlsb",
+            Pandas4Warning,
+            marks=td.skip_if_no("pyxlsb"),
+        ),
+        pytest.param("odf", ".ods", False, marks=td.skip_if_no("odf")),
+        pytest.param(
+            "calamine",
+            ".xlsx",
+            False,
+            marks=td.skip_if_no("python_calamine"),
+        ),
+    ],
+)
+def test_read_excel_hyperlinks_destination_unsupported_engine(
+    datapath, engine, ext, warning
+):
+    path = datapath("io", "data", "excel", f"test1{ext}")
+    msg = "not supported for hyperlinks"
+
+    with tm.assert_produces_warning(warning):
+        with pytest.raises(ValueError, match=msg):
+            pd.read_excel(path, engine=engine, hyperlinks="destination")

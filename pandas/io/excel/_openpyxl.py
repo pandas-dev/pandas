@@ -9,8 +9,6 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas.io.excel._base import (
     BaseExcelReader,
     ExcelWriter,
@@ -651,11 +649,14 @@ class OpenpyxlWriter(ExcelWriter):
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):
+    _supports_hyperlink_destination = True
+
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        hyperlinks: str = "label",
     ) -> None:
         """
         Reader using openpyxl engine.
@@ -675,12 +676,25 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
             highlight=storage_options#reading-writing-remote-files>`_.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
+        hyperlinks : {'label', 'destination'}, default 'label'
+            Determines how hyperlinks are read. See :func:`~pandas.read_excel`
+            for full documentation.
         """
-        import_optional_dependency("openpyxl")
+        if engine_kwargs is None:
+            engine_kwargs = {}
+        default_kwargs: dict[str, Any] = {"data_only": True}
+        if hyperlinks == "destination":
+            default_kwargs["read_only"] = False
+            default_kwargs["keep_links"] = True
+        else:
+            default_kwargs["read_only"] = True
+            default_kwargs["keep_links"] = False
+        engine_kwargs = default_kwargs | engine_kwargs
         super().__init__(
             filepath_or_buffer,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            hyperlinks=hyperlinks,
         )
 
     @property
@@ -694,11 +708,9 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
     ) -> Workbook:
         from openpyxl import load_workbook
 
-        default_kwargs = {"read_only": True, "data_only": True, "keep_links": False}
-
         return load_workbook(
             filepath_or_buffer,
-            **(default_kwargs | engine_kwargs),
+            **engine_kwargs,
         )
 
     @property
@@ -718,6 +730,12 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
             TYPE_ERROR,
             TYPE_NUMERIC,
         )
+
+        if self._hyperlinks == "destination" and cell.hyperlink is not None:
+            if cell.hyperlink.target is not None:
+                return cell.hyperlink.target
+            if cell.hyperlink.location:
+                return cell.hyperlink.location
 
         if cell.value is None:
             return ""  # compat with xlrd
