@@ -1850,12 +1850,12 @@ class TestDataFrameReductions:
             _make_2d_ea_df(
                 [
                     to_datetime(["2020-02-01", "2020-02-02", pd.NaT])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                     to_datetime([pd.NaT, "2020-02-04", "2020-02-05"])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                 ],
                 ["dz3", "dz4"],

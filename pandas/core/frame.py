@@ -15735,29 +15735,18 @@ class DataFrame(NDFrame, OpsMixin):
 
             if df.shape[1]:
                 # GH#51474: block-wise axis=1 reduction avoiding expensive
-                # transpose for numpy-backed and 2D EA blocks.
-                block_values = [block.values for block in df._mgr.blocks]
-                all_numpy_non_object = all(
-                    isinstance(bv, np.ndarray) and bv.dtype.kind != "O"
-                    for bv in block_values
-                )
-                # GH#65500: Only enter the EA fast path when every block is a
-                # 2D EA sharing one dtype.  Mixed-tz / mixed-dtype EA frames
-                # must fall through to the slow path so the result is coerced
-                # to object, matching the transpose path.
-                ea_dtypes = {
-                    bv.dtype for bv in block_values if isinstance(bv, ExtensionArray)
-                }
-                all_same_2d_ea = len(ea_dtypes) == 1 and all(
-                    isinstance(bv, ExtensionArray) and bv.ndim == 2
-                    for bv in block_values
-                )
-                if len(df._mgr.blocks) > 1 and (
-                    (
-                        name in ("sum", "prod", "min", "max", "any", "all", "mean")
-                        and all_numpy_non_object
+                # transpose for numpy-backed blocks.  EA blocks fall through
+                # to the slow path; for same-dtype EA frames the transpose
+                # consolidates them into a single block, and for mixed-dtype
+                # EA frames the result must be coerced to object (GH#65500).
+                if (
+                    name in ("sum", "prod", "min", "max", "any", "all", "mean")
+                    and len(df._mgr.blocks) > 1
+                    and all(
+                        isinstance(block.values, np.ndarray)
+                        and block.values.dtype.kind != "O"
+                        for block in df._mgr.blocks
                     )
-                    or (name in ("min", "max") and skipna and all_same_2d_ea)
                 ):
                     return df._reduce_axis1(
                         name,
@@ -15814,24 +15803,6 @@ class DataFrame(NDFrame, OpsMixin):
         Apply the reduction block-wise along axis=1 and then reduce the resulting
         1D arrays.
         """
-        # GH#65500: numpy ufuncs (np.fmax/np.fmin) coerce 2D EAs to object and
-        # propagate NaT instead of skipping it.  Concat all blocks into a single
-        # 2D EA and reduce in one shot, which honors the EA's NA semantics.  By
-        # construction (entry condition in _reduce), all blocks here are 2D EAs
-        # of the same dtype.
-        first_values = self._mgr.blocks[0].values
-        if (
-            name in ("min", "max")
-            and isinstance(first_values, ExtensionArray)
-            and first_values.ndim == 2
-        ):
-            block_values = [
-                cast("ExtensionArray", block.values) for block in self._mgr.blocks
-            ]
-            combined = type(first_values)._concat_same_type(block_values, axis=0)  # type: ignore[call-arg]
-            result = combined._reduce(name, axis=0, skipna=skipna)
-            return self._constructor_sliced(result, index=self.index, copy=False)
-
         if name == "all":
             result = np.ones(len(self), dtype=bool)
             ufunc = np.logical_and
