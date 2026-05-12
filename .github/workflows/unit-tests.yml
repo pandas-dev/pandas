@@ -17,7 +17,7 @@ permissions: {}
 
 defaults:
   run:
-    shell: bash -el {0}
+    shell: bash -euox pipefail {0}
 
 jobs:
   ubuntu:
@@ -139,14 +139,13 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Extra installs
-      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
-      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 ${{ matrix.extra_apt || ''}}
-
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests
-      run: sudo locale-gen ${{ matrix.extra_loc }}
-      if: ${{ matrix.extra_loc }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install --yes ${{ matrix.extra_apt }}
+        sudo locale-gen ${{ matrix.extra_loc }}
+      if: ${{ matrix.extra_loc && matrix.extra_apt }}
 
     - name: Create virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
@@ -165,7 +164,12 @@ jobs:
           build-pandas \
           --editable \
           ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
-      shell: bash -euox pipefail {0}
+
+    - name: Import check
+      run: |
+        pixi run \
+          --environment ${{ matrix.environment }} \
+          ci-check-import
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
@@ -247,8 +251,7 @@ jobs:
             --environment ${{ matrix.environment }} \
             build-pandas \
             --editable \
-            -Csetup-args="--werror"
-        shell: bash -euox pipefail {0}
+            "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
 
       - name: Test
         uses: ./.github/actions/run-tests
@@ -280,7 +283,7 @@ jobs:
               git checkout $GITHUB_BASE_REF
               git -c user.email="you@example.com" merge --no-commit my_ref_name
           fi
-      - name: Build environment and Run Tests
+      - name: Build environment
         # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
         run: |
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
@@ -290,6 +293,10 @@ jobs:
           python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
+
+      - name: Run Tests
+        run: |
+          . ~/virtualenvs/pandas-dev/bin/activate
           python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -329,7 +336,6 @@ jobs:
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=8.3.4 pytest-xdist>=3.6.1 hypothesis>=6.116.0 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
-
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
@@ -337,6 +343,33 @@ jobs:
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
+      cancel-in-progress: true
+
+  Windows-MinGW:
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Create virtual environment with Pixi
+        uses: ./.github/actions/setup-pixi
+        with:
+          environment: mingw
+
+      - name: Build pandas
+        id: build
+        run: |
+          pixi run \
+            --environment mingw \
+            build-pandas \
+            --editable \
+            -Csetup-args="--werror"
+    concurrency:
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-mingw
       cancel-in-progress: true
 
   python-dev:
@@ -362,9 +395,6 @@ jobs:
     if: false
     permissions:
       contents: read
-    defaults:
-      run:
-        shell: bash -eou pipefail {0}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -403,7 +433,7 @@ jobs:
           python -m pip list
 
       - name: Run Tests
-        run: ci/run_tests.sh
+        run: python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
@@ -427,43 +457,40 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python for pyodide-build
-        id: setup-python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: '3.12'
-
-      - name: Set up Emscripten toolchain
-        uses: mymindstorm/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
-        with:
-          version: '3.1.58'
-          actions-cache-folder: emsdk-cache
-
-      - name: Install pyodide-build
-        run: pip install "pyodide-build>=0.29.2"
-
-      - name: Build pandas for Pyodide
-        run: |
-          pyodide build
-
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version: 24
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.12'
+          pip-install: pyodide-build
+
+      - name: Save Emscripten version
+        run: echo EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) >> $GITHUB_ENV
+
+      - name: Set up Emscripten toolchain
+        uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: ${{ env.EMSCRIPTEN_VERSION }}
+          actions-cache-folder: emsdk-cache
+
+      - name: Build pandas for Pyodide
+        run: pyodide build
 
       - name: Set up Pyodide virtual environment
-        env:
-          pyodide-version: '0.27.1'
         run: |
-          pyodide xbuildenv install ${{ env.pyodide-version }}
+          pyodide xbuildenv install 0.27.1
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
-          pip install dist/*.whl
+          python -m pip install dist/*.whl
 
       - name: Test pandas for Pyodide
         run: |
           source .venv-pyodide/bin/activate
-          pip install pytest hypothesis pytest-cov
+          python -m pip install pytest hypothesis pytest-cov
           # do not import pandas from the checked out repo
-          cd ..
-          python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'
+          cd ../..
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas
