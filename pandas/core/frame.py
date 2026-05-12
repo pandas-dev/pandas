@@ -1777,8 +1777,6 @@ class DataFrame(NDFrame, OpsMixin):
                 f"Got '{orient}' instead"
             )
 
-        print(f"data: {data}")
-
         if orient != "tight":
             return cls(data, index=index, columns=columns, dtype=dtype)
         else:
