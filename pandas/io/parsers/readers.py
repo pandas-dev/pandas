@@ -1547,7 +1547,10 @@ def read_fwf(
         the intervals are contiguous.
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
-        `colspecs`.
+        ``colspecs``. Pass ``np.inf`` to infer column specifications from the
+        entire file, which is useful when columns vary in width and a value
+        wider than anything in the first ``infer_nrows`` rows would otherwise
+        be truncated.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.
