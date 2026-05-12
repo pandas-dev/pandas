@@ -243,8 +243,8 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
         # "Union[ndarray[Any, Any], ExtensionArrayNaResult]", variable has
         # type "ndarray[Any, dtype[bool_]]")
         result = values.isna()  # type: ignore[assignment]
-    elif isinstance(values, np.rec.recarray):
-        # GH 48526
+    elif dtype.names is not None:
+        # GH#48526 (np.rec.recarray), GH#55011 (structured np.ndarray)
         result = _isna_recarray_dtype(values)
     elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values)
@@ -273,7 +273,7 @@ def _isna_string_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
     return result
 
 
-def _isna_recarray_dtype(values: np.rec.recarray) -> npt.NDArray[np.bool_]:
+def _isna_recarray_dtype(values: np.ndarray) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
         record_as_array = np.array(record.tolist())
@@ -447,7 +447,7 @@ def array_equivalent(
             # TODO: fastpath for pandas' StringDtype
             return _array_equivalent_object(left, right, strict_nan)
         else:
-            return np.array_equal(left, right)
+            return lib.array_equivalent_bytes(left, right)
 
     # Slow path when we allow comparing different dtypes.
     # Object arrays can contain None, NaN and NaT.
@@ -477,15 +477,33 @@ def array_equivalent(
     ) and left.dtype != right.dtype:
         return False
 
+    if left.dtype == right.dtype and left.dtype.kind != "V":
+        return lib.array_equivalent_bytes(left, right)
     return np.array_equal(left, right)
 
 
 def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
-    return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
+    if left.dtype.kind == "c":
+        if not (left.flags.c_contiguous and right.flags.c_contiguous):
+            return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
+        # View complex as float pairs (complex128 -> float64, complex64 -> float32)
+        float_dtype = np.finfo(left.dtype).dtype
+        left = left.view(float_dtype)
+        right = right.view(float_dtype)
+    if left.ndim > 1:
+        if left.flags.f_contiguous and right.flags.f_contiguous:
+            # .T is a C-contiguous view of an F-contiguous array
+            left = left.T
+            right = right.T
+        if not (left.flags.c_contiguous and right.flags.c_contiguous):
+            return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
+        left = left.ravel()
+        right = right.ravel()
+    return lib.array_equivalent_float(left, right)
 
 
 def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray) -> bool:
-    return np.array_equal(left.view("i8"), right.view("i8"))
+    return lib.array_equivalent_bytes(left.view("i8"), right.view("i8"))
 
 
 def _array_equivalent_object(

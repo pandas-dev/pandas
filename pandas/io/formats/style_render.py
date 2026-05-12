@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import (
     Callable,
+    Mapping,
     Sequence,
 )
 from functools import partial
@@ -51,7 +52,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter: TypeAlias = str | Callable
-ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+ExtFormatter: TypeAlias = BaseFormatter | Mapping[Any, BaseFormatter | None]
 CSSPair: TypeAlias = tuple[str, str | float]
 CSSList: TypeAlias = list[CSSPair]
 CSSProperties: TypeAlias = str | CSSList
@@ -1220,7 +1221,7 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(data.columns, formatter)
 
         cis = self.columns.get_indexer_for(data.columns)
@@ -1410,7 +1411,7 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
@@ -1711,7 +1712,7 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {

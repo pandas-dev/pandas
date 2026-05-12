@@ -3796,7 +3796,7 @@ def test_date_vs_timestamp_scalar_comparison():
 # TODO: reuse assert_invalid_comparison?
 def test_date_vs_timestamp_array_comparison():
     # GH#62157 match non-pyarrow behavior
-    # GH#
+    # GH#60937
     ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser2 = ser.astype("timestamp[ns][pyarrow]")
     ser3 = ser.astype("datetime64[ns]")

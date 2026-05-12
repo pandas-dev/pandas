@@ -50,6 +50,7 @@ from pandas._typing import (
     ArrayLike,
     IndexLabel,
     IntervalClosedType,
+    ListLike,
     NDFrameT,
     PositionalIndexer,
     RandomState,
@@ -136,8 +137,11 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
+        Level,
         P,
         T,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
     )
 
     from pandas.core.indexers.objects import BaseIndexer
@@ -2213,6 +2217,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series.std : Apply function std to a Series.
         DataFrame.std : Apply function std to each row or column of a DataFrame.
 
+        Notes
+        -----
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
+
         Examples
         --------
         For SeriesGroupBy:
@@ -3702,10 +3711,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def resample(
-        self, rule, *args, include_groups: bool = False, **kwargs
+        self,
+        rule,
+        closed: Literal["right", "left"] | None = None,
+        label: Literal["right", "left"] | None = None,
+        convention: Literal["start", "end", "s", "e"] | None = None,
+        on: Level | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool = False,
+        *,
+        include_groups: bool = False,
+        **kwargs,
     ) -> Resampler:
         """
-        Provide resampling when using a TimeGrouper.
+        Provide resampling within each group of a groupby.
 
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
@@ -3717,10 +3737,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
-        *args
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
-        include_groups : bool, default True
+        closed : {'right', 'left'}, optional
+            Which side of bin interval is closed. See :meth:`Series.resample`.
+        label : {'right', 'left'}, optional
+            Which bin edge label to label bucket with. See :meth:`Series.resample`.
+        convention : {'start', 'end', 's', 'e'}, optional
+            For ``PeriodIndex`` only. See :meth:`Series.resample`.
+        on : str, optional
+            For a DataFrame, column to use instead of index for resampling.
+            Column must be datetime-like.
+        origin : Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. See
+            :meth:`Series.resample` for accepted string values.
+        offset : Timedelta or str, optional
+            An offset timedelta added to the origin.
+        group_keys : bool, default False
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object.
+        include_groups : bool, default False
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
             TypeError, the result will be computed with the groupings excluded.
@@ -3733,16 +3767,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                The default was changed to False, and True is no longer allowed.
 
         **kwargs
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
+            Additional keyword arguments forwarded to the underlying
+            :class:`Grouper`.
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimdeltaResampler
+        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
             Resampler object for the type of the index.
 
         See Also
         --------
+        Series.resample : Resample a Series.
+        DataFrame.resample : Resample a DataFrame.
         Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
@@ -3818,7 +3854,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if include_groups:
             raise ValueError("include_groups=True is no longer allowed.")
 
-        return get_resampler_for_grouping(self, rule, *args, **kwargs)
+        return get_resampler_for_grouping(
+            self,
+            rule,
+            on=on,
+            closed=closed,
+            label=label,
+            convention=convention,
+            origin=origin,
+            offset=offset,
+            group_keys=group_keys,
+            **kwargs,
+        )
 
     @final
     def rolling(
@@ -5756,7 +5803,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         n: int | None = None,
         frac: float | None = None,
         replace: bool = False,
-        weights: Sequence | Series | None = None,
+        weights: ListLike | None = None,
         random_state: RandomState | None = None,
     ):
         """

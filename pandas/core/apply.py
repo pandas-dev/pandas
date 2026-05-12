@@ -330,6 +330,12 @@ class Apply(metaclass=abc.ABCMeta):
 
         if is_list_like(func) and not is_dict_like(func):
             func = cast("list[AggFuncTypeBase]", func)
+            # GH#54929 - raise if duplicate function names are passed
+            if len(func) > len(set(func)):
+                raise SpecificationError(
+                    "Function names must be unique if there is no new column names "
+                    "assigned"
+                )
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -864,7 +870,8 @@ class NDFrameApply(Apply):
         if not all(isinstance(f, str) for f in func):
             return None
 
-        obj = self.obj
+        # Caller restricts this path to ndim == 2 (DataFrame); narrow for mypy.
+        obj = cast("DataFrame", self.obj)
         func_names = cast("list[str]", func)
 
         # Cannot reindex with duplicate column names
@@ -884,7 +891,7 @@ class NDFrameApply(Apply):
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
-        groups = obj.columns.groupby(obj.dtypes)  # type: ignore[arg-type]
+        groups = obj.columns.groupby(obj.dtypes)
         pieces = []
         for dtype in groups:
             cols = groups[dtype]

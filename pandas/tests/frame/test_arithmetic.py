@@ -2009,7 +2009,7 @@ class TestFrameArithmeticUnsorted:
             getattr(df, all_arithmetic_operators)(b)
 
     def test_dunder_methods_binary(self, all_arithmetic_operators):
-        # GH#??? frame.__foo__ should only accept one argument
+        # GH#36796 frame.__foo__ should only accept one argument
         df = DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
         b = df["B"]
         with pytest.raises(TypeError, match="takes 2 positional arguments"):

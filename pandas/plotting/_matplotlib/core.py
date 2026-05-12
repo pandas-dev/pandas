@@ -2146,10 +2146,9 @@ class PiePlot(MPLPlot):
 
     def __init__(self, data: Series | DataFrame, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        lt_zero = data < 0
-        if isinstance(data, ABCDataFrame) and lt_zero.any().any():
+        if isinstance(data, ABCDataFrame) and (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
-        elif isinstance(data, ABCSeries) and lt_zero.any():
+        elif isinstance(data, ABCSeries) and (data < 0).any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 

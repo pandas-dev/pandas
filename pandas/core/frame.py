@@ -130,6 +130,7 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -157,6 +158,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    infer_and_maybe_downcast,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -1996,8 +1998,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('col1', OrderedDict([('row1', 1), ('row2', 2)])),
-                     ('col2', OrderedDict([('row1', 0.5), ('row2', 0.75)]))])
+        OrderedDict({'col1': OrderedDict({'row1': 1, 'row2': 2}),
+                     'col2': OrderedDict({'row1': 0.5, 'row2': 0.75})})
 
         If you want a `defaultdict`, you need to initialize it:
 
@@ -5431,7 +5433,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        blk_dtypes = self._mgr.get_unique_dtypes()
+        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
         if (
             np.object_ in include
             and str not in include
@@ -5580,6 +5582,9 @@ class DataFrame(NDFrame, OpsMixin):
         Assigning multiple columns within the same ``assign`` is possible.
         Later items in '\*\*kwargs' may refer to newly created or modified
         columns in 'df'; items are computed and assigned into 'df' in order.
+        Non-callable values (Series, arrays, scalars) follow the same
+        alignment and broadcasting rules as :meth:`DataFrame.__setitem__`. See
+        that method's documentation for details.
 
         Examples
         --------
@@ -6237,7 +6242,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level = ...,
         errors: IgnoreRaise = ...,
     ) -> DataFrame | None: ...
@@ -6250,7 +6255,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Renamer | None = None,
         axis: Axis | None = None,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
@@ -6295,6 +6300,14 @@ class DataFrame(NDFrame, OpsMixin):
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
             If True then value of copy is ignored.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
@@ -6372,7 +6385,22 @@ class DataFrame(NDFrame, OpsMixin):
         2  2  5
         4  3  6
         """
+
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.rename is "
+                "deprecated and will be removed in a future version. "
+                "See `PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         self._check_copy_deprecation(copy)
+
         return super()._rename(
             mapper=mapper,
             index=index,
@@ -6752,6 +6780,10 @@ class DataFrame(NDFrame, OpsMixin):
             method.
 
             .. deprecated:: 3.0.0
+
+                The ``verify_integrity`` keyword is deprecated and will be
+                removed in a future version. Check ``result.index.is_unique``
+                directly instead.
 
         Returns
         -------
@@ -14145,6 +14177,16 @@ class DataFrame(NDFrame, OpsMixin):
             applied function: list-like results will be returned as a Series
             of those. However if the apply function returns a Series these
             are expanded to columns.
+
+            .. note::
+
+                ``result_type`` has no effect when ``func`` is a NumPy
+                universal function (e.g. ``np.sqrt``). In that case the
+                ufunc is applied directly to the underlying values and the
+                result has the same shape as the input, regardless of
+                ``axis`` or ``result_type``. To use ``result_type`` with a
+                ufunc, wrap it in a Python function (e.g.
+                ``lambda x: np.sqrt(x)``).
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
@@ -14164,10 +14206,10 @@ class DataFrame(NDFrame, OpsMixin):
             Choose the execution engine to use. If not provided the function
             will be executed by the regular Python interpreter.
 
-            Other options include JIT compilers such Numba and Bodo, which in some
+            Other options include JIT compilers such as Numba and Bodo, which in some
             cases can speed up the execution. To use an executor you can provide
             the decorators ``numba.jit``, ``numba.njit`` or ``bodo.jit``. You can
-            also provide the decorator with parameters, like ``numba.jit(nogit=True)``.
+            also provide the decorator with parameters, like ``numba.jit(nogil=True)``.
 
             Not all functions can be executed with all execution engines. In general,
             JIT compilers will require type stability in the function (no variable
@@ -14504,6 +14546,32 @@ class DataFrame(NDFrame, OpsMixin):
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
 
+        if len(row_df.columns) == len(self.columns):
+            # Pre-cast the row's value to the original column dtype where the
+            # row's inferred dtype would otherwise force concat to widen the
+            # whole column. This avoids an O(N) materialize-and-rebuild
+            # roundtrip in _post_expansion_casting, and (for EA dtypes that
+            # carry array-level state not encoded in the dtype, e.g. geopandas
+            # CRS) preserves that state through concat. GH#65094.
+            orig_dtypes = self._mgr.get_dtypes()
+            row_dtypes = row_df._mgr.get_dtypes()
+            object_dtype = np.dtype(object)
+            for i in range(len(self.columns)):
+                orig_dtype = orig_dtypes[i]
+                if row_dtypes[i] == orig_dtype:
+                    continue
+                if orig_dtype == object_dtype:
+                    # concat object + anything stays object; post-cast is a
+                    # no-op, so pre-casting would only add overhead.
+                    continue
+                arr = self._get_column_array(i)
+                if isinstance(arr, np.ndarray):
+                    # infer_and_maybe_downcast expects an EA as its first
+                    # argument so it can dispatch to _cast_pointwise_result.
+                    arr = NumpyExtensionArray(arr)
+                casted = infer_and_maybe_downcast(arr, row_df._mgr.iget_values(i))
+                row_df.isetitem(i, casted)
+
         from pandas.core.reshape.concat import concat
 
         result = concat(
@@ -14532,7 +14600,7 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         other : DataFrame, Series, or a list containing any combination of them
-            Index should be similar to one of the columns in this one. If a
+            Index should be similar to one of the columns in the caller. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
         on : str, list of str, or array-like, optional
@@ -17110,8 +17178,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
-        default `ddof=1`)
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
 
         Examples
         --------
