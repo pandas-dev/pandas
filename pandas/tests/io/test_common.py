@@ -8,7 +8,6 @@ from functools import partial
 from io import (
     BytesIO,
     StringIO,
-    UnsupportedOperation,
 )
 import mmap
 import os
@@ -624,7 +623,10 @@ def test_errno_attribute():
 
 
 def test_fail_mmap():
-    with pytest.raises(UnsupportedOperation, match="fileno"):
+    # GH#45630 raise a clear ValueError instead of the cryptic
+    # UnsupportedOperation("fileno") from BytesIO
+    msg = "memory_map=True is only supported when reading from a file path"
+    with pytest.raises(ValueError, match=msg):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
 
