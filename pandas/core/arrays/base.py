@@ -3125,9 +3125,7 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in arithmetic_ops:
             existing = getattr(cls, op_name, None)
-            if existing is getattr(
-                ExtensionArray, op_name, None
-            ) or existing is getattr(arraylike.OpsMixin, op_name, None):
+            if existing is getattr(ExtensionArray, op_name, None):
                 setattr(cls, op_name, cls._create_arithmetic_method(op_func))
 
     @classmethod
@@ -3146,9 +3144,7 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in comparison_ops:
             existing = getattr(cls, op_name, None)
-            if existing is getattr(
-                ExtensionArray, op_name, None
-            ) or existing is getattr(arraylike.OpsMixin, op_name, None):
+            if existing is getattr(ExtensionArray, op_name, None):
                 setattr(cls, op_name, cls._create_comparison_method(op_func))
 
     @classmethod
@@ -3167,9 +3163,7 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in logical_ops:
             existing = getattr(cls, op_name, None)
-            if existing is getattr(
-                ExtensionArray, op_name, None
-            ) or existing is getattr(arraylike.OpsMixin, op_name, None):
+            if existing is getattr(ExtensionArray, op_name, None):
                 setattr(cls, op_name, cls._create_logical_method(op_func))
 
 
