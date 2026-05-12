@@ -5565,6 +5565,11 @@ class DataFrame(NDFrame, OpsMixin):
             change input DataFrame (though pandas doesn't check it).
             If the values are not callable, (e.g. a Series, scalar, or array),
             they are simply assigned.
+            When a Series is passed, its values are aligned by index label
+            rather than by position. If the Series index does not match the
+            DataFrame index, the result will contain NaN values for missing labels.
+            In contrast, list-like values such as lists or NumPy arrays are
+            assigned positionally and must match the length of the DataFrame.
 
         Returns
         -------
@@ -5626,6 +5631,14 @@ class DataFrame(NDFrame, OpsMixin):
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([10, 20], index=[1, 0])
+        >>> df.assign(B=s)
+           A     B
+        0  1  20.0
+        1  2  10.0
+        2  3   NaN
         """
         data = self.copy(deep=False)
 
