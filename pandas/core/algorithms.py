@@ -172,7 +172,9 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
-        return cast("np.ndarray", values)
+        # NumpyExtensionArray needs to be unwrapped to the underlying ndarray
+        # so the hashtable fused-type dispatch works (GH#54761)
+        return np.asarray(values)
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):

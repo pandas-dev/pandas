@@ -4417,14 +4417,14 @@ class MultiIndex(Index):
             other_codes = other.codes[i]
             self_mask = self_codes == -1
             other_mask = other_codes == -1
-            if not np.array_equal(self_mask, other_mask):
+            if not lib.array_equivalent_bytes(self_mask, other_mask):
                 return False
             self_level = self.levels[i]
             other_level = other.levels[i]
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
-            if not np.array_equal(self_codes, new_codes):
+            if not lib.array_equivalent_bytes(self_codes, new_codes):
                 return False
             if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64
