@@ -68,6 +68,10 @@ cpdef assert_almost_equal(a, b,
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     strict_na : bool, default True
+        If True, mismatched null-like values in object-dtype arrays
+        (e.g. ``np.nan`` vs ``None``, or ``pd.NA`` vs ``pd.NaT``) raise
+        ``AssertionError``. If False, any null-like values are considered
+        equal to each other.
     obj : str, default None
         Specify object name being compared, internally used to show
         appropriate assertion message.

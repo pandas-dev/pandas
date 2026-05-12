@@ -91,6 +91,12 @@ def assert_almost_equal(
     atol : float, default 1e-8
         Absolute tolerance.
     strict_na : bool, default True
+        If True, mismatched null-like values in object-dtype arrays
+        (e.g. ``np.nan`` vs ``None``, or ``pd.NA`` vs ``pd.NaT``) raise
+        ``AssertionError``. If False, any null-like values are considered
+        equal to each other.
+
+        .. versionadded:: 3.1.0
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -143,7 +149,13 @@ def assert_almost_equal(
 
         # if we have "equiv", this becomes True
         _testing.assert_almost_equal(
-            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, strict_na=strict_na, **kwargs
+            left,
+            right,
+            check_dtype=bool(check_dtype),
+            rtol=rtol,
+            atol=atol,
+            strict_na=strict_na,
+            **kwargs,
         )
 
 
@@ -884,6 +896,15 @@ def assert_series_equal(
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
+    strict_na : bool, default True
+        If True, mismatched null-like values in object-dtype Series
+        (e.g. ``np.nan`` vs ``None``, or ``pd.NA`` vs ``pd.NaT``) raise
+        ``AssertionError``. If False, any null-like values are considered
+        equal to each other. Only relevant for object dtype (or when
+        ``check_dtype=False`` with differing dtypes that fall back to the
+        object-dtype code path).
+
+        .. versionadded:: 3.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1169,6 +1190,15 @@ def assert_frame_equal(
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
+    strict_na : bool, default True
+        If True, mismatched null-like values in object-dtype columns
+        (e.g. ``np.nan`` vs ``None``, or ``pd.NA`` vs ``pd.NaT``) raise
+        ``AssertionError``. If False, any null-like values are considered
+        equal to each other. Only relevant for object dtype (or when
+        ``check_dtype=False`` with differing dtypes that fall back to the
+        object-dtype code path).
+
+        .. versionadded:: 3.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
