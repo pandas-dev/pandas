@@ -361,7 +361,10 @@ def test_get_engine_auto_error_message():
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
         else:
-            match = "Use pip or conda to install the fastparquet package"
+            match = (
+                "Use pip, conda, or your preferred package management tool "
+                "to install the fastparquet package"
+            )
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
 

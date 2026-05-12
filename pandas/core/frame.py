@@ -6242,7 +6242,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Renamer | None = ...,
         axis: Axis | None = ...,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level = ...,
         errors: IgnoreRaise = ...,
     ) -> DataFrame | None: ...
@@ -6255,7 +6255,7 @@ class DataFrame(NDFrame, OpsMixin):
         columns: Renamer | None = None,
         axis: Axis | None = None,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
@@ -6300,6 +6300,14 @@ class DataFrame(NDFrame, OpsMixin):
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
             If True then value of copy is ignored.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
@@ -6377,7 +6385,22 @@ class DataFrame(NDFrame, OpsMixin):
         2  2  5
         4  3  6
         """
+
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.rename is "
+                "deprecated and will be removed in a future version. "
+                "See `PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         self._check_copy_deprecation(copy)
+
         return super()._rename(
             mapper=mapper,
             index=index,
@@ -14577,7 +14600,7 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         other : DataFrame, Series, or a list containing any combination of them
-            Index should be similar to one of the columns in this one. If a
+            Index should be similar to one of the columns in the caller. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
         on : str, list of str, or array-like, optional

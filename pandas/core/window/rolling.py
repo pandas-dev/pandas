@@ -2213,7 +2213,9 @@ class Rolling(RollingAndExpandingMixin):
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray
-              objects instead.
+              objects instead. Pandas-only attributes such as ``.iloc``
+              or ``.index`` are not available on ndarrays and will raise
+              ``AttributeError`` if used inside ``func``.
 
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
