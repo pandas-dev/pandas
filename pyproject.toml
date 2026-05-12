@@ -528,7 +528,6 @@ show_error_codes = true
 [[tool.mypy.overrides]]
 module = [
   "pandas._libs.*",
-  "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
