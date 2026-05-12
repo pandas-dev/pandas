@@ -1852,16 +1852,18 @@ timedelta}, default 'raise'
     tz_localize = _make_nat_func(
         "tz_localize",
         """
-        Localize the Timestamp to a timezone.
+        Attach or detach a time zone on a Timestamp.
 
-        Convert naive Timestamp to local time zone or remove
-        timezone from timezone-aware Timestamp.
+        This method does not shift the date/time values. It attaches a time
+        zone to a tz-naive Timestamp, or detaches the time zone from a
+        tz-aware Timestamp. In both cases the wall time is preserved.
 
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+            Time zone to attach to the tz-naive Timestamp; the wall time is
+            preserved. ``None`` detaches the time zone from a tz-aware
+            Timestamp, returning a tz-naive Timestamp with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.

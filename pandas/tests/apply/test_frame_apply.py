@@ -1314,6 +1314,45 @@ def test_agg_multiple_mixed():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_multiple_mixed_numeric_only_column_order():
+    # GH#65218
+    mdf = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "C": ["foo", "bar", "baz"],
+            "B": [1.0, 2.0, 3.0],
+        }
+    )
+    expected = DataFrame(
+        {"A": [6.0, 2.0], "B": [6.0, 2.0]},
+        index=["sum", "mean"],
+    )
+    result = mdf.agg(["sum", "mean"], numeric_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_numeric_only_all_non_numeric():
+    # GH#65218
+    mdf = DataFrame({"C": ["foo", "bar", "baz"], "D": ["a", "b", "c"]})
+    expected = DataFrame(index=["sum", "mean"], columns=mdf.columns[:0])
+    result = mdf.agg(["sum", "mean"], numeric_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_bool_only():
+    # GH#65218
+    mdf = DataFrame(
+        {
+            "A": [True, False, True],
+            "B": [1, 2, 3],
+            "C": ["foo", "bar", "baz"],
+        }
+    )
+    expected = DataFrame({"A": [True, False]}, index=["any", "all"])
+    result = mdf.agg(["any", "all"], bool_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_multiple_mixed_raises():
     # GH 20909
     mdf = DataFrame(

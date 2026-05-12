@@ -184,7 +184,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         """
         # PeriodIndex reads from the array (derived from dtype);
         # DatetimeTimedeltaMixin overrides to read from self._freq.
-        return self._data.freq
+        return self._data.freq  # type: ignore[union-attr]
 
     @property
     def asi8(self) -> npt.NDArray[np.int64]:
@@ -365,7 +365,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if type(self) != type(other):
             return False
         elif self.dtype == other.dtype:
-            return np.array_equal(self.asi8, other.asi8)
+            return lib.array_equivalent_bytes(self.asi8, other.asi8)
         elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":  # type: ignore[attr-defined]
             # different units, otherwise matching
             try:
@@ -374,7 +374,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
                 return False
             else:
-                return np.array_equal(left.view("i8"), right.view("i8"))
+                return lib.array_equivalent_bytes(left.view("i8"), right.view("i8"))
         return False
 
     def __contains__(self, key: Any) -> bool:
@@ -739,14 +739,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         result._freq = self._freq
         return result
 
-    def _pin_freq(self, freq, validate_kwds: dict) -> None:
+    def _pin_freq(self, freq, inferred, validate_kwds: dict) -> None:
         """
         Constructor helper to pin the appropriate ``freq`` attribute on self.
-        Assumes ``self._data._freq`` holds any freq inferred from input data
-        (stashed there by ``_from_sequence_not_strict`` before wrapping).
+
+        ``inferred`` is the frequency inferred from the input data (or ``None``
+        if no freq could be inferred), as determined by the caller before
+        wrapping the array in this Index.
         """
         arr = self._data
-        inferred = arr._freq
         if freq is None:
             # user explicitly passed None -> override any inferred_freq
             self._freq = None
@@ -799,8 +800,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                         f"{freq.freqstr}"
                     )
             self._freq = freq
-        # Reset the transitional stash on the array so _freq isn't duplicated.
-        arr._freq = None
 
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
         """
