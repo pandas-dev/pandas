@@ -1831,7 +1831,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 unit=index.unit,
                 **kwargs,
             )
-            if not np.array_equal(index.asi8, on_freq.asi8):
+            if not lib.array_equivalent_bytes(index.asi8, on_freq.asi8):
                 raise ValueError
         except ValueError as err:
             if "non-fixed" in str(err):
