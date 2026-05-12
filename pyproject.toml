@@ -615,9 +615,6 @@ module = [
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
   "pandas.tseries.holiday", # TODO
-  "pandas.util._doctools", # TODO
-  "pandas.util._validators", # TODO
-  "pandas.util", # TODO
   "pandas.conftest",
   "pandas"
 ]

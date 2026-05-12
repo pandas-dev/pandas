@@ -82,12 +82,12 @@ class CompatValidator:
         method = self.method if method is None else method
 
         if method == "args":
-            validate_args(fname, args, max_fname_arg_count, self.defaults)
+            validate_args(fname, args, cast("int", max_fname_arg_count), self.defaults)
         elif method == "kwargs":
             validate_kwargs(fname, kwargs, self.defaults)
         elif method == "both":
             validate_args_and_kwargs(
-                fname, args, kwargs, max_fname_arg_count, self.defaults
+                fname, args, kwargs, cast("int", max_fname_arg_count), self.defaults
             )
         else:
             raise ValueError(f"invalid validation method '{method}'")
