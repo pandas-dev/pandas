@@ -6,6 +6,7 @@ import uuid
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -207,6 +208,50 @@ def test_to_hdf_multiindex_extension_dtype(idx, temp_h5_path):
     df = DataFrame(0, index=mi, columns=["a"])
     with pytest.raises(NotImplementedError, match="Saving a MultiIndex"):
         df.to_hdf(temp_h5_path, key="df")
+
+
+@pytest.mark.parametrize(
+    "values, dtype_match",
+    [
+        # GH#42070
+        (pd.arrays.SparseArray([1.0, 2.0, None, 3.0]), r"Sparse\[float64"),
+        # GH#26144
+        (pd.array([1, 2, None], dtype="Int32"), "Int32"),
+        (pd.array([1.0, None, 3.0], dtype="Float64"), "Float64"),
+        (pd.array([True, False, None], dtype="boolean"), "boolean"),
+        # GH#38305
+        (pd.IntervalIndex.from_arrays([0.5, 1.5], [0.9, 1.9]), r"interval\["),
+    ],
+)
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_to_hdf_unsupported_extension_dtype_column(
+    values, dtype_match, fmt, temp_h5_path
+):
+    df = DataFrame({"a": values})
+    msg = rf"Cannot store a column with dtype {dtype_match}"
+    with pytest.raises(NotImplementedError, match=msg):
+        df.to_hdf(temp_h5_path, key="df", format=fmt)
+
+
+@pytest.mark.parametrize(
+    "idx, dtype_match",
+    [
+        # GH#38305
+        (pd.IntervalIndex.from_arrays([0.5, 1.5], [0.9, 1.9]), r"interval\["),
+        # GH#42070
+        (Index(pd.arrays.SparseArray([1.0, 2.0])), r"Sparse\[float64"),
+        # GH#26144
+        (Index(pd.array([1, 2], dtype="Int32")), "Int32"),
+        (Index(pd.array([1.0, 2.0], dtype="Float64")), "Float64"),
+    ],
+)
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_to_hdf_unsupported_extension_dtype_index(idx, dtype_match, fmt, temp_h5_path):
+    # GH#26144, GH#38305, GH#42070
+    df = DataFrame({"a": [1, 2]}, index=idx)
+    msg = rf"Cannot store an Index with dtype {dtype_match}"
+    with pytest.raises(NotImplementedError, match=msg):
+        df.to_hdf(temp_h5_path, key="df", format=fmt)
 
 
 def test_unsupported_hdf_file_error(datapath):
