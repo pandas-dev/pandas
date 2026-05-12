@@ -18852,7 +18852,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self):
+    def _to_dict_of_blocks(self) -> dict[str, DataFrame]:
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.

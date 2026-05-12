@@ -2188,6 +2188,7 @@ class TableIterator:
         self.stop = stop
 
         self.coordinates = None
+        self._called_get_result = False
         if iterator or chunksize is not None:
             if chunksize is None:
                 chunksize = 100000
@@ -2199,12 +2200,18 @@ class TableIterator:
 
     def __iter__(self) -> Iterator:
         # iterate
-        current = self.start
-        if self.coordinates is None:
+        if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
+        current = self.start
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
-            value = self.func(None, None, self.coordinates[current:stop])
+            if self.coordinates is None:
+                # no `where` filter: iterate by (start, stop) directly so we
+                # don't materialize an np.arange(0, nrows) coordinate array,
+                # which can exhaust memory on very large tables (GH#15937)
+                value = self.func(current, stop, None)
+            else:
+                value = self.func(None, None, self.coordinates[current:stop])
             current = stop
             if value is None or not len(value):
                 continue
@@ -2219,11 +2226,13 @@ class TableIterator:
 
     def get_result(self, coordinates: bool = False):
         #  return the actual iterator
+        self._called_get_result = True
         if self.chunksize is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only use an iterator or chunksize on a table")
 
-            self.coordinates = self.s.read_coordinates(where=self.where)
+            if self.where is not None:
+                self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
 
@@ -2548,8 +2557,10 @@ class IndexCol:
                 )
             ):
                 raise ValueError(
-                    "cannot append a categorical with "
-                    "different categories to the existing"
+                    "cannot append a categorical with different categories "
+                    "to the existing; align with `cat.set_categories(...)` "
+                    "or pre-merge with `pd.api.types.union_categoricals` "
+                    "before writing"
                 )
 
     def write_metadata(self, handler: AppendableTable) -> None:
@@ -3799,6 +3810,13 @@ class Table(Fixed):
         new object
         """
         levels = com.fill_missing_names(obj.index.names)
+        if "index" in levels:
+            # GH#6208 'index' is reserved as the implicit row-index name
+            # in the table format and collides with a level named 'index'.
+            raise ValueError(
+                "cannot store a MultiIndex with a level named 'index' as a "
+                "table; 'index' is reserved for the implicit row index"
+            )
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:
