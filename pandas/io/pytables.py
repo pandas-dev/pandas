@@ -3810,6 +3810,13 @@ class Table(Fixed):
         new object
         """
         levels = com.fill_missing_names(obj.index.names)
+        if "index" in levels:
+            # GH#6208 'index' is reserved as the implicit row-index name
+            # in the table format and collides with a level named 'index'.
+            raise ValueError(
+                "cannot store a MultiIndex with a level named 'index' as a "
+                "table; 'index' is reserved for the implicit row index"
+            )
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:
