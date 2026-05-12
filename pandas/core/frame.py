@@ -1777,6 +1777,8 @@ class DataFrame(NDFrame, OpsMixin):
                 f"Got '{orient}' instead"
             )
 
+        print(f"data: {data}")
+
         if orient != "tight":
             return cls(data, index=index, columns=columns, dtype=dtype)
         else:
@@ -18961,8 +18963,15 @@ def _from_nested_dict(
     new_data: collections.defaultdict[HashableT2, dict[HashableT, T]] = (
         collections.defaultdict(dict)
     )
+    cols = []
+    for s in data.values():
+        for col in s.keys():
+            if col not in cols:
+                cols.append(col)
+
     for index, s in data.items():
-        for col, v in s.items():
+        for col in cols:
+            v = s.get(col, np.nan)
             new_data[col][index] = v
     return new_data
 

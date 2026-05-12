@@ -44,6 +44,18 @@ class TestFromDict:
         ).reindex(result.index)
         tm.assert_frame_equal(result, expected)
 
+    def test_from_nested_dict_series_with_empty_series(self):
+        data = {"good": Series({"a": 1, "b": 2}), "blank": Series()}
+
+        result = DataFrame.from_dict(data, orient="index")
+        expected = DataFrame(
+            {
+                "a": {"good": 1.0, "blank": np.nan},
+                "b": {"good": 2.0, "blank": np.nan},
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_series(self):
         data = [
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
