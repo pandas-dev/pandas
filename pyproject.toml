@@ -539,7 +539,6 @@ module = [
   "pandas._libs.properties",
   "pandas._libs.sparse",
   "pandas._libs.testing",
-  "pandas._libs.tslibs.nattype",
   "pandas._libs.tslibs.offsets",
   "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
