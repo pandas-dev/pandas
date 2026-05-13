@@ -328,11 +328,9 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        If not None, prefix meta fields with this string,
-        e.g. ``foo.bar.field`` if ``meta_prefix`` is ``'foo.bar.'``.
+        If not None, prefix meta fields with this string.
     record_prefix : str, default None
-        If not None, prefix record fields with this string,
-        e.g. ``foo.bar.field`` if ``record_prefix`` is ``'foo.bar.'``.
+        If not None, prefix record fields with this string.
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
 
@@ -469,6 +467,25 @@ def json_normalize(
     1          2
 
     Returns normalized data with columns prefixed with the given string.
+
+    >>> data = [
+    ...     {
+    ...         "state": "Florida",
+    ...         "shortname": "FL",
+    ...         "info": {"governor": "Rick Scott"},
+    ...         "counties": [{"name": "Dade", "population": 12345}],
+    ...     },
+    ... ]
+    >>> pd.json_normalize(
+    ...     data,
+    ...     "counties",
+    ...     ["state", "shortname", ["info", "governor"]],
+    ...     meta_prefix="meta.",
+    ... )
+       name  population meta.state meta.shortname meta.info.governor
+    0  Dade       12345    Florida             FL         Rick Scott
+
+    Meta fields are prefixed with the given string.
     """
     _validate_meta(meta)
 
