@@ -357,6 +357,12 @@ class Index(IndexOpsMixin, PandasObject):
     An Index instance can **only** contain hashable objects.
     An Index instance *can not* hold numpy float16 dtype.
 
+    NumPy arrays with ``dtype=object`` are handled like other list-like inputs:
+    pandas may infer a more specific dtype (for example ``str`` for an array of
+    Python strings) instead of preserving NumPy object dtype. Values that
+    NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
+    not altered in the same way. To force object dtype, pass ``dtype=object``.
+
     Examples
     --------
     >>> pd.Index([1, 2, 3])

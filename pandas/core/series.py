@@ -257,6 +257,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     -----
     Please reference the :ref:`User Guide <basics.series>` for more information.
 
+    NumPy arrays with ``dtype=object`` may be inferred to a more specific dtype
+    (e.g. strings or datetimes) rather than keeping object dtype, similar to
+    passing a Python list. Pass ``dtype=object`` when you need object dtype.
+    The same inference rules apply when building an :class:`Index` from such an
+    array.
+
     Examples
     --------
     Constructing Series from a dictionary with an Index specified
