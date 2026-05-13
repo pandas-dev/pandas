@@ -647,9 +647,9 @@ def remove_na_arraylike(arr: _ArrLikeT) -> _ArrLikeT:
     Return array-like containing only true/non-NaN values, possibly empty.
     """
     if isinstance(arr.dtype, ExtensionDtype):
-        return arr[notna(arr)]
+        return arr[notna(arr)]  # pyright: ignore[reportReturnType]
     else:
-        return arr[notna(np.asarray(arr))]
+        return arr[notna(np.asarray(arr))]  # pyright: ignore[reportReturnType]
 
 
 def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
@@ -665,7 +665,7 @@ def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
     -------
     bool
     """
-    if not lib.is_scalar(obj) or not isna(obj):
+    if not lib.is_scalar(obj) or not isna(obj):  # pyright: ignore[reportGeneralTypeIssues]
         return False
     elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):
