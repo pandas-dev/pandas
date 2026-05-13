@@ -87,6 +87,8 @@ if TYPE_CHECKING:
         ListLike,
         NumpySorter,
         NumpyValueArrayLike,
+        RankMethod,
+        RankNaOption,
         TakeIndexer,
         npt,
     )
@@ -1048,8 +1050,8 @@ def mode(
 def rank(
     values: ArrayLike,
     axis: AxisInt = 0,
-    method: str = "average",
-    na_option: str = "keep",
+    method: RankMethod = "average",
+    na_option: RankNaOption = "keep",
     ascending: bool = True,
     pct: bool = False,
     mask: npt.NDArray[np.bool_] | None = None,
