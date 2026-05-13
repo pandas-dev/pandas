@@ -539,7 +539,6 @@ module = [
   "pandas._libs.properties",
   "pandas._libs.sparse",
   "pandas._libs.testing",
-  "pandas._libs.tslibs.fields",
   "pandas._libs.tslibs.nattype",
   "pandas._libs.tslibs.offsets",
   "pandas._libs.tslibs.period",
