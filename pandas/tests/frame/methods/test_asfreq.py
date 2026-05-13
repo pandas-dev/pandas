@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import MonthEnd
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -186,13 +187,16 @@ class TestAsFreq:
         tm.assert_series_equal(expected_series, actual_series)
 
     def test_asfreq_with_date_object_index(self, frame_or_series):
-        rng = date_range("1/1/2000", periods=20)
+        rng = date_range("1/1/2000", periods=20, unit="ns")
         ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4h", method="ffill")
+        # GH#62158 date-object Index reindexed against DatetimeIndex
+        msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts2.asfreq("4h", method="ffill")
         expected = ts.asfreq("4h", method="ffill")
         tm.assert_equal(result, expected)
 
@@ -236,32 +240,30 @@ class TestAsFreq:
         "freq, freq_depr",
         [
             ("2ME", "2M"),
+            ("2ME", "2m"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
             ("1BQE", "1BQ"),
             ("2BQE-SEP", "2BQ-SEP"),
-            ("1YE", "1Y"),
+            ("2BQE-SEP", "2bq-sep"),
+            ("1YE", "1y"),
             ("2YE-MAR", "2Y-MAR"),
         ],
     )
-    def test_asfreq_frequency_M_Q_Y_deprecated(self, freq, freq_depr):
-        # GH#9586, #55978
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
+    def test_asfreq_frequency_M_Q_Y_raises(self, freq, freq_depr):
+        msg = f"Invalid frequency: {freq_depr}"
 
         index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
-        expected = df.asfreq(freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = df.asfreq(freq=freq_depr)
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            df.asfreq(freq=freq_depr)
 
     @pytest.mark.parametrize(
         "freq, error_msg",
         [
             (
                 "2MS",
-                "MS is not supported as period frequency",
+                "Invalid frequency: 2MS",
             ),
             (
                 offsets.MonthBegin(),

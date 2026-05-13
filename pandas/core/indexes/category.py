@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 
@@ -12,15 +13,13 @@ import numpy as np
 from pandas._libs import index as libindex
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
-    isna,
 )
 
 from pandas.core.arrays.categorical import (
@@ -38,14 +37,23 @@ from pandas.core.indexes.extension import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Callable,
+        Hashable,
+    )
 
     from pandas._typing import (
+        ArrayLike,
+        Axes,
         Dtype,
         DtypeObj,
-        Self,
+        Level,
+        ReindexMethod,
         npt,
     )
+
+    from pandas import Series
+    from pandas.core.indexes.multi import MultiIndex
 
 
 @inherit_names(
@@ -76,6 +84,7 @@ if TYPE_CHECKING:
     Categorical,
     wrap=True,
 )
+@set_module("pandas")
 class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
     Index based on an underlying :class:`Categorical`.
@@ -173,7 +182,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     _data_cls = Categorical
 
     @property
-    def _can_hold_strings(self):
+    def _can_hold_strings(self) -> bool:
         return self.categories._can_hold_strings
 
     @cache_readonly
@@ -202,9 +211,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def __new__(
         cls,
-        data=None,
-        categories=None,
-        ordered=None,
+        data: Axes | None = None,
+        categories: Axes | None = None,
+        ordered: bool | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
@@ -244,7 +253,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         if isinstance(other.dtype, CategoricalDtype):
             cat = extract_array(other)
-            cat = cast(Categorical, cat)
+            cat = cast("Categorical", cat)
             if not cat._categories_match_up_to_permutation(self._values):
                 raise TypeError(
                     "categories must match existing categories when appending"
@@ -256,6 +265,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         else:
             values = other
 
+            codes = self.categories.get_indexer(values)
+            if ((codes == -1) & ~values.isna()).any():
+                # GH#37667 see test_equals_non_category
+                raise TypeError(
+                    "categories must match existing categories when appending"
+                )
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
             if not other.isin(values).all():
@@ -263,12 +278,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "cannot append a non-category item to a CategoricalIndex"
                 )
             cat = other._values
-
-            if not ((cat == values) | (isna(cat) & isna(values))).all():
-                # GH#37667 see test_equals_non_category
-                raise TypeError(
-                    "categories must match existing categories when appending"
-                )
 
         return cat
 
@@ -330,7 +339,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> ci_ordered.equals(ci2_ordered)
         False
         """
-        if self.is_(other):
+        if self.is_(other):  # type: ignore[arg-type]
             return True
 
         if not isinstance(other, Index):
@@ -346,11 +355,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @property
-    def _formatter_func(self):
-        return self.categories._formatter_func
+    def _formatter_func(self, val: Hashable) -> str:
+        return self.categories._formatter_func(val)
 
-    def _format_attrs(self):
+    def _format_attrs(self) -> list[tuple[str, str | int | bool | None]]:
         """
         Return a list of tuples of the (attr,formatted_value)
         """
@@ -372,16 +380,59 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def inferred_type(self) -> str:
         return "categorical"
 
-    @doc(Index.__contains__)
     def __contains__(self, key: Any) -> bool:
+        """
+        Return a boolean indicating whether the provided key is in the index.
+
+        Parameters
+        ----------
+        key : label
+            The key to check if it is present in the index.
+
+        Returns
+        -------
+        bool
+            Whether the key search is in the index.
+
+        Raises
+        ------
+        TypeError
+            If the key is not hashable.
+
+        See Also
+        --------
+        Index.isin : Returns an ndarray of boolean dtype indicating whether the
+            list-like key is in the index.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Index([1, 2, 3, 4], dtype='int64')
+
+        >>> 2 in idx
+        True
+        >>> 6 in idx
+        False
+        """
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
-
-        return contains(self, key, container=self._engine)
+        if self.categories._typ == "rangeindex":
+            container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
+                self.categories
+            )
+        else:
+            container = self._engine
+        return contains(self, key, container=container)
 
     def reindex(
-        self, target, method=None, level=None, limit: int | None = None, tolerance=None
+        self,
+        target: Axes,
+        method: ReindexMethod | None = None,
+        level: Level | None = None,
+        limit: int | None = None,
+        tolerance: float | None = None,
     ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
@@ -411,7 +462,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _maybe_cast_indexer(self, key) -> int:
+    def _maybe_cast_indexer(self, key: Hashable) -> int:
         # GH#41933: we have to do this instead of self._data._validate_scalar
         #  because this will correctly get partial-indexing on Interval categories
         try:
@@ -421,7 +472,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 return -1
             raise
 
-    def _maybe_cast_listlike_indexer(self, values) -> CategoricalIndex:
+    def _maybe_cast_listlike_indexer(self, values: Axes) -> CategoricalIndex:
         if isinstance(values, CategoricalIndex):
             values = values._data
         if isinstance(values, Categorical):
@@ -441,7 +492,34 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         return self.categories._is_comparable_dtype(dtype)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def _intersection(
+        self, other: Index, sort: bool = False
+    ) -> Index | ArrayLike | MultiIndex:
+        # Reached only via Index.intersection after dtype reconciliation, so
+        # other is necessarily a CategoricalIndex with matching dtype.
+        # For unordered CategoricalIndex, libjoin operates on integer codes.
+        # When two indexes have the same categories in different order, matching
+        # codes map to different values, giving incorrect results (GH#55335).
+        # Reorder other's categories to match self so the codes align.
+        other = cast("CategoricalIndex", other)
+        if not self.ordered and not self.categories.equals(other.categories):
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
+        return super()._intersection(other, sort=sort)
+
+    def _union(self, other: Index, sort: bool | None) -> Index | ArrayLike | MultiIndex:
+        # See _intersection for explanation of GH#55335.
+        other = cast("CategoricalIndex", other)
+        if not self.ordered and not self.categories.equals(other.categories):
+            reordered = other._data.reorder_categories(self.categories)
+            other = other._shallow_copy(reordered)
+        return super()._union(other, sort)
+
+    def map(
+        self,
+        mapper: Callable | dict | Series,
+        na_action: Literal["ignore"] | None = None,
+    ) -> Index:
         """
         Map values using input an input mapping or function.
 
@@ -503,27 +581,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
         >>> idx.map({"a": "first", "b": "second", "c": "first"})
-        Index(['first', 'second', 'first'], dtype='object')
+        Index(['first', 'second', 'first'], dtype='str')
 
         If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({"a": "first", "b": "second"})
-        Index(['first', 'second', nan], dtype='object')
+        Index(['first', 'second', nan], dtype='str')
         """
         mapped = self._values.map(mapper, na_action=na_action)
-        return Index(mapped, name=self.name)
-
-    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
-        # if calling index is category, don't check dtype of others
-        try:
-            cat = Categorical._concat_same_type(
-                [self._is_dtype_compat(c) for c in to_concat]
-            )
-        except TypeError:
-            # not all to_concat elements are among our categories (or NA)
-
-            res = concat_compat([x._values for x in to_concat])
-            return Index(res, name=name)
-        else:
-            return type(self)._simple_new(cat, name=name)
+        return Index(mapped, name=self.name, copy=False)

@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import time
 import math
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import doc
-
-from pandas.core.shared_docs import _shared_docs
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.io.excel._base import BaseExcelReader
 
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
 
 class XlrdReader(BaseExcelReader["Book"]):
-    @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer,
@@ -37,12 +36,27 @@ class XlrdReader(BaseExcelReader["Book"]):
         ----------
         filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
-        {storage_options}
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection,
+            e.g. host, port, username, password, etc. For HTTP(S) URLs the
+            key-value pairs are forwarded to ``urllib.request.Request`` as
+            header options. For other URLs (e.g. starting with "s3://", and
+            "gcs://") the key-value pairs are forwarded to ``fsspec.open``.
+            Please see ``fsspec`` and ``urllib`` for more details, and for more
+            examples on storage options refer `here <https://pandas.pydata.org/
+            pandas-docs/stable/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`__.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
+        warnings.warn(
+            "The xlrd engine is deprecated and will be removed in a future version. "
+            "Use the calamine engine instead, by setting engine='calamine'.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         super().__init__(
             filepath_or_buffer,
             storage_options=storage_options,
@@ -128,16 +142,15 @@ class XlrdReader(BaseExcelReader["Book"]):
                         cell_contents = val
             return cell_contents
 
-        data = []
-
         nrows = sheet.nrows
         if file_rows_needed is not None:
             nrows = min(nrows, file_rows_needed)
-        for i in range(nrows):
-            row = [
+        return [
+            [
                 _parse_cell(value, typ)
-                for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
+                for value, typ in zip(
+                    sheet.row_values(i), sheet.row_types(i), strict=True
+                )
             ]
-            data.append(row)
-
-        return data
+            for i in range(nrows)
+        ]

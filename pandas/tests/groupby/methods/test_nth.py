@@ -258,7 +258,7 @@ def test_nth3():
     gb = df[0]
     expected = ser.groupby(gb).first()
     expected2 = ser.groupby(gb).apply(lambda x: x.iloc[0])
-    tm.assert_series_equal(expected2, expected, check_names=False)
+    tm.assert_series_equal(expected2, expected)
     assert expected.name == 1
     assert expected2.name == 1
 
@@ -634,14 +634,14 @@ def test_first_categorical_and_datetime_data_nat():
     df = DataFrame(
         {
             "group": ["first", "first", "second", "third", "third"],
-            "time": 5 * [np.datetime64("NaT")],
+            "time": 5 * [np.datetime64("NaT", "ns")],
             "categories": Series(["a", "b", "c", "a", "b"], dtype="category"),
         }
     )
     result = df.groupby("group").first()
     expected = DataFrame(
         {
-            "time": 3 * [np.datetime64("NaT")],
+            "time": 3 * [np.datetime64("NaT", "ns")],
             "categories": Series(["a", "c", "a"]).astype(
                 pd.CategoricalDtype(["a", "b", "c"])
             ),
@@ -680,10 +680,11 @@ def test_first_multi_key_groupby_categorical():
 @pytest.mark.parametrize("method", ["first", "last", "nth"])
 def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     # GH29645
-    expected = Series(["y"])
+    expected = Series(["y"], dtype=object)
     data = Series(
         [nulls_fixture, nulls_fixture, nulls_fixture, "y", nulls_fixture],
         index=[0, 0, 0, 0, 0],
+        dtype=object,
     ).groupby(level=0)
 
     if method == "nth":

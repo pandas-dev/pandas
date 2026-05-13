@@ -89,10 +89,9 @@ will be completed:
    df2.align              df2.copy
    df2.all                df2.count
    df2.any                df2.combine
-   df2.append             df2.D
-   df2.apply              df2.describe
-   df2.B                  df2.duplicated
-   df2.diff
+   df2.apply              df2.D
+   df2.B                  df2.describe
+   df2.diff               df2.duplicated
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
@@ -101,7 +100,7 @@ truncated for brevity.
 Viewing data
 ------------
 
-See the :ref:`Essentially basics functionality section <basics>`.
+See the :ref:`Essential basic functionality section <basics>`.
 
 Use :meth:`DataFrame.head` and :meth:`DataFrame.tail` to view the top and bottom rows of the frame
 respectively:
@@ -177,12 +176,26 @@ See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and
 Getitem (``[]``)
 ~~~~~~~~~~~~~~~~
 
-For a :class:`DataFrame`, passing a single label selects a columns and
-yields a :class:`Series` equivalent to ``df.A``:
+For a :class:`DataFrame`, passing a single label selects a column and
+yields a :class:`Series`:
 
 .. ipython:: python
 
    df["A"]
+
+If the label only contains letters, numbers, and underscores, you can
+alternatively use the column name attribute:
+
+.. ipython:: python
+
+   df.A
+
+Passing a list of column labels selects multiple columns, which can be useful
+for getting a subset/rearranging:
+
+.. ipython:: python
+
+   df[["B", "A"]]
 
 For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 
@@ -304,7 +317,9 @@ Setting a new column automatically aligns the data by the indexes:
 
 .. ipython:: python
 
-   s1 = pd.Series([1, 2, 3, 4, 5, 6], index=pd.date_range("20130102", periods=6))
+   s1 = pd.Series(
+      [1, 2, 3, 4, 5, 6],
+      index=pd.date_range("20130102", periods=6))
    s1
    df["F"] = s1
 
@@ -531,6 +546,8 @@ groups:
 .. ipython:: python
 
    df.groupby("A")[["C", "D"]].sum()
+
+The unique values of the grouped column now form the index of the result.
 
 Grouping by multiple columns label forms :class:`MultiIndex`.
 

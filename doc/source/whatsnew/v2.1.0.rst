@@ -721,7 +721,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str` that did not raise a  ``TypeError`` when iterated (:issue:`54173`)
-- Bug in ``repr`` for :class:`DataFrame`` with string-dtype columns (:issue:`54797`)
+- Bug in ``repr`` for :class:`DataFrame` with string-dtype columns (:issue:`54797`)
 
 Interval
 ^^^^^^^^

@@ -36,9 +36,11 @@ class TestAppend:
             ci.append(ci.values.reorder_categories(list("abc")))
 
     def test_append_category_objects(self, ci):
+        # GH#41626 pre-3.0 this used to cast the object-dtype index to
+        #  ci.dtype
         # with objects
         result = ci.append(Index(["c", "a"]))
-        expected = CategoricalIndex(list("aabbcaca"), categories=ci.categories)
+        expected = Index(list("aabbcaca"))
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_non_categories(self, ci):

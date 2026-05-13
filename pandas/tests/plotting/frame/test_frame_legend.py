@@ -12,7 +12,6 @@ from pandas.tests.plotting.common import (
     _check_legend_marker,
     _check_text_labels,
 )
-from pandas.util.version import Version
 
 mpl = pytest.importorskip("matplotlib")
 
@@ -26,22 +25,16 @@ class TestFrameLegend:
     )
     def test_mixed_yerr(self):
         # https://github.com/pandas-dev/pandas/issues/39522
-        from matplotlib.collections import LineCollection
-        from matplotlib.lines import Line2D
-
         df = DataFrame([{"x": 1, "a": 1, "b": 1}, {"x": 2, "a": 2, "b": 3}])
 
         ax = df.plot("x", "a", c="orange", yerr=0.1, label="orange")
         df.plot("x", "b", c="blue", yerr=None, ax=ax, label="blue")
 
         legend = ax.get_legend()
-        if Version(mpl.__version__) < Version("3.7"):
-            result_handles = legend.legendHandles
-        else:
-            result_handles = legend.legend_handles
+        result_handles = legend.legend_handles
 
-        assert isinstance(result_handles[0], LineCollection)
-        assert isinstance(result_handles[1], Line2D)
+        assert isinstance(result_handles[0], mpl.collections.LineCollection)
+        assert isinstance(result_handles[1], mpl.lines.Line2D)
 
     def test_legend_false(self):
         # https://github.com/pandas-dev/pandas/issues/40044
@@ -51,10 +44,7 @@ class TestFrameLegend:
         ax = df.plot(legend=True, color={"a": "blue", "b": "green"}, secondary_y="b")
         df2.plot(legend=True, color={"d": "red"}, ax=ax)
         legend = ax.get_legend()
-        if Version(mpl.__version__) < Version("3.7"):
-            handles = legend.legendHandles
-        else:
-            handles = legend.legend_handles
+        handles = legend.legend_handles
         result = [handle.get_color() for handle in handles]
         expected = ["blue", "green", "red"]
         assert result == expected

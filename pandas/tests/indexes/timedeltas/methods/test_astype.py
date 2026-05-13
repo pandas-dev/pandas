@@ -44,7 +44,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
 
-    def test_astype(self):
+    def test_astype(self, using_infer_string):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan], name="idx")
 
@@ -61,7 +61,12 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index([str(x) for x in idx], name="idx", dtype=object)
+        if using_infer_string:
+            expected = Index(
+                [str(x) if x is not NaT else None for x in idx], name="idx", dtype="str"
+            )
+        else:
+            expected = Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
         rng = timedelta_range("1 days", periods=10)
@@ -132,19 +137,20 @@ class TestTimedeltaIndex:
 
         res = tdi.astype("m8[s]")
         exp_values = np.asarray(tdi).astype("m8[s]")
-        exp_tda = TimedeltaArray._simple_new(
-            exp_values, dtype=exp_values.dtype, freq=tdi.freq
-        )
+        exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
         expected = Index(exp_tda)
+        expected._freq = tdi.freq
         assert expected.dtype == "m8[s]"
         tm.assert_index_equal(res, expected)
 
         # check this matches Series and TimedeltaArray
+        exp_arr = expected._values
+
         res = tdi._data.astype("m8[s]")
-        tm.assert_equal(res, expected._values)
+        tm.assert_equal(res, exp_arr)
 
         res = tdi.to_series().astype("m8[s]")
-        tm.assert_equal(res._values, expected._values._with_freq(None))
+        tm.assert_equal(res._values, exp_arr)
 
     @pytest.mark.parametrize("dtype", [float, "datetime64", "datetime64[ns]"])
     def test_astype_raises(self, dtype):

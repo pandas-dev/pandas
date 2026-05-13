@@ -1,4 +1,7 @@
+import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import DataFrame
@@ -67,19 +70,19 @@ def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
     [
         # Index
         (
-            DataFrame.from_records({"a": [1, 2], "c": ["l1", "l2"]}, index=["a"]),
-            DataFrame.from_records({"a": [1.0, 2.0], "c": ["l1", "l2"]}, index=["a"]),
+            DataFrame({"a": [1, 2], "c": ["l1", "l2"]}).set_index("a"),
+            DataFrame({"a": [1.0, 2.0], "c": ["l1", "l2"]}).set_index("a"),
             "DataFrame\\.index are different",
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
-            "MultiIndex level \\[0\\] are different",
+            "DataFrame\\.index level \\[0\\] are different",
         ),
     ],
 )
@@ -112,7 +115,7 @@ def test_empty_dtypes(check_dtype):
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_index_mismatch(check_like, frame_or_series, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""{frame_or_series.__name__}\\.index are different
@@ -134,7 +137,7 @@ At positional index 2, first diff: c != d"""
 @pytest.mark.parametrize("check_like", [True, False])
 def test_frame_equal_columns_mismatch(check_like, frame_or_series, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""{frame_or_series.__name__}\\.columns are different
@@ -395,3 +398,39 @@ def test_assert_frame_equal_set_mismatch():
     msg = r'DataFrame.iloc\[:, 0\] \(column name="set_column"\) values are different'
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2)
+
+
+def test_datetimelike_compat_deprecated():
+    # GH#55638
+    df = DataFrame({"a": [1]})
+
+    msg = "the 'check_datetimelike_compat' keyword is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_frame_equal(df, df, check_datetimelike_compat=True)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_frame_equal(df, df, check_datetimelike_compat=False)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=True)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
+
+
+def test_assert_frame_equal_int_near_bounds():
+    # GH#40719 - integer comparisons near int64 bounds should be exact by default
+    min_val = np.iinfo(np.int64).min
+    df1 = DataFrame({"B": [min_val]}, dtype=np.int64)
+    df2 = DataFrame({"B": [min_val + 1]}, dtype=np.int64)
+
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="B"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan, None])
+def test_assert_frame_equal_nested_df_na(na_value):
+    # GH#43022
+    inner = DataFrame({"a": [1, na_value]})
+    df1 = DataFrame({"df": [inner]})
+    df2 = DataFrame({"df": [inner]})
+    tm.assert_frame_equal(df1, df2)

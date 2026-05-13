@@ -47,7 +47,7 @@ class TestLogicalOps(BaseOpsUtil):
         tm.assert_extension_array_equal(a, result)
 
     @pytest.mark.parametrize(
-        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4)]
+        "other", ["a", pd.Timestamp(2017, 1, 1, 12), np.timedelta64(4, "ns")]
     )
     def test_eq_mismatched_type(self, other):
         # GH-44499
@@ -60,19 +60,20 @@ class TestLogicalOps(BaseOpsUtil):
         expected = pd.array([True, True])
         tm.assert_extension_array_equal(result, expected)
 
-    def test_logical_length_mismatch_raises(self, all_logical_operators):
+    @pytest.mark.parametrize("other", [[True, False], [True, False, True, False]])
+    def test_logical_length_mismatch_raises(self, other, all_logical_operators):
         op_name = all_logical_operators
         a = pd.array([True, False, None], dtype="boolean")
         msg = "Lengths must match"
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)([True, False])
+            getattr(a, op_name)(other)
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)(np.array([True, False]))
+            getattr(a, op_name)(np.array(other))
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)(pd.array([True, False], dtype="boolean"))
+            getattr(a, op_name)(pd.array(other, dtype="boolean"))
 
     def test_logical_nan_raises(self, all_logical_operators):
         op_name = all_logical_operators
@@ -248,7 +249,7 @@ class TestLogicalOps(BaseOpsUtil):
 
 @pytest.mark.parametrize("operation", [kleene_or, kleene_xor, kleene_and])
 def test_error_both_scalar(operation):
-    msg = r"Either `left` or `right` need to be a np\.ndarray."
+    msg = r"Either `left` or `right` need to be an np\.ndarray."
     with pytest.raises(TypeError, match=msg):
         # masks need to be non-None, otherwise it ends up in an infinite recursion
         operation(True, True, np.zeros(1), np.zeros(1))

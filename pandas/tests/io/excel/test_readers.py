@@ -17,8 +17,7 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -30,10 +29,6 @@ from pandas import (
     read_csv,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -44,6 +39,9 @@ engine_params = [
         "xlrd",
         marks=[
             td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
     pytest.param(
@@ -56,9 +54,23 @@ engine_params = [
         None,
         marks=[
             td.skip_if_no("xlrd"),
+            pytest.mark.filterwarnings(
+                "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
         ],
     ),
-    pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
+    pytest.param(
+        "pyxlsb",
+        marks=[
+            td.skip_if_no("pyxlsb"),
+            pytest.mark.filterwarnings(
+                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+            ),
+        ],
+    ),
     pytest.param("odf", marks=td.skip_if_no("odf")),
     pytest.param("calamine", marks=td.skip_if_no("python_calamine")),
 ]
@@ -90,7 +102,7 @@ def _transfer_marks(engine, read_ext):
     engine gives us a pytest.param object with some marks, read_ext is just
     a string.  We need to generate a new pytest.param inheriting the marks.
     """
-    values = engine.values + (read_ext,)
+    values = (*engine.values, read_ext)
     new_param = pytest.param(values, marks=engine.marks)
     return new_param
 
@@ -141,10 +153,10 @@ def df_ref(datapath):
 
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    return "ns"
+    return "us"
 
 
-def adjust_expected(expected: DataFrame, read_ext: str, engine: str) -> None:
+def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
     unit = get_exp_unit(read_ext, engine)
     # error: "Index" has no attribute "as_unit"
@@ -161,6 +173,72 @@ def xfail_datetimes_with_pyxlsb(engine, request):
 
 
 class TestReaders:
+    @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
+    def test_read_excel_type_check(self, col, tmp_excel, read_ext):
+        # GH 58159
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        df = DataFrame({"bool_column": col}, dtype="boolean")
+        df.to_excel(tmp_excel, index=False)
+        df2 = pd.read_excel(tmp_excel, dtype={"bool_column": "boolean"})
+        tm.assert_frame_equal(df, df2)
+
+    def test_read_excel_int_bool_mix_type_check(self, tmp_excel, read_ext):
+        # GH 60088
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df1 = DataFrame(
+            {
+                "a": [True, True],
+                "b": [1, True],
+                "c": [True, 1],
+                "d": [False, 0],
+                "e": [0, False],
+                "f": [False, False],
+            },
+            dtype=object,
+        )
+        df1.to_excel(tmp_excel, index=False)
+
+        df2 = pd.read_excel(tmp_excel, dtype=object)
+
+        tm.assert_frame_equal(df1, df2)
+
+        for idx, row in df2.iterrows():
+            for col in df2.columns:
+                val = row[col]
+                exp_val = df1.iloc[idx][col]
+                # Check if values match
+                assert val == exp_val, (
+                    f"Mismatch at Row {idx} Column {col}: {val} != {exp_val}"
+                )
+                # Check if types match
+                assert type(val) == type(exp_val), (
+                    f"Type mismatch at Row {idx} Column {col}: "
+                    f"{type(val)} != {type(exp_val)}"
+                )
+
+    def test_pass_none_type(self, datapath):
+        # GH 58159
+        f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
+
+        with pd.ExcelFile(f_path) as excel:
+            parsed = pd.read_excel(
+                excel,
+                sheet_name="Sheet1",
+                keep_default_na=True,
+                na_values=["nan", "None", "abcd"],
+                dtype="boolean",
+                engine="openpyxl",
+            )
+        expected = DataFrame(
+            {"Test": [True, None, False, None, False, None, True]},
+            dtype="boolean",
+        )
+
+        tm.assert_frame_equal(parsed, expected)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -170,13 +248,9 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
-    def test_engine_used(self, read_ext, engine, monkeypatch):
+    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+    def test_engine_used(self, read_ext, engine):
         # GH 38884
-        def parser(self, *args, **kwargs):
-            return self.engine
-
-        monkeypatch.setattr(pd.ExcelFile, "parse", parser)
-
         expected_defaults = {
             "xlsx": "openpyxl",
             "xlsm": "openpyxl",
@@ -186,7 +260,8 @@ class TestReaders:
         }
 
         with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f)
+            with pd.ExcelFile(f, engine=engine) as excel_file:
+                result = excel_file.engine
 
         if engine is not None:
             expected = engine
@@ -558,7 +633,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = Series(["001", "002", "003", "004"], dtype=object)
+        expected["c"] = Series(["001", "002", "003", "004"], dtype="str")
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -582,8 +657,8 @@ class TestReaders:
                 {
                     "a": Series([1, 2, 3, 4], dtype="float64"),
                     "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                    "c": Series(["001", "002", "003", "004"], dtype=object),
-                    "d": Series(["1", "2", np.nan, "4"], dtype=object),
+                    "c": Series(["001", "002", "003", "004"], dtype="str"),
+                    "d": Series(["1", "2", np.nan, "4"], dtype="str"),
                 },
             ),
         ],
@@ -630,6 +705,10 @@ class TestReaders:
                     for col in df.columns
                 }
             )
+
+            # pandas uses large_string by default, but pyarrow infers string
+            expected["d"] = expected["d"].astype(pd.ArrowDtype(pa.string()))
+            expected["h"] = expected["h"].astype(pd.ArrowDtype(pa.string()))
             # pyarrow by default infers timestamp resolution as us, not ns
             expected["i"] = ArrowExtensionArray(
                 expected["i"].array._pa_array.cast(pa.timestamp(unit="us"))
@@ -658,43 +737,33 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
-    )
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": np.array(["a", "b"], dtype=np.object_),
+                "b": np.array(["x", pd.NA], dtype=np.object_),
+            }
+        )
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
 
         with pd.option_context("mode.string_storage", string_storage):
-            df = DataFrame(
-                {
-                    "a": np.array(["a", "b"], dtype=np.object_),
-                    "b": np.array(["x", pd.NA], dtype=np.object_),
-                }
-            )
-            df.to_excel(tmp_excel, sheet_name="test", index=False)
             result = pd.read_excel(
                 tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
             )
 
-            if string_storage == "python":
-                expected = DataFrame(
-                    {
-                        "a": StringArray(np.array(["a", "b"], dtype=np.object_)),
-                        "b": StringArray(np.array(["x", pd.NA], dtype=np.object_)),
-                    }
-                )
-            else:
-                expected = DataFrame(
-                    {
-                        "a": ArrowStringArray(pa.array(["a", "b"])),
-                        "b": ArrowStringArray(pa.array(["x", None])),
-                    }
-                )
-            tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            {
+                "a": Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": Series(["x", None], dtype=pd.StringDtype(string_storage)),
+            }
+        )
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
@@ -893,8 +962,7 @@ class TestReaders:
 
             error = XLRDError
             msg = (
-                "Unsupported format, or corrupt file: Expected BOF "
-                "record; found b'foo'"
+                "Unsupported format, or corrupt file: Expected BOF record; found b'foo'"
             )
         elif engine == "calamine":
             from python_calamine import CalamineError
@@ -918,29 +986,27 @@ class TestReaders:
 
     @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
-    def test_read_from_s3_url(self, read_ext, s3_public_bucket, s3so):
-        # Bucket created in tests/io/conftest.py
+    def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:
-            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
+            s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
-        url = f"s3://{s3_public_bucket.name}/test1" + read_ext
+        url = f"s3://{s3_bucket_public.name}/test1" + read_ext
 
         url_table = pd.read_excel(url, storage_options=s3so)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.single_cpu
-    def test_read_from_s3_object(self, read_ext, s3_public_bucket, s3so):
+    def test_read_from_s3_object(self, read_ext, s3_bucket_public, s3so):
         # GH 38788
-        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
+            s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
         import s3fs
 
         s3 = s3fs.S3FileSystem(**s3so)
 
-        with s3.open(f"s3://{s3_public_bucket.name}/test1" + read_ext) as f:
+        with s3.open(f"s3://{s3_bucket_public.name}/test1" + read_ext) as f:
             url_table = pd.read_excel(f)
 
         local_table = pd.read_excel("test1" + read_ext)
@@ -1065,7 +1131,7 @@ class TestReaders:
         tm.assert_frame_equal(actual, expected)
 
         # "mi_column_name" sheet
-        expected.index = list(range(4))
+        expected.index = range(4)
         expected.columns = mi.set_names(["c1", "c2"])
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column_name", header=[0, 1], index_col=0
@@ -1117,7 +1183,6 @@ class TestReaders:
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
 
         unit = get_exp_unit(read_ext, engine)
-
         expected = DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
@@ -1305,6 +1370,12 @@ class TestReaders:
             columns=["a", "b", "c", "d"],
         )
         expected["c"] = expected["c"].astype(f"M8[{unit}]")
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_skiprows_callable_all(self, read_ext):
+        # GH 64027
+        actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
+        expected = DataFrame()
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows(self, read_ext):
@@ -1562,9 +1633,11 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df1, expected)
         tm.assert_frame_equal(df2, expected)
 
+        depr_msg = "ExcelFile.parse is deprecated"
         with pd.ExcelFile("test1" + read_ext) as excel:
-            df1 = excel.parse(0, index_col=0)
-            df2 = excel.parse(1, skiprows=[1], index_col=0)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df1 = excel.parse(0, index_col=0)
+                df2 = excel.parse(1, skiprows=[1], index_col=0)
         tm.assert_frame_equal(df1, expected)
         tm.assert_frame_equal(df2, expected)
 
@@ -1573,7 +1646,8 @@ class TestExcelFileRead:
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
         with pd.ExcelFile("test1" + read_ext) as excel:
-            df3 = excel.parse(0, index_col=0, skipfooter=1)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df3 = excel.parse(0, index_col=0, skipfooter=1)
 
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
@@ -1586,11 +1660,14 @@ class TestExcelFileRead:
         filename = "test1"
         sheet_name = "Sheet1"
 
+        depr_msg = "ExcelFile.parse is deprecated"
         with pd.ExcelFile(filename + read_ext) as excel:
-            df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
 
         with pd.ExcelFile(filename + read_ext) as excel:
-            df2_parse = excel.parse(index_col=0, sheet_name=sheet_name)
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                df2_parse = excel.parse(index_col=0, sheet_name=sheet_name)
 
         tm.assert_frame_equal(df1_parse, expected)
         tm.assert_frame_equal(df2_parse, expected)
@@ -1602,9 +1679,11 @@ class TestExcelFileRead:
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
         msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        depr_msg = "ExcelFile.parse is deprecated"
         with pytest.raises(ValueError, match=msg):
             with pd.ExcelFile("blank" + read_ext) as excel:
-                excel.parse(sheet_name=sheet_name)
+                with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                    excel.parse(sheet_name=sheet_name)
 
     def test_excel_read_buffer(self, engine, read_ext):
         pth = "test1" + read_ext
@@ -1675,6 +1754,7 @@ class TestExcelFileRead:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
 
         unit = get_exp_unit(read_ext, engine)
+
         dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
         expected_column_index = MultiIndex.from_arrays(
             [dti[:1], dti[1:]],
@@ -1721,8 +1801,19 @@ class TestExcelFileRead:
             errors = (CalamineError,)
 
         Path(tmp_excel).write_text("corrupt", encoding="utf-8")
-        with tm.assert_produces_warning(False):
+        expected_warning = Pandas4Warning if engine in {"xlrd", "pyxlsb"} else False
+        with tm.assert_produces_warning(expected_warning):
             try:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:
                 pass
+
+
+@td.skip_if_no("pyxlsb")
+def test_pyxlsb_engine_deprecated(datapath):
+    # GH#56542
+    path = datapath("io", "data", "excel", "test1.xlsb")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="pyxlsb engine is deprecated"
+    ):
+        pd.read_excel(path, engine="pyxlsb")

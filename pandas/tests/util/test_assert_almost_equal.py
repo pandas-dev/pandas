@@ -306,7 +306,7 @@ def test_assert_almost_equal_inf(a, b):
     _assert_almost_equal_both(a, b)
 
 
-objs = [NA, np.nan, NaT, None, np.datetime64("NaT"), np.timedelta64("NaT")]
+objs = [NA, np.nan, NaT, None, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
 
 
 @pytest.mark.parametrize("left", objs)
@@ -333,7 +333,7 @@ def test_mismatched_na_assert_almost_equal(left, right):
     else:
         with pytest.raises(AssertionError, match=msg):
             _assert_almost_equal_both(left, right, check_dtype=False)
-        
+
         _assert_almost_equal_both(left, right, check_dtype=False, strict_na=False)
 
         # TODO: to get the same deprecation in assert_numpy_array_equal we need
@@ -346,16 +346,21 @@ def test_mismatched_na_assert_almost_equal(left, right):
                 Series(left_arr, dtype=object), Series(right_arr, dtype=object)
             )
         tm.assert_series_equal(
-                Series(left_arr, dtype=object), Series(right_arr, dtype=object), strict_na=False
-            )
+            Series(left_arr, dtype=object),
+            Series(right_arr, dtype=object),
+            strict_na=False,
+        )
 
         with pytest.raises(AssertionError, match="DataFrame.iloc.* are different"):
             tm.assert_frame_equal(
                 DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
             )
         tm.assert_frame_equal(
-                DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object), strict_na=False
-            )
+            DataFrame(left_arr, dtype=object),
+            DataFrame(right_arr, dtype=object),
+            strict_na=False,
+        )
+
 
 def test_assert_not_almost_equal_inf():
     _assert_not_almost_equal_both(np.inf, 0)
@@ -541,6 +546,10 @@ NESTED_CASES = [
     (
         np.array([np.array([1, 2, 3]), np.array([4, 5])], dtype=object),
         np.array([[1, 2, 3], [4, 5]], dtype=object),
+    ),
+    (
+        np.array([np.array([], dtype=object), None], dtype=object),
+        np.array([[], None], dtype=object),
     ),
     (
         np.array(

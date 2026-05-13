@@ -1,5 +1,6 @@
 cimport cython
 from cpython.ref cimport (
+    Py_DECREF,
     Py_INCREF,
     PyObject,
 )
@@ -30,7 +31,10 @@ from pandas._libs.khash cimport (
     kh_python_hash_func,
     khiter_t,
 )
-from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 
 
 def get_hashtable_trace_domain():

@@ -1,8 +1,10 @@
+from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
+import weakref
 
 import numpy as np
 import pytest
@@ -148,18 +150,19 @@ class TestHashTable:
     def test_map_locations_mask(self, table_type, dtype, writable):
         if table_type == ht.PyObjectHashTable:
             pytest.skip("Mask not supported for object")
-        N = 3
+        N = 129  # must be > 128 to test GH#58924
         table = table_type(uses_mask=True)
         keys = (np.arange(N) + N).astype(dtype)
         keys.flags.writeable = writable
-        table.map_locations(keys, np.array([False, False, True]))
+        mask = np.concatenate([np.repeat(False, N - 1), [True]], axis=0)
+        table.map_locations(keys, mask)
         for i in range(N - 1):
             assert table.get_item(keys[i]) == i
 
         with pytest.raises(KeyError, match=re.escape(str(keys[N - 1]))):
             table.get_item(keys[N - 1])
 
-        assert table.get_na() == 2
+        assert table.get_na() == N - 1
 
     def test_lookup(self, table_type, dtype, writable):
         N = 3
@@ -245,7 +248,7 @@ class TestHashTable:
         assert "n_buckets" in state
         assert "upper_bound" in state
 
-    @pytest.mark.parametrize("N", range(1, 110))
+    @pytest.mark.parametrize("N", range(1, 110, 4))
     def test_no_reallocation(self, table_type, dtype, N):
         keys = np.arange(N).astype(dtype)
         preallocated_table = table_type(N)
@@ -405,9 +408,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_complex_imag(self):
         nan1 = complex(1, float("nan"))
@@ -417,9 +419,8 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
 
     def test_nan_in_tuple(self):
         nan1 = (float("nan"),)
@@ -436,14 +437,115 @@ class TestPyObjectHashTableWithNans:
         table = ht.PyObjectHashTable()
         table.set_item(nan1, 42)
         assert table.get_item(nan2) == 42
-        with pytest.raises(KeyError, match=None) as error:
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
-        assert str(error.value) == str(other)
+
+    def test_nan_in_namedtuple(self):
+        T = namedtuple("T", ["x"])
+        nan1 = T(float("nan"))
+        nan2 = T(float("nan"))
+        assert nan1.x is not nan2.x
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_in_nested_namedtuple(self):
+        T = namedtuple("T", ["x", "y"])
+        nan1 = T(1, (2, (float("nan"),)))
+        nan2 = T(1, (2, (float("nan"),)))
+        other = T(1, 2)
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=re.escape(repr(other))):
+            table.get_item(other)
+
+
+class _WeakRefKey:
+    # Hashable key that supports weakref (unlike built-in str).
+    __slots__ = ("__weakref__", "name")
+
+    def __init__(self, name):
+        self.name = name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, _WeakRefKey) and self.name == other.name
+
+
+def test_pyobject_hashtable_map_locations_refcount():
+    # GH#21968
+    # Verify that map_locations holds proper references to stored keys,
+    # preventing use-after-free when the source array is deallocated.
+    keys = [_WeakRefKey(f"key_{i}") for i in range(10)]
+    values = np.array(keys, dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    table.map_locations(values)
+
+    # The table must keep the keys alive after the source list/array are gone.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del table
+    assert all(ref() is None for ref in refs)
+
+
+def test_pyobject_hashtable_set_item_refcount():
+    # GH#21968
+    key = _WeakRefKey("unique_key")
+    ref = weakref.ref(key)
+
+    table = ht.PyObjectHashTable(64)
+    table.set_item(key, 0)
+
+    del key
+    assert ref() is not None
+
+    del table
+    assert ref() is None
+
+
+def test_pyobject_hashtable_unique_refcount():
+    # GH#21968
+    keys = [_WeakRefKey(f"key_{i}") for i in range(5)]
+    # Duplicate some keys so _unique exercises the "already seen" path too
+    values = np.array(keys + keys[:2], dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    result = table.unique(values)
+
+    # Both the table and the returned uniques array must keep the keys alive.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del result, table
+    assert all(ref() is None for ref in refs)
 
 
 def test_hash_equal_tuple_with_nans():
     a = (float("nan"), (float("nan"), float("nan")))
     b = (float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
+def test_hash_equal_namedtuple_with_nans():
+    T = namedtuple("T", ["x", "y"])
+    a = T(float("nan"), (float("nan"), float("nan")))
+    b = T(float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
+def test_hash_equal_namedtuple_and_tuple():
+    T = namedtuple("T", ["x", "y"])
+    a = T(1, (2, 3))
+    b = (1, (2, 3))
     assert ht.object_hash(a) == ht.object_hash(b)
     assert ht.objects_are_equal(a, b)
 
@@ -482,7 +584,7 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert get_allocated_khash_memory() == 0
 
 
-@pytest.mark.parametrize("N", range(1, 110))
+@pytest.mark.parametrize("N", range(1, 110, 4))
 def test_no_reallocation_StringHashTable(N):
     keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
@@ -730,12 +832,11 @@ class TestHelpFunctionsWithNans:
 
 def test_ismember_tuple_with_nans():
     # GH-41836
-    values = [("a", float("nan")), ("b", 1)]
+    values = np.empty(2, dtype=object)
+    values[:] = [("a", float("nan")), ("b", 1)]
     comps = [("a", float("nan"))]
 
-    msg = "isin with argument that is not not a Series"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = isin(values, comps)
+    result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 

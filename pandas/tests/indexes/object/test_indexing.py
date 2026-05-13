@@ -3,14 +3,9 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._libs.missing import (
-    NA,
-    is_matching_na,
-)
-from pandas.compat import pa_version_under16p0
-import pandas.util._test_decorators as td
+from pandas._libs.missing import is_matching_na
+from pandas.compat.numpy import np_version_gt2_2
 
-import pandas as pd
 from pandas import Index
 import pandas._testing as tm
 
@@ -25,41 +20,30 @@ class TestGetIndexer:
     )
     def test_get_indexer_strings(self, method, expected):
         expected = np.array(expected, dtype=np.intp)
-        index = Index(["b", "c"])
+        index = Index(["b", "c"], dtype=object)
         actual = index.get_indexer(["a", "b", "c", "d"], method=method)
 
         tm.assert_numpy_array_equal(actual, expected)
 
-    def test_get_indexer_strings_raises(self, using_infer_string):
-        index = Index(["b", "c"])
+    def test_get_indexer_strings_raises(self):
+        index = Index(["b", "c"], dtype=object)
 
-        if using_infer_string:
-            import pyarrow as pa
+        msg = "|".join(
+            [
+                "operation 'sub' not supported for dtype 'str'",
+                r"unsupported operand type\(s\) for -: 'str' and 'str'",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            index.get_indexer(["a", "b", "c", "d"], method="nearest")
 
-            msg = "has no kernel"
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="nearest")
+        with pytest.raises(TypeError, match=msg):
+            index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
 
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                index.get_indexer(
-                    ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
-                )
-
-        else:
-            msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
-            with pytest.raises(TypeError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="nearest")
-
-            with pytest.raises(TypeError, match=msg):
-                index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
-
-            with pytest.raises(TypeError, match=msg):
-                index.get_indexer(
-                    ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
-                )
+        with pytest.raises(TypeError, match=msg):
+            index.get_indexer(
+                ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
+            )
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
@@ -79,15 +63,20 @@ class TestGetIndexer:
         expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_infer_string_missing_values(self):
+        # ensure the passed list is not cast to string but to object so that
+        # the None value is matched in the index
+        # https://github.com/pandas-dev/pandas/issues/55834
+        idx = Index(["a", "b", None], dtype="object")
+        result = idx.get_indexer([None, "x"])
+        expected = np.array([2, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestGetIndexerNonUnique:
-    def test_get_indexer_non_unique_nas(
-        self, nulls_fixture, request, using_infer_string
-    ):
+    def test_get_indexer_non_unique_nas(self, nulls_fixture):
         # even though this isn't non-unique, this should still work
-        if using_infer_string and (nulls_fixture is None or nulls_fixture is NA):
-            request.applymarker(pytest.mark.xfail(reason="NAs are cast to NaN"))
-        index = Index(["a", "b", nulls_fixture])
+        index = Index(["a", "b", nulls_fixture], dtype=object)
         indexer, missing = index.get_indexer_non_unique([nulls_fixture])
 
         expected_indexer = np.array([2], dtype=np.intp)
@@ -96,7 +85,7 @@ class TestGetIndexerNonUnique:
         tm.assert_numpy_array_equal(missing, expected_missing)
 
         # actually non-unique
-        index = Index(["a", nulls_fixture, "b", nulls_fixture])
+        index = Index(["a", nulls_fixture, "b", nulls_fixture], dtype=object)
         indexer, missing = index.get_indexer_non_unique([nulls_fixture])
 
         expected_indexer = np.array([1, 3], dtype=np.intp)
@@ -105,10 +94,10 @@ class TestGetIndexerNonUnique:
 
         # matching-but-not-identical nans
         if is_matching_na(nulls_fixture, float("NaN")):
-            index = Index(["a", float("NaN"), "b", float("NaN")])
+            index = Index(["a", float("NaN"), "b", float("NaN")], dtype=object)
             match_but_not_identical = True
         elif is_matching_na(nulls_fixture, Decimal("NaN")):
-            index = Index(["a", Decimal("NaN"), "b", Decimal("NaN")])
+            index = Index(["a", Decimal("NaN"), "b", Decimal("NaN")], dtype=object)
             match_but_not_identical = True
         else:
             match_but_not_identical = False
@@ -171,74 +160,70 @@ class TestGetIndexerNonUnique:
             tm.assert_numpy_array_equal(missing, expected_missing)
 
 
-class TestSliceLocs:
-    @pytest.mark.parametrize(
-        "dtype",
-        [
-            "object",
-            pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-        ],
+class TestMixedResolutionDatetime64:
+    # GH#50690 - object-dtype Index with mixed-resolution datetime64 values
+    # should respect the invariant x == y => hash(x) == hash(y)
+
+    _xfail_np_hash = pytest.mark.xfail(
+        not np_version_gt2_2,
+        reason="numpy < 2.2 violates hash invariant for mixed-resolution datetime64",
     )
-    @pytest.mark.parametrize(
-        "in_slice,expected",
-        [
-            # error: Slice index must be an integer or None
-            (pd.IndexSlice[::-1], "yxdcb"),
-            (pd.IndexSlice["b":"y":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["b"::-1], "b"),  # type: ignore[misc]
-            (pd.IndexSlice[:"b":-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"y":-1], "y"),  # type: ignore[misc]
-            (pd.IndexSlice["y"::-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice["y"::-4], "yb"),  # type: ignore[misc]
-            # absent labels
-            (pd.IndexSlice[:"a":-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"a":-2], "ydb"),  # type: ignore[misc]
-            (pd.IndexSlice["z"::-1], "yxdcb"),  # type: ignore[misc]
-            (pd.IndexSlice["z"::-3], "yc"),  # type: ignore[misc]
-            (pd.IndexSlice["m"::-1], "dcb"),  # type: ignore[misc]
-            (pd.IndexSlice[:"m":-1], "yx"),  # type: ignore[misc]
-            (pd.IndexSlice["a":"a":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["z":"z":-1], ""),  # type: ignore[misc]
-            (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
-        ],
-    )
-    def test_slice_locs_negative_step(self, in_slice, expected, dtype, request):
-        if (
-            not pa_version_under16p0
-            and dtype == "string[pyarrow_numpy]"
-            and in_slice == slice("a", "a", -1)
-        ):
-            request.applymarker(
-                pytest.mark.xfail(reason="https://github.com/apache/arrow/issues/40642")
-            )
 
-        index = Index(list("bcdxy"), dtype=dtype)
+    @pytest.fixture
+    def dt_ms(self):
+        return np.datetime64(1, "ms")
 
-        s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
-        result = index[s_start : s_stop : in_slice.step]
-        expected = Index(list(expected), dtype=dtype)
-        tm.assert_index_equal(result, expected)
+    @pytest.fixture
+    def dt_us(self):
+        return np.datetime64(1000, "us")
 
-    @td.skip_if_no("pyarrow")
-    def test_slice_locs_negative_step_oob(self):
-        index = Index(list("bcdxy"), dtype="string[pyarrow_numpy]")
+    @_xfail_np_hash
+    def test_contains(self, dt_ms, dt_us):
+        # GH#50690
+        left = Index([dt_ms], dtype=object)
+        right = Index([dt_us], dtype=object)
 
-        result = index[-10:5:1]
-        tm.assert_index_equal(result, index)
+        assert dt_us in left
+        assert dt_ms in right
 
-        result = index[4:-10:-1]
-        expected = Index(list("yxdcb"), dtype="string[pyarrow_numpy]")
-        tm.assert_index_equal(result, expected)
+    @_xfail_np_hash
+    def test_get_loc(self, dt_ms, dt_us):
+        # GH#50690
+        left = Index([dt_ms], dtype=object)
+        right = Index([dt_us], dtype=object)
 
-    def test_slice_locs_dup(self):
-        index = Index(["a", "a", "b", "c", "d", "d"])
-        assert index.slice_locs("a", "d") == (0, 6)
-        assert index.slice_locs(end="d") == (0, 6)
-        assert index.slice_locs("a", "c") == (0, 4)
-        assert index.slice_locs("b", "d") == (2, 6)
+        assert left.get_loc(dt_us) == 0
+        assert right.get_loc(dt_ms) == 0
 
-        index2 = index[::-1]
-        assert index2.slice_locs("d", "a") == (0, 6)
-        assert index2.slice_locs(end="a") == (0, 6)
-        assert index2.slice_locs("d", "b") == (0, 4)
-        assert index2.slice_locs("c", "a") == (2, 6)
+    def test_get_indexer_monotonic(self, dt_ms, dt_us):
+        # GH#50690 - monotonic case uses binary search, not hashtable
+        left = Index([dt_ms], dtype=object)
+        right = Index([dt_us], dtype=object)
+
+        result = left.get_indexer(right)
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @_xfail_np_hash
+    def test_get_indexer_non_monotonic(self, dt_ms, dt_us):
+        # GH#50690 - non-monotonic case uses hashtable; this is where
+        # the hash invariant violation caused incorrect results
+        sec = np.datetime64("9999-01-01", "s")
+        day = np.datetime64("2016-01-01", "D")
+        idx = Index([dt_ms, sec, day], dtype=object)
+
+        result = idx.get_indexer(Index([dt_us], dtype=object))
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @_xfail_np_hash
+    def test_get_indexer_non_unique(self, dt_ms, dt_us):
+        # GH#50690
+        idx = Index([dt_ms, "foo", dt_ms], dtype=object)
+
+        indexer, missing = idx.get_indexer_non_unique(Index([dt_us], dtype=object))
+
+        expected_indexer = np.array([0, 2], dtype=np.intp)
+        expected_missing = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected_indexer)
+        tm.assert_numpy_array_equal(missing, expected_missing)

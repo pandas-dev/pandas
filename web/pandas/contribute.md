@@ -48,7 +48,7 @@ and about current sponsors in the [sponsors page]({{ base_url }}about/sponsors.h
             infrastructure, travel expenses for our volunteer contributors to attend
             the in-person sprints, or to give small grants to develop features.
           </p>
-          <p>Make your donation in the <a href="{{ base_url }}donate.html">donate page</a></p>
+          <p>Make your donation in the <a href="https://opencollective.com/pandas">donate page</a></p>
         </div>
       </div>
     </div>

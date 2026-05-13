@@ -36,7 +36,7 @@ _class_locations_map = {
         "pandas._libs.internals",
         "_unpickle_block",
     ),
-    # Avoid Cython's warning "contradiction to to Python 'class private name' rules"
+    # Avoid Cython's warning "contradiction to Python 'class private name' rules"
     ("pandas._libs.tslibs.nattype", "__nat_unpickle"): (
         "pandas._libs.tslibs.nattype",
         "_nat_unpickle",
@@ -101,12 +101,12 @@ class Unpickler(pickle._Unpickler):
         # compat
         if issubclass(cls, DatetimeArray) and not args:
             arr = np.array([], dtype="M8[ns]")
-            obj = cls.__new__(cls, arr, arr.dtype)
+            obj = cls.__new__(cls, arr, arr.dtype)  # pyright: ignore[reportCallIssue]
         elif issubclass(cls, TimedeltaArray) and not args:
             arr = np.array([], dtype="m8[ns]")
-            obj = cls.__new__(cls, arr, arr.dtype)
+            obj = cls.__new__(cls, arr, arr.dtype)  # pyright: ignore[reportCallIssue]
         elif cls is BlockManager and not args:
-            obj = cls.__new__(cls, (), [], False)
+            obj = cls.__new__(cls, (), [], False)  # pyright: ignore[reportCallIssue]
         else:
             obj = cls.__new__(cls, *args)
         self.append(obj)  # type: ignore[attr-defined]
@@ -131,7 +131,7 @@ def loads(
 
 
 @contextlib.contextmanager
-def patch_pickle() -> Generator[None, None, None]:
+def patch_pickle() -> Generator[None]:
     """
     Temporarily patch pickle to use our unpickler.
     """

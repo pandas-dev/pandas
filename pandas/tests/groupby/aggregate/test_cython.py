@@ -105,7 +105,9 @@ def test_cython_agg_nothing_to_agg():
 
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
     expected = DataFrame(
-        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+        [],
+        index=frame["a"].sort_values().drop_duplicates(),
+        columns=Index([], dtype="str"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -145,11 +147,11 @@ def test_cython_agg_return_dict():
 
 def test_cython_fail_agg():
     dr = bdate_range("1/1/2000", periods=50)
-    ts = Series(["A", "B", "C", "D", "E"] * 10, index=dr)
+    ts = Series(["A", "B", "C", "D", "E"] * 10, dtype=object, index=dr)
 
     grouped = ts.groupby(lambda x: x.month)
     summed = grouped.sum()
-    expected = grouped.agg(np.sum)
+    expected = grouped.agg(np.sum).astype(object)
     tm.assert_series_equal(summed, expected)
 
 
@@ -285,7 +287,7 @@ def test_read_only_buffer_source_agg(agg):
             "species": ["setosa", "setosa", "setosa", "setosa", "setosa"],
         }
     )
-    df._mgr.arrays[0].flags.writeable = False
+    df._mgr.blocks[0].values.flags.writeable = False
 
     result = df.groupby(["species"]).agg({"sepal_length": agg})
     expected = df.copy().groupby(["species"]).agg({"sepal_length": agg})

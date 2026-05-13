@@ -96,15 +96,13 @@ def test_groupby_reductions(op, expected):
         ["median", Series([2, 2], index=["B", "C"], dtype="Float64")],
         ["var", Series([2, 2], index=["B", "C"], dtype="Float64")],
         ["std", Series([2**0.5, 2**0.5], index=["B", "C"], dtype="Float64")],
-        ["skew", Series([pd.NA, pd.NA], index=["B", "C"], dtype="Float64")],
-        ["kurt", Series([pd.NA, pd.NA], index=["B", "C"], dtype="Float64")],
+        ["skew", Series([np.nan, pd.NA], index=["B", "C"], dtype="Float64")],
+        ["kurt", Series([np.nan, pd.NA], index=["B", "C"], dtype="Float64")],
         ["any", Series([True, True, True], index=["A", "B", "C"], dtype="boolean")],
         ["all", Series([True, True, True], index=["A", "B", "C"], dtype="boolean")],
     ],
 )
-def test_mixed_reductions(op, expected, using_infer_string):
-    if op in ["any", "all"] and using_infer_string:
-        expected = expected.astype("bool")
+def test_mixed_reductions(op, expected):
     df = DataFrame(
         {
             "A": ["a", "b", "b"],
@@ -123,3 +121,25 @@ def test_mixed_reductions(op, expected, using_infer_string):
     else:
         result = getattr(df, op)(numeric_only=True)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["skew", "kurt"])
+def test_mixed_reduction_nan_not_influenced_by_nullable_column(op, using_nan_is_na):
+    # GH#62024 - presence of nullable column C should not change
+    # the result for non-nullable column B
+    df = DataFrame(
+        {
+            "B": [1, None, 3],
+            "C": array([1, None, 3], dtype="Int64"),
+        }
+    )
+    result_mixed = getattr(df, op)(numeric_only=True)
+    result_alone = getattr(df[["B"]], op)()
+
+    if using_nan_is_na:
+        # In default mode both are NA (NaN folded in Float64 result)
+        assert result_mixed["B"] is pd.NA
+    else:
+        # In distinguish mode, B gives NaN in both contexts
+        assert np.isnan(result_mixed["B"])
+        assert np.isnan(result_alone["B"])

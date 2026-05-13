@@ -18,6 +18,7 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import (
@@ -160,13 +161,19 @@ class TestContains:
         with pytest.raises(TypeError, match=msg):
             [] in index
 
+        if PY314:
+            container_or_iterable = "a container or iterable"
+        else:
+            container_or_iterable = "iterable"
+
         msg = "|".join(
             [
                 r"unhashable type: 'dict'",
                 r"must be real number, not dict",
                 r"an integer is required",
                 r"\{\}",
-                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+                r"pandas\._libs\.interval\.IntervalTree' is not "
+                f"{container_or_iterable}",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -265,6 +272,14 @@ class TestGetIndexer:
         idx = Index([1, 2, NA, NA], dtype="Int64")
         result = idx.get_indexer_for(Index([1, NA], dtype="Int64"))
         expected = np.array([0, 2, 3], dtype=result.dtype)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_for_mixed_tuples(self):
+        # GH#41882
+        idx = Index(["i", "i", "j"])
+        other = Index([("i", "i"), ("i", "j"), ("j", "i"), "j"])
+        result = idx.get_indexer_for(other)
+        expected = np.array([-1, -1, -1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
 

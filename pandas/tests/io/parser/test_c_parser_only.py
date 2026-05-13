@@ -18,9 +18,9 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p24
+from pandas.compat import WASM
 from pandas.errors import (
-    ParserError,
+    Pandas4Warning,
     ParserWarning,
 )
 import pandas.util._test_decorators as td
@@ -33,18 +33,33 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "malformed",
-    ["1\r1\r1\r 1\r 1\r", "1\r1\r1\r 1\r 1\r11\r", "1\r1\r1\r 1\r 1\r11\r1\r"],
+    "malformed,expected_data",
+    [
+        ("1\r1\r1\r 1\r 1\r", [[1], [1], [1], [1], [1]]),
+        ("1\r1\r1\r 1\r 1\r11\r", [[1], [1], [1], [1], [1], [11]]),
+        ("1\r1\r1\r 1\r 1\r11\r1\r", [[1], [1], [1], [1], [1], [11], [1]]),
+    ],
     ids=["words pointer", "stream pointer", "lines pointer"],
 )
-def test_buffer_overflow(c_parser_only, malformed):
-    # see gh-9205: test certain malformed input files that cause
-    # buffer overflows in tokenizer.c
-    msg = "Buffer overflow caught - possible malformed input file."
+def test_buffer_overflow(c_parser_only, malformed, expected_data):
+    # see gh-9205, gh-51141: test certain malformed input files that
+    # previously caused buffer overflows in tokenizer.c due to
+    # \r characters being treated as line terminators, then triggering
+    # an infinite re-parsing loop in the WHITESPACE_LINE state.
     parser = c_parser_only
+    result = parser.read_csv(StringIO(malformed), header=None)
+    expected = DataFrame(expected_data)
+    tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(ParserError, match=msg):
-        parser.read_csv(StringIO(malformed))
+
+def test_cr_in_field_with_trailing_space(c_parser_only):
+    # GH#51141 - embedded \r followed by space in unquoted field
+    # should not cause infinite re-parsing or buffer overflow
+    parser = c_parser_only
+    data = "a,b,c\n1,2,3\n4,5\r X,6\n"
+    result = parser.read_csv(StringIO(data))
+    assert len(result) == 3
+    assert result.shape == (3, 3)
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -52,11 +67,7 @@ def test_delim_whitespace_custom_terminator(c_parser_only):
     data = "a b c~1 2 3~4 5 6~7 8 9"
     parser = c_parser_only
 
-    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
-    with tm.assert_produces_warning(
-        FutureWarning, match=depr_msg, check_stacklevel=False
-    ):
-        df = parser.read_csv(StringIO(data), lineterminator="~", delim_whitespace=True)
+    df = parser.read_csv(StringIO(data), lineterminator="~", sep=r"\s+")
     expected = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"])
     tm.assert_frame_equal(df, expected)
 
@@ -93,16 +104,16 @@ nan 2
 3.0 3
 """
     # fallback casting, but not castable
-    warning = RuntimeWarning if np_version_gte1p24 else None
-    with pytest.raises(ValueError, match="cannot safely convert"):
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            parser.read_csv(
-                StringIO(data),
-                sep=r"\s+",
-                header=None,
-                names=["a", "b"],
-                dtype={"a": np.int32},
-            )
+    if not WASM:  # no fp exception support in wasm
+        with pytest.raises(ValueError, match="cannot safely convert"):
+            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
+                parser.read_csv(
+                    StringIO(data),
+                    sep=r"\s+",
+                    header=None,
+                    names=["a", "b"],
+                    dtype={"a": np.int32},
+                )
 
 
 @pytest.mark.parametrize(
@@ -134,7 +145,7 @@ nan 2
     ],
     ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
-def test_unsupported_dtype(c_parser_only, match, kwargs):
+def test_unsupported_dtype(c_parser_only, match, kwargs, temp_file):
     parser = c_parser_only
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)),
@@ -142,11 +153,10 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
         index=["1A", "1B", "1C", "1D", "1E"],
     )
 
-    with tm.ensure_clean("__unsupported_dtype__.csv") as path:
-        df.to_csv(path)
+    df.to_csv(temp_file)
 
-        with pytest.raises(TypeError, match=match):
-            parser.read_csv(path, index_col=0, **kwargs)
+    with pytest.raises(TypeError, match=match):
+        parser.read_csv(temp_file, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit
@@ -165,13 +175,25 @@ def test_precise_conversion(c_parser_only, num):
     # 25 decimal digits of precision
     text = f"a\n{num:.25}"
 
-    normal_val = float(
-        parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
-    )
-    precise_val = float(parser.read_csv(StringIO(text), float_precision="high")["a"][0])
-    roundtrip_val = float(
-        parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
-    )
+    depr_msg = "float_precision"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        normal_val = float(
+            parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
+        )
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        precise_val = float(
+            parser.read_csv(StringIO(text), float_precision="high")["a"][0]
+        )
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        roundtrip_val = float(
+            parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
+        )
     actual_val = Decimal(text[2:])
 
     normal_errors.append(error(normal_val, actual_val))
@@ -184,7 +206,7 @@ def test_precise_conversion(c_parser_only, num):
     assert max(precise_errors) <= max(normal_errors)
 
 
-def test_usecols_dtypes(c_parser_only):
+def test_usecols_dtypes(c_parser_only, using_infer_string):
     parser = c_parser_only
     data = """\
 1,2,3
@@ -209,8 +231,12 @@ def test_usecols_dtypes(c_parser_only):
         dtype={"b": int, "c": float},
     )
 
-    assert (result.dtypes == [object, int, float]).all()
-    assert (result2.dtypes == [object, float]).all()
+    if using_infer_string:
+        assert (result.dtypes == ["string", int, float]).all()
+        assert (result2.dtypes == ["string", float]).all()
+    else:
+        assert (result.dtypes == [object, int, float]).all()
+        assert (result2.dtypes == [object, float]).all()
 
 
 def test_disable_bool_parsing(c_parser_only):
@@ -429,7 +455,10 @@ def test_read_nrows_large(c_parser_only):
 def test_float_precision_round_trip_with_text(c_parser_only):
     # see gh-15140
     parser = c_parser_only
-    df = parser.read_csv(StringIO("a"), header=None, float_precision="round_trip")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="float_precision", check_stacklevel=False
+    ):
+        df = parser.read_csv(StringIO("a"), header=None, float_precision="round_trip")
     tm.assert_frame_equal(df, DataFrame({0: ["a"]}))
 
 
@@ -550,6 +579,7 @@ def test_chunk_whitespace_on_boundary(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_file_handles_mmap(c_parser_only, csv1):
     # gh-14418
     #
@@ -562,27 +592,43 @@ def test_file_handles_mmap(c_parser_only, csv1):
             assert not m.closed
 
 
-def test_file_binary_mode(c_parser_only):
+def test_file_binary_mode(c_parser_only, temp_file):
     # see gh-23779
     parser = c_parser_only
     expected = DataFrame([[1, 2, 3], [4, 5, 6]])
 
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write("1,2,3\n4,5,6")
+    path = temp_file
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("1,2,3\n4,5,6")
 
-        with open(path, "rb") as f:
-            result = parser.read_csv(f, header=None)
-            tm.assert_frame_equal(result, expected)
+    with open(path, "rb") as f:
+        result = parser.read_csv(f, header=None)
+        tm.assert_frame_equal(result, expected)
 
 
-def test_unix_style_breaks(c_parser_only):
+def test_binary_file_handle_avoids_text_wrapping(c_parser_only):
+    # GH#46823 - binary file-like objects should not be wrapped in
+    # TextIOWrapper when using the C engine, as the small internal buffer
+    # causes many small reads that are very slow for remote filesystems.
+    parser = c_parser_only
+    data = BytesIO(b"a,b\n1,2\n3,4\n")
+    result = parser.read_csv(data)
+    expected = DataFrame({"a": [1, 3], "b": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+    # Verify the handle was not wrapped in TextIOWrapper
+    data = BytesIO(b"a,b\n1,2\n3,4\n")
+    with parser.read_csv(data, chunksize=2) as reader:
+        assert not isinstance(reader.handles.handle, TextIOWrapper)
+
+
+def test_unix_style_breaks(c_parser_only, temp_file):
     # GH 11020
     parser = c_parser_only
-    with tm.ensure_clean() as path:
-        with open(path, "w", newline="\n", encoding="utf-8") as f:
-            f.write("blah\n\ncol_1,col_2,col_3\n\n")
-        result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
+    path = temp_file
+    with open(path, "w", newline="\n", encoding="utf-8") as f:
+        f.write("blah\n\ncol_1,col_2,col_3\n\n")
+    result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
     tm.assert_frame_equal(result, expected)
 
@@ -615,13 +661,17 @@ def test_1000_sep_with_decimal(
     parser = c_parser_only
     expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
 
-    result = parser.read_csv(
-        StringIO(data),
-        sep="|",
-        thousands=thousands,
-        decimal=decimal,
-        float_precision=float_precision,
-    )
+    warn = Pandas4Warning if float_precision is not None else None
+    with tm.assert_produces_warning(
+        warn, match="float_precision", check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data),
+            sep="|",
+            thousands=thousands,
+            decimal=decimal,
+            float_precision=float_precision,
+        )
     tm.assert_frame_equal(result, expected)
 
 
@@ -630,15 +680,25 @@ def test_float_precision_options(c_parser_only):
     parser = c_parser_only
     s = "foo\n243.164\n"
     df = parser.read_csv(StringIO(s))
-    df2 = parser.read_csv(StringIO(s), float_precision="high")
+    depr_msg = "float_precision"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        df2 = parser.read_csv(StringIO(s), float_precision="high")
 
     tm.assert_frame_equal(df, df2)
 
-    df3 = parser.read_csv(StringIO(s), float_precision="legacy")
-
-    assert not df.iloc[0, 0] == df3.iloc[0, 0]
+    # "legacy" now uses the same precise converter as "high"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        df3 = parser.read_csv(StringIO(s), float_precision="legacy")
+    tm.assert_frame_equal(df, df3)
 
     msg = "Unrecognized float_precision option: junk"
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(s), float_precision="junk")
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=depr_msg, check_stacklevel=False
+        ):
+            parser.read_csv(StringIO(s), float_precision="junk")

@@ -8,7 +8,7 @@ from pandas.io.excel._openpyxl import OpenpyxlWriter as _OpenpyxlWriter
 from pandas.io.excel._util import register_writer
 from pandas.io.excel._xlsxwriter import XlsxWriter as _XlsxWriter
 
-__all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
+__all__ = ["ExcelFile", "ExcelWriter", "read_excel"]
 
 
 register_writer(_OpenpyxlWriter)

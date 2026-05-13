@@ -4,10 +4,15 @@ import inspect
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
+    Series,
+    array,
     merge,
 )
 import pandas._testing as tm
@@ -172,6 +177,7 @@ class TestRename:
         renamed.loc[:, "foo"] = 1.0
         assert not (float_frame["C"] == 1.0).all()
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
     def test_rename_inplace(self, float_frame):
         float_frame.rename(columns={"C": "foo"})
         assert "C" in float_frame
@@ -187,6 +193,19 @@ class TestRename:
         # GH 44153
         # Used to be id(float_frame["foo"]) != c_id, but flaky in the CI
         assert float_frame["foo"] is not c_values
+
+    def test_rename_inplace_depr(self, float_frame):
+        msg = "The inplace keyword in DataFrame.rename is deprecated"
+
+        # uses keyword, sets to true, warning
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            float_frame.rename(columns={"C": "foo"}, inplace=True)
+        # uses keyword, sets to false, warning
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            float_frame.rename(columns={"C": "foo"}, inplace=False)
+        # does not use keyword, no warning
+        with tm.assert_produces_warning(False):
+            float_frame.rename(columns={"C": "foo"})
 
     def test_rename_bug(self):
         # GH 5344
@@ -409,3 +428,92 @@ class TestRename:
             index=["foo", "bar", "bah"],
         )
         tm.assert_frame_equal(res, exp)
+
+    def test_rename_preserves_nullable_int_index(self):
+        # GH#65315
+        df = DataFrame(
+            {"val": [1, 2, 3]},
+            index=Index(array([1, 2, 3], dtype="Int64"), name="id"),
+        )
+        result = df.rename({1: 9})
+        expected = Index(array([9, 2, 3], dtype="Int64"), name="id")
+        tm.assert_index_equal(result.index, expected)
+
+    def test_rename_preserves_nullable_float_columns(self):
+        # GH#65315
+        df = DataFrame(
+            [[1, 2, 3]],
+            columns=Index(array([1.0, 2.0, 3.0], dtype="Float64")),
+        )
+        result = df.rename(columns={1.0: 9.0})
+        expected = Index(array([9.0, 2.0, 3.0], dtype="Float64"))
+        tm.assert_index_equal(result.columns, expected)
+
+    def test_rename_nullable_index_to_na(self):
+        # GH#65315
+        df = DataFrame(
+            {"val": [1, 2, 3]},
+            index=Index(array([1, 2, 3], dtype="Int64")),
+        )
+        result = df.rename({1: NA})
+        expected = Index(array([NA, 2, 3], dtype="Int64"))
+        tm.assert_index_equal(result.index, expected)
+
+    def test_rename_empty_nullable_index(self):
+        # GH#65315
+        df = DataFrame({"val": []}, index=Index(array([], dtype="Int64")))
+        result = df.rename(index={})
+        tm.assert_index_equal(result.index, df.index)
+
+    def test_rename_nullable_index_type_change_widens(self):
+        # GH#65315
+        df = DataFrame(
+            {"val": [1, 2, 3]},
+            index=Index(array([1, 2, 3], dtype="Int64")),
+        )
+        result = df.rename(lambda x: f"label_{x}")
+        assert list(result.index) == ["label_1", "label_2", "label_3"]
+        assert result.index.dtype != "Int64"
+
+    def test_rename_tuple_columns_not_multiindex(self):
+        # GH#65315
+        df = DataFrame(
+            [[1, 2]],
+            columns=Index(array([1, 2], dtype="Int64")),
+        )
+        result = df.rename(columns=lambda x: (x, x))
+        assert not isinstance(result.columns, MultiIndex)
+        tm.assert_index_equal(
+            result.columns, Index([(1, 1), (2, 2)], tupleize_cols=False)
+        )
+
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
+    def test_rename_non_unique_index_series(self):
+        # GH#58621
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        orig = df.copy(deep=True)
+
+        rename_series = Series(["X", "Y", "Z", "W"], index=["A", "B", "B", "C"])
+
+        msg = "Cannot rename with a Series with non-unique index"
+        with pytest.raises(ValueError, match=msg):
+            df.rename(rename_series)
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns=rename_series)
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns=rename_series, inplace=True)
+
+        # check we didn't corrupt the original
+        tm.assert_frame_equal(df, orig)
+
+        # Check the Series method while we're here
+        ser = df.iloc[0]
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(rename_series)
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(index=rename_series)
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(index=rename_series, inplace=True)
+
+        # check we didn't corrupt the original
+        tm.assert_series_equal(ser, orig.iloc[0])

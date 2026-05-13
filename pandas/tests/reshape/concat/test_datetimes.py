@@ -5,6 +5,8 @@ import dateutil
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -46,8 +48,10 @@ class TestDatetimeConcat:
 
     def test_concat_datetime_timezone(self):
         # GH 18523
-        idx1 = date_range("2011-01-01", periods=3, freq="h", tz="Europe/Paris")
-        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h")
+        idx1 = date_range(
+            "2011-01-01", periods=3, freq="h", tz="Europe/Paris", unit="ns"
+        )
+        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h", unit="ns")
         df1 = DataFrame({"a": [1, 2, 3]}, index=idx1)
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
         result = concat([df1, df2], axis=1)
@@ -67,9 +71,11 @@ class TestDatetimeConcat:
 
         tm.assert_frame_equal(result, expected)
 
-        idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo")
+        idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo", unit="ns")
         df3 = DataFrame({"b": [1, 2, 3]}, index=idx3)
-        result = concat([df1, df3], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat([df1, df3], axis=1)
 
         exp_idx = DatetimeIndex(
             [
@@ -117,7 +123,28 @@ class TestDatetimeConcat:
         # Non-monotonic index result
         result = concat([expected[50:], expected[:50]])
         expected = DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
-        expected.index._data.freq = None
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_datetimeindex_tz_convert_freq(self):
+        # GH#41585 - concat after tz_convert should not raise when
+        # the converted timestamps no longer conform to the original freq
+        dti1 = date_range(
+            start="2020-01-01", end="2021-01-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df1 = DataFrame({"full": [1] * len(dti1)}, index=dti1)
+
+        dti2 = date_range(
+            start="2020-01-01", end="2021-02-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df2 = DataFrame({"one_month_more": [1] * len(dti2)}, index=dti2)
+
+        result = concat([df1, df2], axis=1)
+        expected_index = dti2.copy()
+        expected_index.freq = result.index.freq
+        expected = DataFrame(
+            {"full": [1.0] * 12 + [np.nan], "one_month_more": [1] * 13},
+            index=expected_index,
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_concat_multiindex_datetime_object_index(self):
@@ -161,7 +188,13 @@ class TestDatetimeConcat:
         # GH 11693
         # test for merging NaT series with datetime series.
         x = Series(
-            date_range("20151124 08:00", "20151124 09:00", freq="1h", tz="US/Eastern")
+            date_range(
+                "20151124 08:00",
+                "20151124 09:00",
+                freq="1h",
+                tz="US/Eastern",
+                unit="ns",
+            )
         )
         y = Series(pd.NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
         expected = Series([x[0], x[1], pd.NaT, pd.NaT])
@@ -176,8 +209,8 @@ class TestDatetimeConcat:
 
     def test_concat_NaT_series2(self):
         # without tz
-        x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h"))
-        y = Series(date_range("20151124 10:00", "20151124 11:00", freq="1h"))
+        x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h", unit="ns"))
+        y = Series(date_range("20151124 10:00", "20151124 11:00", freq="1h", unit="ns"))
         y[:] = pd.NaT
         expected = Series([x[0], x[1], pd.NaT, pd.NaT])
         result = concat([x, y], ignore_index=True)
@@ -213,7 +246,7 @@ class TestDatetimeConcat:
 
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
-    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
+    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101").as_unit("ns")])
     def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, item):
         # GH 12396
 
@@ -226,15 +259,6 @@ class TestDatetimeConcat:
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
-            if item is pd.NaT:
-                # GH#18463
-                # TODO: setting nan here is to keep the test passing as we
-                #  make assert_frame_equal stricter, but is nan really the
-                #  ideal behavior here?
-                if tz1 is not None:
-                    expected.iloc[-1, 0] = np.nan
-                else:
-                    expected.iloc[:-1, 0] = np.nan
 
         tm.assert_frame_equal(result, expected)
 
@@ -282,6 +306,16 @@ class TestDatetimeConcat:
 
         result = concat([first, second])
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_compat_on_non_ns_datetime_EA(self):
+        # GH#33331
+        first = Series(np.array([datetime(2010, 1, 1)], dtype="datetime64[D]"))
+        second = Series(pd.array(["a", "b"], dtype="category"))
+
+        expected = Series([Timestamp("2010-01-01 00:00:00"), "a", "b"])
+
+        result = concat([first, second], ignore_index=True)
+        tm.assert_series_equal(result, expected)
 
 
 class TestTimezoneConcat:
@@ -367,7 +401,7 @@ class TestTimezoneConcat:
 
         result = concat([Series(x), Series(y)], ignore_index=True)
         tm.assert_series_equal(result, Series(x + y))
-        assert result.dtype == "datetime64[ns, tzlocal()]"
+        assert result.dtype == "datetime64[us, tzlocal()]"
 
     def test_concat_tz_series_with_datetimelike(self):
         # see gh-12620: tz and timedelta
@@ -460,7 +494,7 @@ class TestTimezoneConcat:
         b = DataFrame({"A": ts, "B": ts})
         result = concat([a, b], sort=True, ignore_index=True)
         expected = DataFrame(
-            {"A": list(ts) + list(ts), "B": [pd.NaT, pd.NaT] + list(ts)}
+            {"A": list(ts) + list(ts), "B": [pd.NaT, pd.NaT, *list(ts)]}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -541,6 +575,30 @@ class TestPeriodConcat:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
 
+    def test_concat_keys_mixed_freq_period_columns(self):
+        # GH#51489 concat with keys must not raise IncompatibleFrequency
+        # when the inputs have PeriodIndex columns with different freq
+        q_period = pd.period_range("2022-1-1", "2022-12-31", freq="Q")
+        y_period = pd.period_range("2019-1-1", "2023-1-1", freq="Y")
+
+        q_df = DataFrame([range(len(q_period))], columns=q_period)
+        y_df = DataFrame([range(len(y_period))], columns=y_period)
+
+        result = concat([q_df, y_df], keys=["Quarterly", "Yearly"], axis=1)
+
+        expected_inner = Index(list(q_period) + list(y_period), dtype=object)
+        expected_columns = MultiIndex.from_arrays(
+            [
+                ["Quarterly"] * len(q_period) + ["Yearly"] * len(y_period),
+                expected_inner,
+            ]
+        )
+        expected = DataFrame(
+            [list(range(len(q_period))) + list(range(len(y_period)))],
+            columns=expected_columns,
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 def test_concat_timedelta64_block():
     rng = to_timedelta(np.arange(10), unit="s")
@@ -548,8 +606,8 @@ def test_concat_timedelta64_block():
     df = DataFrame({"time": rng})
 
     result = concat([df, df])
-    tm.assert_frame_equal(result.iloc[:10], df)
-    tm.assert_frame_equal(result.iloc[10:], df)
+    tm.assert_frame_equal(result.iloc[:10], df, check_index_type=False)
+    tm.assert_frame_equal(result.iloc[10:], df, check_index_type=False)
 
 
 def test_concat_multiindex_datetime_nat():
@@ -590,8 +648,49 @@ def test_concat_float_datetime64():
     result = concat([df_time.iloc[:0], df_float])
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df_time, df_float.iloc[:0]])
+    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
+        object
+    )
+
+    result = concat([df_time, df_float.iloc[:0]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_datetime64_different_resolutions():
+    # GH#53307
+    # Concatenating datetime64 columns with different resolutions
+    # should preserve datetime64 dtype (not convert to object)
+    df = DataFrame(
+        {
+            "ints": range(2),
+            "dates": date_range("2000", periods=2, freq="min"),
+        },
+    )
+    df2 = df.copy()
+    df2["dates"] = df.dates.astype("M8[s]")
+
+    combined = concat([df, df2])
+
+    # The result should be a datetime64 dtype, not object
+    assert combined.dates.dtype.kind == "M"
+
+
+def test_concat_non_ns_datetime_axis1(unit):
+    # GH#58471 - concat with non-ns datetime unit on axis=1 should
+    # preserve all data, matching the behavior of ns-resolution
+    dti1 = date_range("2024-01-01 00:00", periods=3, freq="5min", unit=unit)
+    dti2 = date_range("2024-01-01 00:15", periods=3, freq="5min", unit=unit)
+    ser1 = Series([1.0, 2.0, 3.0], index=dti1, name="a")
+    ser2 = Series([4.0, 5.0, 6.0], index=dti2, name="b")
+
+    result = concat([ser1, ser2], axis=1)
+
+    expected_index = date_range("2024-01-01 00:00", periods=6, freq="5min", unit=unit)
+    expected = DataFrame(
+        {
+            "a": [1.0, 2.0, 3.0, np.nan, np.nan, np.nan],
+            "b": [np.nan, np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=expected_index,
+    )
     tm.assert_frame_equal(result, expected)

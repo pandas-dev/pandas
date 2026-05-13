@@ -88,7 +88,10 @@ class TestDatetimeLike:
         result = type(simple_index)(idx)
         tm.assert_index_equal(result, idx)
 
-        msg = "Cannot change data-type for object array"
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
         with pytest.raises(TypeError, match=msg):
             idx.view(type(simple_index))
 
@@ -100,13 +103,13 @@ class TestDatetimeLike:
 
         # map to NaT
         result = index.map(lambda x: pd.NaT if x == index[0] else x)
-        expected = pd.Index([pd.NaT] + index[1:].tolist())
+        expected = pd.Index([pd.NaT, *index[1:].tolist()])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: pd.Series(values, index, dtype=object),
         ],
     )
@@ -122,7 +125,7 @@ class TestDatetimeLike:
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 
-        expected = pd.Index([pd.NaT] + index[1:].tolist())
+        expected = pd.Index([pd.NaT, *index[1:].tolist()])
         result = index.map(mapper(expected, index))
         tm.assert_index_equal(result, expected)
 

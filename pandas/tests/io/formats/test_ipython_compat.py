@@ -20,9 +20,10 @@ class TestTableSchemaRepr:
 
         opt = cf.option_context("display.html.table_schema", True)
         last_obj = None
-        for obj, expected in zip(objects, expected_keys):
+        for obj, expected in zip(objects, expected_keys, strict=True):
             last_obj = obj
-            with opt:
+            with cf.option_context("display.html.table_schema", True):
+                # Can't reuse opt on all systems GH#58055
                 formatted = ipython.display_formatter.format(obj)
             assert set(formatted[0].keys()) == expected
 

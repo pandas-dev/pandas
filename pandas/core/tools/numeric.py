@@ -7,7 +7,15 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -39,6 +47,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
@@ -48,7 +57,8 @@ def to_numeric(
     """
     Convert argument to a numeric type.
 
-    The default return dtype is `float64` or `int64`
+    If the input is already of a numeric dtype, the dtype will be preserved.
+    For non-numeric inputs, the default return dtype is `float64` or `int64`
     depending on the data supplied. Use the `downcast` parameter
     to obtain other dtypes.
 
@@ -62,8 +72,9 @@ def to_numeric(
 
     Parameters
     ----------
-    arg : scalar, list, tuple, 1-d array, or Series
+    arg : scalar, list, tuple, 1-d array, Index, or Series
         Argument to be converted.
+
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
@@ -88,22 +99,38 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
-        Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
+        Back-end data type applied to the result
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
+
+        * ``"numpy_nullable"``: returns nullable-dtype-backed object
+        * ``"pyarrow"``: returns with pyarrow-backed nullable object
 
         .. versionadded:: 2.0
 
     Returns
     -------
-    ret
-        Numeric if parsing succeeded.
-        Return type depends on input.  Series if Series, otherwise ndarray.
+    scalar, Series, or Index
+        For numeric scalars the type is preserved, whereas other scalars
+        return :class:`int` if possible, otherwise :class:`float`.
+        For 1-d: :class:`Series` if Series, :class:`Index` if Index,
+        otherwise an array as specified by ``dtype_backend``.
+
+        If ``errors='coerce'``, un-parseable values become ``NaN``
+        (or ``pd.NA`` if ``dtype_backend`` is not the default).
+        If ``errors='raise'`` (default),
+        a :exc:`ValueError` is raised for invalid values.
+
+    Raises
+    ------
+    ValueError
+        If the input contains non-numeric values and `errors='raise'`.
+    TypeError
+        If the input is not list-like, 1D, or scalar convertible to numeric,
+        such as nested lists or unsupported input types (e.g., dict).
 
     See Also
     --------
@@ -155,6 +182,18 @@ def to_numeric(
     1    2.1
     2    3.0
     dtype: Float32
+
+    Scalar input returns a scalar:
+
+    >>> pd.to_numeric("42")
+    np.int64(42)
+    >>> pd.to_numeric("3.14")
+    np.float64(3.14)
+
+    Index input returns an Index:
+
+    >>> pd.to_numeric(pd.Index(["1", "2", "3"]))
+    Index([1, 2, 3], dtype='int64')
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -184,6 +223,8 @@ def to_numeric(
             return float(arg)
         if is_number(arg):
             return arg
+        if isinstance(arg, (Timedelta, Timestamp)):
+            return arg._value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
@@ -215,19 +256,18 @@ def to_numeric(
             set(),
             coerce_numeric=coerce_numeric,
             convert_to_masked_nullable=dtype_backend is not lib.no_default
-            or isinstance(values_dtype, StringDtype)
-            and not values_dtype.storage == "pyarrow_numpy",
+            or (
+                isinstance(values_dtype, StringDtype)
+                and values_dtype.na_value is libmissing.NA
+            ),
         )
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif (
-        dtype_backend is not lib.no_default
-        and new_mask is None
-        or isinstance(values_dtype, StringDtype)
-        and not values_dtype.storage == "pyarrow_numpy"
+    elif (dtype_backend is not lib.no_default and new_mask is None) or (
+        isinstance(values_dtype, StringDtype) and values_dtype.na_value is libmissing.NA
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 

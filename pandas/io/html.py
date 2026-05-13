@@ -24,7 +24,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -33,7 +33,6 @@ from pandas import isna
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.series import Series
-from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     get_handle,
@@ -170,8 +169,6 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
     Attributes
     ----------
     io : str or file-like
@@ -193,8 +190,6 @@ class _HtmlFrameParser:
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     Notes
     -----
@@ -220,7 +215,7 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
-        extract_links: Literal[None, "header", "footer", "body", "all"],
+        extract_links: Literal["header", "footer", "body", "all"] | None,
         storage_options: StorageOptions = None,
     ) -> None:
         self.io = io
@@ -264,7 +259,7 @@ class _HtmlFrameParser:
 
     def _href_getter(self, obj) -> str | None:
         """
-        Return a href if the DOM node contains a child <a> or None.
+        Return an href if the DOM node contains a child <a> or None.
 
         Parameters
         ----------
@@ -454,15 +449,26 @@ class _HtmlFrameParser:
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
-        header = self._expand_colspan_rowspan(header_rows, section="header")
-        body = self._expand_colspan_rowspan(body_rows, section="body")
-        footer = self._expand_colspan_rowspan(footer_rows, section="footer")
+        header, rem = self._expand_colspan_rowspan(header_rows, section="header")
+        body, rem = self._expand_colspan_rowspan(
+            body_rows,
+            section="body",
+            remainder=rem,
+            overflow=len(footer_rows) > 0,
+        )
+        footer, _ = self._expand_colspan_rowspan(
+            footer_rows, section="footer", remainder=rem, overflow=False
+        )
 
         return header, body, footer
 
     def _expand_colspan_rowspan(
-        self, rows, section: Literal["header", "footer", "body"]
-    ) -> list[list]:
+        self,
+        rows,
+        section: Literal["header", "footer", "body"],
+        remainder: list[tuple[int, str | tuple, int]] | None = None,
+        overflow: bool = True,
+    ) -> tuple[list[list], list[tuple[int, str | tuple, int]]]:
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -471,12 +477,20 @@ class _HtmlFrameParser:
         rows : list of node-like
             List of <tr>s
         section : the section that the rows belong to (header, body or footer).
+        remainder: list[tuple[int, str | tuple, int]] | None
+            Any remainder from the expansion of previous section
+        overflow: bool
+            If true, return any partial rows as 'remainder'. If not, use up any
+            partial rows. True by default.
 
         Returns
         -------
         list of list
             Each returned row is a list of str text, or tuple (text, link)
             if extract_links is not None.
+        remainder
+            Remaining partial rows if any. If overflow is False, an empty list
+            is returned.
 
         Notes
         -----
@@ -485,9 +499,7 @@ class _HtmlFrameParser:
         """
         all_texts = []  # list of rows, each a list of str
         text: str | tuple
-        remainder: list[
-            tuple[int, str | tuple, int]
-        ] = []  # list of (index, text, nrows)
+        remainder = remainder if remainder is not None else []
 
         for tr in rows:
             texts = []  # the output for this row
@@ -528,19 +540,20 @@ class _HtmlFrameParser:
             all_texts.append(texts)
             remainder = next_remainder
 
-        # Append rows that only appear because the previous row had non-1
-        # rowspan
-        while remainder:
-            next_remainder = []
-            texts = []
-            for prev_i, prev_text, prev_rowspan in remainder:
-                texts.append(prev_text)
-                if prev_rowspan > 1:
-                    next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
-            all_texts.append(texts)
-            remainder = next_remainder
+        if not overflow:
+            # Append rows that only appear because the previous row had non-1
+            # rowspan
+            while remainder:
+                next_remainder = []
+                texts = []
+                for prev_i, prev_text, prev_rowspan in remainder:
+                    texts.append(prev_text)
+                    if prev_rowspan > 1:
+                        next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
+                all_texts.append(texts)
+                remainder = next_remainder
 
-        return all_texts
+        return all_texts, remainder
 
     def _handle_hidden_tables(self, tbl_list, attr_name: str):
         """
@@ -584,14 +597,8 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     :class:`pandas.io.html._HtmlFrameParser`.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        from bs4 import SoupStrainer
-
-        self._strainer = SoupStrainer("table")
-
     def _parse_tables(self, document, match, attrs):
-        element_name = self._strainer.name
+        element_name = "table"
         tables = document.find_all(element_name, attrs=attrs)
         if not tables:
             raise ValueError("No tables found")
@@ -629,16 +636,16 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return row.find_all(("td", "th"), recursive=False)
 
     def _parse_thead_tr(self, table):
-        return table.select("thead tr")
+        return table.select(":scope thead tr")
 
     def _parse_tbody_tr(self, table):
-        from_tbody = table.select("tbody tr")
+        from_tbody = table.select(":scope tbody tr")
         from_root = table.find_all("tr", recursive=False)
         # HTML spec: at most one of these lists has content
         return from_tbody + from_root
 
     def _parse_tfoot_tr(self, table):
-        return table.select("tfoot tr")
+        return table.select(":scope tfoot tr")
 
     def _setup_build_doc(self):
         raw_text = _read(self.io, self.encoding, self.storage_options)
@@ -879,7 +886,7 @@ def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
 
     Parameters
     ----------
-    flavor : {{"lxml", "html5lib", "bs4"}} or None
+    flavor : {"lxml", "html5lib", "bs4"} or None
         The type of parser to use. This must be a valid backend.
 
     Returns
@@ -1012,7 +1019,7 @@ def _parse(
     return ret
 
 
-@doc(storage_options=_shared_docs["storage_options"])
+@set_module("pandas")
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
@@ -1030,25 +1037,30 @@ def read_html(
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-    extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    extract_links: Literal["header", "footer", "body", "all"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     storage_options: StorageOptions = None,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
+    This function requires one of the following libraries:
+    `lxml <https://lxml.de/>`_, `html5lib <https://github.com/html5lib/html5lib-python>`_,
+    or `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/>`_.
+
+    This function searches for ``<table>`` elements within an HTML document
+    and parses their rows and columns into DataFrames. It can read from a URL,
+    a file path, or a raw HTML string, and supports filtering tables by
+    matching text content via a regular expression.
+
     Parameters
     ----------
     io : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
+        String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a string ``read()`` function.
         The string can represent a URL. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
-
-        .. deprecated:: 2.1.0
-            Passing html literal strings is deprecated.
-            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1058,7 +1070,7 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
+    flavor : {"lxml", "html5lib", "bs4"} or list-like, optional
         The parsing engine (or list of parsing engines) to use. 'bs4' and
         'html5lib' are synonymous with each other, they are both there for
         backwards compatibility. The default of ``None`` tries to use ``lxml``
@@ -1072,7 +1084,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int, list-like or slice, optional
-        Number of rows to skip after parsing the column integer. 0-based. If a
+        Number of rows to skip after parsing the header. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
@@ -1083,13 +1095,13 @@ def read_html(
         passed to lxml or Beautiful Soup. However, these attributes must be
         valid HTML table attributes to work correctly. For example, ::
 
-            attrs = {{"id": "table"}}
+            attrs = {"id": "table"}
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
         <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
-            attrs = {{"asdf": "table"}}
+            attrs = {"asdf": "table"}
 
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01
@@ -1131,24 +1143,31 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_links : {{None, "all", "header", "body", "footer"}}
+    extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
-    {storage_options}
+    storage_options : dict, optional
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
         .. versionadded:: 2.1.0
 
@@ -1184,7 +1203,10 @@ def read_html(
     **after** `skiprows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*
-    it will fail, e.g., it will *not* return an empty list.
+    it will fail, i.e., it will *not* return an empty list, save for some
+    rare cases.
+    It might return an empty list in case of inputs with single row and
+    ``<td>`` containing only whitespaces.
 
     Examples
     --------

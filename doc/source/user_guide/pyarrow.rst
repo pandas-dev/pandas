@@ -22,7 +22,7 @@ Data Structure Integration
 
 A :class:`Series`, :class:`Index`, or the columns of a :class:`DataFrame` can be directly backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray`
 which is similar to a NumPy array. To construct these from the main pandas data structures, you can pass in a string of the type followed by
-``[pyarrow]``, e.g. ``"int64[pyarrow]""`` into the ``dtype`` parameter
+``[pyarrow]``, e.g. ``"int64[pyarrow]"`` into the ``dtype`` parameter
 
 .. ipython:: python
 
@@ -159,9 +159,11 @@ PyArrow also provides IO reading functionality that has been integrated into sev
 functions provide an ``engine`` keyword that can dispatch to PyArrow to accelerate reading from an IO source.
 
 * :func:`read_csv`
+* :func:`read_feather`
 * :func:`read_json`
 * :func:`read_orc`
-* :func:`read_feather`
+* :func:`read_parquet`
+* :func:`read_table` (experimental)
 
 .. ipython:: python
 

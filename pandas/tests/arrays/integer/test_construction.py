@@ -26,14 +26,20 @@ def test_uses_pandas_na():
     assert a[1] is pd.NA
 
 
-def test_from_dtype_from_float(data):
+def test_from_dtype_from_float(data, using_nan_is_na):
     # construct from our dtype & string dtype
     dtype = data.dtype
 
     # from float
     expected = pd.Series(data)
-    result = pd.Series(data.to_numpy(na_value=np.nan, dtype="float"), dtype=str(dtype))
-    tm.assert_series_equal(result, expected)
+    arr = data.to_numpy(na_value=np.nan, dtype="float")
+    if using_nan_is_na:
+        result = pd.Series(arr, dtype=str(dtype))
+        tm.assert_series_equal(result, expected)
+    else:
+        msg = "Cannot cast NaN value to Integer dtype"
+        with pytest.raises(ValueError, match=msg):
+            pd.Series(arr, dtype=str(dtype))
 
     # from int / list
     expected = pd.Series(data)
@@ -61,7 +67,7 @@ def test_conversions(data_missing):
     expected = np.array([pd.NA, 1], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
-    for r, e in zip(result, expected):
+    for r, e in zip(result, expected, strict=True):
         if pd.isnull(r):
             assert pd.isnull(e)
         elif is_integer(r):
@@ -77,7 +83,7 @@ def test_integer_array_constructor():
     mask = np.array([False, False, False, True], dtype="bool")
 
     result = IntegerArray(values, mask)
-    expected = pd.array([1, 2, 3, np.nan], dtype="Int64")
+    expected = pd.array([1, 2, 3, pd.NA], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     msg = r".* should be .* numpy array. Use the 'pd.array' function instead"
@@ -116,10 +122,15 @@ def test_integer_array_constructor_copy():
         ([np.nan, np.nan], [np.nan, np.nan]),
     ],
 )
-def test_to_integer_array_none_is_nan(a, b):
-    result = pd.array(a, dtype="Int64")
-    expected = pd.array(b, dtype="Int64")
-    tm.assert_extension_array_equal(result, expected)
+def test_to_integer_array_none_is_nan(a, b, using_nan_is_na):
+    if using_nan_is_na:
+        result = pd.array(a, dtype="Int64")
+        expected = pd.array(b, dtype="Int64")
+        tm.assert_extension_array_equal(result, expected)
+    else:
+        msg = "Cannot cast NaN value to Integer dtype"
+        with pytest.raises(ValueError, match=msg):
+            pd.array(b, dtype="Int64")
 
 
 @pytest.mark.parametrize(
@@ -139,6 +150,7 @@ def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     msg = "|".join(
         [
+            "cannot convert float NaN to integer",  # with not using_nan_is_na
             r"cannot be converted to IntegerDtype",
             r"invalid literal for int\(\) with base 10:",
             r"values must be a 1D list-like",
@@ -191,7 +203,7 @@ def test_to_integer_array_float():
 
 def test_to_integer_array_str():
     result = IntegerArray._from_sequence(["1", "2", None], dtype="Int64")
-    expected = pd.array([1, 2, np.nan], dtype="Int64")
+    expected = pd.array([1, 2, pd.NA], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(
@@ -214,8 +226,16 @@ def test_to_integer_array_str():
     ],
 )
 def test_to_integer_array_bool(
-    constructor, bool_values, int_values, target_dtype, expected_dtype
+    constructor, bool_values, int_values, target_dtype, expected_dtype, using_nan_is_na
 ):
+    if not using_nan_is_na and np.isnan(bool_values[-1]):
+        msg = "Cannot cast NaN value to Integer dtype"
+        with pytest.raises(ValueError, match=msg):
+            constructor(bool_values, dtype=target_dtype)
+        with pytest.raises(ValueError, match=msg):
+            pd.array(int_values, dtype=target_dtype)
+        return
+
     result = constructor(bool_values, dtype=target_dtype)
     assert result.dtype == expected_dtype
     expected = pd.array(int_values, dtype=target_dtype)
@@ -230,8 +250,16 @@ def test_to_integer_array_bool(
         (np.array([1, np.nan]), "int8", Int8Dtype),
     ],
 )
-def test_to_integer_array(values, to_dtype, result_dtype):
+def test_to_integer_array(values, to_dtype, result_dtype, using_nan_is_na):
     # convert existing arrays to IntegerArrays
+    if not using_nan_is_na and np.isnan(values[-1]):
+        msg = "Cannot cast NaN value to Integer dtype"
+        with pytest.raises(ValueError, match=msg):
+            IntegerArray._from_sequence(values, dtype=to_dtype)
+        with pytest.raises(ValueError, match=msg):
+            pd.array(values, dtype=result_dtype())
+        return
+
     result = IntegerArray._from_sequence(values, dtype=to_dtype)
     assert result.dtype == result_dtype()
     expected = pd.array(values, dtype=result_dtype())

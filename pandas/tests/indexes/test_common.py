@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.compat.numpy import np_version_gte1p25
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
@@ -119,7 +118,7 @@ class TestCommon:
         # should return None
         assert res is None
         assert index.name == new_name
-        assert index.names == (new_name,)
+        assert index.names == [new_name]
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -127,7 +126,7 @@ class TestCommon:
         name = ("A", "B")
         index.rename(name, inplace=True)
         assert index.name == name
-        assert index.names == (name,)
+        assert index.names == [name]
 
     @pytest.mark.xfail
     def test_set_names_single_label_no_level(self, index_flat):
@@ -223,13 +222,15 @@ class TestCommon:
             pass
 
         result = idx.unique()
-        tm.assert_index_equal(result, idx_unique)
+        tm.assert_index_equal(
+            result, idx_unique, exact=not isinstance(index, RangeIndex)
+        )
 
         # nans:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        vals = index._values[[0] * 5]
+        vals = index._values.copy()[[0] * 5]
         vals[0] = np.nan
 
         vals_unique = vals[:2]
@@ -270,9 +271,7 @@ class TestCommon:
             # all values are the same, expected_right should be length
             expected_right = len(index)
 
-        # test _searchsorted_monotonic in all cases
-        # test searchsorted only for increasing
-        if index.is_monotonic_increasing:
+        if index.is_monotonic_increasing or index.is_monotonic_decreasing:
             ssm_left = index._searchsorted_monotonic(value, side="left")
             assert expected_left == ssm_left
 
@@ -284,13 +283,6 @@ class TestCommon:
 
             ss_right = index.searchsorted(value, side="right")
             assert expected_right == ss_right
-
-        elif index.is_monotonic_decreasing:
-            ssm_left = index._searchsorted_monotonic(value, side="left")
-            assert expected_left == ssm_left
-
-            ssm_right = index._searchsorted_monotonic(value, side="right")
-            assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
             msg = "index must be monotonic increasing or decreasing"
@@ -388,13 +380,11 @@ class TestCommon:
         else:
             index.name = "idx"
 
-        warn = None
-        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
-            # imaginary components discarded
-            if np_version_gte1p25:
-                warn = np.exceptions.ComplexWarning
-            else:
-                warn = np.ComplexWarning
+        warn = (
+            np.exceptions.ComplexWarning
+            if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]
+            else None
+        )
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
@@ -446,23 +436,18 @@ class TestCommon:
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
+def test_sort_values_invalid_na_position(index_with_missing_sortable, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        index_with_missing_sortable.sort_values(na_position=na_position)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position, request):
+def test_sort_values_with_missing(index_with_missing_sortable, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, CategoricalIndex):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="missing value sorting order not well-defined", strict=False
-            )
-        )
+    index_with_missing = index_with_missing_sortable
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
@@ -476,6 +461,17 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
     result = index_with_missing.sort_values(na_position=na_position)
+    tm.assert_index_equal(result, expected)
+
+
+def test_sort_values_natsort_key():
+    # GH#56081
+    def split_convert(s):
+        return tuple(int(x) for x in s.split("."))
+
+    idx = pd.Index(["1.9", "2.0", "1.11", "1.10"])
+    expected = pd.Index(["1.9", "1.10", "1.11", "2.0"])
+    result = idx.sort_values(key=lambda x: tuple(map(split_convert, x)))
     tm.assert_index_equal(result, expected)
 
 
@@ -522,3 +518,13 @@ def test_to_frame_name_tuple_multiindex():
     result = idx.to_frame(name=(1, 2))
     expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_join_series_deprecated():
+    # GH#62897
+    idx = pd.Index([1, 2])
+    ser = pd.Series([1, 2, 2])
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Passing .* to .* is deprecated"
+    ):
+        idx.join(ser)

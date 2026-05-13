@@ -8,6 +8,8 @@ from io import BytesIO
 
 import pytest
 
+from pandas._config import using_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -18,6 +20,9 @@ pytestmark = [
     pytest.mark.network,
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
     ),
 ]
 
@@ -104,6 +109,7 @@ def stata_responder(df):
             marks=[
                 td.skip_if_no("fastparquet"),
                 td.skip_if_no("fsspec"),
+                pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string"),
             ],
         ),
         (pickle_respnder, pd.read_pickle),

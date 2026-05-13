@@ -1,14 +1,17 @@
 # TODO(npdtypes): Many types specified here can be made more specific/accurate;
 #  the more specific versions are specified in comments
+from collections.abc import (
+    Callable,
+    Generator,
+    Hashable,
+)
 from decimal import Decimal
 from typing import (
     Any,
-    Callable,
     Final,
-    Generator,
-    Hashable,
     Literal,
     TypeAlias,
+    TypeGuard,
     overload,
 )
 
@@ -17,7 +20,6 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    TypeGuard,
     npt,
 )
 
@@ -58,7 +60,7 @@ def is_time_array(values: np.ndarray, skipna: bool = ...): ...
 def is_date_array(values: np.ndarray, skipna: bool = ...): ...
 def is_datetime_array(values: np.ndarray, skipna: bool = ...): ...
 def is_string_array(values: np.ndarray, skipna: bool = ...): ...
-def is_float_array(values: np.ndarray): ...
+def is_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_integer_array(values: np.ndarray, skipna: bool = ...): ...
 def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
 def fast_multiget(
@@ -67,7 +69,6 @@ def fast_multiget(
     default=...,
 ) -> ArrayLike: ...
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
-def fast_unique_multiple_list(lists: list, sort: bool | None = ...) -> list: ...
 @overload
 def map_infer(
     arr: np.ndarray,
@@ -84,6 +85,7 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> ArrayLike: ...
+def check_all_hashable(values: npt.NDArray[np.object_]) -> None: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -220,6 +222,16 @@ def array_equivalent_object(
     right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
+def has_nans(arr: np.ndarray) -> bool: ...  # const floating[:]
+def all_nans(arr: np.ndarray) -> bool: ...  # const floating[:]
+def array_equivalent_float(
+    left: np.ndarray,
+    right: np.ndarray,
+) -> bool: ...  # const floating[:]
+def array_equivalent_bytes(
+    left: np.ndarray,
+    right: np.ndarray,
+) -> bool: ...
 def has_only_ints_or_nan(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]

@@ -9,7 +9,6 @@ from numpy cimport (
     intp_t,
     ndarray,
     uint8_t,
-    uint64_t,
 )
 
 cnp.import_array()
@@ -57,9 +56,11 @@ cdef bint is_definitely_invalid_key(object val):
     return False
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
-    Return a ndarray[bool] of locations where val matches self.values.
+    Return an ndarray[bool] of locations where val matches self.values.
 
     If val is not NA, this is equivalent to `self.values == val`
     """
@@ -116,6 +117,8 @@ cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
 _SIZE_CUTOFF = 1_000_000
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
     """
     Possibly unpack a boolean mask to a single indexer.
@@ -253,16 +256,27 @@ cdef class IndexEngine:
         return self.sizeof()
 
     cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
+    @cython.critical_section
     def is_unique(self) -> bool:
         # for why we check is_monotonic_increasing here, see
         # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
@@ -277,6 +291,7 @@ cdef class IndexEngine:
         self._ensure_mapping_populated()
 
     @property
+    @cython.critical_section
     def is_monotonic_increasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -284,6 +299,7 @@ cdef class IndexEngine:
         return self.monotonic_inc == 1
 
     @property
+    @cython.critical_section
     def is_monotonic_decreasing(self) -> bool:
         if self.need_monotonic_check:
             self._do_monotonic_check()
@@ -312,6 +328,9 @@ cdef class IndexEngine:
             if is_strict_monotonic:
                 self.unique = 1
                 self.need_unique_check = 0
+            elif self.monotonic_inc == 1 or self.monotonic_dec == 1:
+                self.unique = 0
+                self.need_unique_check = 0
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
@@ -324,24 +343,26 @@ cdef class IndexEngine:
         return val
 
     @property
+    @cython.critical_section
     def is_mapping_populated(self) -> bool:
         return self.mapping is not None
 
+    @cython.critical_section
     cdef _ensure_mapping_populated(self):
         # this populates the mapping
         # if its not already populated
         # also satisfies the need_unique_check
-
         if not self.is_mapping_populated:
-
             values = self.values
-            self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values, self.mask)
-
-            if len(self.mapping) == len(values):
-                self.unique = 1
-
-        self.need_unique_check = 0
+            mapping = self._make_hash_table(len(values))
+            mapping.map_locations(values, self.mask)
+            unique = len(mapping) == len(values)
+        # check again after creating the mapping
+        # which could have released the critical_section
+        if not self.is_mapping_populated:
+            self.mapping = mapping
+            self.unique = unique
+            self.need_unique_check = 0
 
     def clear_mapping(self):
         self.mapping = None
@@ -353,9 +374,40 @@ cdef class IndexEngine:
         self.monotonic_dec = 0
 
     def get_indexer(self, ndarray values) -> np.ndarray:
+        cdef:
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
+
+        if (
+            not self.is_mapping_populated
+            and self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and n_values < (n_self / (2 * n_self.bit_length()))
+        ):
+            # GH#14273 avoid building a hash table for large monotonic indices;
+            # use vectorized binary search instead.  The target count threshold
+            # mirrors the heuristic in get_indexer_non_unique: searchsorted is
+            # O(m log n) vs hash table O(n + m), so we only win when m is small
+            # relative to n.
+            try:
+                indexer = self.values.searchsorted(values, side="left")
+            except TypeError:
+                # e.g. searching for strings in an integer index
+                pass
+            else:
+                # searchsorted returns insertion points, not exact matches.
+                # Clip to valid range for comparison, then check matches.
+                clipped = np.clip(indexer, 0, n_self - 1)
+                valid = self.values[clipped] == values
+                result = np.where(valid, clipped, -1)
+                return result.astype(np.intp)
+
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, ndarray targets):
         """
         Return an indexer suitable for taking from a non unique index
@@ -497,28 +549,33 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # This is equivalent to the stdlib's bisect.bisect_left
 
     cdef:
-        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
-        object pval
-
-    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
-        return len(values)
+        Py_ssize_t mid, lo = 0, hi = len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = PySequence_GetItem(values, mid)
-        if val < pval:
-            hi = mid
-        elif val > pval:
+        if PySequence_GetItem(values, mid) < val:
             lo = mid + 1
         else:
-            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
-                mid -= 1
-            return mid
+            hi = mid
 
-    if val <= PySequence_GetItem(values, mid):
-        return mid
-    else:
-        return mid + 1
+    return lo
+
+
+cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
+    # GH#37800 Equivalent to bisect.bisect_right, companion to _bin_search.
+    # ndarray.searchsorted is not safe to use with array of tuples.
+
+    cdef:
+        Py_ssize_t mid, lo = 0, hi = len(values)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if val < PySequence_GetItem(values, mid):
+            hi = mid
+        else:
+            lo = mid + 1
+
+    return lo
 
 
 cdef class ObjectEngine(IndexEngine):
@@ -537,6 +594,29 @@ cdef class ObjectEngine(IndexEngine):
             raise KeyError(val) from err
         return loc
 
+    cdef _get_loc_duplicates(self, object val):
+        # GH#37800 override to use _bin_search/_bin_search_right instead of
+        #  ndarray.searchsorted, which treats tuples as sequences of keys.
+        cdef:
+            Py_ssize_t diff, left, right
+
+        if self.is_monotonic_increasing:
+            try:
+                left = _bin_search(self.values, val)
+                right = _bin_search_right(self.values, val)
+            except TypeError:
+                raise KeyError(val)
+
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+
+        return self._maybe_get_bool_indexer(val)
+
 
 cdef class StringEngine(IndexEngine):
 
@@ -547,6 +627,23 @@ cdef class StringEngine(IndexEngine):
         if not isinstance(val, str):
             raise KeyError(val)
         return str(val)
+
+cdef class StringObjectEngine(ObjectEngine):
+
+    cdef:
+        object na_value
+
+    def __init__(self, ndarray values, na_value):
+        super().__init__(values)
+        self.na_value = na_value
+
+    cdef _check_type(self, object val):
+        if isinstance(val, str):
+            return val
+        elif checknull(val):
+            return self.na_value
+        else:
+            raise KeyError(val)
 
 
 cdef class DatetimeEngine(Int64Engine):
@@ -699,8 +796,7 @@ cdef class BaseMultiIndexCodesEngine:
     Keys are located by first locating each component against the respective
     level, then locating (the integer representation of) codes.
     """
-    def __init__(self, object levels, object labels,
-                 ndarray[uint64_t, ndim=1] offsets):
+    def __init__(self, object levels, object labels, ndarray offsets):
         """
         Parameters
         ----------
@@ -708,7 +804,7 @@ cdef class BaseMultiIndexCodesEngine:
             Levels of the MultiIndex.
         labels : list-like of numpy arrays of integer dtype
             Labels of the MultiIndex.
-        offsets : numpy array of uint64 dtype
+        offsets : numpy array of int dtype
             Pre-calculated offsets, one for each level of the index.
         """
         self.levels = levels
@@ -718,8 +814,9 @@ cdef class BaseMultiIndexCodesEngine:
         # with positive integers (-1 for NaN becomes 1). This enables us to
         # differentiate between values that are missing in other and matching
         # NaNs. We will set values that are not found to 0 later:
-        labels_arr = np.array(labels, dtype="int64").T + multiindex_nulls_shift
-        codes = labels_arr.astype("uint64", copy=False)
+        codes = np.array(labels).T
+        codes += multiindex_nulls_shift  # inplace sum optimisation
+
         self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
@@ -731,8 +828,37 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lab_ints)
 
-    def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
-        raise NotImplementedError("Implemented by subclass")  # pragma: no cover
+    def _codes_to_ints(self, ndarray codes) -> np.ndarray:
+        """
+        Transform combination(s) of uint in one uint or Python integer (each), in a
+        strictly monotonic way (i.e. respecting the lexicographic order of integer
+        combinations).
+
+        Parameters
+        ----------
+        codes : 1- or 2-dimensional array of dtype uint
+            Combinations of integers (one per row)
+
+        Returns
+        -------
+        scalar or 1-dimensional array, of dtype _codes_dtype
+            Integer(s) representing one combination (each).
+        """
+        # To avoid overflows, first make sure we are working with the right dtype:
+        codes = codes.astype(self._codes_dtype, copy=False)
+
+        # Shift the representation of each level by the pre-calculated number of bits:
+        codes <<= self.offsets  # inplace shift optimisation
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer (per row):
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
+        return np.bitwise_or.reduce(codes, axis=1)
 
     def _extract_level_codes(self, target) -> np.ndarray:
         """
@@ -748,7 +874,7 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = list(target._recode_for_new_levels(self.levels))
+        level_codes = list(target._recode_for_new_levels(self.levels, copy=True))
         for i, codes in enumerate(level_codes):
             if self.levels[i].hasnans:
                 na_index = self.levels[i].isna().nonzero()[0][0]
@@ -757,7 +883,7 @@ cdef class BaseMultiIndexCodesEngine:
             codes[codes > 0] += 1
             if self.level_has_nans[i]:
                 codes[target.codes[i] == -1] += 1
-        return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
+        return self._codes_to_ints(np.array(level_codes, dtype=self._codes_dtype).T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
@@ -783,12 +909,12 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
         try:
             indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
-                       for lev, v in zip(self.levels, key)]
+                       for lev, v in zip(self.levels, key, strict=True)]
         except KeyError:
             raise KeyError(key)
 
         # Transform indices into single integer:
-        lab_int = self._codes_to_ints(np.array(indices, dtype="uint64"))
+        lab_int = self._codes_to_ints(np.array(indices, dtype=self._codes_dtype))
 
         return self._base.get_loc(self, lab_int)
 
@@ -854,14 +980,24 @@ cdef class SharedEngine:
         pass
 
     cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:
@@ -1062,36 +1198,12 @@ cdef class ExtensionEngine(SharedEngine):
         self.need_unique_check = True
 
     cdef _do_monotonic_check(self):
-        cdef:
-            bint is_unique
-
         values = self.values
-        if values._hasna:
-            self.monotonic_inc = 0
-            self.monotonic_dec = 0
 
-            nunique = len(values.unique())
-            self.unique = nunique == len(values)
-            self.need_unique_check = 0
-            return
-
-        try:
-            ranks = values._rank()
-
-        except TypeError:
-            self.monotonic_inc = 0
-            self.monotonic_dec = 0
-            is_unique = 0
-        else:
-            self.monotonic_inc, self.monotonic_dec, is_unique = \
-                self._call_monotonic(ranks)
+        self.monotonic_inc = values._is_monotonic_increasing
+        self.monotonic_dec = values._is_monotonic_decreasing
 
         self.need_monotonic_check = 0
-
-        # we can only be sure of uniqueness if is_unique=1
-        if is_unique:
-            self.unique = 1
-            self.need_unique_check = 0
 
     cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):
@@ -1134,9 +1246,37 @@ cdef class MaskedIndexEngine(IndexEngine):
         return values.isna()
 
     def get_indexer(self, object values) -> np.ndarray:
+        cdef:
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
+
+        if (
+            not self.is_mapping_populated
+            and self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and n_values < (n_self / (2 * n_self.bit_length()))
+        ):
+            # GH#14273 avoid building a hash table for large monotonic indices.
+            # NAs in self.mask break monotonicity, so we only get here when
+            # the index has no NAs.
+            target_data = self._get_data(values)
+            target_mask = self._get_mask(values)
+            try:
+                indexer = self.values.searchsorted(target_data, side="left")
+            except TypeError:
+                pass
+            else:
+                clipped = np.clip(indexer, 0, n_self - 1)
+                valid = (self.values[clipped] == target_data) & ~target_mask
+                result = np.where(valid, clipped, -1)
+                return result.astype(np.intp)
+
         self._ensure_mapping_populated()
         return self.mapping.lookup(self._get_data(values), self._get_mask(values))
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, object targets):
         """
         Return an indexer suitable for taking from a non unique index
@@ -1183,7 +1323,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         # map each starget to its position in the index
         if (
                 stargets and
-                len(stargets) < 5 and
+                len(stargets) < (n / (2 * n.bit_length())) and
                 not np.any(target_mask) and
                 self.is_monotonic_increasing
         ):

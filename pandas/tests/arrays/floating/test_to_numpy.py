@@ -1,24 +1,31 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
 
 
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])
-def test_to_numpy(box):
+def test_to_numpy(box, using_nan_is_na):
     con = pd.Series if box else pd.array
 
     # default (with or without missing values) -> object dtype
     arr = con([0.1, 0.2, 0.3], dtype="Float64")
     result = arr.to_numpy()
     expected = np.array([0.1, 0.2, 0.3], dtype="float64")
+    # TODO: should this be object with `not using_nan_is_na` to avoid
+    #  values-dependent behavior?
     tm.assert_numpy_array_equal(result, expected)
 
     arr = con([0.1, 0.2, None], dtype="Float64")
     result = arr.to_numpy()
-    expected = np.array([0.1, 0.2, np.nan], dtype="float64")
+    if using_nan_is_na:
+        expected = np.array([0.1, 0.2, np.nan], dtype="float64")
+    else:
+        expected = np.array([0.1, 0.2, pd.NA], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -81,11 +88,18 @@ def test_to_numpy_na_value(box):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_to_numpy_na_value_with_nan():
+def test_to_numpy_na_value_with_nan(using_nan_is_na):
     # array with both NaN and NA -> only fill NA with `na_value`
-    arr = FloatingArray(np.array([0.0, np.nan, 0.0]), np.array([False, False, True]))
+    mask = np.array([False, False, True])
+    if using_nan_is_na:
+        mask[1] = True
+    arr = FloatingArray(np.array([0.0, np.nan, 0.0]), mask)
     result = arr.to_numpy(dtype="float64", na_value=-1)
-    expected = np.array([0.0, np.nan, -1.0], dtype="float64")
+    if using_nan_is_na:
+        # the NaN passed to the constructor is considered as NA
+        expected = np.array([0.0, -1.0, -1.0], dtype="float64")
+    else:
+        expected = np.array([0.0, np.nan, -1.0], dtype="float64")
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -130,3 +144,35 @@ def test_to_numpy_copy():
     result = arr.to_numpy(dtype="float64", copy=True)
     result[0] = 10
     tm.assert_extension_array_equal(arr, pd.array([0.1, 0.2, 0.3], dtype="Float64"))
+
+
+def test_to_numpy_readonly():
+    arr = pd.array([0.1, 0.2, 0.3], dtype="Float64")
+    arr._readonly = True
+    result = arr.to_numpy(dtype="float64")
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(dtype="float64", copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="float32")
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="object")
+    assert result.flags.writeable
+
+
+@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
+@pytest.mark.parametrize("dtype", [None, "float64"])
+def test_asarray_readonly(dtype):
+    arr = pd.array([0.1, 0.2, 0.3], dtype="Float64")
+    arr._readonly = True
+
+    result = np.asarray(arr, dtype=dtype)
+    assert not result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=True)
+    assert result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=False)
+    assert not result.flags.writeable

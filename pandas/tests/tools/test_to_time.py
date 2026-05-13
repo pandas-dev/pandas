@@ -1,22 +1,13 @@
 from datetime import time
-import locale
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
+import pandas.util._test_decorators as td
 
 from pandas import Series
 import pandas._testing as tm
 from pandas.core.tools.times import to_time
-
-# The tests marked with this are locale-dependent.
-# They pass, except when the machine locale is zh_CN or it_IT.
-fails_on_non_english = pytest.mark.xfail(
-    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-    strict=False,
-)
 
 
 class TestToTime:
@@ -25,12 +16,12 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            pytest.param("2:15pm", marks=fails_on_non_english),
-            pytest.param("0215pm", marks=fails_on_non_english),
+            pytest.param("2:15pm", marks=td.skip_if_not_us_locale),
+            pytest.param("0215pm", marks=td.skip_if_not_us_locale),
             "14:15:00",
             "141500",
-            pytest.param("2:15:00pm", marks=fails_on_non_english),
-            pytest.param("021500pm", marks=fails_on_non_english),
+            pytest.param("2:15:00pm", marks=td.skip_if_not_us_locale),
+            pytest.param("021500pm", marks=td.skip_if_not_us_locale),
             time(14, 15),
         ],
     )
@@ -40,10 +31,6 @@ class TestToTime:
 
     def test_odd_format(self):
         new_string = "14.15"
-        msg = r"Cannot convert arg \['14\.15'\] to a time"
-        if not PY311:
-            with pytest.raises(ValueError, match=msg):
-                to_time(new_string)
         assert to_time(new_string, format="%H.%M") == time(14, 15)
 
     def test_arraylike(self):

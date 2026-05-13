@@ -36,7 +36,7 @@ except ImportError:
 from .pandas_vb_common import BaseIO  # isort:skip
 
 
-def test_parallel(num_threads=2, kwargs_list=None):
+def run_parallel(num_threads=2, kwargs_list=None):
     """
     Decorator to run the same function multiple times in parallel.
 
@@ -95,7 +95,7 @@ class ParallelGroupbyMethods:
             {"key": np.random.randint(0, ngroups, size=N), "data": np.random.randn(N)}
         )
 
-        @test_parallel(num_threads=threads)
+        @run_parallel(num_threads=threads)
         def parallel():
             getattr(df.groupby("key")["data"], method)()
 
@@ -123,7 +123,7 @@ class ParallelGroups:
         ngroups = 10**3
         data = Series(np.random.randint(0, ngroups, size=size))
 
-        @test_parallel(num_threads=threads)
+        @run_parallel(num_threads=threads)
         def get_groups():
             data.groupby(data).groups
 
@@ -142,7 +142,7 @@ class ParallelTake1D:
         df = DataFrame({"col": np.arange(N, dtype=dtype)})
         indexer = np.arange(100, len(df) - 100)
 
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def parallel_take1d():
             take_nd(df["col"].values, indexer)
 
@@ -163,7 +163,7 @@ class ParallelKth:
         k = 5 * 10**5
         kwargs_list = [{"arr": np.random.randn(N)}, {"arr": np.random.randn(N)}]
 
-        @test_parallel(num_threads=2, kwargs_list=kwargs_list)
+        @run_parallel(num_threads=2, kwargs_list=kwargs_list)
         def parallel_kth_smallest(arr):
             algos.kth_smallest(arr, k)
 
@@ -180,42 +180,42 @@ class ParallelDatetimeFields:
         self.period = self.dti.to_period("D")
 
     def time_datetime_field_year(self):
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def run(dti):
             dti.year
 
         run(self.dti)
 
     def time_datetime_field_day(self):
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def run(dti):
             dti.day
 
         run(self.dti)
 
     def time_datetime_field_daysinmonth(self):
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def run(dti):
             dti.days_in_month
 
         run(self.dti)
 
     def time_datetime_field_normalize(self):
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def run(dti):
             dti.normalize()
 
         run(self.dti)
 
     def time_datetime_to_period(self):
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def run(dti):
             dti.to_period("s")
 
         run(self.dti)
 
     def time_period_to_datetime(self):
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def run(period):
             period.to_timestamp()
 
@@ -232,7 +232,7 @@ class ParallelRolling:
         if hasattr(DataFrame, "rolling"):
             df = DataFrame(arr).rolling(win)
 
-            @test_parallel(num_threads=2)
+            @run_parallel(num_threads=2)
             def parallel_rolling():
                 getattr(df, method)()
 
@@ -249,7 +249,7 @@ class ParallelRolling:
                 "std": rolling_std,
             }
 
-            @test_parallel(num_threads=2)
+            @run_parallel(num_threads=2)
             def parallel_rolling():
                 rolling[method](arr, win)
 
@@ -286,7 +286,7 @@ class ParallelReadCSV(BaseIO):
         self.fname = f"__test_{dtype}__.csv"
         df.to_csv(self.fname)
 
-        @test_parallel(num_threads=2)
+        @run_parallel(num_threads=2)
         def parallel_read_csv():
             read_csv(self.fname)
 
@@ -305,7 +305,7 @@ class ParallelFactorize:
     def setup(self, threads):
         strings = Index([f"i-{i}" for i in range(100000)], dtype=object)
 
-        @test_parallel(num_threads=threads)
+        @run_parallel(num_threads=threads)
         def parallel():
             factorize(strings)
 

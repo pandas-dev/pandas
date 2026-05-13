@@ -16,12 +16,17 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import AxisInt
+    from pandas._typing import (
+        AxisInt,
+        ListLike,
+    )
 
     from pandas.core.generic import NDFrame
 
 
-def preprocess_weights(obj: NDFrame, weights, axis: AxisInt) -> np.ndarray:
+def preprocess_weights(
+    obj: NDFrame, weights: str | ListLike, axis: AxisInt
+) -> np.ndarray:
     """
     Process and validate the `weights` argument to `NDFrame.sample` and
     `.GroupBy.sample`.
@@ -59,23 +64,23 @@ def preprocess_weights(obj: NDFrame, weights, axis: AxisInt) -> np.ndarray:
     else:
         func = obj._constructor_sliced
 
-    weights = func(weights, dtype="float64")._values
+    weights_arr = np.asarray(func(weights, dtype="float64")._values, dtype=np.float64)
 
-    if len(weights) != obj.shape[axis]:
+    if len(weights_arr) != obj.shape[axis]:
         raise ValueError("Weights and axis to be sampled must be of same length")
 
-    if lib.has_infs(weights):
-        raise ValueError("weight vector may not include `inf` values")
+    if lib.has_infs(weights_arr):
+        raise ValueError("weights vector may not include `inf` values")
 
-    if (weights < 0).any():
-        raise ValueError("weight vector many not include negative values")
+    if (weights_arr < 0).any():
+        raise ValueError("weights vector may not include negative values")
 
-    missing = np.isnan(weights)
+    missing = np.isnan(weights_arr)
     if missing.any():
         # Don't modify weights in place
-        weights = weights.copy()
-        weights[missing] = 0
-    return weights
+        weights_arr = weights_arr.copy()
+        weights_arr[missing] = 0
+    return weights_arr
 
 
 def process_sampling_size(
@@ -123,7 +128,7 @@ def sample(
     random_state: np.random.RandomState | np.random.Generator,
 ) -> np.ndarray:
     """
-    Randomly sample `size` indices in `np.arange(obj_len)`
+    Randomly sample `size` indices in `np.arange(obj_len)`.
 
     Parameters
     ----------
@@ -149,6 +154,14 @@ def sample(
             weights = weights / weight_sum
         else:
             raise ValueError("Invalid weights: weights sum to zero")
+
+        assert weights is not None  # for mypy
+        if not replace and size * weights.max() > 1:
+            raise ValueError(
+                "Weighted sampling cannot be achieved with replace=False. Either "
+                "set replace=True or use smaller weights. See the docstring of "
+                "sample for details."
+            )
 
     return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
         np.intp, copy=False

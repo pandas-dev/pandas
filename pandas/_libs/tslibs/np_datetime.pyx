@@ -18,6 +18,7 @@ from cpython.object cimport (
     Py_LT,
     Py_NE,
 )
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from libc.stdint cimport INT64_MAX
 
 import_datetime()
@@ -44,7 +45,6 @@ from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
 )
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
 cdef extern from "pandas/datetime/pd_datetime.h":
@@ -176,6 +176,15 @@ class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
 
+    This error occurs when attempting to convert or parse a datetime value
+    that exceeds the bounds supported by pandas' internal datetime
+    representation.
+
+    See Also
+    --------
+    to_datetime : Convert argument to datetime.
+    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
+
     Examples
     --------
     >>> pd.to_datetime("08335394550")
@@ -183,6 +192,7 @@ class OutOfBoundsDatetime(ValueError):
     OutOfBoundsDatetime: Parsing "08335394550" to datetime overflows,
     at position 0
     """
+    __module__ = "pandas.errors"
     pass
 
 
@@ -192,13 +202,18 @@ class OutOfBoundsTimedelta(ValueError):
 
     Representation should be within a timedelta64[ns].
 
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+
     Examples
     --------
-    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
+    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000, unit="ns")
     Traceback (most recent call last):
     OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
     to unit='ns' without overflow.
     """
+    __module__ = "pandas.errors"
     # Timedelta analogue to OutOfBoundsDatetime
     pass
 
@@ -331,7 +346,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None=None,
+    str format=None,
     bint exact=True,
 ) except? -1:
     cdef:
@@ -341,13 +356,13 @@ cdef int string_to_dts(
         const char* format_buf
         FormatRequirement format_requirement
 
-    buf = get_c_string_buf_and_size(val, &length)
+    buf = PyUnicode_AsUTF8AndSize(val, &length)
     if format is None:
         format_buf = b""
         format_length = 0
         format_requirement = INFER_FORMAT
     else:
-        format_buf = get_c_string_buf_and_size(format, &format_length)
+        format_buf = PyUnicode_AsUTF8AndSize(format, &format_length)
         format_requirement = <FormatRequirement>exact
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
@@ -405,18 +420,38 @@ cpdef ndarray astype_overflowsafe(
         )
         return iresult2.view(dtype)
 
+    if from_unit == NPY_FR_Y or from_unit == NPY_FR_M:
+        # Y/M don't have a fixed conversion factor; fall back to
+        # datetimestruct roundtrip.
+        return _astype_overflowsafe_to_larger_unit_via_dts(
+            values, dtype, from_unit, to_unit, is_coerce,
+        )
+
     if (<object>values).dtype.byteorder == ">":
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
         values = values.astype(values.dtype.newbyteorder("<"))
 
     cdef:
         ndarray i8values = values.view("i8")
+        int64_t mult = get_conversion_factor(from_unit, to_unit)
+        int64_t overflow_limit = INT64_MAX // mult
+        int64_t i8min, i8max
 
-        # equiv: result = np.empty((<object>values).shape, dtype="i8")
+    # Fast path: if min/max are both within the overflow-safe range, there
+    # are no NATs (NAT == INT64_MIN < -overflow_limit) and no overflow risk,
+    # so we can use numpy's vectorized multiply.  Restricted to ndim >= 1
+    # since 0-d .view(dtype) has edge cases; the slow path handles 0-d fine.
+    if i8values.ndim >= 1 and i8values.size > 0:
+        i8min = i8values.min()
+        i8max = i8values.max()
+        if i8min >= -overflow_limit and i8max <= overflow_limit:
+            return (i8values * mult).view(dtype)
+
+    # Slow path: per-element loop with NAT and overflow handling.
+    cdef:
         ndarray iresult = cnp.PyArray_EMPTY(
             values.ndim, values.shape, cnp.NPY_INT64, 0
         )
-
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
         Py_ssize_t i, N = values.size
         int64_t value, new_value
@@ -429,26 +464,26 @@ cpdef ndarray astype_overflowsafe(
 
         if value == NPY_DATETIME_NAT:
             new_value = NPY_DATETIME_NAT
-        else:
-            pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-
-            try:
-                check_dts_bounds(&dts, to_unit)
-            except OutOfBoundsDatetime as err:
-                if is_coerce:
-                    new_value = NPY_DATETIME_NAT
-                elif is_td:
-                    from_abbrev = np.datetime_data(values.dtype)[0]
-                    np_val = np.timedelta64(value, from_abbrev)
-                    msg = (
-                        "Cannot convert {np_val} to {dtype} without overflow"
-                        .format(np_val=str(np_val), dtype=str(dtype))
-                    )
-                    raise OutOfBoundsTimedelta(msg) from err
-                else:
-                    raise
+        elif value > overflow_limit or value < -overflow_limit:
+            if is_coerce:
+                new_value = NPY_DATETIME_NAT
+            elif is_td:
+                from_abbrev = np.datetime_data(values.dtype)[0]
+                np_val = np.timedelta64(value, from_abbrev)
+                msg = (
+                    "Cannot convert {np_val} to {dtype} without overflow"
+                    .format(np_val=str(np_val), dtype=str(dtype))
+                )
+                raise OutOfBoundsTimedelta(msg)
             else:
-                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+                pandas_datetime_to_datetimestruct(value, from_unit, &dts)
+                fmt = dts_to_iso_string(&dts)
+                attrname = npy_unit_to_attrname[to_unit]
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds {attrname} timestamp: {fmt}"
+                )
+        else:
+            new_value = value * mult
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -531,6 +566,69 @@ cdef int op_to_op_code(op):
         return Py_GT
 
 
+cdef ndarray _astype_overflowsafe_to_larger_unit_via_dts(
+    ndarray values,
+    cnp.dtype dtype,
+    NPY_DATETIMEUNIT from_unit,
+    NPY_DATETIMEUNIT to_unit,
+    bint is_coerce,
+):
+    """
+    Fallback for Y/M units where a fixed conversion factor doesn't exist.
+    Uses the datetimestruct roundtrip for correctness.
+    """
+    if (<object>values).dtype.byteorder == ">":
+        values = values.astype(values.dtype.newbyteorder("<"))
+
+    cdef:
+        ndarray i8values = values.view("i8")
+        ndarray iresult = cnp.PyArray_EMPTY(
+            values.ndim, values.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
+        Py_ssize_t i, N = values.size
+        int64_t value, new_value
+        npy_datetimestruct dts
+        npy_datetimestruct cmp_lower, cmp_upper
+        bint is_td = dtype.type_num == cnp.NPY_TIMEDELTA
+
+    get_implementation_bounds(to_unit, &cmp_lower, &cmp_upper)
+
+    for i in range(N):
+        value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        if value == NPY_DATETIME_NAT:
+            new_value = NPY_DATETIME_NAT
+        else:
+            pandas_datetime_to_datetimestruct(value, from_unit, &dts)
+
+            if (cmp_npy_datetimestruct(&dts, &cmp_lower) == -1
+                    or cmp_npy_datetimestruct(&dts, &cmp_upper) == 1):
+                if is_coerce:
+                    new_value = NPY_DATETIME_NAT
+                elif is_td:
+                    from_abbrev = np.datetime_data(values.dtype)[0]
+                    np_val = np.timedelta64(value, from_abbrev)
+                    msg = (
+                        "Cannot convert {np_val} to {dtype} without overflow"
+                        .format(np_val=str(np_val), dtype=str(dtype))
+                    )
+                    raise OutOfBoundsTimedelta(msg)
+                else:
+                    fmt = dts_to_iso_string(&dts)
+                    attrname = npy_unit_to_attrname[to_unit]
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds {attrname} timestamp: {fmt}"
+                    )
+            else:
+                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
+        cnp.PyArray_MultiIter_NEXT(mi)
+
+    return iresult.view(dtype)
+
+
 cdef ndarray _astype_overflowsafe_to_smaller_unit(
     ndarray i8values,
     NPY_DATETIMEUNIT from_unit,
@@ -557,7 +655,7 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
         # Note the arguments to_unit, from unit are swapped vs how they
         #  are passed when going to a higher-frequency reso.
         int64_t mult = get_conversion_factor(to_unit, from_unit)
-        int64_t value, mod
+        int64_t value, mod, new_value
 
     for i in range(N):
         # Analogous to: item = i8values[i]
@@ -566,13 +664,16 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
         if value == NPY_DATETIME_NAT:
             new_value = NPY_DATETIME_NAT
         else:
-            new_value, mod = divmod(value, mult)
-            if not round_ok and mod != 0:
-                from_abbrev = npy_unit_to_abbrev(from_unit)
-                to_abbrev = npy_unit_to_abbrev(to_unit)
-                raise ValueError(
-                    f"Cannot losslessly cast '{value} {from_abbrev}' to {to_abbrev}"
-                )
+            new_value = value // mult
+            if not round_ok:
+                mod = value % mult
+                if mod != 0:
+                    from_abbrev = npy_unit_to_abbrev(from_unit)
+                    to_abbrev = npy_unit_to_abbrev(to_unit)
+                    raise ValueError(
+                        f"Cannot losslessly cast '{value} {from_abbrev}' "
+                        f"to {to_abbrev}"
+                    )
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value

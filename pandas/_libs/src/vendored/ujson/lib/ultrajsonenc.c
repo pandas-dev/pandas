@@ -50,10 +50,10 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <string.h>
 
 #ifndef TRUE
-#define TRUE 1
+#  define TRUE 1
 #endif
 #ifndef FALSE
-#define FALSE 0
+#  define FALSE 0
 #endif
 
 /*
@@ -95,7 +95,8 @@ static const char g_escapeChars[] = "0123456789\\b\\t\\n\\f\\r\\\"\\\\\\/";
 /*
 FIXME: While this is fine dandy and working it's a magic value mess which
 probably only the author understands.
-Needs a cleanup and more documentation */
+Needs a cleanup and more documentation
+(comment also present in upstream ultrajson) */
 
 /*
 Table for pure ascii output escaping all characters above 127 to \uXXXX */
@@ -365,7 +366,8 @@ static void SetError(JSOBJ obj, JSONObjectEncoder *enc, const char *message) {
 /*
 FIXME: Keep track of how big these get across several encoder calls and try to
 make an estimate
-That way we won't run our head into the wall each call */
+That way we won't run our head into the wall each call
+(comment also present in upstream ultrajson) */
 void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded) {
   size_t curSize = enc->end - enc->start;
   size_t newSize = curSize * 2;
@@ -911,16 +913,13 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
 
 /*
 FIXME:
-Handle integration functions returning NULL here */
-
-/*
-FIXME:
-Perhaps implement recursion detection */
+Handle integration functions returning NULL here
+(comment also present in upstream ultrajson) */
 
 void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             size_t cbName) {
   const char *value;
-  char *objName;
+  const char *objName;
   int count;
   JSOBJ iterObj;
   size_t szlen;

@@ -1,7 +1,9 @@
-from typing import (
-    Any,
+from collections.abc import (
     Callable,
     Iterable,
+)
+from typing import (
+    Any,
     Literal,
     TypeAlias,
     overload,

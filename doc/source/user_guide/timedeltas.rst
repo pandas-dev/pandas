@@ -35,7 +35,7 @@ You can construct a ``Timedelta`` scalar through various arguments, including `I
    pd.Timedelta(days=1, seconds=1)
 
    # integers with a unit
-   pd.Timedelta(1, unit="d")
+   pd.Timedelta(1, unit="D")
 
    # from a datetime.timedelta/np.timedelta64
    pd.Timedelta(datetime.timedelta(days=1, seconds=1))
@@ -53,7 +53,7 @@ You can construct a ``Timedelta`` scalar through various arguments, including `I
    pd.Timedelta("P0DT0H1M0S")
    pd.Timedelta("P0DT0H0M0.000000123S")
 
-:ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
+:ref:`DateOffsets<timeseries.offsets>` (``Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
 
 .. ipython:: python
 
@@ -63,7 +63,7 @@ Further, operations among the scalars yield another scalar ``Timedelta``.
 
 .. ipython:: python
 
-   pd.Timedelta(pd.offsets.Day(2)) + pd.Timedelta(pd.offsets.Second(2)) + pd.Timedelta(
+   pd.Timedelta(pd.offsets.Hour(48)) + pd.Timedelta(pd.offsets.Second(2)) + pd.Timedelta(
        "00:00:00.000123"
    )
 
@@ -94,7 +94,7 @@ is numeric:
 .. ipython:: python
 
    pd.to_timedelta(np.arange(5), unit="s")
-   pd.to_timedelta(np.arange(5), unit="d")
+   pd.to_timedelta(np.arange(5), unit="D")
 
 .. warning::
     If a string or array of strings is passed as an input then the ``unit`` keyword
@@ -106,14 +106,29 @@ is numeric:
 Timedelta limitations
 ~~~~~~~~~~~~~~~~~~~~~
 
-pandas represents ``Timedeltas`` in nanosecond resolution using
-64 bit integers. As such, the 64 bit integer limits determine
-the ``Timedelta`` limits.
+:class:`Timedelta` uses a 64-bit integer to represent time, so the representable
+range depends on the chosen resolution (``unit``). The class-level attributes
+:attr:`Timedelta.min`, :attr:`Timedelta.max`, and :attr:`Timedelta.resolution`
+default to nanosecond limits:
 
 .. ipython:: python
 
    pd.Timedelta.min
    pd.Timedelta.max
+   pd.Timedelta.resolution
+
+On a :class:`Timedelta` *instance*, the same attributes reflect the bounds and
+step size of that instance's resolution:
+
+.. ipython:: python
+
+   td = pd.Timedelta(1, unit="s")
+   td.min
+   td.max
+   td.resolution
+
+Different resolutions can be converted to each other through
+:meth:`Timedelta.as_unit`.
 
 .. _timedeltas.operations:
 

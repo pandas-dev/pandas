@@ -1,23 +1,26 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import (
+    Callable,
+    Mapping,
+    Sequence,
+)
 from functools import partial
+import pathlib
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     DefaultDict,
-    Optional,
+    TypeAlias,
     TypedDict,
-    Union,
 )
 from uuid import uuid4
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -48,11 +51,11 @@ if TYPE_CHECKING:
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
-BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
-CSSPair = tuple[str, Union[str, float]]
-CSSList = list[CSSPair]
-CSSProperties = Union[str, CSSList]
+BaseFormatter: TypeAlias = str | Callable
+ExtFormatter: TypeAlias = BaseFormatter | Mapping[Any, BaseFormatter | None]
+CSSPair: TypeAlias = tuple[str, str | float]
+CSSList: TypeAlias = list[CSSPair]
+CSSProperties: TypeAlias = str | CSSList
 
 
 class CSSDict(TypedDict):
@@ -60,8 +63,8 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = list[CSSDict]
-Subset = Union[slice, Sequence, Index]
+CSSStyles: TypeAlias = list[CSSDict]
+Subset = slice | Sequence | Index
 
 
 class StylerRenderer:
@@ -69,12 +72,15 @@ class StylerRenderer:
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    this_dir = pathlib.Path(__file__).parent.resolve()
+    template_dir = this_dir / "templates"
+    loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
     template_html_table = env.get_template("html_table.tpl")
     template_html_style = env.get_template("html_style.tpl")
     template_latex = env.get_template("latex.tpl")
+    template_typst = env.get_template("typst.tpl")
     template_string = env.get_template("string.tpl")
 
     def __init__(
@@ -132,7 +138,7 @@ class StylerRenderer:
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
         precision = (
-            get_option("styler.format.precision") if precision is None else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
@@ -230,6 +236,21 @@ class StylerRenderer:
         d.update(kwargs)
         return self.template_latex.render(**d)
 
+    def _render_typst(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
+        """
+        Render a Styler in typst format
+        """
+        d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
+        d.update(kwargs)
+        return self.template_typst.render(**d)
+
     def _render_string(
         self,
         sparse_index: bool,
@@ -309,9 +330,9 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        max_elements = get_option("styler.render.max_elements")
-        max_rows = max_rows if max_rows else get_option("styler.render.max_rows")
-        max_cols = max_cols if max_cols else get_option("styler.render.max_columns")
+        max_elements = config["styler"]["render"]["max_elements"]
+        max_rows = max_rows if max_rows else config["styler"]["render"]["max_rows"]
+        max_cols = max_cols if max_cols else config["styler"]["render"]["max_columns"]
         max_rows, max_cols = _get_trimming_maximums(
             len(self.data.index),
             len(self.data.columns),
@@ -361,12 +382,14 @@ class StylerRenderer:
             )
 
         table_attr = self.table_attributes
-        if not get_option("styler.html.mathjax"):
+        if not config["styler"]["html"]["mathjax"]:
             table_attr = table_attr or ""
             if 'class="' in table_attr:
-                table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
+                table_attr = table_attr.replace(
+                    'class="', 'class="tex2jax_ignore mathjax_ignore '
+                )
             else:
-                table_attr += ' class="tex2jax_ignore"'
+                table_attr += ' class="tex2jax_ignore mathjax_ignore"'
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
@@ -407,7 +430,7 @@ class StylerRenderer:
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
-        clabels = list(zip(*clabels))
+        clabels = list(zip(*clabels, strict=True))
 
         head = []
         # 1) column headers
@@ -574,7 +597,9 @@ class StylerRenderer:
         column_blanks: list = []
         visible_col_count: int = 0
         if clabels:
-            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            last_level = (
+                self.columns.nlevels - 1
+            )  # use last level since never sparsified
             for c, value in enumerate(clabels[last_level]):
                 header_element_visible = _is_visible(c, last_level, col_lengths)
                 if header_element_visible:
@@ -830,10 +855,7 @@ class StylerRenderer:
 
             data_element = _element(
                 "td",
-                (
-                    f"{self.css['data']} {self.css['row']}{r} "
-                    f"{self.css['col']}{c}{cls}"
-                ),
+                (f"{self.css['data']} {self.css['row']}{r} {self.css['col']}{c}{cls}"),
                 value,
                 data_element_visible,
                 attributes="",
@@ -864,7 +886,8 @@ class StylerRenderer:
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
         index_levels = self.index.nlevels
-        visible_index_level_n = index_levels - sum(self.hide_index_)
+        # GH 52218
+        visible_index_level_n = max(1, index_levels - sum(self.hide_index_))
         d["head"] = [
             [
                 {**col, "cellstyle": self.ctx_columns[r, c - visible_index_level_n]}
@@ -894,7 +917,7 @@ class StylerRenderer:
             return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"], strict=True):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.
@@ -904,9 +927,9 @@ class StylerRenderer:
                 row_body_headers = [
                     {
                         **col,
-                        "display_value": col["display_value"]
-                        if col["is_visible"]
-                        else "",
+                        "display_value": (
+                            col["display_value"] if col["is_visible"] else ""
+                        ),
                         "cellstyle": self.ctx_index[r, c],
                     }
                     for c, col in enumerate(row[:index_levels])
@@ -952,7 +975,7 @@ class StylerRenderer:
                     idx_len = d["index_lengths"].get((lvl, r), None)
                     if idx_len is not None:  # i.e. not a sparsified entry
                         d["clines"][rn + idx_len].append(
-                            f"\\cline{{{lvln+1}-{len(visible_index_levels)+data_len}}}"
+                            f"\\cline{{{lvln + 1}-{len(visible_index_levels) + data_len}}}"  # noqa: E501
                         )
 
     def format(
@@ -969,6 +992,12 @@ class StylerRenderer:
         r"""
         Format the text display value of cells.
 
+        This method allows control over how each data cell is displayed
+        by assigning a formatter function or format string. It is particularly
+        useful for adjusting floating point precision, handling missing values,
+        escaping special characters in HTML or LaTeX output, and adding
+        hyperlinks.
+
         Parameters
         ----------
         formatter : str, callable, dict or None
@@ -983,19 +1012,10 @@ class StylerRenderer:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
-
-            .. versionadded:: 1.3.0
-
         decimal : str, default "."
             Character used as decimal separator for floats, complex and integers.
-
-            .. versionadded:: 1.3.0
-
         thousands : str, optional, default None
             Character used as thousands separator for floats, complex and integers.
-
-            .. versionadded:: 1.3.0
-
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
             in cell display string with HTML-safe sequences.
@@ -1006,15 +1026,10 @@ class StylerRenderer:
             except for math substrings, which either are surrounded
             by two characters ``$`` or start with the character ``\(`` and
             end with ``\)``. Escaping is done before ``formatter``.
-
-            .. versionadded:: 1.3.0
-
         hyperlinks : {"html", "latex"}, optional
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
             commands if "latex".
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1050,7 +1065,7 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
-        When instantiating a Styler, default formatting can be applied be setting the
+        When instantiating a Styler, default formatting can be applied by setting the
         ``pandas.options``:
 
           - ``styler.format.formatter``: default None.
@@ -1062,7 +1077,7 @@ class StylerRenderer:
 
         .. warning::
            `Styler.format` is ignored when using the output format `Styler.to_excel`,
-           since Excel and Python have inherrently different formatting structures.
+           since Excel and Python have inherently different formatting structures.
            However, it is possible to use the `number-format` pseudo CSS attribute
            to force Excel permissible formatting. See examples.
 
@@ -1206,8 +1221,8 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        if not isinstance(formatter, dict):
-            formatter = {col: formatter for col in data.columns}
+        if not isinstance(formatter, Mapping):
+            formatter = dict.fromkeys(data.columns, formatter)
 
         cis = self.columns.get_indexer_for(data.columns)
         ris = self.index.get_indexer_for(data.index)
@@ -1241,7 +1256,11 @@ class StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
 
-        .. versionadded:: 1.4.0
+        This method assigns a formatting function to the index or column header
+        labels of the DataFrame, similar to :meth:`Styler.format` but applied
+        to the axis labels rather than the data cells. It supports the same
+        formatter types: callables, format strings, and dicts keyed by
+        MultiIndex level.
 
         Parameters
         ----------
@@ -1310,7 +1329,7 @@ class StylerRenderer:
 
         .. warning::
            `Styler.format_index` is ignored when using the output format
-           `Styler.to_excel`, since Excel and Python have inherrently different
+           `Styler.to_excel`, since Excel and Python have inherently different
            formatting structures.
            However, it is possible to use the `number-format` pseudo CSS attribute
            to force Excel permissible formatting. See documentation for `Styler.format`.
@@ -1392,8 +1411,8 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
-            formatter = {level: formatter for level in levels_}
+        if not isinstance(formatter, Mapping):
+            formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
                 obj._get_level_number(level): formatter_
@@ -1425,7 +1444,11 @@ class StylerRenderer:
         r"""
         Relabel the index, or column header, keys to display a set of specified values.
 
-        .. versionadded:: 1.5.0
+        This method provides a way to completely replace the displayed index or
+        column header labels with user-specified values without modifying the
+        underlying DataFrame. It is especially useful when the desired display
+        labels are not a simple function of the existing keys, or when
+        enumeration-based labeling is needed.
 
         Parameters
         ----------
@@ -1536,7 +1559,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"samples": np.random.rand(10)})
         >>> styler = df.loc[np.random.randint(0, 10, 3)].style
-        >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
+        >>> styler.relabel_index([f"sample{i + 1} ({{}})" for i in range(3)])
         ... # doctest: +SKIP
                          samples
         sample1 (5)     0.315811
@@ -1647,7 +1670,7 @@ class StylerRenderer:
 
         .. warning::
             `Styler.format_index_names` is ignored when using the output format
-            `Styler.to_excel`, since Excel and Python have inherrently different
+            `Styler.to_excel`, since Excel and Python have inherently different
             formatting structures.
 
         Examples
@@ -1689,8 +1712,8 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
-            formatter = {level: formatter for level in levels_}
+        if not isinstance(formatter, Mapping):
+            formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
                 obj._get_level_number(level): formatter_
@@ -1984,7 +2007,7 @@ def _maybe_wrap_formatter(
         func_0 = formatter
     elif formatter is None:
         precision = (
-            get_option("styler.format.precision") if precision is None else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
@@ -2067,18 +2090,18 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                                              ('border','1px solid red')]
     """
     if isinstance(style, str):
-        s = style.split(";")
-        try:
-            return [
-                (x.split(":")[0].strip(), x.split(":")[1].strip())
-                for x in s
-                if x.strip() != ""
-            ]
-        except IndexError as err:
+        if style and ":" not in style:
             raise ValueError(
                 "Styles supplied as string must follow CSS rule formats, "
                 f"for example 'attr: val;'. '{style}' was given."
-            ) from err
+            )
+        s = style.split(";")
+        return [
+            (x.split(":")[0].strip(), ":".join(x.split(":")[1:]).strip())
+            for x in s
+            if x.strip() != ""
+        ]
+
     return style
 
 
@@ -2408,7 +2431,7 @@ def _parse_latex_header_span(
     r"""
     Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
 
-    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    'rowspan' and 'colspan' do not occur simultaneously. If they are detected then
     the `display_value` is altered to a LaTeX `multirow` or `multicol` command
     respectively, with the appropriate cell-span.
 
@@ -2499,7 +2522,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
         if value[0] == "#" and len(value) == 7:  # color is hex code
             return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
         if value[0] == "#" and len(value) == 4:  # color is short hex code
-            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
+            val = f"{value[1].upper() * 2}{value[2].upper() * 2}{value[3].upper() * 2}"
             return command, f"[HTML]{{{val}}}{arg}"
         elif value[:3] == "rgb":  # color is rgb or rgba
             r = re.findall("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()

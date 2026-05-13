@@ -158,7 +158,7 @@ def test_apply_box_td64():
     # timedelta
     vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
     ser = Series(vals)
-    assert ser.dtype == "timedelta64[ns]"
+    assert ser.dtype == "timedelta64[us]"
     res = ser.apply(lambda x: f"{type(x).__name__}_{x.days}", by_row="compat")
     exp = Series(["Timedelta_1", "Timedelta_2"])
     tm.assert_series_equal(res, exp)
@@ -186,7 +186,7 @@ def test_apply_datetimetz(by_row):
     tm.assert_series_equal(result, exp)
 
     result = s.apply(lambda x: x.hour if by_row else x.dt.hour, by_row=by_row)
-    exp = Series(list(range(24)) + [0], name="XX", dtype="int64" if by_row else "int32")
+    exp = Series([*list(range(24)), 0], name="XX", dtype="int64" if by_row else "int32")
     tm.assert_series_equal(result, exp)
 
     # not vectorized
@@ -224,7 +224,7 @@ def test_apply_categorical(by_row, using_infer_string):
     result = ser.apply(lambda x: "A")
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object if not using_infer_string else "string[pyarrow_numpy]"
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])
@@ -236,10 +236,10 @@ def test_apply_categorical_with_nan_values(series, by_row):
         with pytest.raises(AttributeError, match=msg):
             s.apply(lambda x: x.split("-")[0], by_row=by_row)
         return
-
-    result = s.apply(lambda x: x.split("-")[0], by_row=by_row)
+    # NaN for cat dtype fixed in (GH 59966)
+    result = s.apply(lambda x: x.split("-")[0] if pd.notna(x) else False, by_row=by_row)
     result = result.astype(object)
-    expected = Series(["1", "1", np.nan], dtype="category")
+    expected = Series(["1", "1", False], dtype="category")
     expected = expected.astype(object)
     tm.assert_series_equal(result, expected)
 
@@ -376,13 +376,13 @@ def test_demo():
 
 
 @pytest.mark.parametrize("func", [str, lambda x: str(x)])
-def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
+def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row, engine):
     # test that we are evaluating row-by-row first if by_row="compat"
     # else vectorized evaluation
     result = string_series.apply(func, by_row=by_row)
 
     if by_row:
-        expected = string_series.map(func)
+        expected = string_series.map(func, engine=engine)
         tm.assert_series_equal(result, expected)
     else:
         assert result == str(string_series)
@@ -545,7 +545,9 @@ def test_apply_to_timedelta(by_row):
 )
 def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
-    expected = Series({name: op(string_series) for name, op in zip(names, ops)})
+    expected = Series(
+        {name: op(string_series) for name, op in zip(names, ops, strict=True)}
+    )
     expected.name = "series"
     result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
@@ -665,3 +667,14 @@ def test_series_apply_unpack_nested_data():
     result = ser.apply(lambda x: Series(x))
     expected = DataFrame({0: [1.0, 4.0], 1: [2.0, 5.0], 2: [3.0, 6.0], 3: [np.nan, 7]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "UInt64"])
+def test_apply_nullable_integer_precision(dtype):
+    # GH#63903
+    large_int = 10000000000000001  # above float64 integer precision limit
+    ser = Series([large_int, None], dtype=dtype)
+
+    result = ser.apply(lambda x: x + 2 if pd.notna(x) else x)
+    expected = Series([large_int + 2, pd.NA], dtype=dtype)
+    tm.assert_series_equal(result, expected)

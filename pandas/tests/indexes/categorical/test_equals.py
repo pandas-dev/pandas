@@ -53,22 +53,22 @@ class TestEquals:
         assert not ci.equals(CategoricalIndex(list("aabca"), ordered=True))
         assert ci.equals(ci.copy())
 
-        ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
+        ci = CategoricalIndex([*list("aabca"), np.nan], categories=["c", "a", "b"])
         assert not ci.equals(list("aabca"))
         assert not ci.equals(CategoricalIndex(list("aabca")))
         assert ci.equals(ci.copy())
 
-        ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
-        assert not ci.equals(list("aabca") + [np.nan])
-        assert ci.equals(CategoricalIndex(list("aabca") + [np.nan]))
-        assert not ci.equals(CategoricalIndex(list("aabca") + [np.nan], ordered=True))
+        ci = CategoricalIndex([*list("aabca"), np.nan], categories=["c", "a", "b"])
+        assert not ci.equals([*list("aabca"), np.nan])
+        assert ci.equals(CategoricalIndex([*list("aabca"), np.nan]))
+        assert not ci.equals(CategoricalIndex([*list("aabca"), np.nan], ordered=True))
         assert ci.equals(ci.copy())
 
     def test_equals_categorical_unordered(self):
         # https://github.com/pandas-dev/pandas/issues/16603
         a = CategoricalIndex(["A"], categories=["A", "B"])
         b = CategoricalIndex(["A"], categories=["B", "A"])
-        c = CategoricalIndex(["C"], categories=["B", "A"])
+        c = CategoricalIndex([None], categories=["B", "A"])
         assert a.equals(b)
         assert not a.equals(c)
         assert not b.equals(c)

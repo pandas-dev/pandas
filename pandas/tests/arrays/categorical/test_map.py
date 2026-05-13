@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 import pytest
 
@@ -130,20 +132,25 @@ def test_map_with_dict_or_series(na_action):
     expected = Categorical(new_values, categories=[3.0, 2, "one"])
     tm.assert_categorical_equal(result, expected)
 
-    mapper = dict(zip(orig_values[:-1], new_values[:-1]))
+    mapper = dict(zip(orig_values[:-1], new_values[:-1], strict=True))
     result = cat.map(mapper, na_action=na_action)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)
 
 
-def test_map_na_action_no_default_deprecated():
-    # GH51645
-    cat = Categorical(["a", "b", "c"])
-    msg = (
-        "The default value of 'ignore' for the `na_action` parameter in "
-        "pandas.Categorical.map is deprecated and will be "
-        "changed to 'None' in a future version. Please set na_action to the "
-        "desired value to avoid seeing this warning"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        cat.map(lambda x: x)
+def test_map_defaultdict_na_action_none():
+    # GH#62710
+    cat = Categorical(["one", "two", None])
+    mapper = defaultdict(lambda: True)
+    result = cat.map(mapper, na_action=None)
+    expected = Index([True, True, True])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_defaultdict_na_action_ignore():
+    # GH#62710
+    cat = Categorical(["one", "two", None])
+    mapper = defaultdict(lambda: True)
+    result = cat.map(mapper, na_action="ignore")
+    expected = Index([True, True, np.nan])
+    tm.assert_index_equal(result, expected)

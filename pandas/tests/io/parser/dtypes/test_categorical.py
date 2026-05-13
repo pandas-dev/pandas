@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -66,10 +67,9 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     expected = DataFrame(
         {"a": [1, 1, 2], "b": Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
     )
-    if parser.engine == "pyarrow":
+    if parser.engine == "pyarrow" and any(isinstance(key, int) for key in dtype):
         mark = pytest.mark.xfail(
-            strict=False,
-            reason="Flaky test sometimes gives object dtype instead of Categorical",
+            reason="pyarrow doesn't support specifying dtype by column index",
         )
         request.applymarker(mark)
 
@@ -169,7 +169,7 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
     with parser.read_csv(
         StringIO(data), dtype={"b": "category"}, chunksize=2
     ) as actuals:
-        for actual, expected in zip(actuals, expecteds):
+        for actual, expected in zip(actuals, expecteds, strict=True):
             tm.assert_frame_equal(actual, expected)
 
 
@@ -198,7 +198,7 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
         return
 
     with parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2) as actuals:
-        for actual, expected in zip(actuals, expecteds):
+        for actual, expected in zip(actuals, expecteds, strict=True):
             tm.assert_frame_equal(actual, expected)
 
 
@@ -329,7 +329,9 @@ def test_categorical_unexpected_categories(all_parsers):
     dtype = {"b": CategoricalDtype(["a", "b", "d", "e"])}
 
     data = "b\nd\na\nc\nd"  # Unexpected c
-    expected = DataFrame({"b": Categorical(list("dacd"), dtype=dtype["b"])})
+    expected = DataFrame({"b": Categorical(["d", "a", None, "d"], dtype=dtype["b"])})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    msg = "Constructing a Categorical with a dtype and values containing"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)

@@ -4,7 +4,6 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 import numpy as np
@@ -14,13 +13,14 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.util.numba_ import jit_user_function
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import Scalar
 
 
 @functools.cache
 def generate_numba_apply_func(
     func: Callable[..., Scalar],
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ):
@@ -37,8 +37,6 @@ def generate_numba_apply_func(
     ----------
     func : function
         function to be applied to each window and will be JITed
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -54,7 +52,7 @@ def generate_numba_apply_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def roll_apply(
         values: np.ndarray,
         begin: np.ndarray,
@@ -79,7 +77,6 @@ def generate_numba_apply_func(
 
 @functools.cache
 def generate_numba_ewm_func(
-    nopython: bool,
     nogil: bool,
     parallel: bool,
     com: float,
@@ -94,8 +91,6 @@ def generate_numba_ewm_func(
 
     Parameters
     ----------
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -115,7 +110,7 @@ def generate_numba_ewm_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def ewm(
         values: np.ndarray,
         begin: np.ndarray,
@@ -148,6 +143,9 @@ def generate_numba_ewm_func(
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
                             old_wt *= old_wt_factor ** deltas[start + j - 1]
+                            if not adjust and com == 1:
+                                # update in case of irregular-interval time series
+                                new_wt = 1.0 - old_wt
                         else:
                             weighted = old_wt_factor * weighted
                         if is_observation:
@@ -178,14 +176,13 @@ def generate_numba_ewm_func(
 @functools.cache
 def generate_numba_table_func(
     func: Callable[..., np.ndarray],
-    nopython: bool,
     nogil: bool,
     parallel: bool,
 ):
     """
     Generate a numba jitted function to apply window calculations table-wise.
 
-    Func will be passed a M window size x N number of columns array, and
+    Func will be passed an M window size x N number of columns array, and
     must return a 1 x N number of columns array.
 
     1. jit the user's function
@@ -195,8 +192,6 @@ def generate_numba_table_func(
     ----------
     func : function
         function to be applied to each window and will be JITed
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -212,7 +207,7 @@ def generate_numba_table_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def roll_table(
         values: np.ndarray,
         begin: np.ndarray,
@@ -227,10 +222,10 @@ def generate_numba_table_func(
             stop = end[i]
             window = values[start:stop]
             count_nan = np.sum(np.isnan(window), axis=0)
-            sub_result = numba_func(window, *args)
             nan_mask = len(window) - count_nan >= minimum_periods
+            if nan_mask.any():
+                result[i, :] = numba_func(window, *args)
             min_periods_mask[i, :] = nan_mask
-            result[i, :] = sub_result
         result = np.where(min_periods_mask, result, np.nan)
         return result
 
@@ -247,7 +242,11 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=True, nogil=True, parallel=True)
+    # Not jitted directly: this is passed through jit_user_function in
+    # generate_numba_table_func, which wraps it with register_jitable so it
+    # inlines into roll_table's outer jit. A standalone @jit(parallel=True)
+    # here nests parallel regions and crashes the workqueue threading layer
+    # on platforms without tbb/openmp (GH#40454).
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
         for i in numba.prange(table.shape[1]):
@@ -260,7 +259,6 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
 
 @functools.cache
 def generate_numba_ewm_table_func(
-    nopython: bool,
     nogil: bool,
     parallel: bool,
     com: float,
@@ -275,8 +273,6 @@ def generate_numba_ewm_table_func(
 
     Parameters
     ----------
-    nopython : bool
-        nopython to be passed into numba.jit
     nogil : bool
         nogil to be passed into numba.jit
     parallel : bool
@@ -296,7 +292,7 @@ def generate_numba_ewm_table_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nogil=nogil, parallel=parallel)
     def ewm_table(
         values: np.ndarray,
         begin: np.ndarray,
@@ -323,6 +319,9 @@ def generate_numba_ewm_table_func(
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
                             old_wt[j] *= old_wt_factor ** deltas[i - 1]
+                            if not adjust and com == 1:
+                                # update in case of irregular-interval time series
+                                new_wt = 1.0 - old_wt[j]
                         else:
                             weighted[j] = old_wt_factor * weighted[j]
                         if is_observations[j]:

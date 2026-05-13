@@ -36,7 +36,13 @@ def quantile_compat(
     if isinstance(values, np.ndarray):
         fill_value = na_value_for_dtype(values.dtype, compat=False)
         mask = isna(values)
-        return quantile_with_mask(values, mask, fill_value, qs, interpolation)
+        return quantile_with_mask(
+            values,
+            mask,
+            fill_value,  # pyright: ignore[reportArgumentType]
+            qs,
+            interpolation,
+        )
     else:
         return values._quantile(qs, interpolation)
 
@@ -44,7 +50,7 @@ def quantile_compat(
 def quantile_with_mask(
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
-    fill_value,
+    fill_value: Scalar,
     qs: npt.NDArray[np.float64],
     interpolation: str,
 ) -> np.ndarray:
@@ -91,12 +97,12 @@ def quantile_with_mask(
     if is_empty:
         # create the array of na_values
         # 2d len(values) * len(qs)
-        flat = np.array([fill_value] * len(qs))
+        flat = np.full(len(qs), fill_value)
         result = np.repeat(flat, len(values)).reshape(len(values), len(qs))
     else:
-        result = _nanpercentile(
+        result = _nanquantile(
             values,
-            qs * 100.0,
+            qs,
             na_value=fill_value,
             mask=mask,
             interpolation=interpolation,
@@ -108,7 +114,7 @@ def quantile_with_mask(
     return result
 
 
-def _nanpercentile_1d(
+def _nanquantile_1d(
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     qs: npt.NDArray[np.float64],
@@ -116,7 +122,7 @@ def _nanpercentile_1d(
     interpolation: str,
 ) -> Scalar | np.ndarray:
     """
-    Wrapper for np.percentile that skips missing values, specialized to
+    Wrapper for np.quantile that skips missing values, specialized to
     1-dimensional case.
 
     Parameters
@@ -142,7 +148,7 @@ def _nanpercentile_1d(
         # equiv: 'np.array([na_value] * len(qs))' but much faster
         return np.full(len(qs), na_value)
 
-    return np.percentile(
+    return np.quantile(
         values,
         qs,
         # error: No overload variant of "percentile" matches argument
@@ -152,16 +158,16 @@ def _nanpercentile_1d(
     )
 
 
-def _nanpercentile(
+def _nanquantile(
     values: np.ndarray,
     qs: npt.NDArray[np.float64],
     *,
-    na_value,
+    na_value: Scalar,
     mask: npt.NDArray[np.bool_],
     interpolation: str,
-):
+) -> np.ndarray:
     """
-    Wrapper for np.percentile that skips missing values.
+    Wrapper for np.quantile that skips missing values.
 
     Parameters
     ----------
@@ -180,10 +186,10 @@ def _nanpercentile(
 
     if values.dtype.kind in "mM":
         # need to cast to integer to avoid rounding errors in numpy
-        result = _nanpercentile(
+        result = _nanquantile(
             values.view("i8"),
             qs=qs,
-            na_value=na_value.view("i8"),
+            na_value=na_value.view("i8"),  # type: ignore[union-attr, arg-type]
             mask=mask,
             interpolation=interpolation,
         )
@@ -195,15 +201,15 @@ def _nanpercentile(
     if mask.any():
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
-        result = [
-            _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
-            for (val, m) in zip(list(values), list(mask))
+        result_list = [
+            _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)
+            for (val, m) in zip(list(values), list(mask), strict=True)
         ]
         if values.dtype.kind == "f":
             # preserve itemsize
-            result = np.asarray(result, dtype=values.dtype).T
+            result = np.asarray(result_list, dtype=values.dtype).T
         else:
-            result = np.asarray(result).T
+            result = np.asarray(result_list).T
             if (
                 result.dtype != values.dtype
                 and not mask.all()
@@ -215,7 +221,7 @@ def _nanpercentile(
                 result = result.astype(values.dtype, copy=False)
         return result
     else:
-        return np.percentile(
+        return np.quantile(
             values,
             qs,
             axis=1,

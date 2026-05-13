@@ -152,6 +152,16 @@ class TestPreserves:
         result = pd.concat(objs, **kwargs)
         assert result.flags.allows_duplicate_labels is False
 
+    def test_concat_mixed_allows_duplicate_labels(self):
+        # GH#57431 - when any input has allows_duplicate_labels=False,
+        # the result should also have it False
+        df_no_dups = pd.DataFrame({"A": [1, 2]}).set_flags(
+            allows_duplicate_labels=False
+        )
+        df_allows_dups = pd.DataFrame({"A": [3, 4]})
+        result = pd.concat([df_no_dups, df_allows_dups], ignore_index=True)
+        assert result.flags.allows_duplicate_labels is False
+
     @pytest.mark.parametrize(
         "left, right, expected",
         [
@@ -164,7 +174,6 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 False,
-                marks=not_implemented,
             ),
             # false true false
             pytest.param(
@@ -173,7 +182,6 @@ class TestPreserves:
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 False,
-                marks=not_implemented,
             ),
             # true true true
             (
@@ -189,7 +197,7 @@ class TestPreserves:
 
     @not_implemented
     def test_groupby(self):
-        # XXX: This is under tested
+        # Note: This is under tested
         # TODO:
         #  - apply
         #  - transform
@@ -296,7 +304,6 @@ class TestRaises:
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             pd.concat(objs, axis=1)
 
-    @not_implemented
     def test_merge_raises(self):
         a = pd.DataFrame({"A": [0, 1, 2]}, index=["a", "b", "c"]).set_flags(
             allows_duplicate_labels=False
@@ -368,6 +375,7 @@ def test_dataframe_insert_raises():
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
 )
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
 def test_inplace_raises(method, frame_only):
     df = pd.DataFrame({"A": [0, 0], "B": [1, 2]}).set_flags(
         allows_duplicate_labels=False
@@ -383,11 +391,11 @@ def test_inplace_raises(method, frame_only):
             method(s)
 
 
-def test_pickle():
+def test_pickle(temp_file):
     a = pd.Series([1, 2]).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, temp_file)
     tm.assert_series_equal(a, b)
 
     a = pd.DataFrame({"A": []}).set_flags(allows_duplicate_labels=False)
-    b = tm.round_trip_pickle(a)
+    b = tm.round_trip_pickle(a, temp_file)
     tm.assert_frame_equal(a, b)

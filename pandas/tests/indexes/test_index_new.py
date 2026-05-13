@@ -61,16 +61,16 @@ class TestIndexConstructorInference:
         values = [NaT, val]
 
         idx = Index(values)
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(values[::-1])
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(np.array(values, dtype=object))
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(np.array(values, dtype=object)[::-1])
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
     @pytest.mark.parametrize("na_value", [None, np.nan])
     @pytest.mark.parametrize("vtype", [list, tuple, iter])
@@ -123,8 +123,8 @@ class TestIndexConstructorInference:
     @pytest.mark.parametrize(
         "klass,dtype,ctor",
         [
-            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat")),
-            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("nat")),
+            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat", "ns")),
+            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("NaT", "ns")),
         ],
     )
     def test_constructor_infer_nat_dt_like(
@@ -138,34 +138,33 @@ class TestIndexConstructorInference:
             )
 
         expected = klass([NaT, NaT])
+        if dtype[0] == "d":
+            # we infer all-NaT as second resolution
+            expected = expected.astype("M8[ns]")
+        if dtype[0] == "t":
+            # we infer all-NaT as second resolution
+            expected = expected.astype("m8[ns]")
         assert expected.dtype == dtype
         data = [ctor]
         data.insert(pos, nulls_fixture)
 
-        warn = None
         if nulls_fixture is NA:
             expected = Index([NA, NaT])
             mark = pytest.mark.xfail(reason="Broken with np.NaT ctor; see GH 31884")
             request.applymarker(mark)
-            # GH#35942 numpy will emit a DeprecationWarning within the
-            #  assert_index_equal calls.  Since we can't do anything
-            #  about it until GH#31884 is fixed, we suppress that warning.
-            warn = DeprecationWarning
 
         result = Index(data)
 
-        with tm.assert_produces_warning(warn):
-            tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         result = Index(np.array(data, dtype=object))
 
-        with tm.assert_produces_warning(warn):
-            tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("swap_objs", [True, False])
     def test_constructor_mixed_nat_objs_infers_object(self, swap_objs):
         # mixed np.datetime64/timedelta64 nat results in object
-        data = [np.datetime64("nat"), np.timedelta64("nat")]
+        data = [np.datetime64("nat", "ns"), np.timedelta64("NaT", "ns")]
         if swap_objs:
             data = data[::-1]
 
@@ -423,8 +422,7 @@ class TestIndexConstructionErrors:
     def test_constructor_overflow_int64(self):
         # see GH#15832
         msg = (
-            "The elements provided in the data cannot "
-            "all be casted to the dtype int64"
+            "The elements provided in the data cannot all be casted to the dtype int64"
         )
         with pytest.raises(OverflowError, match=msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")

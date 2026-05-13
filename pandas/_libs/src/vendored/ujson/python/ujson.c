@@ -40,6 +40,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #include "numpy/arrayobject.h"
 
@@ -82,7 +83,7 @@ static int module_clear(PyObject *m);
 static void module_free(void *module);
 
 static struct PyModuleDef moduledef = {.m_base = PyModuleDef_HEAD_INIT,
-                                       .m_name = "pandas._libs.json",
+                                       .m_name = "pandas._libs._ujson",
                                        .m_methods = ujsonMethods,
                                        .m_size = sizeof(modulestate),
                                        .m_traverse = module_traverse,
@@ -368,7 +369,7 @@ static int module_clear(PyObject *m) {
 
 static void module_free(void *module) { module_clear((PyObject *)module); }
 
-PyMODINIT_FUNC PyInit_json(void) {
+PyMODINIT_FUNC PyInit__ujson(void) {
   import_array() PyObject *module;
 
 #ifndef PYPY_VERSION
@@ -383,6 +384,10 @@ PyMODINIT_FUNC PyInit_json(void) {
   if (module == NULL) {
     return NULL;
   }
+
+#ifdef Py_GIL_DISABLED
+  PyUnstable_Module_SetGIL(module, Py_MOD_GIL_NOT_USED);
+#endif
 
 #ifndef PYPY_VERSION
   PyObject *mod_decimal = PyImport_ImportModule("decimal");

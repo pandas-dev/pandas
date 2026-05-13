@@ -7,8 +7,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas import (
     NA,
     Categorical,
@@ -31,17 +29,14 @@ class TestDataFrameRepr:
     def test_repr_should_return_str(self):
         # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # "...The return value must be a string object."
-
-        # (str on py2.x, str (unicode) on py3)
-
         data = [8, 5, 3, 5]
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) is str  # noqa: E721
+        assert type(df.__repr__()) is str
 
         ser = df[cols[0]]
-        assert type(ser.__repr__()) is str  # noqa: E721
+        assert type(ser.__repr__()) is str
 
     def test_repr_bytes_61_lines(self):
         # GH#12857
@@ -72,10 +67,10 @@ class TestDataFrameRepr:
         df.index = index
         repr(df)
 
-        # this travels an improper code path
+        # GH#20285 unhashable elements (list) are now rejected
         index[0] = ["faz", "boo"]
-        df.index = index
-        repr(df)
+        with pytest.raises(TypeError, match="unhashable type"):
+            df.index = index
 
     def test_repr_with_mi_nat(self):
         df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
@@ -176,7 +171,6 @@ NaT   4"""
 
         repr(biggie)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
@@ -345,14 +339,17 @@ NaT   4"""
         df2 = DataFrame({"dt": Categorical(dt), "p": Categorical(p)})
         assert repr(df2) == exp
 
-    @pytest.mark.parametrize("arg", [np.datetime64, np.timedelta64])
+    @pytest.mark.parametrize(
+        "nat",
+        [np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")],
+    )
     @pytest.mark.parametrize(
         "box, expected",
         [[Series, "0    NaT\ndtype: object"], [DataFrame, "     0\n0  NaT"]],
     )
-    def test_repr_np_nat_with_object(self, arg, box, expected):
+    def test_repr_np_nat_with_object(self, nat, box, expected):
         # GH 25445
-        result = repr(box([arg("NaT")], dtype=object))
+        result = repr(box([nat], dtype=object))
         assert result == expected
 
     def test_frame_datetime64_pre1900_repr(self):
@@ -438,6 +435,17 @@ NaT   4"""
         df["record"] = df[[np.nan, np.inf]].to_records()
         result = repr(df)
         assert result == expected
+
+    def test_from_records_with_nested_structured_dtype_repr(self):
+        # GH#55011 structured ndarray (not np.rec.recarray) with a nested
+        # field-of-fields dtype
+        ar = np.array(
+            [((255, 0),), ((255, 1),), ((255, 2),)],
+            dtype=[("x", [("null", "u1"), ("val", "<i8")])],
+        )
+        df = DataFrame.from_records(ar)
+        expected = "          x\n0  (255, 0)\n1  (255, 1)\n2  (255, 2)"
+        assert repr(df) == expected
 
     def test_masked_ea_with_formatter(self):
         # GH#39336

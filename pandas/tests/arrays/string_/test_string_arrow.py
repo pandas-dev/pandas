@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -14,27 +15,21 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 
 
-def test_eq_all_na():
-    pytest.importorskip("pyarrow")
-    a = pd.array([pd.NA, pd.NA], dtype=StringDtype("pyarrow"))
-    result = a == a
-    expected = pd.array([pd.NA, pd.NA], dtype="boolean[pyarrow]")
-    tm.assert_extension_array_equal(result, expected)
+def test_config(string_storage):
+    # with the default string_storage setting
+    # always "python" at the moment
+    assert StringDtype().storage == "pyarrow" if HAS_PYARROW else "python"
 
-
-def test_config(string_storage, request, using_infer_string):
-    if using_infer_string and string_storage != "pyarrow_numpy":
-        request.applymarker(pytest.mark.xfail(reason="infer string takes precedence"))
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    dtype = StringDtype(string_storage)
+    # pd.array(..) by default always returns the NA-variant
+    dtype = StringDtype(string_storage, na_value=pd.NA)
     expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
@@ -46,18 +41,18 @@ def test_config_bad_storage_raises():
 
 
 @pytest.mark.parametrize("chunked", [True, False])
-@pytest.mark.parametrize("array", ["numpy", "pyarrow"])
-def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage):
+@pytest.mark.parametrize("array_lib", ["numpy", "pyarrow"])
+def test_constructor_not_string_type_raises(array_lib, chunked):
     pa = pytest.importorskip("pyarrow")
 
-    array = pa if array in arrow_string_storage else np
+    array_lib = pa if array_lib == "pyarrow" else np
 
-    arr = array.array([1, 2, 3])
+    arr = array_lib.array([1, 2, 3])
     if chunked:
-        if array is np:
+        if array_lib is np:
             pytest.skip("chunked not applicable to numpy array")
         arr = pa.chunked_array(arr)
-    if array is np:
+    if array_lib is np:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
@@ -82,19 +77,32 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         ArrowStringArray(arr)
 
 
-@pytest.mark.xfail(
-    reason="dict conversion does not seem to be implemented for large string in arrow"
-)
+@pytest.mark.parametrize("string_type", ["string", "large_string"])
 @pytest.mark.parametrize("chunked", [True, False])
-def test_constructor_valid_string_type_value_dictionary(chunked):
+def test_constructor_valid_string_type_value_dictionary(string_type, chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.large_string()).dictionary_encode()
+    arr = pa.array(["1", "2", "3"], getattr(pa, string_type)()).dictionary_encode()
     if chunked:
         arr = pa.chunked_array(arr)
 
     arr = ArrowStringArray(arr)
-    assert pa.types.is_string(arr._pa_array.type.value_type)
+    # dictionary type get converted to dense large string array
+    assert pa.types.is_large_string(arr._pa_array.type)
+
+
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_valid_string_view(chunked):
+    # requires pyarrow>=18 for casting string_view to string
+    pa = pytest.importorskip("pyarrow", minversion="18")
+
+    arr = pa.array(["1", "2", "3"], pa.string_view())
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    arr = ArrowStringArray(arr)
+    # dictionary type get converted to dense large string array
+    assert pa.types.is_large_string(arr._pa_array.type)
 
 
 def test_constructor_from_list():
@@ -162,16 +170,13 @@ def test_from_sequence_wrong_dtype_raises(using_infer_string):
 
 @td.skip_if_installed("pyarrow")
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=10.0.1 is required for PyArrow backed")
+    msg = re.escape("pyarrow>=13.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
-
-    with pytest.raises(ImportError, match=msg):
-        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])
@@ -239,10 +244,11 @@ def test_setitem_invalid_indexer_raises():
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
-def test_pickle_roundtrip(dtype):
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_pickle_roundtrip(na_value):
     # GH 42600
     pytest.importorskip("pyarrow")
+    dtype = StringDtype("pyarrow", na_value=na_value)
     expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)
@@ -257,9 +263,72 @@ def test_pickle_roundtrip(dtype):
     tm.assert_series_equal(result_sliced, expected_sliced)
 
 
+@td.skip_if_no("pyarrow")
+class TestFromSequenceIntBool:
+    """Tests for GH#56505 - fast path using PyArrow cast for int/bool."""
+
+    def test_from_sequence_numpy_int(self):
+        # GH#56505
+        arr = np.array([1, 2, 3], dtype=np.int64)
+        result = ArrowStringArray._from_sequence(arr, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["1", "2", "3"])
+        tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "uint8", "uint64"])
+    def test_from_sequence_numpy_int_dtypes(self, dtype):
+        # GH#56505
+        arr = np.array([0, 1, 2], dtype=dtype)
+        result = ArrowStringArray._from_sequence(arr, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["0", "1", "2"])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_from_sequence_numpy_bool(self):
+        # GH#56505
+        arr = np.array([True, False, True])
+        result = ArrowStringArray._from_sequence(arr, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["True", "False", "True"])
+        tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize("masked_dtype", ["Int8", "Int64", "UInt16", "UInt64"])
+    def test_from_sequence_masked_int(self, masked_dtype):
+        # GH#56505
+        masked = pd.array([1, 2, None], dtype=masked_dtype)
+        result = ArrowStringArray._from_sequence(masked, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["1", "2", None])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_from_sequence_masked_bool(self):
+        # GH#56505
+        masked = pd.array([True, False, None], dtype="boolean")
+        result = ArrowStringArray._from_sequence(masked, dtype=StringDtype("pyarrow"))
+        expected = ArrowStringArray._from_sequence(["True", "False", None])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_astype_int_series_to_string(self):
+        # GH#56505 - end-to-end through Series.astype
+        ser = pd.Series([1, 2, 3], dtype="int64")
+        result = ser.astype("string")
+        expected = pd.Series(["1", "2", "3"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_bool_series_to_string(self):
+        # GH#56505 - end-to-end through Series.astype
+        ser = pd.Series([True, False, True])
+        result = ser.astype("string")
+        expected = pd.Series(["True", "False", "True"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_masked_int_to_string(self):
+        # GH#56505 - end-to-end through Series.astype
+        ser = pd.Series([1, 2, None], dtype="Int64")
+        result = ser.astype("string")
+        expected = pd.Series(["1", "2", None], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+
 def test_string_dtype_error_message():
     # GH#55051
     pytest.importorskip("pyarrow")
-    msg = "Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'."
+    msg = "Storage must be 'python' or 'pyarrow'."
     with pytest.raises(ValueError, match=msg):
         StringDtype("bla")

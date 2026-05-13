@@ -3,7 +3,7 @@ Template for each `dtype` helper function for hashtable
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
-
+from cpython.unicode cimport PyUnicode_AsUTF8
 
 {{py:
 
@@ -98,7 +98,6 @@ from pandas._libs.khash cimport (
 # VectorData
 # ----------------------------------------------------------------------
 
-from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
 
@@ -511,6 +510,7 @@ cdef class {{name}}HashTable(HashTable):
     {{if dtype == "int64" }}
     # We only use this for int64, can reduce build size and make .pyi
     #  more accurate by only implementing it for int64
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def map_keys_to_values(
         self, const {{dtype}}_t[:] keys, const int64_t[:] values
@@ -528,6 +528,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = <Py_ssize_t>values[i]
     {{endif}}
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def map_locations(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> None:
         # Used in libindex, safe_sort
@@ -536,7 +537,7 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val
             khiter_t k
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
@@ -568,7 +569,7 @@ cdef class {{name}}HashTable(HashTable):
             Int64Vector self_locs = Int64Vector()
             Int64VectorData *l
             Int64VectorData *sl
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         l = &locs.data
         sl = &self_locs.data
@@ -600,6 +601,7 @@ cdef class {{name}}HashTable(HashTable):
 
         return self_locs.to_array(), locs.to_array()
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -610,7 +612,7 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} val
             khiter_t k
             intp_t[::1] locs = np.empty(n, dtype=np.intp)
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
@@ -869,6 +871,7 @@ cdef class {{name}}HashTable(HashTable):
         return labels
 
     {{if dtype == 'int64'}}
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def get_labels_groupby(
         self, const {{dtype}}_t[:] values
@@ -998,7 +1001,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             const char *v
-        v = get_c_string(val)
+        v = PyUnicode_AsUTF8(val)
 
         k = kh_get_str(self.table, v)
         if k != self.table.n_buckets:
@@ -1012,7 +1015,7 @@ cdef class StringHashTable(HashTable):
             int ret = 0
             const char *v
 
-        v = get_c_string(key)
+        v = PyUnicode_AsUTF8(key)
 
         k = kh_put_str(self.table, v, &ret)
         if kh_exist_str(self.table, k):
@@ -1020,6 +1023,7 @@ cdef class StringHashTable(HashTable):
         else:
             raise KeyError(key)
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def get_indexer(self, ndarray[object] values) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -1037,7 +1041,7 @@ cdef class StringHashTable(HashTable):
             raise MemoryError()
         for i in range(n):
             val = values[i]
-            v = get_c_string(val)
+            v = PyUnicode_AsUTF8(val)
             vecs[i] = v
 
         with nogil:
@@ -1051,6 +1055,7 @@ cdef class StringHashTable(HashTable):
         free(vecs)
         return labels
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -1071,11 +1076,11 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string won't recognize
+                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
-                v = get_c_string(<str>val)
+                v = PyUnicode_AsUTF8(<str>val)
             else:
-                v = get_c_string(self.na_string_sentinel)
+                v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -1090,6 +1095,7 @@ cdef class StringHashTable(HashTable):
         free(vecs)
         return np.asarray(locs)
 
+    @cython.wraparound(False)
     @cython.boundscheck(False)
     def map_locations(self, ndarray[object] values, object mask = None) -> None:
         # mask not yet implemented
@@ -1109,11 +1115,11 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string won't recognize
+                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
-                v = get_c_string(<str>val)
+                v = PyUnicode_AsUTF8(<str>val)
             else:
-                v = get_c_string(self.na_string_sentinel)
+                v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -1172,11 +1178,13 @@ cdef class StringHashTable(HashTable):
             const char **vecs
             khiter_t k
             bint use_na_value
+            bint non_null_na_value
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
+        non_null_na_value = not checknull(na_value)
 
         # assign pointers and pre-filter out missing (if ignore_na)
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -1187,7 +1195,12 @@ cdef class StringHashTable(HashTable):
 
             if (ignore_na
                 and (not isinstance(val, str)
-                     or (use_na_value and val == na_value))):
+                     or (use_na_value and (
+                        (non_null_na_value and val == na_value) or
+                        (not non_null_na_value and is_matching_na(val, na_value)))
+                        )
+                    )
+                ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), we can skip the actual value, and
                 # replace the label with na_sentinel directly
@@ -1195,9 +1208,9 @@ cdef class StringHashTable(HashTable):
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
-                    v = get_c_string(<str>val)
+                    v = PyUnicode_AsUTF8(<str>val)
                 except UnicodeEncodeError:
-                    v = get_c_string(<str>repr(val))
+                    v = PyUnicode_AsUTF8(<str>repr(val))
                 vecs[i] = v
 
         # compute
@@ -1311,7 +1324,11 @@ cdef class PyObjectHashTable(HashTable):
         kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
+        cdef khiter_t index
         if self.table is not NULL:
+            for index in range(self.table.n_buckets):
+                if kh_exist_pymap(self.table, index):
+                    Py_DECREF(<object>self.table.keys[index])
             kh_destroy_pymap(self.table)
             self.table = NULL
 
@@ -1366,10 +1383,14 @@ cdef class PyObjectHashTable(HashTable):
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         if kh_exist_pymap(self.table, k):
+            if ret != 0:
+                Py_INCREF(key)
             self.table.vals[k] = val
         else:
             raise KeyError(key)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def map_locations(self, ndarray[object] values, object mask = None) -> None:
         # mask not yet implemented
         cdef:
@@ -1384,7 +1405,11 @@ cdef class PyObjectHashTable(HashTable):
 
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
+            if ret != 0:
+                Py_INCREF(val)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
         # mask not yet implemented
@@ -1453,10 +1478,11 @@ cdef class PyObjectHashTable(HashTable):
             object val
             khiter_t k
             bint use_na_value
-
+            bint non_null_na_value
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
         use_na_value = na_value is not None
+        non_null_na_value = not checknull(na_value)
 
         for i in range(n):
             val = values[i]
@@ -1464,7 +1490,11 @@ cdef class PyObjectHashTable(HashTable):
 
             if ignore_na and (
                 checknull(val)
-                or (use_na_value and val == na_value)
+                or (use_na_value and (
+                    (non_null_na_value and val == na_value) or
+                    (not non_null_na_value and is_matching_na(val, na_value))
+                    )
+                )
             ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), skip the hashtable entry for them, and
@@ -1476,6 +1506,7 @@ cdef class PyObjectHashTable(HashTable):
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                Py_INCREF(val)
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count

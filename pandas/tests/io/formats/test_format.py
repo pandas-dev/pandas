@@ -11,8 +11,6 @@ from shutil import get_terminal_size
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -111,7 +109,7 @@ class TestDataFrameFormatting:
 
             adj = printing.get_adjustment()
 
-            for line, value in zip(r.split("\n"), df["B"]):
+            for line, value in zip(r.split("\n"), df["B"], strict=True):
                 if adj.len(value) + 1 > max_len:
                     assert "..." in line
                 else:
@@ -128,6 +126,20 @@ class TestDataFrameFormatting:
         df = DataFrame({"a": [pd.NA for _ in range(10)]})
         with option_context("display.max_rows", 2, "display.show_dimensions", False):
             assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
+
+    def test_repr_truncation_dataframe_attrs(self):
+        # GH#60455
+        df = DataFrame([[0] * 10])
+        df.attrs["b"] = DataFrame([])
+        with option_context("display.max_columns", 2, "display.show_dimensions", False):
+            assert repr(df) == "   0  ...  9\n0  0  ...  0"
+
+    def test_repr_truncation_series_with_dataframe_attrs(self):
+        # GH#60568
+        ser = Series([0] * 10)
+        ser.attrs["b"] = DataFrame([])
+        with option_context("display.max_rows", 2, "display.show_dimensions", False):
+            assert repr(ser) == "0    0\n    ..\n9    0\ndtype: int64"
 
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
@@ -273,6 +285,31 @@ class TestDataFrameFormatting:
         )
         assert "..." not in str(df)
 
+    def test_repr_truncation_accounts_for_dot_separator(self, monkeypatch):
+        # GH#32461 - repr should not exceed terminal width after inserting
+        # the " ..." separator column during horizontal truncation.
+        # Width 82 hits the boundary where the unfixed code overflows by 4
+        # because the " ..." separator column (4 chars + 1 adjoin spacing)
+        # was not budgeted.
+        terminal_width = 82
+        monkeypatch.setattr(
+            "pandas.io.formats.string.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+
+        ncols = 20
+        df = DataFrame(
+            {
+                f"col_{idx:02d}": np.random.default_rng(2).standard_normal(3)
+                for idx in range(ncols)
+            }
+        )
+
+        with option_context("display.width", terminal_width, "display.max_columns", 0):
+            result = repr(df)
+            for line in result.split("\n"):
+                assert len(line) <= terminal_width
+
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
         # determine size of truncation (...) column
@@ -367,6 +404,40 @@ class TestDataFrameFormatting:
             # max_rows of None -> never truncate
             assert ".." not in repr(df)
             assert ".." not in df._repr_html_()
+
+    @pytest.mark.parametrize(
+        "data, format_option, expected_values",
+        [
+            (12345.6789, "{:12.3f}", "12345.679"),
+            (None, "{:.3f}", "None"),
+            ("", "{:.2f}", ""),
+            (112345.6789, "{:6.3f}", "112345.679"),
+            ("foo      foo", None, "foo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foo"),
+            (" foo", None, "foo"),
+            (
+                "foo foo       foo",
+                None,
+                "foo foo&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; foo",
+            ),  # odd no.of spaces
+            (
+                "foo foo    foo",
+                None,
+                "foo foo&nbsp;&nbsp;&nbsp;&nbsp;foo",
+            ),  # even no.of spaces
+        ],
+    )
+    def test_repr_float_formatting_html_output(
+        self, data, format_option, expected_values
+    ):
+        if format_option is not None:
+            with option_context("display.float_format", format_option.format):
+                df = DataFrame({"A": [data]})
+                html_output = df._repr_html_()
+                assert expected_values in html_output
+        else:
+            df = DataFrame({"A": [data]})
+            html_output = df._repr_html_()
+            assert expected_values in html_output
 
     def test_str_max_colwidth(self):
         # GH 7856
@@ -861,6 +932,20 @@ class TestDataFrameFormatting:
         result2 = repr(frame.iloc[:5])
         assert result.startswith(result2)
 
+    def test_to_string_truncate_formatters(self):
+        # GH#35410 - formatters dict applied to wrong columns after truncation
+        df = DataFrame(
+            np.arange(30).reshape(5, 6),
+            columns=[f"Col{i}" for i in range(6)],
+        )
+        formatters = {c: (lambda x, c=c: f"{c}: {x}") for c in df.columns}
+        result = df.to_string(formatters=formatters, max_cols=4)
+        # Col4 and Col5 should use their own formatters, not Col2/Col3
+        assert "Col4:" in result
+        assert "Col5:" in result
+        assert "Col2: 4" not in result
+        assert "Col3: 5" not in result
+
     def test_datetimelike_frame(self):
         # GH 12211
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})
@@ -1201,10 +1286,6 @@ class TestDataFrameFormatting:
         ):
             assert not has_non_verbose_info_repr(df)
 
-        # FIXME: don't leave commented-out
-        # test verbose overrides
-        # set_option('display.max_info_columns', 4)  # exceeded
-
     def test_pprint_pathological_object(self):
         """
         If the test fails, it at least won't hang.
@@ -1347,10 +1428,7 @@ class TestSeriesFormatting:
         sf = fmt.SeriesFormatter(s, name="\u05e2\u05d1\u05e8\u05d9\u05ea")
         sf._get_footer()  # should not raise exception
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="Fixup when arrow is default"
-    )
-    def test_east_asian_unicode_series(self):
+    def test_east_asian_unicode_series(self, using_infer_string):
         # not aligned properly because of east asian width
 
         # unicode index
@@ -1363,6 +1441,8 @@ class TestSeriesFormatting:
                 "ええええ      D\ndtype: object",
             ]
         )
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # unicode values
@@ -1376,7 +1456,8 @@ class TestSeriesFormatting:
                 "dtype: object",
             ]
         )
-
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # both
@@ -1393,7 +1474,8 @@ class TestSeriesFormatting:
                 "dtype: object",
             ]
         )
-
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # unicode footer
@@ -1406,6 +1488,8 @@ class TestSeriesFormatting:
             "ああ         あ\nいいいい      いい\nう        ううう\n"
             "えええ     ええええ\nName: おおおおおおお, dtype: object"
         )
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # MultiIndex
@@ -1449,6 +1533,8 @@ class TestSeriesFormatting:
                 "3    ええええ\n"
                 "Name: おおおおおおお, Length: 4, dtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             s.index = ["ああ", "いいいい", "う", "えええ"]
@@ -1457,6 +1543,8 @@ class TestSeriesFormatting:
                 "えええ    ええええ\n"
                 "Name: おおおおおおお, Length: 4, dtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
         # Enable Unicode option -----------------------------------------
@@ -1470,6 +1558,8 @@ class TestSeriesFormatting:
                 "あ            a\nいい         bb\nううう      CCC\n"
                 "ええええ      D\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             # unicode values
@@ -1481,6 +1571,8 @@ class TestSeriesFormatting:
                 "a            あ\nbb         いい\nc        ううう\n"
                 "ddd    ええええ\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
             # both
             s = Series(
@@ -1493,6 +1585,8 @@ class TestSeriesFormatting:
                 "う            ううう\n"
                 "えええ      ええええ\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             # unicode footer
@@ -1508,6 +1602,8 @@ class TestSeriesFormatting:
                 "えええ      ええええ\n"
                 "Name: おおおおおおお, dtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             # MultiIndex
@@ -1553,6 +1649,8 @@ class TestSeriesFormatting:
                     "3    ええええ\n"
                     "Name: おおおおおおお, Length: 4, dtype: object"
                 )
+                if using_infer_string:
+                    expected = expected.replace("dtype: object", "dtype: str")
                 assert repr(s) == expected
 
                 s.index = ["ああ", "いいいい", "う", "えええ"]
@@ -1562,6 +1660,8 @@ class TestSeriesFormatting:
                     "えええ    ええええ\n"
                     "Name: おおおおおおお, Length: 4, dtype: object"
                 )
+                if using_infer_string:
+                    expected = expected.replace("dtype: object", "dtype: str")
                 assert repr(s) == expected
 
             # ambiguous unicode
@@ -1575,6 +1675,8 @@ class TestSeriesFormatting:
                 "¡¡            ううう\n"
                 "えええ      ええええ\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
     def test_float_trim_zeros(self):
@@ -1675,7 +1777,7 @@ class TestSeriesFormatting:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = list(zip(*arrays))
+        tuples = list(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 
@@ -1724,29 +1826,34 @@ class TestSeriesFormatting:
         ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="change when arrow is default"
-    )
-    def test_format_explicit(self):
+    def test_format_explicit(self, using_infer_string):
         test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4, "display.show_dimensions", False):
             res = repr(test_sers["onel"])
             exp = "0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object"
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
             res = repr(test_sers["twol"])
             exp = "0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype: object"
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
             res = repr(test_sers["asc"])
             exp = (
                 "0         a\n1        ab\n      ...  \n4     abcde\n5    "
                 "abcdef\ndtype: object"
             )
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
             res = repr(test_sers["desc"])
             exp = (
                 "5    abcdef\n4     abcde\n      ...  \n1        ab\n0         "
                 "a\ndtype: object"
             )
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
 
     def test_ncols(self):
@@ -1850,36 +1957,15 @@ class TestGenericArrayFormatter:
         assert res[0] == " [[True, True], [False, False]]"
         assert res[1] == " [[False, True], [True, False]]"
 
-    def test_2d_extension_type(self):
-        # GH 33770
 
-        # Define a stub extension type with just enough code to run Series.__repr__()
-        class DtypeStub(pd.api.extensions.ExtensionDtype):
-            @property
-            def type(self):
-                return np.ndarray
-
-            @property
-            def name(self):
-                return "DtypeStub"
-
-        class ExtTypeStub(pd.api.extensions.ExtensionArray):
-            def __len__(self) -> int:
-                return 2
-
-            def __getitem__(self, ix):
-                return [ix == 1, ix == 0]
-
-            @property
-            def dtype(self):
-                return DtypeStub()
-
-        series = Series(ExtTypeStub(), copy=False)
-        res = repr(series)  # This line crashed before #33770 was fixed.
-        expected = "\n".join(
-            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
-        )
-        assert res == expected
+def test_precision_float_in_object_index():
+    # GH#25919 - display.precision not honored for float values in object index
+    float_val = 0.55555555
+    df = DataFrame([float_val, "foo"], index=[float_val, "foo"])
+    with option_context("display.precision", 3):
+        result = repr(df)
+    assert "0.556" in result
+    assert "0.55555555" not in result
 
 
 def _three_digit_exp():
@@ -2013,7 +2099,7 @@ class TestFloatArrayFormatter:
 
 class TestTimedelta64Formatter:
     def test_days(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "1 days"
@@ -2029,25 +2115,25 @@ class TestTimedelta64Formatter:
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(-x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "-1 days"
 
     def test_subdays(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "0 days 00:00:01"
 
     def test_subdays_neg(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "-1 days +23:59:59"
 
     def test_zero(self):
-        x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(1)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
 
@@ -2142,7 +2228,7 @@ class TestDatetime64Formatter:
             .dt.tz_localize("US/Pacific")
             ._values
         )
-        result = fmt._Datetime64TZFormatter(x).get_result()
+        result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2999-01-01 00:00:00-08:00"
         assert result[1].strip() == "2999-01-02 00:00:00-08:00"
 

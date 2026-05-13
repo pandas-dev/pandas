@@ -72,6 +72,18 @@ class TestRangeIndex:
         result = eval(result)
         tm.assert_index_equal(result, i, exact=True)
 
+    def test_repr_wraps_at_display_width(self):
+        # GH#11552
+        idx = RangeIndex(100, name="my_long_index_name")
+
+        with pd.option_context("display.width", 40):
+            result = repr(idx)
+        expected = (
+            "RangeIndex(start=0, stop=100, step=1,\n"
+            "           name='my_long_index_name')"
+        )
+        assert result == expected
+
     def test_insert(self):
         idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
@@ -375,7 +387,10 @@ class TestRangeIndex:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = "Cannot change data-type for object array"
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
         with pytest.raises(TypeError, match=msg):
             index.view(Index)
 
@@ -707,6 +722,24 @@ def test_take_return_rangeindex():
     tm.assert_index_equal(result, expected, exact=True)
 
 
+def test__getitem__boolean_numpyextensionarray():
+    ri = RangeIndex(1)
+    result = ri[pd.arrays.NumpyExtensionArray(np.array([True]))]
+    tm.assert_index_equal(ri, result)
+
+
+@pytest.mark.parametrize(
+    "container",
+    [np.array, pd.Series, lambda x: pd.arrays.NumpyExtensionArray(np.array(x))],
+    ids=["numpy-array", "series", "numpy-extension-array"],
+)
+def test__getitem__boolean_arraylike(container):
+    ri = RangeIndex(5)
+    result = ri[container([True, True, False, False, True])]
+    expected = Index([0, 1, 4], dtype="int64")
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "rng, exp_rng",
     [
@@ -871,3 +904,36 @@ def test_getitem_integers_return_index():
     result = RangeIndex(0, 10, 2, name="foo")[[0, 1, -1]]
     expected = Index([0, 2, 8], dtype="int64", name="foo")
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize(
+    "rng",
+    [
+        range(3),
+        range(0),
+        range(0, 3, 2),
+        range(3, -3, -2),
+    ],
+)
+def test_value_counts(sort, dropna, ascending, normalize, rng):
+    ri = RangeIndex(rng, name="A")
+    result = ri.value_counts(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+    )
+    expected = Index(list(rng), name="A").value_counts(
+        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
+    )
+    tm.assert_series_equal(result, expected, check_index_type=False)
+
+
+@pytest.mark.parametrize("side", ["left", "right"])
+@pytest.mark.parametrize("value", [0, -5, 5, -3, np.array([-5, -3, 0, 5])])
+def test_searchsorted(side, value):
+    ri = RangeIndex(-3, 3, 2)
+    result = ri.searchsorted(value=value, side=side)
+    expected = Index(list(ri)).searchsorted(value=value, side=side)
+    if isinstance(value, int):
+        assert result == expected
+    else:
+        tm.assert_numpy_array_equal(result, expected)

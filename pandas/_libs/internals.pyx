@@ -1,10 +1,12 @@
 from collections import defaultdict
-import weakref
 
 cimport cython
+from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
+from cpython.weakref cimport PyWeakref_NewRef
 from cython cimport Py_ssize_t
+from libc.string cimport memcpy
 
 import numpy as np
 
@@ -19,6 +21,9 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
+
+from cpython.ref cimport Py_DECREF
+from cpython.weakref cimport PyWeakref_GetRef
 
 from pandas._libs.util cimport (
     is_array,
@@ -86,13 +91,10 @@ cdef class BlockPlacement:
         return str(self)
 
     def __len__(self) -> int:
-        cdef:
-            slice s = self._ensure_has_slice()
-
-        if s is not None:
-            return slice_len(s)
+        if self._has_array:
+            return self._as_array.shape[0]
         else:
-            return len(self._as_array)
+            return slice_len(self._as_slice)
 
     def __iter__(self):
         cdef:
@@ -126,6 +128,7 @@ cdef class BlockPlacement:
             return self._as_array
 
     @property
+    @cython.critical_section
     def as_array(self) -> np.ndarray:
         cdef:
             Py_ssize_t start, stop, _
@@ -134,8 +137,10 @@ cdef class BlockPlacement:
             start, stop, step, _ = slice_get_indices_ex(self._as_slice)
             # NOTE: this is the C-optimized equivalent of
             #  `np.arange(start, stop, step, dtype=np.intp)`
-            self._as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
-            self._has_array = True
+            as_array = cnp.PyArray_Arange(start, stop, step, NPY_INTP)
+            if not self._has_array:
+                self._as_array = as_array
+                self._has_array = True
 
         return self._as_array
 
@@ -208,11 +213,14 @@ cdef class BlockPlacement:
         # We can get here with int or ndarray
         return self.iadd(other)
 
+    @cython.critical_section
     cdef slice _ensure_has_slice(self):
         if not self._has_slice:
-            self._as_slice = indexer_as_slice(self._as_array)
-            self._has_slice = True
-
+            as_slice = indexer_as_slice(self._as_array)
+            # check again after indexer_as_slice call
+            if not self._has_slice:
+                self._as_slice = as_slice
+                self._has_slice = True
         return self._as_slice
 
     cpdef BlockPlacement increment_above(self, Py_ssize_t loc):
@@ -235,7 +243,7 @@ cdef class BlockPlacement:
                 return self
 
             if start >= loc and stop >= loc:
-                # We are entirely above, we can efficiently increment out slice
+                # We are entirely above, we can efficiently increment our slice
                 nv = slice(start + 1, stop + 1, step)
                 return BlockPlacement(nv)
 
@@ -371,8 +379,7 @@ cdef slice_getitem(slice slc, ind):
 
         if ind_step > 0 and ind_len == s_len:
             # short-cut for no-op slice
-            if ind_len == s_len:
-                return slc
+            return slc
 
         if ind_step < 0:
             s_start = s_stop - s_step
@@ -494,7 +501,7 @@ def get_concat_blkno_indexers(list blknos_list not None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_blkno_indexers(
-    int64_t[:] blknos, bint group=True
+    const int64_t[:] blknos, bint group=True
 ) -> list[tuple[int, slice | np.ndarray]]:
     """
     Enumerate contiguous runs of integers in ndarray.
@@ -588,8 +595,8 @@ def get_blkno_placements(blknos, group: bool = True):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef update_blklocs_and_blknos(
-    ndarray[intp_t, ndim=1] blklocs,
-    ndarray[intp_t, ndim=1] blknos,
+    const intp_t[::1] blklocs,
+    const intp_t[::1] blknos,
     Py_ssize_t loc,
     intp_t nblocks,
 ):
@@ -597,24 +604,24 @@ cpdef update_blklocs_and_blknos(
     Update blklocs and blknos when a new column is inserted at 'loc'.
     """
     cdef:
-        Py_ssize_t i
         cnp.npy_intp length = blklocs.shape[0] + 1
+        Py_ssize_t tail_len = length - 1 - loc
         ndarray[intp_t, ndim=1] new_blklocs, new_blknos
 
     # equiv: new_blklocs = np.empty(length, dtype=np.intp)
     new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
     new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
 
-    for i in range(loc):
-        new_blklocs[i] = blklocs[i]
-        new_blknos[i] = blknos[i]
+    if loc > 0:
+        memcpy(&new_blklocs[0], &blklocs[0], loc * sizeof(intp_t))
+        memcpy(&new_blknos[0], &blknos[0], loc * sizeof(intp_t))
 
     new_blklocs[loc] = 0
     new_blknos[loc] = nblocks
 
-    for i in range(loc, length - 1):
-        new_blklocs[i + 1] = blklocs[i]
-        new_blknos[i + 1] = blknos[i]
+    if tail_len > 0:
+        memcpy(&new_blklocs[loc + 1], &blklocs[loc], tail_len * sizeof(intp_t))
+        memcpy(&new_blknos[loc + 1], &blknos[loc], tail_len * sizeof(intp_t))
 
     return new_blklocs, new_blknos
 
@@ -696,9 +703,9 @@ cdef class Block:
             self.ndim = state[2]
         else:
             # older pickle
-            from pandas.core.internals.api import maybe_infer_ndim
+            from pandas.core.internals.api import _maybe_infer_ndim
 
-            ndim = maybe_infer_ndim(self.values, self.mgr_locs)
+            ndim = _maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
 
     cpdef Block slice_block_rows(self, slice slicer):
@@ -717,7 +724,8 @@ cdef class BlockManager:
         public tuple blocks
         public list axes
         public bint _known_consolidated, _is_consolidated
-        public ndarray _blknos, _blklocs
+        public object _interleaved_dtype
+        ndarray __blknos, __blklocs
 
     def __cinit__(
         self,
@@ -737,16 +745,41 @@ cdef class BlockManager:
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
 
-        # Populate known_consolidate, blknos, and blklocs lazily
+        # Populate known_consolidated, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
+        self._interleaved_dtype = None
         self._blknos = None
         self._blklocs = None
 
     # -------------------------------------------------------------------
     # Block Placement
+    @property
+    @cython.critical_section
+    def _blknos(self):
+        return self.__blknos
 
-    def _rebuild_blknos_and_blklocs(self) -> None:
+    @_blknos.setter
+    @cython.critical_section
+    def _blknos(self, ndarray val):
+        self.__blknos = val
+
+    @property
+    @cython.critical_section
+    def _blklocs(self):
+        return self.__blklocs
+
+    @_blklocs.setter
+    @cython.critical_section
+    def _blklocs(self, ndarray val):
+        self.__blklocs = val
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.critical_section
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    cpdef _rebuild_blknos_and_blklocs(self):
         """
         Update mgr._blknos / mgr._blklocs.
         """
@@ -756,6 +789,8 @@ cdef class BlockManager:
             Block blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
+            Py_ssize_t start, stop, step
+            intp_t[:] bp_arr
 
         # equiv: np.empty(length, dtype=np.intp)
         new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
@@ -764,14 +799,24 @@ cdef class BlockManager:
         cnp.PyArray_FILLWBYTE(new_blknos, -1)
         cnp.PyArray_FILLWBYTE(new_blklocs, -1)
 
-        for blkno, blk in enumerate(self.blocks):
+        for blkno in range(len(self.blocks)):
+            blk = <Block>self.blocks[blkno]
             bp = blk._mgr_locs
-            # Iterating over `bp` is a faster equivalent to
-            #  new_blknos[bp.indexer] = blkno
-            #  new_blklocs[bp.indexer] = np.arange(len(bp))
-            for i, j in enumerate(bp):
-                new_blknos[j] = blkno
-                new_blklocs[j] = i
+            # Directly access the underlying slice or array to avoid
+            # Python-level iteration overhead from enumerate(bp)
+            if bp._has_array:
+                bp_arr = bp._as_array
+                for i in range(bp_arr.shape[0]):
+                    j = bp_arr[i]
+                    new_blknos[j] = blkno
+                    new_blklocs[j] = i
+            else:
+                start, stop, step, _ = slice_get_indices_ex(bp._as_slice)
+                i = 0
+                for j in range(start, stop, step):
+                    new_blknos[j] = blkno
+                    new_blklocs[j] = i
+                    i += 1
 
         for i in range(length):
             # faster than `for blkno in new_blknos`
@@ -783,8 +828,8 @@ cdef class BlockManager:
             if blkno == -1:
                 raise AssertionError("Gaps in blk ref_locs")
 
-        self._blknos = new_blknos
-        self._blklocs = new_blklocs
+        self.__blknos = new_blknos
+        self.__blklocs = new_blklocs
 
     # -------------------------------------------------------------------
     # Pickle
@@ -836,6 +881,7 @@ cdef class BlockManager:
     def _post_setstate(self) -> None:
         self._is_consolidated = False
         self._known_consolidated = False
+        self._interleaved_dtype = None
         self._rebuild_blknos_and_blklocs()
 
     # -------------------------------------------------------------------
@@ -852,12 +898,13 @@ cdef class BlockManager:
             nb = blk.slice_block_rows(slobj)
             nbs.append(nb)
 
-        new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
+        new_axes = [self.axes[0].view(), self.axes[1]._getitem_slice(slobj)]
         mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
-        blklocs = self._blklocs
-        blknos = self._blknos
+        with cython.critical_section(self):
+            blklocs = self.__blklocs
+            blknos = self.__blknos
         if blknos is not None:
             mgr._blknos = blknos.copy()
             mgr._blklocs = blklocs.copy()
@@ -874,6 +921,7 @@ cdef class BlockManager:
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
+        new_axes[1 - axis] = self.axes[1 - axis].view()
 
         return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)
 
@@ -890,27 +938,41 @@ cdef class BlockValuesRefs:
 
     def __cinit__(self, blk: Block | None = None) -> None:
         if blk is not None:
-            self.referenced_blocks = [weakref.ref(blk)]
+            self.referenced_blocks = [PyWeakref_NewRef(blk, None)]
         else:
             self.referenced_blocks = []
         self.clear_counter = 500  # set reasonably high
 
-    def _clear_dead_references(self, force=False) -> None:
+    cdef _clear_dead_references(self, bint force=False):
         # Use exponential backoff to decide when we want to clear references
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
+        cdef PyObject* pobj
+        cdef bint status
+
         if force or len(self.referenced_blocks) > self.clear_counter:
-            self.referenced_blocks = [
-                ref for ref in self.referenced_blocks if ref() is not None
-            ]
+            new_referenced_blocks = []
+            for ref in self.referenced_blocks:
+                status = PyWeakref_GetRef(ref, &pobj)
+                if status == -1:
+                    return
+                elif status == 1:
+                    new_referenced_blocks.append(ref)
+                    Py_DECREF(<object>pobj)
+            self.referenced_blocks = new_referenced_blocks
+
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
                 self.clear_counter = max(self.clear_counter // 2, 500)
             elif nr_of_refs > self.clear_counter:
                 self.clear_counter = max(self.clear_counter * 2, nr_of_refs)
 
-    def add_reference(self, blk: Block) -> None:
+    cpdef _add_reference_maybe_locked(self, Block blk):
+        self._clear_dead_references()
+        self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
+
+    cpdef add_reference(self, Block blk):
         """Adds a new reference to our reference collection.
 
         Parameters
@@ -918,8 +980,12 @@ cdef class BlockValuesRefs:
         blk : Block
             The block that the new references should point to.
         """
+        with cython.critical_section(self):
+            self._add_reference_maybe_locked(blk)
+
+    def _add_index_reference_maybe_locked(self, index: object) -> None:
         self._clear_dead_references()
-        self.referenced_blocks.append(weakref.ref(blk))
+        self.referenced_blocks.append(PyWeakref_NewRef(index, None))
 
     def add_index_reference(self, index: object) -> None:
         """Adds a new reference to our reference collection when creating an index.
@@ -929,8 +995,13 @@ cdef class BlockValuesRefs:
         index : Index
             The index that the new reference should point to.
         """
-        self._clear_dead_references()
-        self.referenced_blocks.append(weakref.ref(index))
+        with cython.critical_section(self):
+            self._add_index_reference_maybe_locked(index)
+
+    def _has_reference_maybe_locked(self) -> bool:
+        self._clear_dead_references(force=True)
+        # Checking for more references than block pointing to itself
+        return len(self.referenced_blocks) > 1
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
@@ -942,6 +1013,5 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        self._clear_dead_references(force=True)
-        # Checking for more references than block pointing to itself
-        return len(self.referenced_blocks) > 1
+        with cython.critical_section(self):
+            return self._has_reference_maybe_locked()

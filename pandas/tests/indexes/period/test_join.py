@@ -1,7 +1,4 @@
 import numpy as np
-import pytest
-
-from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
     DataFrame,
@@ -51,8 +48,9 @@ class TestJoin:
         tm.assert_index_equal(res, expected)
 
     def test_join_mismatched_freq_raises(self):
+        # pre-GH#55782 this raises IncompatibleFrequency
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        msg = r".*Input has different freq=2D from Period\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.join(index3)
+        result = index.join(index3)
+        expected = index.astype(object).join(index3.astype(object))
+        tm.assert_index_equal(result, expected)

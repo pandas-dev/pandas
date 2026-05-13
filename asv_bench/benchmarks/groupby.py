@@ -269,7 +269,7 @@ class CountMultiDtype:
         offsets = np.random.randint(n, size=n).astype("timedelta64[ns]")
         dates = np.datetime64("now") + offsets
         dates[np.random.rand(n) > 0.5] = np.datetime64("nat")
-        offsets[np.random.rand(n) > 0.5] = np.timedelta64("nat")
+        offsets[np.random.rand(n) > 0.5] = np.timedelta64("NaT", "ns")
         value2 = np.random.randn(n)
         value2[np.random.rand(n) > 0.5] = np.nan
         obj = np.random.choice(list("ab"), size=n).astype(object)
@@ -511,8 +511,7 @@ class GroupByMethods:
         # grouping on multiple columns
         # and we lack kernels for a bunch of methods
         if (
-            engine == "numba"
-            and method in _numba_unsupported_methods
+            (engine == "numba" and method in _numba_unsupported_methods)
             or ncols > 1
             or application == "transformation"
             or dtype == "datetime"
@@ -690,6 +689,10 @@ class Cumulative:
             null_vals = vals.astype(float, copy=True)
             null_vals[::2, :] = np.nan
             null_vals[::3, :] = np.nan
+            if dtype in ["Int64", "Float64"]:
+                null_vals = null_vals.astype(object)
+                null_vals[::2, :] = NA
+                null_vals[::3, :] = NA
             df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
             df["key"] = keys
             self.df = df

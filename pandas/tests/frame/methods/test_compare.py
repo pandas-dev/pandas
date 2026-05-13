@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p25
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -21,21 +19,25 @@ def test_compare_axis(align_axis):
     result = df.compare(df2, align_axis=align_axis)
 
     if align_axis in (1, "columns"):
-        indices = pd.Index([0, 2])
+        indices = pd.RangeIndex(0, 4, 2)
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
             [["a", "c", np.nan, np.nan], [np.nan, np.nan, 3.0, 4.0]],
             index=indices,
             columns=columns,
         )
+        assert isinstance(result.columns, pd.MultiIndex)
+        assert not isinstance(result.index, pd.MultiIndex)
     else:
-        indices = pd.MultiIndex.from_product([[0, 2], ["self", "other"]])
+        indices = pd.MultiIndex.from_product([range(0, 4, 2), ["self", "other"]])
         columns = pd.Index(["col1", "col3"])
         expected = pd.DataFrame(
             [["a", np.nan], ["c", np.nan], [np.nan, 3.0], [np.nan, 4.0]],
             index=indices,
             columns=columns,
         )
+        assert isinstance(result.index, pd.MultiIndex)
+        assert not isinstance(result.columns, pd.MultiIndex)
     tm.assert_frame_equal(result, expected)
 
 
@@ -60,7 +62,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
     result = df.compare(df2, keep_shape=keep_shape, keep_equal=keep_equal)
 
     if keep_shape:
-        indices = pd.Index([0, 1, 2])
+        indices = pd.RangeIndex(3)
         columns = pd.MultiIndex.from_product(
             [["col1", "col2", "col3"], ["self", "other"]]
         )
@@ -85,7 +87,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
                 columns=columns,
             )
     else:
-        indices = pd.Index([0, 2])
+        indices = pd.RangeIndex(0, 4, 2)
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
             [["a", "c", 1.0, 1.0], ["c", "c", 3.0, 4.0]], index=indices, columns=columns
@@ -203,6 +205,7 @@ def test_compare_result_names():
         },
     )
     result = df1.compare(df2, result_names=("left", "right"))
+    result.index = pd.Index([0, 2])
     expected = pd.DataFrame(
         {
             ("col1", "left"): {0: "a", 2: np.nan},
@@ -269,7 +272,7 @@ def test_compare_ea_and_np_dtype(val1, val2):
         # GH#18463 TODO: is this really the desired behavior?
         expected.loc[1, ("a", "self")] = np.nan
 
-    if val1 is pd.NA and np_version_gte1p25:
+    if val1 is pd.NA:
         # can't compare with numpy array if it contains pd.NA
         with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
             result = df1.compare(df2, keep_shape=True)

@@ -1,5 +1,4 @@
 from pandas import (
-    Index,
     Series,
     date_range,
 )
@@ -19,14 +18,14 @@ class TestGetNumericData:
 
         obj = Series([1, "2", 3.0])
         result = obj._get_numeric_data()
-        expected = Series([], dtype=object, index=Index([], dtype=object))
+        expected = Series([], dtype=object)
         tm.assert_series_equal(result, expected)
 
         obj = Series([True, False, True])
         result = obj._get_numeric_data()
         tm.assert_series_equal(result, obj)
 
-        obj = Series(date_range("20130101", periods=3))
+        obj = Series(date_range("20130101", periods=3, unit="ns"))
         result = obj._get_numeric_data()
-        expected = Series([], dtype="M8[ns]", index=Index([], dtype=object))
+        expected = Series([], dtype="M8[ns]")
         tm.assert_series_equal(result, expected)

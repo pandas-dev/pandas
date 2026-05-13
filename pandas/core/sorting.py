@@ -5,7 +5,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Callable,
     cast,
 )
 
@@ -32,7 +31,9 @@ from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
+        Iterable,
         Sequence,
     )
 
@@ -90,18 +91,21 @@ def get_indexer_indexer(
     target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
     target = target._sort_levels_monotonic()
 
+    if (np.all(ascending) and target.is_monotonic_increasing) or (
+        not np.any(ascending) and target.is_monotonic_decreasing
+    ):
+        # GH#11080, GH#64883: on a non-MultiIndex, `level` is a no-op,
+        # so short-circuit even when level is specified.
+        if level is None or not isinstance(target, ABCMultiIndex):
+            return None
+
     if level is not None:
         _, indexer = target.sortlevel(
-            level,
+            level,  # type: ignore[arg-type]
             ascending=ascending,
             sort_remaining=sort_remaining,
             na_position=na_position,
         )
-    elif (np.all(ascending) and target.is_monotonic_increasing) or (
-        not np.any(ascending) and target.is_monotonic_decreasing
-    ):
-        # Check monotonic-ness before sort an index (GH 11080)
-        return None
     elif isinstance(target, ABCMultiIndex):
         codes = [lev.codes for lev in target._get_codes_for_sorting()]
         indexer = lexsort_indexer(
@@ -112,14 +116,17 @@ def get_indexer_indexer(
         indexer = nargsort(
             target,
             kind=kind,
-            ascending=cast(bool, ascending),
+            ascending=cast("bool", ascending),
             na_position=na_position,
         )
     return indexer
 
 
 def get_group_index(
-    labels, shape: Shape, sort: bool, xnull: bool
+    labels: Sequence[npt.NDArray[np.signedinteger]],
+    shape: Shape,
+    sort: bool,
+    xnull: bool,
 ) -> npt.NDArray[np.int64]:
     """
     For the particular label_list, gets the offsets into the hypothetical list
@@ -153,7 +160,7 @@ def get_group_index(
     The length of `labels` and `shape` must be identical.
     """
 
-    def _int64_cut_off(shape) -> int:
+    def _int64_cut_off(shape: list[int]) -> int:
         acc = 1
         for i, mul in enumerate(shape):
             acc *= int(mul)
@@ -161,7 +168,7 @@ def get_group_index(
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
+    def maybe_lift(lab: np.ndarray, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
@@ -169,10 +176,8 @@ def get_group_index(
     labels = [ensure_int64(x) for x in labels]
     lshape = list(shape)
     if not xnull:
-        for i, (lab, size) in enumerate(zip(labels, shape)):
+        for i, (lab, size) in enumerate(zip(labels, shape, strict=True)):
             labels[i], lshape[i] = maybe_lift(lab, size)
-
-    labels = list(labels)
 
     # Iteratively process all the labels in chunks sized so less
     # than lib.i8max unique int ids will be required for each chunk
@@ -204,14 +209,14 @@ def get_group_index(
         # to retain lexical ranks, obs_ids should be sorted
         comp_ids, obs_ids = compress_group_index(out, sort=sort)
 
-        labels = [comp_ids] + labels[nlev:]
-        lshape = [len(obs_ids)] + lshape[nlev:]
+        labels = [comp_ids, *labels[nlev:]]
+        lshape = [len(obs_ids), *lshape[nlev:]]
 
     return out
 
 
 def get_compressed_ids(
-    labels, sizes: Shape
+    labels: Sequence[npt.NDArray[np.signedinteger]], sizes: Shape
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
@@ -291,7 +296,11 @@ def decons_obs_group_ids(
     if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
         out = _decons_group_index(obs_ids, shape)
-        return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
+        return (
+            out
+            if xnull or not lift.any()
+            else [x - y for x, y in zip(out, lift, strict=True)]
+        )
 
     indexer = unique_label_indices(comp_ids)
     return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
@@ -299,7 +308,7 @@ def decons_obs_group_ids(
 
 def lexsort_indexer(
     keys: Sequence[ArrayLike | Index | Series],
-    orders=None,
+    orders: bool | Sequence[bool] | None = None,
     na_position: str = "last",
     key: Callable | None = None,
     codes_given: bool = False,
@@ -334,21 +343,46 @@ def lexsort_indexer(
     if na_position not in ["last", "first"]:
         raise ValueError(f"invalid na_position: {na_position}")
 
+    orders_iter: Iterable[bool]
     if isinstance(orders, bool):
-        orders = itertools.repeat(orders, len(keys))
+        orders_iter = itertools.repeat(orders, len(keys))
     elif orders is None:
-        orders = itertools.repeat(True, len(keys))
+        orders_iter = itertools.repeat(True, len(keys))
     else:
-        orders = reversed(orders)
+        orders_iter = reversed(orders)
 
     labels = []
 
-    for k, order in zip(reversed(keys), orders):
+    for k, order in zip(reversed(keys), orders_iter, strict=True):
         k = ensure_key_mapped(k, key)
         if codes_given:
-            codes = cast(np.ndarray, k)
+            codes = cast("np.ndarray", k)
             n = codes.max() + 1 if len(codes) else 0
         else:
+            # Fast path for numeric numpy arrays: skip Categorical
+            # conversion and pass values directly to np.lexsort.
+            arr = extract_array(k, extract_numpy=True)
+            if isinstance(arr, np.ndarray) and arr.dtype.kind in "fiub":
+                if arr.dtype.kind == "f":
+                    # For float dtypes, np.lexsort sorts NaN to the end.
+                    mask = np.isnan(arr)
+                    has_na = mask.any()
+                    if not order:
+                        # Descending: negate values. NaN stays NaN
+                        # and still sorts last.
+                        arr = -arr
+                        if na_position == "first" and has_na:
+                            arr[mask] = -np.inf
+                    elif na_position == "first" and has_na:
+                        arr = arr.copy()
+                        arr[mask] = -np.inf
+                elif not order:
+                    # int/uint/bool: no NaN possible, use bitwise NOT
+                    # for descending to avoid overflow with negation.
+                    arr = ~arr
+                labels.append(arr)
+                continue
+
             cat = Categorical(k, ordered=True)
             codes = cat.codes
             n = len(cat.categories)
@@ -451,7 +485,9 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
+def nargminmax(
+    values: ExtensionArray, method: str, axis: AxisInt = 0
+) -> int | np.ndarray:
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -475,16 +511,18 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     if arr_values.ndim > 1:
         if mask.any():
             if axis == 1:
-                zipped = zip(arr_values, mask)
+                zipped = zip(arr_values, mask, strict=True)
             else:
-                zipped = zip(arr_values.T, mask.T)
+                zipped = zip(arr_values.T, mask.T, strict=True)
             return np.array([_nanargminmax(v, m, func) for v, m in zipped])
         return func(arr_values, axis=axis)
 
     return _nanargminmax(arr_values, mask, func)
 
 
-def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
+def _nanargminmax(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable
+) -> int:
     """
     See nanargminmax.__doc__.
     """
@@ -496,7 +534,9 @@ def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
 
 
 def _ensure_key_mapped_multiindex(
-    index: MultiIndex, key: Callable, level=None
+    index: MultiIndex,
+    key: Callable,
+    level: Level | list[Level] | None = None,
 ) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
@@ -526,18 +566,20 @@ def _ensure_key_mapped_multiindex(
 
     if level is not None:
         if isinstance(level, (str, int)):
-            level_iter = [level]
+            level_iter: list[Level] = [level]
         else:
-            level_iter = level
+            level_iter = cast("list[Level]", level)
 
         sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
         sort_levels = range(index.nlevels)
 
     mapped = [
-        ensure_key_mapped(index._get_level_values(level), key)
-        if level in sort_levels
-        else index._get_level_values(level)
+        (
+            ensure_key_mapped(index._get_level_values(level), key)
+            if level in sort_levels
+            else index._get_level_values(level)
+        )
         for level in range(index.nlevels)
     ]
 
@@ -545,7 +587,9 @@ def _ensure_key_mapped_multiindex(
 
 
 def ensure_key_mapped(
-    values: ArrayLike | Index | Series, key: Callable | None, levels=None
+    values: ArrayLike | Index | Series,
+    key: Callable | None,
+    levels: Level | list[Level] | None = None,
 ) -> ArrayLike | Index | Series:
     """
     Applies a callable key function to the values function and checks
@@ -577,7 +621,7 @@ def ensure_key_mapped(
         if isinstance(
             values, Index
         ):  # convert to a new Index subclass, not necessarily the same
-            result = Index(result)
+            result = Index(result, tupleize_cols=False)
         else:
             # try to revert to original type otherwise
             type_of_values = type(values)

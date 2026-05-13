@@ -11,7 +11,7 @@ from pandas.tests.arrays.masked_shared import ComparisonOps
 def data():
     """Fixture returning boolean array with valid and missing data"""
     return pd.array(
-        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
+        [True, False] * 2 + [np.nan] + [True, False] + [np.nan] + [True, False],
         dtype="boolean",
     )
 
@@ -23,9 +23,6 @@ def dtype():
 
 
 class TestComparisonOps(ComparisonOps):
-    def test_compare_scalar(self, data, comparison_op):
-        self._compare_other(data, comparison_op, True)
-
     def test_compare_array(self, data, comparison_op):
         other = pd.array([True] * len(data), dtype="boolean")
         self._compare_other(data, comparison_op, other)

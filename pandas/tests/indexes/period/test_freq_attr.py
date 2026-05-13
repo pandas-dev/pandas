@@ -1,7 +1,5 @@
 import pytest
 
-from pandas.compat import PY311
-
 from pandas import (
     offsets,
     period_range,
@@ -18,11 +16,7 @@ class TestFreq:
         with tm.assert_produces_warning(None):
             idx.freq
 
-        # warning for setter
-        msg = (
-            "property 'freq' of 'PeriodArray' object has no setter"
-            if PY311
-            else "can't set attribute"
-        )
+        # PeriodIndex freq is derived from dtype and read-only
+        msg = "property 'freq' of 'PeriodIndex' object has no setter"
         with pytest.raises(AttributeError, match=msg):
             idx.freq = offsets.Day()

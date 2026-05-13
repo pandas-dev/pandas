@@ -3,6 +3,7 @@
 #pragma once
 
 #include <Python.h>
+
 #include <pymem.h>
 #include <string.h>
 
@@ -33,11 +34,9 @@ static void *traced_calloc(size_t num, size_t size) {
 }
 
 static void *traced_realloc(void *old_ptr, size_t size) {
+  PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
-    if (old_ptr != ptr) {
-      PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
-    }
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
   }
   return ptr;
@@ -123,11 +122,23 @@ static inline khuint32_t kh_float32_hash_func(float val) {
 
 KHASH_MAP_INIT_FLOAT64(float64, size_t)
 
+#define KHASH_SET_INIT_FLOAT64(name)                                           \
+  KHASH_INIT(name, khfloat64_t, char, 0, kh_float64_hash_func,                 \
+             kh_floats_hash_equal)
+
+KHASH_SET_INIT_FLOAT64(set_float64)
+
 #define KHASH_MAP_INIT_FLOAT32(name, khval_t)                                  \
   KHASH_INIT(name, khfloat32_t, khval_t, 1, kh_float32_hash_func,              \
              kh_floats_hash_equal)
 
 KHASH_MAP_INIT_FLOAT32(float32, size_t)
+
+#define KHASH_SET_INIT_FLOAT32(name)                                           \
+  KHASH_INIT(name, khfloat32_t, char, 0, kh_float32_hash_func,                 \
+             kh_floats_hash_equal)
+
+KHASH_SET_INIT_FLOAT32(set_float32)
 
 static inline khint32_t kh_complex128_hash_func(khcomplex128_t val) {
   return kh_float64_hash_func(val.real) ^ kh_float64_hash_func(val.imag);
@@ -145,18 +156,34 @@ static inline khint32_t kh_complex64_hash_func(khcomplex64_t val) {
 
 KHASH_MAP_INIT_COMPLEX64(complex64, size_t)
 
+#define KHASH_SET_INIT_COMPLEX64(name)                                         \
+  KHASH_INIT(name, khcomplex64_t, char, 0, kh_complex64_hash_func,             \
+             kh_complex_hash_equal)
+
+KHASH_SET_INIT_COMPLEX64(set_complex64)
+
 #define KHASH_MAP_INIT_COMPLEX128(name, khval_t)                               \
   KHASH_INIT(name, khcomplex128_t, khval_t, 1, kh_complex128_hash_func,        \
              kh_complex_hash_equal)
 
 KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 
+#define KHASH_SET_INIT_COMPLEX128(name)                                        \
+  KHASH_INIT(name, khcomplex128_t, char, 0, kh_complex128_hash_func,           \
+             kh_complex_hash_equal)
+
+KHASH_SET_INIT_COMPLEX128(set_complex128)
+
 #define kh_exist_complex64(h, k) (kh_exist(h, k))
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
+#define kh_exist_set_float64(h, k) (kh_exist(h, k))
+#define kh_exist_set_float32(h, k) (kh_exist(h, k))
+#define kh_exist_set_complex64(h, k) (kh_exist(h, k))
+#define kh_exist_set_complex128(h, k) (kh_exist(h, k))
 
 // NaN-floats should be in the same equivalency class, see GH 22119
 static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
-  return (Py_IS_NAN(PyFloat_AS_DOUBLE(a)) && Py_IS_NAN(PyFloat_AS_DOUBLE(b))) ||
+  return (isnan(PyFloat_AS_DOUBLE(a)) && isnan(PyFloat_AS_DOUBLE(b))) ||
          (PyFloat_AS_DOUBLE(a) == PyFloat_AS_DOUBLE(b));
 }
 
@@ -164,12 +191,12 @@ static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
 // PyObject_RichCompareBool for complexobjects has a different behavior
 // needs to be replaced
 static inline int complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
-  return (Py_IS_NAN(a->cval.real) && Py_IS_NAN(b->cval.real) &&
-          Py_IS_NAN(a->cval.imag) && Py_IS_NAN(b->cval.imag)) ||
-         (Py_IS_NAN(a->cval.real) && Py_IS_NAN(b->cval.real) &&
+  return (isnan(a->cval.real) && isnan(b->cval.real) && isnan(a->cval.imag) &&
+          isnan(b->cval.imag)) ||
+         (isnan(a->cval.real) && isnan(b->cval.real) &&
           a->cval.imag == b->cval.imag) ||
-         (a->cval.real == b->cval.real && Py_IS_NAN(a->cval.imag) &&
-          Py_IS_NAN(b->cval.imag)) ||
+         (a->cval.real == b->cval.real && isnan(a->cval.imag) &&
+          isnan(b->cval.imag)) ||
          (a->cval.real == b->cval.real && a->cval.imag == b->cval.imag);
 }
 
@@ -207,7 +234,8 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     if (PyComplex_CheckExact(a)) {
       return complexobject_cmp((PyComplexObject *)a, (PyComplexObject *)b);
     }
-    if (PyTuple_CheckExact(a)) {
+    if (PyTuple_Check(a)) {
+      // compare tuple subclasses as builtin tuples
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
@@ -222,15 +250,11 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 }
 
 static inline Py_hash_t _Pandas_HashDouble(double val) {
-  // Since Python3.10, nan is no longer has hash 0
-  if (Py_IS_NAN(val)) {
+  // nan no longer has hash 0
+  if (isnan(val)) {
     return 0;
   }
-#if PY_VERSION_HEX < 0x030A0000
-  return _Py_HashDouble(val);
-#else
   return _Py_HashDouble(NULL, val);
-#endif
 }
 
 static inline Py_hash_t floatobject_hash(PyFloatObject *key) {
@@ -258,17 +282,17 @@ static inline khuint32_t kh_python_hash_func(PyObject *key);
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
 #if SIZEOF_PY_UHASH_T > 4
-#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
-#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
-#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
-#define _PandasHASH_XXROTATE(x)                                                \
-  ((x << 31) | (x >> 33)) /* Rotate left 31 bits */
+#  define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
+#  define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
+#  define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
+#  define _PandasHASH_XXROTATE(x)                                              \
+    ((x << 31) | (x >> 33)) /* Rotate left 31 bits */
 #else
-#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
-#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
-#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
-#define _PandasHASH_XXROTATE(x)                                                \
-  ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
+#  define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
+#  define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
+#  define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
+#  define _PandasHASH_XXROTATE(x)                                              \
+    ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
 #endif
 
 static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
@@ -311,7 +335,8 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
     // because complex(k,0) == k holds for any int-object k
     // and kh_complex128_hash_func doesn't respect it
     hash = complexobject_hash((PyComplexObject *)key);
-  } else if (PyTuple_CheckExact(key)) {
+  } else if (PyTuple_Check(key)) {
+    // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
   } else {
     hash = PyObject_Hash(key);

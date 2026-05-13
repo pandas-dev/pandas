@@ -1,9 +1,9 @@
+import csv
 import io
 import os
 import sys
 from zipfile import ZipFile
 
-from _csv import Error
 import numpy as np
 import pytest
 
@@ -14,10 +14,12 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
+from pandas.core.arrays import FloatingArray
+from pandas.core.indexes.base import get_values_for_csv
 
 
 class TestToCSV:
-    def test_to_csv_with_single_column(self):
+    def test_to_csv_with_single_column(self, temp_file):
         # see gh-18676, https://bugs.python.org/issue32255
         #
         # Python's CSV library adds an extraneous '""'
@@ -30,31 +32,36 @@ class TestToCSV:
 ""
 1.0
 """
-        with tm.ensure_clean("test.csv") as path:
-            df1.to_csv(path, header=None, index=None)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected1
+        df1.to_csv(temp_file, header=None, index=None)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected1
 
         df2 = DataFrame([1, None])
         expected2 = """\
 1.0
 ""
 """
-        with tm.ensure_clean("test.csv") as path:
-            df2.to_csv(path, header=None, index=None)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected2
+        df2.to_csv(temp_file, header=None, index=None)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected2
 
-    def test_to_csv_default_encoding(self):
+    def test_to_csv_default_encoding(self, temp_file):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
-        with tm.ensure_clean("test.csv") as path:
-            # the default to_csv encoding is uft-8.
-            df.to_csv(path)
-            tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+        # the default to_csv encoding is uft-8.
+        df.to_csv(temp_file)
+        tm.assert_frame_equal(pd.read_csv(temp_file, index_col=0), df)
 
-    def test_to_csv_quotechar(self):
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+    def test_to_csv_utf16_encoding(self, encoding, temp_file):
+        # GH#10755
+        df = DataFrame({"col": ["abc", "déf", "日本語"]})
+        df.to_csv(temp_file, encoding=encoding)
+        result = pd.read_csv(temp_file, index_col=0, encoding=encoding)
+        tm.assert_frame_equal(result, df)
+
+    def test_to_csv_quotechar(self, temp_file):
         df = DataFrame({"col": [1, 2]})
         expected = """\
 "","col"
@@ -62,10 +69,9 @@ class TestToCSV:
 "1","2"
 """
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=1)  # 1=QUOTE_ALL
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=1)  # 1=QUOTE_ALL
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
         expected = """\
 $$,$col$
@@ -73,16 +79,14 @@ $0$,$1$
 $1$,$2$
 """
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=1, quotechar="$")
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=1, quotechar="$")
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
-        with tm.ensure_clean("test.csv") as path:
-            with pytest.raises(TypeError, match="quotechar"):
-                df.to_csv(path, quoting=1, quotechar=None)
+        with pytest.raises(TypeError, match="quotechar"):
+            df.to_csv(temp_file, quoting=1, quotechar=None)
 
-    def test_to_csv_doublequote(self):
+    def test_to_csv_doublequote(self, temp_file):
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = '''\
 "","col"
@@ -90,16 +94,14 @@ $1$,$2$
 "1","""bb"""
 '''
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=1, doublequote=True)  # QUOTE_ALL
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=1, doublequote=True)  # QUOTE_ALL
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
-        with tm.ensure_clean("test.csv") as path:
-            with pytest.raises(Error, match="escapechar"):
-                df.to_csv(path, doublequote=False)  # no escapechar set
+        with pytest.raises(csv.Error, match="escapechar"):
+            df.to_csv(temp_file, doublequote=False)  # no escapechar set
 
-    def test_to_csv_escapechar(self):
+    def test_to_csv_escapechar(self, temp_file):
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = """\
 "","col"
@@ -107,10 +109,9 @@ $1$,$2$
 "1","\\"bb\\""
 """
 
-        with tm.ensure_clean("test.csv") as path:  # QUOTE_ALL
-            df.to_csv(path, quoting=1, doublequote=False, escapechar="\\")
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=1, doublequote=False, escapechar="\\")
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
         df = DataFrame({"col": ["a,a", ",bb,"]})
         expected = """\
@@ -119,10 +120,9 @@ $1$,$2$
 1,\\,bb\\,
 """
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=3, escapechar="\\")  # QUOTE_NONE
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=3, escapechar="\\")  # QUOTE_NONE
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
     def test_csv_to_string(self):
         df = DataFrame({"col": [1, 2]})
@@ -221,7 +221,7 @@ $1$,$2$
     def test_to_csv_date_format(self):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
-        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="d")})
+        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
         expected_rows = [
             ",A",
@@ -297,6 +297,38 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    def test_to_csv_period_columns(self):
+        # GH#55426 - exercise the column path for PeriodArray
+        df = DataFrame(
+            {
+                "a": pd.period_range("2020-01-01", periods=2, freq="D"),
+                "b": pd.period_range("2020-03-01", periods=2, freq="D"),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            "2020-01-01,2020-03-01",
+            "2020-01-02,2020-03-02",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
+    def test_to_csv_interval_columns(self):
+        # GH#55426 - exercise the column path for IntervalArray
+        df = DataFrame(
+            {
+                "a": pd.arrays.IntervalArray.from_breaks([0, 1, 2]),
+                "b": pd.arrays.IntervalArray.from_breaks([3, 4, 5]),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            '"(0, 1]","(3, 4]"',
+            '"(1, 2]","(4, 5]"',
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
     def test_to_csv_date_format_in_categorical(self):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
@@ -331,6 +363,44 @@ $1$,$2$
             ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
         )
         assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish(self, using_nan_is_na):
+        # GH#61617, GH#65227 - to_csv should not crash when FloatingArray
+        # contains unmasked NaN (with distinguish_nan_and_na=True)
+        df = DataFrame({"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"})
+        result = df.to_csv(index=False)
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", ",c", ",c", "3.0,c"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", "nan,c", ",c", "3.0,c"])
+        assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish_series(self, using_nan_is_na):
+        # GH#65227 - Series.to_csv with FloatingArray containing both NaN and NA
+        ser = pd.Series((1, pd.NA, 0), index=["a", "b", "c"], dtype="Float64", name="x")
+        ser = ser / ser
+        result = ser.to_csv()
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,nan"])
+        assert result == expected
+
+    def test_to_csv_2d_float_ea(self):
+        # GH#64634 - get_values_for_csv on a 2D float ExtensionArray should not fail.
+        data = np.array([1.0, np.nan, 3.0, 4.0])
+        mask = np.array([False, True, False, False])
+        arr2d = FloatingArray(data, mask).reshape(2, 2)
+
+        result = get_values_for_csv(
+            arr2d,
+            date_format=None,
+            na_rep="NA",
+            float_format=None,
+            decimal=".",
+        )
+        expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_to_csv_multi_index(self):
         # see gh-6618
@@ -390,7 +460,7 @@ $1$,$2$
         result = obj.to_csv(lineterminator="\n", header=True)
         assert result == expected
 
-    def test_to_csv_string_array_ascii(self):
+    def test_to_csv_string_array_ascii(self, temp_file):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
         df = DataFrame(str_array)
@@ -399,12 +469,11 @@ $1$,$2$
 0,"['foo', 'bar']"
 1,"['baz', 'qux']"
 """
-        with tm.ensure_clean("str_test.csv") as path:
-            df.to_csv(path, encoding="ascii")
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected_ascii
+        df.to_csv(temp_file, encoding="ascii")
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected_ascii
 
-    def test_to_csv_string_array_utf8(self):
+    def test_to_csv_string_array_utf8(self, temp_file):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
         df = DataFrame(str_array)
@@ -413,83 +482,85 @@ $1$,$2$
 0,"['foo', 'bar']"
 1,"['baz', 'qux']"
 """
-        with tm.ensure_clean("unicode_test.csv") as path:
-            df.to_csv(path, encoding="utf-8")
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected_utf8
+        df.to_csv(temp_file, encoding="utf-8")
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected_utf8
 
-    def test_to_csv_string_with_lf(self):
+    def test_to_csv_roundtrip_with_newline_in_field(self, temp_file):
+        # GH#22497 - embedded newlines in field values should survive roundtrip
+        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
+
+    def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
         df = DataFrame(data)
-        with tm.ensure_clean("lf_test.csv") as path:
-            # case 1: The default line terminator(=os.linesep)(PR 21406)
-            os_linesep = os.linesep.encode("utf-8")
-            expected_noarg = (
-                b"int,str_lf"
-                + os_linesep
-                + b"1,abc"
-                + os_linesep
-                + b'2,"d\nef"'
-                + os_linesep
-                + b'3,"g\nh\n\ni"'
-                + os_linesep
-            )
-            df.to_csv(path, index=False)
-            with open(path, "rb") as f:
-                assert f.read() == expected_noarg
-        with tm.ensure_clean("lf_test.csv") as path:
-            # case 2: LF as line terminator
-            expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
-            df.to_csv(path, lineterminator="\n", index=False)
-            with open(path, "rb") as f:
-                assert f.read() == expected_lf
-        with tm.ensure_clean("lf_test.csv") as path:
-            # case 3: CRLF as line terminator
-            # 'lineterminator' should not change inner element
-            expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
-            df.to_csv(path, lineterminator="\r\n", index=False)
-            with open(path, "rb") as f:
-                assert f.read() == expected_crlf
 
-    def test_to_csv_string_with_crlf(self):
+        # case 1: The default line terminator(=os.linesep)(PR 21406)
+        os_linesep = os.linesep.encode("utf-8")
+        expected_noarg = (
+            b"int,str_lf"
+            + os_linesep
+            + b"1,abc"
+            + os_linesep
+            + b'2,"d\nef"'
+            + os_linesep
+            + b'3,"g\nh\n\ni"'
+            + os_linesep
+        )
+        df.to_csv(temp_file, index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_noarg
+
+        # case 2: LF as line terminator
+        expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
+        df.to_csv(temp_file, lineterminator="\n", index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_lf
+
+        # case 3: CRLF as line terminator
+        # 'lineterminator' should not change inner element
+        expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
+        df.to_csv(temp_file, lineterminator="\r\n", index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_crlf
+
+    def test_to_csv_string_with_crlf(self, temp_file):
         # GH 20353
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}
         df = DataFrame(data)
-        with tm.ensure_clean("crlf_test.csv") as path:
-            # case 1: The default line terminator(=os.linesep)(PR 21406)
-            os_linesep = os.linesep.encode("utf-8")
-            expected_noarg = (
-                b"int,str_crlf"
-                + os_linesep
-                + b"1,abc"
-                + os_linesep
-                + b'2,"d\r\nef"'
-                + os_linesep
-                + b'3,"g\r\nh\r\n\r\ni"'
-                + os_linesep
-            )
-            df.to_csv(path, index=False)
-            with open(path, "rb") as f:
-                assert f.read() == expected_noarg
-        with tm.ensure_clean("crlf_test.csv") as path:
-            # case 2: LF as line terminator
-            expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
-            df.to_csv(path, lineterminator="\n", index=False)
-            with open(path, "rb") as f:
-                assert f.read() == expected_lf
-        with tm.ensure_clean("crlf_test.csv") as path:
-            # case 3: CRLF as line terminator
-            # 'lineterminator' should not change inner element
-            expected_crlf = (
-                b"int,str_crlf\r\n"
-                b"1,abc\r\n"
-                b'2,"d\r\nef"\r\n'
-                b'3,"g\r\nh\r\n\r\ni"\r\n'
-            )
-            df.to_csv(path, lineterminator="\r\n", index=False)
-            with open(path, "rb") as f:
-                assert f.read() == expected_crlf
+        # case 1: The default line terminator(=os.linesep)(PR 21406)
+        os_linesep = os.linesep.encode("utf-8")
+        expected_noarg = (
+            b"int,str_crlf"
+            + os_linesep
+            + b"1,abc"
+            + os_linesep
+            + b'2,"d\r\nef"'
+            + os_linesep
+            + b'3,"g\r\nh\r\n\r\ni"'
+            + os_linesep
+        )
+        df.to_csv(temp_file, index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_noarg
+
+        # case 2: LF as line terminator
+        expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
+        df.to_csv(temp_file, lineterminator="\n", index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_lf
+
+        # case 3: CRLF as line terminator
+        # 'lineterminator' should not change inner element
+        expected_crlf = (
+            b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
+        )
+        df.to_csv(temp_file, lineterminator="\r\n", index=False)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_crlf
 
     def test_to_csv_stdout_file(self, capsys):
         # GH 21561
@@ -511,7 +582,7 @@ $1$,$2$
             "(https://docs.python.org/3/library/csv.html#csv.writer)"
         ),
     )
-    def test_to_csv_write_to_open_file(self):
+    def test_to_csv_write_to_open_file(self, temp_file):
         # GH 21696
         df = DataFrame({"a": ["x", "y", "z"]})
         expected = """\
@@ -520,87 +591,86 @@ x
 y
 z
 """
-        with tm.ensure_clean("test.txt") as path:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write("manual header\n")
-                df.to_csv(f, header=None, index=None)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write("manual header\n")
+            df.to_csv(f, header=None, index=None)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
-    def test_to_csv_write_to_open_file_with_newline_py3(self):
+    def test_to_csv_write_to_open_file_with_newline_py3(self, temp_file):
         # see gh-21696
         # see gh-20353
         df = DataFrame({"a": ["x", "y", "z"]})
         expected_rows = ["x", "y", "z"]
         expected = "manual header\n" + tm.convert_rows_list_to_csv_str(expected_rows)
-        with tm.ensure_clean("test.txt") as path:
-            with open(path, "w", newline="", encoding="utf-8") as f:
-                f.write("manual header\n")
-                df.to_csv(f, header=None, index=None)
 
-            with open(path, "rb") as f:
-                assert f.read() == bytes(expected, "utf-8")
+        with open(temp_file, "w", newline="", encoding="utf-8") as f:
+            f.write("manual header\n")
+            df.to_csv(f, header=None, index=None)
+
+        with open(temp_file, "rb") as f:
+            assert f.read() == bytes(expected, "utf-8")
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
     def test_to_csv_compression(
-        self, compression_only, read_infer, to_infer, compression_to_extension
+        self,
+        compression_only,
+        read_infer,
+        to_infer,
+        compression_to_extension,
+        temp_file,
     ):
         # see gh-15008
         compression = compression_only
-
-        # We'll complete file extension subsequently.
-        filename = "test."
-        filename += compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
         to_compression = "infer" if to_infer else compression
         read_compression = "infer" if read_infer else compression
 
-        with tm.ensure_clean(filename) as path:
-            df.to_csv(path, compression=to_compression)
-            result = pd.read_csv(path, index_col=0, compression=read_compression)
-            tm.assert_frame_equal(result, df)
+        path_ext = str(temp_file) + "." + compression_to_extension[compression]
+        df.to_csv(path_ext, compression=to_compression)
+        result = pd.read_csv(path_ext, index_col=0, compression=read_compression)
+        tm.assert_frame_equal(result, df)
 
-    def test_to_csv_compression_dict(self, compression_only):
+    def test_to_csv_compression_dict(self, compression_only, temp_file):
         # GH 26023
         method = compression_only
         df = DataFrame({"ABC": [1]})
-        filename = "to_csv_compress_as_dict."
         extension = {
             "gzip": "gz",
             "zstd": "zst",
         }.get(method, method)
-        filename += extension
-        with tm.ensure_clean(filename) as path:
-            df.to_csv(path, compression={"method": method})
-            read_df = pd.read_csv(path, index_col=0)
-            tm.assert_frame_equal(read_df, df)
 
-    def test_to_csv_compression_dict_no_method_raises(self):
+        path = str(temp_file) + "." + extension
+        df.to_csv(path, compression={"method": method})
+        read_df = pd.read_csv(path, index_col=0)
+        tm.assert_frame_equal(read_df, df)
+
+    def test_to_csv_compression_dict_no_method_raises(self, temp_file):
         # GH 26023
         df = DataFrame({"ABC": [1]})
         compression = {"some_option": True}
         msg = "must have key 'method'"
 
-        with tm.ensure_clean("out.zip") as path:
-            with pytest.raises(ValueError, match=msg):
-                df.to_csv(path, compression=compression)
+        with pytest.raises(ValueError, match=msg):
+            df.to_csv(temp_file, compression=compression)
 
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
-    def test_to_csv_zip_arguments(self, compression, archive_name):
+    def test_to_csv_zip_arguments(self, compression, archive_name, temp_file):
         # GH 26023
         df = DataFrame({"ABC": [1]})
-        with tm.ensure_clean("to_csv_archive_name.zip") as path:
-            df.to_csv(
-                path, compression={"method": compression, "archive_name": archive_name}
-            )
-            with ZipFile(path) as zp:
-                assert len(zp.filelist) == 1
-                archived_file = zp.filelist[0].filename
-                assert archived_file == archive_name
+
+        path = str(temp_file) + ".zip"
+        df.to_csv(
+            path, compression={"method": compression, "archive_name": archive_name}
+        )
+        with ZipFile(path) as zp:
+            assert len(zp.filelist) == 1
+            archived_file = zp.filelist[0].filename
+            assert archived_file == archive_name
 
     @pytest.mark.parametrize(
         "filename,expected_arcname",
@@ -625,7 +695,7 @@ z
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
         # see gh-25099
-        df = DataFrame({"c": [float("nan")] * 3})
+        df = DataFrame({"c": [pd.NA] * 3})
         df = df.astype(df_new_type)
         expected_rows = ["c", "mynull", "mynull", "mynull"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
@@ -663,17 +733,17 @@ z
         assert result == expected
 
     @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
-    def test_to_csv_errors(self, errors):
+    def test_to_csv_errors(self, errors, temp_file):
         # GH 22610
         data = ["\ud800foo"]
         ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
-        with tm.ensure_clean("test.csv") as path:
-            ser.to_csv(path, errors=errors)
+
+        ser.to_csv(temp_file, errors=errors)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
     @pytest.mark.parametrize("mode", ["wb", "w"])
-    def test_to_csv_binary_handle(self, mode):
+    def test_to_csv_binary_handle(self, mode, temp_file):
         """
         Binary file objects should work (if 'mode' contains a 'b') or even without
         it in most cases.
@@ -685,13 +755,13 @@ z
             columns=Index(list("ABCD")),
             index=Index([f"i-{i}" for i in range(30)]),
         )
-        with tm.ensure_clean() as path:
-            with open(path, mode="w+b") as handle:
-                df.to_csv(handle, mode=mode)
-            tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+
+        with open(temp_file, mode="w+b") as handle:
+            df.to_csv(handle, mode=mode)
+        tm.assert_frame_equal(df, pd.read_csv(temp_file, index_col=0))
 
     @pytest.mark.parametrize("mode", ["wb", "w"])
-    def test_to_csv_encoding_binary_handle(self, mode):
+    def test_to_csv_encoding_binary_handle(self, mode, temp_file):
         """
         Binary file objects should honor a specified encoding.
 
@@ -708,26 +778,24 @@ z
         assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
-        with tm.ensure_clean() as path:
-            with open(path, "w+b") as handle:
-                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
+        with open(temp_file, "w+b") as handle:
+            DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
 
-                handle.seek(0)
-                assert handle.read().startswith(b'\xef\xbb\xbf""')
+            handle.seek(0)
+            assert handle.read().startswith(b'\xef\xbb\xbf""')
 
 
-def test_to_csv_iterative_compression_name(compression):
+def test_to_csv_iterative_compression_name(compression, temp_file):
     # GH 38714
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
-    with tm.ensure_clean() as path:
-        df.to_csv(path, compression=compression, chunksize=1)
-        tm.assert_frame_equal(
-            pd.read_csv(path, compression=compression, index_col=0), df
-        )
+    df.to_csv(temp_file, compression=compression, chunksize=1)
+    tm.assert_frame_equal(
+        pd.read_csv(temp_file, compression=compression, index_col=0), df
+    )
 
 
 def test_to_csv_iterative_compression_buffer(compression):
@@ -744,3 +812,140 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
+
+
+def test_new_style_float_format_basic():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A\n0,1234.57\n1,9876.54\n"
+    assert result == expected
+
+
+def test_new_style_float_format_thousands():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format="{:,.2f}", lineterminator="\n")
+    expected = ',A\n0,"1,234.57"\n1,"9,876.54"\n'
+    assert result == expected
+
+
+def test_new_style_scientific_format():
+    df = DataFrame({"A": [0.000123, 0.000456]})
+    result = df.to_csv(float_format="{:.2e}", lineterminator="\n")
+    expected = ",A\n0,1.23e-04\n1,4.56e-04\n"
+    assert result == expected
+
+
+def test_new_style_with_nan():
+    df = DataFrame({"A": [1.23, np.nan, 4.56]})
+    result = df.to_csv(float_format="{:.2f}", na_rep="NA", lineterminator="\n")
+    expected = ",A\n0,1.23\n1,NA\n2,4.56\n"
+    assert result == expected
+
+
+def test_new_style_with_mixed_types():
+    df = DataFrame({"A": [1.23, 4.56], "B": ["x", "y"]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A,B\n0,1.23,x\n1,4.56,y\n"
+    assert result == expected
+
+
+def test_new_style_with_mixed_types_in_column():
+    df = DataFrame({"A": [1.23, "text", 4.56]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A\n0,1.23\n1,text\n2,4.56\n"
+    assert result == expected
+
+
+def test_invalid_new_style_format_missing_brace():
+    df = DataFrame({"A": [1.23]})
+    with pytest.raises(ValueError, match="Invalid new-style format string '{:.2f"):
+        df.to_csv(float_format="{:.2f")
+
+
+def test_invalid_new_style_format_specifier():
+    df = DataFrame({"A": [1.23]})
+    with pytest.raises(ValueError, match="Invalid new-style format string '{:.2z}'"):
+        df.to_csv(float_format="{:.2z}")
+
+
+def test_old_style_format_compatibility():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format="%.2f", lineterminator="\n")
+    expected = ",A\n0,1234.57\n1,9876.54\n"
+    assert result == expected
+
+
+def test_callable_float_format_compatibility():
+    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    result = df.to_csv(float_format=lambda x: f"{x:,.2f}", lineterminator="\n")
+    expected = ',A\n0,"1,234.57"\n1,"9,876.54"\n'
+    assert result == expected
+
+
+def test_no_float_format():
+    df = DataFrame({"A": [1.23, 4.56]})
+    result = df.to_csv(float_format=None, lineterminator="\n")
+    expected = ",A\n0,1.23\n1,4.56\n"
+    assert result == expected
+
+
+def test_large_numbers():
+    df = DataFrame({"A": [1e308, 2e308]})
+    result = df.to_csv(float_format="{:.2e}", lineterminator="\n")
+    expected = ",A\n0,1.00e+308\n1,inf\n"
+    assert result == expected
+
+
+def test_zero_and_negative():
+    df = DataFrame({"A": [0.0, -1.23456]})
+    result = df.to_csv(float_format="{:+.2f}", lineterminator="\n")
+    expected = ",A\n0,+0.00\n1,-1.23\n"
+    assert result == expected
+
+
+def test_unicode_format():
+    df = DataFrame({"A": [1.23, 4.56]})
+    result = df.to_csv(float_format="{:.2f}€", encoding="utf-8", lineterminator="\n")
+    expected = ",A\n0,1.23€\n1,4.56€\n"
+    assert result == expected
+
+
+def test_empty_dataframe():
+    df = DataFrame({"A": []})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A\n"
+    assert result == expected
+
+
+def test_multi_column_float():
+    df = DataFrame({"A": [1.23, 4.56], "B": [7.89, 0.12]})
+    result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
+    expected = ",A,B\n0,1.23,7.89\n1,4.56,0.12\n"
+    assert result == expected
+
+
+def test_invalid_float_format_type():
+    df = DataFrame({"A": [1.23]})
+    with pytest.raises(ValueError, match="float_format must be a string or callable"):
+        df.to_csv(float_format=123)
+
+
+def test_new_style_with_inf():
+    df = DataFrame({"A": [1.23, np.inf, -np.inf]})
+    result = df.to_csv(float_format="{:.2f}", na_rep="NA", lineterminator="\n")
+    expected = ",A\n0,1.23\n1,inf\n2,-inf\n"
+    assert result == expected
+
+
+def test_new_style_with_precision_edge():
+    df = DataFrame({"A": [1.23456789]})
+    result = df.to_csv(float_format="{:.10f}", lineterminator="\n")
+    expected = ",A\n0,1.2345678900\n"
+    assert result == expected
+
+
+def test_new_style_with_template():
+    df = DataFrame({"A": [1234.56789]})
+    result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
+    expected = ',A\n0,"Value: 1,234.57"\n'
+    assert result == expected

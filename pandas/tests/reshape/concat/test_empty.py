@@ -1,3 +1,5 @@
+import struct
+
 import numpy as np
 import pytest
 
@@ -27,7 +29,7 @@ class TestEmptyConcat:
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
         expected["foo"] = expected["foo"].astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         expected.loc[0:4, "foo"] = "bar"
 
@@ -62,11 +64,9 @@ class TestEmptyConcat:
 
         s1 = Series([1, 2, 3], name="x")
         s2 = Series(name="y", dtype="float64")
-        msg = "The behavior of array concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = concat([s1, s2], axis=0)
+        res = concat([s1, s2], axis=0)
         # name will be reset
-        exp = Series([1, 2, 3])
+        exp = Series([1, 2, 3], dtype="float64")
         tm.assert_series_equal(res, exp)
 
         # empty Series with no name
@@ -284,7 +284,7 @@ class TestEmptyConcat:
 
         result = concat([df1[:0], df2[:0]])
         assert result["a"].dtype == np.int64
-        assert result["b"].dtype == np.object_ if not using_infer_string else "string"
+        assert result["b"].dtype == np.object_ if not using_infer_string else "str"
 
     def test_concat_to_empty_ea(self):
         """48510 `concat` to an empty EA should maintain type EA dtype."""
@@ -293,3 +293,17 @@ class TestEmptyConcat:
         expected = df_new.copy()
         result = concat([df_empty, df_new])
         tm.assert_frame_equal(result, expected)
+
+
+def test_concat_preserves_nan_payload():
+    # GH#51675 concat must not replace user-supplied NaN bit patterns
+    payload_nan = struct.unpack(">d", bytes.fromhex("fffffffffffffffe"))[0]
+    values = np.array([payload_nan, np.nan], dtype=np.float64)
+
+    df = DataFrame(values)
+    empty = DataFrame([], columns=[0], dtype=np.float64)
+
+    for frames in ([df, empty], [empty, df], [df, df.iloc[:0]]):
+        result = concat(frames)[0].to_numpy()
+        result_bytes = result[: len(values)].tobytes()
+        assert result_bytes == values.tobytes()

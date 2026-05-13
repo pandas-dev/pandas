@@ -7,6 +7,9 @@ Series
 ======
 .. currentmodule:: pandas
 
+.. note::
+   For an introduction to using Series, see :ref:`basics`.
+
 Constructor
 -----------
 .. autosummary::
@@ -25,6 +28,7 @@ Attributes
    Series.array
    Series.values
    Series.dtype
+   Series.info
    Series.shape
    Series.nbytes
    Series.ndim
@@ -82,6 +86,7 @@ Binary operator functions
    Series.sub
    Series.mul
    Series.div
+   Series.divmod
    Series.truediv
    Series.floordiv
    Series.mod
@@ -90,6 +95,7 @@ Binary operator functions
    Series.rsub
    Series.rmul
    Series.rdiv
+   Series.rdivmod
    Series.rtruediv
    Series.rfloordiv
    Series.rmod
@@ -423,6 +429,7 @@ strings and apply several methods to it. These can be accessed like
    Series.str.fullmatch
    Series.str.get
    Series.str.index
+   Series.str.isascii
    Series.str.join
    Series.str.len
    Series.str.ljust
@@ -564,7 +571,7 @@ Flags
 ~~~~~
 
 Flags refer to attributes of the pandas object. Properties of the dataset (like
-the date is was recorded, the URL it was accessed from, etc.) should be stored
+the date it was recorded, the URL it was accessed from, etc.) should be stored
 in :attr:`Series.attrs`.
 
 .. autosummary::
@@ -622,6 +629,7 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
+   Series.from_arrow
    Series.to_pickle
    Series.to_csv
    Series.to_dict

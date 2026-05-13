@@ -309,5 +309,5 @@ def test_rich_comparison_with_unsupported_type():
     for left, right in [(inf, timestamp), (timestamp, inf)]:
         assert left > right or left < right
         assert left >= right or left <= right
-        assert not left == right  # pylint: disable=unneeded-not
+        assert not left == right
         assert left != right

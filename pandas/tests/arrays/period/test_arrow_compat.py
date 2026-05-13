@@ -1,14 +1,11 @@
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under10p1
-
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import (
     PeriodArray,
-    period_array,
 )
 
 pytestmark = pytest.mark.filterwarnings(
@@ -33,7 +30,6 @@ def test_arrow_extension_type():
     assert hash(p1) != hash(p3)
 
 
-@pytest.mark.xfail(not pa_version_under10p1, reason="Wrong behavior with pyarrow 10")
 @pytest.mark.parametrize(
     "data, freq",
     [
@@ -44,7 +40,7 @@ def test_arrow_extension_type():
 def test_arrow_array(data, freq):
     from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
-    periods = period_array(data, freq=freq)
+    periods = pd.PeriodIndex(data, freq=freq).array
     result = pa.array(periods)
     assert isinstance(result.type, ArrowPeriodType)
     assert result.type.freq == freq
@@ -59,9 +55,6 @@ def test_arrow_array(data, freq):
     msg = "Not supported to convert PeriodArray to 'double' type"
     with pytest.raises(TypeError, match=msg):
         pa.array(periods, type="float64")
-
-    with pytest.raises(TypeError, match="different 'freq'"):
-        pa.array(periods, type=ArrowPeriodType("T"))
 
 
 def test_arrow_array_missing():

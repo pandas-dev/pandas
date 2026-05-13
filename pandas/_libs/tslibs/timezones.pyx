@@ -1,17 +1,12 @@
+cimport cython
 from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
+from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
 from pandas.compat._optional import import_optional_dependency
-
-try:
-    # py39+
-    import zoneinfo
-    from zoneinfo import ZoneInfo
-except ImportError:
-    zoneinfo = None
-    ZoneInfo = None
 
 from cpython.datetime cimport (
     datetime,
@@ -28,8 +23,8 @@ from dateutil.tz import (
     tzutc as _dateutil_tzutc,
 )
 import numpy as np
-import pytz
-from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
+
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 cimport numpy as cnp
 from numpy cimport int64_t
@@ -45,10 +40,11 @@ from pandas._libs.tslibs.util cimport (
 
 cdef int64_t NPY_NAT = get_nat()
 cdef tzinfo utc_stdlib = timezone.utc
-cdef tzinfo utc_pytz = pytz.utc
+cdef tzinfo utc_pytz = pytz.UTC if pytz else None
 cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tzutc()
 
 cdef tzinfo utc_zoneinfo = None
+cdef type ZoneInfo = zoneinfo.ZoneInfo
 
 
 # ----------------------------------------------------------------------
@@ -56,35 +52,30 @@ cdef tzinfo utc_zoneinfo = None
 cdef bint is_utc_zoneinfo(tzinfo tz):
     # Workaround for cases with missing tzdata
     #  https://github.com/pandas-dev/pandas/pull/46425#discussion_r830633025
-    if tz is None or zoneinfo is None:
+    if tz is None:
         return False
 
     global utc_zoneinfo
     if utc_zoneinfo is None:
         try:
-            utc_zoneinfo = ZoneInfo("UTC")
+            utc_zoneinfo = zoneinfo.ZoneInfo("UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             return False
-        # Warn if tzdata is too old, even if there is a system tzdata to alert
-        # users about the mismatch between local/system tzdata
-        import_optional_dependency("tzdata", errors="warn", min_version="2022.7")
 
     return tz is utc_zoneinfo
 
 
 cpdef inline bint is_utc(tzinfo tz):
     return (
-        tz is utc_pytz
-        or tz is utc_stdlib
+        tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
         or tz is utc_dateutil_str
         or is_utc_zoneinfo(tz)
+        or (utc_pytz is not None and tz is utc_pytz)
     )
 
 
 cdef bint is_zoneinfo(tzinfo tz):
-    if ZoneInfo is None:
-        return False
     return isinstance(tz, ZoneInfo)
 
 
@@ -119,27 +110,26 @@ cpdef inline object get_timezone(tzinfo tz):
         raise TypeError("tz argument cannot be None")
     if is_utc(tz):
         return tz
+    elif is_zoneinfo(tz):
+        return tz.key
+    elif treat_tz_as_pytz(tz):
+        zone = tz.zone
+        if zone is None:
+            return tz
+        return zone
+    elif treat_tz_as_dateutil(tz):
+        if ".tar.gz" in tz._filename:
+            raise ValueError(
+                "Bad tz filename. Dateutil on python 3 on windows has a "
+                "bug which causes tzfile._filename to be the same for all "
+                "timezone files. Please construct dateutil timezones "
+                'implicitly by passing a string like "dateutil/Europe'
+                '/London" when you construct your pandas objects instead '
+                "of passing a timezone object. See "
+                "https://github.com/pandas-dev/pandas/pull/7362")
+        return "dateutil/" + tz._filename
     else:
-        if treat_tz_as_dateutil(tz):
-            if ".tar.gz" in tz._filename:
-                raise ValueError(
-                    "Bad tz filename. Dateutil on python 3 on windows has a "
-                    "bug which causes tzfile._filename to be the same for all "
-                    "timezone files. Please construct dateutil timezones "
-                    'implicitly by passing a string like "dateutil/Europe'
-                    '/London" when you construct your pandas objects instead '
-                    "of passing a timezone object. See "
-                    "https://github.com/pandas-dev/pandas/pull/7362")
-            return "dateutil/" + tz._filename
-        else:
-            # tz is a pytz timezone or unknown.
-            try:
-                zone = tz.zone
-                if zone is None:
-                    return tz
-                return zone
-            except AttributeError:
-                return tz
+        return tz
 
 
 cpdef inline tzinfo maybe_get_tz(object tz):
@@ -167,10 +157,13 @@ cpdef inline tzinfo maybe_get_tz(object tz):
         elif tz == "UTC" or tz == "utc":
             tz = utc_stdlib
         else:
-            tz = pytz.timezone(tz)
+            tz = zoneinfo.ZoneInfo(tz)
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
+        if treat_tz_as_pytz(tz) and pytz is None:
+            # call again for raising proper error
+            import_optional_dependency("pytz")
         pass
     elif tz is None:
         pass
@@ -206,7 +199,7 @@ cdef object tz_cache_key(tzinfo tz):
     the same tz file). Also, pytz objects are not always hashable so we use
     str(tz) instead.
     """
-    if isinstance(tz, _pytz_BaseTzInfo):
+    if pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
         return tz.zone
     elif isinstance(tz, _dateutil_tzfile):
         if ".tar.gz" in tz._filename:
@@ -219,6 +212,8 @@ cdef object tz_cache_key(tzinfo tz):
                              "of passing a timezone object. See "
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
+    elif is_zoneinfo(tz):
+        return "zoneinfo/" + tz.key
     else:
         return None
 
@@ -240,14 +235,18 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 1
         else:
             return 0
-    elif treat_tz_as_pytz(tz):
+    elif treat_tz_as_pytz(tz) and pytz is not None:
         if (len(tz._transition_info) == 0
                 and len(tz._utc_transition_times) == 0):
             return 1
         else:
             return 0
     elif is_zoneinfo(tz):
-        return 0
+        tz_py = _ZoneInfo(tz.key)
+        if tz_py._fixed_offset:
+            return 1
+        else:
+            return 0
     # This also implicitly accepts datetime.timezone objects which are
     # considered fixed
     return 1
@@ -261,13 +260,15 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     """
     new_trans = list(tz._trans_list)
     last_std_offset = 0
-    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
+    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx, strict=True)):
         if not tti.isdst:
             last_std_offset = tti.offset
         new_trans[i] = trans - last_std_offset
     return new_trans
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i
@@ -285,6 +286,99 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 
 # ----------------------------------------------------------------------
 # Daylight Savings
+
+
+cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
+    """
+    Get transition times and UTC offsets for a ZoneInfo timezone.
+
+    Uses zoneinfo's Python fallback implementation to get transition data,
+    including future transitions generated from POSIX TZ rules.
+
+    Parameters
+    ----------
+    tz : ZoneInfo
+
+    Returns
+    -------
+    trans : ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    deltas : ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    is_fixed : bint
+        True if this is a fixed-offset timezone with no transitions.
+    """
+    cdef:
+        int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
+        list trans_utc, deltas_seconds, future_trans
+        int year, last_year, std_offset, dst_offset
+
+    tz_py = _ZoneInfo(tz.key)
+
+    if tz_py._fixed_offset:
+        fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
+        trans = np.array([NPY_NAT + 1], dtype=np.int64)
+        deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
+        return trans, deltas, True
+
+    trans_utc = list(tz_py._trans_utc)
+    deltas_seconds = [int(info.utcoff.total_seconds()) for info in tz_py._ttinfos]
+
+    has_future_dst = (
+        hasattr(tz_py, "_tz_after")
+        and tz_py._tz_after is not None
+        and hasattr(tz_py._tz_after, "transitions")
+    )
+    if has_future_dst:
+        # ZoneInfo's _trans_utc only contains historical data (typically up to
+        # the late 1990s for many timezones). POSIX TZ rules stored in _tz_after
+        # are required to generate transitions for current and future dates.
+        # Without this block, DST-observing timezones like Europe/Amsterdam
+        # would return incorrect offsets for any date after ~1996.
+        tz_after = tz_py._tz_after
+        std_offset = int(tz_after.std.utcoff.total_seconds())
+        dst_offset = int(tz_after.dst.utcoff.total_seconds())
+
+        if trans_utc:
+            last_hist_ts = trans_utc[-1]
+            try:
+                last_year = datetime.fromtimestamp(last_hist_ts, timezone.utc).year
+            except (OSError, OverflowError, ValueError):
+                last_year = 1970
+        else:
+            last_hist_ts = 0
+            last_year = 1970
+
+        future_trans = []
+        for year in range(last_year, 2100):
+            try:
+                year_trans = tz_after.transitions(year)
+                if not year_trans:
+                    break
+                start_local, end_local = year_trans
+                start_utc = start_local - std_offset
+                end_utc = end_local - dst_offset
+                if start_utc > last_hist_ts:
+                    future_trans.append((start_utc, dst_offset))
+                if end_utc > last_hist_ts:
+                    future_trans.append((end_utc, std_offset))
+            except Exception:
+                break
+
+        future_trans.sort()
+
+        for t, d in future_trans:
+            trans_utc.append(t)
+            deltas_seconds.append(d)
+
+    trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
+    trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
+
+    first_offset_seconds = int(tz_py._tti_before.utcoff.total_seconds())
+    deltas = np.array(deltas_seconds, dtype="i8") * 1_000_000_000
+    deltas = np.hstack([[first_offset_seconds * 1_000_000_000], deltas])
+
+    return trans, deltas, False
 
 
 cdef object get_dst_info(tzinfo tz):
@@ -349,6 +443,11 @@ cdef object get_dst_info(tzinfo tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
+
+        elif is_zoneinfo(tz):
+            trans, deltas, is_fixed = _get_zoneinfo_trans_and_deltas(tz)
+            typ = "fixed" if is_fixed else "zoneinfo"
+
         else:
             # static tzinfo, we can get here with pytz.StaticTZInfo
             #  which are not caught by treat_tz_as_pytz
@@ -415,7 +514,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
 
 def tz_standardize(tz: tzinfo) -> tzinfo:
     """
-    If the passed tz is a pytz timezone object, "normalize" it to the a
+    If the passed tz is a pytz timezone object, "normalize" it to a
     consistent version
 
     Parameters
@@ -444,6 +543,6 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
     """
-    if treat_tz_as_pytz(tz):
+    if treat_tz_as_pytz(tz) and pytz is not None:
         return pytz.timezone(str(tz))
     return tz

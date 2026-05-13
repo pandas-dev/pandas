@@ -23,6 +23,7 @@ You can run this manually with
 
     pre-commit run sort-whatsnew-items --all-files
 """
+
 from __future__ import annotations
 
 import argparse

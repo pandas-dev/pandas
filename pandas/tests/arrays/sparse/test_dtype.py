@@ -1,5 +1,4 @@
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -76,17 +75,12 @@ def test_nans_not_equal():
     assert b != a
 
 
-with warnings.catch_warnings():
-    msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
-    warnings.filterwarnings("ignore", msg, category=FutureWarning)
-
-    tups = [
-        (SparseDtype("float64"), SparseDtype("float32")),
-        (SparseDtype("float64"), SparseDtype("float64", 0)),
-        (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
-        (SparseDtype(int, pd.NaT), SparseDtype(float, pd.NaT)),
-        (SparseDtype("float64"), np.dtype("float64")),
-    ]
+tups = [
+    (SparseDtype("float64"), SparseDtype("float32")),
+    (SparseDtype("float64"), SparseDtype("float64", 0)),
+    (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
+    (SparseDtype("float64"), np.dtype("float64")),
+]
 
 
 @pytest.mark.parametrize(
@@ -185,7 +179,7 @@ def test_construct_from_string_fill_value_raises(string):
     [
         (SparseDtype(int, 0), float, SparseDtype(float, 0.0)),
         (SparseDtype(int, 1), float, SparseDtype(float, 1.0)),
-        (SparseDtype(int, 1), str, SparseDtype(object, "1")),
+        (SparseDtype(int, 1), np.str_, SparseDtype(object, "1")),
         (SparseDtype(float, 1.5), int, SparseDtype(int, 1)),
     ],
 )

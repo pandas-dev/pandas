@@ -308,15 +308,26 @@ The new orient ``'table'`` for :meth:`DataFrame.to_json`
 will generate a `Table Schema`_ compatible string representation of
 the data.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.DataFrame(
-       {'A': [1, 2, 3],
-        'B': ['a', 'b', 'c'],
-        'C': pd.date_range('2016-01-01', freq='d', periods=3)},
-       index=pd.Index(range(3), name='idx'))
-   df
-   df.to_json(orient='table')
+   In [38]: df = pd.DataFrame(
+      ....: {'A': [1, 2, 3],
+      ....:  'B': ['a', 'b', 'c'],
+      ....:  'C': pd.date_range('2016-01-01', freq='d', periods=3)},
+      ....: index=pd.Index(range(3), name='idx'))
+   In [39]: df
+   Out[39]:
+        A  B          C
+   idx
+   0    1  a 2016-01-01
+   1    2  b 2016-01-02
+   2    3  c 2016-01-03
+
+   [3 rows x 3 columns]
+
+   In [40]: df.to_json(orient='table')
+   Out[40]:
+   '{"schema":{"fields":[{"name":"idx","type":"integer"},{"name":"A","type":"integer"},{"name":"B","type":"string"},{"name":"C","type":"datetime"}],"primaryKey":["idx"],"pandas_version":"1.4.0"},"data":[{"idx":0,"A":1,"B":"a","C":"2016-01-01T00:00:00.000"},{"idx":1,"A":2,"B":"b","C":"2016-01-02T00:00:00.000"},{"idx":2,"A":3,"B":"c","C":"2016-01-03T00:00:00.000"}]}'
 
 
 See :ref:`IO: Table Schema for more information <io.table_schema>`.
@@ -341,7 +352,7 @@ SciPy sparse matrix from/to SparseDataFrame
 pandas now supports creating sparse dataframes directly from ``scipy.sparse.spmatrix`` instances.
 See the :ref:`documentation <sparse.scipysparse>` for more information. (:issue:`4343`)
 
-All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
+All sparse formats are supported, but matrices that are not in ``COOrdinate`` format will be converted, copying data as needed.
 
 .. code-block:: python
 
@@ -504,7 +515,7 @@ Other enhancements
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
 - Compatibility with Jupyter notebook 5.0; MultiIndex column labels are left-aligned and MultiIndex row-labels are top-aligned (:issue:`15379`)
 - ``TimedeltaIndex`` now has a custom date-tick formatter specifically designed for nanosecond level precision (:issue:`8711`)
-- ``pd.api.types.union_categoricals`` gained the ``ignore_ordered`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
+- ``pd.api.types.union_categoricals`` gained the ``ignore_order`` argument to allow ignoring the ordered attribute of unioned categoricals (:issue:`13410`). See the :ref:`categorical union docs <categorical.union>` for more information.
 - ``DataFrame.to_latex()`` and ``DataFrame.to_string()`` now allow optional header aliases. (:issue:`15536`)
 - Re-enable the ``parse_dates`` keyword of ``pd.read_excel()`` to parse string columns as dates (:issue:`14326`)
 - Added ``.empty`` property to subclasses of ``Index``. (:issue:`15270`)

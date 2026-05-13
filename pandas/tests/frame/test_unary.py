@@ -3,8 +3,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gte1p25
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -51,22 +49,13 @@ class TestDataFrameUnaryOperators:
         df = pd.DataFrame({"a": df_data})
         msg = (
             "bad operand type for unary -: 'str'|"
-            r"bad operand type for unary -: 'DatetimeArray'"
+            r"bad operand type for unary -: 'DatetimeArray'|"
+            "unary '-' not supported for dtype"
         )
-        if using_infer_string and df.dtypes.iloc[0] == "string":
-            import pyarrow as pa
-
-            msg = "has no kernel"
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                (-df)
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                (-df["a"])
-
-        else:
-            with pytest.raises(TypeError, match=msg):
-                (-df)
-            with pytest.raises(TypeError, match=msg):
-                (-df["a"])
+        with pytest.raises(TypeError, match=msg):
+            (-df)
+        with pytest.raises(TypeError, match=msg):
+            (-df["a"])
 
     def test_invert(self, float_frame):
         df = float_frame
@@ -132,13 +121,10 @@ class TestDataFrameUnaryOperators:
     def test_pos_object_raises(self):
         # GH#21380
         df = pd.DataFrame({"a": ["a", "b"]})
-        if np_version_gte1p25:
-            with pytest.raises(
-                TypeError, match=r"^bad operand type for unary \+: \'str\'$"
-            ):
-                tm.assert_frame_equal(+df, df)
-        else:
-            tm.assert_series_equal(+df["a"], df["a"])
+        with pytest.raises(
+            TypeError, match=r"^bad operand type for unary \+: \'str\'$"
+        ):
+            tm.assert_frame_equal(+df, df)
 
     def test_pos_raises(self):
         df = pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})

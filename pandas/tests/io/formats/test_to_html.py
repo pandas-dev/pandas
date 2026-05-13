@@ -94,8 +94,7 @@ def test_to_html_with_column_specific_col_space_raises():
     )
 
     msg = (
-        "Col_space length\\(\\d+\\) should match "
-        "DataFrame number of columns\\(\\d+\\)"
+        "Col_space length\\(\\d+\\) should match DataFrame number of columns\\(\\d+\\)"
     )
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space=[30, 40])
@@ -148,12 +147,11 @@ def test_to_html_unicode(df_data, expected, datapath):
     assert result == expected
 
 
-def test_to_html_encoding(float_frame, tmp_path):
+def test_to_html_encoding(float_frame, temp_file):
     # GH 28663
-    path = tmp_path / "test.html"
-    float_frame.to_html(path, encoding="gbk")
-    with open(str(path), encoding="gbk") as f:
-        assert float_frame.to_html() == f.read()
+    float_frame.to_html(temp_file, encoding="gbk")
+    expected = temp_file.read_text(encoding="gbk")
+    assert float_frame.to_html() == expected
 
 
 def test_to_html_decimal(datapath):
@@ -934,9 +932,11 @@ class TestReprHTML:
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
         assert "tex2jax_ignore" not in df._repr_html_()
+        assert "mathjax_ignore" not in df._repr_html_()
 
         with option_context("display.html.use_mathjax", False):
             assert "tex2jax_ignore" in df._repr_html_()
+            assert "mathjax_ignore" in df._repr_html_()
 
     def test_repr_html_wide(self):
         max_cols = 20

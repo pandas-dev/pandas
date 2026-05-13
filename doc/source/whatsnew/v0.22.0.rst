@@ -157,16 +157,27 @@ sum and ``1`` for product.
 
 *pandas 0.22.0*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series([1, 1, np.nan, np.nan], index=pd.date_range("2017", periods=4))
-   s.resample("2d").sum()
+   In [11]: s = pd.Series([1, 1, np.nan, np.nan],
+      ....:               index=pd.date_range("2017", periods=4))
+
+   In [12]: s.resample("2d").sum()
+   Out[12]:
+   2017-01-01    2.0
+   2017-01-03    0.0
+   Freq: 2D, Length: 2, dtype: float64
 
 To restore the 0.21 behavior of returning ``NaN``, use ``min_count>=1``.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s.resample("2d").sum(min_count=1)
+   In [13]: s.resample("2d").sum(min_count=1)
+   Out[13]:
+   2017-01-01    2.0
+   2017-01-03    NaN
+   Freq: 2D, Length: 2, dtype: float64
+
 
 In particular, upsampling and taking the sum or product is affected, as
 upsampling introduces missing values even if the original series was

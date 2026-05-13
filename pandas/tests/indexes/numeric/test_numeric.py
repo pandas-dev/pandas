@@ -312,7 +312,10 @@ class TestNumericInt:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = "Cannot change data-type for object array"
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
         with pytest.raises(TypeError, match=msg):
             index.view(Index)
 
@@ -394,7 +397,7 @@ class TestIntNumericIndex:
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
-        msg = "Trying to coerce float values to integers"
+        msg = "Trying to coerce object values to integers"
         with pytest.raises(ValueError, match=msg):
             index_cls(arr, dtype=dtype)
 

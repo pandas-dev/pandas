@@ -22,7 +22,7 @@ class TestTimedeltaIndexRendering:
 
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
-        idx1 = TimedeltaIndex([], freq="D")
+        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
         idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
@@ -30,30 +30,32 @@ class TestTimedeltaIndexRendering:
 
         exp1 = "TimedeltaIndex([], dtype='timedelta64[ns]', freq='D')"
 
-        exp2 = "TimedeltaIndex(['1 days'], dtype='timedelta64[ns]', freq='D')"
+        exp2 = "TimedeltaIndex(['1 days'], dtype='timedelta64[us]', freq='D')"
 
-        exp3 = "TimedeltaIndex(['1 days', '2 days'], dtype='timedelta64[ns]', freq='D')"
+        exp3 = "TimedeltaIndex(['1 days', '2 days'], dtype='timedelta64[us]', freq='D')"
 
         exp4 = (
             "TimedeltaIndex(['1 days', '2 days', '3 days'], "
-            "dtype='timedelta64[ns]', freq='D')"
+            "dtype='timedelta64[us]', freq='D')"
         )
 
         exp5 = (
             "TimedeltaIndex(['1 days 00:00:01', '2 days 00:00:00', "
-            "'3 days 00:00:00'], dtype='timedelta64[ns]', freq=None)"
+            "'3 days 00:00:00'], dtype='timedelta64[us]', freq=None)"
         )
 
         with pd.option_context("display.width", 300):
             for idx, expected in zip(
-                [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
+                [idx1, idx2, idx3, idx4, idx5],
+                [exp1, exp2, exp3, exp4, exp5],
+                strict=True,
             ):
                 result = getattr(idx, method)()
                 assert result == expected
 
     # TODO: this is a Series.__repr__ test
     def test_representation_to_series(self):
-        idx1 = TimedeltaIndex([], freq="D")
+        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
         idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
@@ -61,29 +63,31 @@ class TestTimedeltaIndexRendering:
 
         exp1 = """Series([], dtype: timedelta64[ns])"""
 
-        exp2 = "0   1 days\ndtype: timedelta64[ns]"
+        exp2 = "0   1 days\ndtype: timedelta64[us]"
 
-        exp3 = "0   1 days\n1   2 days\ndtype: timedelta64[ns]"
+        exp3 = "0   1 days\n1   2 days\ndtype: timedelta64[us]"
 
-        exp4 = "0   1 days\n1   2 days\n2   3 days\ndtype: timedelta64[ns]"
+        exp4 = "0   1 days\n1   2 days\n2   3 days\ndtype: timedelta64[us]"
 
         exp5 = (
             "0   1 days 00:00:01\n"
             "1   2 days 00:00:00\n"
             "2   3 days 00:00:00\n"
-            "dtype: timedelta64[ns]"
+            "dtype: timedelta64[us]"
         )
 
         with pd.option_context("display.width", 300):
             for idx, expected in zip(
-                [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
+                [idx1, idx2, idx3, idx4, idx5],
+                [exp1, exp2, exp3, exp4, exp5],
+                strict=True,
             ):
                 result = repr(Series(idx))
                 assert result == expected
 
     def test_summary(self):
         # GH#9116
-        idx1 = TimedeltaIndex([], freq="D")
+        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
         idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
@@ -100,7 +104,7 @@ class TestTimedeltaIndexRendering:
         exp5 = "TimedeltaIndex: 3 entries, 1 days 00:00:01 to 3 days 00:00:00"
 
         for idx, expected in zip(
-            [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
+            [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5], strict=True
         ):
             result = idx._summary()
             assert result == expected

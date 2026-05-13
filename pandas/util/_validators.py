@@ -10,6 +10,8 @@ from collections.abc import (
     Sequence,
 )
 from typing import (
+    TYPE_CHECKING,
+    Any,
     TypeVar,
     overload,
 )
@@ -17,17 +19,26 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import DtypeBackend
+
 BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
-def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+def _check_arg_length(
+    fname: str | None,
+    args: tuple[Any, ...],
+    max_fname_arg_count: int,
+    compat_args: dict[str, Any],
+) -> None:
     """
     Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
@@ -47,7 +58,11 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
         )
 
 
-def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
+def _check_for_default_values(
+    fname: str | None,
+    arg_val_dict: dict[str, Any],
+    compat_args: dict[str, Any],
+) -> None:
     """
     Check that the keys in `arg_val_dict` are mapped to their
     default values as specified in `compat_args`.
@@ -55,14 +70,12 @@ def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
     Note that this function is to be called only when it has been
     checked that arg_val_dict.keys() is a subset of compat_args
     """
-    for key in arg_val_dict:
+    for key, v1 in arg_val_dict.items():
+        v2 = compat_args[key]
         # try checking equality directly with '=' operator,
         # as comparison may have been overridden for the left
         # hand object
         try:
-            v1 = arg_val_dict[key]
-            v2 = compat_args[key]
-
             # check for None-ness otherwise we could end up
             # comparing a numpy array vs None
             if (v1 is not None and v2 is None) or (v1 is None and v2 is not None):
@@ -76,7 +89,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
         # could not compare them directly, so try comparison
         # using the 'is' operator
         except ValueError:
-            match = arg_val_dict[key] is compat_args[key]
+            match = v1 is v2
 
         if not match:
             raise ValueError(
@@ -85,7 +98,12 @@ def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
             )
 
 
-def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+def validate_args(
+    fname: str | None,
+    args: tuple[Any, ...],
+    max_fname_arg_count: int,
+    compat_args: dict[str, Any],
+) -> None:
     """
     Checks whether the length of the `*args` argument passed into a function
     has at most `len(compat_args)` arguments and whether or not all of these
@@ -122,11 +140,15 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     # We do this so that we can provide a more informative
     # error message about the parameters that we are not
     # supporting in the pandas implementation of 'fname'
-    kwargs = dict(zip(compat_args, args))
+    kwargs = dict(zip(compat_args, args, strict=False))
     _check_for_default_values(fname, kwargs, compat_args)
 
 
-def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
+def _check_for_invalid_keys(
+    fname: str | None,
+    kwargs: dict[str, Any],
+    compat_args: dict[str, Any],
+) -> None:
     """
     Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
@@ -139,7 +161,11 @@ def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
-def validate_kwargs(fname, kwargs, compat_args) -> None:
+def validate_kwargs(
+    fname: str | None,
+    kwargs: dict[str, Any],
+    compat_args: dict[str, Any],
+) -> None:
     """
     Checks whether parameters passed to the **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
@@ -167,7 +193,11 @@ def validate_kwargs(fname, kwargs, compat_args) -> None:
 
 
 def validate_args_and_kwargs(
-    fname, args, kwargs, max_fname_arg_count, compat_args
+    fname: str | None,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    max_fname_arg_count: int,
+    compat_args: dict[str, Any],
 ) -> None:
     """
     Checks whether parameters passed to the *args and **kwargs argument in a
@@ -212,7 +242,7 @@ def validate_args_and_kwargs(
 
     # Check there is no overlap with the positional and keyword
     # arguments, similar to what is done in actual Python functions
-    args_dict = dict(zip(compat_args, args))
+    args_dict = dict(zip(compat_args, args, strict=False))
 
     for key in args_dict:
         if key in kwargs:
@@ -269,43 +299,31 @@ def validate_bool_kwarg(
     return value
 
 
-def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+def validate_na_arg(value: object, name: str) -> None:
     """
-    Validate the keyword arguments to 'fillna'.
-
-    This checks that exactly one of 'value' and 'method' is specified.
-    If 'method' is specified, this validates that it's a valid method.
+    Validate na arguments.
 
     Parameters
     ----------
-    value, method : object
-        The 'value' and 'method' keyword arguments for 'fillna'.
-    validate_scalar_dict_value : bool, default True
-        Whether to validate that 'value' is a scalar or dict. Specifically,
-        validate that it is not a list or tuple.
+    value : object
+        Value to validate.
+    name : str
+        Name of the argument, used to raise an informative error message.
 
-    Returns
-    -------
-    value, method : object
+    Raises
+    ------
+    ValueError
+        When ``value`` is determined to be invalid.
     """
-    from pandas.core.missing import clean_fill_method
-
-    if value is None and method is None:
-        raise ValueError("Must specify a fill 'value' or 'method'.")
-    if value is None and method is not None:
-        method = clean_fill_method(method)
-
-    elif value is not None and method is None:
-        if validate_scalar_dict_value and isinstance(value, (list, tuple)):
-            raise TypeError(
-                '"value" parameter must be a scalar or dict, but '
-                f'you passed a "{type(value).__name__}"'
-            )
-
-    elif value is not None and method is not None:
-        raise ValueError("Cannot specify both 'value' and 'method'.")
-
-    return value, method
+    if (
+        value is lib.no_default
+        or isinstance(value, bool)
+        or value is None
+        or value is NA
+        or (lib.is_float(value) and np.isnan(value))
+    ):
+        return
+    raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
 
 
 def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
@@ -445,7 +463,7 @@ def validate_insert_loc(loc: int, length: int) -> int:
     return loc  # pyright: ignore[reportReturnType]
 
 
-def check_dtype_backend(dtype_backend) -> None:
+def check_dtype_backend(dtype_backend: DtypeBackend | lib.NoDefault) -> None:
     if dtype_backend is not lib.no_default:
         if dtype_backend not in ["numpy_nullable", "pyarrow"]:
             raise ValueError(

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def add_var(
     val: float,
     nobs: int,
@@ -51,7 +51,7 @@ def add_var(
     return nobs, mean_x, ssqdm_x, compensation, num_consecutive_same_value, prev_value
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def remove_var(
     val: float, nobs: int, mean_x: float, ssqdm_x: float, compensation: float
 ) -> tuple[int, float, float, float]:
@@ -71,7 +71,7 @@ def remove_var(
     return nobs, mean_x, ssqdm_x, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def sliding_var(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -168,7 +168,7 @@ def sliding_var(
     return output, na_pos
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
+@numba.jit(nogil=True, parallel=False)
 def grouped_var(
     values: np.ndarray,
     result_dtype: np.dtype,
@@ -176,6 +176,7 @@ def grouped_var(
     ngroups: int,
     min_periods: int,
     ddof: int = 1,
+    skipna: bool = True,
 ) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
 
@@ -190,7 +191,11 @@ def grouped_var(
         lab = labels[i]
         val = values[i]
 
-        if lab < 0:
+        if lab < 0 or np.isnan(output[lab]):
+            continue
+
+        if not skipna and np.isnan(val):
+            output[lab] = np.nan
             continue
 
         mean_x = means[lab]

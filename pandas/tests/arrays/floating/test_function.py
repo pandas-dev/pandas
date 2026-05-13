@@ -8,12 +8,13 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
-# np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
-@pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
-def test_ufuncs_single(ufunc):
-    a = pd.array([1, 2, -3, np.nan], dtype="Float64")
+def test_ufuncs_single(ufunc, using_nan_is_na):
+    a = pd.array([1, 2, -3, pd.NA], dtype="Float64")
     result = ufunc(a)
-    expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+    np_res = ufunc(a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
@@ -23,45 +24,66 @@ def test_ufuncs_single(ufunc):
 
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
-def test_ufuncs_single_float(ufunc):
-    a = pd.array([1.0, 0.2, 3.0, np.nan], dtype="Float64")
+def test_ufuncs_single_float(ufunc, using_nan_is_na):
+    a = pd.array([1.0, 0.2, 3.0, pd.NA], dtype="Float64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+        np_res = ufunc(a.astype(float))
+        np_res = np_res.astype(object)
+        np_res[a.isna()] = pd.NA
+        expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
     with np.errstate(invalid="ignore"):
         result = ufunc(s)
-        expected = pd.Series(ufunc(s.astype(float)), dtype="Float64")
+        np_res = ufunc(s.astype(float))
+        np_res = np_res.astype(object)
+        np_res[a.isna()] = pd.NA
+        expected = pd.Series(np_res, dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("ufunc", [np.add, np.subtract])
-def test_ufuncs_binary_float(ufunc):
+def test_ufuncs_binary_float(ufunc, using_nan_is_na):
     # two FloatingArrays
-    a = pd.array([1, 0.2, -3, np.nan], dtype="Float64")
+    a = pd.array([1, 0.2, -3, pd.NA], dtype="Float64")
     result = ufunc(a, a)
-    expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Float64")
+    np_res = ufunc(a.astype(float), a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     # FloatingArray with numpy array
     arr = np.array([1, 2, 3, 4])
     result = ufunc(a, arr)
-    expected = pd.array(ufunc(a.astype(float), arr), dtype="Float64")
+    np_res = ufunc(a.astype(float), arr)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(arr, a)
-    expected = pd.array(ufunc(arr, a.astype(float)), dtype="Float64")
+    np_res = ufunc(arr, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     # FloatingArray with scalar
     result = ufunc(a, 1)
-    expected = pd.array(ufunc(a.astype(float), 1), dtype="Float64")
+    np_res = ufunc(a.astype(float), 1)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(1, a)
-    expected = pd.array(ufunc(1, a.astype(float)), dtype="Float64")
+    np_res = ufunc(1, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -88,7 +110,7 @@ def test_ufunc_reduce_raises(values):
     ],
 )
 def test_stat_method(pandasmethname, kwargs):
-    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, np.nan, np.nan], dtype="Float64")
+    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, pd.NA, pd.NA], dtype="Float64")
     pandasmeth = getattr(s, pandasmethname)
     result = pandasmeth(**kwargs)
     s2 = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64")
@@ -147,7 +169,7 @@ def test_floating_array_numpy_sum(values, expected):
 
 
 @pytest.mark.parametrize("op", ["sum", "min", "max", "prod"])
-def test_preserve_dtypes(op):
+def test_preserve_dtypes(op, using_python_scalars):
     df = pd.DataFrame(
         {
             "A": ["a", "b", "b"],
@@ -158,7 +180,10 @@ def test_preserve_dtypes(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, np.float64)
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        assert isinstance(result, np.float64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()
@@ -189,3 +214,72 @@ def test_floating_array_prod(skipna, min_count, dtype):
         assert result == 2
     else:
         assert result is pd.NA
+
+
+def test_floating_array_mean_skipna_with_nan(request, using_nan_is_na):
+    # GH#59965
+    # FloatingArray containing NaN (from 0/0 division) should
+    # compute mean correctly when skipna=True
+    s1 = pd.Series({"a": 0.0, "b": 1, "c": 1, "d": 0}, dtype="Float64")
+    s2 = pd.Series({"a": 0.0, "b": 2, "c": 2, "d": 2}, dtype="Float64")
+    s4 = s1 / s2
+    result = s4.mean(skipna=True)
+    if using_nan_is_na:
+        # NaN treated as NA → skipped, mean of [0.5, 0.5, 0.0]
+        tm.assert_almost_equal(result, 1.0 / 3)
+    else:
+        # NaN should propagate in mean, but currently returns pd.NA
+        mark = pytest.mark.xfail(reason="NaN not yet distinguished from NA")
+        request.applymarker(mark)
+        assert np.isnan(result)
+
+
+def test_isna_with_nan_value(using_nan_is_na):
+    # GH#53887, GH#60106, GH#61758
+    # NaN produced via division-by-zero in a FloatingArray;
+    # isna should detect it only when NaN is treated as NA.
+    ser = pd.Series([1.0, 0.0], dtype="Float64") / pd.Series(
+        [1.0, 0.0], dtype="Float64"
+    )
+    result = ser.isna()
+    if using_nan_is_na:
+        expected = pd.Series([False, True])
+    else:
+        expected = pd.Series([False, False])
+    tm.assert_series_equal(result, expected)
+
+
+def test_fillna_div_by_zero_int64(using_nan_is_na):
+    # GH#39926
+    df = pd.DataFrame({"A": [0], "B": [0]}).astype("Int64")
+    df["C"] = df["A"] / df["B"]
+    result = df.fillna(0)
+    if using_nan_is_na:
+        expected = pd.DataFrame(
+            {
+                "A": pd.array([0], dtype="Int64"),
+                "B": pd.array([0], dtype="Int64"),
+                "C": pd.array([0.0], dtype="Float64"),
+            }
+        )
+    else:
+        expected = pd.DataFrame(
+            {
+                "A": pd.array([0], dtype="Int64"),
+                "B": pd.array([0], dtype="Int64"),
+                "C": pd.array([np.nan], dtype="Float64"),
+            }
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_nunique_div_by_zero(using_nan_is_na):
+    # GH#54876
+    ser = pd.Series([np.nan, 0], dtype="Float64") / 0
+    result = ser.nunique()
+    if using_nan_is_na:
+        # Both values are NA, excluded by default -> 0 unique
+        assert result == 0
+    else:
+        # NaN from 0/0 is a value, not NA -> 1 unique (NaN)
+        assert result == 1

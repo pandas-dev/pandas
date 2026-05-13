@@ -50,11 +50,11 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <wchar.h>
 
 #ifndef TRUE
-#define TRUE 1
-#define FALSE 0
+#  define TRUE 1
+#  define FALSE 0
 #endif
 #ifndef NULL
-#define NULL 0
+#  define NULL 0
 #endif
 
 struct DecoderState {
@@ -246,7 +246,6 @@ DECODE_FRACTION:
   }
 
 BREAK_FRC_LOOP:
-  // FIXME: Check for arithmetic overflow here
   ds->lastType = JT_DOUBLE;
   ds->start = offset;
   return ds->dec->newDouble(
@@ -345,7 +344,6 @@ SET_INF_ERROR:
   }
 
 BREAK_EXP_LOOP:
-  // FIXME: Check for arithmetic overflow here
   ds->lastType = JT_DOUBLE;
   ds->start = offset;
   return ds->dec->newDouble(
@@ -1166,7 +1164,8 @@ JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer,
                         size_t cbBuffer) {
   /*
   FIXME: Base the size of escBuffer of that of cbBuffer so that the unicode
-  escaping doesn't run into the wall each time */
+  escaping doesn't run into the wall each time
+  (comment also present in upstream ultrajson) */
   char *locale;
   struct DecoderState ds;
   wchar_t escBuffer[(JSON_MAX_STACK_BUFFER_SIZE / sizeof(wchar_t))];

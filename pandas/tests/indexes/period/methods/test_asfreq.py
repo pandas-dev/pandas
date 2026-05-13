@@ -106,7 +106,7 @@ class TestPeriodIndex:
     def test_asfreq_combined_pi(self):
         pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="h")
         exp = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="25h")
-        for freq, how in zip(["1D1h", "1h1D"], ["S", "E"]):
+        for freq, how in zip(["1D1h", "1h1D"], ["S", "E"], strict=True):
             result = pi.asfreq(freq, how=how)
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
@@ -142,21 +142,24 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, excepted)
 
     @pytest.mark.parametrize(
-        "freq, is_str",
+        "freq",
         [
-            ("2BMS", True),
-            ("2YS-MAR", True),
-            ("2bh", True),
-            (offsets.MonthBegin(2), False),
-            (offsets.BusinessMonthEnd(2), False),
+            "2BMS",
+            "2YS-MAR",
+            "2bh",
+            offsets.MonthBegin(2),
+            offsets.BusinessMonthEnd(2),
         ],
     )
-    def test_pi_asfreq_not_supported_frequency(self, freq, is_str):
+    def test_pi_asfreq_not_supported_frequency(self, freq):
         # GH#55785, GH#56945
-        if is_str:
-            msg = f"{freq[1:]} is not supported as period frequency"
-        else:
-            msg = re.escape(f"{freq} is not supported as period frequency")
+        msg = "|".join(
+            [
+                f"Invalid frequency: {freq}",
+                re.escape(f"{freq} is not supported as period frequency"),
+                "bh is not supported as period frequency",
+            ]
+        )
 
         pi = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
         with pytest.raises(ValueError, match=msg):

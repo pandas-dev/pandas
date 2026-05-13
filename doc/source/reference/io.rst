@@ -7,6 +7,9 @@ Input/output
 ============
 .. currentmodule:: pandas
 
+.. note::
+   For an overview, see :ref:`io`.
+
 Pickling
 ~~~~~~~~
 .. autosummary::
@@ -24,6 +27,18 @@ Flat file
    read_csv
    DataFrame.to_csv
    read_fwf
+
+.. currentmodule:: pandas.io.parsers
+
+.. autosummary::
+   :toctree: api/
+
+   TextFileReader
+   TextFileReader.read
+   TextFileReader.get_chunk
+   TextFileReader.close
+
+.. currentmodule:: pandas
 
 Clipboard
 ~~~~~~~~~
@@ -155,6 +170,16 @@ Parquet
 
    read_parquet
    DataFrame.to_parquet
+
+Iceberg
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    read_iceberg
+    DataFrame.to_iceberg
+
+.. warning:: ``read_iceberg`` is experimental and may change without warning.
 
 ORC
 ~~~

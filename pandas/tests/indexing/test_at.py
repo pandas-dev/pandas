@@ -2,16 +2,21 @@ from datetime import (
     datetime,
     timezone,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DateOffset,
     DatetimeIndex,
     Index,
     MultiIndex,
@@ -21,15 +26,67 @@ from pandas import (
 import pandas._testing as tm
 
 
+def test_at_dateoffset_columns():
+    # GH#20948 - .at with DateOffset columns
+    offsets = Series(data=[-15, -10, -5, 0, 5, 10, 15], dtype=float).map(DateOffset)
+    df = DataFrame(index=[0, 1], columns=Index(offsets))
+
+    # read access
+    result = df.at[0, offsets[0]]
+    assert result is np.nan
+
+    # write access
+    df.at[0, offsets[0]] = 1
+    assert df.at[0, offsets[0]] == 1
+
+
+def test_at_multiindex_partial_date_string():
+    # GH#43395 - .at with partial date string on MultiIndex with DatetimeIndex level
+    timestamps = DatetimeIndex(
+        ["2021-08-01", "2021-08-01 12:00", "2021-08-02", "2021-08-02 12:00"]
+    )
+    index = MultiIndex.from_product(
+        [["A", "B"], timestamps], names=["ticker", "timestamp"]
+    )
+    df = DataFrame({"col": range(len(index))}, index=index)
+
+    # DataFrame.at with partial date string should not raise TypeError
+    result = df.at[("A", "2021-08-02"), "col"]
+    expected = np.array([2, 3], dtype=np.int64)
+    tm.assert_numpy_array_equal(result, expected)
+
+    # Series.at with partial date string
+    ser = df["col"]
+    result = ser.at[("A", "2021-08-02")]
+    expected = Series(
+        [2, 3],
+        index=MultiIndex.from_arrays(
+            [
+                ["A", "A"],
+                DatetimeIndex(
+                    ["2021-08-02", "2021-08-02 12:00"],
+                    dtype="datetime64[us]",
+                ),
+            ],
+            names=["ticker", "timestamp"],
+        ),
+        name="col",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_at_incompatible_type_decimal():
+    # GH#22740 - .at should not silently discard incompatible type
+    df = DataFrame({"A": [1, 2, 3]})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.at[0, "A"] = Decimal("1")
+
+
 def test_at_timezone():
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
-    expected = DataFrame(
-        {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_selection_methods_of_assigned_col():
@@ -54,33 +111,6 @@ def test_selection_methods_of_assigned_col():
 
 
 class TestAtSetItem:
-    def test_at_setitem_item_cache_cleared(self):
-        # GH#22372 Note the multi-step construction is necessary to trigger
-        #  the original bug. pandas/issues/22372#issuecomment-413345309
-        df = DataFrame(index=[0])
-        df["x"] = 1
-        df["cost"] = 2
-
-        # accessing df["cost"] adds "cost" to the _item_cache
-        df["cost"]
-
-        # This loc[[0]] lookup used to call _consolidate_inplace at the
-        #  BlockManager level, which failed to clear the _item_cache
-        df.loc[[0]]
-
-        df.at[0, "x"] = 4
-        df.at[0, "cost"] = 789
-
-        expected = DataFrame(
-            {"x": [4], "cost": 789},
-            index=[0],
-            columns=Index(["x", "cost"], dtype=object),
-        )
-        tm.assert_frame_equal(df, expected)
-
-        # And in particular, check that the _item_cache has updated correctly.
-        tm.assert_series_equal(df["cost"], expected["cost"])
-
     def test_at_setitem_mixed_index_assignment(self):
         # GH#19860
         ser = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
@@ -136,11 +166,74 @@ class TestAtSetItem:
 class TestAtSetItemWithExpansion:
     def test_at_setitem_expansion_series_dt64tz_value(self, tz_naive_fixture):
         # GH#25506
-        ts = Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
+        ts = (
+            Timestamp("2017-08-05 00:00:00+0100", tz=tz_naive_fixture)
+            if tz_naive_fixture is not None
+            else Timestamp("2017-08-05 00:00:00+0100")
+        )
         result = Series(ts)
-        result.at[1] = ts
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            result.at[1] = ts
         expected = Series([ts, ts])
         tm.assert_series_equal(result, expected)
+
+    def test_at_setitem_expansion_deprecated_dataframe(self):
+        # GH#48323
+        df = DataFrame({"a": [1, 2]})
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[5, "a"] = 6
+        expected = DataFrame({"a": [1, 2, 6]}, index=[0, 1, 5])
+        tm.assert_frame_equal(df, expected)
+
+    def test_at_setitem_expansion_deprecated_series(self):
+        # GH#48323
+        ser = Series([1, 2], index=[0, 1])
+        msg = "Setting a value on a Series via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ser.at[5] = 6
+        expected = Series([1, 2, 6], index=[0, 1, 5])
+        tm.assert_series_equal(ser, expected)
+
+    def test_at_setitem_expansion_deprecated_new_column(self):
+        # GH#48323 - new column (existing row) also expands
+        df = DataFrame({"a": [1, 2]})
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, "b"] = 99
+        assert "b" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_rows(self):
+        # GH#48323 - new column on a frame with MultiIndex rows
+        mi = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
+        df = DataFrame({"x": [1, 2, 3]}, index=mi)
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[("a", 1), "y"] = 99
+        assert "y" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_cols(self):
+        # GH#48323 - new tuple column on a frame with MultiIndex columns
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_tuples([("a", 1), ("a", 2)]),
+        )
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, ("b", 1)] = 99
+        assert ("b", 1) in df.columns
+
+    def test_at_setitem_no_warning_existing_key(self):
+        # GH#48323 - no warning for existing keys
+        df = DataFrame({"a": [1, 2]})
+        with tm.assert_produces_warning(None):
+            df.at[0, "a"] = 99
+        assert df.at[0, "a"] == 99
+
+        ser = Series([1, 2])
+        with tm.assert_produces_warning(None):
+            ser.at[0] = 99
+        assert ser.at[0] == 99
 
 
 class TestAtWithDuplicates:

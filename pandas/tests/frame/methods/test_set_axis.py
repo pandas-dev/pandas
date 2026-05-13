@@ -93,7 +93,7 @@ class SharedSetAxisTests:
         # wrong length
         msg = (
             f"Length mismatch: Expected axis has {len(obj)} elements, "
-            f"new values have {len(obj)-1} elements"
+            f"new values have {len(obj) - 1} elements"
         )
         with pytest.raises(ValueError, match=msg):
             obj.index = np.arange(len(obj) - 1)
@@ -111,6 +111,16 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
             index=[2010, 2011, 2012],
         )
         return df
+
+    def test_set_axis_with_allows_duplicate_labels_false(self):
+        # GH#44958
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+            allows_duplicate_labels=False
+        )
+
+        result = df.set_axis(labels=["x", "y"], axis=0)
+        expected = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected, check_flags=False)
 
 
 class TestSeriesSetAxis(SharedSetAxisTests):

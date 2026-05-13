@@ -109,8 +109,6 @@ with the same label.
 Disallowing Duplicate Labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.2.0
-
 As noted above, handling duplicates is an important feature when reading in raw
 data. That said, you may want to avoid introducing duplicates as part of a data
 processing pipeline (from methods like :meth:`pandas.concat`,
@@ -200,7 +198,7 @@ operations.
 
 .. warning::
 
-   This is an experimental feature. Currently, many methods fail to
-   propagate the ``allows_duplicate_labels`` value. In future versions
-   it is expected that every method taking or returning one or more
-   DataFrame or Series objects will propagate ``allows_duplicate_labels``.
+   Many methods do not yet propagate the ``allows_duplicate_labels``
+   value through to their result. The long-term goal is for every
+   method that takes or returns a :class:`DataFrame` or :class:`Series`
+   to preserve it.

@@ -208,11 +208,6 @@ class TestTimedeltaArray:
         expected = arr._ndarray.view("i8")
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_setitem_clears_freq(self):
-        a = pd.timedelta_range("1h", periods=2, freq="h")._data
-        a[0] = Timedelta("1h")
-        assert a.freq is None
-
     @pytest.mark.parametrize(
         "obj",
         [
@@ -235,7 +230,7 @@ class TestTimedeltaArray:
             1,
             np.int64(1),
             1.0,
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
             pd.Timestamp("2021-01-01"),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
@@ -263,10 +258,10 @@ class TestTimedeltaArray:
 class TestUnaryOps:
     def test_abs(self):
         vals = np.array([-3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
-        arr = TimedeltaArray._from_sequence(vals)
+        arr = TimedeltaArray._from_sequence(vals, dtype=vals.dtype)
 
         evals = np.array([3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
-        expected = TimedeltaArray._from_sequence(evals)
+        expected = TimedeltaArray._from_sequence(evals, dtype=evals.dtype)
 
         result = abs(arr)
         tm.assert_timedelta_array_equal(result, expected)
@@ -276,7 +271,7 @@ class TestUnaryOps:
 
     def test_pos(self):
         vals = np.array([-3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
-        arr = TimedeltaArray._from_sequence(vals)
+        arr = TimedeltaArray._from_sequence(vals, dtype=vals.dtype)
 
         result = +arr
         tm.assert_timedelta_array_equal(result, arr)
@@ -288,7 +283,7 @@ class TestUnaryOps:
 
     def test_neg(self):
         vals = np.array([-3600 * 10**9, "NaT", 7200 * 10**9], dtype="m8[ns]")
-        arr = TimedeltaArray._from_sequence(vals)
+        arr = TimedeltaArray._from_sequence(vals, dtype=vals.dtype)
 
         evals = np.array([3600 * 10**9, "NaT", -7200 * 10**9], dtype="m8[ns]")
         expected = TimedeltaArray._from_sequence(evals)

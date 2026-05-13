@@ -40,8 +40,8 @@ and in the Python interpreter.
 
 .. ipython:: python
 
-   'dense : {:0.2f} bytes'.format(df.memory_usage().sum() / 1e3)
-   'sparse: {:0.2f} bytes'.format(sdf.memory_usage().sum() / 1e3)
+   f'dense: {df.memory_usage().sum()} bytes'
+   f'sparse: {sdf.memory_usage().sum()} bytes'
 
 Functionally, their behavior should be nearly
 identical to their dense counterparts.
@@ -192,8 +192,8 @@ Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with s
    sdf.head()
    sdf.dtypes
 
-All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed.
-To convert back to sparse SciPy matrix in COO format, you can use the :meth:`DataFrame.sparse.to_coo` method:
+All sparse formats are supported, but matrices that are not in Compressed Sparse Column (CSC) matrix format will be converted, copying data as needed.
+To convert a :class:`DataFrame` back to a sparse SciPy matrix in COO format, you can use the :meth:`DataFrame.sparse.to_coo` method:
 
 .. ipython:: python
 

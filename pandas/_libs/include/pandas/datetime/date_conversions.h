@@ -9,6 +9,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #include <numpy/ndarraytypes.h>
 
 // Scales value inplace from nanosecond resolution to unit resolution
@@ -21,4 +22,5 @@ int scaleNanosecToUnit(int64_t *value, NPY_DATETIMEUNIT unit);
 char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
                  NPY_DATETIMEUNIT base, size_t *len);
 
-char *int64ToIsoDuration(int64_t value, size_t *len);
+char *int64ToIsoDuration(int64_t value, NPY_DATETIMEUNIT valueUnit,
+                         size_t *len);

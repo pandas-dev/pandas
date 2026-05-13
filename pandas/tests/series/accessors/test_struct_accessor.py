@@ -2,11 +2,6 @@ import re
 
 import pytest
 
-from pandas.compat.pyarrow import (
-    pa_version_under11p0,
-    pa_version_under13p0,
-)
-
 from pandas import (
     ArrowDtype,
     DataFrame,
@@ -59,7 +54,6 @@ def test_struct_accessor_dtypes():
     tm.assert_series_equal(actual, expected)
 
 
-@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
 def test_struct_accessor_field():
     index = Index([-100, 42, 123])
     ser = Series(
@@ -105,7 +99,6 @@ def test_struct_accessor_field_with_invalid_name_or_index():
         ser.struct.field(1.1)
 
 
-@pytest.mark.skipif(pa_version_under11p0, reason="pyarrow>=11.0.0 required")
 def test_struct_accessor_explode():
     index = Index([-100, 42, 123])
     ser = Series(
@@ -169,7 +162,6 @@ def test_struct_accessor_api_for_invalid(invalid):
         ([b"string_col"], "string_col"),
     ],
 )
-@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
 def test_struct_accessor_field_expanded(indices, name):
     arrow_type = pa.struct(
         [

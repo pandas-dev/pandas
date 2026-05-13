@@ -15,17 +15,12 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     NaT,
     algos,
     lib,
-)
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    F,
-    ReindexMethod,
-    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -34,11 +29,14 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_numeric_dtype,
-    is_numeric_v_string_like,
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -46,13 +44,31 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import TypeAlias
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        F,
+        ReindexMethod,
+        npt,
+    )
+
     from pandas import Index
+
+    _CubicBC: TypeAlias = Literal["not-a-knot", "clamped", "natural", "periodic"]
 
 
 def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     """
     Validate the size of the values passed to ExtensionArray.fillna.
     """
+    if isinstance(value, dict):
+        raise TypeError(
+            "ExtensionArray.fillna does not support filling with a dict. "
+            "Use Series.fillna instead."
+        )
     if is_array_like(value):
         if len(value) != length:
             raise ValueError(
@@ -64,75 +80,81 @@ def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     return value
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
+def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
     """
     Return a masking array of same size/shape as arr
-    with entries equaling any member of values_to_mask set to True
+    with entries equaling value set to True.
 
     Parameters
     ----------
     arr : ArrayLike
-    values_to_mask: list, tuple, or scalar
+    value : scalar-like
+        Caller has ensured `not is_list_like(value)` and that it can be held
+        by `arr`.
 
     Returns
     -------
     np.ndarray[bool]
     """
-    # When called from Block.replace/replace_list, values_to_mask is a scalar
-    #  known to be holdable by arr.
-    # When called from Series._single_replace, values_to_mask is tuple or list
-    dtype, values_to_mask = infer_dtype_from(values_to_mask)
+    dtype, value = infer_dtype_from(value)
 
-    if isinstance(dtype, np.dtype):
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
-    else:
-        cls = dtype.construct_array_type()
-        if not lib.is_list_like(values_to_mask):
-            values_to_mask = [values_to_mask]
-        values_to_mask = cls._from_sequence(values_to_mask, dtype=dtype, copy=False)
+    if (
+        isinstance(arr.dtype, (BaseMaskedDtype, ArrowDtype))
+        and lib.is_float(value)
+        and np.isnan(value)
+        and not is_nan_na()
+    ):
+        # TODO: this should be done in an EA method?
+        if arr.dtype.kind == "f":
+            # GH#55127
+            if isinstance(arr.dtype, BaseMaskedDtype):
+                # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
+                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined]
+                return mask
+            else:
+                # error: "ExtensionArray" has no attribute "_pa_array"  [attr-defined]
+                import pyarrow.compute as pc
 
-    potential_na = False
-    if is_object_dtype(arr.dtype):
-        # pre-compute mask to avoid comparison to NA
-        potential_na = True
-        arr_mask = ~isna(arr)
+                mask = pc.is_nan(arr._pa_array).fill_null(False).to_numpy()  # type: ignore[attr-defined]
+                return mask
 
-    na_mask = isna(values_to_mask)
-    nonna = values_to_mask[~na_mask]
+        elif arr.dtype.kind in "iu":
+            # GH#51237
+            mask = np.zeros(arr.shape, dtype=bool)
+            return mask
+
+    if isna(value):
+        return isna(arr)
 
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
     if (
         is_numeric_dtype(arr.dtype)
         and not is_bool_dtype(arr.dtype)
-        and is_bool_dtype(nonna.dtype)
+        and lib.is_bool(value)
     ):
+        # e.g. test_replace_ea_float_with_bool, see GH#62048
         pass
     elif (
-        is_bool_dtype(arr.dtype)
-        and is_numeric_dtype(nonna.dtype)
-        and not is_bool_dtype(nonna.dtype)
+        is_bool_dtype(arr.dtype) and is_numeric_dtype(dtype) and not lib.is_bool(value)
     ):
+        # e.g. test_replace_ea_float_with_bool, see GH#62048
         pass
+    elif is_numeric_dtype(arr.dtype) and isinstance(value, str):
+        # GH#29553 prevent numpy deprecation warnings
+        pass
+    elif is_object_dtype(arr.dtype):
+        # pre-compute mask to avoid comparison to NA
+        # e.g. test_replace_na_in_obj_column
+        arr_mask = ~isna(arr)
+        mask[arr_mask] = arr[arr_mask] == value
     else:
-        for x in nonna:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                pass
-            else:
-                if potential_na:
-                    new_mask = np.zeros(arr.shape, dtype=np.bool_)
-                    new_mask[arr_mask] = arr[arr_mask] == x
-                else:
-                    new_mask = arr == x
+        new_mask = arr == value
 
-                    if not isinstance(new_mask, np.ndarray):
-                        # usually BooleanArray
-                        new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
-                mask |= new_mask
-
-    if na_mask.any():
-        mask |= isna(arr)
+        if not isinstance(new_mask, np.ndarray):
+            # usually BooleanArray
+            new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+        mask = new_mask
 
     return mask
 
@@ -241,7 +263,8 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
         return None
 
     if is_valid.ndim == 2:
-        is_valid = is_valid.any(axis=1)  # reduce axis 1
+        # reduce axis 1
+        is_valid = is_valid.any(axis=1)  # type: ignore[assignment]
 
     if how == "first":
         idxpos = is_valid[::].argmax()
@@ -312,9 +335,9 @@ def get_interp_index(method, index: Index) -> Index:
     # create/use the index
     if method == "linear":
         # prior default
-        from pandas import Index
+        from pandas import RangeIndex
 
-        index = Index(np.arange(len(index)))
+        index = RangeIndex(len(index))
     else:
         methods = {"index", "values", "nearest", "time"}
         is_numeric_or_datetime = (
@@ -404,13 +427,7 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    # error: Argument 1 to "apply_along_axis" has incompatible type
-    # "Callable[[ndarray[Any, Any]], None]"; expected "Callable[...,
-    # Union[_SupportsArray[dtype[<nothing>]], Sequence[_SupportsArray
-    # [dtype[<nothing>]]], Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
-    # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
-    # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]]]]]"
-    np.apply_along_axis(func, axis, data)  # type: ignore[arg-type]
+    np.apply_along_axis(func, axis, data)
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -424,7 +441,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
 
     if method == "linear":
         inds = xarr
-        inds = cast(np.ndarray, inds)
+        inds = cast("np.ndarray", inds)
     else:
         inds = np.asarray(xarr)
 
@@ -569,7 +586,7 @@ def _interpolate_scipy_wrapper(
     new_x = np.asarray(new_x)
 
     # ignores some kwargs that could be passed along.
-    alt_methods = {
+    alt_methods: dict[str, Callable[..., np.ndarray]] = {
         "barycentric": interpolate.barycentric_interpolate,
         "krogh": interpolate.krogh_interpolate,
         "from_derivatives": _from_derivatives,
@@ -587,6 +604,7 @@ def _interpolate_scipy_wrapper(
         "cubic",
         "polynomial",
     ]
+    terp: Callable[..., np.ndarray] | None
     if method in interp1d_methods:
         if method == "polynomial":
             kind = order
@@ -595,15 +613,15 @@ def _interpolate_scipy_wrapper(
         terp = interpolate.interp1d(
             x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
         )
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     elif method == "spline":
         # GH #10633, #24014
-        if isna(order) or (order <= 0):
+        if isna(order) or (order <= 0):  # pyright: ignore[reportOptionalOperand]
             raise ValueError(
                 f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     else:
         # GH 7295: need to be able to write for some reason
         # in some circumstances: check all three
@@ -616,6 +634,9 @@ def _interpolate_scipy_wrapper(
         terp = alt_methods.get(method, None)
         if terp is None:
             raise ValueError(f"Can not interpolate with method={method}.")
+
+        # Make sure downcast is not in kwargs for alt methods
+        kwargs.pop("downcast", None)
         new_y = terp(x, y, new_x, **kwargs)
     return new_y
 
@@ -649,7 +670,7 @@ def _from_derivatives(
         list of derivatives to extract. This number includes the function
         value as 0th derivative.
      extrapolate : bool, optional
-        Whether to extrapolate to ouf-of-bounds points based on first and last
+        Whether to extrapolate to out-of-bounds points based on first and last
         intervals, or to return NaNs. Default: True.
 
     See Also
@@ -674,7 +695,7 @@ def _akima_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
     x: np.ndarray,
-    der: int | list[int] | None = 0,
+    der: int = 0,
     axis: AxisInt = 0,
 ):
     """
@@ -695,10 +716,8 @@ def _akima_interpolate(
     x : np.ndarray
         Of length M.
     der : int, optional
-        How many derivatives to extract; None for all potentially
-        nonzero derivatives (that is a number equal to the number
-        of points), or a list of derivatives to extract. This number
-        includes the function value as 0th derivative.
+        How many derivatives to extract. This number includes the function
+        value as 0th derivative.
     axis : int, optional
         Axis in the yi array corresponding to the x-coordinate values.
 
@@ -724,9 +743,9 @@ def _cubicspline_interpolate(
     yi: np.ndarray,
     x: np.ndarray,
     axis: AxisInt = 0,
-    bc_type: str | tuple[Any, Any] = "not-a-knot",
-    extrapolate=None,
-):
+    bc_type: _CubicBC | tuple[Any, Any] = "not-a-knot",
+    extrapolate: Literal["periodic"] | bool | None = None,
+) -> np.ndarray:
     """
     Convenience function for cubic spline data interpolator.
 
@@ -838,8 +857,8 @@ def pad_or_backfill_inplace(
     # reshape a 1 dim if needed
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
-        values = values.reshape(tuple((1,) + values.shape))
+            raise AssertionError("cannot interpolate on an ndim == 1 with axis != 0")
+        values = values.reshape((1, *values.shape))
 
     method = clean_fill_method(method)
     tvalues = transf(values)
@@ -884,7 +903,7 @@ def _datetimelike_compat(func: F) -> F:
 
         return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
-    return cast(F, new_func)
+    return cast("F", new_func)
 
 
 @_datetimelike_compat
@@ -1062,7 +1081,7 @@ def _interp_limit(
     assume_unique = True
 
     def inner(invalid, limit: int):
-        limit = min(limit, N)
+        limit = min(limit, N - 1)
         windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
         idx = np.union1d(
             np.where(windowed)[0] + limit,

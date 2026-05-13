@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Type,
     cast,
 )
@@ -34,18 +35,20 @@ if TYPE_CHECKING:
 
 # define abstract base classes to enable isinstance type checking on our
 # objects
-def create_pandas_abc_type(name, attr, comp) -> type:
-    def _check(inst) -> bool:
+def create_pandas_abc_type(
+    name: str, attr: str, comp: tuple[str, ...] | set[str]
+) -> type:
+    def _check(inst: Any) -> bool:
         return getattr(inst, attr, "_typ") in comp
 
     # https://github.com/python/mypy/issues/1006
     # error: 'classmethod' used with a non-method
     @classmethod  # type: ignore[misc]
-    def _instancecheck(cls, inst) -> bool:
+    def _instancecheck(cls: type, inst: Any) -> bool:
         return _check(inst) and not isinstance(inst, type)
 
     @classmethod  # type: ignore[misc]
-    def _subclasscheck(cls, inst) -> bool:
+    def _subclasscheck(cls: type, inst: Any) -> bool:
         # Raise instead of returning False
         # This is consistent with default __subclasscheck__ behavior
         if not isinstance(inst, type):
@@ -119,15 +122,15 @@ ABCDataFrame = cast(
 
 ABCCategorical = cast(
     "Type[Categorical]",
-    create_pandas_abc_type("ABCCategorical", "_typ", ("categorical")),
+    create_pandas_abc_type("ABCCategorical", "_typ", ("categorical",)),
 )
 ABCDatetimeArray = cast(
     "Type[DatetimeArray]",
-    create_pandas_abc_type("ABCDatetimeArray", "_typ", ("datetimearray")),
+    create_pandas_abc_type("ABCDatetimeArray", "_typ", ("datetimearray",)),
 )
 ABCTimedeltaArray = cast(
     "Type[TimedeltaArray]",
-    create_pandas_abc_type("ABCTimedeltaArray", "_typ", ("timedeltaarray")),
+    create_pandas_abc_type("ABCTimedeltaArray", "_typ", ("timedeltaarray",)),
 )
 ABCPeriodArray = cast(
     "Type[PeriodArray]",

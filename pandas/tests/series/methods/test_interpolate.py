@@ -94,7 +94,12 @@ class TestSeriesInterpolateData:
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()
-        ts_copy[5:10] = np.nan
+
+        # Set data between Tuesday and Thursday to NaN for 2 consecutive weeks.
+        # Linear interpolation should fill in the missing values correctly,
+        # as the index is equally-spaced within each week.
+        ts_copy[1:4] = np.nan
+        ts_copy[6:9] = np.nan
 
         linear_interp = ts_copy.interpolate(method="linear")
         tm.assert_series_equal(linear_interp, ts)
@@ -535,6 +540,22 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="linear", limit=1, limit_direction="both")
         tm.assert_series_equal(result, expected)
 
+    def test_interp_limit_direction_limit_exceeds_length(self):
+        # GH#64322
+        s = Series([np.nan, 1, 1, 1, 1, np.nan])
+        result = s.interpolate(limit_direction="both", limit=10)
+        expected = Series([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        tm.assert_series_equal(result, expected)
+
+        s2 = Series([1, np.nan, np.nan, 4])
+        result_fwd = s2.interpolate(limit_direction="forward", limit=100)
+        expected_fwd = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result_fwd, expected_fwd)
+
+        result_bwd = s2.interpolate(limit_direction="backward", limit=100)
+        expected_bwd = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result_bwd, expected_bwd)
+
     def test_interp_limit_to_ends(self):
         # These test are for issue #10420 -- flow back to beginning.
         s = Series([np.nan, np.nan, 5, 7, 9, np.nan])
@@ -790,11 +811,9 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_asfreq_raises(self):
         ser = Series(["a", None, "b"], dtype=object)
-        msg2 = "Series cannot interpolate with object dtype"
-        msg = "Invalid fill method"
-        with pytest.raises(TypeError, match=msg2):
-            with pytest.raises(ValueError, match=msg):
-                ser.interpolate(method="asfreq")
+        msg = "Can not interpolate with method=asfreq"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="asfreq")
 
     def test_interpolate_fill_value(self):
         # GH#54920
@@ -802,4 +821,11 @@ class TestSeriesInterpolateData:
         ser = Series([np.nan, 0, 1, np.nan, 3, np.nan])
         result = ser.interpolate(method="nearest", fill_value=0)
         expected = Series([np.nan, 0, 1, 1, 3, 0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_int64_linear(self):
+        # GH#41565
+        ser = Series([1, np.nan, 3], dtype="Int64")
+        result = ser.interpolate(method="linear")
+        expected = Series([1.0, 2.0, 3.0], dtype="Float64")
         tm.assert_series_equal(result, expected)

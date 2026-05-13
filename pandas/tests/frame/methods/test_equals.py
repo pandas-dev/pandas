@@ -1,6 +1,7 @@
 import numpy as np
 
 from pandas import (
+    Categorical,
     DataFrame,
     date_range,
 )
@@ -14,14 +15,18 @@ class TestEquals:
         df2 = DataFrame({"a": ["s", "d"], "b": [1, 2]})
         assert df1.equals(df2) is False
 
-    def test_equals_different_blocks(self, using_infer_string):
+    def test_equals_different_blocks(self):
         # GH#9330
-        df0 = DataFrame({"A": ["x", "y"], "B": [1, 2], "C": ["w", "z"]})
-        df1 = df0.reset_index()[["A", "B", "C"]]
-        if not using_infer_string:
-            # this assert verifies that the above operations have
-            # induced a block rearrangement
-            assert df0._mgr.blocks[0].dtype != df1._mgr.blocks[0].dtype
+        df0 = DataFrame(
+            {"A": [1.0, 2.0], "B": np.array([1, 2], dtype=np.int64), "C": [3.0, 4.0]}
+        )
+        # build df1 via sequential __setitem__ so the float columns end up
+        # in separate blocks instead of being consolidated upfront
+        df1 = DataFrame({"A": [1.0, 2.0]})
+        df1["B"] = np.array([1, 2], dtype=np.int64)
+        df1["C"] = np.array([3.0, 4.0])
+        assert len(df0._mgr.blocks) == 2
+        assert len(df1._mgr.blocks) == 3
 
         # do the real tests
         tm.assert_frame_equal(df0, df1)
@@ -83,3 +88,16 @@ class TestEquals:
         df3 = df1.set_index(["floats"], append=True)
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
+
+    def test_equals_categorical_categories_order(self):
+        cat1 = Categorical(["a", "b", "a"], categories=["a", "b"])
+        cat2 = Categorical(["a", "b", "a"], categories=["b", "a"])
+        df1 = DataFrame({"c": cat1})
+        df2 = DataFrame({"c": cat2})
+
+        assert df1.equals(df2)
+
+        cat3 = Categorical(["a", "b", "a"], categories=["a", "b", "c"])
+        df3 = DataFrame({"c": cat3})
+
+        assert not df1.equals(df3)

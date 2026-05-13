@@ -61,7 +61,7 @@ is an :class:`ArrowDtype`.
 support as NumPy including first-class nullability support for all data types, immutability and more.
 
 The table below shows the equivalent pyarrow-backed (``pa``), pandas extension, and numpy (``np``) types that are recognized by pandas.
-Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``
+Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``.
 
 =============================================== ========================== ===================
 PyArrow type                                    pandas extension type      NumPy type
@@ -114,7 +114,7 @@ values.
 
    ArrowDtype
 
-For more information, please see the :ref:`PyArrow user guide <pyarrow>`
+For more information, please see the :ref:`PyArrow user guide <pyarrow>`.
 
 .. _api.arrays.datetime:
 
@@ -187,6 +187,8 @@ Methods
    Timestamp.day_name
    Timestamp.dst
    Timestamp.floor
+   Timestamp.fromisocalendar
+   Timestamp.fromisoformat
    Timestamp.fromordinal
    Timestamp.fromtimestamp
    Timestamp.isocalendar
@@ -265,6 +267,7 @@ Properties
    Timedelta.min
    Timedelta.nanoseconds
    Timedelta.resolution
+   Timedelta.resolution_string
    Timedelta.seconds
    Timedelta.unit
    Timedelta.value
@@ -495,7 +498,7 @@ a :class:`CategoricalDtype`.
    CategoricalDtype.categories
    CategoricalDtype.ordered
 
-Categorical data can be stored in a :class:`pandas.Categorical`
+Categorical data can be stored in a :class:`pandas.Categorical`:
 
 .. autosummary::
    :toctree: api/
@@ -637,6 +640,8 @@ with a bool :class:`numpy.ndarray`.
       DatetimeTZDtype.tz
       PeriodDtype.freq
       IntervalDtype.subtype
+      StringDtype.storage
+      StringDtype.na_value
 
 *********
 Utilities
@@ -664,6 +669,7 @@ Data type introspection
     api.types.is_datetime64_dtype
     api.types.is_datetime64_ns_dtype
     api.types.is_datetime64tz_dtype
+    api.types.is_dtype_equal
     api.types.is_extension_array_dtype
     api.types.is_float_dtype
     api.types.is_int64_dtype

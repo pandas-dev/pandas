@@ -51,13 +51,34 @@ def test_mode_nullable_dtype(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_mode_infer_string():
+def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
+    # GH##58926
+    ser = Series([1, 2, 3, 1], dtype=any_numeric_ea_dtype)
+    result = ser.mode(dropna=False)
+    expected = Series([1], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser2 = Series([1, 1, 2, 3, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser2.mode(dropna=False)
+    expected = Series([1], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser3 = Series([1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser3.mode(dropna=False)
+    expected = Series([pd.NA], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser4 = Series([1, 1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser4.mode(dropna=False)
+    expected = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_mode_string(any_string_dtype):
     # GH#56183
-    pytest.importorskip("pyarrow")
-    ser = Series(["a", "b"], dtype=object)
-    with pd.option_context("future.infer_string", True):
-        result = ser.mode()
-    expected = Series(["a", "b"], dtype=object)
+    ser = Series(["a", "b"], dtype=any_string_dtype)
+    result = ser.mode()
+    expected = Series(["a", "b"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -81,7 +102,7 @@ def test_td64_sum_empty(skipna):
 
 def test_td64_summation_overflow():
     # GH#9442
-    ser = Series(pd.date_range("20130101", periods=100000, freq="h"))
+    ser = Series(pd.date_range("20130101", periods=100000, freq="h", unit="ns"))
     ser[0] += pd.Timedelta("1s 1ms")
 
     # mean
@@ -162,21 +183,17 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-def test_mean_with_convertible_string_raises(using_infer_string):
+def test_mean_with_convertible_string_raises():
     # GH#44008
     ser = Series(["1", "2"])
-    if using_infer_string:
-        msg = "does not support"
-        with pytest.raises(TypeError, match=msg):
-            ser.sum()
-    else:
-        assert ser.sum() == "12"
-    msg = "Could not convert string '12' to numeric|does not support"
+    assert ser.sum() == "12"
+
+    msg = "Could not convert string '12' to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
     df = ser.to_frame()
-    msg = r"Could not convert \['12'\] to numeric|does not support"
+    msg = r"Could not convert \['12'\] to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
@@ -184,29 +201,31 @@ def test_mean_with_convertible_string_raises(using_infer_string):
 def test_mean_dont_convert_j_to_complex():
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    msg = r"Could not convert \['J'\] to numeric|does not support"
+    msg = r"Could not convert \['J'\] to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "Could not convert string 'J' to numeric|does not support"
+    msg = "Could not convert string 'J' to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "Could not convert string 'J' to numeric|ufunc 'divide'"
+    msg = "Could not convert string 'J' to numeric|ufunc 'divide'|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
 
 def test_median_with_convertible_string_raises():
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
-    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support"
+    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support|Cannot perform"
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
+    msg = (
+        r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support|Cannot perform"
+    )
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
         df.median()

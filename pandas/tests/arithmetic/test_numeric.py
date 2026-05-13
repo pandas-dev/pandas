@@ -151,6 +151,23 @@ class TestNumericComparisons:
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
+    def test_mul_timedelta_list(self, box_with_array):
+        # GH#62524
+        box = box_with_array
+        left = np.array([3, 4])
+        left = tm.box_expected(left, box)
+
+        right = [Timedelta(days=1), Timedelta(days=2)]
+
+        result = left * right
+
+        expected = TimedeltaIndex([Timedelta(days=3), Timedelta(days=8)])
+        expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
+
+        result2 = right * left
+        tm.assert_equal(result2, expected)
+
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
@@ -206,8 +223,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
@@ -218,7 +235,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        expected = TimedeltaIndex(
+            [Timedelta(days=n) for n in range(len(index))], dtype="m8[ns]"
+        )
         if isinstance(scalar_td, np.timedelta64):
             dtype = scalar_td.dtype
             expected = expected.astype(dtype)
@@ -237,9 +256,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
-            Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
+            Timedelta(days=1).as_unit("ns").to_pytimedelta(),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -278,7 +297,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 # i.e. resolution is lower -> use lowest supported resolution
                 dtype = np.dtype("m8[s]")
             expected = expected.astype(dtype)
-        elif type(three_days) is timedelta:
+        elif type(three_days) is timedelta or (
+            isinstance(three_days, Timedelta) and three_days.unit == "us"
+        ):
             expected = expected.astype("m8[us]")
         elif isinstance(
             three_days,
@@ -290,10 +311,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
 
-        result = three_days / index
-        tm.assert_equal(result, expected)
+        if isinstance(three_days, pd.offsets.Day):
+            # GH#41943 Day is no longer timedelta-like
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                three_days / index
+        else:
+            result = three_days / index
+            tm.assert_equal(result, expected)
+            msg = "cannot use operands with types dtype"
 
-        msg = "cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             index / three_days
 
@@ -304,7 +331,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             Timedelta(hours=31).to_pytimedelta(),
             Timedelta(hours=31).to_timedelta64(),
             Timedelta(hours=31).to_timedelta64().astype("m8[h]"),
-            np.timedelta64("NaT"),
+            np.timedelta64("NaT", "ns"),
             np.timedelta64("NaT", "D"),
             pd.offsets.Minute(3),
             pd.offsets.Second(0),
@@ -319,6 +346,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             pd.NaT,
         ],
         ids=repr,
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:.*'generic' unit for NumPy timedelta:DeprecationWarning"
     )
     def test_add_sub_datetimedeltalike_invalid(
         self, numeric_idx, other, box_with_array
@@ -760,7 +790,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, 2)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_ndarray(self, numeric_idx):
@@ -772,7 +802,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_series(self, numeric_idx):
@@ -784,7 +814,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Series(div), Series(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_series_equal(r, e)
 
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
@@ -855,6 +885,19 @@ class TestMultiplicationDivision:
             result = 0 % s
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
+
+    def test_non_1d_ea_raises_notimplementederror(self):
+        # GH#61866
+        ea_array = array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
+        np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64).reshape(5, 1)
+
+        msg = "can only perform ops with 1-d structures"
+
+        with pytest.raises(NotImplementedError, match=msg):
+            ea_array * np_array
+
+        with pytest.raises(NotImplementedError, match=msg):
+            np_array * ea_array
 
 
 class TestAdditionSubtraction:
@@ -1003,7 +1046,7 @@ class TestAdditionSubtraction:
         df = pd.DataFrame({"a": ["a", None, "b"]})
         tm.assert_frame_equal(df + df, pd.DataFrame({"a": ["aa", np.nan, "bb"]}))
 
-    @pytest.mark.parametrize("dtype", ("float", "int64"))
+    @pytest.mark.parametrize("dtype", ("float", "int64", "complex128"))
     def test_frame_operators_empty_like(self, dtype):
         # Test for issue #10181
         frames = [
@@ -1069,7 +1112,7 @@ class TestAdditionSubtraction:
         with np.errstate(all="ignore"):
             expecteds = divmod(series.values, np.asarray(other_np))
 
-        for result, expected in zip(results, expecteds):
+        for result, expected in zip(results, expecteds, strict=True):
             # check the values, name, and index separately
             tm.assert_almost_equal(np.asarray(result), expected)
 
@@ -1101,7 +1144,7 @@ class TestAdditionSubtraction:
 class TestUFuncCompat:
     # TODO: add more dtypes
     @pytest.mark.parametrize("holder", [Index, RangeIndex, Series])
-    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64, np.complex128])
     def test_ufunc_compat(self, holder, dtype):
         box = Series if holder is Series else Index
 
@@ -1116,45 +1159,52 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64, np.complex128])
     def test_ufunc_coercions(self, index_or_series, dtype):
         idx = index_or_series([1, 2, 3, 4, 5], dtype=dtype, name="x")
         box = index_or_series
+        exp_dtype = dtype if np.dtype(dtype).kind == "c" else np.float64
 
         result = np.sqrt(idx)
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index(np.sqrt(np.array([1, 2, 3, 4, 5], dtype=np.float64)), name="x")
+        assert isinstance(result, box)
+        assert result.dtype == exp_dtype
+        exp = Index(np.sqrt(np.array([1, 2, 3, 4, 5], dtype=exp_dtype)), name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = np.divide(idx, 2.0)
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=np.float64, name="x")
+        assert isinstance(result, box)
+        assert result.dtype == exp_dtype
+        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         # _evaluate_numeric_binop
         result = idx + 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([3.0, 4.0, 5.0, 6.0, 7.0], dtype=np.float64, name="x")
+        assert isinstance(result, box)
+        assert result.dtype == exp_dtype
+        exp = Index([3.0, 4.0, 5.0, 6.0, 7.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx - 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([-1.0, 0.0, 1.0, 2.0, 3.0], dtype=np.float64, name="x")
+        assert isinstance(result, box)
+        assert result.dtype == exp_dtype
+        exp = Index([-1.0, 0.0, 1.0, 2.0, 3.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx * 1.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([1.0, 2.0, 3.0, 4.0, 5.0], dtype=np.float64, name="x")
+        assert isinstance(result, box)
+        assert result.dtype == exp_dtype
+        exp = Index([1.0, 2.0, 3.0, 4.0, 5.0], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
         result = idx / 2.0
-        assert result.dtype == "f8" and isinstance(result, box)
-        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=np.float64, name="x")
+        assert isinstance(result, box)
+        assert result.dtype == exp_dtype
+        exp = Index([0.5, 1.0, 1.5, 2.0, 2.5], dtype=exp_dtype, name="x")
         exp = tm.box_expected(exp, box)
         tm.assert_equal(result, exp)
 
@@ -1408,7 +1458,7 @@ class TestNumericArithmeticUnsorted:
         # __floordiv__
         tm.assert_index_equal(idx // div, expected, exact=True)
 
-    @pytest.mark.parametrize("dtype", [np.int64, np.float64])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.complex128])
     @pytest.mark.parametrize("delta", [1, 0, -1])
     def test_addsub_arithmetic(self, dtype, delta):
         # GH#8142
@@ -1451,7 +1501,7 @@ def test_fill_value_inf_masking():
     expected = pd.DataFrame(
         {"A": [np.inf, 1.0, 0.0, 1.0], "B": [0.0, np.nan, 0.0, np.nan]}
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
 def test_dataframe_div_silenced():

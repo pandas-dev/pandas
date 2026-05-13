@@ -19,9 +19,9 @@ from pandas._libs.lib cimport c_is_list_like
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unstack(numeric_object_t[:, :] values, const uint8_t[:] mask,
+def unstack(const numeric_object_t[:, :] values, const uint8_t[:] mask,
             Py_ssize_t stride, Py_ssize_t length, Py_ssize_t width,
-            numeric_object_t[:, :] new_values, uint8_t[:, :] new_mask) -> None:
+            numeric_object_t[:, :] new_values) -> None:
     """
     Transform long values to wide new_values.
 
@@ -32,35 +32,13 @@ def unstack(numeric_object_t[:, :] values, const uint8_t[:] mask,
     stride : int
     length : int
     width : int
-    new_values : np.ndarray[bool]
+    new_values : typed ndarray
         result array
-    new_mask : np.ndarray[bool]
-        result mask
     """
     cdef:
         Py_ssize_t i, j, w, nulls, s, offset
 
-    if numeric_object_t is not object:
-        # evaluated at compile-time
-        with nogil:
-            for i in range(stride):
-
-                nulls = 0
-                for j in range(length):
-
-                    for w in range(width):
-
-                        offset = j * width + w
-
-                        if mask[offset]:
-                            s = i * width + w
-                            new_values[j, s] = values[offset - nulls, i]
-                            new_mask[j, s] = 1
-                        else:
-                            nulls += 1
-
-    else:
-        # object-dtype, identical to above but we cannot use nogil
+    with nogil(numeric_object_t is not object):
         for i in range(stride):
 
             nulls = 0
@@ -73,14 +51,13 @@ def unstack(numeric_object_t[:, :] values, const uint8_t[:] mask,
                     if mask[offset]:
                         s = i * width + w
                         new_values[j, s] = values[offset - nulls, i]
-                        new_mask[j, s] = 1
                     else:
                         nulls += 1
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def explode(ndarray[object] values):
+def explode(ndarray[object, ndim=1] values):
     """
     transform array list-likes to long form
     preserve non-list entries

@@ -1,6 +1,6 @@
+from collections.abc import Hashable
 from typing import (
     Any,
-    Hashable,
     Literal,
     overload,
 )

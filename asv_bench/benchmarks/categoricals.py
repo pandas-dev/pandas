@@ -24,12 +24,12 @@ class Constructor:
         self.codes = np.tile(range(len(self.categories)), N)
 
         self.datetimes = pd.Series(
-            pd.date_range("1995-01-01 00:00:00", periods=N / 10, freq="s")
+            pd.date_range("1995-01-01 00:00:00", periods=N // 10, freq="s")
         )
         self.datetimes_with_nat = self.datetimes.copy()
         self.datetimes_with_nat.iloc[-1] = pd.NaT
 
-        self.values_some_nan = list(np.tile(self.categories + [np.nan], N))
+        self.values_some_nan = list(np.tile([*self.categories, np.nan], N))
         self.values_all_nan = [np.nan] * len(self.values)
         self.values_all_int8 = np.ones(N, "int8")
         self.categorical = pd.Categorical(self.values, self.categories)

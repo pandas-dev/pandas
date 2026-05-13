@@ -237,15 +237,15 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
         exp_repr = (
-            "                              t1                         t2\n"
-            "count                          5                          5\n"
-            "mean             3 days 00:00:00            0 days 03:00:00\n"
-            "std    1 days 13:56:50.394919273  0 days 01:34:52.099788303\n"
-            "min              1 days 00:00:00            0 days 01:00:00\n"
-            "25%              2 days 00:00:00            0 days 02:00:00\n"
-            "50%              3 days 00:00:00            0 days 03:00:00\n"
-            "75%              4 days 00:00:00            0 days 04:00:00\n"
-            "max              5 days 00:00:00            0 days 05:00:00"
+            "                           t1                      t2\n"
+            "count                       5                       5\n"
+            "mean          3 days 00:00:00         0 days 03:00:00\n"
+            "std    1 days 13:56:50.394919  0 days 01:34:52.099788\n"
+            "min           1 days 00:00:00         0 days 01:00:00\n"
+            "25%           2 days 00:00:00         0 days 02:00:00\n"
+            "50%           3 days 00:00:00         0 days 03:00:00\n"
+            "75%           4 days 00:00:00         0 days 04:00:00\n"
+            "max           5 days 00:00:00         0 days 05:00:00"
         )
         assert repr(result) == exp_repr
 
@@ -352,14 +352,12 @@ class TestDataFrameDescribe:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_describe_does_not_raise_error_for_dictlike_elements(self):
+    def test_describe_raises_for_dictlike_elements(self):
         # GH#32409
+        # GH#20285 - unhashable elements in Index are rejected
         df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
-        expected = DataFrame(
-            {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
-        )
-        result = df.describe()
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(TypeError, match="unhashable type"):
+            df.describe()
 
     @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])
     def test_describe_when_include_all_exclude_not_allowed(self, exclude):
@@ -370,6 +368,13 @@ class TestDataFrameDescribe:
         msg = "exclude must be None when include is 'all'"
         with pytest.raises(ValueError, match=msg):
             df.describe(include="all", exclude=exclude)
+
+    def test_describe_when_included_dtypes_not_present(self):
+        # GH#61863
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = "No columns match the specified include or exclude data types"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include=["datetime"])
 
     def test_describe_with_duplicate_columns(self):
         df = DataFrame(
@@ -412,4 +417,45 @@ class TestDataFrameDescribe:
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
             dtype=pd.ArrowDtype(pa.float64()),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("percentiles", [None, [], [0.2]])
+    def test_refine_percentiles(self, percentiles):
+        """
+        Test that the percentiles are returned correctly depending on the `percentiles`
+        argument.
+        - The default behavior is to return the 25th, 50th, and 75 percentiles
+        - If `percentiles` is an empty list, no percentiles are returned
+        - If `percentiles` is a non-empty list, only those percentiles are returned
+        """
+        # GH#60550
+        df = DataFrame({"a": np.arange(0, 10, 1)})
+
+        result = df.describe(percentiles=percentiles)
+
+        if percentiles is None:
+            percentiles = [0.25, 0.5, 0.75]
+
+        expected = DataFrame(
+            [
+                len(df.a),
+                df.a.mean(),
+                df.a.std(),
+                df.a.min(),
+                *[df.a.quantile(p) for p in percentiles],
+                df.a.max(),
+            ],
+            index=pd.Index(
+                [
+                    "count",
+                    "mean",
+                    "std",
+                    "min",
+                    *[f"{p:.0%}" for p in percentiles],
+                    "max",
+                ]
+            ),
+            columns=["a"],
+        )
+
         tm.assert_frame_equal(result, expected)

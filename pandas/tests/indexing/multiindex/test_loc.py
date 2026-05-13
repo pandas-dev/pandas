@@ -22,18 +22,25 @@ def frame_random_data_integer_multi_index():
 
 
 class TestMultiIndexLoc:
-    def test_loc_setitem_frame_with_multiindex(self, multiindex_dataframe_random_data):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_frame_with_multiindex(
+        self, multiindex_dataframe_random_data, has_ref
+    ):
         frame = multiindex_dataframe_random_data
+        if has_ref:
+            view = frame[:]
         frame.loc[("bar", "two"), "B"] = 5
         assert frame.loc[("bar", "two"), "B"] == 5
 
         # with integer labels
         df = frame.copy()
         df.columns = list(range(3))
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-    def test_loc_getitem_general(self, performance_warning, any_real_numpy_dtype):
+    def test_loc_getitem_general(self, any_real_numpy_dtype):
         # GH#2817
         dtype = any_real_numpy_dtype
         data = {
@@ -46,8 +53,7 @@ class TestMultiIndexLoc:
         df = df.set_index(keys=["col", "num"])
         key = 4.0, 12
 
-        with tm.assert_produces_warning(performance_warning):
-            tm.assert_frame_equal(df.loc[key], df.iloc[2:])
+        tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
         return_value = df.sort_index(inplace=True)
@@ -105,7 +111,7 @@ class TestMultiIndexLoc:
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
             [],
-            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            index=MultiIndex(levels=index.levels, codes=[[], []]),
             dtype=np.float64,
         )
         result = x.loc[empty]
@@ -129,7 +135,7 @@ class TestMultiIndexLoc:
         empty = np.array([])
         expected = Series(
             [],
-            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            index=MultiIndex(levels=index.levels, codes=[[], []]),
             dtype="float64",
         )
         result = x.loc[empty]
@@ -334,7 +340,7 @@ class TestMultiIndexLoc:
         # of all the valid types
         indexer = tuple(
             convert_nested_indexer(indexer_type, k)
-            for indexer_type, k in zip(types, keys)
+            for indexer_type, k in zip(types, keys, strict=True)
         )
         if indexer_type_1 is set or indexer_type_2 is set:
             with pytest.raises(TypeError, match="as an indexer is not supported"):
@@ -379,6 +385,29 @@ class TestMultiIndexLoc:
             index=mi,
             columns=["a", "b", "c", "d"],
         )
+        tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_setitem_axis_set(self):
+        # GH#58116
+        dates = pd.date_range("2001-01-01", freq="D", periods=2)
+        ids = ["i1", "i2", "i3"]
+        index = MultiIndex.from_product([dates, ids], names=["date", "identifier"])
+        df = DataFrame(0.0, index=index, columns=["A", "B"])
+        df.loc(axis=0)["2001-01-01", ["i1", "i3"]] = None
+
+        expected = DataFrame(
+            [
+                [None, None],
+                [0.0, 0.0],
+                [None, None],
+                [0.0, 0.0],
+                [0.0, 0.0],
+                [0.0, 0.0],
+            ],
+            index=index,
+            columns=["A", "B"],
+        )
+
         tm.assert_frame_equal(df, expected)
 
     def test_sorted_multiindex_after_union(self):
@@ -490,6 +519,27 @@ def test_loc_getitem_duplicates_multiindex_non_scalar_type_object():
     assert result == expected
 
 
+def test_loc_getitem_unique_key_in_nonunique_multiindex():
+    # GH#42102 - unique key in a non-unique MultiIndex should return scalar
+    mi = MultiIndex.from_tuples([(0, 0), (1, 0), (1, 0)])
+    ser = Series(range(3), index=mi)
+
+    # (0, 0) is unique even though the overall index is non-unique
+    result = ser.loc[(0, 0)]
+    assert result == 0
+    assert not isinstance(result, Series)
+
+    # (1, 0) is duplicated, should still return a Series
+    result = ser.loc[(1, 0)]
+    assert isinstance(result, Series)
+
+    # DataFrame column case: unique key in non-unique column MultiIndex
+    columns = MultiIndex.from_tuples([("A", "x"), ("B", "y"), ("B", "y")])
+    df = DataFrame([[1, 2, 3]], columns=columns)
+    result = df[("A", "x")]
+    assert isinstance(result, Series)
+
+
 def test_loc_getitem_tuple_plus_slice():
     # GH 671
     df = DataFrame(
@@ -578,7 +628,7 @@ def test_loc_nan_multiindex(using_infer_string):
         np.ones((1, 4)),
         index=Index(
             [np.nan],
-            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+            dtype="object" if not using_infer_string else "str",
             name="u3",
         ),
         columns=Index(["d1", "d2", "d3", "d4"]),
@@ -734,7 +784,7 @@ class TestKeyErrorsWithMultiIndex:
         df = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
         df2 = df.set_index(["A", "B"])
 
-        with pytest.raises(KeyError, match="1"):
+        with pytest.raises(KeyError, match="6"):
             df2.loc[(1, 6)]
 
     def test_missing_key_raises_keyerror2(self):
@@ -926,10 +976,10 @@ def test_mi_add_cell_missing_row_non_unique():
     result.loc["d", (1, "A")] = 3
     expected = DataFrame(
         [
-            [1.0, 2.0, 5.0, 6.0],
-            [3.0, 4.0, 7.0, 8.0],
-            [3.0, -1.0, -1, -1],
-            [3.0, np.nan, np.nan, np.nan],
+            [1, 2.0, 5.0, 6.0],
+            [3, 4.0, 7.0, 8.0],
+            [3, -1.0, -1, -1],
+            [3, np.nan, np.nan, np.nan],
         ],
         index=["a", "a", "c", "d"],
         columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
@@ -980,3 +1030,57 @@ def test_multindex_series_loc_with_tuple_label():
     ser = Series([1, 2], index=mi)
     result = ser.loc[(3, (4, 5))]
     assert result == 2
+
+
+def test_loc_np_datetime64_key_on_object_dt64_level():
+    # GH#64689 (revert)
+    # Verify MultiIndex.loc works with np.datetime64 key on object-dtype level
+    # holding datetime64 values without the datetime64-to-date conversion.
+    mi = MultiIndex.from_arrays(
+        [
+            Index(
+                [np.datetime64("2023-01-01", "s")] * 2,
+                dtype=object,
+            ),
+            ["A", "B"],
+            ["X", "Y"],
+        ],
+    )
+    df = DataFrame({"val": [1, 2]}, index=mi)
+    result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
+    expected = DataFrame({"val": [1]}, index=Index(["X"]))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_multiindex_with_overlapping_interval_single_match():
+    # GH#27456 - tuple .loc on MultiIndex with overlapping IntervalIndex
+    # level returned Series instead of scalar when only one interval matched
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["label1", "label1", "label2", "label2"]),
+            pd.IntervalIndex.from_arrays([1, 3, 1, 2], [3, 4, 2, 4]),
+        ]
+    )
+    ser = Series([1, 2, 3, 4], index=idx, name="Value")
+
+    result = ser.loc[("label1", 1.5)]
+    expected = ser.loc["label1"].loc[1.5]
+    assert result == expected == 1
+
+
+def test_loc_multiindex_with_overlapping_interval_multiple_matches():
+    # GH#27456 - tuple .loc on MultiIndex where the scalar falls in
+    # multiple overlapping intervals for the same outer label;
+    # the intervals in the level are non-contiguous (get_loc returns
+    # a boolean array, not a slice)
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["A", "A", "B", "B"]),
+            pd.IntervalIndex.from_arrays([1, 0, 0.5, 2], [3, 2, 0.8, 4]),
+        ]
+    )
+    ser = Series([10, 20, 30, 40], index=idx, name="Value")
+
+    result = ser.loc[("A", 1.5)]
+    expected = np.array([10, 20], dtype=result.values.dtype)
+    tm.assert_numpy_array_equal(result.values, expected)

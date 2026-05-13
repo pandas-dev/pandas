@@ -87,9 +87,12 @@ def compare_or_regex_search(
         op = lambda x: operator.eq(x, b)
     else:
         op = np.vectorize(
-            lambda x: bool(re.search(b, x))
-            if isinstance(x, str) and isinstance(b, (str, Pattern))
-            else False
+            lambda x: (
+                bool(re.search(b, x))
+                if isinstance(x, str) and isinstance(b, (str, Pattern))
+                else False
+            ),
+            otypes=[bool],
         )
 
     # GH#32621 use mask to avoid comparing to NAs
@@ -151,4 +154,6 @@ def replace_regex(
     if mask is None:
         values[:] = f(values)
     else:
+        if values.ndim != mask.ndim:
+            mask = np.broadcast_to(mask, values.shape)
         values[mask] = f(values[mask])

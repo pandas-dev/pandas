@@ -10,9 +10,8 @@ import time
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
-import pandas._libs.json as ujson
+import pandas._libs._ujson as ujson
 from pandas.compat import IS64
 
 from pandas import (
@@ -54,60 +53,24 @@ def orient(request):
 
 class TestUltraJSONTests:
     @pytest.mark.skipif(not IS64, reason="not compliant on 32-bit, xref #15865")
-    def test_encode_decimal(self):
-        sut = decimal.Decimal("1337.1337")
-        encoded = ujson.ujson_dumps(sut, double_precision=15)
+    @pytest.mark.parametrize(
+        "value, double_precision",
+        [
+            ("1337.1337", 15),
+            ("0.95", 1),
+            ("0.94", 1),
+            ("1.95", 1),
+            ("-1.95", 1),
+            ("0.995", 2),
+            ("0.9995", 3),
+            ("0.99999999999999944", 15),
+        ],
+    )
+    def test_encode_decimal(self, value, double_precision):
+        sut = decimal.Decimal(value)
+        encoded = ujson.ujson_dumps(sut, double_precision=double_precision)
         decoded = ujson.ujson_loads(encoded)
-        assert decoded == 1337.1337
-
-        sut = decimal.Decimal("0.95")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == "1.0"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == 1.0
-
-        sut = decimal.Decimal("0.94")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == "0.9"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == 0.9
-
-        sut = decimal.Decimal("1.95")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == "2.0"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == 2.0
-
-        sut = decimal.Decimal("-1.95")
-        encoded = ujson.ujson_dumps(sut, double_precision=1)
-        assert encoded == "-2.0"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == -2.0
-
-        sut = decimal.Decimal("0.995")
-        encoded = ujson.ujson_dumps(sut, double_precision=2)
-        assert encoded == "1.0"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == 1.0
-
-        sut = decimal.Decimal("0.9995")
-        encoded = ujson.ujson_dumps(sut, double_precision=3)
-        assert encoded == "1.0"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == 1.0
-
-        sut = decimal.Decimal("0.99999999999999944")
-        encoded = ujson.ujson_dumps(sut, double_precision=15)
-        assert encoded == "1.0"
-
-        decoded = ujson.ujson_loads(encoded)
-        assert decoded == 1.0
+        assert decoded == value
 
     @pytest.mark.parametrize("ensure_ascii", [True, False])
     def test_encode_string_conversion(self, ensure_ascii):
@@ -370,6 +333,7 @@ class TestUltraJSONTests:
 
     def test_encode_time_conversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
+        pytz = pytest.importorskip("pytz")
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.ujson_dumps(test)
         expected = f'"{test.isoformat()}"'
@@ -383,7 +347,7 @@ class TestUltraJSONTests:
         assert expected == output
 
     @pytest.mark.parametrize(
-        "decoded_input", [NaT, np.datetime64("NaT"), np.nan, np.inf, -np.inf]
+        "decoded_input", [NaT, np.datetime64("NaT", "ns"), np.nan, np.inf, -np.inf]
     )
     def test_encode_as_null(self, decoded_input):
         assert ujson.ujson_dumps(decoded_input) == "null", "Expected null"
@@ -446,6 +410,18 @@ class TestUltraJSONTests:
         msg = "Unexpected character found when decoding 'false'"
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(jibberish)
+
+    @pytest.mark.parametrize(
+        "bad_input, expected_pos",
+        [
+            ("[1, 2,", 5),
+            ('{"a": fzz}', 5),
+            ("[[[true", 7),
+        ],
+    )
+    def test_decode_error_includes_position(self, bad_input, expected_pos):
+        with pytest.raises(ValueError, match=f"at position {expected_pos}$"):
+            ujson.ujson_loads(bad_input)
 
     @pytest.mark.parametrize(
         "broken_json",
@@ -696,7 +672,7 @@ class TestUltraJSONTests:
 
     def test_ujson__name__(self):
         # GH 52898
-        assert ujson.__name__ == "pandas._libs.json"
+        assert ujson.__name__ == "pandas._libs._ujson"
 
 
 class TestNumpyJSONTests:
@@ -953,7 +929,9 @@ class TestPandasJSONTests:
         date_unit = "ns"
 
         # freq doesn't round-trip
-        rng = DatetimeIndex(list(date_range("1/1/2000", periods=20)), freq=None)
+        rng = DatetimeIndex(
+            list(date_range("1/1/2000", periods=20, unit="ns")), freq=None
+        )
         encoded = ujson.ujson_dumps(rng, date_unit=date_unit)
 
         decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))
@@ -991,7 +969,7 @@ class TestPandasJSONTests:
     def test_decode_extreme_numbers(self, extreme_num):
         assert extreme_num == ujson.ujson_loads(str(extreme_num))
 
-    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-2**63-1}"])
+    @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-(2**63) - 1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
         with pytest.raises(
             ValueError,
@@ -1006,7 +984,7 @@ class TestPandasJSONTests:
         with pytest.raises(ValueError, match="Trailing data"):
             ujson.ujson_loads("{}\n\t a")
 
-    @pytest.mark.parametrize("value", [f"{2**64}", f"{-2**63-1}"])
+    @pytest.mark.parametrize("value", [f"{2**64}", f"{-(2**63) - 1}"])
     def test_decode_array_with_big_int(self, value):
         with pytest.raises(
             ValueError,

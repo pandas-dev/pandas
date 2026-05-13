@@ -34,7 +34,28 @@ class TestReshape:
 
         # test empty
         null_index = Index([])
-        tm.assert_index_equal(Index(["a"], dtype=object), null_index.insert(0, "a"))
+        tm.assert_index_equal(Index(["a"]), null_index.insert(0, "a"))
+
+    @pytest.mark.parametrize("val", [True, False])
+    def test_insert_bool_into_numeric_ea(self, val):
+        # GH#61709 - bool should not be silently cast to numeric
+        float_idx = Index([1.0, 2.0, 3.0], dtype="Float64")
+        result = float_idx.insert(1, val)
+        expected = Index([1.0, val, 2.0, 3.0], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+        int_idx = Index([1, 2, 3], dtype="Int64")
+        result = int_idx.insert(1, val)
+        expected = Index([1, val, 2, 3], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("val", [0, 1])
+    def test_insert_int_into_boolean_ea(self, val):
+        # GH#61709 - int should not be silently cast to bool
+        bool_idx = Index([True, False, True], dtype="boolean")
+        result = bool_idx.insert(1, val)
+        expected = Index([True, val, False, True], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_insert_missing(self, nulls_fixture, using_infer_string):
         # GH#22295
@@ -57,12 +78,11 @@ class TestReshape:
         tm.assert_index_equal(result, expected)
         assert type(expected[2]) is type(val)
 
-    def test_insert_none_into_string_numpy(self):
+    def test_insert_none_into_string_numpy(self, string_dtype_no_object):
         # GH#55365
-        pytest.importorskip("pyarrow")
-        index = Index(["a", "b", "c"], dtype="string[pyarrow_numpy]")
+        index = Index(["a", "b", "c"], dtype=string_dtype_no_object)
         result = index.insert(-1, None)
-        expected = Index(["a", "b", None, "c"], dtype="string[pyarrow_numpy]")
+        expected = Index(["a", "b", None, "c"], dtype=string_dtype_no_object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
-
 from pandas import (
     DataFrame,
     Index,
@@ -103,6 +101,7 @@ def test_flex_binary_frame(method, frame):
     )
 
     res3 = getattr(frame.rolling(window=10), method)(frame2)
+    res3.columns = Index(list(res3.columns))
     exp = DataFrame(
         {k: getattr(frame[k].rolling(window=10), method)(frame2[k]) for k in frame}
     )
@@ -143,35 +142,47 @@ def test_corr_sanity():
 
 def test_rolling_cov_diff_length():
     # GH 7512
-    s1 = Series([1, 2, 3], index=[0, 1, 2])
-    s2 = Series([1, 3], index=[0, 2])
+    s1 = Series([1, 2, 3], index=range(3))
+    s2 = Series([1, 3], index=range(0, 4, 2))
     result = s1.rolling(window=3, min_periods=2).cov(s2)
     expected = Series([None, None, 2.0])
     tm.assert_series_equal(result, expected)
 
-    s2a = Series([1, None, 3], index=[0, 1, 2])
+    s2a = Series([1, None, 3], index=range(3))
     result = s1.rolling(window=3, min_periods=2).cov(s2a)
     tm.assert_series_equal(result, expected)
 
 
 def test_rolling_corr_diff_length():
     # GH 7512
-    s1 = Series([1, 2, 3], index=[0, 1, 2])
-    s2 = Series([1, 3], index=[0, 2])
+    s1 = Series([1, 2, 3], index=range(3))
+    s2 = Series([1, 3], index=range(0, 4, 2))
     result = s1.rolling(window=3, min_periods=2).corr(s2)
     expected = Series([None, None, 1.0])
     tm.assert_series_equal(result, expected)
 
-    s2a = Series([1, None, 3], index=[0, 1, 2])
+    s2a = Series([1, None, 3], index=range(3))
     result = s1.rolling(window=3, min_periods=2).corr(s2a)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["cov", "corr"])
+def test_time_based_rolling_other_longer_raises(func):
+    # GH#62937
+    idx_short = date_range("2020-01-01", periods=3, freq="D")
+    idx_long = date_range("2020-01-01", periods=5, freq="D")
+    s = Series([1, 2, 3], index=idx_short)
+    other = Series([1, 2, 3, 4, 5], index=idx_long)
+    msg = "Variable rolling window requires .* Got 3 < 5"
+    with pytest.raises(ValueError, match=msg):
+        getattr(s.rolling("2D"), func)(other)
 
 
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=True),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_rolling_functions_window_non_shrinkage_binary(f):
@@ -193,8 +204,8 @@ def test_rolling_functions_window_non_shrinkage_binary(f):
 @pytest.mark.parametrize(
     "f",
     [
-        lambda x: (x.rolling(window=10, min_periods=5).cov(x, pairwise=True)),
-        lambda x: (x.rolling(window=10, min_periods=5).corr(x, pairwise=True)),
+        lambda x: x.rolling(window=10, min_periods=5).cov(x, pairwise=True),
+        lambda x: x.rolling(window=10, min_periods=5).corr(x, pairwise=True),
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
@@ -295,13 +306,7 @@ class TestPairwise:
             lambda x, y: x.expanding().cov(y, pairwise=True),
             lambda x, y: x.expanding().corr(y, pairwise=True),
             lambda x, y: x.rolling(window=3).cov(y, pairwise=True),
-            # TODO: We're missing a flag somewhere in meson
-            pytest.param(
-                lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
-                marks=pytest.mark.xfail(
-                    not IS64, reason="Precision issues on 32 bit", strict=False
-                ),
-            ),
+            lambda x, y: x.rolling(window=3).corr(y, pairwise=True),
             lambda x, y: x.ewm(com=3).cov(y, pairwise=True),
             lambda x, y: x.ewm(com=3).corr(y, pairwise=True),
         ],
@@ -324,7 +329,8 @@ class TestPairwise:
         result = result.dropna().values
         expected = expected.dropna().values
 
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        # not exact: rolling corr rounds differently on 32-bit
+        tm.assert_almost_equal(result, expected, check_dtype=False)
 
     @pytest.mark.filterwarnings("ignore:RuntimeWarning")
     @pytest.mark.parametrize(

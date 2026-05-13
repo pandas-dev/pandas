@@ -34,7 +34,7 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_as
         NPY_FR_GENERIC
 
-    int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
+    int64_t NPY_DATETIME_NAT  # elsewhere we call this NPY_NAT
 
 
 cdef extern from "pandas/datetime/pd_datetime.h":
@@ -45,6 +45,9 @@ cdef extern from "pandas/datetime/pd_datetime.h":
     void pandas_datetime_to_datetimestruct(npy_datetime val,
                                            NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *result) nogil
+
+    void set_datetimestruct_days(int64_t days,
+                                 npy_datetimestruct *result) nogil
 
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                 npy_datetimestruct *d) except? -1 nogil
@@ -89,7 +92,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None = *,
+    str format = *,
     bint exact = *
 ) except? -1
 

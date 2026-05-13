@@ -45,3 +45,19 @@ class TestCombine:
         )
         tm.assert_frame_equal(chunk, exp)
         tm.assert_frame_equal(chunk2, exp)
+
+    def test_combine_nonunique_columns(self):
+        # GH#51340
+
+        df = pd.DataFrame({"A": range(5), "B": range(5)})
+        df.columns = ["A", "A"]
+
+        other = df.copy()
+        df.iloc[1, :] = None
+
+        def combiner(a, b):
+            return b
+
+        result = df.combine(other, combiner)
+        expected = other.astype("float64")
+        tm.assert_frame_equal(result, expected)

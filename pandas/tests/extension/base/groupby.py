@@ -13,9 +13,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The default of observed=False is deprecated:FutureWarning"
-)
 class BaseGroupbyTests:
     """Groupby-specific tests."""
 
@@ -74,6 +71,18 @@ class BaseGroupbyTests:
         result = df.groupby("A").first()
         tm.assert_frame_equal(result, expected)
 
+        expected_last = df.iloc[[1, 3, 5, 7]]
+        expected_last = expected_last.set_index("A")
+
+        result = df.groupby("A").agg({"B": "last"})
+        tm.assert_frame_equal(result, expected_last)
+
+        result = df.groupby("A").agg("last")
+        tm.assert_frame_equal(result, expected_last)
+
+        result = df.groupby("A").last()
+        tm.assert_frame_equal(result, expected_last)
+
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
 
@@ -113,13 +122,9 @@ class BaseGroupbyTests:
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            df.groupby("B", group_keys=False, observed=False).apply(groupby_apply_op)
+        df.groupby("B", group_keys=False, observed=False).apply(groupby_apply_op)
         df.groupby("B", group_keys=False, observed=False).A.apply(groupby_apply_op)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            df.groupby("A", group_keys=False, observed=False).apply(groupby_apply_op)
+        df.groupby("A", group_keys=False, observed=False).apply(groupby_apply_op)
         df.groupby("A", group_keys=False, observed=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):
@@ -165,7 +170,7 @@ class BaseGroupbyTests:
                     # period
                     "does not support sum operations",
                     # datetime
-                    "does not support operation: 'sum'",
+                    "does not support operation 'sum'",
                     # all others
                     re.escape(f"agg function failed [how->sum,dtype->{dtype}"),
                 ]

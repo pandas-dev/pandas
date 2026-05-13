@@ -57,6 +57,8 @@ def test_subset_column_selection(backend):
 
     subset = df[["a", "c"]]
 
+    assert subset.index is not df.index
+
     # the subset shares memory ...
     assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
     # ... but uses CoW when being modified
@@ -100,6 +102,7 @@ def test_subset_row_slice(backend):
     subset = df[1:3]
     subset._mgr._verify_integrity()
 
+    assert subset.columns is not df.columns
     assert np.shares_memory(get_array(subset, "a"), get_array(df, "a"))
 
     subset.iloc[0, 0] = 0
@@ -128,6 +131,7 @@ def test_subset_column_slice(backend, dtype):
     subset = df.iloc[:, 1:]
     subset._mgr._verify_integrity()
 
+    assert subset.index is not df.index
     assert np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
 
     subset.iloc[0, 0] = 0
@@ -173,6 +177,9 @@ def test_subset_loc_rows_columns(
 
     subset = df.loc[row_indexer, column_indexer]
 
+    assert subset.index is not df.index
+    assert subset.columns is not df.columns
+
     # modifying the subset never modifies the parent
     subset.iloc[0, 0] = 0
 
@@ -215,6 +222,9 @@ def test_subset_iloc_rows_columns(
     df_orig = df.copy()
 
     subset = df.iloc[row_indexer, column_indexer]
+
+    assert subset.index is not df.index
+    assert subset.columns is not df.columns
 
     # modifying the subset never modifies the parent
     subset.iloc[0, 0] = 0
@@ -468,11 +478,13 @@ def test_subset_chained_getitem_column(backend, dtype):
         lambda s: s["a":"c"]["a":"b"],  # type: ignore[misc]
         lambda s: s.iloc[0:3].iloc[0:2],
         lambda s: s.loc["a":"c"].loc["a":"b"],  # type: ignore[misc]
-        lambda s: s.loc["a":"c"]  # type: ignore[misc]
-        .iloc[0:3]
-        .iloc[0:2]
-        .loc["a":"b"]  # type: ignore[misc]
-        .iloc[0:1],
+        lambda s: (
+            s.loc["a":"c"]  # type: ignore[misc]
+            .iloc[0:3]
+            .iloc[0:2]
+            .loc["a":"b"]  # type: ignore[misc]
+            .iloc[0:1]
+        ),
     ],
     ids=["getitem", "iloc", "loc", "long-chain"],
 )
@@ -534,6 +546,8 @@ def test_null_slice(backend, method):
 
     # we always return new objects (shallow copy), regardless of CoW or not
     assert df2 is not df
+    assert df2.index is not df.index
+    assert df2.columns is not df.columns
 
     # and those trigger CoW when mutated
     df2.iloc[0, 0] = 0
@@ -558,6 +572,7 @@ def test_null_slice_series(backend, method):
 
     # we always return new objects, regardless of CoW or not
     assert s2 is not s
+    assert s2.index is not s.index
 
     # and those trigger CoW when mutated
     s2.iloc[0] = 0
@@ -579,6 +594,7 @@ def test_series_getitem_slice(backend):
 
     subset = s[:]
     assert np.shares_memory(get_array(subset), get_array(s))
+    assert subset.index is not s.index
 
     subset.iloc[0] = 0
 
@@ -598,6 +614,7 @@ def test_series_getitem_ellipsis():
 
     subset = s[...]
     assert np.shares_memory(get_array(subset), get_array(s))
+    assert subset.index is not s.index
 
     subset.iloc[0] = 0
 
@@ -622,16 +639,17 @@ def test_series_subset_set_with_indexer(backend, indexer_si, indexer):
     s_orig = s.copy()
     subset = s[:]
 
-    warn = None
-    msg = "Series.__setitem__ treating keys as positions is deprecated"
     if (
         indexer_si is tm.setitem
         and isinstance(indexer, np.ndarray)
         and indexer.dtype.kind == "i"
     ):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
-        indexer_si(subset)[indexer] = 0
+        # In 3.0 we treat integers as always-labels
+        with pytest.raises(KeyError):
+            indexer_si(subset)[indexer] = 0
+        return
+
+    indexer_si(subset)[indexer] = 0
     expected = Series([0, 0, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 
@@ -700,7 +718,9 @@ def test_column_as_series(backend):
 
     s = df["a"]
 
+    assert s.index is not df.index
     assert np.shares_memory(get_array(s, "a"), get_array(df, "a"))
+
     s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
@@ -724,15 +744,13 @@ def test_column_as_series_set_with_upcast(backend):
         with pytest.raises(TypeError, match="Invalid value"):
             s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
+        tm.assert_series_equal(s, expected)
+        tm.assert_frame_equal(df, df_orig)
+        # ensure cached series on getitem is not the changed series
+        tm.assert_series_equal(df["a"], df_orig["a"])
     else:
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             s[0] = "foo"
-        expected = Series(["foo", 2, 3], dtype=object, name="a")
-
-    tm.assert_series_equal(s, expected)
-    tm.assert_frame_equal(df, df_orig)
-    # ensure cached series on getitem is not the changed series
-    tm.assert_series_equal(df["a"], df_orig["a"])
 
 
 @pytest.mark.parametrize(
@@ -755,6 +773,8 @@ def test_column_as_series_no_item_cache(request, backend, method):
     s2 = method(df)
 
     assert s1 is not s2
+    assert s1.index is not df.index
+    assert s1.index is not s2.index
 
     s1.iloc[0] = 0
 
@@ -804,16 +824,14 @@ def test_set_value_copy_only_necessary_column(indexer_func, indexer, val, col):
     view = df[:]
 
     if val == "a":
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype is deprecated"
-        ):
+        with pytest.raises(TypeError, match="Invalid value"):
             indexer_func(df)[indexer] = val
+    else:
+        indexer_func(df)[indexer] = val
 
-    indexer_func(df)[indexer] = val
-
-    assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
-    assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
-    tm.assert_frame_equal(view, df_orig)
+        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+        tm.assert_frame_equal(view, df_orig)
 
 
 def test_series_midx_slice():

@@ -185,7 +185,7 @@ def test_map(idx):
 @pytest.mark.parametrize(
     "mapper",
     [
-        lambda values, idx: {i: e for e, i in zip(values, idx)},
+        lambda values, idx: {i: e for e, i in zip(values, idx, strict=True)},
         lambda values, idx: pd.Series(values, idx),
     ],
 )
@@ -261,3 +261,20 @@ def test_numpy_type_funcs(idx, func):
     )
     with pytest.raises(TypeError, match=msg):
         func(idx)
+
+
+def test_categorical_multiindex_preserved_after_arithmetic():
+    # GH#42785 - CategoricalIndex levels should be preserved after
+    # division when the divisor has fewer levels (alignment/broadcasting).
+    # The bug specifically lost CategoricalIndex on leftmost levels.
+    v0 = pd.CategoricalIndex([10, 20, 30], name="V0")
+    v1 = pd.CategoricalIndex(["B", "A"], name="V1")
+    v2 = pd.CategoricalIndex(["X", "Y"], name="V2")
+    mi = MultiIndex.from_product([v0, v1, v2])
+
+    ser = pd.Series(range(12), index=mi)
+    norm = ser.groupby(level=["V1", "V2"]).sum()
+    result = ser.div(norm)
+
+    for level_idx in range(result.index.nlevels):
+        assert isinstance(result.index.levels[level_idx], pd.CategoricalIndex)

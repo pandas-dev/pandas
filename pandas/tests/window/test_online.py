@@ -1,15 +1,24 @@
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
+
 from pandas import (
     DataFrame,
     Series,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
 
-pytest.importorskip("numba")
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.mark.filterwarnings("ignore")
@@ -28,11 +37,9 @@ class TestEWM:
     @pytest.mark.parametrize(
         "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
     )
-    def test_online_vs_non_online_mean(
-        self, obj, nogil, parallel, nopython, adjust, ignore_na
-    ):
+    def test_online_vs_non_online_mean(self, obj, nogil, parallel, adjust, ignore_na):
         expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()
-        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
 
         online_ewm = (
             obj.head(2)
@@ -54,7 +61,7 @@ class TestEWM:
         "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
     )
     def test_update_times_mean(
-        self, obj, nogil, parallel, nopython, adjust, ignore_na, halflife_with_times
+        self, obj, nogil, parallel, adjust, ignore_na, halflife_with_times
     ):
         times = Series(
             np.array(
@@ -70,7 +77,7 @@ class TestEWM:
             halflife=halflife_with_times,
         ).mean()
 
-        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        engine_kwargs = {"nogil": nogil, "parallel": parallel}
         online_ewm = (
             obj.head(2)
             .ewm(

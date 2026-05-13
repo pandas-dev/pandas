@@ -3,13 +3,13 @@ from datetime import (
     timedelta,
 )
 import operator
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat.numpy import np_version_gte1p24p3
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DatetimeIndex,
@@ -31,6 +31,23 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+
+
+class TestNaTDeprecations:
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        msg = f"NaTType.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = getattr(NaT, old_attr)
+        assert np.isnan(result)
 
 
 class TestNaTFormatting:
@@ -361,7 +378,7 @@ _ops = {
         (Timestamp("2014-01-01"), "timestamp"),
         (Timestamp("2014-01-01", tz="UTC"), "timestamp"),
         (Timestamp("2014-01-01", tz="US/Eastern"), "timestamp"),
-        (pytz.timezone("Asia/Tokyo").localize(datetime(2014, 1, 1)), "timestamp"),
+        (datetime(2014, 1, 1).astimezone(zoneinfo.ZoneInfo("Asia/Tokyo")), "timestamp"),
     ],
 )
 def test_nat_arithmetic_scalar(op_name, value, val_type):
@@ -422,7 +439,8 @@ def test_nat_arithmetic_scalar(op_name, value, val_type):
 
 
 @pytest.mark.parametrize(
-    "val,expected", [(np.nan, NaT), (NaT, np.nan), (np.timedelta64("NaT"), np.nan)]
+    "val,expected",
+    [(np.nan, NaT), (NaT, np.nan), (np.timedelta64("NaT", "ns"), np.nan)],
 )
 def test_nat_rfloordiv_timedelta(val, expected):
     # see gh-#18846
@@ -439,8 +457,10 @@ def test_nat_rfloordiv_timedelta(val, expected):
 @pytest.mark.parametrize(
     "value",
     [
-        DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
-        DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
+        DatetimeIndex(["2011-01-01", "2011-01-02"], dtype="M8[ns]", name="x"),
+        DatetimeIndex(
+            ["2011-01-01", "2011-01-02"], dtype="M8[ns, US/Eastern]", name="x"
+        ),
         DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], dtype="M8[ns]"),
         DatetimeArray._from_sequence(
             ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
@@ -535,24 +555,10 @@ def test_to_numpy_alias():
     [
         Timedelta(0),
         Timedelta(0).to_pytimedelta(),
-        pytest.param(
-            Timedelta(0).to_timedelta64(),
-            marks=pytest.mark.xfail(
-                not np_version_gte1p24p3,
-                reason="td64 doesn't return NotImplemented, see numpy#17017",
-                # When this xfail is fixed, test_nat_comparisons_numpy
-                #  can be removed.
-            ),
-        ),
+        Timedelta(0).to_timedelta64(),
         Timestamp(0),
         Timestamp(0).to_pydatetime(),
-        pytest.param(
-            Timestamp(0).to_datetime64(),
-            marks=pytest.mark.xfail(
-                not np_version_gte1p24p3,
-                reason="dt64 doesn't return NotImplemented, see numpy#17017",
-            ),
-        ),
+        Timestamp(0).to_datetime64(),
         Timestamp(0).tz_localize("UTC"),
         NaT,
     ],
@@ -566,18 +572,6 @@ def test_nat_comparisons(compare_operators_no_eq_ne, other):
     op = getattr(operator, opname.strip("_"))
     assert op(NaT, other) is False
     assert op(other, NaT) is False
-
-
-@pytest.mark.parametrize("other", [np.timedelta64(0, "ns"), np.datetime64("now", "ns")])
-def test_nat_comparisons_numpy(other):
-    # Once numpy#17017 is fixed and the xfailed cases in test_nat_comparisons
-    #  pass, this test can be removed
-    assert not NaT == other
-    assert NaT != other
-    assert not NaT < other
-    assert not NaT > other
-    assert not NaT <= other
-    assert not NaT >= other
 
 
 @pytest.mark.parametrize("other_and_type", [("foo", "str"), (2, "int"), (2.0, "float")])
@@ -702,7 +696,7 @@ def test_nat_addsub_tdlike_scalar(obj):
     assert NaT - obj is NaT
 
 
-def test_pickle():
+def test_pickle(temp_file):
     # GH#4606
-    p = tm.round_trip_pickle(NaT)
+    p = tm.round_trip_pickle(NaT, temp_file)
     assert p is NaT

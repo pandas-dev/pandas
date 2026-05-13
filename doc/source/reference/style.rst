@@ -7,6 +7,9 @@ Style
 =====
 .. currentmodule:: pandas.io.formats.style
 
+.. note::
+   For an overview, see `Table Visualization <../user_guide/style.ipynb>`_.
+
 ``Styler`` objects are returned by :attr:`pandas.DataFrame.style`.
 
 Styler constructor
@@ -27,6 +30,7 @@ Styler properties
    Styler.template_html_style
    Styler.template_html_table
    Styler.template_latex
+   Styler.template_typst
    Styler.template_string
    Styler.loader
 
@@ -77,6 +81,7 @@ Style export and import
 
    Styler.to_html
    Styler.to_latex
+   Styler.to_typst
    Styler.to_excel
    Styler.to_string
    Styler.export

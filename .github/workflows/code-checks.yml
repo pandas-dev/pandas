@@ -4,103 +4,93 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 3.0.x
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 3.0.x
 
-env:
-  ENV_FILE: environment.yml
-  PANDAS_CI: 1
+defaults:
+  run:
+    shell: bash -euox pipefail {0}
 
-permissions:
-  contents: read
+permissions: {}
 
-# pre-commit run by https://pre-commit.ci/
 jobs:
-  docstring_typing_manual_hooks:
-    name: Docstring validation, typing, and other manual pre-commit hooks
-    runs-on: ubuntu-22.04
-    defaults:
-      run:
-        shell: bash -el {0}
+  doctest:
+    name: Doctests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-code-checks
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-doctests
       cancel-in-progress: true
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
-
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
       with:
-        editable: false
+        environment: "doctests"
 
-    # The following checks are independent of each other and should still be run if one fails
-
-    # TODO: The doctests have to be run first right now, since the Cython doctests only work
-    # with pandas installed in non-editable mode
-    # This can be removed once pytest-cython doesn't require C extensions to be installed inplace
-    - name: Run doctests
-      run: cd ci && ./code_checks.sh doctests
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Install pandas in editable mode
-      id: build-editable
-      if: ${{ steps.build.outcome == 'success' && always() }}
-      uses: ./.github/actions/build_pandas
-      with:
-        editable: true
-
-    - name: Check for no warnings when building single-page docs
-      run: ci/code_checks.sh single-docs
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Run checks on imported code
-      run: ci/code_checks.sh code
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Run docstring validation
-      run: ci/code_checks.sh docstrings
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Run check of documentation notebooks
-      run: ci/code_checks.sh notebooks
-      if: ${{ steps.build.outcome == 'success' && always() }}
-
-    - name: Use existing environment for type checking
+    - name: Build pandas
       run: |
-        echo $PATH >> $GITHUB_PATH
-        echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
-        echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
-      if: ${{ steps.build.outcome == 'success' && always() }}
+        pixi run \
+          --environment doctests \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
 
-    - name: Typing + pylint
-      uses: pre-commit/action@v3.0.1
+    - name: Run doctests
+      run: pixi run --environment doctests ci-doctests
+
+    - name: Run scripts tests
+      run: pixi run --environment doctests ci-scripts-tests
+
+  type-checking:
+    name: Type Checking
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-typechecking
+      cancel-in-progress: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
-        extra_args: --verbose --hook-stage manual --all-files
-      if: ${{ steps.build.outcome == 'success' && always() }}
+        fetch-depth: 0
 
-    - name: Run docstring validation script tests
-      run: pytest scripts
-      if: ${{ steps.build.outcome == 'success' && always() }}
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: "typing"
+
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment typing \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
+
+    - name: Typing Checks
+      run: pixi run --environment typing ci-typing
 
   asv-benchmarks:
     name: ASV Benchmarks
-    runs-on: ubuntu-22.04
-    defaults:
-      run:
-        shell: bash -el {0}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -109,53 +99,31 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
+    - name: Create virtual environment with Pixi
+      uses: ./.github/actions/setup-pixi
+      with:
+        environment: "asv"
 
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
+    - name: Build pandas
+      run: |
+        pixi run \
+          --environment asv \
+          build-pandas \
+          --editable \
+          -Csetup-args="--werror"
 
     - name: Run ASV benchmarks
-      run: |
-        cd asv_bench
-        asv machine --yes
-        asv run --quick --dry-run --durations=30 --python=same --show-stderr
-
-  build_docker_dev_environment:
-    name: Build Docker Dev Environment
-    runs-on: ubuntu-22.04
-    defaults:
-      run:
-        shell: bash -el {0}
-
-    concurrency:
-      # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-build_docker_dev_environment
-      cancel-in-progress: true
-
-    steps:
-      - name: Clean up dangling images
-        run: docker image prune -f
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Build image
-        run: docker build --pull --no-cache --tag pandas-dev-env .
-
-      - name: Show environment
-        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
+      run: pixi run --environment asv ci-asv
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -164,20 +132,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Setup Python
         id: setup_python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
+          pip-install: '-r requirements-dev.txt'
           cache-dependency-path: 'requirements-dev.txt'
-
-      - name: Install requirements-dev.txt
-        run: pip install -r requirements-dev.txt
 
       - name: Check Pip Cache Hit
         run: echo ${{ steps.setup_python.outputs.cache-hit }}

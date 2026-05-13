@@ -23,7 +23,7 @@ def gen_of_str(arr):
 
 
 def arr_dict(arr):
-    return dict(zip(range(len(arr)), arr))
+    return dict(zip(range(len(arr)), arr, strict=True))
 
 
 def list_of_tuples(arr):
@@ -39,11 +39,11 @@ def list_of_lists(arr):
 
 
 def list_of_tuples_with_none(arr):
-    return [(i, -i) for i in arr][:-1] + [None]
+    return [*[(i, -i) for i in arr][:-1], None]
 
 
 def list_of_lists_with_none(arr):
-    return [[i, -i] for i in arr][:-1] + [None]
+    return [*[[i, -i] for i in arr][:-1], None]
 
 
 class SeriesConstructors:

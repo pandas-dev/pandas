@@ -21,7 +21,7 @@ class TestRename:
         assert renamed.index[0] == renamer(ts.index[0])
 
         # dict
-        rename_dict = dict(zip(ts.index, renamed.index))
+        rename_dict = dict(zip(ts.index, renamed.index, strict=True))
         renamed2 = ts.rename(rename_dict)
         tm.assert_series_equal(renamed, renamed2)
 
@@ -64,7 +64,7 @@ class TestRename:
             assert ser.name == name
             exp = np.array(["a", "b", "c"], dtype=np.object_)
             if using_infer_string:
-                exp = array(exp, dtype="string[pyarrow_numpy]")
+                exp = array(exp, dtype="str")
                 tm.assert_extension_array_equal(ser.index.values, exp)
             else:
                 tm.assert_numpy_array_equal(ser.index.values, exp)
@@ -161,6 +161,16 @@ class TestRename:
         expected = Series(1, index=mi_expected)
 
         tm.assert_series_equal(result, expected)
+
+    def test_rename_preserves_nullable_index_dtype(self):
+        # GH#65315
+        ser = Series(
+            [1, 2, 3],
+            index=Index(array([1, 2, 3], dtype="Int64"), name="id"),
+        )
+        result = ser.rename({1: 9})
+        expected = Index(array([9, 2, 3], dtype="Int64"), name="id")
+        tm.assert_index_equal(result.index, expected)
 
     def test_rename_error_arg(self):
         # GH 46889
