@@ -499,13 +499,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     @skip_nested
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
-        if engine == "c" and data.dtype.kind == "c":
-            # GH#54761 the c parser does not support complex dtypes
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=f"engine '{engine}' cannot parse dtype {data.dtype.name}",
-                )
-            )
         super().test_EA_types(engine, data, request)
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
