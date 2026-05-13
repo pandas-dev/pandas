@@ -5558,13 +5558,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : callable or Series
+        **kwargs : callable, Series, scalar, array-like, or dict
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
-            If the values are not callable, (e.g. a Series, scalar, or array),
-            they are simply assigned.
+            If the values are not callable (e.g. a Series, scalar, array,
+            or dict), they are simply assigned. See the Notes section for
+            details on alignment and broadcasting.
 
         Returns
         -------
@@ -5626,6 +5627,14 @@ class DataFrame(NDFrame, OpsMixin):
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
+
+        A dict value is aligned to the DataFrame's index by its keys, and
+        index labels not present in the dict are filled with NaN:
+
+        >>> df.assign(temp_k={"Portland": 290.15, "Berkeley": 298.15, "Seattle": 285.0})
+                  temp_c  temp_k
+        Portland    17.0  290.15
+        Berkeley    25.0  298.15
         """
         data = self.copy(deep=False)
 
