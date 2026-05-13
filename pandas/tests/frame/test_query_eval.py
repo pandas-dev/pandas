@@ -170,6 +170,17 @@ class TestDataFrameEval:
 
         tm.assert_frame_equal(res, expect)
 
+    def test_eval_duplicate_column_name(self, engine, parser):
+        # GH#65588
+        df = DataFrame({"a": range(3), "b": range(10, 13), "c": range(3)}).rename(
+            columns={"b": "a"}
+        )
+
+        result = df.eval("a == 1", engine=engine, parser=parser)
+        expected = pd.eval("a == 1", resolvers=(df,), engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_eval_resolvers_as_list(self):
         # GH 14095
         df = DataFrame(
