@@ -5166,6 +5166,17 @@ class Index(IndexOpsMixin, PandasObject):
            We recommend using :attr:`Index.array` or
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
+           The return type of ``.values`` depends on the dtype: it is a
+           :class:`numpy.ndarray` for some dtypes (for example ``int64``
+           or ``float64``) and an
+           :class:`~pandas.api.extensions.ExtensionArray` for others (for
+           example ``interval``, ``category``, or nullable ``Int64``),
+           which makes it harder to write code that works across dtypes.
+           :attr:`Index.array` always returns the underlying array as an
+           :class:`~pandas.api.extensions.ExtensionArray`, and
+           :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`
+           and accepts ``dtype``, ``copy``, and ``na_value`` arguments to
+           control the conversion.
 
         .. versionchanged:: 3.0.0
 
@@ -5182,7 +5193,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        For :class:`pandas.Index`:
+        For an :class:`Index` backed by a NumPy dtype such as ``int64``,
+        ``.values`` returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.Index([1, 2, 3])
         >>> idx
@@ -5190,13 +5202,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.values
         array([1, 2, 3])
 
-        For :class:`pandas.IntervalIndex`:
+        For an :class:`Index` backed by an extension dtype such as
+        ``interval``, ``.values`` returns an
+        :class:`~pandas.api.extensions.ExtensionArray` instead, while
+        :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.interval_range(start=0, end=5)
         >>> idx.values
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
         Length: 5, dtype: interval[int64, right]
+        >>> idx.to_numpy()
+        array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+               Interval(2, 3, closed='right'), Interval(3, 4, closed='right'),
+               Interval(4, 5, closed='right')], dtype=object)
         """
         data = self._data
         if isinstance(data, np.ndarray):

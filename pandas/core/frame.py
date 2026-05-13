@@ -18836,6 +18836,15 @@ class DataFrame(NDFrame, OpsMixin):
         .. warning::
 
            We recommend using :meth:`DataFrame.to_numpy` instead.
+           ``.values`` offers no way to control the output ``dtype``, copy
+           semantics, or the value used to fill missing entries, while
+           :meth:`DataFrame.to_numpy` exposes those as the ``dtype``,
+           ``copy``, and ``na_value`` arguments. The mutability of the
+           result also depends on the DataFrame's internal block layout:
+           when the DataFrame is backed by a single block the result is a
+           read-only view (writes raise); when there are multiple blocks
+           the result is a writable copy whose mutations do not propagate
+           back to the DataFrame.
 
         Only the values in the DataFrame will be returned, the axes labels
         will be removed.
@@ -18914,6 +18923,21 @@ class DataFrame(NDFrame, OpsMixin):
         array([['parrot', 24.0, 'second'],
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
+
+        ``DataFrame.to_numpy`` produces the same array by default, but lets
+        you choose how missing values are represented and request a
+        guaranteed copy:
+
+        >>> df3 = pd.DataFrame({"a": [1, 2], "b": [3.0, np.nan]})
+        >>> df3.values
+        array([[ 1.,  3.],
+               [ 2., nan]])
+        >>> df3.to_numpy(na_value=-1)
+        array([[ 1.,  3.],
+               [ 2., -1.]])
+        >>> df3.to_numpy(dtype="float32", copy=True)
+        array([[ 1.,  3.],
+               [ 2., nan]], dtype=float32)
         """
         return self._mgr.as_array()
 
