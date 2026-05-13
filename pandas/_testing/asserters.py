@@ -965,6 +965,15 @@ def assert_series_equal(
     testing.assert_index_equal : Check that two Indexes are equal.
     testing.assert_frame_equal : Check that two DataFrames are equal.
 
+    Notes
+    -----
+    When ``check_exact=True``, object-dtype values are compared using the
+    nested objects themselves instead of normalizing container types. In
+    particular, nested :class:`numpy.ndarray` objects are not considered
+    equivalent to other array-like containers, such as a pandas
+    :class:`~pandas.api.extensions.ExtensionArray` or Python ``list``,
+    merely because they contain the same values.
+
     Examples
     --------
     >>> from pandas import testing as tm
@@ -1262,12 +1271,12 @@ def assert_frame_equal(
 
     Notes
     -----
-    When ``check_exact=True``, object-dtype columns containing nested
-    array-like objects are compared with respect to the nested objects
-    themselves. Different nested container types, such as a pandas
-    :class:`~pandas.api.extensions.ExtensionArray`, :class:`numpy.ndarray`,
-    Python ``list``, or ``tuple``, are not considered equivalent merely
-    because they contain the same values.
+    When ``check_exact=True``, object-dtype values are compared using the
+    nested objects themselves instead of normalizing container types. In
+    particular, nested :class:`numpy.ndarray` objects are not considered
+    equivalent to other array-like containers, such as a pandas
+    :class:`~pandas.api.extensions.ExtensionArray` or Python ``list``,
+    merely because they contain the same values.
 
     Examples
     --------
