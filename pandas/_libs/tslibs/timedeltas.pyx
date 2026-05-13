@@ -2131,7 +2131,14 @@ class Timedelta(_Timedelta):
     Notes
     -----
     The constructor may take in either both values of value and unit or
-    kwargs as above. Either one of them must be used during initialization
+    kwargs as above. Either one of them must be used during initialization.
+
+    Scalar Timedelta objects can preserve their input resolution. For example,
+    ``pd.Timedelta(1, unit="s")`` is stored with second resolution. Arithmetic
+    operations respect this resolution, so fractional sub-unit results may be
+    rounded or truncated according to the stored unit. Convert to a finer unit
+    with :meth:`Timedelta.as_unit` before arithmetic when finer precision is
+    needed.
 
     The ``.value`` attribute is always in ns.
 
@@ -2140,19 +2147,29 @@ class Timedelta(_Timedelta):
 
     Examples
     --------
-    Here we initialize Timedelta object with both value and unit
+    Here we initialize a Timedelta object with both value and unit.
 
     >>> td = pd.Timedelta(1, "D")
     >>> td
     Timedelta('1 days 00:00:00')
 
-    Here we initialize the Timedelta object with kwargs
+    Here we initialize a Timedelta object with kwargs.
 
     >>> td2 = pd.Timedelta(days=1)
     >>> td2
     Timedelta('1 days 00:00:00')
 
-    We see that either way we get the same result
+    We see that either way we get the same result.
+
+    Timedelta arithmetic respects the stored resolution. Convert to a finer
+    unit before arithmetic when sub-unit precision is needed.
+
+    >>> td = pd.Timedelta(1, unit="s")
+    >>> td / 2
+    Timedelta('0 days 00:00:00')
+
+    >>> td.as_unit("ms") / 2
+    Timedelta('0 days 00:00:00.500000')
     """
 
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
