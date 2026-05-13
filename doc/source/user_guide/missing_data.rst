@@ -219,6 +219,22 @@ potentially be :class:`NA`. In such cases, :func:`isna` can be used to check
 for :class:`NA` or ``condition`` being :class:`NA` can be avoided, for example by
 filling missing values beforehand.
 
+For the same reason, the Python keywords ``and``, ``or``, and ``not`` cannot be
+used with :class:`NA`: these keywords always call ``bool()`` on their operands
+and cannot be overridden, so they will raise the same ``TypeError``. This
+manifests as an asymmetry depending on operand position, since ``and`` and
+``or`` only call ``bool()`` on the left operand:
+
+.. ipython:: python
+   :okexcept:
+
+   True and pd.NA
+   pd.NA and True
+
+Use the bitwise operators ``&``, ``|``, and ``~`` instead, which dispatch to
+``__and__``, ``__or__``, and ``__invert__`` and follow Kleene logic as
+described above.
+
 A similar situation occurs when using :class:`Series` or :class:`DataFrame` objects in ``if``
 statements, see :ref:`gotchas.truth`.
 
@@ -394,6 +410,12 @@ Replace NA with a scalar value
    df = pd.DataFrame(data)
    df
    df.fillna(0)
+
+Replace NA with column-specific values using a dict
+
+.. ipython:: python
+
+   df.fillna({"np": 0, "arrow": 1})
 
 When the data has object dtype, you can control what type of NA values are present.
 
