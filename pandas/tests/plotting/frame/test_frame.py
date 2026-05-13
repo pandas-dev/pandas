@@ -682,6 +682,24 @@ class TestDataFramePlots:
         assert get_y_axis(ax1).joined(ax1, ax2)
         assert get_y_axis(ax2).joined(ax1, ax2)
 
+    def test_area_lim_unaffected_by_unrelated_sharey(self):
+        # Unrelated sharey'd axes elsewhere in the process must not defeat
+        # the ymin=0 baseline pin for an all-positive area plot.
+        unrelated_fig, unrelated_axes = mpl.pyplot.subplots(1, 2, sharey=True)
+
+        df = DataFrame(
+            np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
+        )
+        _fig, ax = mpl.pyplot.subplots()
+        df.plot.area(ax=ax, stacked=True)
+        ymin, _ymax = ax.get_ylim()
+        assert ymin == 0
+
+        # keep the sharey'd axes alive until after the assertion so the
+        # class-level Grouper still contains them at check time
+        assert unrelated_fig is not None
+        assert unrelated_axes is not None
+
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
