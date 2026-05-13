@@ -529,7 +529,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
             if len(index) or dtype is not None:
-                values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                # error: Incompatible types in assignment (expression has type
+                # "Scalar", variable has type "list[Any]")
+                values = na_value_for_dtype(  # type: ignore[assignment]
+                    pandas_dtype(dtype), compat=False
+                )
             else:
                 values = []
             keys = index
