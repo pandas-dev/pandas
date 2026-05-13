@@ -1,10 +1,13 @@
-from typing import Self
+from typing import (
+    Any,
+    Self,
+)
 
 import numpy as np
 from numpy import typing as npt
 
 class NAType:
-    def __new__(cls) -> Self: ...
+    def __new__(cls, *args: Any, **kwargs: Any) -> Self: ...
 
 NA: NAType
 
