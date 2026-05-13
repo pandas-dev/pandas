@@ -932,12 +932,29 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         box_timestamp = pa.types.is_timestamp(pa_type) and pa_type.unit != "ns"
         box_timedelta = pa.types.is_duration(pa_type) and pa_type.unit != "ns"
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The 'unit' keyword is deprecated",
-                Pandas4Warning,
-            )
+        is_ns_temporal = (
+            pa.types.is_timestamp(pa_type)
+            or pa.types.is_duration(pa_type)
+            or pa.types.is_time(pa_type)
+        ) and pa_type.unit == "ns"
+
+        if is_ns_temporal:
+            # pyarrow's as_py() for ns-precision temporal scalars constructs
+            # pandas Timestamp/Timedelta with the deprecated `unit=` form.
+            # Materialize each chunk inside catch_warnings (no yield spans the
+            # context — a paused/GC'd generator restoring stale filter state
+            # would otherwise wipe warning filters set by callers).
+            for chunk in self._pa_array.chunks:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "The 'unit' keyword is deprecated",
+                        Pandas4Warning,
+                    )
+                    py_values = chunk.to_pylist()
+                for val in py_values:
+                    yield na_value if val is None else val
+        else:
             for value in self._pa_array:
                 val = value.as_py()
                 if val is None:
