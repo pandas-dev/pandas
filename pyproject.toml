@@ -561,7 +561,6 @@ module = [
   "pandas.core.computation.scope", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.dtypes", # TODO
-  "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
