@@ -3175,7 +3175,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the first entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the first non-NA
+        value per column; this may differ from the first row of the group. Use
+        :meth:`~.DataFrameGroupBy.nth` with ``n=0`` or
+        :meth:`~.DataFrameGroupBy.head` with ``n=1`` to take the first row
+        instead, or pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3185,7 +3189,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3198,9 +3202,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
-            of each column.
+        core.groupby.DataFrameGroupBy.last : Compute the last entry of each
+            column within each group.
         core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.head : Return the first ``n`` rows from
+            each group.
 
         Examples
         --------
@@ -3260,7 +3266,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the last entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the last non-NA
+        value per column; this may differ from the last row of the group. Use
+        :meth:`~.DataFrameGroupBy.nth` with ``n=-1`` or
+        :meth:`~.DataFrameGroupBy.tail` with ``n=1`` to take the last row
+        instead, or pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3271,22 +3281,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
         Returns
         -------
         Series or DataFrame
-            Last of values within each group.
+            Last values within each group.
 
         See Also
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
-            of each column.
+        core.groupby.DataFrameGroupBy.first : Compute the first entry of each
+            column within each group.
         core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        core.groupby.DataFrameGroupBy.tail : Return the last ``n`` rows from
+            each group.
 
         Examples
         --------
