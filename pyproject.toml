@@ -535,7 +535,6 @@ module = [
   "pandas._libs.lib",
   "pandas._libs.missing",
   "pandas._libs.ops_dispatch",
-  "pandas._libs.parsers",
   "pandas._libs.properties",
   "pandas._libs.sparse",
   "pandas._libs.testing",
