@@ -16275,7 +16275,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16382,7 +16382,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16458,7 +16458,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16562,7 +16562,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16682,7 +16682,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16806,7 +16806,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16931,7 +16931,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
+            Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             .. warning::
@@ -17051,7 +17052,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
+            Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             .. warning::
@@ -17170,7 +17172,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
+            Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             .. warning::
@@ -17292,7 +17295,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -17413,7 +17416,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
