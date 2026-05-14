@@ -120,6 +120,16 @@ indexing pandas objects with ``[]``:
 
     Series, ``series[label]``, scalar value
     DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
+    DataFrame, ``frame[[colname]]``, ``DataFrame`` with columns corresponding to ``[colname]``
+    DataFrame, ``frame[list_of_colnames]``, ``DataFrame`` with columns corresponding to ``list_of_colnames``
+
+The same principle applies to label-based selection with ``.loc``: a
+list-like of labels preserves the corresponding axis (so
+``df.loc[:, ["A"]]`` returns a ``DataFrame``, even when the list contains a
+single label), while a scalar label reduces the axis when labels on that
+axis are unique (so ``df.loc[:, "A"]`` typically returns a ``Series``; if
+``"A"`` is duplicated on the axis, a ``DataFrame`` is returned instead).
+See :ref:`indexing.label` for details.
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:

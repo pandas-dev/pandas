@@ -1333,6 +1333,14 @@ class _LocIndexer(_LocationIndexer):
     - A ``callable`` function with one argument (the calling Series or
       DataFrame) and that returns valid output for indexing (one of the above)
 
+    The *form* of the indexer, not the number of items it selects,
+    determines the return type. A list-like of labels preserves the
+    corresponding axis, so ``df.loc[:, ["A"]]`` returns a ``DataFrame``
+    even when the list contains a single label. A scalar label reduces
+    the axis when labels on that axis are unique, so ``df.loc[:, "A"]``
+    typically returns a ``Series`` (if ``"A"`` is duplicated, the axis
+    is preserved and a ``DataFrame`` is returned instead).
+
     See more at :ref:`Selection by Label <indexing.label>`.
 
     Raises
