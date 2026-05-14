@@ -798,6 +798,14 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
     df
     df.dtypes
 
+.. note::
+
+    The examples above use ``.loc`` / ``.iloc`` to set values *within* an
+    existing categorical column, which preserves the ``category`` dtype.
+    Assigning to a full column with ``df["cats"] = value`` instead **replaces**
+    the column, so the dtype is inferred from ``value`` rather than kept. See
+    :ref:`indexing.column_assignment_vs_in_place` for details.
+
 .. _categorical.merge:
 .. _categorical.concat:
 
