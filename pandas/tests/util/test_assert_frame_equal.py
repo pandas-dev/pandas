@@ -434,3 +434,34 @@ def test_assert_frame_equal_nested_df_na(na_value):
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
     tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_pd_na_different_dtypes():
+    # GH#61473 - assert_frame_equal should pass when comparing DFs
+    # with pd.NA that only differ in dtype (when check_dtype=False)
+    df1 = DataFrame({"x": pd.Series([pd.NA], dtype="Int32")})
+    df2 = DataFrame({"x": pd.Series([pd.NA], dtype="object")})
+    _assert_frame_equal_both(df1, df2, check_dtype=False)
+
+    # Also verify with mixed values
+    df1 = DataFrame({"x": pd.Series([1, pd.NA, 3], dtype="Int32")})
+    df2 = DataFrame({"x": pd.Series([1, pd.NA, 3], dtype="object")})
+    _assert_frame_equal_both(df1, df2, check_dtype=False)
+
+
+def test_assert_frame_equal_pd_na_different_dtypes_check_exact():
+    # GH#61473
+    df1 = DataFrame({"x": pd.Series([1, pd.NA, 3], dtype="Int32")})
+    df2 = DataFrame({"x": pd.Series([1, pd.NA, 3], dtype="object")})
+
+    _assert_frame_equal_both(df1, df2, check_dtype=False, check_exact=True)
+
+
+def test_assert_frame_equal_pd_na_different_dtypes_mismatch():
+    # GH#61473
+    df1 = DataFrame({"x": pd.Series([1, pd.NA, 3], dtype="Int32")})
+    df2 = DataFrame({"x": pd.Series([1, pd.NA, 4], dtype="object")})
+
+    msg = r'DataFrame\.iloc\[:, 0\] \(column name="x"\) values are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, check_dtype=False)

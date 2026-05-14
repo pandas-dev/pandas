@@ -213,6 +213,14 @@ Series values are different \\(33\\.33333 %\\)
         tm.assert_series_equal(s1, s2, rtol=rtol)
 
 
+def test_series_equal_pd_na_different_dtypes_check_exact():
+    # GH#61473
+    s1 = Series([1, pd.NA, 3], dtype="Int32")
+    s2 = Series([1, pd.NA, 3], dtype="object")
+
+    _assert_series_equal_both(s1, s2, check_dtype=False, check_exact=True)
+
+
 def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
     dtype = "str" if using_infer_string else "object"
     msg = f"""Series are different
