@@ -101,12 +101,12 @@ class Unpickler(pickle._Unpickler):
         # compat
         if issubclass(cls, DatetimeArray) and not args:
             arr = np.array([], dtype="M8[ns]")
-            obj = cls.__new__(cls, arr, arr.dtype)
+            obj = cls.__new__(cls, arr, arr.dtype)  # pyright: ignore[reportCallIssue]
         elif issubclass(cls, TimedeltaArray) and not args:
             arr = np.array([], dtype="m8[ns]")
-            obj = cls.__new__(cls, arr, arr.dtype)
+            obj = cls.__new__(cls, arr, arr.dtype)  # pyright: ignore[reportCallIssue]
         elif cls is BlockManager and not args:
-            obj = cls.__new__(cls, (), [], False)
+            obj = cls.__new__(cls, (), [], False)  # pyright: ignore[reportCallIssue]
         else:
             obj = cls.__new__(cls, *args)
         self.append(obj)  # type: ignore[attr-defined]

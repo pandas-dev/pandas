@@ -216,6 +216,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         Scalar,
         SortKind,
         TakeIndexer,
@@ -429,10 +431,21 @@ class ArrowExtensionArray(
 
     def _from_pyarrow_array(self, pa_array):
         """
-        Construct from the pyarrow array result of an operation, for
-        compatibility with ArrowStringArray.
+        Construct from a pyarrow Array/ChunkedArray result of an operation.
+
+        Avoids full __init__ overhead by reusing the dtype when the pyarrow
+        type is unchanged.
         """
-        return type(self)(pa_array)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
+        obj = type(self).__new__(type(self))
+        if isinstance(pa_array, pa.Array):
+            pa_array = pa.chunked_array([pa_array])
+        obj._pa_array = pa_array
+        pa_type = pa_array.type
+        obj._dtype = (
+            self._dtype if pa_type == self._dtype.pyarrow_dtype else ArrowDtype(pa_type)
+        )
+        return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:
@@ -744,6 +757,23 @@ class ArrowExtensionArray(
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
+        if isinstance(item, slice):
+            # Fast path for slices: avoid check_array_indexer (no-op for
+            # slices) and getitem_returns_view (always True for slices).
+            # Arrow bug https://github.com/apache/arrow/issues/38768
+            if item.start == item.stop:
+                pass
+            elif (
+                item.stop is not None
+                and item.stop < -len(self)
+                and item.step is not None
+                and item.step < 0
+            ):
+                item = slice(item.start, None, item.step)
+            result = self._from_pyarrow_array(self._pa_array[item])
+            result._readonly = self._readonly
+            return result
+
         item = check_array_indexer(self, item)
 
         if isinstance(item, np.ndarray):
@@ -785,18 +815,6 @@ class ArrowExtensionArray(
             )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
-        if isinstance(item, slice):
-            # Arrow bug https://github.com/apache/arrow/issues/38768
-            if item.start == item.stop:
-                pass
-            elif (
-                item.stop is not None
-                and item.stop < -len(self)
-                and item.step is not None
-                and item.step < 0
-            ):
-                item = slice(item.start, None, item.step)
-
         value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
             result = self._from_pyarrow_array(value)
@@ -2601,8 +2619,8 @@ class ArrowExtensionArray(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):
@@ -2668,7 +2686,11 @@ class ArrowExtensionArray(
             return False
         if len(pa_array) <= 1:
             return True
-        return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        try:
+            return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
 
     @property
     def _is_monotonic_decreasing(self) -> bool:
@@ -2677,14 +2699,18 @@ class ArrowExtensionArray(
             return False
         if len(pa_array) <= 1:
             return True
-        return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        try:
+            return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
 
     def _rank(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:
