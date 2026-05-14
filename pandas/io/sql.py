@@ -745,13 +745,14 @@ def to_sql(
     name: str,
     con,
     schema: str | None = None,
-    if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+    if_exists: Literal["fail", "replace", "append", "delete_rows", "upsert"] = "fail",
     index: bool = True,
     index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
+    upsert_conflict_columns: list[str] | None = None,
     **engine_kwargs,
 ) -> int | None:
     """
@@ -777,11 +778,16 @@ def to_sql(
     schema : str, optional
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    if_exists : {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
+    if_exists : {'fail', 'replace', 'append', 'delete_rows', 'upsert'}, default 'fail'
         - fail: If table exists, do nothing.
         - replace: If table exists, drop it, recreate it, and insert data.
         - append: If table exists, insert data. Create if does not exist.
         - delete_rows: If a table exists, delete all records and insert data.
+        - upsert: If a table exists, insert new rows and update existing rows
+          that match on ``upsert_conflict_columns``. Requires
+          ``upsert_conflict_columns`` to be set. Creates the table if it does
+          not exist. Supported for SQLAlchemy (PostgreSQL, MySQL, SQLite
+          dialects) and the native sqlite3 backend.
     index : bool, default True
         Write DataFrame index as a column.
     index_label : str or sequence, optional
@@ -809,6 +815,11 @@ def to_sql(
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
         behavior is 'sqlalchemy'
+    upsert_conflict_columns : list of str, optional
+        List of column names that define the uniqueness constraint used as the
+        conflict target for upsert operations. Required when
+        ``if_exists='upsert'``; ignored otherwise. All non-conflict columns
+        are updated when a conflict is detected.
 
     **engine_kwargs
         Any additional kwargs are passed to the engine.
@@ -828,8 +839,18 @@ def to_sql(
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
     """  # noqa: E501
-    if if_exists not in ("fail", "replace", "append", "delete_rows"):
+    if if_exists not in ("fail", "replace", "append", "delete_rows", "upsert"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
+
+    if if_exists == "upsert" and not upsert_conflict_columns:
+        raise ValueError("upsert_conflict_columns is required when if_exists='upsert'")
+
+    if upsert_conflict_columns and if_exists != "upsert":
+        warnings.warn(
+            "upsert_conflict_columns is ignored when if_exists is not 'upsert'",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
 
     if isinstance(frame, Series):
         frame = frame.to_frame()
@@ -850,6 +871,7 @@ def to_sql(
             dtype=dtype,
             method=method,
             engine=engine,
+            upsert_conflict_columns=upsert_conflict_columns,
             **engine_kwargs,
         )
 
@@ -939,12 +961,15 @@ class SQLTable(PandasObject):
         pandas_sql_engine,
         frame=None,
         index: bool | str | list[str] | None = True,
-        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows", "upsert"
+        ] = "fail",
         prefix: str = "pandas",
         index_label=None,
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
+        upsert_conflict_columns: list[str] | None = None,
     ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
@@ -953,8 +978,17 @@ class SQLTable(PandasObject):
         self.index = self._index_name(index, index_label)
         self.schema = schema
         self.if_exists = if_exists
-        self.keys = keys
+        # When upserting into a new table, conflict columns become the primary
+        # key so that the ON CONFLICT clause has a valid constraint to target.
+        if keys is None and upsert_conflict_columns is not None:
+            self.keys = upsert_conflict_columns
+        else:
+            self.keys = keys
         self.dtype = dtype
+        # Only activate upsert logic when if_exists='upsert' is explicitly set
+        self.upsert_conflict_columns = (
+            upsert_conflict_columns if if_exists == "upsert" else None
+        )
 
         if frame is not None:
             # We want to initialize based on a dataframe
@@ -994,6 +1028,8 @@ class SQLTable(PandasObject):
                 pass
             elif self.if_exists == "delete_rows":
                 self.pd_sql.delete_rows(self.name, self.schema)
+            elif self.if_exists == "upsert":
+                pass  # row-level conflict resolution handled at insert time
             else:
                 raise ValueError(f"'{self.if_exists}' is not valid for if_exists")
         else:
@@ -1029,6 +1065,94 @@ class SQLTable(PandasObject):
 
         data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = insert(self.table).values(data)
+        result = self.pd_sql.execute(stmt)
+        return result.rowcount
+
+    def _build_upsert_stmt(self, data: list[dict], conflict_columns: list[str]) -> Any:
+        """
+        Build a dialect-specific upsert (INSERT ... ON CONFLICT ... DO UPDATE)
+        statement using SQLAlchemy dialect imports.
+
+        Supported dialects: postgresql, mysql, mariadb, sqlite.
+        """
+        dialect = self.pd_sql.con.dialect.name
+
+        # Determine which columns to update (all non-conflict columns)
+        all_cols = list(data[0].keys()) if data else []
+        update_cols = [c for c in all_cols if c not in conflict_columns]
+
+        stmt: Any
+        if dialect == "postgresql":
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+            stmt = pg_insert(self.table).values(data)
+            if update_cols:
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_columns,
+                    set_={col: stmt.excluded[col] for col in update_cols},
+                )
+            else:
+                stmt = stmt.on_conflict_do_nothing(
+                    index_elements=conflict_columns,
+                )
+        elif dialect in ("mysql", "mariadb"):
+            from sqlalchemy.dialects.mysql import insert as mysql_insert
+
+            stmt = mysql_insert(self.table).values(data)
+            if update_cols:
+                stmt = stmt.on_duplicate_key_update(
+                    **{col: stmt.inserted[col] for col in update_cols}
+                )
+            # If no update cols, MySQL INSERT IGNORE is not directly available
+            # via on_duplicate_key_update with empty dict; just do nothing
+        elif dialect == "sqlite":
+            from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+            stmt = sqlite_insert(self.table).values(data)
+            if update_cols:
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=conflict_columns,
+                    set_={col: stmt.excluded[col] for col in update_cols},
+                )
+            else:
+                stmt = stmt.on_conflict_do_nothing(
+                    index_elements=conflict_columns,
+                )
+        else:
+            raise NotImplementedError(
+                f"if_exists='upsert' is not supported for the '{dialect}' dialect. "
+                "Use method=callable to implement a custom upsert for this database."
+            )
+        return stmt
+
+    def _execute_upsert(
+        self, conn, keys: list[str], data_iter, conflict_columns: list[str]
+    ) -> int:
+        """
+        Execute an upsert statement (INSERT ... ON CONFLICT ... DO UPDATE).
+
+        Inserts rows and updates non-conflict columns when a conflict on
+        ``conflict_columns`` is detected. Supported for PostgreSQL, MySQL,
+        MariaDB, and SQLite dialects.
+        """
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
+        if not data:
+            return 0
+        stmt = self._build_upsert_stmt(data, conflict_columns)
+        result = self.pd_sql.execute(stmt)
+        return result.rowcount
+
+    def _execute_upsert_multi(
+        self, conn, keys: list[str], data_iter, conflict_columns: list[str]
+    ) -> int:
+        """
+        Multi-value variant of _execute_upsert. Passes all rows in a single
+        statement for better performance on supported databases.
+        """
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
+        if not data:
+            return 0
+        stmt = self._build_upsert_stmt(data, conflict_columns)
         result = self.pd_sql.execute(stmt)
         return result.rowcount
 
@@ -1087,12 +1211,27 @@ class SQLTable(PandasObject):
         method: Literal["multi"] | Callable | None = None,
     ) -> int | None:
         # set insert method
-        if method is None:
+        exec_insert: Callable
+        if callable(method):
+            # user-provided callable always takes precedence
+            exec_insert = partial(method, self)
+        elif self.upsert_conflict_columns is not None:
+            # upsert mode: dispatch to dialect-specific upsert methods
+            conflict_cols = self.upsert_conflict_columns
+            if method == "multi":
+                exec_insert = partial(
+                    self._execute_upsert_multi, conflict_columns=conflict_cols
+                )
+            elif method is None:
+                exec_insert = partial(
+                    self._execute_upsert, conflict_columns=conflict_cols
+                )
+            else:
+                raise ValueError(f"Invalid parameter `method`: {method}")
+        elif method is None:
             exec_insert = self._execute_insert
         elif method == "multi":
             exec_insert = self._execute_insert_multi
-        elif callable(method):
-            exec_insert = partial(method, self)
         else:
             raise ValueError(f"Invalid parameter `method`: {method}")
 
@@ -1275,10 +1414,10 @@ class SQLTable(PandasObject):
 
         if self.keys is not None:
             if not is_list_like(self.keys):
-                keys = [self.keys]
+                pk_keys: list[str] = [cast("str", self.keys)]
             else:
-                keys = self.keys
-            pkc = PrimaryKeyConstraint(*keys, name=self.name + "_pk")
+                pk_keys = list(self.keys)
+            pkc = PrimaryKeyConstraint(*pk_keys, name=self.name + "_pk")
             columns.append(pkc)
 
         schema = self.schema or self.pd_sql.meta.schema
@@ -1498,7 +1637,9 @@ class PandasSQL(PandasObject, ABC):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows", "upsert"
+        ] = "fail",
         index: bool = True,
         index_label=None,
         schema=None,
@@ -1506,6 +1647,7 @@ class PandasSQL(PandasObject, ABC):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        upsert_conflict_columns: list[str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         pass
@@ -1890,11 +2032,14 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows", "upsert"
+        ] = "fail",
         index: bool | str | list[str] | None = True,
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
+        upsert_conflict_columns: list[str] | None = None,
     ) -> SQLTable:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
@@ -1930,6 +2075,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            upsert_conflict_columns=upsert_conflict_columns,
         )
         table.create()
         return table
@@ -1967,7 +2113,9 @@ class SQLDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows", "upsert"
+        ] = "fail",
         index: bool = True,
         index_label=None,
         schema: str | None = None,
@@ -1975,6 +2123,7 @@ class SQLDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        upsert_conflict_columns: list[str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -1985,11 +2134,14 @@ class SQLDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'delete_rows', 'upsert'},
+            default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
             - delete_rows: If a table exists, delete all records and insert data.
+            - upsert: Insert new rows and update existing rows that match on
+              ``upsert_conflict_columns``. Creates table if it does not exist.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -2020,6 +2172,9 @@ class SQLDatabase(PandasSQL):
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
             behavior is 'sqlalchemy'
+        upsert_conflict_columns : list of str, optional
+            Column names used as the conflict target for upsert. Required when
+            ``if_exists='upsert'``.
 
         **engine_kwargs
             Any additional kwargs are passed to the engine.
@@ -2034,6 +2189,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            upsert_conflict_columns=upsert_conflict_columns,
         )
 
         total_inserted = sql_engine.insert_records(
@@ -2327,7 +2483,9 @@ class ADBCDatabase(PandasSQL):
         self,
         frame,
         name: str,
-        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows", "upsert"
+        ] = "fail",
         index: bool = True,
         index_label=None,
         schema: str | None = None,
@@ -2335,6 +2493,7 @@ class ADBCDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        upsert_conflict_columns: list[str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2345,11 +2504,13 @@ class ADBCDatabase(PandasSQL):
         frame : DataFrame
         name : string
             Name of SQL table.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'delete_rows', 'upsert'},
+            default 'fail'
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
             - delete_rows: If a table exists, delete all records and insert data.
+            - upsert: Raises NotImplementedError for ADBC drivers.
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -2366,10 +2527,14 @@ class ADBCDatabase(PandasSQL):
             Raises NotImplementedError
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
+        upsert_conflict_columns : list of str, optional
+            Raises NotImplementedError for ADBC drivers.
         """
         pa = import_optional_dependency("pyarrow")
         from adbc_driver_manager import Error
 
+        if if_exists == "upsert":
+            raise NotImplementedError("'upsert' is not implemented for ADBC drivers")
         if index_label:
             raise NotImplementedError(
                 "'index_label' is not implemented for ADBC drivers"
@@ -2581,6 +2746,79 @@ class SQLiteTable(SQLTable):
         conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
         return conn.rowcount
 
+    def upsert_statement(self, *, num_rows: int, conflict_columns: list[str]) -> str:
+        """
+        Return a SQLite upsert statement (INSERT ... ON CONFLICT ... DO UPDATE SET).
+
+        Requires SQLite 3.24+ (released 2018-06-04).
+        """
+        import sqlite3
+
+        sqlite_version = tuple(int(x) for x in sqlite3.sqlite_version.split("."))
+        if sqlite_version < (3, 24):
+            raise NotImplementedError(
+                f"SQLite {sqlite3.sqlite_version} does not support upsert. "
+                "SQLite 3.24+ is required for ON CONFLICT ... DO UPDATE."
+            )
+
+        names = list(map(str, self.frame.columns))
+        wld = "?"
+        escape = _get_valid_sqlite_name
+
+        if self.index is not None:
+            for idx in self.index[::-1]:
+                names.insert(0, idx)
+
+        bracketed_names = [escape(column) for column in names]
+        col_names = ",".join(bracketed_names)
+
+        row_wildcards = ",".join([wld] * len(names))
+        wildcards = ",".join([f"({row_wildcards})" for _ in range(num_rows)])
+
+        conflict_cols = ",".join([escape(c) for c in conflict_columns])
+        update_cols = [c for c in names if c not in conflict_columns]
+        update_set = ",".join(
+            [f"{escape(c)}=excluded.{escape(c)}" for c in update_cols]
+        )
+
+        stmt = (
+            f"INSERT INTO {escape(self.name)} ({col_names}) VALUES {wildcards}"
+            f" ON CONFLICT({conflict_cols})"
+        )
+        if update_cols:
+            stmt += f" DO UPDATE SET {update_set}"
+        else:
+            stmt += " DO NOTHING"
+        return stmt
+
+    def _execute_upsert(
+        self, conn, keys, data_iter, conflict_columns: list[str]
+    ) -> int:
+        from sqlite3 import Error
+
+        data_list = list(data_iter)
+        try:
+            conn.executemany(
+                self.upsert_statement(num_rows=1, conflict_columns=conflict_columns),
+                data_list,
+            )
+        except Error as exc:
+            raise DatabaseError("Execution failed") from exc
+        return conn.rowcount
+
+    def _execute_upsert_multi(
+        self, conn, keys, data_iter, conflict_columns: list[str]
+    ) -> int:
+        data_list = list(data_iter)
+        flattened_data = [x for row in data_list for x in row]
+        conn.execute(
+            self.upsert_statement(
+                num_rows=len(data_list), conflict_columns=conflict_columns
+            ),
+            flattened_data,
+        )
+        return conn.rowcount
+
     def _create_table_setup(self):
         """
         Return a list of SQL statements that creates a table reflecting the
@@ -2596,10 +2834,10 @@ class SQLiteTable(SQLTable):
 
         if self.keys is not None and len(self.keys):
             if not is_list_like(self.keys):
-                keys = [self.keys]
+                pk_keys: list[str] = [cast("str", self.keys)]
             else:
-                keys = self.keys
-            cnames_br = ", ".join([escape(c) for c in keys])
+                pk_keys = list(self.keys)
+            cnames_br = ", ".join([escape(c) for c in pk_keys])
             create_tbl_stmts.append(
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
@@ -2812,6 +3050,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        upsert_conflict_columns: list[str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2822,11 +3061,14 @@ class SQLiteDatabase(PandasSQL):
         frame: DataFrame
         name: string
             Name of SQL table.
-        if_exists: {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
+        if_exists: {'fail', 'replace', 'append', 'delete_rows', 'upsert'},
+            default 'fail'
             fail: If table exists, do nothing.
             replace: If table exists, drop it, recreate it, and insert data.
             append: If table exists, insert data. Create if it does not exist.
             delete_rows: If a table exists, delete all records and insert data.
+            upsert: Insert new rows and update existing rows that match on
+            ``upsert_conflict_columns``. Creates table if it does not exist.
         index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
@@ -2852,6 +3094,9 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        upsert_conflict_columns : list of str, optional
+            Column names used as the conflict target for upsert. Required when
+            ``if_exists='upsert'``.
         """
         if dtype:
             if not is_dict_like(dtype):
@@ -2877,6 +3122,7 @@ class SQLiteDatabase(PandasSQL):
             if_exists=if_exists,
             index_label=index_label,
             dtype=dtype,
+            upsert_conflict_columns=upsert_conflict_columns,
         )
         table.create()
         return table.insert(chunksize, method)

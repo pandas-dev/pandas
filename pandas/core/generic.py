@@ -2828,12 +2828,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         con,
         *,
         schema: str | None = None,
-        if_exists: Literal["fail", "replace", "append", "delete_rows"] = "fail",
+        if_exists: Literal[
+            "fail", "replace", "append", "delete_rows", "upsert"
+        ] = "fail",
         index: bool = True,
         index_label: IndexLabel | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        upsert_conflict_columns: list[str] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -2865,13 +2868,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         schema : str, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
-        if_exists : {'fail', 'replace', 'append', 'delete_rows'}, default 'fail'
+        if_exists : {'fail', 'replace', 'append', 'delete_rows', 'upsert'}, default 'fail'
             How to behave if the table already exists.
 
             * fail: Raise a ValueError.
             * replace: Drop the table before inserting new values.
             * append: Insert new values to the existing table.
             * delete_rows: If a table exists, delete all records and insert data.
+            * upsert: Insert new rows and update existing rows that match on
+              ``upsert_conflict_columns``. Creates the table if it does not
+              exist. Requires ``upsert_conflict_columns`` to be set. Supported
+              for SQLAlchemy (PostgreSQL, MySQL, SQLite dialects) and the
+              native sqlite3 backend.
 
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
@@ -2897,6 +2905,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        upsert_conflict_columns : list of str, optional
+            Column names that define the uniqueness constraint used as the
+            conflict target when ``if_exists='upsert'``. All non-conflict
+            columns are updated when a conflict is detected. Ignored when
+            ``if_exists`` is not ``'upsert'``.
 
         Returns
         -------
@@ -3078,6 +3091,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            upsert_conflict_columns=upsert_conflict_columns,
         )
 
     @final

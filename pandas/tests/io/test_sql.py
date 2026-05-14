@@ -2752,6 +2752,265 @@ def test_delete_rows_is_atomic(conn_name, request):
             tm.assert_frame_equal(result_df, original_df)
 
 
+# connectable list for upsert tests: SQLAlchemy (sqlite only) + native sqlite3
+# Excludes ADBC (NotImplementedError) and DB-requiring connectors (MySQL, PostgreSQL)
+upsert_connectable = ["sqlite_engine", "sqlite_conn", "sqlite_str", "sqlite_buildin"]
+
+
+@pytest.mark.parametrize("conn_name", upsert_connectable)
+def test_upsert_basic(conn_name, request):
+    """Insert initial rows, then upsert overlapping keys. Verify update + new insert."""
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_upsert_basic"
+    # Use a UNIQUE constraint on column 'a' as the conflict target
+    create_stmt = (
+        f"CREATE TABLE {table_name} (a INTEGER UNIQUE NOT NULL, b INTEGER, c INTEGER)"
+    )
+    if conn_name != "sqlite_buildin":
+        create_stmt = sqlalchemy.text(create_stmt)
+
+    initial_df = DataFrame({"a": [1, 2], "b": [10, 20], "c": [100, 200]})
+    # row a=1 conflicts (update b,c), row a=3 is new (inserted)
+    upsert_df = DataFrame({"a": [1, 3], "b": [99, 30], "c": [999, 300]})
+    expected_df = DataFrame({"a": [1, 2, 3], "b": [99, 20, 30], "c": [999, 200, 300]})
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(create_stmt)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(initial_df, table_name, if_exists="append", index=False)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                upsert_df,
+                table_name,
+                if_exists="upsert",
+                index=False,
+                upsert_conflict_columns=["a"],
+            )
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name} ORDER BY a")
+
+    tm.assert_frame_equal(
+        result_df.reset_index(drop=True),
+        expected_df.reset_index(drop=True),
+        check_dtype=False,
+    )
+
+
+@pytest.mark.parametrize("conn_name", upsert_connectable)
+def test_upsert_no_conflict(conn_name, request):
+    """Upsert with no existing rows behaves like a plain insert."""
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_upsert_no_conflict"
+    create_stmt = f"CREATE TABLE {table_name} (a INTEGER UNIQUE NOT NULL, b INTEGER)"
+    if conn_name != "sqlite_buildin":
+        create_stmt = sqlalchemy.text(create_stmt)
+
+    df = DataFrame({"a": [1, 2, 3], "b": [10, 20, 30]})
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(create_stmt)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                df,
+                table_name,
+                if_exists="upsert",
+                index=False,
+                upsert_conflict_columns=["a"],
+            )
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name} ORDER BY a")
+
+    tm.assert_frame_equal(
+        result_df.reset_index(drop=True),
+        df.reset_index(drop=True),
+        check_dtype=False,
+    )
+
+
+@pytest.mark.parametrize("conn_name", upsert_connectable)
+def test_upsert_all_conflict(conn_name, request):
+    """Every row conflicts — all rows should be updated."""
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_upsert_all_conflict"
+    create_stmt = f"CREATE TABLE {table_name} (a INTEGER UNIQUE NOT NULL, b INTEGER)"
+    if conn_name != "sqlite_buildin":
+        create_stmt = sqlalchemy.text(create_stmt)
+
+    initial_df = DataFrame({"a": [1, 2], "b": [10, 20]})
+    update_df = DataFrame({"a": [1, 2], "b": [99, 88]})
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(create_stmt)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(initial_df, table_name, if_exists="append", index=False)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                update_df,
+                table_name,
+                if_exists="upsert",
+                index=False,
+                upsert_conflict_columns=["a"],
+            )
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name} ORDER BY a")
+
+    tm.assert_frame_equal(
+        result_df.reset_index(drop=True),
+        update_df.reset_index(drop=True),
+        check_dtype=False,
+    )
+
+
+@pytest.mark.parametrize("conn_name", upsert_connectable)
+def test_upsert_creates_table_if_not_exists(conn_name, request):
+    """if_exists='upsert' should create the table when it does not exist."""
+    table_name = "temp_upsert_create"
+    df = DataFrame({"a": [1, 2], "b": [10, 20]})
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                df,
+                table_name,
+                if_exists="upsert",
+                index=False,
+                upsert_conflict_columns=["a"],
+            )
+        assert pandasSQL.has_table(table_name)
+        assert count_rows(conn, table_name) == 2
+
+
+def test_upsert_requires_conflict_columns():
+    """ValueError when if_exists='upsert' but upsert_conflict_columns is missing."""
+    df = DataFrame({"a": [1], "b": [2]})
+    with pytest.raises(ValueError, match="upsert_conflict_columns is required"):
+        df.to_sql(
+            name="test",
+            con="sqlite://",
+            if_exists="upsert",
+        )
+
+
+def test_upsert_conflict_columns_warning_when_ignored():
+    """UserWarning when upsert_conflict_columns is given but if_exists != 'upsert'."""
+    df = DataFrame({"a": [1], "b": [2]})
+    conn = sqlite3.connect(":memory:")
+    try:
+        df.to_sql(name="t", con=conn, if_exists="append", index=False)
+        with tm.assert_produces_warning(
+            UserWarning, match="upsert_conflict_columns is ignored"
+        ):
+            df.to_sql(
+                name="t",
+                con=conn,
+                if_exists="append",
+                index=False,
+                upsert_conflict_columns=["a"],
+            )
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("conn_name", upsert_connectable)
+def test_upsert_method_multi(conn_name, request):
+    """Works with method='multi' for batch performance."""
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_upsert_multi"
+    create_stmt = f"CREATE TABLE {table_name} (a INTEGER UNIQUE NOT NULL, b INTEGER)"
+    if conn_name != "sqlite_buildin":
+        create_stmt = sqlalchemy.text(create_stmt)
+
+    initial_df = DataFrame({"a": [1, 2], "b": [10, 20]})
+    upsert_df = DataFrame({"a": [1, 3], "b": [99, 30]})
+    expected_df = DataFrame({"a": [1, 2, 3], "b": [99, 20, 30]})
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(create_stmt)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(initial_df, table_name, if_exists="append", index=False)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                upsert_df,
+                table_name,
+                if_exists="upsert",
+                index=False,
+                method="multi",
+                upsert_conflict_columns=["a"],
+            )
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name} ORDER BY a")
+
+    tm.assert_frame_equal(
+        result_df.reset_index(drop=True),
+        expected_df.reset_index(drop=True),
+        check_dtype=False,
+    )
+
+
+@pytest.mark.parametrize("conn_name", upsert_connectable)
+def test_upsert_chunksize(conn_name, request):
+    """Chunked upsert produces the correct result."""
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+
+    table_name = "temp_upsert_chunksize"
+    create_stmt = f"CREATE TABLE {table_name} (a INTEGER UNIQUE NOT NULL, b INTEGER)"
+    if conn_name != "sqlite_buildin":
+        create_stmt = sqlalchemy.text(create_stmt)
+
+    initial_df = DataFrame({"a": [1, 2, 3], "b": [10, 20, 30]})
+    upsert_df = DataFrame({"a": [1, 2, 4], "b": [11, 22, 40]})
+    expected_df = DataFrame({"a": [1, 2, 3, 4], "b": [11, 22, 30, 40]})
+
+    conn = request.getfixturevalue(conn_name)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as cur:
+            cur.execute(create_stmt)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(initial_df, table_name, if_exists="append", index=False)
+        with pandasSQL.run_transaction():
+            pandasSQL.to_sql(
+                upsert_df,
+                table_name,
+                if_exists="upsert",
+                index=False,
+                chunksize=1,
+                upsert_conflict_columns=["a"],
+            )
+        result_df = pandasSQL.read_query(f"SELECT * FROM {table_name} ORDER BY a")
+
+    tm.assert_frame_equal(
+        result_df.reset_index(drop=True),
+        expected_df.reset_index(drop=True),
+        check_dtype=False,
+    )
+
+
+def test_upsert_adbc_not_implemented():
+    """NotImplementedError for ADBC connections."""
+    pytest.importorskip("adbc_driver_sqlite")
+    from adbc_driver_sqlite import dbapi
+
+    df = DataFrame({"a": [1], "b": [2]})
+    with dbapi.connect("file::memory:?cache=shared") as conn:
+        with pytest.raises(NotImplementedError, match="upsert.*not implemented.*ADBC"):
+            df.to_sql(
+                name="test",
+                con=conn,
+                if_exists="upsert",
+                index=False,
+                upsert_conflict_columns=["a"],
+            )
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":

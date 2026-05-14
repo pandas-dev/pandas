@@ -5848,6 +5848,65 @@ Example of a callable using PostgreSQL `COPY clause
               table_name, columns)
           cur.copy_expert(sql=sql, file=s_buf)
 
+.. _io.sql.upsert:
+
+Upsert (insert or update)
++++++++++++++++++++++++++
+
+.. versionadded:: 3.1.0
+
+The ``if_exists='upsert'`` option enables inserting new rows and updating
+existing rows that conflict on a set of key columns. This is controlled by the
+``upsert_conflict_columns`` parameter, which specifies the column(s) that
+define the uniqueness constraint (the conflict target). When a conflict is
+detected, all non-key columns are updated with the new values.
+
+.. code-block:: python
+
+   # Initial insert
+   df = pd.DataFrame({"id": [1, 2], "value": [10, 20]})
+   df.to_sql("my_table", engine, index=False, if_exists="replace")
+
+   # Upsert: id=1 is updated, id=3 is inserted
+   df_update = pd.DataFrame({"id": [1, 3], "value": [99, 30]})
+   df_update.to_sql(
+       "my_table",
+       engine,
+       index=False,
+       if_exists="upsert",
+       upsert_conflict_columns=["id"],
+   )
+
+The ``upsert_conflict_columns`` parameter is required when using
+``if_exists='upsert'``. The specified columns must correspond to a ``UNIQUE``
+or ``PRIMARY KEY`` constraint in the target table. If the table does not yet
+exist, it will be created automatically with the conflict columns set as the
+primary key.
+
+Upsert is compatible with the ``method`` and ``chunksize`` parameters::
+
+   df.to_sql(
+       "my_table", engine, index=False,
+       if_exists="upsert",
+       upsert_conflict_columns=["id"],
+       method="multi",   # efficient multi-row INSERT
+       chunksize=1000,    # write in batches
+   )
+
+The following database dialects are supported:
+
+===========   ===================================================
+Database      SQL Generated
+===========   ===================================================
+PostgreSQL    ``INSERT ... ON CONFLICT (cols) DO UPDATE SET ...``
+MySQL         ``INSERT ... ON DUPLICATE KEY UPDATE ...``
+SQLite        ``INSERT ... ON CONFLICT (cols) DO UPDATE SET ...``
+===========   ===================================================
+
+For databases that use ``MERGE`` syntax (e.g. MS SQL Server, Oracle), or for
+finer-grained control over which columns to update, use the ``method``
+parameter with a custom callable. See :ref:`io.sql.method` for details.
+
 Reading tables
 ''''''''''''''
 
