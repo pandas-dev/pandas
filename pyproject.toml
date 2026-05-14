@@ -527,7 +527,26 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._libs.*",
+  "pandas._libs.arrays",
+  "pandas._libs.hashtable",
+  "pandas._libs.index",
+  "pandas._libs.internals",
+  "pandas._libs.interval",
+  "pandas._libs.lib",
+  "pandas._libs.missing",
+  "pandas._libs.ops_dispatch",
+  "pandas._libs.parsers",
+  "pandas._libs.properties",
+  "pandas._libs.sparse",
+  "pandas._libs.testing",
+  "pandas._libs.tslibs.fields",
+  "pandas._libs.tslibs.nattype",
+  "pandas._libs.tslibs.np_datetime",
+  "pandas._libs.tslibs.offsets",
+  "pandas._libs.tslibs.parsing",
+  "pandas._libs.tslibs.period",
+  "pandas._libs.tslibs.timedeltas",
+  "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
@@ -542,7 +561,6 @@ module = [
   "pandas.core.computation.scope", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.dtypes", # TODO
-  "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO

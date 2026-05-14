@@ -7,6 +7,8 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
+    TypeVar,
+    cast,
     overload,
 )
 import warnings
@@ -61,6 +63,8 @@ if TYPE_CHECKING:
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
+
+_ArrLikeT = TypeVar("_ArrLikeT", "Series", "Index", np.ndarray)
 
 _dtype_object = np.dtype("object")
 _dtype_str = np.dtype(str)
@@ -174,7 +178,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 isnull = isna
 
 
-def _isna(obj):
+def _isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect missing values, treating None, NaN or NA as null.
 
@@ -392,8 +396,8 @@ notnull = notna
 
 
 def array_equivalent(
-    left,
-    right,
+    left: ArrayLike,
+    right: ArrayLike,
     strict_nan: bool = False,
     dtype_equal: bool = False,
 ) -> bool:
@@ -591,7 +595,7 @@ def maybe_fill(arr: np.ndarray) -> np.ndarray:
     return arr
 
 
-def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
+def na_value_for_dtype(dtype: DtypeObj, compat: bool = True) -> Scalar:
     """
     Return a dtype compat na value
 
@@ -621,7 +625,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     """
 
     if isinstance(dtype, ExtensionDtype):
-        return dtype.na_value
+        return cast("Scalar", dtype.na_value)
     elif dtype.kind in "mM":
         unit = np.datetime_data(dtype)[0]
         return dtype.type("NaT", unit)
@@ -638,17 +642,17 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     return np.nan
 
 
-def remove_na_arraylike(arr: Series | Index | np.ndarray):
+def remove_na_arraylike(arr: _ArrLikeT) -> _ArrLikeT:
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
     if isinstance(arr.dtype, ExtensionDtype):
-        return arr[notna(arr)]
+        return arr[notna(arr)]  # pyright: ignore[reportReturnType]
     else:
-        return arr[notna(np.asarray(arr))]
+        return arr[notna(np.asarray(arr))]  # pyright: ignore[reportReturnType]
 
 
-def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
+def is_valid_na_for_dtype(obj: object, dtype: DtypeObj) -> bool:
     """
     isna check that excludes incompatible dtypes
 
@@ -661,7 +665,7 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
     -------
     bool
     """
-    if not lib.is_scalar(obj) or not isna(obj):
+    if not lib.is_scalar(obj) or not isna(obj):  # pyright: ignore[reportGeneralTypeIssues]
         return False
     elif dtype.kind == "M":
         if isinstance(dtype, np.dtype):

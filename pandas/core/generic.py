@@ -180,6 +180,8 @@ if TYPE_CHECKING:
         OpenFileErrors,
         P,
         RandomState,
+        RankMethod,
+        RankNaOption,
         ReindexMethod,
         Renamer,
         Scalar,
@@ -9508,9 +9510,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rank(
         self,
         axis: Axis = 0,
-        method: Literal["average", "min", "max", "first", "dense"] = "average",
+        method: RankMethod = "average",
         numeric_only: bool = False,
-        na_option: Literal["keep", "top", "bottom"] = "keep",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:

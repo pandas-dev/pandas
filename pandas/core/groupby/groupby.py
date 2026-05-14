@@ -54,6 +54,8 @@ from pandas._typing import (
     NDFrameT,
     PositionalIndexer,
     RandomState,
+    RankMethod,
+    RankNaOption,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -4900,9 +4902,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def rank(
         self,
-        method: str = "average",
+        method: RankMethod = "average",
         ascending: bool = True,
-        na_option: str = "keep",
+        na_option: RankNaOption = "keep",
         pct: bool = False,
     ) -> NDFrameT:
         """
