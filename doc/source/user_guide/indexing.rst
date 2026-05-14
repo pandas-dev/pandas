@@ -175,15 +175,21 @@ columns.
       df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
 
-   However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``
-   because ``.iloc`` operates by position.
+   Similarly, pandas aligns AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``.
 
-   This will modify ``df`` because the column alignment is not done before value assignment.
+   This will **not** modify ``df`` because the column alignment is before value assignment.
 
    .. ipython:: python
 
       df[['A', 'B']]
       df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df[['A','B']]
+
+   The correct way to swap column values with ``.iloc`` is also by using raw values:
+
+   .. ipython:: python
+
+      df.iloc[:, [1, 0]] = df[['A', 'B']].to_numpy()
       df[['A','B']]
 
 
