@@ -344,7 +344,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
+        try:
+            self._ndarray[key] = value
+        except TypeError as err:
+            if self._ndarray.dtype.kind == "c":
+                # GH#54761 numpy raises TypeError for cases like setting a
+                # 1d sequence into a complex scalar position ("only 0-dimensional
+                # arrays can be converted to Python scalars"); normalize to
+                # ValueError for consistency with other numeric dtypes.
+                raise ValueError(*err.args) from err
+            raise
 
     def _validate_setitem_value(self, value):
         return value
