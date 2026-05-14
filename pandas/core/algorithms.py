@@ -87,6 +87,8 @@ if TYPE_CHECKING:
         ListLike,
         NumpySorter,
         NumpyValueArrayLike,
+        RankMethod,
+        RankNaOption,
         TakeIndexer,
         npt,
     )
@@ -822,7 +824,9 @@ def factorize(
             if null_mask.any():
                 na_value = na_value_for_dtype(values.dtype, compat=False)
                 # Don't modify (potentially user-provided) array
-                values = np.where(null_mask, na_value, values)
+                # error: Argument 2 to "where" has incompatible type "Scalar";
+                # expected "_Buffer | _SupportsArray[dtype[Any]] | ..."
+                values = np.where(null_mask, na_value, values)  # type: ignore[arg-type]
 
         codes, uniques = factorize_array(
             values,
@@ -1048,8 +1052,8 @@ def mode(
 def rank(
     values: ArrayLike,
     axis: AxisInt = 0,
-    method: str = "average",
-    na_option: str = "keep",
+    method: RankMethod = "average",
+    na_option: RankNaOption = "keep",
     ascending: bool = True,
     pct: bool = False,
     mask: npt.NDArray[np.bool_] | None = None,

@@ -449,20 +449,24 @@ def read_csv(
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
-        Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior is to infer the column names:
-        if no ``names``
-        are passed the behavior is identical to ``header=0`` and column
-        names are inferred from the first line of the file, if column
-        names are passed explicitly to ``names`` then the behavior is identical to
-        ``header=None``. Explicitly pass ``header=0`` to be able to
-        replace existing names. The header can be a list of integers that
-        specify row locations for a :class:`~pandas.MultiIndex` on the columns
-        e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
-        skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
-        data rather than the first line of the file.
+        Row index or indices in the file to use as DataFrame column labels.
+        Indexing starts at 0 and counts only non-blank, non-commented lines
+        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
+        line of data rather than the first line of the file. Valid arguments
+        are:
+
+        * ``int``: line index at which column labels are read.
+        * Sequence of ``int``: line indices at which column labels are read
+          and combined into a :class:`~pandas.MultiIndex` on the columns,
+          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
+          be skipped (e.g. row 2 in this example).
+        * ``None``: no row in the file is interpreted as column labels.
+          Columns are labelled by integer position, or by the values passed
+          to ``names`` when provided. Use this for files with no header
+          row. If the file has a header row that should be overridden by
+          ``names``, pass ``header=0`` instead.
+        * ``'infer'`` (default): equivalent to ``header=0`` when no
+          ``names`` are passed, otherwise equivalent to ``header=None``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
@@ -1025,20 +1029,24 @@ def read_table(
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
-        Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior
-        is to infer the column names: if no ``names``
-        are passed the behavior is identical to ``header=0`` and column
-        names are inferred from the first line of the file, if column
-        names are passed explicitly to ``names`` then the behavior is identical to
-        ``header=None``. Explicitly pass ``header=0`` to be able to
-        replace existing names. The header can be a list of integers that
-        specify row locations for a :class:`~pandas.MultiIndex` on the columns
-        e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
-        skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
-        data rather than the first line of the file.
+        Row index or indices in the file to use as DataFrame column labels.
+        Indexing starts at 0 and counts only non-blank, non-commented lines
+        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
+        line of data rather than the first line of the file. Valid arguments
+        are:
+
+        * ``int``: line index at which column labels are read.
+        * Sequence of ``int``: line indices at which column labels are read
+          and combined into a :class:`~pandas.MultiIndex` on the columns,
+          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
+          be skipped (e.g. row 2 in this example).
+        * ``None``: no row in the file is interpreted as column labels.
+          Columns are labelled by integer position, or by the values passed
+          to ``names`` when provided. Use this for files with no header
+          row. If the file has a header row that should be overridden by
+          ``names``, pass ``header=0`` instead.
+        * ``'infer'`` (default): equivalent to ``header=0`` when no
+          ``names`` are passed, otherwise equivalent to ``header=None``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
@@ -1547,7 +1555,10 @@ def read_fwf(
         the intervals are contiguous.
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
-        `colspecs`.
+        ``colspecs``. Pass ``np.inf`` to infer column specifications from the
+        entire file, which is useful when columns vary in width and a value
+        wider than anything in the first ``infer_nrows`` rows would otherwise
+        be truncated.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.
