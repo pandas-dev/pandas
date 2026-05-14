@@ -106,7 +106,8 @@ def test_series_from_pyarrow_uuid_chunkedarray() -> None:
     carr = pa.chunked_array([chunk1, chunk2])
     s = pd.Series(carr)
 
-    assert s.dtype == pd.ArrowDtype(pa.uuid())
+    assert isinstance(s.dtype, pd.ArrowDtype)
+    assert s.dtype.pyarrow_dtype == pa.uuid()
 
     ser_array = s.array
     assert isinstance(ser_array, ArrowExtensionArray)
