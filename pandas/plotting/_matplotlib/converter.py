@@ -198,7 +198,7 @@ class TimeConverter(munits.ConversionInterface):
 # time formatter
 class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAccessIssue]
     def __init__(self, locs) -> None:
-        self.locs = locs
+        self.set_locs(locs)
 
     def __call__(self, x, pos: int | None = 0) -> str:
         """
@@ -1101,7 +1101,7 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
 
-        self.locs = locs
+        super().set_locs(locs)
 
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         if vmax < vmin:
