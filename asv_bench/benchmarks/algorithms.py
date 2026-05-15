@@ -148,7 +148,7 @@ class Hashing:
         # setup_cache runs in a different sub-process where module-level setup is
         # never called,so seed locally to keep the cached frame reproducible
         # across runs.
-        # np.random.seed(1234)
+        np.random.seed(1234)
         N = 10**5
 
         df = pd.DataFrame(
