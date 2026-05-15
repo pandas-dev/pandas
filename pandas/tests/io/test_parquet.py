@@ -24,6 +24,7 @@ from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.version import Version
 
 from pandas.io.parquet import (
@@ -1524,10 +1525,14 @@ class TestParquetFastParquet(Base):
             read_parquet(temp_file, dtype_backend="numpy")
 
 
+@td.skip_if_no("pyarrow", min_version="24.0")
 def test_to_parquet_uuid_supported(tmp_path):
     # GH 61602
+<<<<<<< HEAD
     pytest.importorskip("pyarrow", minversion="24.0.0")
 
+=======
+>>>>>>> 3e900a418f (TST: Address reviewer feedback for UUID pyarrow test)
     df = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
     path = tmp_path / "test_uuid.parquet"
 
@@ -1536,4 +1541,10 @@ def test_to_parquet_uuid_supported(tmp_path):
 
     # Verify it can be read back
     result = read_parquet(path, engine="pyarrow")
+<<<<<<< HEAD
     assert len(result) == 2
+=======
+    tm.assert_frame_equal(result, df) 
+    
+    
+>>>>>>> 3e900a418f (TST: Address reviewer feedback for UUID pyarrow test)
