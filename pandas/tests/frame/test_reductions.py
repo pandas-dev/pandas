@@ -874,9 +874,9 @@ class TestDataFrameAnalytics:
     )
     def test_axis_1_sum_min_count_sparse(self, min_count, expected):
         # https://github.com/pandas-dev/pandas/issues/55123
-        df = DataFrame(
-            {"A": [2.0, 3.0, np.nan], "B": [5.0, np.nan, np.nan]}
-        ).astype(SparseDtype("float64"))
+        df = DataFrame({"A": [2.0, 3.0, np.nan], "B": [5.0, np.nan, np.nan]}).astype(
+            SparseDtype("float64")
+        )
         result = df.sum(axis=1, skipna=True, min_count=min_count)
         expected = Series(expected, dtype="float64")
         tm.assert_series_equal(result, expected)
