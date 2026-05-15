@@ -81,7 +81,7 @@ class FactorizePeakmem:
 class Duplicated:
     params = [
         [True, False],
-        ["first", False],
+        ["first", "last", False],
         [
             "int64",
             "uint64",
