@@ -240,6 +240,21 @@ def melt(
     else:
         var_name = [var_name]
 
+    output_names = (*id_vars, *var_name, value_name)
+    if len(set(output_names)) != len(output_names):
+        seen = set()
+        dups = []
+        for n in output_names:
+            if n in seen:
+                dups.append(n)
+            else:
+                seen.add(n)
+        raise ValueError(
+            f"melt would produce duplicate column names {dups} from "
+            f"id_vars={id_vars!r}, var_name={var_name!r}, "
+            f"value_name={value_name!r}."
+        )
+
     num_rows, K = frame.shape
     num_cols_adjusted = K - len(id_vars)
 
