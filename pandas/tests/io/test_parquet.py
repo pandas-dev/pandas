@@ -21,10 +21,10 @@ from pandas.compat.pyarrow import (
     pa_version_under20p0,
 )
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-import pandas.util._test_decorators as td
 from pandas.util.version import Version
 
 from pandas.io.parquet import (
@@ -1544,7 +1544,7 @@ def test_to_parquet_uuid_supported(tmp_path):
 <<<<<<< HEAD
     assert len(result) == 2
 =======
-    tm.assert_frame_equal(result, df) 
-    
-    
+    tm.assert_frame_equal(result, df)
+
+
 >>>>>>> 3e900a418f (TST: Address reviewer feedback for UUID pyarrow test)
