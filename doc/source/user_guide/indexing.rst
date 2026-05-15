@@ -1813,3 +1813,47 @@ Examples:
    #If you want positional assignment instead of index alignment:
    # reset the Series index to match DataFrame index
    df['s1_values'] = s1.reindex(df.index)
+
+.. _indexing.column_assignment_vs_in_place:
+
+Column assignment vs. in-place setting
+--------------------------------------
+
+While index alignment is consistent between ``df[col] = value`` and
+``df.loc[:, col] = value`` (see the previous section), the two forms differ in
+how they treat the column's existing dtype:
+
+* ``df[col] = value`` **replaces** the column. The new column's dtype is
+  inferred from ``value``, regardless of what dtype the old column had.
+* ``df.loc[:, col] = value`` (and ``df.iloc[:, i] = value``) **sets the values
+  in place** in the existing column. The original dtype is preserved, and the
+  assignment will raise ``TypeError`` if ``value`` is not compatible with it.
+
+This is most visible for :class:`~pandas.api.types.ExtensionDtype` columns
+such as ``category``, ``Int64``, ``boolean``, or ``string``, where the
+replacing form silently drops the extension dtype:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": pd.Categorical(["x", "y"], categories=["x", "y", "z"])})
+   df["a"] = "z"          # replaces the column
+   df.dtypes
+
+   df = pd.DataFrame({"a": pd.Categorical(["x", "y"], categories=["x", "y", "z"])})
+   df.loc[:, "a"] = "z"   # sets values in place
+   df.dtypes
+
+The same distinction applies to nullable numeric and boolean dtypes:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+   df["a"] = 5
+   df.dtypes
+
+   df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+   df.loc[:, "a"] = 5
+   df.dtypes
+
+Use ``df.loc[:, col] = value`` (or ``.iloc``) when you want to update every
+value of an existing column while keeping its dtype.

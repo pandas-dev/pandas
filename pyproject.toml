@@ -527,20 +527,32 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._config.config", # TODO
-  "pandas._libs.*",
-  "pandas._testing.*", # TODO
-  "pandas.compat.numpy.function", # TODO
-  "pandas.core._numba.executor", # TODO
+  "pandas._libs.arrays",
+  "pandas._libs.hashtable",
+  "pandas._libs.index",
+  "pandas._libs.internals",
+  "pandas._libs.interval",
+  "pandas._libs.lib",
+  "pandas._libs.missing",
+  "pandas._libs.ops_dispatch",
+  "pandas._libs.properties",
+  "pandas._libs.sparse",
+  "pandas._libs.testing",
+  "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
   "pandas.core.arrays.*", # TODO
-  "pandas.core.computation.*", # TODO
+  "pandas.core.computation.align", # TODO
+  "pandas.core.computation.engines", # TODO
+  "pandas.core.computation.eval", # TODO
+  "pandas.core.computation.expr", # TODO
+  "pandas.core.computation.expressions", # TODO
+  "pandas.core.computation.ops", # TODO
+  "pandas.core.computation.pytables", # TODO
+  "pandas.core.computation.scope", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.dtypes", # TODO
-  "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
@@ -548,7 +560,6 @@ module = [
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.accessors", # TODO
   "pandas.core.indexes.api", # TODO
-  "pandas.core.indexes.category", # TODO
   "pandas.core.indexes.datetimelike", # TODO
   "pandas.core.indexes.datetimes", # TODO
   "pandas.core.indexes.extension", # TODO
@@ -560,7 +571,6 @@ module = [
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
   "pandas.core.internals", # TODO
-  "pandas.core.internals.api", # TODO
   "pandas.core.internals.blocks", # TODO
   "pandas.core.internals.concat", # TODO
   "pandas.core.internals.construction", # TODO
@@ -575,7 +585,6 @@ module = [
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
-  "pandas.core.window.online", # TODO
   "pandas.core.window.rolling", # TODO
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
@@ -589,15 +598,11 @@ module = [
   "pandas.core.missing", # TODO
   "pandas.core.nanops", # TODO
   "pandas.core.resample", # TODO
-  "pandas.core.roperator", # TODO
-  "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
-  "pandas.core.sorting", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
   "pandas.io.excel._openpyxl", # TODO
-  "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
   "pandas.io.formats.excel", # TODO
@@ -618,10 +623,6 @@ module = [
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
   "pandas.tseries.holiday", # TODO
-  "pandas.util._decorators", # TODO
-  "pandas.util._doctools", # TODO
-  "pandas.util._validators", # TODO
-  "pandas.util", # TODO
   "pandas.conftest",
   "pandas"
 ]
