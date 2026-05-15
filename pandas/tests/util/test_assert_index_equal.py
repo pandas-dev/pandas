@@ -31,6 +31,18 @@ Index levels are different
         tm.assert_index_equal(idx1, idx2, exact=False)
 
 
+def test_index_equal_unused_levels_silently_passes():
+    # GH#65649 - documents current behavior: assert_index_equal does not
+    # detect that one MultiIndex has unused levels while the other does not.
+    idx1 = MultiIndex.from_product([["a"], ["A", "B", "C", "D"]])[:-1]
+    idx2 = idx1.remove_unused_levels()
+
+    assert len(idx1.levels[1]) != len(idx2.levels[1])
+
+    with pytest.raises(AssertionError):
+        tm.assert_index_equal(idx1, idx2)
+
+
 def test_index_equal_values_mismatch(check_exact):
     msg = """MultiIndex level \\[1\\] are different
 

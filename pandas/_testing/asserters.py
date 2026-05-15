@@ -201,6 +201,7 @@ def assert_index_equal(
     check_exact: bool = True,
     check_categorical: bool = True,
     check_order: bool = True,
+    check_unused_levels: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str | None = None,
@@ -237,6 +238,13 @@ def assert_index_equal(
         Whether to compare the order of index entries as well as their values.
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
+    check_unused_levels : bool, default True
+        For MultiIndex, whether to require ``left.levels[i]`` and
+        ``right.levels[i]`` to be exactly equal. When True, two MultiIndexes
+        whose tuples are equal but whose ``levels`` arrays differ (for example
+        when one has unused levels and the other does not) are reported as
+        different. Set to False to recover the previous lenient behavior where
+        such inputs compared equal.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -368,6 +376,13 @@ def assert_index_equal(
                     atol=atol,
                     obj=lobj,
                 )
+                # GH#65649 - the densified comparison above hides differences
+                # in unused levels. Re-raise on the underlying levels mismatch.
+                if check_unused_levels:
+                    msg1 = f"{lobj} levels are different"
+                    msg2 = f"length {len(left.levels[level])}, {left.levels[level]}"
+                    msg3 = f"length {len(right.levels[level])}, {right.levels[level]}"
+                    raise_assert_detail(lobj, msg1, msg2, msg3)
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=lobj)
 
