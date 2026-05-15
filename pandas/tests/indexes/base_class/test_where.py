@@ -13,6 +13,7 @@ class TestWhere:
         tm.assert_index_equal(res, expected)
 
     def test_where_preserves_object_dtype(self):
+        # https://github.com/pandas-dev/pandas/pull/65653
         idx = Index(list("abc"), dtype="object")
         res = idx.where(np.array([True, False, True]), other="x")
         expected = Index(["a", "x", "c"], dtype="object")
