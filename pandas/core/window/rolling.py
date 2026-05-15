@@ -2213,7 +2213,9 @@ class Rolling(RollingAndExpandingMixin):
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray
-              objects instead.
+              objects instead. Pandas-only attributes such as ``.iloc``
+              or ``.index`` are not available on ndarrays and will raise
+              ``AttributeError`` if used inside ``func``.
 
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
@@ -2252,6 +2254,15 @@ class Rolling(RollingAndExpandingMixin):
         DataFrame.rolling : Calling rolling with DataFrames.
         Series.apply : Aggregating apply for Series.
         DataFrame.apply : Aggregating apply for DataFrame.
+
+        Notes
+        -----
+        When ``raw=False``, the :class:`Series` passed to ``func`` is indexed by the
+        column or :class:`Index` used to compute the rolling window. If
+        :meth:`DataFrame.rolling` was called with ``on=col``, the index of the
+        passed :class:`Series` will be the values of ``col`` rather than the
+        original :class:`DataFrame` index. When ``on`` is not specified, the
+        index of the passed :class:`Series` is the original index of the input.
 
         Examples
         --------

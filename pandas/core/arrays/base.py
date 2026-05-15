@@ -101,6 +101,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         ScalarIndexer,
         SequenceIndexer,
         Shape,
@@ -1141,7 +1143,7 @@ class ExtensionArray:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise ValueError("Encountered an NA value with skipna=False")
-        return nargminmax(self, "argmin")
+        return cast("int", nargminmax(self, "argmin"))
 
     def argmax(self, skipna: bool = True) -> int:
         """
@@ -1175,7 +1177,7 @@ class ExtensionArray:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise ValueError("Encountered an NA value with skipna=False")
-        return nargminmax(self, "argmax")
+        return cast("int", nargminmax(self, "argmax"))
 
     def interpolate(
         self,
@@ -2808,8 +2810,8 @@ class ExtensionArray:
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):

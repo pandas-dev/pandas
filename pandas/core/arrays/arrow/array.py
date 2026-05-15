@@ -215,6 +215,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         Scalar,
         SortKind,
         TakeIndexer,
@@ -2619,8 +2621,8 @@ class ArrowExtensionArray(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):
@@ -2686,7 +2688,11 @@ class ArrowExtensionArray(
             return False
         if len(pa_array) <= 1:
             return True
-        return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        try:
+            return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
 
     @property
     def _is_monotonic_decreasing(self) -> bool:
@@ -2695,14 +2701,18 @@ class ArrowExtensionArray(
             return False
         if len(pa_array) <= 1:
             return True
-        return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        try:
+            return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
 
     def _rank(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:
