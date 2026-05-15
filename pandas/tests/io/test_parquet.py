@@ -1524,15 +1524,16 @@ class TestParquetFastParquet(Base):
         with pytest.raises(ValueError, match=msg):
             read_parquet(temp_file, dtype_backend="numpy")
 
+
 @td.skip_if_no("pyarrow", min_version="24.0")
 def test_to_parquet_uuid_supported(tmp_path):
     # GH 61602
     df = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
     path = tmp_path / "test_uuid.parquet"
-    
+
     # This should not raise an error
     df.to_parquet(path, engine="pyarrow")
-    
+
     # Verify it can be read back
     result = read_parquet(path, engine="pyarrow")
     tm.assert_frame_equal(result, df)
