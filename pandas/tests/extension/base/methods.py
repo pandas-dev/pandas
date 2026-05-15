@@ -292,6 +292,32 @@ class BaseMethodsTests:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_sort_inplace(self, data_for_sorting):
+        arr = data_for_sorting.copy()
+        result = arr.sort()
+        assert result is None
+        expected = data_for_sorting.take([2, 0, 1])
+        tm.assert_extension_array_equal(arr, expected)
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        arr = data_for_sorting.copy()
+        arr.sort(ascending=False)
+        if pd.Series(data_for_sorting).nunique() == 2:
+            expected = data_for_sorting.take([0, 1, 2])
+        else:
+            expected = data_for_sorting.take([1, 0, 2])
+        tm.assert_extension_array_equal(arr, expected)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        arr = data_missing_for_sorting.copy()
+        arr.sort(na_position=na_position)
+        if na_position == "last":
+            expected = data_missing_for_sorting.take([2, 0, 1])
+        else:
+            expected = data_missing_for_sorting.take([1, 2, 0])
+        tm.assert_extension_array_equal(arr, expected)
+
     @pytest.mark.parametrize("ascending", [True, False])
     def test_rank(self, data_for_sorting, ascending):
         ser = pd.Series(data_for_sorting)

@@ -652,36 +652,6 @@ def test_numpy_random_permute(dtype, box):
     assert sorted(result.tolist()) == ["a", "bb", "ccc"]
 
 
-def test_sort_inplace(dtype):
-    # https://github.com/pandas-dev/pandas/issues/64977
-    arr = pd.array(["Bob", "Alice", "Charlie"], dtype=dtype)
-    result = arr.sort()
-    assert result is None
-    expected = pd.array(["Alice", "Bob", "Charlie"], dtype=dtype)
-    tm.assert_extension_array_equal(arr, expected)
-
-
-def test_sort_descending(dtype):
-    # https://github.com/pandas-dev/pandas/issues/64977
-    arr = pd.array(["Bob", "Alice", "Charlie"], dtype=dtype)
-    arr.sort(ascending=False)
-    expected = pd.array(["Charlie", "Bob", "Alice"], dtype=dtype)
-    tm.assert_extension_array_equal(arr, expected)
-
-
-@pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_with_na(dtype, na_position):
-    # https://github.com/pandas-dev/pandas/issues/64977
-    na = dtype.na_value
-    arr = pd.array(["Bob", na, "Alice"], dtype=dtype)
-    arr.sort(na_position=na_position)
-    if na_position == "last":
-        expected = pd.array(["Alice", "Bob", na], dtype=dtype)
-    else:
-        expected = pd.array([na, "Alice", "Bob"], dtype=dtype)
-    tm.assert_extension_array_equal(arr, expected)
-
-
 def test_sort_unique_result(dtype):
     # https://github.com/pandas-dev/pandas/issues/64977
     entries = [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]
