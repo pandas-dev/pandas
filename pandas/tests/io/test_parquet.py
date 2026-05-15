@@ -1535,7 +1535,7 @@ def test_to_parquet_uuid_supported(tmp_path):
     df.to_parquet(path, engine="pyarrow")
     
     # Verify it can be read back
-    result = pd.read_parquet(path, engine="pyarrow")
+    result = read_parquet(path, engine="pyarrow")
     assert len(result) == 2        
     
     
