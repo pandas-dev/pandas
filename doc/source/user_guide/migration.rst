@@ -149,6 +149,18 @@ A different alternative would be to not use ``inplace``:
     df["foo"] = df["foo"].replace(1, 5)
     df
 
+**Column attributes cannot be used to store column-level metadata**
+
+``DataFrame.attrs`` and ``Series.attrs`` remain available for metadata on the
+object itself. With CoW, setting ``attrs`` on a ``Series`` returned by selecting
+a :class:`DataFrame` column is not a supported way to attach metadata to that
+column. A future access to the same column may return a different ``Series``
+object without those attributes.
+
+If you need column-level metadata, store it on the parent :class:`DataFrame`
+(for example in ``df.attrs["columns"]`` keyed by column name) or in a separate
+metadata object that you manage alongside the :class:`DataFrame`.
+
 **Constructors now copy NumPy arrays by default**
 
 The Series and DataFrame constructors now copies a NumPy array by default when not
