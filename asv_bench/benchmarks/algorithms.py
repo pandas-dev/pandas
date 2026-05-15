@@ -114,7 +114,7 @@ class Duplicated:
         if not unique:
             data = data.repeat(5)
         self.idx = data
-        # cache is_unique so its cost isn't measured in time_duplicated
+        # cache is_unique
         self.idx.is_unique
 
     def time_duplicated(self, unique, keep, dtype):
@@ -124,7 +124,7 @@ class Duplicated:
 class DuplicatedMaskedArray:
     params = [
         [True, False],
-        ["first", False],
+        ["first", "last", False],
         ["Int64", "Float64"],
     ]
     param_names = ["unique", "keep", "dtype"]
@@ -136,7 +136,7 @@ class DuplicatedMaskedArray:
         if not unique:
             data = data.repeat(5)
         self.ser = data
-        # cache is_unique so its cost isn't measured in time_duplicated
+        # cache is_unique
         self.ser.is_unique
 
     def time_duplicated(self, unique, keep, dtype):
@@ -192,7 +192,7 @@ class Hashing:
 
 class Quantile:
     params = [
-        [0, 0.5],
+        [0, 0.5, 1],
         ["linear", "nearest", "lower", "higher", "midpoint"],
         ["float64", "int64"],
     ]
