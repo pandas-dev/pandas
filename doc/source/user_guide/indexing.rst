@@ -180,10 +180,12 @@ columns.
 
    This will modify ``df`` because the column alignment is not done before value assignment.
 
+   To swap columns correctly with ``iloc``, use ``.to_numpy()`` to break the alignment:
+
    .. ipython:: python
 
       df[['A', 'B']]
-      df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df.iloc[:, [1, 0]] = df[['A', 'B']].to_numpy()
       df[['A','B']]
 
 
