@@ -5,6 +5,7 @@ from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
+import uuid
 
 import numpy as np
 import pytest
@@ -1521,3 +1522,20 @@ class TestParquetFastParquet(Base):
         df.to_parquet(temp_file)
         with pytest.raises(ValueError, match=msg):
             read_parquet(temp_file, dtype_backend="numpy")
+
+
+def test_to_parquet_uuid_supported(tmp_path):
+    # GH 61602
+    pytest.importorskip("pyarrow", minversion="24.0.0")
+    
+    df = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
+    path = tmp_path / "test_uuid.parquet"
+    
+    # This should not raise an error
+    df.to_parquet(path, engine="pyarrow")
+    
+    # Verify it can be read back
+    result = pd.read_parquet(path, engine="pyarrow")
+    assert len(result) == 2        
+    
+    
