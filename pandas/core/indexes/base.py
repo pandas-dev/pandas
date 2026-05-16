@@ -5493,7 +5493,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False)
+        ser = Series(self._values, copy=False, dtype=self.dtype)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
