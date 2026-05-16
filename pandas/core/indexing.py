@@ -1379,6 +1379,22 @@ class _LocIndexer(_LocationIndexer):
     viper               4       5
     sidewinder          7       8
 
+    Single column label. Note this returns the column as a Series.
+
+    >>> df.loc[:, "max_speed"]
+    cobra         1
+    viper         4
+    sidewinder    7
+    Name: max_speed, dtype: int64
+
+    List with a single column label. Note this returns a DataFrame.
+
+    >>> df.loc[:, ["max_speed"]]
+                max_speed
+    cobra               1
+    viper               4
+    sidewinder          7
+
     Single label for row and column
 
     >>> df.loc["cobra", "shield"]
