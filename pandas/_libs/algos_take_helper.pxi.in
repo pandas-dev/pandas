@@ -57,6 +57,17 @@ def get_dispatch(dtypes):
 
         yield (name, dest, c_type_in, c_type_out)
 
+
+def get_fill_default(c_type_out):
+    # Pick a default `fill_value` whose Python type matches `c_type_out`
+    # so the assignment `fv = fill_value` succeeds on the default path
+    # (and stub annotations can be narrowed accordingly).
+    if c_type_out == "object" or c_type_out in ("float32_t", "float64_t"):
+        return "np.nan"
+    if c_type_out == "uint8_t":
+        return "False"
+    return "0"
+
 }}
 
 
@@ -72,7 +83,7 @@ def take_1d_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=1] values,
 {{endif}}
                               const intp_t[:] indexer,
                               {{c_type_out}}[:] out,
-                              fill_value=np.nan,
+                              fill_value={{get_fill_default(c_type_out)}},
                               bint allow_fill=True):
 
     cdef:
@@ -126,7 +137,7 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
                                     ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
-                                    fill_value=np.nan,
+                                    fill_value={{get_fill_default(c_type_out)}},
                                     bint allow_fill=True):
     cdef:
         Py_ssize_t i, j, k, n, idx
@@ -228,7 +239,7 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
                                     ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
-                                    fill_value=np.nan,
+                                    fill_value={{get_fill_default(c_type_out)}},
                                     bint allow_fill=True):
 
     cdef:
@@ -287,7 +298,7 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                                     indexer,
                                     ndarray[{{c_type_out}}, ndim=2] out,
-                                    fill_value=np.nan,
+                                    fill_value={{get_fill_default(c_type_out)}},
                                     bint allow_fill=True):
     cdef:
         Py_ssize_t i, j, k, n, idx

@@ -2843,8 +2843,17 @@ class DataFrame(NDFrame, OpsMixin):
         path : str, path object, file-like object, or None, default None
             String, path object (implementing ``os.PathLike[str]``), or file-like
             object implementing a binary ``write()`` function. If None, the result is
-            returned as bytes. If a string or path, it will be used as Root Directory
-            path when writing a partitioned dataset.
+            returned as bytes. If a string or path, it will be used as the root
+            directory path when writing a partitioned dataset.
+
+            The string could be a URL. Valid URL schemes include http, ftp, s3,
+            gs, and file. For file URLs, a host is expected. A local file could be:
+            ``file://localhost/path/to/table.parquet``. A remote example could be:
+            ``s3://bucket/path/to/table.parquet``.
+
+            Certain URL schemes may require additional packages. For example, S3
+            URLs require the ``s3fs`` library. See
+            :ref:`install.optional_dependencies` for a full list.
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -3000,11 +3009,20 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         path : str, file-like object or None, default None
-            If a string, it will be used as Root Directory path
+            If a string, it will be used as the root directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
+
+            The string could be a URL. Valid URL schemes include http, ftp, s3,
+            gs, and file. For file URLs, a host is expected. A local file could be:
+            ``file://localhost/path/to/table.orc``. A remote example could be:
+            ``s3://bucket/path/to/table.orc``.
+
+            Certain URL schemes may require additional packages. For example, S3
+            URLs require the ``s3fs`` library. See
+            :ref:`install.optional_dependencies` for a full list.
         engine : {'pyarrow'}, default 'pyarrow'
             ORC library to use.
         index : bool, optional
@@ -5558,13 +5576,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : callable or Series
+        **kwargs : callable, Series, scalar, array-like, or dict
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
-            If the values are not callable, (e.g. a Series, scalar, or array),
-            they are simply assigned.
+            If the values are not callable (e.g. a Series, scalar, array,
+            or dict), they are simply assigned. See the Notes section for
+            details on alignment and broadcasting.
 
         Returns
         -------
@@ -5626,6 +5645,14 @@ class DataFrame(NDFrame, OpsMixin):
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
+
+        A dict value is aligned to the DataFrame's index by its keys, and
+        index labels not present in the dict are filled with NaN:
+
+        >>> df.assign(temp_k={"Portland": 290.15, "Berkeley": 298.15, "Seattle": 285.0})
+                  temp_c  temp_k
+        Portland    17.0  290.15
+        Berkeley    25.0  298.15
         """
         data = self.copy(deep=False)
 
@@ -14164,7 +14191,7 @@ class DataFrame(NDFrame, OpsMixin):
                 returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
-            These only act when ``axis=1`` (columns):
+            How to interpret list-like results from `func`:
 
             * 'expand' : list-like results will be turned into columns.
             * 'reduce' : returns a Series if possible rather than expanding
@@ -15976,8 +16003,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be False, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -16133,8 +16162,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be True, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -18873,6 +18904,15 @@ class DataFrame(NDFrame, OpsMixin):
         .. warning::
 
            We recommend using :meth:`DataFrame.to_numpy` instead.
+           ``.values`` offers no way to control the output ``dtype``, copy
+           semantics, or the value used to fill missing entries, while
+           :meth:`DataFrame.to_numpy` exposes those as the ``dtype``,
+           ``copy``, and ``na_value`` arguments. The mutability of the
+           result also depends on the DataFrame's internal block layout:
+           when the DataFrame is backed by a single block the result is a
+           read-only view (writes raise); when there are multiple blocks
+           the result is a writable copy whose mutations do not propagate
+           back to the DataFrame.
 
         Only the values in the DataFrame will be returned, the axes labels
         will be removed.
@@ -18951,6 +18991,21 @@ class DataFrame(NDFrame, OpsMixin):
         array([['parrot', 24.0, 'second'],
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
+
+        ``DataFrame.to_numpy`` produces the same array by default, but lets
+        you choose how missing values are represented and request a
+        guaranteed copy:
+
+        >>> df3 = pd.DataFrame({"a": [1, 2], "b": [3.0, np.nan]})
+        >>> df3.values
+        array([[ 1.,  3.],
+               [ 2., nan]])
+        >>> df3.to_numpy(na_value=-1)
+        array([[ 1.,  3.],
+               [ 2., -1.]])
+        >>> df3.to_numpy(dtype="float32", copy=True)
+        array([[ 1.,  3.],
+               [ 2., nan]], dtype=float32)
         """
         return self._mgr.as_array()
 

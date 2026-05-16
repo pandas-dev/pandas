@@ -32,6 +32,7 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
 - :meth:`ExtensionArray.map` now calls :meth:`ExtensionArray._cast_pointwise_result` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
+- :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
@@ -304,6 +305,7 @@ Indexing
 - Bug in :meth:`Index.where` and :meth:`Index.putmask` preserving ``numpy.datetime64`` / ``numpy.timedelta64`` ``NaT`` scalars in the object-dtype result for mismatched-dtype inputs, instead of normalizing to :attr:`pandas.NaT` as :meth:`Series.where` does (:issue:`55174`)
 - Bug in :meth:`MultiIndex.get_loc` returning a slice instead of an integer for a unique key when the :class:`MultiIndex` contained duplicates elsewhere, causing ``.loc`` to return a :class:`Series` instead of a scalar (:issue:`42102`)
 - Bug in :meth:`Series.where` and :meth:`Series.mask` raising ``ValueError`` when ``other`` is a tuple on object-dtype :class:`Series` (:issue:`37681`)
+- Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`57962`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
 -
@@ -355,6 +357,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
 - Bug in :meth:`.DataFrameGroupBy.agg` would operate on the group as a whole when ``args`` or ``kwargs`` are supplied for the provided ``func``; now this method only operates on each Series of the group (:issue:`39169`)
 - Bug in :meth:`.DataFrameGroupBy.apply` with ``as_index=False`` where applying on an empty :class:`DataFrame` returned inconsistent index metadata compared to non-empty results (:issue:`48135`)
+- Bug in :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, and :meth:`.DataFrameGroupBy.cummax` (and Series variants) returning ``Float64`` instead of preserving the nullable integer dtype (e.g. ``Int64``) when the group key contains ``NA`` (:issue:`65550`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` returning ``NaN`` with ``float64`` dtype for unobserved categorical groups on NumPy ``bool`` data instead of the boolean identity value with ``bool`` dtype (:issue:`65100`)
 - Bug in :meth:`.Resampler.agg` raising ``ValueError`` with a dict of aggregations when applied to a :meth:`DataFrame.groupby` with ``as_index=False`` (:issue:`52397`)
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` (and their :class:`GroupBy` counterparts) returning ``0.0`` and ``-3.0`` respectively for degenerate windows or groups; these now return ``NaN`` (:issue:`62864`)
@@ -382,7 +385,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
--
+- Fixed the :attr:`~Series.is_monotonic_increasing` and :attr:`~Series.is_monotonic_decreasing` properties to dispatch to the underlying :class:`ExtensionArray` implementation (:issue:`65585`)
 -
 
 Styler

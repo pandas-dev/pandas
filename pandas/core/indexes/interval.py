@@ -209,6 +209,8 @@ class IntervalIndex(ExtensionIndex):
     from_arrays
     from_tuples
     from_breaks
+    get_loc
+    get_indexer
     contains
     overlaps
     set_closed
