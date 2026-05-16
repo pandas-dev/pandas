@@ -4180,12 +4180,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             key=key,
         )
 
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning,
+        allowed_args=["self", "axis", "kind", "order"],
+        name="argsort",
+    )
     def argsort(
         self,
         axis: Axis = 0,
-        kind: SortKind = "quicksort",
-        order: None = None,
-        stable: None = None,
+        kind: SortKind | None = None,
+        order: str | list[str] | None = None,
+        stable: bool | None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4197,13 +4202,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
-        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, default 'quicksort'
+        kind : {'mergesort', 'quicksort', 'heapsort', 'stable'}, optional, default None
             Choice of sorting algorithm. See :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable algorithms.
-        order : None
-            Has no effect but is accepted for compatibility with numpy.
-        stable : None
-            Has no effect but is accepted for compatibility with numpy.
+        order : str or list of str, optional
+            Must match series name if given, accepted only for compatibility with numpy.
+        stable : bool, optional, default None
+            If ``True``, perform a stable sort. Equivalent to ``kind=stable``, and
+            cannot be used together with ``kind``.
+
+            .. versionchanged:: 3.1.0
+
+                This could previously be used as a positional argument, although it did
+                not do anything. For compatibility with Numpy's API, its use as a
+                positional argument is deprecated, and it should only be used as a
+                keyword argument.
 
         Returns
         -------
@@ -4227,6 +4240,31 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if axis != -1:
             # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
+
+        if kind is None:
+            if stable is True:
+                kind = "stable"
+            else:
+                # GH#64255 this is the previous default behaviour
+                kind = "quicksort"
+        else:  # noqa: PLR5501
+            if stable is not None:
+                warnings.warn(
+                    "`kind` and `stable` can't be provided at the same time. "
+                    "`stable` will be ignored. "
+                    "This will raise an error in a future version.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+
+        if order is not None:
+            if order not in (self.name, [self.name]):
+                warnings.warn(
+                    "`order` should match Series.name if specified. "
+                    "This will raise an error in a future version.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
         result = self.array.argsort(kind=kind)
 
