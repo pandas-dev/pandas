@@ -97,7 +97,7 @@ def _get_distinct_objs(objs: list[Index]) -> list[Index]:
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.
     """
-    ids: set = set()
+    ids = set()
     res = []
     for obj in objs:
         if obj._id not in ids:
