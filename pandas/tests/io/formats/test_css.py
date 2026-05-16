@@ -286,3 +286,28 @@ def test_css_relative_font_size(size, relative_to, resolved):
     else:
         inherited = {"font-size": relative_to}
     assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
+
+
+def test_css_parse_preserves_case_in_quoted_strings():
+    # GH#63101
+    resolve = CSSResolver()
+
+    result = resolve('number-format: #,,"M"')
+
+    assert result["number-format"] == '#,,"M"'
+
+
+def test_css_parse_lowercases_unquoted_content():
+    resolve = CSSResolver()
+
+    result = resolve("color: RED")
+
+    assert result["color"] == "red"
+
+
+def test_css_parse_mixed_quoted_and_unquoted_content():
+    resolve = CSSResolver()
+
+    result = resolve('number-format: PREFIX "M" SUFFIX')
+
+    assert result["number-format"] == 'prefix "M" suffix'
