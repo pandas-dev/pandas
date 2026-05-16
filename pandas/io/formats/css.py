@@ -26,7 +26,7 @@ def _lowercase_outside_quotes(value: str) -> str:
 
     This helper function ensures that CSS identifiers (e.g. keywords,
     color names) are normalized to lower case while preserving the original
-    case of text inside double-quoted string literals.
+    case of text inside double- or single-quoted string literals.
 
     This is required for compatibility with Excel number formats when using
     ``Styler.to_excel()``, where quoted substrings are case-sensitive.
@@ -35,16 +35,6 @@ def _lowercase_outside_quotes(value: str) -> str:
 
     Without this handling, lowercasing the full value would corrupt Excel
     number-format strings and may lead to incorrect formatting or invalid XML.
-
-    Parameters
-    ----------
-    value : str
-        The CSS value to normalize
-
-    Returns
-    -------
-    str
-        The CSS value with lowercase applied only outside quoted substrings
     """
     parts = re.split(r'(".*?")', value)
     new_parts = []

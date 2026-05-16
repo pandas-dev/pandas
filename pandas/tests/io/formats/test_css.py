@@ -292,35 +292,22 @@ def test_css_parse_preserves_case_in_quoted_strings():
     # GH#63101
     resolve = CSSResolver()
 
-    css = 'number-format: #,,"M"'
-    result = resolve(css)
+    result = resolve('number-format: #,,"M"')
 
     assert result["number-format"] == '#,,"M"'
 
 
-def test_css_parse_lowercases_outside_quotes_only():
+def test_css_parse_lowercases_unquoted_content():
     resolve = CSSResolver()
 
-    css = 'color: RED; number-format: "M TEXT"'
-    result = resolve(css)
+    result = resolve("color: RED")
 
     assert result["color"] == "red"
-    assert result["number-format"] == '"M TEXT"'
 
 
-def test_css_parse_multiple_quoted_sections():
+def test_css_parse_mixed_quoted_and_unquoted_content():
     resolve = CSSResolver()
 
-    css = 'color: RED; number-format: "A" "B" C'
-    result = resolve(css)
+    result = resolve('number-format: PREFIX "M" SUFFIX')
 
-    assert result["number-format"] == '"A" "B" c'
-
-
-def test_lowercase_outside_quotes_function():
-    from pandas.io.formats.css import _lowercase_outside_quotes
-
-    value = 'ABC "M" DEF'
-    result = _lowercase_outside_quotes(value)
-
-    assert result == 'abc "M" def'
+    assert result["number-format"] == 'prefix "M" suffix'

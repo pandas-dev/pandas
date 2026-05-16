@@ -473,22 +473,28 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
     assert cache_info.misses == cache_misses
 
 
-def test_styler_to_excel_preserves_case_in_number_format(tmp_path):
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+def test_styler_to_excel_preserves_case_in_number_format(tmp_path, engine):
     # GH#63101
-    import pytest
-    pytest.importorskip("jinja2")
+    pytest.importorskip(engine)
 
-    from zipfile import ZipFile
+    from openpyxl import load_workbook
+
     import pandas as pd
 
-    df = pd.DataFrame({"A": [1000000]})
+    df = pd.DataFrame({"A": [1_000_000]})
 
-    styler = df.style.format({"A": '#,,"M"'})
+    styler = df.style.map(
+        lambda _: 'number-format: #,,"M"',
+        subset=["A"],
+    )
 
-    file = tmp_path / "test.xlsx"
-    styler.to_excel(file)
+    path = tmp_path / f"test_{engine}.xlsx"
 
-    with ZipFile(file) as z:
-        styles_xml = z.read("xl/styles.xml").decode()
+    styler.to_excel(path, engine=engine)
 
-    assert '#,,"M"' in styles_xml
+    wb = load_workbook(path)
+    ws = wb.active
+
+    assert ws is not None
+    assert ws["B2"].number_format == '#,,"M"'
