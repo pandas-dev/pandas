@@ -14191,7 +14191,7 @@ class DataFrame(NDFrame, OpsMixin):
                 returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
-            These only act when ``axis=1`` (columns):
+            How to interpret list-like results from `func`:
 
             * 'expand' : list-like results will be turned into columns.
             * 'reduce' : returns a Series if possible rather than expanding
@@ -16003,8 +16003,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be False, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -16160,8 +16162,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be True, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
