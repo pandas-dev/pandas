@@ -981,6 +981,47 @@ all_connectable_types = [
 ]
 
 
+def test_adbc_has_table_uses_table_metadata_depth():
+    class MockADBCResult:
+        def read_all(self):
+            return {
+                "catalog_db_schemas": MockPyArrowArray(
+                    [
+                        [
+                            {
+                                "db_schema_tables": [
+                                    {"table_name": "test_frame"},
+                                ]
+                            }
+                        ]
+                    ]
+                )
+            }
+
+    class MockPyArrowArray:
+        def __init__(self, values) -> None:
+            self.values = values
+
+        def to_pylist(self):
+            return self.values
+
+    class MockADBCConnection:
+        kwargs = None
+
+        def adbc_get_objects(self, **kwargs):
+            self.kwargs = kwargs
+            return MockADBCResult()
+
+    conn = MockADBCConnection()
+
+    assert sql.ADBCDatabase(conn).has_table("test_frame", "public")
+    assert conn.kwargs == {
+        "depth": "tables",
+        "db_schema_filter": "public",
+        "table_name_filter": "test_frame",
+    }
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
