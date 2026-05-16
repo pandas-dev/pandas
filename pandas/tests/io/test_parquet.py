@@ -1536,11 +1536,11 @@ def test_to_parquet_uuid_supported(tmp_path):
 
     # Verify it can be read back
     result = read_parquet(path, engine="pyarrow")
-    
+
     # PyArrow nightly / Python 3.14 currently returns raw bytes instead of UUID objects
     # due to an upstream object-casting quirk. We handle the raw byte fallback gracefully
     # to ensure the underlying 16-byte data integrity is preserved.
     if len(result) > 0 and isinstance(result.loc[0, "id"], bytes):
         result["id"] = result["id"].apply(lambda x: uuid.UUID(bytes=x))
-        
+
     tm.assert_frame_equal(result, df)
