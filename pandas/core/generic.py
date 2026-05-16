@@ -11280,7 +11280,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Numeric Methods
 
-    @final
     def describe(
         self,
         percentiles=None,
