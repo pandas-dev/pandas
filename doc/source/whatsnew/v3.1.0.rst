@@ -197,6 +197,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
   setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
   through an intermediate object array (:issue:`64229`).
+- Performance improvement in :meth:`Series.reindex` and :meth:`DataFrame.reindex` for non-nanosecond ``datetime64`` and ``timedelta64`` dtypes (:issue:`24566`)
 - Performance improvement in :meth:`Series.iloc` and :meth:`DataFrame.iloc`
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
