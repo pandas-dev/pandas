@@ -2891,8 +2891,16 @@ class ExtensionArray:
             return self.copy()
         if not self.dtype._is_numeric:
             raise TypeError(f"Cannot round dtype {self.dtype} as it is non-numeric")
+        # Python's builtin round has no __round__ for numpy complex scalars
+        # (DeprecationWarning -> TypeError); fall back to np.round there.
         rounded = [
-            round(item, decimals) if not item_isna else item
+            item
+            if item_isna
+            else (
+                round(item, decimals)
+                if hasattr(item, "__round__")
+                else np.round(item, decimals)
+            )
             for item, item_isna in zip(self, self.isna(), strict=True)
         ]
         return type(self)._from_sequence(rounded, dtype=self.dtype)

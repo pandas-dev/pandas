@@ -874,7 +874,9 @@ class BaseMethodsTests:
         expected = pd.Series(
             type(data)._from_sequence(
                 [
-                    round(item) if not item_isna else item
+                    item
+                    if item_isna
+                    else (round(item) if hasattr(item, "__round__") else np.round(item))
                     for item, item_isna in zip(data, data.isna(), strict=True)
                 ],
                 dtype=data.dtype,
