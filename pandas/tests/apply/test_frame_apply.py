@@ -168,6 +168,21 @@ def test_apply_axis1_ea_preserves_dtype():
     tm.assert_series_equal(result, expected)
 
 
+def test_apply_axis1_arrow_heterogeneous_dtypes():
+    # GH#65097 - rows across columns of different pyarrow types must build
+    # against the upcast row dtype, not the first column's type
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="int64[pyarrow]"),
+            "b": pd.array([1.5, 2.5, 3.5], dtype="float64[pyarrow]"),
+        }
+    )
+    result = df.apply(lambda x: x.sum(), axis=1)
+    expected = Series([2.5, 4.5, 6.5])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [(1, None), (1, CategoricalDtype([1])), (Timestamp("2013-01-01", tz="UTC"), None)],

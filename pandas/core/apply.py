@@ -1469,18 +1469,19 @@ class FrameColumnApply(FrameApply):
         """Build a callable that constructs an EA row for a given row index.
 
         Special-cases BaseMaskedArray and ArrowExtensionArray to avoid
-        the overhead of _from_sequence per row.
+        the overhead of _from_sequence per row. The fast paths require all
+        columns to share ``dtype``; mixed-dtype frames fall through to the
+        generic ``_from_sequence`` path (GH#65097).
         """
         from pandas.core.arrays.arrow import ArrowExtensionArray
-        from pandas.core.arrays.masked import (
-            BaseMaskedArray,
-            BaseMaskedDtype,
-        )
+        from pandas.core.arrays.masked import BaseMaskedArray
 
-        if all(isinstance(col_arr, BaseMaskedArray) for col_arr in col_arrays):
+        homogeneous = all(col_arr.dtype == dtype for col_arr in col_arrays)
+
+        if homogeneous and isinstance(col_arrays[0], BaseMaskedArray):
             col_data = [col_arr._data for col_arr in col_arrays]
             col_masks = [col_arr._mask for col_arr in col_arrays]
-            np_dtype = cast("BaseMaskedDtype", dtype).numpy_dtype
+            np_dtype = col_arrays[0]._data.dtype
             masked_cls = cast("type[BaseMaskedArray]", cls)
 
             def build_row(row_idx: int) -> ExtensionArray:
@@ -1488,12 +1489,12 @@ class FrameColumnApply(FrameApply):
                 mask = np.array([cm[row_idx] for cm in col_masks], dtype=np.bool_)
                 return masked_cls._simple_new(data, mask)
 
-        elif all(isinstance(col_arr, ArrowExtensionArray) for col_arr in col_arrays):
+        elif homogeneous and isinstance(col_arrays[0], ArrowExtensionArray):
             import pyarrow as pa
 
             pa_arrays = [col_arr._pa_array for col_arr in col_arrays]
             pa_type = pa_arrays[0].type
-            arrow_cls = cast("type[ArrowExtensionArray]", type(col_arrays[0]))
+            arrow_cls = cast("type[ArrowExtensionArray]", cls)
 
             def build_row(row_idx: int) -> ExtensionArray:
                 pa_scalars = [pa_col[row_idx] for pa_col in pa_arrays]
