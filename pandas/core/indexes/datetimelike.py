@@ -1107,7 +1107,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                     "Use pd.set_option("
                     "'future.infer_freq_returns_offset', True) "
                     "to get the future behavior, or set to False to keep the "
-                    "old behavior and silence this warning.",
+                    "old behavior and silence this warning. To preserve the "
+                    "string representation, use ``inferred_freq.freqstr``.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )

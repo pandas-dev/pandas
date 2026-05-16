@@ -205,7 +205,8 @@ def infer_freq(
                 "instead of a string from infer_freq. "
                 "Use pd.set_option('future.infer_freq_returns_offset', True) "
                 "to get the future behavior, or set to False to keep the old "
-                "behavior and silence this warning.",
+                "behavior and silence this warning. To preserve the string "
+                "representation, use ``infer_freq(...).freqstr``.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
