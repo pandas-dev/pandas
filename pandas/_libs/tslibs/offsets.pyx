@@ -3612,33 +3612,35 @@ cdef class BYearEnd(YearOffset):
     This offset moves dates to the last business day of the specified month
     (default December), skipping weekends.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
+        Normalize start/end dates to midnight before
+        generating date range.
     month : int, default 12
         A specific integer for the month of the year.
 
-    See Also
-    --------
-    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+    Attributes
+    ----------
+    _outputName : str
+        Name used for display and serialization.
+    _default_month : int
+        Default month used for year-end calculation.
+    _prefix : str
+        String prefix identifying this offset type.
+    _day_opt : str
+        Day selection strategy ("business_end").
 
     Examples
     --------
-    >>> from pandas.tseries.offsets import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts - BYearEnd()
-    Timestamp('2019-12-31 05:01:15')
-    >>> ts + BYearEnd()
+    >>> ts + pd.offsets.BYearEnd()
     Timestamp('2020-12-31 05:01:15')
-    >>> ts + BYearEnd(3)
-    Timestamp('2022-12-30 05:01:15')
-    >>> ts + BYearEnd(-3)
-    Timestamp('2017-12-29 05:01:15')
-    >>> ts + BYearEnd(month=11)
-    Timestamp('2020-11-30 05:01:15')
+
+    >>> ts + pd.offsets.BYearEnd(month=6)
+    Timestamp('2020-06-30 05:01:15')
     """
 
     _outputName = "BusinessYearEnd"
