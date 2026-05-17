@@ -1762,7 +1762,6 @@ class DataFrame(NDFrame, OpsMixin):
             if len(data) > 0:
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
-                    index = Index(data.keys())
                     data = _from_nested_dict(data)
                 else:
                     index = list(data.keys())
@@ -19016,19 +19015,12 @@ class DataFrame(NDFrame, OpsMixin):
 
 def _from_nested_dict(
     data: Mapping[HashableT, Mapping[HashableT2, T | None]],
-) -> collections.defaultdict[HashableT2, dict[HashableT, T | None]]:
-    new_data: collections.defaultdict[HashableT2, dict[HashableT, T | None]] = (
+) -> collections.defaultdict[HashableT2, dict[HashableT, T]]:
+    new_data: collections.defaultdict[HashableT2, dict[HashableT, T]] = (
         collections.defaultdict(dict)
     )
-    cols = []
-    for s in data.values():
-        for col in s.keys():
-            if col not in cols:
-                cols.append(col)
-
     for index, s in data.items():
-        for col in cols:
-            v = s.get(col, None)
+        for col, v in s.items():
             new_data[col][index] = v
     return new_data
 
