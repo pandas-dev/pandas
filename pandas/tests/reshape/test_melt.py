@@ -563,6 +563,31 @@ class TestMelt:
         with pytest.raises(ValueError, match=msg):
             df.melt(id_vars=["A"], value_vars=["B"])
 
+    @pytest.mark.parametrize("var_name", ["id", "value"])
+    def test_melt_output_column_name_collision_raises(self, var_name):
+        # GH 65654
+        df = DataFrame({"id": [1, 2], "a": [10, 20], "b": [100, 200]})
+        msg = "melt output column names must be unique."
+
+        with pytest.raises(ValueError, match=msg):
+            df.melt(id_vars="id", var_name=var_name)
+
+    def test_melt_default_var_name_collision_raises(self):
+        # GH 65654
+        df = DataFrame({"variable": [1, 2], "a": [10, 20]})
+        msg = "melt output column names must be unique."
+
+        with pytest.raises(ValueError, match=msg):
+            df.melt(id_vars="variable")
+
+    def test_melt_duplicate_var_name_raises(self):
+        # GH 65654
+        df = DataFrame({("A", "a"): [1], ("B", "b"): [2]})
+        msg = "melt output column names must be unique."
+
+        with pytest.raises(ValueError, match=msg):
+            df.melt(var_name=["variable", "variable"])
+
 
 class TestLreshape:
     def test_pairs(self):

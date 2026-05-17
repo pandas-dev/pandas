@@ -244,6 +244,10 @@ def melt(
     num_cols_adjusted = K - len(id_vars)
 
     mdata: dict[Hashable, AnyArrayLike] = {}
+    mcolumns = id_vars + var_name + [value_name]
+    if len(set(mcolumns)) != len(mcolumns):
+        raise ValueError("melt output column names must be unique.")
+
     for col in id_vars:
         id_data = frame.pop(col)
         if not isinstance(id_data.dtype, np.dtype):
@@ -255,8 +259,6 @@ def melt(
                 mdata[col] = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
         else:
             mdata[col] = np.tile(id_data._values, num_cols_adjusted)
-
-    mcolumns = id_vars + var_name + [value_name]
 
     if frame.shape[1] > 0 and not any(
         not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
