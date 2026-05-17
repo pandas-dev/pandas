@@ -31,6 +31,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -1159,6 +1160,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    7
         Freq: MS, dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1217,6 +1219,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01   12
         Freq: MS, dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1274,6 +1277,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1331,6 +1335,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
@@ -1385,6 +1390,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         Freq: MS, dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1441,6 +1447,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4
         Freq: MS, dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1493,6 +1500,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4.0
         Freq: MS, dtype: float64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("median", numeric_only=numeric_only)
 
     @final
@@ -1550,6 +1558,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3.5
         Freq: MS, dtype: float64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("mean", numeric_only=numeric_only)
 
     @final
@@ -1614,6 +1623,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    2.645751
         Freq: MS, dtype: float64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
     @final
@@ -1679,6 +1689,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    4.666667
         Freq: MS, dtype: float64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
     @final
@@ -1735,6 +1746,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    1.527525
         Freq: MS, dtype: float64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final

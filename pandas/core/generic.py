@@ -11829,13 +11829,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if not is_bool(numeric_only):
-            warnings.warn(
-                "Passing non-boolean values for 'numeric_only' is deprecated and "
-                "will raise in a future version of pandas.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11894,13 +11888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if not is_bool(numeric_only):
-            warnings.warn(
-                "Passing non-boolean values for 'numeric_only' is deprecated and "
-                "will raise in a future version of pandas.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
 
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
@@ -12005,13 +11993,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
-        if not is_bool(numeric_only):
-            warnings.warn(
-                "Passing non-boolean values for 'numeric_only' is deprecated and "
-                "will raise in a future version of pandas.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
+        validate_bool_kwarg(numeric_only, "numeric_only", none_allowed=False)
 
         return self._reduce(
             func,

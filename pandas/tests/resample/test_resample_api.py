@@ -1019,3 +1019,32 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
 
     exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
     tm.assert_frame_equal(result, exp)
+
+
+# GH#53098
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "prod",
+        "min",
+        "max",
+        "first",
+        "last",
+        "median",
+        "mean",
+        "std",
+        "var",
+        "sem",
+    ],
+)
+@pytest.mark.parametrize("bad_value", ["yes", 1, 0, "True"])
+def test_resample_numeric_only_non_bool_raises(method, bad_value):
+    # GH#53098: non-boolean values for numeric_only should raise ValueError
+    idx = pd.date_range("2023-01-01", periods=6, freq="D")
+    ser = Series([1, 2, 3, 4, 5, 6], index=idx)
+    resampler = ser.resample("3D")
+
+    msg = 'For argument "numeric_only" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        getattr(resampler, method)(numeric_only=bad_value)

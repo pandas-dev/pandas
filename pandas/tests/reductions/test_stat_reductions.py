@@ -305,3 +305,31 @@ def test_reduction_consistency(opname, loc, scale):
 
     result_frame = getattr(DataFrame(s), opname)().iloc[0]
     tm.assert_almost_equal(result_series, result_frame)
+
+
+# GH#53098
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "min", "max", "std", "var", "sem", "skew", "kurt"],
+)
+@pytest.mark.parametrize("bad_value", ["yes", 1, 0, "True"])
+def test_dataframe_numeric_only_non_bool_raises(method, bad_value):
+    # GH#53098: non-boolean values for numeric_only should raise ValueError
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4.0, 5.0, 6.0]})
+    msg = 'For argument "numeric_only" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(numeric_only=bad_value)
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "min", "max", "std", "var", "sem", "skew", "kurt"],
+)
+@pytest.mark.parametrize("bad_value", ["yes", 1, 0, "True"])
+def test_series_numeric_only_non_bool_raises(method, bad_value):
+    # GH#53098: non-boolean values for numeric_only should raise ValueError
+    # Series methods that accept numeric_only should also validate
+    s = pd.Series([1.0, 2.0, 3.0])
+    msg = 'For argument "numeric_only" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        getattr(s, method)(numeric_only=bad_value)
