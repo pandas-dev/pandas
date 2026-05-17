@@ -280,6 +280,7 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
+- Bug in :meth:`IntervalDtype.__from_arrow__` raising when converting Arrow interval arrays with timezone-aware datetime subtypes (:issue:`64297`)
 -
 
 Indexing

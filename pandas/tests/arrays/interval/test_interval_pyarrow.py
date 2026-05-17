@@ -158,3 +158,39 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
+    tm.assert_extension_array_equal(result, expected[:0])
+
+
+def test_from_arrow_datetimetz_subtype():
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    tz = "Europe/Brussels"
+    arr = pa.array(
+        [
+            {
+                "left": pd.Timestamp("2012", tz=tz),
+                "right": pd.Timestamp("2013", tz=tz),
+            },
+            {
+                "left": pd.Timestamp("2013", tz=tz),
+                "right": pd.Timestamp("2014", tz=tz),
+            },
+        ],
+        type=ArrowIntervalType(pa.timestamp("us", tz=tz), "right"),
+    )
+    dtype = arr.type.to_pandas_dtype()
+
+    result = dtype.__from_arrow__(arr)
+    breaks = pd.date_range("2012", periods=3, freq="YS", tz=tz).as_unit("us")
+    expected = IntervalArray.from_breaks(breaks)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
+    tm.assert_extension_array_equal(result, expected[:0])

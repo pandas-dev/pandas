@@ -1481,16 +1481,25 @@ class IntervalDtype(PandasExtensionDtype):
         else:
             chunks = array.chunks
 
+        def convert_field(field):
+            if isinstance(self.subtype, DatetimeTZDtype):
+                return self.subtype.__from_arrow__(field)
+            return np.asarray(field, dtype=self.subtype)
+
         results = []
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            left = convert_field(arr.field("left"))
+            right = convert_field(arr.field("right"))
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
+            if isinstance(self.subtype, DatetimeTZDtype):
+                arr_type = self.subtype.construct_array_type()
+                empty = arr_type._from_sequence([], dtype=self.subtype)
+                return IntervalArray.from_arrays(empty, empty, closed=self.closed)
             return IntervalArray.from_arrays(
                 np.array([], dtype=self.subtype),
                 np.array([], dtype=self.subtype),
