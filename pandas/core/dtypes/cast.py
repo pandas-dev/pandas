@@ -695,9 +695,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        # error: Non-overlapping identity check (left operand type: "Timestamp",
-        #  right operand type: "NaTType")
-        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
+        if val is NaT or val.tz is None:
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -710,9 +708,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            # error: Non-overlapping identity check (left operand type: "Timedelta",
-            #  right operand type: "NaTType")
-            if val is NaT:  # type: ignore[comparison-overlap]
+            if val is NaT:
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8

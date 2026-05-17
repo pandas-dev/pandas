@@ -86,7 +86,9 @@ def truediv_object_array(
     left: np.ndarray, right: npt.NDArray[np.object_]
 ) -> np.ndarray: ...
 
-class Timedelta(timedelta):
+# error: Definition of "__eq__" in base class "timedelta" is incompatible with
+# definition in base class "NaTType"
+class Timedelta(timedelta, NaTType):  # type: ignore[misc]
     _creso: int
     min: ClassVar[Timedelta]
     max: ClassVar[Timedelta]
@@ -110,17 +112,40 @@ class Timedelta(timedelta):
     def total_seconds(self) -> float: ...
     def to_pytimedelta(self) -> timedelta: ...
     def to_timedelta64(self) -> np.timedelta64: ...
+    # error: Signature of "asm8" incompatible with supertype "NaTType"
     @property
-    def asm8(self) -> np.timedelta64: ...
-    def round(self, freq: Frequency | timedelta) -> Self: ...
-    def floor(self, freq: Frequency | timedelta) -> Self: ...
-    def ceil(self, freq: Frequency | timedelta) -> Self: ...
+    def asm8(self) -> np.timedelta64: ...  # type: ignore[override]
+    # error: Signature of "round" incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"
+    def round(self, freq: Frequency | timedelta) -> Self: ...  # type: ignore[override]
+    # error: Signature of "floor" incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"
+    def floor(self, freq: Frequency | timedelta) -> Self: ...  # type: ignore[override]
+    # error: Signature of "ceil" incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"
+    def ceil(self, freq: Frequency | timedelta) -> Self: ...  # type: ignore[override]
     @property
     def resolution_string(self) -> str: ...
-    def __add__(self, other: timedelta) -> Timedelta: ...
-    def __radd__(self, other: timedelta) -> Timedelta: ...
-    def __sub__(self, other: timedelta) -> Timedelta: ...
-    def __rsub__(self, other: timedelta) -> Timedelta: ...
+    # error: Argument 1 of "__add__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type as
+    # "Timedelta | datetime | timedelta | Period | datetime64[date | int | None] |
+    # timedelta64[timedelta | int | None]"
+    def __add__(self, other: timedelta) -> Timedelta: ...  # type: ignore[override]
+    # error: Argument 1 of "__radd__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type as
+    # "Timedelta | datetime | timedelta | Period | datetime64[date | int | None] |
+    # timedelta64[timedelta | int | None]"
+    def __radd__(self, other: timedelta) -> Timedelta: ...  # type: ignore[override]
+    # error: Argument 1 of "__sub__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type as
+    # "Timedelta | datetime | timedelta | Period | datetime64[date | int | None] |
+    # timedelta64[timedelta | int | None]"
+    def __sub__(self, other: timedelta) -> Timedelta: ...  # type: ignore[override]
+    # error: Argument 1 of "__rsub__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type as
+    # "Timedelta | datetime | timedelta | Period | datetime64[date | int | None] |
+    # timedelta64[timedelta | int | None]"
+    def __rsub__(self, other: timedelta) -> Timedelta: ...  # type: ignore[override]
     def __neg__(self) -> Timedelta: ...
     def __pos__(self) -> Timedelta: ...
     def __abs__(self) -> Timedelta: ...
@@ -145,19 +170,52 @@ class Timedelta(timedelta):
     def __rfloordiv__(self, other: None | NaTType) -> NaTType: ...
     @overload
     def __rfloordiv__(self, other: np.ndarray) -> npt.NDArray[np.timedelta64]: ...
+    # error: Argument 1 of "__truediv__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type as
+    # "Timedelta | datetime | timedelta | Period | datetime64[date | int | None] |
+    # timedelta64[timedelta | int | None]"
+    @overload  # type: ignore[override]
+    def __truediv__(self, other: Self | timedelta | np.timedelta64, /) -> float: ...
     @overload
-    def __truediv__(self, other: timedelta) -> float: ...
-    @overload
-    def __truediv__(self, other: float) -> Timedelta: ...
+    def __truediv__(self, other: float) -> Self: ...
     def __mod__(self, other: timedelta) -> Timedelta: ...
     def __divmod__(self, other: timedelta) -> tuple[int, Timedelta]: ...
-    def __le__(self, other: timedelta) -> bool: ...
-    def __lt__(self, other: timedelta) -> bool: ...
-    def __ge__(self, other: timedelta) -> bool: ...
-    def __gt__(self, other: timedelta) -> bool: ...
+    # error: Return type "bool" of "__le__" incompatible with return type
+    # "Literal[False]" in supertype "pandas._libs.tslibs.nattype.NaTType"
+    # error: Argument 1 of "__le__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument
+    # type as "Timedelta | datetime | timedelta | Period | datetime64[date | int
+    # | None] | timedelta64[timedelta | int | None]"
+    def __le__(self, other: timedelta) -> bool: ...  # type: ignore[override]
+    # error: Return type "bool" of "__lt__" incompatible with return type
+    # "Literal[False]" in supertype "pandas._libs.tslibs.nattype.NaTType"
+    # error: Argument 1 of "__lt__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument
+    # type as "Timedelta | datetime | timedelta | Period | datetime64[date | int
+    # | None] | timedelta64[timedelta | int | None]"
+    def __lt__(self, other: timedelta) -> bool: ...  # type: ignore[override]
+    # error: Return type "bool" of "__ge__" incompatible with return type
+    # "Literal[False]" in supertype "pandas._libs.tslibs.nattype.NaTType"
+    # error: Argument 1 of "__ge__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument
+    # type as "Timedelta | datetime | timedelta | Period | datetime64[date | int
+    # | None] | timedelta64[timedelta | int | None]"
+    def __ge__(self, other: timedelta) -> bool: ...  # type: ignore[override]
+    # error: Return type "bool" of "__gt__" incompatible with return type
+    # "Literal[False]" in supertype "pandas._libs.tslibs.nattype.NaTType"
+    # error: Argument 1 of "__gt__" is incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument
+    # type as "Timedelta | datetime | timedelta | Period | datetime64[date | int
+    # | None] | timedelta64[timedelta | int | None]"
+    def __gt__(self, other: timedelta) -> bool: ...  # type: ignore[override]
     def __hash__(self) -> int: ...
-    def isoformat(self) -> str: ...
-    def to_numpy(
+    #  error: Signature of "isoformat" incompatible with supertype
+    # "pandas._libs.tslibs.nattype.NaTType"
+    def isoformat(self) -> str: ...  # type: ignore[override]
+    # error: Return type "timedelta64[timedelta | int | None]" of "to_numpy"
+    # incompatible with return type "datetime64[date | int | None]" in supertype
+    # "pandas._libs.tslibs.nattype.NaTType"
+    def to_numpy(  # type: ignore[override]
         self, dtype: npt.DTypeLike | None = ..., copy: bool = False
     ) -> np.timedelta64: ...
     def view(self, dtype: npt.DTypeLike) -> object: ...

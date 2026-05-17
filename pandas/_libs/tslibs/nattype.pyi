@@ -36,7 +36,7 @@ class NaTType:
     def to_datetime64(self) -> np.datetime64: ...
     def to_numpy(
         self, dtype: np.dtype | str | None = ..., copy: bool = ...
-    ) -> np.datetime64 | np.timedelta64: ...
+    ) -> np.datetime64: ...
     @property
     def is_leap_year(self) -> bool: ...
     @property
@@ -83,21 +83,21 @@ class NaTType:
     def round(
         self,
         freq: Frequency | timedelta,
-        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        ambiguous: bool | Literal["raise", "NaT"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> NaTType: ...
+    ) -> Self: ...
     def floor(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> NaTType: ...
+    ) -> Self: ...
     def ceil(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> NaTType: ...
+    ) -> Self: ...
     @property
     def tzinfo(self) -> None: ...
     @property
@@ -106,7 +106,7 @@ class NaTType:
     def tz_localize(
         self,
         tz: _tzinfo | str | None,
-        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
     def replace(
