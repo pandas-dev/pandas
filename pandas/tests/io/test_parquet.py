@@ -1529,10 +1529,10 @@ class TestParquetFastParquet(Base):
 def test_to_parquet_uuid_supported(temp_file, request):
     # GH 61602
     df = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
-    
+
     df.to_parquet(temp_file, engine="pyarrow")
     result = read_parquet(temp_file, engine="pyarrow")
-    
+
     # If upstream PyArrow nightly/py314 returns raw bytes instead of UUIDs,
     # we dynamically add the xfail marker to satisfy both Ruff and Pandas architecture.
     if len(result) > 0 and isinstance(result.loc[0, "id"], bytes):
@@ -1541,5 +1541,5 @@ def test_to_parquet_uuid_supported(temp_file, request):
                 reason="Upstream PyArrow nightly bug: returns raw bytes instead of UUIDs"
             )
         )
-        
+
     tm.assert_frame_equal(result, df)
