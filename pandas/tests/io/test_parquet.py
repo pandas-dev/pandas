@@ -1538,7 +1538,7 @@ def test_to_parquet_uuid_supported(temp_file, request):
     if len(result) > 0 and isinstance(result.loc[0, "id"], bytes):
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="Upstream PyArrow nightly bug: returns raw bytes instead of UUIDs"
+            reason="PyArrow nightly bug: returns raw bytes instead of UUIDs"
             )
         )
 
