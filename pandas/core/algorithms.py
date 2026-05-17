@@ -342,15 +342,20 @@ def unique(values):
 
     Returns
     -------
-    numpy.ndarray, ExtensionArray or NumpyExtensionArray
+    Index, ExtensionArray or numpy.ndarray
+        The return type depends on the type of the input:
 
-        The return can be:
-
-        * Index : when the input is an Index
-        * Categorical : when the input is a Categorical dtype
-        * ndarray : when the input is a Series/ndarray
-
-        Return numpy.ndarray, ExtensionArray or NumpyExtensionArray.
+        * :class:`Index` : when the input is an :class:`Index`, the result is
+          an :class:`Index` (or a subclass such as :class:`DatetimeIndex`).
+        * :class:`ExtensionArray` : when the input has an
+          :class:`ExtensionDtype` (for example :class:`Categorical`,
+          tz-aware ``datetime64``, :class:`IntervalArray`, a masked
+          integer/boolean/float array, an Arrow-backed array, or
+          :class:`NumpyExtensionArray`), the result is an
+          :class:`ExtensionArray` of the same dtype.
+        * :class:`numpy.ndarray` : for any other input (a NumPy-dtype
+          :class:`Series`, a :class:`numpy.ndarray`, or any other 1-D
+          array-like), the result is a :class:`numpy.ndarray`.
 
     See Also
     --------

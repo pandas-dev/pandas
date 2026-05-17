@@ -740,8 +740,15 @@ def read_csv(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference.  To ensure no mixed
-        types either set ``False``, or specify the type with the ``dtype`` parameter.
+        while parsing, but possibly mixed type inference. Because each chunk
+        is type-inferred independently, the same literal can be parsed as an
+        ``int`` in one chunk and a ``str`` in another; after concatenation the
+        column has ``object`` dtype and contains both representations, so
+        comparisons such as ``df["col"] == 12345`` or
+        ``df["col"] == "12345"`` will match only a subset of the rows holding
+        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
+        this occurs. To ensure no mixed types either set ``False``, or specify
+        the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator``
         parameter to return the data in
@@ -1316,8 +1323,15 @@ def read_table(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference.  To ensure no mixed
-        types either set ``False``, or specify the type with the ``dtype`` parameter.
+        while parsing, but possibly mixed type inference. Because each chunk
+        is type-inferred independently, the same literal can be parsed as an
+        ``int`` in one chunk and a ``str`` in another; after concatenation the
+        column has ``object`` dtype and contains both representations, so
+        comparisons such as ``df["col"] == 12345`` or
+        ``df["col"] == "12345"`` will match only a subset of the rows holding
+        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
+        this occurs. To ensure no mixed types either set ``False``, or specify
+        the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator`` parameter
         to return the data in

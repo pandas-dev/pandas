@@ -2381,11 +2381,21 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
-        factory: type[Index | DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex | TimedeltaIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
             factory = DatetimeIndex
+        elif val_kind.startswith("timedelta64"):
+            # GH#21466 timedelta values are stored as i8; restore the original
+            #  m8[unit] view so we round-trip to TimedeltaIndex (and not to
+            #  PeriodIndex/Index via the i8 branches below).
+            if val_kind == "timedelta64":
+                # legacy file: written before we stored timedelta64 resolution
+                values = values.view("m8[ns]")
+            else:
+                values = values.view(val_kind)
+            factory = TimedeltaIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
             # error: Incompatible types in assignment (expression has type
