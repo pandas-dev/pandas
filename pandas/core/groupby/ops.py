@@ -223,7 +223,9 @@ class WrappedCythonOp:
                 dtype,
             )
 
-    def _get_cython_vals(self, values: np.ndarray) -> np.ndarray:
+    def _get_cython_vals(
+        self, values: np.ndarray, uses_mask: bool = False
+    ) -> np.ndarray:
         """
         Cast numeric dtypes to float64 for functions that only support that.
 
@@ -245,7 +247,7 @@ class WrappedCythonOp:
 
         elif values.dtype.kind in "iu":
             if how in ["var", "mean"] or (
-                self.kind == "transform" and self.has_dropped_na
+                self.kind == "transform" and self.has_dropped_na and not uses_mask
             ):
                 # has_dropped_na check need for test_null_group_str_transformer
                 # result may still include NaN, so we have to cast
@@ -418,7 +420,7 @@ class WrappedCythonOp:
 
         out_shape = self._get_output_shape(ngroups, values)
         func = self._get_cython_function(self.kind, self.how, values.dtype, is_numeric)
-        values = self._get_cython_vals(values)
+        values = self._get_cython_vals(values, uses_mask=mask is not None)
         out_dtype = self._get_out_dtype(values.dtype)
 
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))

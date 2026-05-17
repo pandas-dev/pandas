@@ -889,7 +889,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Cast to DatetimeArray/Index.
 
         If possible, gives microsecond-unit DatetimeArray/Index. Otherwise
-        gives nanosecond unit.
+        gives nanosecond unit. On the ``Series.dt`` accessor, this is only
+        available for period-typed Series.
 
         Parameters
         ----------

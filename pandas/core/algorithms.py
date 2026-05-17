@@ -87,6 +87,8 @@ if TYPE_CHECKING:
         ListLike,
         NumpySorter,
         NumpyValueArrayLike,
+        RankMethod,
+        RankNaOption,
         TakeIndexer,
         npt,
     )
@@ -340,15 +342,20 @@ def unique(values):
 
     Returns
     -------
-    numpy.ndarray, ExtensionArray or NumpyExtensionArray
+    Index, ExtensionArray or numpy.ndarray
+        The return type depends on the type of the input:
 
-        The return can be:
-
-        * Index : when the input is an Index
-        * Categorical : when the input is a Categorical dtype
-        * ndarray : when the input is a Series/ndarray
-
-        Return numpy.ndarray, ExtensionArray or NumpyExtensionArray.
+        * :class:`Index` : when the input is an :class:`Index`, the result is
+          an :class:`Index` (or a subclass such as :class:`DatetimeIndex`).
+        * :class:`ExtensionArray` : when the input has an
+          :class:`ExtensionDtype` (for example :class:`Categorical`,
+          tz-aware ``datetime64``, :class:`IntervalArray`, a masked
+          integer/boolean/float array, an Arrow-backed array, or
+          :class:`NumpyExtensionArray`), the result is an
+          :class:`ExtensionArray` of the same dtype.
+        * :class:`numpy.ndarray` : for any other input (a NumPy-dtype
+          :class:`Series`, a :class:`numpy.ndarray`, or any other 1-D
+          array-like), the result is a :class:`numpy.ndarray`.
 
     See Also
     --------
@@ -822,7 +829,9 @@ def factorize(
             if null_mask.any():
                 na_value = na_value_for_dtype(values.dtype, compat=False)
                 # Don't modify (potentially user-provided) array
-                values = np.where(null_mask, na_value, values)
+                # error: Argument 2 to "where" has incompatible type "Scalar";
+                # expected "_Buffer | _SupportsArray[dtype[Any]] | ..."
+                values = np.where(null_mask, na_value, values)  # type: ignore[arg-type]
 
         codes, uniques = factorize_array(
             values,
@@ -1048,8 +1057,8 @@ def mode(
 def rank(
     values: ArrayLike,
     axis: AxisInt = 0,
-    method: str = "average",
-    na_option: str = "keep",
+    method: RankMethod = "average",
+    na_option: RankNaOption = "keep",
     ascending: bool = True,
     pct: bool = False,
     mask: npt.NDArray[np.bool_] | None = None,

@@ -61,7 +61,7 @@ UnitChoices: TypeAlias = Literal[
     "nanosecond",
 ]
 
-def get_unit_for_round(freq, creso: int) -> int: ...
+def get_unit_for_round(freq: Frequency | timedelta, creso: int) -> int: ...
 def disallow_ambiguous_unit(unit: str | None) -> None: ...
 def ints_to_pytimedelta(
     m8values: npt.NDArray[np.timedelta64],
@@ -97,7 +97,7 @@ class Timedelta(timedelta, NaTType):  # type: ignore[misc]
     _value: int  # np.int64
     def __new__(
         cls: type[Self],
-        value=...,
+        value: object = ...,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> Self: ...
