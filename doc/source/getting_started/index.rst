@@ -56,6 +56,10 @@ Installation
 
             Learn more
 
+Want to try pandas before installing it? Use the experimental
+`Try pandas online <https://pandas.pydata.org/try.html>`__ shell to run pandas
+in your browser.
+
 
 .. _gentle_intro:
 
