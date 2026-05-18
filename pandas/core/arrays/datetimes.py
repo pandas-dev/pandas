@@ -1261,7 +1261,7 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.inferred_freq
+            freq = self._inferred_freq_str
 
             if freq is None:
                 raise ValueError(
