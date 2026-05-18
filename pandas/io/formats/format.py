@@ -43,7 +43,6 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import (
-    NpyDatetimeUnit,
     periods_per_second,
 )
 from pandas._libs.tslibs.nattype import NaTType
@@ -1684,31 +1683,18 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
             return [self.formatter(x) for x in self.values]
 
         if self.values._is_dates_only:
-            fractional_digits = None
+            format = None
         else:
             arr = self.values
             i8 = arr.asi8
             vals = i8[i8 != iNaT]
-            if vals.size == 0:
-                fractional_digits = 0
+            if vals.size == 0 or not (vals % periods_per_second(arr._creso)).any():
+                format = "long"
             else:
-                creso = arr._creso
-                pps = periods_per_second(creso)
-                if not (vals % pps).any():
-                    fractional_digits = 0
-                elif (
-                    creso == cast("int", NpyDatetimeUnit.NPY_FR_ns.value)
-                    and (vals % 1_000).any()
-                ):
-                    fractional_digits = 9
-                else:
-                    fractional_digits = 6
+                format = "all"
 
         formatter = get_format_timedelta64(
-            self.values,
-            na_rep=self.na_rep,
-            box=False,
-            fractional_digits=fractional_digits,
+            self.values, na_rep=self.na_rep, box=False, format=format
         )
         return [formatter(x) for x in self.values]
 
@@ -1717,7 +1703,7 @@ def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
-    fractional_digits: int | None = None,
+    format: str | None = None,
 ) -> Callable:
     """
     Return a formatter function for a range of timedeltas.
@@ -1725,12 +1711,9 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    even_days = values._is_dates_only
-
-    if even_days:
-        format = None
-    else:
-        format = "long"
+    if format is None:
+        # preserve existing behaviour for callers that don't pass format
+        format = None if values._is_dates_only else "long"
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
@@ -1738,16 +1721,6 @@ def get_format_timedelta64(
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
         result = x._repr_base(format=format)
-        if fractional_digits is not None and format == "long":
-            if fractional_digits == 0:
-                # strip any fractional part if present
-                if "." in result:
-                    result = result.split(".")[0]
-            elif "." in result:
-                base, frac = result.split(".")
-                result = base + "." + frac.ljust(fractional_digits, "0")
-            else:
-                result = result + "." + "0" * fractional_digits
         if box:
             result = f"'{result}'"
         return result
