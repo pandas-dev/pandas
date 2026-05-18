@@ -1432,6 +1432,7 @@ class ArrowExtensionArray(
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # Override since the ExtensionArray.view would make a copy.
         if dtype is not None:
             return super().view(dtype)
         result = type(self).__new__(type(self))
