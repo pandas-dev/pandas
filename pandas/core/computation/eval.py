@@ -426,11 +426,12 @@ def eval(
             # get IndexError if you try to do this assignment on np.ndarray.
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
+            # Prevent CoW alias corruption by forcing a copy of the evaluated result
+            if hasattr(ret, "copy"):
+                ret = ret.copy()
+
             try:
-                if inplace and isinstance(target, NDFrame):
-                    target.loc[:, assigner] = ret
-                else:
-                    target[assigner] = ret  # pyright: ignore[reportIndexIssue]
+                target[assigner] = ret  # pyright: ignore[reportOptionalSubscript, reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 
