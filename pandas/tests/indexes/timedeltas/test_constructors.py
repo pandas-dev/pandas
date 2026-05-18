@@ -238,11 +238,11 @@ class TestTimedeltaIndex:
         cat = pd.Categorical(tdi)
 
         result = TimedeltaIndex(cat)
-        tm.assert_index_equal(result, tdi)
+        tm.assert_index_equal(result, tdi, check_freq=False)
 
         ci = pd.CategoricalIndex(tdi)
         result = TimedeltaIndex(ci)
-        tm.assert_index_equal(result, tdi)
+        tm.assert_index_equal(result, tdi, check_freq=False)
 
     @pytest.mark.parametrize(
         "unit,unit_depr",

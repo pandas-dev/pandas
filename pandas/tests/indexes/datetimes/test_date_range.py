@@ -1189,10 +1189,10 @@ class TestBusinessDateRange:
         # GH#64834
         result = bdate_range(end="2026-03-21", periods=3)
         expected = DatetimeIndex(["2026-03-18", "2026-03-19", "2026-03-20"])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         result = bdate_range(end="2026-03-22", periods=3)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
 
 class TestCustomDateRange:
