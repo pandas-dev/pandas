@@ -71,6 +71,7 @@ def b(df, cols):
     return df.drop_duplicates(subset=cols[:-1])
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 @pytest.mark.parametrize("lexsort_depth", list(range(5)))
