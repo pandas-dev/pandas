@@ -66,8 +66,8 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
         df.drop(["a", "b"])  # Dropping with labels not exist in the index
 
 
-@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
 class TestDataFrameDrop:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_names(self):
         df = DataFrame(
             [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
@@ -466,8 +466,7 @@ class TestDataFrameDrop:
         df["y"] = range(5)
         y = df["y"]
 
-        # Should raise no warning except inplace keyword deprecation warning,
-        # (see GH 63207) but pytest.mark.filterwarnings did not work here
+        # For GH 63207 since pytest.mark.filterwarning did not filter warning here
         msg = "The inplace keyword in DataFrame.drop is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             if inplace:
@@ -534,23 +533,6 @@ class TestDataFrameDrop:
         a -= a.mean()
         tm.assert_index_equal(df.columns, Index([], dtype="object"))
 
-    def test_drop_inplace_depr(self):
-        # GH 63207
-        df = DataFrame(
-            {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]}
-        )
-        msg = "The inplace keyword in DataFrame.drop is deprecated"
-
-        # uses keyword, sets to true, warning
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            df.drop(columns=["a"], inplace=True)
-        # uses keyword, sets to false, warning
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            df.drop(columns=["b"], inplace=False)
-        # does not use keyword, no warning
-        with tm.assert_produces_warning(False):
-            df.drop(columns=["c"])
-
     def test_drop_level_missing_label_multiindex(self):
         # GH 18561
         df = DataFrame(index=MultiIndex.from_product([range(3), range(3)]))
@@ -578,3 +560,21 @@ class TestDataFrameDrop:
         result = df.drop("2000-01-03", axis=0)
         expected = DataFrame({"a": [2], "b": [2]}, index=[Timestamp("2000-01-04")])
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
+    def test_drop_inplace_depr(self):
+        # GH 63207
+        df = DataFrame(
+            {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9], "d": [10, 11, 12]}
+        )
+        msg = "The inplace keyword in DataFrame.drop is deprecated"
+
+        # uses keyword, sets to true, warning
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.drop(columns=["a"], inplace=True)
+        # uses keyword, sets to false, warning
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.drop(columns=["b"], inplace=False)
+        # does not use keyword, no warning
+        with tm.assert_produces_warning(False):
+            df.drop(columns=["c"])
