@@ -6,7 +6,6 @@ from datetime import (
 )
 import functools
 import operator
-from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -1153,25 +1152,39 @@ class ArrowExtensionArray(
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
-        if (
-            op in [operator.truediv, roperator.rtruediv]
-            and isinstance(other, Path)
-            and (
-                pa.types.is_string(self._pa_array.type)
-                or pa.types.is_large_string(self._pa_array.type)
-            )
-        ):
-            # GH#61940
-            return np.array(
-                [
-                    op(x, other) if isinstance(x, str) else self.dtype.na_value
-                    for x in self
-                ],
-                dtype=object,
-            )
+    def _str_arith_method_object_fallback(
+        self, other, op
+    ) -> Self | npt.NDArray[np.object_]:
+        mask = isna(self) | isna(other)
+        valid = ~mask
 
-        result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        if is_list_like(other):
+            if len(other) != len(self):
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
+            if not is_array_like(other):
+                other = np.asarray(other)
+            other = other[valid]
+
+        result = np.empty(len(self), dtype=object)
+        result[mask] = self.dtype.na_value
+        result[valid] = op(np.asarray(self, dtype=object)[valid], other)
+
+        if not lib.is_string_array(result, skipna=True):
+            return result
+        return type(self)._from_sequence(result, dtype=self.dtype)
+
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
+            try:
+                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
+                result = self._str_arith_method_object_fallback(other, op)
+        else:
+            result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
             mask = pc.is_nan(parr).fill_null(False).to_numpy()
