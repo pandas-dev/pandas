@@ -276,6 +276,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
+- Bug in arithmetic operations involving :class:`StringDtype` and custom Python objects incorrectly raising instead of returning object-dtype results (:issue:`64107`)
 -
 
 Interval
