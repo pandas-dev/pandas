@@ -39,6 +39,11 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    iNaT,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas.util._decorators import set_module
@@ -1660,49 +1665,6 @@ def get_format_datetime64(
         return lambda x: _format_datetime64(x, na_rep=na_rep)
 
 
-def _align_timedelta_fractional_seconds(fmt_values: list[str]) -> list[str]:
-    """
-    Right-pad fractional seconds in timedelta string representations
-    so they align visually across a Series/column. GH#57188.
-
-    E.g. turns:
-        ['0 days 00:00:01', '0 days 00:00:00.500000', '0 days 00:00:00.333333333']
-    into:
-        ['0 days 00:00:01.000000000',
-        '0 days 00:00:00.500000000',
-        '0 days 00:00:00.333333333']
-    """
-    # Find max fractional-seconds length across all non-NaT values.
-    # Fractional part is after the last '.' in the time component (HH:MM:SS.frac).
-    max_frac_len = 0
-    for s in fmt_values:
-        if s == "NaT":
-            continue
-        # The time component is always the last space-separated token
-        time_part = s.split(" ")[-1]
-        if "." in time_part:
-            frac_len = len(time_part.split(".")[-1])
-            if frac_len > max_frac_len:
-                max_frac_len = frac_len
-
-    # If no value has a fractional part, nothing to align.
-    if max_frac_len == 0:
-        return fmt_values
-
-    result = []
-    for s in fmt_values:
-        if s == "NaT":
-            result.append(s)
-            continue
-        time_part = s.split(" ")[-1]
-        if "." in time_part:
-            frac_len = len(time_part.split(".")[-1])
-            result.append(s + "0" * (max_frac_len - frac_len))
-        else:
-            result.append(s + "." + "0" * max_frac_len)
-    return result
-
-
 class _Timedelta64Formatter(_GenericArrayFormatter):
     values: TimedeltaArray
 
@@ -1715,17 +1677,44 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         super().__init__(values, na_rep=na_rep, **kwargs)
 
     def _format_strings(self) -> list[str]:
-        formatter = self.formatter or get_format_timedelta64(
-            self.values, na_rep=self.na_rep, box=False
+        if self.formatter is not None:
+            return [self.formatter(x) for x in self.values]
+
+        if self.values._is_dates_only:
+            fractional_digits = None
+        else:
+            arr = self.values
+            i8 = arr.asi8
+            vals = i8[i8 != iNaT]
+            if vals.size == 0:
+                fractional_digits = 0
+            else:
+                creso = arr._creso
+                pps = periods_per_second(creso)
+                if not (vals % pps).any():
+                    fractional_digits = 0
+                elif (
+                    creso == cast("int", NpyDatetimeUnit.NPY_FR_ns.value)
+                    and (vals % 1_000).any()
+                ):
+                    fractional_digits = 9
+                else:
+                    fractional_digits = 6
+
+        formatter = get_format_timedelta64(
+            self.values,
+            na_rep=self.na_rep,
+            box=False,
+            fractional_digits=fractional_digits,
         )
-        fmt_values = [formatter(x) for x in self.values]
-        return _align_timedelta_fractional_seconds(fmt_values)
+        return [formatter(x) for x in self.values]
 
 
 def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
+    fractional_digits: int | None = None,
 ) -> Callable:
     """
     Return a formatter function for a range of timedeltas.
@@ -1743,12 +1732,19 @@ def get_format_timedelta64(
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
             return na_rep
-
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
-
-        # Timedelta._repr_base uses string formatting (faster than strftime)
         result = x._repr_base(format=format)
+        if fractional_digits is not None and format == "long":
+            if fractional_digits == 0:
+                # strip any fractional part if present
+                if "." in result:
+                    result = result.split(".")[0]
+            elif "." in result:
+                base, frac = result.split(".")
+                result = base + "." + frac.ljust(fractional_digits, "0")
+            else:
+                result = result + "." + "0" * fractional_digits
         if box:
             result = f"'{result}'"
         return result
