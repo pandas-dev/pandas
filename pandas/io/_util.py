@@ -189,6 +189,23 @@ def _post_convert_dtypes(
             # GH#44901 reraise to keep api consistent
             raise ValueError(str(err)) from err
 
+    # GH#56136 IntegerDtype was used to avoid lossy float64 conversion
+    # in pyarrow, convert back to numpy now that data is categorical
+    if dtype_backend is lib.no_default or dtype_backend == "numpy":
+        from pandas.core.arrays.integer import IntegerDtype as _IntDtype
+
+        for col, col_dtype in zip(df.columns, df.dtypes, strict=True):
+            if isinstance(col_dtype, pd.CategoricalDtype):
+                cat_arr_dtype = col_dtype.categories.dtype
+                if isinstance(cat_arr_dtype, _IntDtype):
+                    new_cat_dtype = pd.CategoricalDtype(
+                        categories=col_dtype.categories.astype(
+                            cat_arr_dtype.numpy_dtype
+                        ),
+                        ordered=col_dtype.ordered,
+                    )
+                    df[col] = df[col].astype(new_cat_dtype)
+
     if (
         not using_string_dtype()
         and dtype != "str"
@@ -320,22 +337,5 @@ def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
         df.index = _normalize_timezone_index(df.index)
         df.columns = _normalize_timezone_index(df.columns)
-
-    # GH#56136 IntegerDtype was used to avoid lossy float64 conversion
-    # in pyarrow, convert back to numpy now that data is categorical
-    if dtype_backend is lib.no_default or dtype_backend == "numpy":
-        from pandas.core.arrays.integer import IntegerDtype as _IntDtype
-
-        for col, col_dtype in zip(df.columns, df.dtypes, strict=True):
-            if isinstance(col_dtype, pd.CategoricalDtype):
-                cat_arr_dtype = col_dtype.categories.dtype
-                if isinstance(cat_arr_dtype, _IntDtype):
-                    new_cat_dtype = pd.CategoricalDtype(
-                        categories=col_dtype.categories.astype(
-                            cat_arr_dtype.numpy_dtype
-                        ),
-                        ordered=col_dtype.ordered,
-                    )
-                    df[col] = df[col].astype(new_cat_dtype)
 
     return df
