@@ -428,7 +428,7 @@ def eval(
             # to use a non-numeric indexer
             # Prevent CoW alias corruption by forcing a copy of the evaluated result
             if hasattr(ret, "copy"):
-                ret = ret.copy()  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
+                ret = ret.copy() # pyright: ignore[reportAttributeAccessIssue]
 
             try:
                 target[assigner] = ret  # pyright: ignore[reportOptionalSubscript, reportIndexIssue]
