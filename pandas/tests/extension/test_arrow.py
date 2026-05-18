@@ -2039,7 +2039,7 @@ def test_str_get(idx, expected_values):
 
 
 @pytest.mark.parametrize(
-    "i, exp",
+    "idx, expected_values",
     [
         [0, ["a", "d", None]],
         [1, ["b", "e", None]],
@@ -2049,11 +2049,11 @@ def test_str_get(idx, expected_values):
         [4, [None, None, None]],
     ],
 )
-def test_str_getitem(i, exp):
+def test_str_getitem(idx, expected_values):
     # GH 65112
     ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str[i]
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    result = ser.str[idx]
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2094,7 +2094,7 @@ def test_str_slice(start, stop, step, expected_values):
 
 
 @pytest.mark.parametrize(
-    "start, stop, step, exp",
+    "start, stop, step, expected_values",
     [
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
@@ -2104,11 +2104,11 @@ def test_str_slice(start, stop, step, expected_values):
         (None, None, None, ["abcd", None]),
     ],
 )
-def test_str_getitem_range(start, stop, step, exp):
+def test_str_getitem_range(start, stop, step, expected_values):
     # GH 65112
     ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
     result = ser.str[slice(start, stop, step)]
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
