@@ -2080,6 +2080,7 @@ def test_str_join_string_type():
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
         (None, None, -1, ["dcba", None]),
+        (1, None, 2, ["bd", None]),
     ],
 )
 def test_str_slice(start, stop, step, expected_values):
@@ -2096,6 +2097,7 @@ def test_str_slice(start, stop, step, expected_values):
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
         (None, None, -1, ["dcba", None]),
+        (1, None, 2, ["bd", None]),
     ],
 )
 def test_str_getitem_range(start, stop, step, exp):
