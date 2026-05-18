@@ -17,6 +17,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -26,10 +27,12 @@ from pandas._libs import (
 )
 from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
@@ -1361,7 +1364,7 @@ class RangeIndex(Index):
         return type(self)._simple_new(res, name=self._name)
 
     @unpack_zerodim_and_defer("__floordiv__")
-    def __floordiv__(self, other: object) -> Index:
+    def __floordiv__(self, other: object) -> Index:  # type: ignore[override]
         if is_integer(other) and other != 0:
             if len(self) == 0 or (self.start % other == 0 and self.step % other == 0):
                 start = self.start // other
@@ -1374,7 +1377,7 @@ class RangeIndex(Index):
                 new_range = range(start, start + 1, 1)
                 return self._simple_new(new_range, name=self._name)
 
-        return super().__floordiv__(other)  # type: ignore[no-untyped-call]
+        return super().__floordiv__(other)
 
     # --------------------------------------------------------------------
     # Reductions
@@ -1530,8 +1533,8 @@ class RangeIndex(Index):
         self,
         indices: Sequence[int] | np.ndarray,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value: object = None,
+        allow_fill: bool | lib.NoDefault = no_default,
+        fill_value: object = no_default,
         **kwargs: Any,
     ) -> Self | Index:
         if kwargs:
@@ -1540,8 +1543,33 @@ class RangeIndex(Index):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
 
-        # raise an exception if allow_fill is True and fill_value is not None
-        self._maybe_disallow_fill(allow_fill, fill_value, indices)
+        if allow_fill is no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this case, but
+                # warn since the sentinel-based default would otherwise flip
+                # it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not no_default
+
+        if allow_fill:
+            # RangeIndex can't hold NA natively; delegate to Index.take which
+            # will promote dtype as needed.
+            return super().take(
+                indices, axis=axis, allow_fill=True, fill_value=fill_value
+            )
 
         if len(indices) == 0:
             return type(self)(_empty_range, name=self.name)

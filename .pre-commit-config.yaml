@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.9
+    rev: v0.15.12
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -67,7 +67,7 @@ repos:
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 8.0.1
+    rev: 9.0.0a3
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
@@ -92,14 +92,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.2
+    rev: v22.1.4
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: ['-i', '--style', '{IndentPPDirectives: AfterHash}']
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.10.2
+    rev: v1.11.1
     hooks:
     - id: meson-fmt
       args: ['--inplace']
@@ -132,7 +132,7 @@ repos:
     -   id: mypy
         # note: assumes python env is setup and activated
         name: mypy
-        entry: mypy
+        entry: python -m mypy
         language: system
         pass_filenames: false
         types: [python]
@@ -180,19 +180,12 @@ repos:
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
-    -   id: seed-check-asv
-        name: Check for unnecessary random seeds in asv benchmarks
-        language: pygrep
-        entry: 'np\.random\.seed'
-        files: ^asv_bench/benchmarks
-        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep

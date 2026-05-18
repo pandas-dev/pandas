@@ -418,6 +418,19 @@ def test_where_categorical(frame_or_series):
     tm.assert_equal(exp, res)
 
 
+def test_where_tuple_scalar_object_dtype():
+    # GH#37681 - np.where unpacks tuples; ensure tuple is treated as scalar
+    ser = Series([(0, 1), (1, 2), np.nan], dtype=object)
+    mask = np.array([True, True, False])
+
+    result = ser.where(mask, (9, 9))
+    expected = Series([(0, 1), (1, 2), (9, 9)], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.mask(~mask, (9, 9))
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture

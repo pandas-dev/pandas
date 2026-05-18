@@ -180,6 +180,8 @@ if TYPE_CHECKING:
         OpenFileErrors,
         P,
         RandomState,
+        RankMethod,
+        RankNaOption,
         ReindexMethod,
         Renamer,
         Scalar,
@@ -1502,7 +1504,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all()."
         )
 
     @final
@@ -2682,6 +2684,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
+
+        .. note::
+
+           Files produced by this method use a pandas-specific layout on top
+           of PyTables and are intended to be read back with :func:`read_hdf`
+           or :class:`HDFStore`. They are valid HDF5 files but are not a
+           general-purpose interchange format for arbitrary HDF5 consumers.
 
         .. warning::
 
@@ -4297,11 +4306,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 result.index = new_index
                 return result
 
-            new_mgr = self._mgr.fast_xs(loc)
-
-            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
-            result._name = self.index[loc]
-            result = result.__finalize__(self)
+            result = self._ixs(loc, axis=0)
         elif is_scalar(loc):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
@@ -7130,7 +7135,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if axis == 1:
                 # Check that all columns in result have the same dtype
                 # otherwise don't bother with fillna and losing accurate dtypes
-                unique_dtypes = algos.unique(self._mgr.get_dtypes())
+                unique_dtypes = self._mgr.get_unique_dtypes()
                 if len(unique_dtypes) > 1:
                     raise ValueError(
                         "All columns must have the same dtype, but got dtypes: "
@@ -7511,7 +7516,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether to interpret `to_replace` and/or `value` as regular
             expressions. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
-            `to_replace` must be ``None``.
+            `to_replace` must be ``None``. Patterns may be passed either as
+            strings or as compiled regex objects (``re.compile(...)``); use a
+            compiled object when you need to set flags such as ``re.IGNORECASE``,
+            since ``replace`` does not accept a separate ``flags`` argument.
 
         Returns
         -------
@@ -7672,6 +7680,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0   new  abc
         1   new  new
         2  bait  xyz
+
+        To match case-insensitively (or apply any other ``re`` flag), pass a
+        compiled regex object. ``replace`` does not take a separate ``flags``
+        argument, so the flags must be baked into the compiled pattern:
+
+        >>> import re
+        >>> df = pd.DataFrame({"A": ["Foo", "FOO", "bar"], "B": ["foo", "Bar", "BAR"]})
+        >>> df.replace(re.compile(r"foo", flags=re.IGNORECASE), "new", regex=True)
+             A    B
+        0  new  new
+        1  new  Bar
+        2  bar  BAR
 
         Compare the behavior of ``s.replace({'a': None})`` and
         ``s.replace('a', None)`` to understand the peculiarities
@@ -9486,9 +9506,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rank(
         self,
         axis: Axis = 0,
-        method: Literal["average", "min", "max", "first", "dense"] = "average",
+        method: RankMethod = "average",
         numeric_only: bool = False,
-        na_option: Literal["keep", "top", "bottom"] = "keep",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:
@@ -11063,8 +11083,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         tz : str or tzinfo or None
-            Time zone to localize. Passing ``None`` will remove the
-            time zone information and preserve local time.
+            Time zone to attach to the index; the wall time of each index
+            label is preserved. Passing ``None`` detaches the time zone from
+            a tz-aware index, returning a tz-naive index with the same wall
+            time.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to localize
         level : int, str, default None
@@ -11130,7 +11152,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Localize local times:
+        Attach a time zone to tz-naive timestamps:
 
         >>> s = pd.Series(
         ...     [1],
@@ -11140,7 +11162,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
-        Pass None to convert to tz-naive index and preserve local time:
+        Pass None to detach the time zone from tz-aware timestamps:
 
         >>> s = pd.Series([1], index=pd.DatetimeIndex(["2018-09-15 01:30:00+02:00"]))
         >>> s.tz_localize(None)
@@ -11285,7 +11307,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return the 25th, 50th, and 75th percentiles.
         include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - 'all' : All columns of the input will be included in the output.
             - A list-like of dtypes : Limits the results to the
@@ -11299,7 +11322,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - None (default) : The result will include all numeric columns.
         exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - A list-like of dtypes : Excludes the provided data types
               from the result. To exclude numeric types submit
@@ -11350,7 +11374,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
+        Passing them when analyzing a ``Series`` is deprecated and will
+        raise in a future version; the parameters are ignored today.
 
         Examples
         --------
@@ -11657,7 +11682,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # We want to restore the original index
             rs = rs.loc[~rs.index.duplicated()]
             rs = rs.reindex_like(self)
-        return rs.__finalize__(self, method="pct_change")
+        return rs.__finalize__(self, method="pct_change")  # type: ignore[return-value]
 
     @final
     def _logical_func(
@@ -12100,6 +12125,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Provided integer column is ignored and excluded from result since
             an integer index is not used to calculate the rolling window.
+
+            When ``on`` is specified, the values of that column also become the
+            index of the :class:`Series` passed to :meth:`Rolling.apply` when
+            ``raw=False``, in place of the original :class:`DataFrame` index.
 
         closed : str, default None
             Determines the inclusivity of points in the window

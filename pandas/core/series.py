@@ -257,6 +257,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     -----
     Please reference the :ref:`User Guide <basics.series>` for more information.
 
+    NumPy arrays with ``dtype=object`` may be inferred to a more specific dtype
+    (e.g. strings or datetimes) rather than keeping object dtype, similar to
+    passing a Python list. Pass ``dtype=object`` when you need object dtype.
+    The same inference rules apply when building an :class:`Index` from such an
+    array.
+
     Examples
     --------
     Constructing Series from a dictionary with an Index specified
@@ -529,7 +535,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
             if len(index) or dtype is not None:
-                values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                # error: Incompatible types in assignment (expression has type
+                # "Scalar", variable has type "list[Any]")
+                values = na_value_for_dtype(  # type: ignore[assignment]
+                    pandas_dtype(dtype), compat=False
+                )
             else:
                 values = []
             keys = index
@@ -585,7 +595,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _constructor_from_mgr(self, mgr, axes):
         ser = Series._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
+        # Use object.__setattr__ to bypass NDFrame.__setattr__ overhead.
+        # _name is not set by NDFrame.__init__, so we initialize it here.
+        object.__setattr__(ser, "_name", None)
 
         if type(self) is Series:
             # This would also work `if self._constructor is Series`, but
@@ -738,6 +750,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
            We recommend using :attr:`Series.array` or
            :meth:`Series.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
+           The return type of ``.values`` depends on the dtype: it is a
+           :class:`numpy.ndarray` for some dtypes (for example ``int64``
+           or ``float64``) and an
+           :class:`~pandas.api.extensions.ExtensionArray` for others (for
+           example ``category``, nullable ``Int64``, or string dtypes),
+           which makes it harder to write code that works across dtypes.
+           ``.values`` also converts timezone-aware datetimes to UTC and
+           drops the timezone. :attr:`Series.array` always returns
+           the underlying array as an
+           :class:`~pandas.api.extensions.ExtensionArray`, and
+           :meth:`Series.to_numpy` always returns a :class:`numpy.ndarray`
+           and accepts ``dtype``, ``copy``, and ``na_value`` arguments to
+           control the conversion.
 
         Returns
         -------
@@ -750,24 +775,40 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
+        For a Series backed by a NumPy dtype such as ``int64``, ``.values``
+        returns a :class:`numpy.ndarray`:
+
         >>> pd.Series([1, 2, 3]).values
         array([1, 2, 3])
+
+        For extension dtypes such as the default string dtype or
+        ``category``, ``.values`` returns an
+        :class:`~pandas.api.extensions.ExtensionArray` instead, while
+        :meth:`Series.to_numpy` always returns a :class:`numpy.ndarray`:
 
         >>> pd.Series(list("aabc")).values
         <ArrowStringArray>
         ['a', 'a', 'b', 'c']
         Length: 4, dtype: str
+        >>> pd.Series(list("aabc")).to_numpy()
+        array(['a', 'a', 'b', 'c'], dtype=object)
 
         >>> pd.Series(list("aabc")).astype("category").values
         ['a', 'a', 'b', 'c']
         Categories (3, str): ['a', 'b', 'c']
 
-        Timezone aware datetime data is converted to UTC:
+        Timezone aware datetime data is converted to UTC and the timezone
+        is dropped, while :attr:`Series.array` preserves the timezone:
 
         >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
         array(['2013-01-01T05:00:00.000000',
                '2013-01-02T05:00:00.000000',
                '2013-01-03T05:00:00.000000'], dtype='datetime64[us]')
+        >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).array
+        <DatetimeArray>
+        ['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
+         '2013-01-03 00:00:00-05:00']
+        Length: 3, dtype: datetime64[us, US/Eastern]
         """
         return self._mgr.external_values()
 
@@ -1852,7 +1893,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {0: 1, 1: 2, 2: 3, 3: 4}
         >>> from collections import OrderedDict, defaultdict
         >>> s.to_dict(into=OrderedDict)
-        OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
+        OrderedDict({0: 1, 1: 2, 2: 3, 3: 4})
         >>> dd = defaultdict(list)
         >>> s.to_dict(into=dd)
         defaultdict(<class 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
@@ -2019,30 +2060,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If ``by`` is a function, it's called on each value of the object's
             index. If a dict or Series is passed, the Series or dict VALUES
             will be used to determine the groups (the Series' values are first
-            aligned; see ``.align()`` method). If a list or ndarray of length
-            equal to the selected axis is passed (see the `groupby user guide
+            aligned; see ``.align()`` method). If a list or ndarray of the
+            same length as the Series is passed (see the `groupby user guide
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
-            the values are used as-is to determine the groups. A label or list
-            of labels may be passed to group by the columns in ``self``.
+            the values are used as-is to determine the groups. An index level
+            name may also be passed to group by a level of the Series' index.
             Notice that a tuple is interpreted as a (single) key.
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels. Do not specify both ``by`` and ``level``.
         as_index : bool, default True
-            Return object with group labels as the
-            index. Only relevant for DataFrame input. as_index=False is
-            effectively "SQL-style" grouped output. This argument has no effect
-            on filtrations (see the `filtrations in the user guide
-            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
-            such as ``head()``, ``tail()``, ``nth()`` and in transformations
-            (see the `transformations in the user guide
-            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+            Return object with group labels as the index. This argument is
+            retained for compatibility with :meth:`DataFrame.groupby` and has
+            no effect on Series.
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
-            DataFrame.
+            Series.
             This argument has no effect on filtrations (see the `filtrations in the user
             guide
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
@@ -4731,7 +4767,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             cases can speed up the execution. To use an executor you can provide the
             decorators ``numba.jit``, ``numba.njit``, ``bodo.jit`` or ``blosc2.jit``.
             You can also provide the decorator with parameters, like
-            ``numba.jit(nogit=True)``.
+            ``numba.jit(nogil=True)``.
 
             Not all functions can be executed with all execution engines. In general,
             JIT compilers will require type stability in the function (no variable
@@ -4742,7 +4778,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
-            `arg`.
+            ``func``.
 
             .. versionadded:: 3.0.0
 
@@ -4760,7 +4796,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Notes
         -----
-        When ``arg`` is a dictionary, values in Series that are not in the
+        When ``func`` is a dictionary, values in Series that are not in the
         dictionary (as keys) are converted to ``NaN``. However, if the
         dictionary is a ``dict`` subclass that defines ``__missing__`` (i.e.
         provides a method for default values), then this default is used
@@ -8717,8 +8753,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be False, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -8848,8 +8886,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be True, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -9580,6 +9620,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Series.mean : Return the mean of the values over the requested axis.
         Series.median : Return the median of the values over the requested axis.
         Series.mode : Return the mode(s) of the Series.
+
+        Notes
+        -----
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
 
         Examples
         --------
