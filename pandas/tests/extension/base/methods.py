@@ -871,12 +871,11 @@ class BaseMethodsTests:
                 data.round()
             return
         result = pd.Series(data).round()
+        round_fn = np.round if data.dtype.kind == "c" else round
         expected = pd.Series(
             type(data)._from_sequence(
                 [
-                    item
-                    if item_isna
-                    else (round(item) if hasattr(item, "__round__") else np.round(item))
+                    round_fn(item) if not item_isna else item
                     for item, item_isna in zip(data, data.isna(), strict=True)
                 ],
                 dtype=data.dtype,
