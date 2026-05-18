@@ -847,7 +847,7 @@ def index_with_missing_sortable(request):
     index_with_missing fixture, but excluding types that are not orderable.
     """
     ind = indices_dict[request.param]
-    vals = ind.values.copy()
+    vals = ind._values.copy()
     vals[0] = None
     vals[-1] = None
     return type(ind)(vals, copy=False)
