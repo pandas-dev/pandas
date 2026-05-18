@@ -2023,6 +2023,7 @@ def test_str_find_negative_start_negative_end_no_match():
 @pytest.mark.parametrize(
     "idx, expected_values",
     [
+        [0, ["a", "d", None]],
         [1, ["b", "e", None]],
         [-1, ["c", "e", None]],
         [2, ["c", None, None]],
@@ -2040,6 +2041,7 @@ def test_str_get(idx, expected_values):
 @pytest.mark.parametrize(
     "i, exp",
     [
+        [0, ["a", "d", None]],
         [1, ["b", "e", None]],
         [-1, ["c", "e", None]],
         [2, ["c", None, None]],
@@ -2081,6 +2083,7 @@ def test_str_join_string_type():
         [1, 3, 1, ["bc", None]],
         (None, None, -1, ["dcba", None]),
         (1, None, 2, ["bd", None]),
+        (None, None, None, ["abcd", None]),
     ],
 )
 def test_str_slice(start, stop, step, expected_values):
@@ -2098,6 +2101,7 @@ def test_str_slice(start, stop, step, expected_values):
         [1, 3, 1, ["bc", None]],
         (None, None, -1, ["dcba", None]),
         (1, None, 2, ["bd", None]),
+        (None, None, None, ["abcd", None]),
     ],
 )
 def test_str_getitem_range(start, stop, step, exp):
