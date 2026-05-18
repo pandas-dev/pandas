@@ -562,7 +562,9 @@ def wide_to_long(
     ...     set(
     ...         [
     ...             match[0]
-    ...             for match in df.columns.str.findall(r"[A-B]\(.*\)").values
+    ...             for match in df.columns.to_series()
+    ...             .str.findall(r"[A-B]\(.*\)")
+    ...             .values
     ...             if match != []
     ...         ]
     ...     )

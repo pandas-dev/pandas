@@ -330,6 +330,12 @@ class Apply(metaclass=abc.ABCMeta):
 
         if is_list_like(func) and not is_dict_like(func):
             func = cast("list[AggFuncTypeBase]", func)
+            # GH#54929 - raise if duplicate function names are passed
+            if len(func) > len(set(func)):
+                raise SpecificationError(
+                    "Function names must be unique if there is no new column names "
+                    "assigned"
+                )
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -838,66 +844,13 @@ class NDFrameApply(Apply):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
-        if op_name == "agg" and obj.ndim == 2:
+        if op_name == "agg" and isinstance(self, FrameApply):
             result = self._agg_list_like_frame_reductions()
             if result is not None:
                 return result
 
         keys, results = self.compute_list_like(op_name, obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
-        return result
-
-    def _agg_list_like_frame_reductions(self) -> DataFrame | None:
-        """
-        Aggregate a list of named functions using DataFrame-level reductions.
-
-        Instead of extracting each column as a Series and calling
-        Series.agg per column, call DataFrame-level reductions directly.
-        Operates per dtype group to preserve per-column dtypes.
-
-        Returns None if the fast path cannot be used (e.g. non-string
-        functions, functions that aren't valid DataFrame methods, or
-        functions that don't return a reduction result).
-        """
-        func = cast("list[AggFuncTypeBase]", self.func)
-
-        if not all(isinstance(f, str) for f in func):
-            return None
-
-        obj = self.obj
-        func_names = cast("list[str]", func)
-
-        # Cannot reindex with duplicate column names
-        if not obj.columns.is_unique:
-            return None
-
-        # Verify all function names are valid methods on the DataFrame
-        for func_name in func_names:
-            if not hasattr(obj, func_name):
-                return None
-
-        # Compute reductions per dtype group to preserve per-column dtypes.
-        # Using to_frame().T for each result avoids the slow
-        # DataFrame(list-of-Series) construction path.
-        groups = obj.columns.groupby(obj.dtypes)  # type: ignore[arg-type]
-        pieces = []
-        for dtype in groups:
-            cols = groups[dtype]
-            sub = obj[cols]
-            group_pieces = []
-            for func_name in func_names:
-                try:
-                    row = getattr(sub, func_name)(*self.args, **self.kwargs)
-                except TypeError:
-                    return None
-                if not isinstance(row, ABCSeries):
-                    # Not a reduction (e.g. returns DataFrame), fall back
-                    return None
-                group_pieces.append(row.to_frame(func_name).T)
-            pieces.append(concat(group_pieces))
-
-        result = concat(pieces, axis=1)
-        result = result.reindex(columns=obj.columns)
         return result
 
     def agg_or_apply_dict_like(
@@ -1091,6 +1044,65 @@ class FrameApply(NDFrameApply):
         if result is None:
             result = self.obj.apply(self.func, axis, args=self.args, **self.kwargs)
 
+        return result
+
+    def _agg_list_like_frame_reductions(self) -> DataFrame | None:
+        """
+        Aggregate a list of named functions using DataFrame-level reductions.
+
+        Instead of extracting each column as a Series and calling
+        Series.agg per column, call DataFrame-level reductions directly.
+        Operates per dtype group to preserve per-column dtypes.
+
+        Returns None if the fast path cannot be used (e.g. non-string
+        functions, functions that aren't valid DataFrame methods, or
+        functions that don't return a reduction result).
+        """
+        func = cast("list[AggFuncTypeBase]", self.func)
+
+        if not all(isinstance(f, str) for f in func):
+            return None
+
+        obj = self.obj
+        func_names = cast("list[str]", func)
+
+        # Cannot reindex with duplicate column names
+        if not obj.columns.is_unique:
+            return None
+
+        for func_name in func_names:
+            if not hasattr(obj, func_name):
+                return None
+
+        if self.kwargs.get("numeric_only"):
+            obj = obj._get_numeric_data()
+        elif self.kwargs.get("bool_only"):
+            obj = obj._get_bool_data()
+
+        if obj.columns.empty:
+            return obj._constructor(index=func_names, columns=obj.columns)
+
+        # Compute reductions per dtype group to preserve per-column dtypes.
+        groups = obj.columns.groupby(obj.dtypes)
+        pieces: list[DataFrame] = []
+        for dtype in groups:
+            cols = groups[dtype]
+            sub = obj[cols]
+            group_pieces: list[DataFrame] = []
+            for func_name in func_names:
+                try:
+                    row = getattr(sub, func_name)(*self.args, **self.kwargs)
+                except TypeError:
+                    return None
+                if not isinstance(row, ABCSeries):
+                    # Not a reduction (e.g. returns DataFrame), fall back
+                    return None
+                # to_frame().T avoids the slow DataFrame(list-of-Series) path
+                group_pieces.append(row.to_frame(func_name).T)
+            pieces.append(concat(group_pieces))
+
+        result = concat(pieces, axis=1)
+        result = result.reindex(columns=obj.columns)
         return result
 
     def apply_empty_result(self):

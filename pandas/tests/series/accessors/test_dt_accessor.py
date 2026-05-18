@@ -41,7 +41,9 @@ from pandas.core.arrays import (
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-ok_for_dt = DatetimeArray._datetimelike_ops
+# ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
+# directly rather than on the underlying array, so add it explicitly.
+ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq"]
 # GH#46768 - deprecated aliases that should be skipped in property access tests
 _deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 ok_for_dt_methods = [
@@ -59,7 +61,7 @@ ok_for_dt_methods = [
     "isocalendar",
     "as_unit",
 ]
-ok_for_td = TimedeltaArray._datetimelike_ops
+ok_for_td = [*TimedeltaArray._datetimelike_ops, "freq"]
 ok_for_td_methods = [
     "components",
     "to_pytimedelta",
@@ -627,6 +629,39 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.001",
                 "2013/01/01 00:00:00.002",
                 "2013/01/01 00:00:00.003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_capital_N(self):
+        # GH#65432 %N is the new directive for nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%N")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_lowercase_n_deprecated(self):
+        # GH#65432 %n collides with the POSIX newline directive; warn once
+        # per call regardless of array length, and still produce nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        msg = "The %n directive in Period.strftime is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%n")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
             ]
         )
         tm.assert_series_equal(result, expected)

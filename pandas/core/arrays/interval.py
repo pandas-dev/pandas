@@ -1024,7 +1024,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right_hash = hash_array(
             self._right, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
-        # Include closed in the hash
         closed_val = np.uint64(hash(self.closed) % (2**63))
         closed_hash = hash_array(
             np.full(len(self), closed_val, dtype=np.uint64),
