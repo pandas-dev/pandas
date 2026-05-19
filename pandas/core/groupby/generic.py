@@ -3181,22 +3181,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         group
         a       2.0  1.5  0.707107  1.0  1.25  1.5  1.75  2.0
         b       2.0  3.5  0.707107  3.0  3.25  3.5  3.75  4.0
-
-        Including non-numeric columns.
-
-        >>> df = pd.DataFrame(
-        ...     {
-        ...         "group": ["a", "a", "b", "b"],
-        ...         "value": [1, 2, 3, 4],
-        ...         "label": ["x", "y", "x", "x"],
-        ...     }
-        ... )
-        >>> df.groupby("group").describe(include="all")
-              label                      value
-              count unique top freq mean count mean       std  min   25%  50%   75%  max
-        group
-        a         2      2   x    1  NaN   2.0  1.5  0.707107  1.0  1.25  1.5  1.75  2.0
-        b         2      1   x    2  NaN   2.0  3.5  0.707107  3.0  3.25  3.5  3.75  4.0
         """
         return super().describe(
             percentiles=percentiles, include=include, exclude=exclude
