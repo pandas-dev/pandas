@@ -23,7 +23,6 @@ from pandas._libs import (
 from pandas._libs.tslibs import (
     NaT,
     OutOfBoundsDatetime,
-    Timedelta,
     Timestamp,
     astype_overflowsafe,
     get_supported_dtype,
@@ -77,6 +76,7 @@ from pandas.core.arrays.datetimes import (
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -154,7 +154,11 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
 
 
 def should_cache(
-    arg: ArrayConvertible, unique_share: float = 0.7, check_count: int | None = None
+    arg: ArrayConvertible,
+    unique_share: float = 0.7,
+    check_count: int | None = None,
+    format: str | None = None,
+    unit: str | None = None,
 ) -> bool:
     """
     Decides whether to do caching.
@@ -169,6 +173,10 @@ def should_cache(
         0 < unique_share < 1
     check_count: int, optional
         0 <= check_count <= len(arg)
+    format : str or None, default None
+        Strftime format to parse time.
+    unit : str or None, default None
+        The unit of the arg (e.g. 's', 'ms').
 
     Returns
     -------
@@ -182,6 +190,20 @@ def should_cache(
     than 5000, then we check only the first 500 elements.
     All constants were chosen empirically by.
     """
+    # GH#65380 O(1) bail for input shapes where caching cannot help:
+    # numeric+unit, already-datetime dtypes, or explicit strptime format.
+    if unit is not None:
+        return False
+    if format is not None and format != "mixed":
+        return False
+    arg_dtype = getattr(arg, "dtype", None)
+    if (
+        lib.is_np_dtype(arg_dtype, "M")
+        or isinstance(arg_dtype, DatetimeTZDtype)
+        or (isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp)
+    ):
+        return False
+
     do_caching = True
 
     # default realization
@@ -218,6 +240,7 @@ def _maybe_cache(
     format: str | None,
     cache: bool,
     convert_listlike: Callable,
+    unit: str | None = None,
 ) -> Series:
     """
     Create a cache of unique dates from an array of dates
@@ -231,6 +254,8 @@ def _maybe_cache(
         True attempts to create a cache of converted values
     convert_listlike : function
         Conversion function to apply on dates
+    unit : str, optional
+        The unit of the arg.
 
     Returns
     -------
@@ -243,7 +268,7 @@ def _maybe_cache(
 
     if cache:
         # Perform a quicker unique check
-        if not should_cache(arg):
+        if not should_cache(arg, format=format, unit=unit):
             return cache_array
 
         if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
@@ -601,7 +626,7 @@ def _adjust_to_origin(arg, origin, unit):
 
     Returns
     -------
-    ndarray or scalar of adjusted date(s)
+    DatetimeArray, ndarray, or scalar of adjusted date(s)
     """
     if origin == "julian":
         original = arg
@@ -647,16 +672,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         if offset.tz is not None:
             raise ValueError(f"origin offset {offset} must be tz-naive")
-        td_offset = offset - Timestamp(0)
-
-        # convert the offset to the unit of the arg
-        # this should be lossless in terms of precision
-        ioffset = td_offset // Timedelta(1, unit=unit)
-
-        # scalars & ndarray-like can handle the addition
-        if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
-            arg = np.asarray(arg)
-        arg = arg + ioffset
+        arg = offset + extract_array(to_timedelta(arg, unit=unit))
     return arg
 
 
@@ -959,7 +975,7 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
-                  dtype='datetime64[s]', freq=None)
+                  dtype='datetime64[us]', freq=None)
 
     **Differences with strptime behavior**
 
@@ -1057,7 +1073,29 @@ def to_datetime(
         return NaT
 
     if origin != "unix":
+        from pandas import Series
+
+        arg_name = getattr(arg, "name", None)
+        is_series = False
+        if isinstance(arg, Series):
+            arg_idx = getattr(arg, "index", None)
+            is_series = True
         arg = _adjust_to_origin(arg, origin, unit)
+        if origin != "julian":
+            # GH#63419 _adjust_to_origin returned the final datetime result
+            if utc:
+                if isinstance(arg, Timestamp):
+                    arg = arg.tz_localize("utc")
+                elif isinstance(arg, ABCSeries):
+                    arg = arg.dt.tz_localize("utc")
+                elif hasattr(arg, "tz_localize"):
+                    arg = arg.tz_localize("utc")  # type: ignore[union-attr]
+            if is_series:
+                return Series(arg, index=arg_idx, name=arg_name)
+            if is_list_like(arg):
+                return DatetimeIndex(arg, name=arg_name)
+            else:
+                return arg  # type: ignore[return-value]
 
     convert_listlike = partial(
         _convert_listlike_datetimes,
@@ -1078,7 +1116,7 @@ def to_datetime(
             else:
                 result = arg.tz_localize("utc")
     elif isinstance(arg, ABCSeries):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
@@ -1087,7 +1125,7 @@ def to_datetime(
     elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, utc)
     elif isinstance(arg, Index):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, name=arg.name)
         else:
@@ -1101,7 +1139,7 @@ def to_datetime(
             argc = cast(
                 "Union[list, tuple, ExtensionArray, np.ndarray, Series, Index]", arg
             )
-            cache_array = _maybe_cache(argc, format, cache, convert_listlike)
+            cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...

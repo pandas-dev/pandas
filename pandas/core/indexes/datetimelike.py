@@ -21,6 +21,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_infer_freq_offset
+
 from pandas._libs import (
     NaT,
     lib,
@@ -365,7 +367,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if type(self) != type(other):
             return False
         elif self.dtype == other.dtype:
-            return np.array_equal(self.asi8, other.asi8)
+            return lib.array_equivalent_bytes(self.asi8, other.asi8)
         elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":  # type: ignore[attr-defined]
             # different units, otherwise matching
             try:
@@ -374,7 +376,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
                 return False
             else:
-                return np.array_equal(left.view("i8"), right.view("i8"))
+                return lib.array_equivalent_bytes(left.view("i8"), right.view("i8"))
         return False
 
     def __contains__(self, key: Any) -> bool:
@@ -490,7 +492,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             if self.freq is None or hasattr(self.freq, "rule_code"):
                 freq = self.freq
         except NotImplementedError:
-            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
+            freq = getattr(self, "freqstr", getattr(self, "_inferred_freq_str", None))
 
         freqstr: str | None
         if freq is not None and not isinstance(freq, str):
@@ -758,7 +760,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             else:
                 # Set _freq directly to bypass duplicative _validate_frequency
                 # check.
-                self._freq = to_offset(self.inferred_freq)
+                self._freq = to_offset(self._inferred_freq_str)
         elif freq is lib.no_default:
             # user did not specify anything, keep inferred freq if the original
             #  data had one, otherwise leave as None (class default)
@@ -975,7 +977,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
         elif freq == "infer":
-            freq = to_offset(self.inferred_freq)
+            freq = to_offset(self._inferred_freq_str)
         else:
             raise ValueError(f"Invalid frequency: {freq!r}")
 
@@ -1045,9 +1047,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return result
 
     @cache_readonly
-    def inferred_freq(self) -> str | None:
+    def _inferred_freq_str(self) -> str | None:
+        """
+        Internal version of inferred_freq without deprecation warning.
+        """
+        return self._data._inferred_freq_str
+
+    @cache_readonly
+    def inferred_freq(self) -> str | BaseOffset | None:
         """
         Return the inferred frequency of the index.
+
+        .. deprecated:: 3.1.0
+            A future version of pandas will return a :class:`BaseOffset` instead of
+            a string. Use
+            ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt
+            in to the future behavior.
 
         Attempts to determine the frequency of the index by analyzing the
         differences between consecutive values using ``infer_freq``.
@@ -1068,7 +1083,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         For ``DatetimeIndex``:
 
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
-        >>> idx.inferred_freq
+        >>> idx.inferred_freq  # doctest: +SKIP
         '2D'
 
         For ``TimedeltaIndex``:
@@ -1077,10 +1092,27 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> tdelta_idx
         TimedeltaIndex(['0 days', '10 days', '20 days'],
                        dtype='timedelta64[us]', freq=None)
-        >>> tdelta_idx.inferred_freq
+        >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        return self._data.inferred_freq
+        result = self._inferred_freq_str
+        if result is not None:
+            opt = using_infer_freq_offset()
+            if opt is True:
+                return to_offset(result)
+            if opt is None:
+                warnings.warn(
+                    "A future version of pandas will return a BaseOffset "
+                    "object instead of a string from inferred_freq. "
+                    "Use pd.set_option("
+                    "'future.infer_freq_returns_offset', True) "
+                    "to get the future behavior, or set to False to keep the "
+                    "old behavior and silence this warning. To preserve the "
+                    "string representation, use ``inferred_freq.freqstr``.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+        return result
 
     # --------------------------------------------------------------------
     # Set Operation Methods
