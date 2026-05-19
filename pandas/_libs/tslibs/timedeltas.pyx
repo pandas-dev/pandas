@@ -1920,6 +1920,9 @@ cdef class _Timedelta(timedelta):
         if format == "all":
             fmt = ("{days} days{sign}{hours:02}:{minutes:02}:{seconds:02}."
                    "{milliseconds:03}{microseconds:03}{nanoseconds:03}")
+        elif format == "us":
+            fmt = ("{days} days{sign}{hours:02}:{minutes:02}:{seconds:02}."
+                   "{milliseconds:03}{microseconds:03}")
         else:
             # if we have a partial day
             subs = (self._h or self._m or self._s or

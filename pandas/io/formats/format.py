@@ -43,6 +43,7 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
     periods_per_second,
 )
 from pandas._libs.tslibs.nattype import NaTType
@@ -1690,8 +1691,13 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
             vals = i8[i8 != iNaT]
             if vals.size == 0 or not (vals % periods_per_second(arr._creso)).any():
                 format = "long"
+            elif (
+                cast("int", NpyDatetimeUnit.NPY_FR_ns.value) == arr._creso
+                and (vals % 1_000).any()
+            ):
+                format = "all"  # nanosecond precision → 9 digits
             else:
-                format = "all"
+                format = "us"  # microsecond precision → 6 digits
 
         formatter = get_format_timedelta64(
             self.values, na_rep=self.na_rep, box=False, format=format
