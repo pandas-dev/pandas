@@ -3176,10 +3176,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Compute the first entry of each column within each group.
 
         NA values are skipped by default, so the result is the first non-NA
-        value per column; this may differ from the first row of the group. Use
-        :meth:`~.DataFrameGroupBy.nth` with ``n=0`` or
-        :meth:`~.DataFrameGroupBy.head` with ``n=1`` to take the first row
-        instead, or pass ``skipna=False`` to keep NAs.
+        value per column — which may differ from the first row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3202,11 +3200,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.last : Compute the last entry of each
+        api.typing.DataFrameGroupBy.last : Compute the last entry of each
             column within each group.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
-        core.groupby.DataFrameGroupBy.head : Return the first ``n`` rows from
-            each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3267,10 +3263,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Compute the last entry of each column within each group.
 
         NA values are skipped by default, so the result is the last non-NA
-        value per column; this may differ from the last row of the group. Use
-        :meth:`~.DataFrameGroupBy.nth` with ``n=-1`` or
-        :meth:`~.DataFrameGroupBy.tail` with ``n=1`` to take the last row
-        instead, or pass ``skipna=False`` to keep NAs.
+        value per column — which may differ from the last row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3294,11 +3288,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.first : Compute the first entry of each
+        api.typing.DataFrameGroupBy.first : Compute the first entry of each
             column within each group.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
-        core.groupby.DataFrameGroupBy.tail : Return the last ``n`` rows from
-            each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
