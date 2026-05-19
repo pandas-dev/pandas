@@ -40,8 +40,8 @@ def equal_contents(arr1, arr2) -> bool:
 
 
 @pytest.fixture(
-    params=tm.ALL_REAL_NUMPY_DTYPES
-    + [
+    params=[
+        *tm.ALL_REAL_NUMPY_DTYPES,
         "object",
         "category",
         "datetime64[ns]",
@@ -63,41 +63,24 @@ def index_flat2(index_flat):
     return index_flat
 
 
-def test_union_same_types(index):
+@pytest.fixture
+def index_flat2_sortable(index_flat_sortable):
+    return index_flat_sortable
+
+
+def test_union_same_types(index_sortable):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = index.sort_values()
-    idx2 = index.sort_values()
+    idx1 = index_sortable.sort_values()
+    idx2 = index_sortable.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
-def test_union_different_types(index_flat, index_flat2, request):
+def test_union_different_types(index_flat_sortable, index_flat2_sortable):
     # This test only considers combinations of indices
     # GH 23525
-    idx1 = index_flat
-    idx2 = index_flat2
-
-    if (
-        not idx1.is_unique
-        and not idx2.is_unique
-        and idx1.dtype.kind == "i"
-        and idx2.dtype.kind == "b"
-    ) or (
-        not idx2.is_unique
-        and not idx1.is_unique
-        and idx2.dtype.kind == "i"
-        and idx1.dtype.kind == "b"
-    ):
-        # Each condition had idx[1|2].is_monotonic_decreasing
-        # but failed when e.g.
-        # idx1 = Index(
-        # [True, True, True, True, True, True, True, True, False, False], dtype='bool'
-        # )
-        # idx2 = Index([0, 0, 1, 1, 2, 2], dtype='int64')
-        mark = pytest.mark.xfail(
-            reason="GH#44000 True==1", raises=ValueError, strict=False
-        )
-        request.applymarker(mark)
+    idx1 = index_flat_sortable
+    idx2 = index_flat2_sortable
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -117,12 +100,6 @@ def test_union_different_types(index_flat, index_flat2, request):
     ):
         warn = FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
-        mark = pytest.mark.xfail(
-            reason="Warning not produced on all builds",
-            raises=AssertionError,
-            strict=False,
-        )
-        request.applymarker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -248,8 +225,8 @@ class TestSetOps:
                 first.intersection([1, 2, 3])
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_union_base(self, index):
-        index = index.unique()
+    def test_union_base(self, index_sortable):
+        index = index_sortable.unique()
         first = index[3:]
         second = index[:5]
         everything = index
@@ -300,7 +277,8 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_symmetric_difference(self, index, using_infer_string, request):
+    def test_symmetric_difference(self, index_sortable, using_infer_string, request):
+        index = index_sortable
         if (
             using_infer_string
             and index.dtype == "object"
@@ -390,11 +368,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_union_unequal(self, index_flat, fname, sname, expected_name):
-        if not index_flat.is_unique:
-            index = index_flat.unique()
+    def test_union_unequal(self, index_flat_sortable, fname, sname, expected_name):
+        if not index_flat_sortable.is_unique:
+            index = index_flat_sortable.unique()
         else:
-            index = index_flat
+            index = index_flat_sortable
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -459,11 +437,11 @@ class TestSetOps:
             (None, None, None),
         ],
     )
-    def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
-        if not index_flat.is_unique:
-            index = index_flat.unique()
+    def test_intersect_unequal(self, index_flat_sortable, fname, sname, expected_name):
+        if not index_flat_sortable.is_unique:
+            index = index_flat_sortable.unique()
         else:
-            index = index_flat
+            index = index_flat_sortable
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -914,7 +892,9 @@ class TestSetOpsUnsorted:
             op(a)
 
     def test_symmetric_difference_mi(self, sort):
-        index1 = MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3]))
+        index1 = MultiIndex.from_tuples(
+            zip(["foo", "bar", "baz"], [1, 2, 3], strict=True)
+        )
         index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
         result = index1.symmetric_difference(index2, sort=sort)
         expected = MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
@@ -1064,3 +1044,19 @@ def test_multiindex_union_mutation_safety():
 
     mi1.names = ["changed1", "changed2"]
     assert result.names == ["x", "y"]
+
+
+def test_union_disjoint_monotonic_sorted():
+    # GH#54646 - union of two disjoint monotonic-increasing Index objects
+    # should be sorted when sort is not False, even though both inputs are
+    # individually monotonic.
+    idx1 = Index([5, 6, 7])
+    idx2 = Index([1, 2, 3])
+
+    result = idx1.union(idx2, sort=None)
+    expected = Index([1, 2, 3, 5, 6, 7])
+    tm.assert_index_equal(result, expected)
+
+    result_false = idx1.union(idx2, sort=False)
+    expected_false = Index([5, 6, 7, 1, 2, 3])
+    tm.assert_index_equal(result_false, expected_false)

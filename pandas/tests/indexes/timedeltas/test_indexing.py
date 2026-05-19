@@ -65,7 +65,7 @@ class TestGetItem:
             datetime(1970, 1, 1),
             Timestamp("1970-01-03").to_datetime64(),
             # non-matching NA values
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ],
     )
     def test_timestamp_invalid_key(self, key):
@@ -131,6 +131,15 @@ class TestGetIndexer:
         res = idx.get_indexer(target, "nearest", tolerance=Timedelta("1 hour"))
         tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
 
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nat_target(self, method):
+        # GH#32572 NaT in the target should not be matched
+        tdi = to_timedelta(["0 days", "1 days", "2 days"])
+        target = TimedeltaIndex([NaT])
+        result = tdi.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestWhere:
     def test_where_doesnt_retain_freq(self):
@@ -145,26 +154,26 @@ class TestWhere:
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
         tail = tdi[2:].tolist()
-        i2 = Index([NaT, NaT] + tail)
+        i2 = Index([NaT, NaT, *tail])
         mask = notna(i2)
 
-        expected = Index([NaT._value, NaT._value] + tail, dtype=object, name="idx")
+        expected = Index([NaT._value, NaT._value, *tail], dtype=object, name="idx")
         assert isinstance(expected[0], int)
         result = tdi.where(mask, i2.asi8)
         tm.assert_index_equal(result, expected)
 
         ts = i2 + fixed_now_ts
-        expected = Index([ts[0], ts[1]] + tail, dtype=object, name="idx")
+        expected = Index([ts[0], ts[1], *tail], dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
         per = (i2 + fixed_now_ts).to_period("D")
-        expected = Index([per[0], per[1]] + tail, dtype=object, name="idx")
+        expected = Index([per[0], per[1], *tail], dtype=object, name="idx")
         result = tdi.where(mask, per)
         tm.assert_index_equal(result, expected)
 
         ts = fixed_now_ts
-        expected = Index([ts, ts] + tail, dtype=object, name="idx")
+        expected = Index([ts, ts, *tail], dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
@@ -254,18 +263,16 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=NaT)
         expected = TimedeltaIndex(["2 days", "1 days", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):

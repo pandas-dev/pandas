@@ -19,14 +19,14 @@ from pandas import (
 def test_isnull_notnull_docstrings():
     # GH#41855 make sure its clear these are aliases
     doc = pd.DataFrame.notnull.__doc__
-    assert doc.startswith("\nDataFrame.notnull is an alias for DataFrame.notna.\n")
+    assert doc.strip().startswith("DataFrame.notnull is an alias for DataFrame.notna.")
     doc = pd.DataFrame.isnull.__doc__
-    assert doc.startswith("\nDataFrame.isnull is an alias for DataFrame.isna.\n")
+    assert doc.strip().startswith("DataFrame.isnull is an alias for DataFrame.isna.")
 
     doc = Series.notnull.__doc__
-    assert doc.startswith("\nSeries.notnull is an alias for Series.notna.\n")
+    assert doc.strip().startswith("Series.notnull is an alias for Series.notna.")
     doc = Series.isnull.__doc__
-    assert doc.startswith("\nSeries.isnull is an alias for Series.isna.\n")
+    assert doc.strip().startswith("Series.isnull is an alias for Series.isna.")
 
 
 @pytest.mark.parametrize(
@@ -139,10 +139,10 @@ def test_memory_usage_components_narrow_series(any_real_numpy_dtype):
     assert total_usage == non_index_usage + index_usage
 
 
-def test_searchsorted(request, index_or_series_obj):
+def test_searchsorted(request, index_or_series_obj_orderable):
     # numpy.searchsorted calls obj.searchsorted under the hood.
     # See gh-12238
-    obj = index_or_series_obj
+    obj = index_or_series_obj_orderable
 
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833

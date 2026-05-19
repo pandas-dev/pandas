@@ -120,6 +120,16 @@ indexing pandas objects with ``[]``:
 
     Series, ``series[label]``, scalar value
     DataFrame, ``frame[colname]``, ``Series`` corresponding to colname
+    DataFrame, ``frame[[colname]]``, ``DataFrame`` with columns corresponding to ``[colname]``
+    DataFrame, ``frame[list_of_colnames]``, ``DataFrame`` with columns corresponding to ``list_of_colnames``
+
+The same principle applies to label-based selection with ``.loc``: a
+list-like of labels preserves the corresponding axis (so
+``df.loc[:, ["A"]]`` returns a ``DataFrame``, even when the list contains a
+single label), while a scalar label reduces the axis when labels on that
+axis are unique (so ``df.loc[:, "A"]`` typically returns a ``Series``; if
+``"A"`` is duplicated on the axis, a ``DataFrame`` is returned instead).
+See :ref:`indexing.label` for details.
 
 Here we construct a simple time series data set to use for illustrating the
 indexing functionality:
@@ -442,7 +452,7 @@ For example, in a ``Series`` with a non-contiguous integer index:
 .. ipython:: python
 
     s = pd.Series(range(10), index=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45])
-    s.loc[10:50:5]              # (10), then skip 3 positions → 35 only
+    s.loc[10:50:5]              # (10), then skip 5 positions → 35 only
     s.loc[[10, 15, 20, 25]]     # explicit label selection
 
 The first applies *step* across **positional locations** between the start/stop
@@ -819,14 +829,16 @@ You can also set using these same indexers.
 
 .. ipython:: python
 
-   df.at[dates[5], 'E'] = 7
+   df.at[dates[5], 'A'] = 7
    df.iat[3, 0] = 7
 
-``at`` may enlarge the object in-place as above if the indexer is missing.
+``at`` previously could enlarge the object in-place if the indexer was missing,
+but this behavior is deprecated. Use ``.loc`` instead for setting values with
+new keys:
 
 .. ipython:: python
 
-   df.at[dates[-1] + pd.Timedelta('1 day'), 0] = 7
+   df.loc[dates[-1] + pd.Timedelta('1 day'), 0] = 7
    df
 
 Boolean indexing
@@ -1780,6 +1792,9 @@ Key Points:
 * Missing index labels result in NaN values
 * This behavior is consistent across df[col] = series and df.loc[:, col] = series
 
+You can think of this as reindexing the Series to the DataFrame index before
+assignment (for example, ``df[col] = series.reindex(df.index)``).
+
 Examples:
 .. ipython:: python
 
@@ -1808,3 +1823,47 @@ Examples:
    #If you want positional assignment instead of index alignment:
    # reset the Series index to match DataFrame index
    df['s1_values'] = s1.reindex(df.index)
+
+.. _indexing.column_assignment_vs_in_place:
+
+Column assignment vs. in-place setting
+--------------------------------------
+
+While index alignment is consistent between ``df[col] = value`` and
+``df.loc[:, col] = value`` (see the previous section), the two forms differ in
+how they treat the column's existing dtype:
+
+* ``df[col] = value`` **replaces** the column. The new column's dtype is
+  inferred from ``value``, regardless of what dtype the old column had.
+* ``df.loc[:, col] = value`` (and ``df.iloc[:, i] = value``) **sets the values
+  in place** in the existing column. The original dtype is preserved, and the
+  assignment will raise ``TypeError`` if ``value`` is not compatible with it.
+
+This is most visible for :class:`~pandas.api.types.ExtensionDtype` columns
+such as ``category``, ``Int64``, ``boolean``, or ``string``, where the
+replacing form silently drops the extension dtype:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": pd.Categorical(["x", "y"], categories=["x", "y", "z"])})
+   df["a"] = "z"          # replaces the column
+   df.dtypes
+
+   df = pd.DataFrame({"a": pd.Categorical(["x", "y"], categories=["x", "y", "z"])})
+   df.loc[:, "a"] = "z"   # sets values in place
+   df.dtypes
+
+The same distinction applies to nullable numeric and boolean dtypes:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+   df["a"] = 5
+   df.dtypes
+
+   df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64")})
+   df.loc[:, "a"] = 5
+   df.dtypes
+
+Use ``df.loc[:, col] = value`` (or ``.iloc``) when you want to update every
+value of an existing column while keeping its dtype.

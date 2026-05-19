@@ -1,22 +1,29 @@
 from __future__ import annotations
 
 from functools import reduce
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
-def ensure_decoded(s) -> str:
+def ensure_decoded(s: str | bytes) -> str:
     """
     If we have bytes, decode them to unicode.
     """
     if isinstance(s, (np.bytes_, bytes)):
-        s = s.decode(get_option("display.encoding"))
+        s = s.decode(config["display"]["encoding"])
     return s
 
 
-def result_type_many(*arrays_and_dtypes):
+def result_type_many(*arrays_and_dtypes: Any) -> DtypeObj:
     """
     Wrapper around numpy.result_type which overcomes the NPY_MAXARGS (32)
     argument limit.
@@ -43,6 +50,6 @@ def result_type_many(*arrays_and_dtypes):
                 np_dtype = np.result_type(*non_ea_dtypes)
             except ValueError:
                 np_dtype = reduce(np.result_type, arrays_and_dtypes)
-            return find_common_type(ea_dtypes + [np_dtype])
+            return find_common_type([*ea_dtypes, np_dtype])
 
         return find_common_type(ea_dtypes)

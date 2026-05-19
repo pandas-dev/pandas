@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -885,7 +886,7 @@ class TestDataFrameReplace:
         values = [-2, -1, "missing"]
         result = df.replace(to_rep, values)
         expected = df.copy()
-        for rep, value in zip(to_rep, values):
+        for rep, value in zip(to_rep, values, strict=True):
             result = expected.replace(rep, value, inplace=True)
             assert result is expected
         tm.assert_frame_equal(result, expected)
@@ -1035,8 +1036,8 @@ class TestDataFrameReplace:
         # nested dictionary replacement
         df = DataFrame({"a": list(range(1, 5))})
 
-        result = df.replace({"a": dict(zip(range(1, 5), range(2, 6)))})
-        expected = df.replace(dict(zip(range(1, 5), range(2, 6))))
+        result = df.replace({"a": dict(zip(range(1, 5), range(2, 6), strict=True))})
+        expected = df.replace(dict(zip(range(1, 5), range(2, 6), strict=True)))
         tm.assert_frame_equal(result, expected)
 
     def test_nested_dict_overlapping_keys_replace_str(self):
@@ -1045,8 +1046,8 @@ class TestDataFrameReplace:
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({"a": astr})
-        result = df.replace(dict(zip(astr, bstr)))
-        expected = df.replace({"a": dict(zip(astr, bstr))})
+        result = df.replace(dict(zip(astr, bstr, strict=True)))
+        expected = df.replace({"a": dict(zip(astr, bstr, strict=True))})
         tm.assert_frame_equal(result, expected)
 
     def test_replace_swapping_bug(self):
@@ -1469,6 +1470,12 @@ class TestDataFrameReplace:
         else:
             expected = ser
         tm.assert_series_equal(result, expected)
+
+    def test_replace_datetime_out_of_bounds_for_ns(self):
+        # GH#61671
+        df = DataFrame([np.nan], dtype="datetime64[ns]")
+        with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+            df.replace(np.nan, datetime(3000, 1, 1))
 
 
 class TestDataFrameReplaceRegex:

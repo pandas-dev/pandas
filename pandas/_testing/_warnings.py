@@ -10,6 +10,7 @@ import re
 import sys
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Union,
     cast,
@@ -121,7 +122,7 @@ def assert_produces_warning(
                         )
                 else:
                     expected_warning = cast(
-                        Union[type[Warning], tuple[type[Warning], ...]],
+                        "Union[type[Warning], tuple[type[Warning], ...]]",
                         expected_warning,
                     )
                     match = (
@@ -143,7 +144,7 @@ def assert_produces_warning(
 
 
 def maybe_produces_warning(
-    warning: type[Warning], condition: bool, **kwargs
+    warning: type[Warning], condition: bool, **kwargs: Any
 ) -> AbstractContextManager:
     """
     Return a context manager that possibly checks a warning based on the condition
@@ -241,7 +242,7 @@ def _is_unexpected_warning(
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:
         return True
-    expected_warning = cast(type[Warning], expected_warning)
+    expected_warning = cast("type[Warning]", expected_warning)
     return bool(not issubclass(actual_warning.category, expected_warning))
 
 

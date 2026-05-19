@@ -259,7 +259,7 @@ class _HtmlFrameParser:
 
     def _href_getter(self, obj) -> str | None:
         """
-        Return a href if the DOM node contains a child <a> or None.
+        Return an href if the DOM node contains a child <a> or None.
 
         Parameters
         ----------
@@ -636,16 +636,16 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return row.find_all(("td", "th"), recursive=False)
 
     def _parse_thead_tr(self, table):
-        return table.select("thead tr")
+        return table.select(":scope thead tr")
 
     def _parse_tbody_tr(self, table):
-        from_tbody = table.select("tbody tr")
+        from_tbody = table.select(":scope tbody tr")
         from_root = table.find_all("tr", recursive=False)
         # HTML spec: at most one of these lists has content
         return from_tbody + from_root
 
     def _parse_tfoot_tr(self, table):
-        return table.select("tfoot tr")
+        return table.select(":scope tfoot tr")
 
     def _setup_build_doc(self):
         raw_text = _read(self.io, self.encoding, self.storage_options)
@@ -886,7 +886,7 @@ def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
 
     Parameters
     ----------
-    flavor : {{"lxml", "html5lib", "bs4"}} or None
+    flavor : {"lxml", "html5lib", "bs4"} or None
         The type of parser to use. This must be a valid backend.
 
     Returns
@@ -1044,6 +1044,15 @@ def read_html(
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
+    This function requires one of the following libraries:
+    `lxml <https://lxml.de/>`_, `html5lib <https://github.com/html5lib/html5lib-python>`_,
+    or `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/>`_.
+
+    This function searches for ``<table>`` elements within an HTML document
+    and parses their rows and columns into DataFrames. It can read from a URL,
+    a file path, or a raw HTML string, and supports filtering tables by
+    matching text content via a regular expression.
+
     Parameters
     ----------
     io : str, path object, or file-like object
@@ -1061,7 +1070,7 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
+    flavor : {"lxml", "html5lib", "bs4"} or list-like, optional
         The parsing engine (or list of parsing engines) to use. 'bs4' and
         'html5lib' are synonymous with each other, they are both there for
         backwards compatibility. The default of ``None`` tries to use ``lxml``
@@ -1075,7 +1084,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int, list-like or slice, optional
-        Number of rows to skip after parsing the column integer. 0-based. If a
+        Number of rows to skip after parsing the header. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.
@@ -1086,13 +1095,13 @@ def read_html(
         passed to lxml or Beautiful Soup. However, these attributes must be
         valid HTML table attributes to work correctly. For example, ::
 
-            attrs = {{"id": "table"}}
+            attrs = {"id": "table"}
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
         <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
-            attrs = {{"asdf": "table"}}
+            attrs = {"asdf": "table"}
 
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01
@@ -1134,11 +1143,11 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_links : {{None, "all", "header", "body", "footer"}}
+    extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior

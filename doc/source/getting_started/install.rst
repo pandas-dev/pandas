@@ -203,8 +203,8 @@ Installable with ``pip install "pandas[plot, output-formatting]"``.
 ========================================================== ================== ================== =======================================================
 Dependency                                                 Minimum Version    pip extra          Notes
 ========================================================== ================== ================== =======================================================
-`matplotlib <https://github.com/matplotlib/matplotlib>`__  3.8.3              plot               Plotting library
-`Jinja2 <https://github.com/pallets/jinja>`__              3.1.3              output-formatting  Conditional formatting with DataFrame.style
+`matplotlib <https://github.com/matplotlib/matplotlib>`__  3.9.3              plot               Plotting library
+`Jinja2 <https://github.com/pallets/jinja>`__              3.1.5              output-formatting  Conditional formatting with DataFrame.style
 `tabulate <https://github.com/astanin/python-tabulate>`__  0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================================================== ================== ================== =======================================================
 
@@ -230,10 +230,10 @@ Installable with ``pip install "pandas[excel]"``.
 ================================================================== ================== =============== =============================================================
 Dependency                                                         Minimum Version    pip extra       Notes
 ================================================================== ================== =============== =============================================================
-`xlrd <https://github.com/python-excel/xlrd>`__                    2.0.1              excel           Reading for xls files
+`xlrd <https://github.com/python-excel/xlrd>`__                    2.0.1              excel           Reading for xls files (deprecated; use python-calamine)
 `xlsxwriter <https://github.com/jmcnamara/XlsxWriter>`__           3.2.0              excel           Writing for xlsx files
 `openpyxl <https://github.com/theorchard/openpyxl>`__              3.1.5              excel           Reading / writing for Excel 2010 xlsx/xlsm/xltx/xltm files
-`pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files
+`pyxlsb <https://github.com/willtrnr/pyxlsb>`__                    1.0.10             excel           Reading for xlsb files (deprecated; use python-calamine)
 `python-calamine <https://github.com/dimastbk/python-calamine>`__  0.3.0              excel           Reading for xls/xlsx/xlsm/xlsb/xla/xlam/ods files
 `odfpy <https://github.com/eea/odfpy>`__                           1.4.1              excel           Reading / writing for OpenDocument 1.2 files
 ================================================================== ================== =============== =============================================================
@@ -248,7 +248,7 @@ Dependency                                                      Minimum Version 
 =============================================================== ================== =============== ==========================
 `BeautifulSoup4 <https://github.com/wention/BeautifulSoup4>`__  4.12.3             html            HTML parser for read_html
 `html5lib <https://github.com/html5lib/html5lib-python>`__      1.1                html            HTML parser for read_html
-`lxml <https://github.com/lxml/lxml>`__                         4.9.2              html            HTML parser for read_html
+`lxml <https://github.com/lxml/lxml>`__                         5.3.0              html            HTML parser for read_html
 =============================================================== ================== =============== ==========================
 
 One of the following combinations of libraries is needed to use the
@@ -350,7 +350,7 @@ Installable with ``pip install "pandas[clipboard]"``.
 ======================================================================================== ================== =============== ==============
 Dependency                                                                               Minimum Version    pip extra       Notes
 ======================================================================================== ================== =============== ==============
-`PyQt4 <https://pypi.org/project/PyQt4/>`__/`PyQt5 <https://pypi.org/project/PyQt5/>`__  5.15.9             clipboard       Clipboard I/O
+`PyQt5 <https://pypi.org/project/PyQt5/>`__                                              5.15.9             clipboard       Clipboard I/O
 `qtpy <https://github.com/spyder-ide/qtpy>`__                                            2.4.2              clipboard       Clipboard I/O
 ======================================================================================== ================== =============== ==============
 
@@ -368,7 +368,7 @@ Installable with ``pip install "pandas[compression]"``
 ================================================= ================== =============== ======================
 Dependency                                        Minimum Version    pip extra       Notes
 ================================================= ================== =============== ======================
-`Zstandard <https://github.com/facebook/zstd>`__  0.19.0             compression     Zstandard compression
+`Zstandard <https://github.com/facebook/zstd>`__  0.23.0             compression     Zstandard compression
 ================================================= ================== =============== ======================
 
 Timezone
@@ -379,5 +379,5 @@ Installable with ``pip install "pandas[timezone]"``
 ========================================== ================== =================== ==============================================
 Dependency                                 Minimum Version    pip extra           Notes
 ========================================== ================== =================== ==============================================
-`pytz <https://github.com/stub42/pytz>`__  2024.2             timezone            Alternative timezone library to ``zoneinfo``.
+`pytz <https://github.com/stub42/pytz>`__  2020.1             timezone            Alternative timezone library to ``zoneinfo``.
 ========================================== ================== =================== ==============================================

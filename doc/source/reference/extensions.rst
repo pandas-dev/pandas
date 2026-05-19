@@ -17,12 +17,12 @@ objects.
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
-   api.extensions.ExtensionDtype
 
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
+   api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
    arrays.NumpyExtensionArray
 
@@ -40,6 +40,8 @@ objects.
       api.extensions.ExtensionArray._from_sequence
       api.extensions.ExtensionArray._from_sequence_of_strings
       api.extensions.ExtensionArray._hash_pandas_object
+      api.extensions.ExtensionArray._is_monotonic_decreasing
+      api.extensions.ExtensionArray._is_monotonic_increasing
       api.extensions.ExtensionArray._pad_or_backfill
       api.extensions.ExtensionArray._reduce
       api.extensions.ExtensionArray._values_for_argsort
@@ -47,6 +49,7 @@ objects.
       api.extensions.ExtensionArray.argsort
       api.extensions.ExtensionArray.astype
       api.extensions.ExtensionArray.copy
+      api.extensions.ExtensionArray.count
       api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
       api.extensions.ExtensionArray.duplicated
@@ -57,6 +60,7 @@ objects.
       api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
+      api.extensions.ExtensionArray.item
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted
@@ -68,6 +72,14 @@ objects.
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
+      api.extensions.ExtensionDtype.construct_array_type
+      api.extensions.ExtensionDtype.construct_from_string
+      api.extensions.ExtensionDtype.is_dtype
+      api.extensions.ExtensionDtype.kind
+      api.extensions.ExtensionDtype.name
+      api.extensions.ExtensionDtype.names
+      api.extensions.ExtensionDtype.na_value
+      api.extensions.ExtensionDtype.type
 
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.

@@ -184,7 +184,7 @@ def _get_all_parser_float_precision_combinations():
     """
     params = []
     ids = []
-    for parser, parser_id in zip(_all_parsers, _all_parser_ids):
+    for parser, parser_id in zip(_all_parsers, _all_parser_ids, strict=True):
         if hasattr(parser, "values"):
             # Wrapped in pytest.param, get the actual parser back
             parser = parser.values[0]

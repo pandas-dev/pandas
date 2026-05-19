@@ -80,7 +80,7 @@ class TestDataFrameToStringFormatters:
             ("object", lambda x: f"-{x!s}-"),
         ]
         result = df.to_string(formatters=dict(formatters))
-        result2 = df.to_string(formatters=list(zip(*formatters))[1])
+        result2 = df.to_string(formatters=list(zip(*formatters, strict=True))[1])
         assert result == (
             "  int  float    object\n"
             "0 0x1 [ 1.0]  -(1, 2)-\n"
@@ -207,7 +207,7 @@ class TestDataFrameToStringColSpace:
     def test_to_string_repr_tuples(self):
         buf = StringIO()
 
-        df = DataFrame({"tups": list(zip(range(10), range(10)))})
+        df = DataFrame({"tups": list(zip(range(10), range(10), strict=True))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
@@ -767,6 +767,22 @@ class TestDataFrameToString:
         )
         assert result == expected
 
+    def test_to_string_na_rep_datetime_and_timedelta(self):
+        # GH#55426
+        df = DataFrame(
+            {
+                "dt": to_datetime(["2021-01-01", NaT, "2021-01-03"]),
+                "td": timedelta_range("1 day", periods=3),
+                "dt_tz": to_datetime(["2021-01-01", NaT, "2021-01-03"]).tz_localize(
+                    "US/Eastern"
+                ),
+            }
+        )
+        df.loc[1, "td"] = NaT
+        result = df.to_string(na_rep="MISSING")
+        assert "NaT" not in result
+        assert result.count("MISSING") == 3
+
     def test_to_string_string_dtype(self):
         # GH#50099
         pytest.importorskip("pyarrow")
@@ -841,10 +857,7 @@ class TestDataFrameToString:
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()
         assert (np.abs(recons["A"].dropna() - biggie["A"].dropna()) < 0.1).all()
-
-        # FIXME: don't leave commented-out
-        # expected = ['B', 'A']
-        # assert header == expected
+        assert header == ["B", "A"]
 
         result = biggie.to_string(columns=["A"], col_space=17)
         header = result.split("\n")[0].strip().split()

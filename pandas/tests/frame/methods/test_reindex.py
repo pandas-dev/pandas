@@ -168,16 +168,20 @@ class TestDataFrameSelectReindex:
         ts = df.iloc[0, 0]
         fv = ts.date()
 
-        res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+        msg = "reindexing with a fill_value that cannot be held"
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
 
         expected = DataFrame(
-            {"A": df["A"].tolist() + [fv], "B": df["B"].tolist() + [fv], "C": [fv] * 4},
+            {"A": [*df["A"].tolist(), fv], "B": [*df["B"].tolist(), fv], "C": [fv] * 4},
             dtype=object,
         )
         tm.assert_frame_equal(res, expected)
 
         # only reindexing rows
-        res = df.reindex(index=range(4), fill_value=fv)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = df.reindex(index=range(4), fill_value=fv)
         tm.assert_frame_equal(res, expected[["A", "B"]])
 
         # same with a datetime-castable str
@@ -185,7 +189,7 @@ class TestDataFrameSelectReindex:
             index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
         )
         expected = DataFrame(
-            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4},
+            {"A": [*df["A"].tolist(), ts], "B": [*df["B"].tolist(), ts], "C": [ts] * 4},
         )
         tm.assert_frame_equal(res, expected)
 
@@ -539,7 +543,7 @@ class TestDataFrameSelectReindex:
         dr = date_range("2013-08-01", periods=6, freq="B")
         data = np.random.default_rng(2).standard_normal((6, 1))
         df = DataFrame(data, index=dr, columns=list("A"))
-        df_rev = DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]], columns=list("A"))
+        df_rev = DataFrame(data, index=dr[[3, 4, 5, 0, 1, 2]], columns=list("A"))
         # index is not monotonic increasing or decreasing
         msg = "index must be monotonic increasing or decreasing"
         with pytest.raises(ValueError, match=msg):
@@ -796,7 +800,9 @@ class TestDataFrameSelectReindex:
 
         # other dtypes
         df["foo"] = "foo"
-        result = df.reindex(range(15), fill_value="0")
+        msg = "reindexing with a fill_value that cannot be held"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.reindex(range(15), fill_value="0")
         expected = df.reindex(range(15)).fillna("0")
         tm.assert_frame_equal(result, expected)
 
@@ -817,6 +823,13 @@ class TestDataFrameSelectReindex:
         expected = DataFrame(
             {"a": Series([1, 2, 10], dtype=any_numeric_ea_dtype), "b": 10}
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_with_string_fill_value(self):
+        # GH#63993
+        df = DataFrame({"a": [0]})
+        result = df.reindex(columns=["a", "b", "c"], fill_value="missing")
+        expected = DataFrame({"a": [0], "b": ["missing"], "c": ["missing"]})
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
@@ -1227,12 +1240,14 @@ class TestDataFrameSelectReindex:
         index = df.index.append(Index([1]))
         columns = df.columns.append(Index(["foo"]))
 
-        res = df.reindex(index=index, columns=columns, fill_value=fv)
+        msg = "reindexing with a fill_value that cannot be held"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = df.reindex(index=index, columns=columns, fill_value=fv)
 
         expected = DataFrame(
             {
-                0: df[0].tolist() + [fv],
-                1: df[1].tolist() + [fv],
+                0: [*df[0].tolist(), fv],
+                1: [*df[1].tolist(), fv],
                 "foo": np.array(["NaT"] * 6, dtype=fv.dtype),
             },
             index=index,

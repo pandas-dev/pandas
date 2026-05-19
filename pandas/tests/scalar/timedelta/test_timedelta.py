@@ -567,9 +567,9 @@ class TestTimedeltas:
         with pytest.raises(ValueError, match=msg):
             Timedelta("- 1days, 00")
 
-    def test_pickle(self, tmp_path):
+    def test_pickle(self, temp_file):
         v = Timedelta("1 days 10:11:12.0123456")
-        v_p = tm.round_trip_pickle(v, tmp_path)
+        v_p = tm.round_trip_pickle(v, temp_file)
         assert v == v_p
 
     def test_timedelta_hash_equality(self):

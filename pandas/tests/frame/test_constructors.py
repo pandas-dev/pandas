@@ -24,6 +24,7 @@ import pytest
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -374,9 +375,9 @@ class TestDataFrameConstructors:
                 for d in dtypes
             ]
 
-        for d, a in zip(dtypes, arrays):
+        for d, a in zip(dtypes, arrays, strict=True):
             assert a.dtype == d
-        ad.update(dict(zip(dtypes, arrays)))
+        ad.update(dict(zip(dtypes, arrays, strict=True)))
         df = DataFrame(ad)
 
         dtypes = MIXED_FLOAT_DTYPES + MIXED_INT_DTYPES
@@ -491,7 +492,7 @@ class TestDataFrameConstructors:
         nums = list(range(nitems))
         np.random.default_rng(2).shuffle(nums)
         expected = [f"A{i:d}" for i in nums]
-        df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems)))
+        df = DataFrame(OrderedDict(zip(expected, [[0]] * nitems, strict=True)))
         assert expected == list(df.columns)
 
     def test_constructor_dict(self):
@@ -641,6 +642,38 @@ class TestDataFrameConstructors:
         expected = DataFrame([[1, 2], [2, 3]], columns=[np.nan, 2])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_constructor_list_of_dict_with_str_na_key(
+        self, missing_value, using_infer_string
+    ):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        # preserve values when None key is converted to NaN column name
+        dict_data = [
+            {"colA": 1, missing_value: 2},
+            {"colA": 3, missing_value: 4},
+        ]
+        result = DataFrame(dict_data)
+        expected = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=["colA", np.nan if using_infer_string else missing_value],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("missing_value", [None, np.nan, pd.NA])
+    def test_constructor_dict_of_dict_with_str_na_key(
+        self, missing_value, using_infer_string
+    ):
+        # https://github.com/pandas-dev/pandas/issues/63889
+        dict_data = {"col": {"row1": 1, missing_value: 2, "row3": 3}}
+        result = DataFrame(dict_data)
+        expected = DataFrame(
+            {"col": [1, 2, 3]},
+            index=Index(
+                ["row1", np.nan if using_infer_string else missing_value, "row3"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_multi_index(self):
         # GH 4078
         # construction error with mi and all-nan frame
@@ -784,8 +817,12 @@ class TestDataFrameConstructors:
     def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
-            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)])),
-            "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
+            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)], strict=True)),
+            "B": dict(
+                zip(
+                    range(15), np.random.default_rng(2).standard_normal(15), strict=True
+                )
+            ),
         }
         with pytest.raises(ValueError, match="could not convert string"):
             DataFrame(test_data, dtype=float)
@@ -805,7 +842,7 @@ class TestDataFrameConstructors:
 
         result = DataFrame(data)
         expected = DataFrame({k: list(v) for k, v in data.items()})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_of_ranges(self):
         # GH 26356
@@ -1368,18 +1405,18 @@ class TestDataFrameConstructors:
         columns = ["num", "str"]
         result = DataFrame(lst_containers, columns=columns)
         expected = DataFrame([[1, "a"], [2, "b"]], columns=columns)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_stdlib_array(self):
         # GH 4297
         # support Array
         result = DataFrame({"A": array.array("i", range(10))})
         expected = DataFrame({"A": list(range(10))})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
         expected = DataFrame([list(range(10)), list(range(10))])
         result = DataFrame([array.array("i", range(10)), array.array("i", range(10))])
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_range(self):
         # GH26342
@@ -1426,7 +1463,7 @@ class TestDataFrameConstructors:
         gen = ([i, "a"] for i in range(10))
         result = DataFrame(gen)
         expected = DataFrame({0: range(10), 1: "a"})
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dicts(self):
         result = DataFrame([{}])
@@ -1519,7 +1556,7 @@ class TestDataFrameConstructors:
         idx = Index(range(3))
         df = DataFrame({"a": 0}, index=idx)
         expected = DataFrame({"a": [0, 0, 0]}, index=idx)
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        tm.assert_frame_equal(df, expected)
 
     def test_constructor_Series_copy_bug(self, float_frame):
         df = DataFrame(float_frame["A"], index=float_frame.index, columns=["A"])
@@ -1729,7 +1766,8 @@ class TestDataFrameConstructors:
             Index(["c", "d", "e"], name=name_in3),
         ]
         series = {
-            c: Series([0, 1, 2], index=i) for i, c in zip(indices, ["x", "y", "z"])
+            c: Series([0, 1, 2], index=i)
+            for i, c in zip(indices, ["x", "y", "z"], strict=True)
         }
         result = DataFrame(series)
 
@@ -1884,15 +1922,15 @@ class TestDataFrameConstructors:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")]
-            + [np.dtype("int64")]
-            + [
+            [
+                np.dtype("float64"),
+                np.dtype("int64"),
                 np.dtype("object")
                 if not using_infer_string
-                else pd.StringDtype(na_value=np.nan)
-            ]
-            + [np.dtype("float64")]
-            + [np.dtype(intname)],
+                else pd.StringDtype(na_value=np.nan),
+                np.dtype("float64"),
+                np.dtype(intname),
+            ],
             index=["a", "b", "c", floatname, intname],
         )
         tm.assert_series_equal(result, expected)
@@ -1910,15 +1948,15 @@ class TestDataFrameConstructors:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")]
-            + [np.dtype("int64")]
-            + [
+            [
+                np.dtype("float64"),
+                np.dtype("int64"),
                 np.dtype("object")
                 if not using_infer_string
-                else pd.StringDtype(na_value=np.nan)
-            ]
-            + [np.dtype("float64")]
-            + [np.dtype(intname)],
+                else pd.StringDtype(na_value=np.nan),
+                np.dtype("float64"),
+                np.dtype(intname),
+            ],
             index=["a", "b", "c", floatname, intname],
         )
         tm.assert_series_equal(result, expected)
@@ -2000,11 +2038,11 @@ class TestDataFrameConstructors:
         [
             np.array([None, None, None, None, datetime.now(), None]),
             np.array([None, None, datetime.now(), None]),
-            [[np.datetime64("NaT")], [None]],
-            [[np.datetime64("NaT")], [pd.NaT]],
-            [[None], [np.datetime64("NaT")]],
+            [[np.datetime64("NaT", "ns")], [None]],
+            [[np.datetime64("NaT", "ns")], [pd.NaT]],
+            [[None], [np.datetime64("NaT", "ns")]],
             [[None], [pd.NaT]],
-            [[pd.NaT], [np.datetime64("NaT")]],
+            [[pd.NaT], [np.datetime64("NaT", "ns")]],
             [[pd.NaT], [None]],
         ],
     )
@@ -2089,6 +2127,39 @@ class TestDataFrameConstructors:
         # TODO(2.0): ideally we should get the same 'expected' without passing
         #  dtype=exp_dtype.
         tm.assert_frame_equal(df, expected)
+
+    def test_constructor_list_of_timedeltaindex_with_nat(self):
+        # GH#23985 NaT in TimedeltaIndex should not be cast to datetime64
+        tdi = pd.TimedeltaIndex(["1 Day", "NaT"])
+        result = DataFrame([tdi])
+        expected = DataFrame([[Timedelta("1 Day"), pd.NaT]], dtype="timedelta64[us]")
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_datetimeindex_with_nat(self):
+        # GH#23985
+        dti = DatetimeIndex(["2020-01-01", "NaT"])
+        result = DataFrame([dti])
+        expected = DataFrame(
+            [[Timestamp("2020-01-01"), pd.NaT]], dtype="datetime64[us]"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_constructor_list_of_ea_preserves_dtype(self):
+        # GH#49593 uniform EA dtypes should be preserved
+        arrs = [
+            pd.array([1, 2, 3], dtype="int64[pyarrow]"),
+            pd.array([4, 5, 6], dtype="int64[pyarrow]"),
+        ]
+        result = DataFrame(arrs)
+        expected = DataFrame(
+            {
+                0: pd.array([1, 4], dtype="int64[pyarrow]"),
+                1: pd.array([2, 5], dtype="int64[pyarrow]"),
+                2: pd.array([3, 6], dtype="int64[pyarrow]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_for_list_with_dtypes(self, using_infer_string):
         # test list of lists/ndarrays
@@ -2262,10 +2333,13 @@ class TestDataFrameConstructors:
     def test_construct_from_1item_list_of_categorical(self):
         # pre-2.0 this behaved as DataFrame({0: cat}), in 2.0 we remove
         #  Categorical special case
-        # ndim != 1
+        # pre-3.1 this lost the Categorical dtype, going through object
+        #  inference; GH#49593 preserves uniform EA dtypes
         cat = Categorical(list("abc"))
         df = DataFrame([cat])
-        expected = DataFrame([cat.astype(object)])
+        expected = DataFrame(
+            {idx: Categorical([val], dtype=cat.dtype) for idx, val in enumerate(cat)}
+        )
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_list_of_categoricals(self):
@@ -3151,6 +3225,21 @@ class TestDataFrameConstructorWithDatetimeTZ:
         res = DataFrame(data)
         assert res["a"].dtype == np.object_
         assert (res["a"] == data["a"]).all()
+
+    def test_2d_ea_with_dtype_cast(self):
+        # GH#64634 - Constructing a DataFrame from a 2D tz-aware DatetimeArray
+        # with a different dtype
+        dta = pd.array(date_range("2020-01-01", periods=6, tz="UTC"))
+        arr2d = dta.reshape(3, 2)
+
+        result = DataFrame(arr2d, dtype="datetime64[ns, US/Eastern]")
+        expected = DataFrame(
+            {
+                0: arr2d[:, 0].astype("datetime64[ns, US/Eastern]"),
+                1: arr2d[:, 1].astype("datetime64[ns, US/Eastern]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def get1(obj):  # TODO: make a helper in tm?

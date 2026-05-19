@@ -127,7 +127,7 @@ def extract_bool_array(mask: ArrayLike) -> npt.NDArray[np.bool_]:
     return mask
 
 
-def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
+def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other: Any) -> Any:
     """
     Parameters
     ----------

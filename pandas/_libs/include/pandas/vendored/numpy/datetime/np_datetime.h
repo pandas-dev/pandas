@@ -17,7 +17,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #pragma once
 
 #ifndef NPY_NO_DEPRECATED_API
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#  define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
@@ -86,6 +86,12 @@ int is_leapyear(npy_int64 year);
  * Calculates the days offset from the 1970 epoch.
  */
 npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts);
+
+/*
+ * Fills in the year, month, day in 'dts' based on the days
+ * offset from 1970. Uses Neri-Schneider branchless algorithm.
+ */
+void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts);
 
 /*
  * Compares two npy_datetimestruct objects chronologically

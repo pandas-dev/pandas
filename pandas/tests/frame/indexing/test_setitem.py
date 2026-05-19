@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -663,7 +666,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list_of_tuples(self, float_frame):
-        tuples = list(zip(float_frame["A"], float_frame["B"]))
+        tuples = list(zip(float_frame["A"], float_frame["B"], strict=True))
         float_frame["tuples"] = tuples
 
         result = float_frame["tuples"]
@@ -774,10 +777,8 @@ class TestDataFrameSetItem:
 
     def test_setitem_string_option_object_index(self):
         # GH#55638
-        pytest.importorskip("pyarrow")
         df = DataFrame({"a": [1, 2]})
-        with pd.option_context("future.infer_string", True):
-            df["b"] = Index(["a", "b"], dtype=object)
+        df["b"] = Index(["a", "b"], dtype=object)
         expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
         tm.assert_frame_equal(df, expected)
 
@@ -1158,6 +1159,25 @@ class TestDataFrameSetItemBooleanMask:
         # category c is kept in .categories
         tm.assert_frame_equal(df, exp_fancy)
 
+    def test_setitem_mask_assign_NaT_with_datetime(self):
+        # GH 46294
+        # after boolean masking assignment, NaT should align column-wise
+        df = DataFrame(
+            [pd.to_datetime(["2000", "2001"]), pd.to_datetime(["2000", "2002"])],
+            index=pd.to_datetime(["2000", "2000"]),
+        )
+        mask = df > df.index.to_numpy().reshape(-1, 1)
+        df[mask] = NaT
+        expected = DataFrame(
+            [
+                pd.to_datetime(["2000", NaT]),
+                pd.to_datetime(["2000", NaT]),
+            ],
+            index=pd.to_datetime(["2000", "2000"]),
+            dtype="datetime64[us]",
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("dtype", ["float", "int64"])
     @pytest.mark.parametrize("kwargs", [{}, {"index": [1]}, {"columns": ["A"]}])
     def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
@@ -1290,13 +1310,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         [
             "a",
             ["a"],
-            pytest.param(
-                [True, False],
-                marks=pytest.mark.xfail(
-                    reason="Boolean indexer incorrectly setting inplace",
-                    strict=False,  # passing on some builds, no obvious pattern
-                ),
-            ),
+            [True, False],
         ],
     )
     @pytest.mark.parametrize(
@@ -1479,3 +1493,13 @@ def test_setitem_partial_row_multiple_columns():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_tz_aware_column_expansion():
+    # GH#55423
+    # Enlarging a DataFrame with a tz-aware datetime via loc
+    # should preserve datetime64[us, tz] dtype, not fall back to object
+    df = DataFrame([{"id": 1}, {"id": 2}, {"id": 3}])
+    _time = datetime.fromtimestamp(1695887042, timezone.utc)
+    df.loc[df.id >= 2, "time"] = _time
+    assert df["time"].dtype == DatetimeTZDtype(tz="UTC", unit="us")

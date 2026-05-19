@@ -315,8 +315,27 @@ def test_readjson_nrows(nrows, engine):
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(result, expected)
 
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}"""
+    result = read_json(StringIO(jsonl), lines=True, nrows=0)
+    expected = DataFrame()
+    tm.assert_frame_equal(result, expected)
 
-@pytest.mark.parametrize("nrows,chunksize", [(2, 2), (4, 2)])
+
+def test_readjson_nrows_not_implemented_pyarrow(temp_file):
+    # GH 64025
+    pytest.importorskip("pyarrow.json")
+
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}"""
+    Path(temp_file).write_text(jsonl, encoding="utf-8")
+
+    msg = "currently pyarrow engine doesn't support nrows parameter"
+    with pytest.raises(NotImplementedError, match=msg):
+        read_json(temp_file, lines=True, nrows=1, engine="pyarrow")
+
+
+@pytest.mark.parametrize("nrows,chunksize", [(2, 2), (3, 2), (4, 2)])
 def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
     # GH 33916
     # Test reading line-format JSON to Series with nrows and chunksize param
@@ -345,6 +364,22 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
             chunked = pd.concat(reader)
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(chunked, expected)
+
+
+@pytest.mark.parametrize(
+    "jsonl,nrows",
+    [('{"a":1}\n{"a":2}\n', 0), ("", None)],
+)
+def test_readjson_read_empty_chunks(jsonl, nrows):
+    # GH 64025
+    kwargs = {"lines": True, "chunksize": 2}
+    if nrows is not None:
+        kwargs["nrows"] = nrows
+
+    with read_json(StringIO(jsonl), **kwargs) as reader:
+        result = reader.read()
+
+    tm.assert_frame_equal(result, DataFrame())
 
 
 def test_readjson_nrows_requires_lines(engine):

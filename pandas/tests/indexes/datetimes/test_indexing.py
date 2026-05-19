@@ -125,7 +125,7 @@ class TestWhere:
         index = date_range("20130101", periods=3, tz="US/Eastern")
         if is_td:
             index = index - index[0]
-        other = Index([pd.NaT, pd.NaT] + index[2:].tolist())
+        other = Index([pd.NaT, pd.NaT, *index[2:].tolist()])
 
         result = index.where(notna(other), other)
         assert result.freq is None
@@ -148,12 +148,12 @@ class TestWhere:
             tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
-        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
         result = i.where(notna(i2), i2)
         tm.assert_index_equal(result, i2)
 
         i2 = i.copy()
-        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
         result = i.where(notna(i2), i2._values)
         tm.assert_index_equal(result, i2)
 
@@ -161,41 +161,40 @@ class TestWhere:
         dti = date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
 
         tail = dti[2:].tolist()
-        i2 = Index([pd.NaT, pd.NaT] + tail)
+        i2 = Index([pd.NaT, pd.NaT, *tail])
 
         mask = notna(i2)
 
         # passing tz-naive ndarray to tzaware DTI
         result = dti.where(mask, i2.values)
-        expected = Index([pd.NaT.asm8, pd.NaT.asm8] + tail, dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         # passing tz-aware DTI to tznaive DTI
         naive = dti.tz_localize(None)
         result = naive.where(mask, i2)
-        expected = Index([i2[0], i2[1]] + naive[2:].tolist(), dtype=object)
+        expected = Index([i2[0], i2[1], *naive[2:].tolist()], dtype=object)
         tm.assert_index_equal(result, expected)
 
         pi = i2.tz_localize(None).to_period("D")
         result = dti.where(mask, pi)
-        expected = Index([pi[0], pi[1]] + tail, dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         tda = i2.asi8.view("timedelta64[ns]")
         result = dti.where(mask, tda)
-        expected = Index([tda[0], tda[1]] + tail, dtype=object)
-        assert isinstance(expected[0], np.timedelta64)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
-        expected = Index([pd.NaT._value, pd.NaT._value] + tail, dtype=object)
+        expected = Index([pd.NaT._value, pd.NaT._value, *tail], dtype=object)
         assert isinstance(expected[0], int)
         tm.assert_index_equal(result, expected)
 
         # non-matching scalar
         td = pd.Timedelta(days=4)
         result = dti.where(mask, td)
-        expected = Index([td, td] + tail, dtype=object)
+        expected = Index([td, td, *tail], dtype=object)
         assert expected[0] is td
         tm.assert_index_equal(result, expected)
 
@@ -218,7 +217,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         i2 = i.copy()
-        i2 = Index([pd.NaT, pd.NaT] + i[2:].tolist())
+        i2 = Index([pd.NaT, pd.NaT, *i[2:].tolist()])
         result = i.where(notna(i2))
         expected = i2
         tm.assert_index_equal(result, expected)
@@ -341,18 +340,16 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
         expected = DatetimeIndex(["2011-02-01", "2011-01-01", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = DatetimeIndex(["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -373,22 +370,20 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
         expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "NaT"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -476,10 +471,10 @@ class TestGetLoc:
 
         assert index.get_loc(pd.NA) == 1
 
-        assert index.get_loc(np.datetime64("NaT")) == 1
+        assert index.get_loc(np.datetime64("NaT", "ns")) == 1
 
         with pytest.raises(KeyError, match="NaT"):
-            index.get_loc(np.timedelta64("NaT"))
+            index.get_loc(np.timedelta64("NaT", "ns"))
 
     @pytest.mark.parametrize("key", [pd.Timedelta(0), pd.Timedelta(1), timedelta(0)])
     def test_get_loc_timedelta_invalid_key(self, key):
@@ -549,7 +544,9 @@ class TestGetIndexer:
     def test_get_indexer_date_objs(self):
         rng = date_range("1/1/2000", periods=20)
 
-        result = rng.get_indexer(rng.map(lambda x: x.date()))
+        msg = "Inferring datetime64 from data containing datetime.date objects"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = rng.get_indexer(rng.map(lambda x: x.date()))
         expected = rng.get_indexer(rng)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -604,7 +601,11 @@ class TestGetIndexer:
     def test_get_indexer_mixed_dtypes(self, target):
         # https://github.com/pandas-dev/pandas/issues/33741
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
-        result = values.get_indexer(target)
+        # GH#62158 mixed date/Timestamp list infers as "date", triggering
+        # the _maybe_downcast_for_indexing fallback
+        msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = values.get_indexer(target)
         expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -617,10 +618,35 @@ class TestGetIndexer:
         ],
     )
     def test_get_indexer_out_of_bounds_date(self, target, positions):
+        # GH#62158
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
 
-        result = values.get_indexer(target)
+        msg = "Indexing a DatetimeIndex with a sequence of datetime.date"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = values.get_indexer(target)
         expected = np.array(positions, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nat_target(self, tz, method):
+        # GH#32572 NaT in the target should not be matched
+        dti = date_range("2020-01-01", periods=5, tz=tz)
+        target = DatetimeIndex([pd.NaT], dtype=dti.dtype)
+        result = dti.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nat_in_target_mixed(self, tz, method):
+        # GH#32572 NaT entries should get -1, real entries should match normally
+        dti = date_range("2020-01-01", periods=5, tz=tz)
+        target = DatetimeIndex(
+            [pd.NaT, Timestamp("2020-01-03", tz=tz), pd.NaT], dtype=dti.dtype
+        )
+        result = dti.get_indexer(target, method=method)
+        expected = np.array([-1, 2, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_pad_requires_monotonicity(self):

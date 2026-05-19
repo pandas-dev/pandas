@@ -2,13 +2,13 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.13.1",
-    "meson>=1.2.1,<2",
+    "meson-python>=0.19.0,<1",
+    "meson>=1.2.3,<2",
     "wheel",
-    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
+    # Force numpy higher than 2.0, so that built wheels are compatible
     # with both numpy 1 and 2
-    "numpy>=2.0.0rc1",
+    "numpy>=2.0.0",
     "versioneer[toml]"
 ]
 
@@ -16,18 +16,37 @@ build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
-dynamic = [
-  'version'
-]
+dynamic = ['version']
 description = 'Powerful data structures for data analysis, time series, and statistics'
 readme = 'README.md'
 authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
-license = {file = 'LICENSE'}
+license = 'BSD-3-Clause'
+license-files = [
+  "LICENSE", # BSD-3-Clause
+  "LICENSES/BOTTLENECK_LICENCE", # BSD-2-Clause
+  "LICENSES/DATEUTIL_LICENSE", # Apache-2.0
+  "LICENSES/HAVEN_LICENSE", # MIT
+  "LICENSES/HAVEN_MIT", # MIT
+  "LICENSES/KLIB_LICENSE", # MIT
+  "LICENSES/MUSL_LICENSE", # MIT
+  "LICENSES/NUMPY_LICENSE", # BSD-3-Clause
+  "LICENSES/PACKAGING_LICENSE", # Apache-2.0
+  "LICENSES/PSF_LICENSE", #  PSF-2.0
+  "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
+  "LICENSES/PYUPGRADE_LICENSE", # MIT
+  "LICENSES/SAS7BDAT_LICENSE", # MIT
+  "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
+  "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
+  "subprojects/fast_float-*/LICENSE-BOOST", # BSL
+  "subprojects/fast_float-*/LICENSE-MIT", # MIT
+]
 requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.26.0",
+  "numpy>=1.26.0; python_version < '3.14'",
+  # Earlier versions of NumPy are fundamentally broken on 3.14
+  "numpy>=2.3.3; python_version >= '3.14'",
   "python-dateutil>=2.8.2",
   "tzdata; sys_platform == 'win32'",
   # Emscripten is the platform system for Pyodide.
@@ -37,7 +56,6 @@ classifiers = [
     'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: BSD License',
     'Operating System :: OS Independent',
     'Programming Language :: Cython',
     'Programming Language :: Python',
@@ -52,8 +70,11 @@ classifiers = [
 
 [project.urls]
 homepage = 'https://pandas.pydata.org'
+source = 'https://github.com/pandas-dev/pandas'
 documentation = 'https://pandas.pydata.org/docs/'
-repository = 'https://github.com/pandas-dev/pandas'
+changelog = 'https://pandas.pydata.org/docs/whatsnew/index.html'
+issues = 'https://github.com/pandas-dev/pandas/issues'
+funding = 'https://opencollective.com/pandas'
 
 [project.entry-points."pandas_plotting_backends"]
 matplotlib = "pandas:plotting._matplotlib"
@@ -81,7 +102,7 @@ plot = ['matplotlib>=3.9.3']
 output-formatting = ['jinja2>=3.1.5', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.4.2']
 compression = ['zstandard>=0.23.0']
-timezone = ['pytz>=2024.2']
+timezone = ['pytz>=2020.1']
 all = ['adbc-driver-postgresql>=1.2.0',
        'adbc-driver-sqlite>=1.2.0',
        'beautifulsoup4>=4.12.3',
@@ -107,7 +128,7 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'pytest>=8.3.4',
        'pytest-xdist>=3.6.1',
        'python-calamine>=0.3.0',
-       'pytz>=2024.2',
+       'pytz>=2020.1',
        'pyxlsb>=1.0.10',
        'qtpy>=2.4.2',
        'scipy>=1.14.1',
@@ -119,17 +140,6 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'xlrd>=2.0.1',
        'xlsxwriter>=3.2.0',
        'zstandard>=0.23.0']
-
-# TODO: Remove after setuptools support is dropped.
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.packages.find]
-include = ["pandas", "pandas.*"]
-namespaces = false
-
-[tool.setuptools.exclude-package-data]
-"*" = ["*.c", "*.h"]
 
 # See the docstring in versioneer.py for instructions. Note that you must
 # re-run 'versioneer.py setup' after changing this section, and commit the
@@ -143,59 +153,52 @@ tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
-setup = ['--vsenv'] # For Windows
+dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
-build-verbosity = 3
+build-verbosity = 1
+build-frontend = "pip"
+config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
+  python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-enable = ["cpython-freethreading"]
-before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
+config-settings = { setup-args = ["--vsenv"] }
 environment = {}
-before-build = "pip install delvewheel"
+before-build = "python -m pip install delvewheel"
+# powershell needs to swap quotes?
 test-command = """
-  set PANDAS_CI='1' && \
   python -c "import pandas as pd; \
-  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
+  pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-manylinux_aarch64*"
-test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
-  """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
-# Don't strip wheels on macOS.
-# macOS doesn't support stripping wheels with linker
-# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
+build-frontend = "build"
+# pytest-xdist cannot be used on Pyodide
+# OSError: [Errno 138] emscripten does not support processes
 test-command = """
-  PANDAS_CI='1' python -c 'import pandas as pd; \
+  python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
@@ -299,8 +302,6 @@ ignore = [
   "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
-  # try-except-in-loop, becomes useless in Python 3.11
-  "PERF203",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -329,16 +330,10 @@ ignore = [
   "PLR2004",
   # comparison-with-itself
   "PLR0124",
-  # collection-literal-concatenation
-  "RUF005",
-  # pairwise-over-zipped
-  "RUF007",
   # mutable-class-default
   "RUF012",
   # type-comparison
   "E721",
-  # repeated-equality-comparison
-  "PLR1714",
   # self-or-cls-assignment
   "PLW0642",
   # literal-membership
@@ -357,10 +352,6 @@ ignore = [
   "PLW1641", # 16 errors
   # Bad or misspelled dunder method name
   "PLW3201", # 69 errors, seems to be all false positive
-  # Unnecessary lookup of dictionary value by key
-  "PLR1733", # 5 errors, it seems like we wannt to ignore these
-  # Unnecessary lookup of list item by index
-  "PLR1736", # 4 errors, we're currently having inline pylint ignore
   # Unpacking a dictionary in iteration without calling `.items()`
   "PLE1141", # autofixable
   # import-outside-toplevel
@@ -391,8 +382,6 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
-  # runtime-cast-value
-  "TC006",
   # unused-unpacked-variable
   "RUF059",
   # pytest-raises-ambiguous-pattern
@@ -432,155 +421,9 @@ exclude = [
 # relative imports allowed for asv_bench
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
-"pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028", "FLY"]
-"scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TC"]
-
-# TODO: Fix B905 (zip-without-explicit-strict) - Remove files below as they're fixed
-# For contributors working on this issue:
-# After adding strict={True,False} to zip() calls in a file,
-# remove its line from this section
-"asv_bench/benchmarks/ctors.py" = ["B905"]
-"asv_bench/benchmarks/series_methods.py" = ["B905"]
-"pandas/_config/config.py" = ["B905"]
-"pandas/conftest.py" = ["B905"]
-"pandas/core/array_algos/quantile.py" = ["B905"]
-"pandas/core/computation/align.py" = ["B905"]
-"pandas/core/computation/expr.py" = ["B905"]
-"pandas/core/computation/ops.py" = ["B905"]
-"pandas/core/groupby/generic.py" = ["B905"]
-"pandas/core/groupby/groupby.py" = ["B905"]
-"pandas/core/groupby/grouper.py" = ["B905"]
-"pandas/core/groupby/ops.py" = ["B905"]
-"pandas/core/methods/to_dict.py" = ["B905"]
-"pandas/core/reshape/encoding.py" = ["B905"]
-"pandas/core/reshape/melt.py" = ["B905"]
-"pandas/core/reshape/merge.py" = ["B905"]
-"pandas/core/reshape/pivot.py" = ["B905"]
-"pandas/core/reshape/reshape.py" = ["B905"]
-"pandas/core/window/rolling.py" = ["B905"]
-"pandas/_testing/asserters.py" = ["B905"]
-"pandas/_testing/_warnings.py" = ["B905"]
-"pandas/tests/apply/test_series_apply.py" = ["B905"]
-"pandas/tests/computation/test_eval.py" = ["B905"]
-"pandas/tests/copy_view/test_functions.py" = ["B905"]
-"pandas/tests/dtypes/test_inference.py" = ["B905"]
-"pandas/tests/extension/base/methods.py" = ["B905"]
-"pandas/tests/extension/date/array.py" = ["B905"]
-"pandas/tests/extension/decimal/array.py" = ["B905"]
-"pandas/tests/extension/json/array.py" = ["B905"]
-"pandas/tests/extension/test_arrow.py" = ["B905"]
-"pandas/tests/extension/test_categorical.py" = ["B905"]
-"pandas/tests/extension/test_interval.py" = ["B905"]
-"pandas/tests/frame/conftest.py" = ["B905"]
-"pandas/tests/frame/constructors/test_from_dict.py" = ["B905"]
-"pandas/tests/frame/indexing/test_delitem.py" = ["B905"]
-"pandas/tests/frame/indexing/test_getitem.py" = ["B905"]
-"pandas/tests/frame/indexing/test_indexing.py" = ["B905"]
-"pandas/tests/frame/indexing/test_setitem.py" = ["B905"]
-"pandas/tests/frame/indexing/test_xs.py" = ["B905"]
-"pandas/tests/frame/methods/test_drop.py" = ["B905"]
-"pandas/tests/frame/methods/test_isin.py" = ["B905"]
-"pandas/tests/frame/methods/test_pop.py" = ["B905"]
-"pandas/tests/frame/methods/test_replace.py" = ["B905"]
-"pandas/tests/frame/methods/test_reset_index.py" = ["B905"]
-"pandas/tests/frame/methods/test_to_dict.py" = ["B905"]
-"pandas/tests/frame/test_api.py" = ["B905"]
-"pandas/tests/frame/test_constructors.py" = ["B905"]
-"pandas/tests/frame/test_iteration.py" = ["B905"]
-"pandas/tests/frame/test_query_eval.py" = ["B905"]
-"pandas/tests/frame/test_stack_unstack.py" = ["B905"]
-"pandas/tests/frame/test_subclass.py" = ["B905"]
-"pandas/tests/frame/test_ufunc.py" = ["B905"]
-"pandas/tests/groupby/test_groupby_dropna.py" = ["B905"]
-"pandas/tests/groupby/test_groupby.py" = ["B905"]
-"pandas/tests/groupby/test_grouping.py" = ["B905"]
-"pandas/tests/groupby/test_raises.py" = ["B905"]
-"pandas/tests/groupby/test_timegrouper.py" = ["B905"]
-"pandas/tests/groupby/transform/test_transform.py" = ["B905"]
-"pandas/tests/indexes/categorical/test_map.py" = ["B905"]
-"pandas/tests/indexes/datetimes/methods/test_astype.py" = ["B905"]
-"pandas/tests/indexes/datetimes/test_formats.py" = ["B905"]
-"pandas/tests/indexes/datetimes/test_partial_slicing.py" = ["B905"]
-"pandas/tests/indexes/datetimes/test_scalar_compat.py" = ["B905"]
-"pandas/tests/indexes/datetimes/test_timezones.py" = ["B905"]
-"pandas/tests/indexes/interval/test_constructors.py" = ["B905"]
-"pandas/tests/indexes/interval/test_formats.py" = ["B905"]
-"pandas/tests/indexes/interval/test_interval.py" = ["B905"]
-"pandas/tests/indexes/period/methods/test_asfreq.py" = ["B905"]
-"pandas/tests/indexes/period/test_constructors.py" = ["B905"]
-"pandas/tests/indexes/period/test_formats.py" = ["B905"]
-"pandas/tests/indexes/period/test_period.py" = ["B905"]
-"pandas/tests/indexes/test_base.py" = ["B905"]
-"pandas/tests/indexes/test_datetimelike.py" = ["B905"]
-"pandas/tests/indexes/test_old_base.py" = ["B905"]
-"pandas/tests/indexes/test_setops.py" = ["B905"]
-"pandas/tests/indexes/timedeltas/test_formats.py" = ["B905"]
-"pandas/tests/indexing/interval/test_interval.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_getitem.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_iloc.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_indexing_slow.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_loc.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_setitem.py" = ["B905"]
-"pandas/tests/indexing/multiindex/test_sorted.py" = ["B905"]
-"pandas/tests/indexing/test_coercion.py" = ["B905"]
-"pandas/tests/indexing/test_loc.py" = ["B905"]
-"pandas/tests/internals/test_internals.py" = ["B905"]
-"pandas/tests/io/excel/test_style.py" = ["B905"]
-"pandas/tests/io/excel/test_writers.py" = ["B905"]
-"pandas/tests/io/formats/style/test_style.py" = ["B905"]
-"pandas/tests/io/formats/test_format.py" = ["B905"]
-"pandas/tests/io/formats/test_ipython_compat.py" = ["B905"]
-"pandas/tests/io/formats/test_to_string.py" = ["B905"]
-"pandas/tests/io/generate_legacy_storage_files.py" = ["B905"]
-"pandas/tests/io/parser/conftest.py" = ["B905"]
-"pandas/tests/io/parser/dtypes/test_categorical.py" = ["B905"]
-"pandas/tests/io/parser/test_header.py" = ["B905"]
-"pandas/tests/io/parser/test_python_parser_only.py" = ["B905"]
-"pandas/tests/io/pytables/test_complex.py" = ["B905"]
-"pandas/tests/io/pytables/test_select.py" = ["B905"]
-"pandas/tests/io/sas/test_sas7bdat.py" = ["B905"]
-"pandas/tests/io/test_gcs.py" = ["B905"]
-"pandas/tests/io/test_html.py" = ["B905"]
-"pandas/tests/io/test_orc.py" = ["B905"]
-"pandas/tests/io/test_sql.py" = ["B905"]
-"pandas/tests/io/test_stata.py" = ["B905"]
-"pandas/tests/plotting/common.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame_color.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame_groupby.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame.py" = ["B905"]
-"pandas/tests/plotting/frame/test_frame_subplots.py" = ["B905"]
-"pandas/tests/plotting/test_boxplot_method.py" = ["B905"]
-"pandas/tests/plotting/test_datetimelike.py" = ["B905"]
-"pandas/tests/plotting/test_groupby.py" = ["B905"]
-"pandas/tests/plotting/test_hist_method.py" = ["B905"]
-"pandas/tests/plotting/test_misc.py" = ["B905"]
-"pandas/tests/plotting/test_series.py" = ["B905"]
-"pandas/tests/resample/test_base.py" = ["B905"]
-"pandas/tests/reshape/concat/test_concat.py" = ["B905"]
-"pandas/tests/reshape/concat/test_index.py" = ["B905"]
-"pandas/tests/reshape/merge/test_merge_asof.py" = ["B905"]
-"pandas/tests/reshape/test_melt.py" = ["B905"]
-"pandas/tests/reshape/test_qcut.py" = ["B905"]
-"pandas/tests/scalar/period/test_asfreq.py" = ["B905"]
-"pandas/tests/series/accessors/test_dt_accessor.py" = ["B905"]
-"pandas/tests/series/indexing/test_get.py" = ["B905"]
-"pandas/tests/series/methods/test_convert_dtypes.py" = ["B905"]
-"pandas/tests/series/methods/test_rename.py" = ["B905"]
-"pandas/tests/series/methods/test_replace.py" = ["B905"]
-"pandas/tests/series/methods/test_reset_index.py" = ["B905"]
-"pandas/tests/series/methods/test_sort_index.py" = ["B905"]
-"pandas/tests/series/test_api.py" = ["B905"]
-"pandas/tests/series/test_constructors.py" = ["B905"]
-"pandas/tests/strings/conftest.py" = ["B905"]
-"pandas/tests/strings/test_api.py" = ["B905"]
-"pandas/tests/strings/test_strings.py" = ["B905"]
-"pandas/tests/test_algos.py" = ["B905"]
-"pandas/tests/test_sorting.py" = ["B905"]
-"pandas/tests/util/test_validate_kwargs.py" = ["B905"]
-"scripts/validate_unwanted_patterns.py" = ["B905"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -592,7 +435,7 @@ docstring-code-format = true
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "8.3.4"
-addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-markers --strict-config --capture=no --durations=30"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
@@ -601,44 +444,36 @@ doctest_optionflags = [
   "IGNORE_EXCEPTION_DETAIL",
   "ELLIPSIS",
 ]
+# https://docs.pytest.org/en/stable/how-to/capture-warnings.html#controlling-warnings
+# > When a warning matches more than one option in the list, the action for the last matching option is performed
 filterwarnings = [
-  "error:::pandas",
+  "error",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   "error::pytest.PytestWarning",
   # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
   "ignore::pytest.PytestAssertRewriteWarning",
   "ignore::pytest.PytestCacheWarning",
-  # TODO(PY311-minimum): Specify EncodingWarning
   # Ignore 3rd party EncodingWarning but raise on pandas'
-  "ignore:.*encoding.* argument not specified",
-  "error:.*encoding.* argument not specified::pandas",
-  "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*ssl.SSLSocket:ResourceWarning",
-  # GH 44844: Can remove once minimum matplotlib version >= 3.7
+  "ignore:.*encoding.* argument not specified:EncodingWarning",
+  "error:.*encoding.* argument not specified:EncodingWarning:pandas",
+  # From pyiceberg w/ Python >=3.13: https://github.com/apache/iceberg-python/issues/2530#issuecomment-3712112040
+  "ignore:unclosed database in <sqlite3.Connection object*:ResourceWarning",
+  # From fastparquet - test_read_filters_fastparquet
   "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*BufferedRandom:ResourceWarning",
-  "ignore::ResourceWarning:asyncio",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  "ignore:.*urllib3:DeprecationWarning:botocore",
-  "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
-  # https://github.com/PyTables/PyTables/issues/822
-  "ignore:a closed node found in the registry:UserWarning:tables",
+  "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
+  "ignore:Bitwise inversion:DeprecationWarning",
+  # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
+  "ignore:Plugin file tracers",
+  # Raised by coverage in freethreading
+  "ignore:Couldn't import C tracer",
+  # Remove 2 below when pyarrow version > ??
+  "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
 ]
 junit_family = "xunit2"
-markers = [
-  "single_cpu: tests that should run on a single cpu only",
-  "slow: mark a test as slow",
-  "network: mark a test as network",
-  "db: tests requiring a database (mysql or postgres)",
-  "clipboard: mark a pd.read_clipboard test",
-  "arm_slow: mark a test as slow for arm64 architecture",
-  # TODO: someone should investigate this ...
-  # these tests only fail in the wheel builder and don't fail in regular
-  # ARM CI
-  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
-]
 
 [tool.mypy]
 # Import discovery
@@ -692,35 +527,60 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._config.config", # TODO
-  "pandas._libs.*",
-  "pandas._testing.*", # TODO
-  "pandas.compat.numpy.function", # TODO
-  "pandas.core._numba.executor", # TODO
+  "pandas._libs.arrays",
+  "pandas._libs.hashtable",
+  "pandas._libs.index",
+  "pandas._libs.internals",
+  "pandas._libs.lib",
+  "pandas._libs.missing",
+  "pandas._libs.ops_dispatch",
+  "pandas._libs.properties",
+  "pandas._libs.sparse",
+  "pandas._libs.testing",
+  "pandas._libs.tslibs.fields",
+  "pandas._libs.tslibs.nattype",
+  "pandas._libs.tslibs.np_datetime",
+  "pandas._libs.tslibs.offsets",
+  "pandas._libs.tslibs.parsing",
+  "pandas._libs.tslibs.period",
+  "pandas._libs.tslibs.timedeltas",
+  "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
-  "pandas.core.array_algos.putmask", # TODO
-  "pandas.core.array_algos.quantile", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
   "pandas.core.arrays.*", # TODO
-  "pandas.core.computation.*", # TODO
-  "pandas.core.dtypes.astype", # TODO
-  "pandas.core.dtypes.cast", # TODO
+  "pandas.core.computation.align", # TODO
+  "pandas.core.computation.engines", # TODO
+  "pandas.core.computation.eval", # TODO
+  "pandas.core.computation.expr", # TODO
+  "pandas.core.computation.expressions", # TODO
+  "pandas.core.computation.ops", # TODO
+  "pandas.core.computation.pytables", # TODO
+  "pandas.core.computation.scope", # TODO
   "pandas.core.dtypes.common", # TODO
-  "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
-  "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
   "pandas.core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
-  "pandas.core.indexes.*", # TODO
+  "pandas.core.indexes.accessors", # TODO
+  "pandas.core.indexes.api", # TODO
+  "pandas.core.indexes.datetimelike", # TODO
+  "pandas.core.indexes.datetimes", # TODO
+  "pandas.core.indexes.extension", # TODO
+  "pandas.core.indexes.interval", # TODO
+  "pandas.core.indexes.multi", # TODO
+  "pandas.core.indexes.period", # TODO
+  "pandas.core.indexes.timedeltas", # TODO
   "pandas.core.interchange.column", # TODO
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
-  "pandas.core.internals.*", # TODO
+  "pandas.core.internals", # TODO
+  "pandas.core.internals.blocks", # TODO
+  "pandas.core.internals.concat", # TODO
+  "pandas.core.internals.construction", # TODO
+  "pandas.core.internals.managers", # TODO
   "pandas.core.ops.array_ops", # TODO
   "pandas.core.ops.common", # TODO
   "pandas.core.ops.missing", # TODO
@@ -731,32 +591,24 @@ module = [
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
-  "pandas.core.window.online", # TODO
   "pandas.core.window.rolling", # TODO
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
   "pandas.core.apply", # TODO
   "pandas.core.arraylike", # TODO
   "pandas.core.base", # TODO
-  "pandas.core.common", # TODO
   "pandas.core.construction", # TODO
-  "pandas.core.flags", # TODO
   "pandas.core.frame", # TODO
   "pandas.core.generic", # TODO
   "pandas.core.indexing", # TODO
   "pandas.core.missing", # TODO
   "pandas.core.nanops", # TODO
   "pandas.core.resample", # TODO
-  "pandas.core.roperator", # TODO
-  "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
-  "pandas.core.sorting", # TODO
-  "pandas.errors", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
   "pandas.io.excel._openpyxl", # TODO
-  "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
   "pandas.io.formats.excel", # TODO
@@ -773,17 +625,10 @@ module = [
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO
-  "pandas.io.xml", # TODO
   "pandas.plotting.*", # TODO
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
   "pandas.tseries.holiday", # TODO
-  "pandas.util._decorators", # TODO
-  "pandas.util._doctools", # TODO
-  "pandas.util._test_decorators", # TODO
-  "pandas.util._validators", # TODO
-  "pandas.util", # TODO
-  "pandas._version",
   "pandas.conftest",
   "pandas"
 ]
@@ -794,27 +639,9 @@ disallow_incomplete_defs = false
 [[tool.mypy.overrides]]
 module = [
   "pandas.tests.*",
-  "pandas._version",
   "pandas.io.clipboard",
 ]
 check_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = [
-  "pandas.tests.apply.test_series_apply",
-  "pandas.tests.arithmetic.conftest",
-  "pandas.tests.arrays.sparse.test_combine_concat",
-  "pandas.tests.dtypes.test_common",
-  "pandas.tests.frame.methods.test_to_records",
-  "pandas.tests.groupby.test_rank",
-  "pandas.tests.groupby.transform.test_transform",
-  "pandas.tests.indexes.interval.test_interval",
-  "pandas.tests.indexing.test_categorical",
-  "pandas.tests.io.excel.test_writers",
-  "pandas.tests.reductions.test_reductions",
-  "pandas.tests.test_expressions",
-]
-ignore_errors = true
 
 # To be kept consistent with "Import Formatting" section in contributing.rst
 [tool.isort]
@@ -856,44 +683,29 @@ reportGeneralTypeIssues = false
 reportIndexIssue = false
 reportMissingModuleSource = false
 reportOperatorIssue = false
-reportOptionalCall = false
-reportOptionalIterable = false
 reportOptionalMemberAccess = false
-reportOptionalOperand = false
-reportOptionalSubscript = false
-reportPrivateImportUsage = false
-reportRedeclaration = false
 reportReturnType = false
-reportUnboundVariable = false
 
 [tool.coverage.run]
+# Reported coverage will be less than expected due to
+# https://github.com/pytest-dev/pytest-cov/issues/455
 branch = true
-omit = ["pandas/_typing.py", "pandas/_version.py"]
-plugins = ["Cython.Coverage"]
+omit = ["pandas/_typing.py"]
 source = ["pandas"]
 
 [tool.coverage.report]
 ignore_errors = false
 show_missing = true
-omit = ["pandas/_version.py"]
 exclude_lines = [
   # Have to re-enable the standard pragma
   "pragma: no cover",
-  # Don't complain about missing debug-only code:s
-  "def __repr__",
-  "if self.debug",
   # Don't complain if tests don't hit defensive assertion code:
   "raise AssertionError",
-  "raise NotImplementedError",
   "AbstractMethodError",
   # Don't complain if non-runnable code isn't run:
-  "if 0:",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
-[tool.coverage.html]
-directory = "coverage_html_report"
 
 [tool.codespell]
 ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"

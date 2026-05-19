@@ -7,6 +7,7 @@ from datetime import (
     timezone,
 )
 import locale
+import re
 import time
 import unicodedata
 import zoneinfo
@@ -30,6 +31,10 @@ from pandas._libs.tslibs.timezones import (
     tz_compare,
 )
 from pandas.compat import IS64
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas import (
@@ -48,7 +53,6 @@ class TestTimestampProperties:
         freq = to_offset("B")
 
         ts = Timestamp("2017-10-01")
-        assert ts.dayofweek == 6
         assert ts.day_of_week == 6
         assert ts.is_month_start  # not a weekday
         assert not freq.is_month_start(ts)
@@ -57,7 +61,6 @@ class TestTimestampProperties:
         assert freq.is_quarter_start(ts + Timedelta(days=1))
 
         ts = Timestamp("2017-09-30")
-        assert ts.dayofweek == 5
         assert ts.day_of_week == 5
         assert ts.is_month_end
         assert not freq.is_month_end(ts)
@@ -65,6 +68,22 @@ class TestTimestampProperties:
         assert ts.is_quarter_end
         assert not freq.is_quarter_end(ts)
         assert freq.is_quarter_end(ts - Timedelta(days=1))
+
+    @pytest.mark.parametrize(
+        "old_attr, new_attr",
+        [
+            ("dayofweek", "day_of_week"),
+            ("dayofyear", "day_of_year"),
+            ("daysinmonth", "days_in_month"),
+        ],
+    )
+    def test_deprecated_day_attrs(self, old_attr, new_attr):
+        # GH#46768
+        ts = Timestamp("2020-03-14")
+        msg = f"Timestamp.{old_attr} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            old_val = getattr(ts, old_attr)
+        assert old_val == getattr(ts, new_attr)
 
     @pytest.mark.parametrize(
         "attr, expected",
@@ -77,13 +96,11 @@ class TestTimestampProperties:
             ["second", 0],
             ["microsecond", 0],
             ["nanosecond", 0],
-            ["dayofweek", 2],
             ["day_of_week", 2],
             ["quarter", 4],
-            ["dayofyear", 365],
             ["day_of_year", 365],
             ["week", 1],
-            ["daysinmonth", 31],
+            ["days_in_month", 31],
         ],
     )
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
@@ -119,10 +136,9 @@ class TestTimestampProperties:
 
     # GH 12806
     @pytest.mark.parametrize("tz", [None, "EST"])
-    # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
         "time_locale",
-        [None] + tm.get_locales(),  # type: ignore[operator]
+        [None, *tm.get_locales()],
     )
     def test_names(self, tz, time_locale):
         # GH 17354
@@ -641,11 +657,13 @@ class TestNonNano:
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - 3600 * 24).as_unit("ns")
+        other = Timestamp(dt64 - np.timedelta64(3600 * 24, "s")).as_unit("ns")
         assert other < ts
-        assert other.asm8 > ts.asm8  # <- numpy gets this wrong
+        if not is_numpy_dev and not np_version_gt2_5:
+            assert other.asm8 > ts.asm8  # <- numpy gets this wrong
         assert ts > other
-        assert ts.asm8 < other.asm8  # <- numpy gets this wrong
+        if not is_numpy_dev and not np_version_gt2_5:
+            assert ts.asm8 < other.asm8  # <- numpy gets this wrong
         assert not other == ts
         assert ts != other
 
@@ -657,11 +675,11 @@ class TestNonNano:
 
         assert other.asm8 < ts
 
-    def test_pickle(self, ts, tz_aware_fixture, tmp_path):
+    def test_pickle(self, ts, tz_aware_fixture, temp_file):
         tz = tz_aware_fixture
         tz = maybe_get_tz(tz)
         ts = Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
-        rt = tm.round_trip_pickle(ts, tmp_path)
+        rt = tm.round_trip_pickle(ts, temp_file)
         assert rt._creso == ts._creso
         assert rt == ts
 
@@ -931,3 +949,32 @@ def test_negative_dates():
     func = "^toordinal"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.toordinal()
+
+
+@pytest.mark.parametrize(
+    "date_string,expected_year",
+    [
+        ("-111-01-01", -111),
+        ("-12-01-01", -12),
+        ("-9-1-1", -9),
+        ("-0111-01-01", -111),
+        ("-1234-01-01", -1234),
+    ],
+)
+def test_negative_year_iso8601(date_string, expected_year):
+    # GH#55954 a leading "-" used to be silently dropped by dateutil for
+    # years with fewer than 4 digits (e.g. "-111-01-01" parsed as year 111);
+    # the iso8601 path now accepts 1-4 digit BC years like NumPy does.
+    ts = Timestamp(date_string)
+    assert ts.year == expected_year
+    assert ts.month == 1
+    assert ts.day == 1
+
+
+@pytest.mark.parametrize("date_string", ["-12:30", "--12-01-01", "- 12", "-"])
+def test_negative_prefix_non_iso_raises(date_string):
+    # GH#55954 strings starting with "-" that aren't valid iso8601 dates
+    # used to be silently mishandled by dateutil (which strips the "-").
+    msg = f"Unknown datetime string format, unable to parse: {date_string}"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        Timestamp(date_string)

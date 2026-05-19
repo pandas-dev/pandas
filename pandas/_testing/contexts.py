@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import (
+    AbstractContextManager,
+    contextmanager,
+)
 import os
 import sys
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
 )
 
 from pandas.compat import CHAINED_WARNING_DISABLED
@@ -69,7 +73,7 @@ def set_timezone(tz: str) -> Generator[None]:
     """
     import time
 
-    def setTZ(tz) -> None:
+    def setTZ(tz: str | None) -> None:
         if hasattr(time, "tzset"):
             if tz is None:
                 try:
@@ -91,7 +95,7 @@ def set_timezone(tz: str) -> Generator[None]:
 
 
 @contextmanager
-def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
+def with_csv_dialect(name: str, **kwargs: Any) -> Generator[None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -124,7 +128,10 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
         csv.unregister_dialect(name)
 
 
-def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(
+    extra_warnings: tuple[type[Warning], ...] = (),
+    extra_match: tuple[str | None, ...] = (),
+) -> AbstractContextManager:
     from pandas._testing import assert_produces_warning
 
     if CHAINED_WARNING_DISABLED:
@@ -140,7 +147,7 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     else:
         warning = ChainedAssignmentError
         match = (
-            "A value is trying to be set on a copy of a DataFrame or Series "
+            "A value is being set on a copy of a DataFrame or Series "
             "through chained assignment"
         )
         if extra_warnings:

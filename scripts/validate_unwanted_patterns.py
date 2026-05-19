@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 """
-Unwanted patterns test cases.
-
-The reason this file exist despite the fact we already have
-`ci/code_checks.sh`,
-(see https://github.com/pandas-dev/pandas/blob/master/ci/code_checks.sh)
-
-is that some of the test cases are more complex/impossible to validate via regex.
-So this file is somewhat an extensions to `ci/code_checks.sh`
+Unwanted patterns test cases that are more complex/impossible to validate via regex.
 """
 
 import argparse
@@ -26,17 +19,9 @@ DEPRECATION_WARNINGS_PATTERN = re.compile(
     r"(PendingDeprecation|Deprecation|Future)Warning"
 )
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
-    "_extension_array_shared_docs",
-    "_index_shared_docs",
-    "_interval_shared_docs",
-    "_merge_doc",
-    "_shared_docs",
     "_new_Index",
     "_new_PeriodIndex",
-    "_pipe_template",
-    "_apply_groupings_depr",
     "__main__",
-    "_transform_template",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
@@ -50,6 +35,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
+    "_chained_assignment_method_update_msg",
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
@@ -59,6 +45,9 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_make_block",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
+    "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
+    "_trim_zeros_single_float",
+    "_safe_fill_null",
 }
 
 

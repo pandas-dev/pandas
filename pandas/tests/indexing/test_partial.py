@@ -7,6 +7,8 @@ TODO: these should be split among the indexer tests
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -80,17 +82,36 @@ class TestEmptyFrameSetitemExpansion:
         # frame
         df = DataFrame()
 
-        msg = "cannot set a frame with no defined columns"
+        # GH#17895 setting a row on a DataFrame with no columns
+        # should expand the index
+        df.loc[1] = 1
+        expected = DataFrame(index=Index([1]))
+        tm.assert_frame_equal(df, expected)
 
-        with pytest.raises(ValueError, match=msg):
-            df.loc[1] = 1
+        df2 = DataFrame()
+        df2.loc[1] = Series([1], index=["foo"])
+        tm.assert_frame_equal(df2, expected)
 
-        with pytest.raises(ValueError, match=msg):
-            df.loc[1] = Series([1], index=["foo"])
-
+        df3 = DataFrame()
         msg = "cannot set a frame with no defined index and a scalar"
         with pytest.raises(ValueError, match=msg):
-            df.loc[:, 1] = 1
+            df3.loc[:, 1] = 1
+
+    def test_partial_set_empty_frame_existing_label(self):
+        # GH#17895 setting row on DataFrame with no columns is a no-op
+        # when the label is already in the index
+        df = DataFrame(index=[1, 2, 3])
+        df.loc[1] = 3
+        expected = DataFrame(index=Index([1, 2, 3]))
+        tm.assert_frame_equal(df, expected)
+
+    def test_partial_set_empty_frame_new_label(self):
+        # GH#17895 setting row on DataFrame with no columns expands
+        # the index when the label is new
+        df = DataFrame(index=[1, 2, 3])
+        df.loc[4] = 3
+        expected = DataFrame(index=Index([1, 2, 3, 4]))
+        tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame2(self):
         # these work as they don't really change
@@ -235,44 +256,31 @@ class TestEmptyFrameSetitemExpansion:
 
 
 class TestPartialSetting:
-    def test_partial_setting(self):
+    # Prior to GH#62523, the 5.0 case was cast to float, which did not match the
+    #  behavior when setting 5.0 in non-expansion cases
+    @pytest.mark.parametrize("item", [5, 5.0])
+    def test_partial_setting(self, indexer_sl, item):
         # GH2578, allow ix and friends to partially set
 
         # series
-        s_orig = Series([1, 2, 3])
-
-        s = s_orig.copy()
-        s[5] = 5
+        ser = Series([1, 2, 3])
         expected = Series([1, 2, 3, 5], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
 
-        s = s_orig.copy()
-        s.loc[5] = 5
-        expected = Series([1, 2, 3, 5], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
+        indexer_sl(ser)[5] = item
+        tm.assert_series_equal(ser, expected)
 
-        s = s_orig.copy()
-        s[5] = 5.0
-        expected = Series([1, 2, 3, 5.0], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
-
-        s = s_orig.copy()
-        s.loc[5] = 5.0
-        expected = Series([1, 2, 3, 5.0], index=[0, 1, 2, 5])
-        tm.assert_series_equal(s, expected)
-
+    def test_cannot_expand_with_iloc_iat(self):
         # iloc/iat raise
-        s = s_orig.copy()
+        ser = Series([1, 2, 3])
 
         msg = "iloc cannot enlarge its target object"
         with pytest.raises(IndexError, match=msg):
-            s.iloc[3] = 5.0
+            ser.iloc[3] = 5.0
 
         msg = "index 3 is out of bounds for axis 0 with size 3"
         with pytest.raises(IndexError, match=msg):
-            s.iat[3] = 5.0
+            ser.iat[3] = 5.0
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
@@ -351,7 +359,8 @@ class TestPartialSetting:
         df.loc[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + dates.freq, "A"] = 7
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            df.at[dates[-1] + dates.freq, "A"] = 7
         tm.assert_frame_equal(df, expected)
 
         exp_other = DataFrame({0: 7}, index=dates[-1:] + dates.freq)
@@ -361,7 +370,8 @@ class TestPartialSetting:
         df.loc[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + dates.freq, 0] = 7
+        with tm.assert_produces_warning(Pandas4Warning, match="does not exist"):
+            df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):
@@ -536,7 +546,7 @@ class TestPartialSetting:
         df = orig.copy()
 
         df.loc[key, :] = df.iloc[0]
-        ex_index = Index(list(orig.index) + [key], dtype=object, name=orig.index.name)
+        ex_index = Index([*list(orig.index), key], dtype=object, name=orig.index.name)
         ex_data = np.concatenate([orig.values, df.iloc[[0]].values], axis=0)
         expected = DataFrame(ex_data, index=ex_index, columns=orig.columns)
 
@@ -558,7 +568,7 @@ class TestPartialSetting:
         ser = Series(df.iloc[0], name="a")
         exp = pd.concat([orig, DataFrame(ser).T.infer_objects()])
         tm.assert_frame_equal(df, exp)
-        tm.assert_index_equal(df.index, Index(orig.index.tolist() + ["a"]))
+        tm.assert_index_equal(df.index, Index([*orig.index.tolist(), "a"]))
         assert df.index.dtype == "object"
 
     @pytest.mark.parametrize(

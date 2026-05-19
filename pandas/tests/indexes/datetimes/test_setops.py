@@ -153,7 +153,7 @@ class TestDatetimeIndexSetOps:
     def test_union_freq_both_none(self, sort):
         # GH11086
         expected = bdate_range("20150101", periods=10)
-        expected._data.freq = None
+        expected._freq = None
 
         result = expected.union(expected, sort=sort)
         tm.assert_index_equal(result, expected)
@@ -245,8 +245,12 @@ class TestDatetimeIndexSetOps:
 
         # Test intersection
         result = idx1.intersection(idx2)
-        expected = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+        expected = date_range("2000-01-01", periods=3, tz=tz)
         tm.assert_index_equal(result, expected)
+
+        # Intersection dtype is not commutative
+        result2 = idx2.intersection(idx1)
+        tm.assert_index_equal(result2, expected.as_unit("ns"))
 
     def test_symmetric_difference_same_timezone_different_units(self):
         # GH 60080 - fix timezone being changed to UTC when units differ

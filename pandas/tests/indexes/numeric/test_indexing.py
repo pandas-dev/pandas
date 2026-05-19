@@ -182,6 +182,15 @@ class TestGetIndexer:
         )
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_nan_target(self, method):
+        # GH#32572 NaN in the target should not be matched
+        index = Index([1.0, 2.0, 3.0, 4.0, 5.0])
+        target = Index([np.nan])
+        result = index.get_indexer(target, method=method)
+        expected = np.array([-1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_nearest_error(self):
         index = Index(np.arange(10))
         with pytest.raises(ValueError, match="limit argument"):
@@ -440,7 +449,7 @@ class TestWhere:
         result = index.where(listlike_box(cond))
 
         cond = [False] + [True] * (len(index) - 1)
-        expected = Index([index._na_value] + index[1:].tolist(), dtype=np.float64)
+        expected = Index([index._na_value, *index[1:].tolist()], dtype=np.float64)
         result = index.where(listlike_box(cond))
         tm.assert_index_equal(result, expected)
 
@@ -484,18 +493,16 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
         expected = Index([2.0, 1.0, np.nan], dtype=np.float64, name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index([2.0, 1.0, 3.0], dtype=np.float64, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -513,18 +520,17 @@ class TestTake:
         expected = Index([2, 1, 3], dtype=dtype, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        name = type(idx).__name__
-        msg = f"Unable to fill values because {name} cannot contain NA"
-
-        # fill_value=True
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -1]), fill_value=True)
+        # fill_value on integer Index produces object dtype to hold NA
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
+        expected = Index([2, 1, np.nan], name="xxx")
+        tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index([2, 1, 3], dtype=dtype, name="xxx")
         tm.assert_index_equal(result, expected)
 
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):

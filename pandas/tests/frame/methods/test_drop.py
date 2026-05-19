@@ -144,7 +144,8 @@ class TestDataFrameDrop:
 
         # non-unique - wheee!
         nu_df = DataFrame(
-            list(zip(range(3), range(-3, 1), list("abc"))), columns=["a", "a", "b"]
+            list(zip(range(3), range(-3, 0), list("abc"), strict=True)),
+            columns=["a", "a", "b"],
         )
         tm.assert_frame_equal(nu_df.drop("a", axis=1), nu_df[["b"]])
         tm.assert_frame_equal(nu_df.drop("b", axis="columns"), nu_df["a"])
@@ -296,7 +297,7 @@ class TestDataFrameDrop:
             ["", "wx", "wy", "", "", ""],
         ]
 
-        tuples = sorted(zip(*arrays))
+        tuples = sorted(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples)
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 

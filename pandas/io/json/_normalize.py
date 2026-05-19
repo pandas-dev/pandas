@@ -19,6 +19,8 @@ import numpy as np
 from pandas._libs.writers import convert_json_to_lines
 from pandas.util._decorators import set_module
 
+from pandas.core.dtypes.common import is_scalar
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -326,11 +328,9 @@ def json_normalize(
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
     meta_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
-        meta is ['foo', 'bar'].
+        If not None, prefix meta fields with this string.
     record_prefix : str, default None
-        If True, prefix records with dotted path, e.g. foo.bar.field if
-        path to records is ['foo', 'bar'].
+        If not None, prefix record fields with this string.
     errors : {'raise', 'ignore'}, default 'raise'
         Configures error handling.
 
@@ -467,6 +467,25 @@ def json_normalize(
     1          2
 
     Returns normalized data with columns prefixed with the given string.
+
+    >>> data = [
+    ...     {
+    ...         "state": "Florida",
+    ...         "shortname": "FL",
+    ...         "info": {"governor": "Rick Scott"},
+    ...         "counties": [{"name": "Dade", "population": 12345}],
+    ...     },
+    ... ]
+    >>> pd.json_normalize(
+    ...     data,
+    ...     "counties",
+    ...     ["state", "shortname", ["info", "governor"]],
+    ...     meta_prefix="meta.",
+    ... )
+       name  population meta.state meta.shortname meta.info.governor
+    0  Dade       12345    Florida             FL         Rick Scott
+
+    Meta fields are prefixed with the given string.
     """
     _validate_meta(meta)
 
@@ -533,10 +552,14 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
-        for item in data:
-            if not isinstance(item, dict):
+        for i, item in enumerate(data):
+            if isinstance(item, dict):
+                continue
+            if is_scalar(item) and pd.isna(item):
+                data[i] = {}
+            else:
                 msg = (
-                    "All items in data must be of type dict, "
+                    "All items in data must be of type dict or NA-like, "
                     f"found {type(item).__name__}"
                 )
                 raise TypeError(msg)

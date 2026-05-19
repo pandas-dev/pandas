@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-import uuid
 import zipfile
 
 from pandas.compat._optional import import_optional_dependency
@@ -16,11 +15,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-    from pandas._typing import (
-        FilePath,
-        ReadPickleBuffer,
-    )
+    from pathlib import Path
 
     from pandas import (
         DataFrame,
@@ -31,9 +26,7 @@ if TYPE_CHECKING:
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, tmp_path, path: FilePath | ReadPickleBuffer | None = None
-) -> DataFrame | Series:
+def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 
@@ -49,15 +42,13 @@ def round_trip_pickle(
     pandas object
         The original object that was pickled and then re-read.
     """
-    _path = path
-    if _path is None:
-        _path = f"__{uuid.uuid4()}__.pickle"
-    temp_path = tmp_path / _path
-    pd.to_pickle(obj, temp_path)
-    return pd.read_pickle(temp_path)
+    pd.to_pickle(obj, tmp_path)
+    return pd.read_pickle(tmp_path)
 
 
-def round_trip_pathlib(writer, reader, tmp_path, path: str | None = None):
+def round_trip_pathlib(
+    writer: Callable, reader: Callable, tmp_path: Path
+) -> DataFrame | Series:
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -75,15 +66,14 @@ def round_trip_pathlib(writer, reader, tmp_path, path: str | None = None):
     pandas object
         The original object that was serialized and then re-read.
     """
-    if path is None:
-        path = "___pathlib___"
-    path = tmp_path / path
-    writer(path)
-    obj = reader(path)
+    writer(tmp_path)
+    obj = reader(tmp_path)
     return obj
 
 
-def write_to_compressed(compression, path: str, data, dest: str = "test") -> None:
+def write_to_compressed(
+    compression: str, path: str, data: bytes, dest: str = "test"
+) -> None:
     """
     Write data to a compressed file.
 

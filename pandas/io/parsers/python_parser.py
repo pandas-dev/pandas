@@ -21,7 +21,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -78,6 +77,7 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
+        Scalar,
         T,
     )
 
@@ -190,9 +190,13 @@ class PythonParser(ParserBase):
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
         else:
             thousands = re.escape(self.thousands)
+            # GH#52619 - use non-backtracking structure to avoid catastrophic
+            # backtracking on cells with many comma-separated digit groups
+            # followed by non-numeric text.
             regex = (
-                rf"^[\-\+]?([0-9]+{thousands}|[0-9])*({decimal}[0-9]*)?"
-                rf"([0-9]?(E|e)\-?[0-9]+)?$"
+                rf"^[\-\+]?(?:[0-9]+(?:{thousands}[0-9]+)*{thousands}?)?"
+                rf"({decimal}[0-9]*)?"
+                rf"((E|e)\-?[0-9]+)?$"
             )
         return re.compile(regex)
 
@@ -235,7 +239,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(list[str], lines)
+                lines_str = cast("list[str]", lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
@@ -581,7 +585,7 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = list(header) + [header[-1] + 1]
+                    header = [*list(header), header[-1] + 1]
             else:
                 header = [header]
 
@@ -644,7 +648,9 @@ class PythonParser(ParserBase):
                         if i not in this_unnamed_cols
                     ] + this_unnamed_cols
 
-                    # TODO: Use pandas.io.common.dedup_names instead (see #50371)
+                    # This logic is similar to (but not close enough to
+                    # de-duplicate as of 2026-03-31) pandas.io.common.dedup_names
+                    # (see #50371)
                     for i in col_loop_order:
                         col = this_columns[i]
                         old_col = col
@@ -830,7 +836,7 @@ class PythonParser(ParserBase):
         the name, not the middle of it.
         """
         # first_row will be a list, so we need to check
-        # that that list is not empty before proceeding.
+        # that the list is not empty before proceeding.
         if not first_row:
             return first_row
 
@@ -948,8 +954,8 @@ class PythonParser(ParserBase):
         Alert a user about a malformed row, depending on value of
         `self.on_bad_lines` enum.
 
-        If `self.on_bad_lines` is ERROR, the alert will be `ParserError`.
-        If `self.on_bad_lines` is WARN, the alert will be printed out.
+        If `self.on_bad_lines` is BLHM_ERROR, the alert will be `ParserError`.
+        If `self.on_bad_lines` is BLHM_WARN, the alert will be printed out.
 
         Parameters
         ----------
@@ -960,9 +966,9 @@ class PythonParser(ParserBase):
             Because this row number is displayed, we 1-index,
             even though we 0-index internally.
         """
-        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_WARN or callable(
             self.on_bad_lines
         ):
             warnings.warn(
@@ -991,8 +997,8 @@ class PythonParser(ParserBase):
             return line  # type: ignore[return-value]
         except csv.Error as e:
             if self.on_bad_lines in (
-                self.BadLineHandleMethod.ERROR,
-                self.BadLineHandleMethod.WARN,
+                self.BadLineHandleMethod.BLHM_ERROR,
+                self.BadLineHandleMethod.BLHM_WARN,
             ):
                 msg = str(e)
 
@@ -1203,7 +1209,7 @@ class PythonParser(ParserBase):
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            new_l = cast(list[Scalar], new_l)
+                            new_l = cast("list[Scalar]", new_l)
                             if len(new_l) > col_len:
                                 row_num = self.pos - (content_len - i + footers)
                                 bad_lines.append((row_num, len(new_l), "callable"))
@@ -1211,12 +1217,12 @@ class PythonParser(ParserBase):
                             content.append(new_l)
 
                     elif self.on_bad_lines in (
-                        self.BadLineHandleMethod.ERROR,
-                        self.BadLineHandleMethod.WARN,
+                        self.BadLineHandleMethod.BLHM_ERROR,
+                        self.BadLineHandleMethod.BLHM_WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len, "normal"))
-                        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+                        if self.on_bad_lines == self.BadLineHandleMethod.BLHM_ERROR:
                             break
                 else:
                     content.append(_content)
@@ -1318,7 +1324,6 @@ class PythonParser(ParserBase):
 
                             if next_row is not None:
                                 new_rows.append(next_row)
-                        len_new_rows = len(new_rows)
 
                 except StopIteration:
                     len_new_rows = len(new_rows)

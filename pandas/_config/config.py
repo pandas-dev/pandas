@@ -60,7 +60,6 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import F
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
@@ -69,6 +68,8 @@ if TYPE_CHECKING:
         Generator,
         Sequence,
     )
+
+    from pandas._typing import F
 
 
 class DeprecatedOption(NamedTuple):
@@ -191,7 +192,7 @@ def get_option(pat: str) -> Any:
     return root[k]
 
 
-def set_option(*args) -> None:
+def set_option(*args: Any) -> None:
     """
     Set the value of the specified option or options.
 
@@ -284,7 +285,7 @@ def set_option(*args) -> None:
         root, k_root = _get_root(key)
         root[k_root] = v
 
-        if opt.cb:
+        if opt is not None and opt.cb:
             opt.cb(key)
 
 
@@ -398,9 +399,11 @@ def reset_option(pat: str) -> None:
         set_option(k, _registered_options[k].defval)
 
 
-def get_default_val(pat: str):
+def get_default_val(pat: str) -> Any:
     key = _get_single_key(pat)
-    return _get_registered_option(key).defval
+    opt = _get_registered_option(key)
+    assert opt is not None
+    return opt.defval
 
 
 class DictWrapper:
@@ -424,7 +427,7 @@ class DictWrapper:
         else:
             raise OptionError("You can only set the value of existing options")
 
-    def __getattr__(self, key: str):
+    def __getattr__(self, key: str) -> Any:
         prefix = object.__getattribute__(self, "prefix")
         if prefix:
             prefix += "."
@@ -451,7 +454,7 @@ object.__setattr__(options, "__module__", "pandas")
 
 
 @contextmanager
-def option_context(*args) -> Generator[None]:
+def option_context(*args: Any) -> Generator[None]:
     """
     Context manager to temporarily set options in a ``with`` statement.
 
@@ -673,7 +676,7 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
     return cursor, path[-1]
 
 
-def _get_deprecated_option(key: str):
+def _get_deprecated_option(key: str) -> DeprecatedOption | None:
     """
     Retrieves the metadata for a deprecated option, if `key` is deprecated.
 
@@ -689,7 +692,7 @@ def _get_deprecated_option(key: str):
         return d
 
 
-def _get_registered_option(key: str):
+def _get_registered_option(key: str) -> RegisteredOption | None:
     """
     Retrieves the option metadata if `key` is a registered option.
 
@@ -750,6 +753,7 @@ def _build_option_description(k: str) -> str:
     """Builds a formatted description of a registered option and prints it"""
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
+    assert o is not None
 
     s = f"{k} "
 
@@ -807,11 +811,11 @@ def config_prefix(prefix: str) -> Generator[None]:
     global register_option, get_option, set_option
 
     def wrap(func: F) -> F:
-        def inner(key: str, *args, **kwds):
+        def inner(key: str, *args: object, **kwds: object) -> object:
             pkey = f"{prefix}.{key}"
             return func(pkey, *args, **kwds)
 
-        return cast(F, inner)
+        return cast("F", inner)
 
     _register_option = register_option
     _get_option = get_option
@@ -845,7 +849,7 @@ def is_type_factory(_type: type[Any]) -> Callable[[Any], None]:
 
     """
 
-    def inner(x) -> None:
+    def inner(x: object) -> None:
         if type(x) != _type:
             raise ValueError(f"Value must have type '{_type}'")
 
@@ -870,7 +874,7 @@ def is_instance_factory(_type: type | tuple[type, ...]) -> Callable[[Any], None]
     else:
         type_repr = f"'{_type}'"
 
-    def inner(x) -> None:
+    def inner(x: object) -> None:
         if not isinstance(x, _type):
             raise ValueError(f"Value must be an instance of {type_repr}")
 
@@ -881,7 +885,7 @@ def is_one_of_factory(legal_values: Sequence) -> Callable[[Any], None]:
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
-    def inner(x) -> None:
+    def inner(x: object) -> None:
         if x not in legal_values:
             if not any(c(x) for c in callables):
                 uvals = [str(lval) for lval in legal_values]

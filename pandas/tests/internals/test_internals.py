@@ -103,7 +103,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
     if item_shape is None:
         item_shape = (N,)
 
-    shape = (num_items,) + item_shape
+    shape = (num_items, *item_shape)
 
     mat = get_numeric_mat(shape)
 
@@ -261,9 +261,9 @@ class TestBlock:
             ["bool", [5]],
         ],
     )
-    def test_pickle(self, typ, data, tmp_path):
+    def test_pickle(self, typ, data, temp_file):
         blk = create_block(typ, data)
-        assert_block_equal(tm.round_trip_pickle(blk, tmp_path), blk)
+        assert_block_equal(tm.round_trip_pickle(blk, temp_file), blk)
 
     def test_mgr_locs(self, fblock):
         assert isinstance(fblock.mgr_locs, BlockPlacement)
@@ -360,7 +360,7 @@ class TestBlock:
             new_block(values[[1]], placement=BlockPlacement([1]), ndim=2),
             new_block(values[[2]], placement=BlockPlacement([6]), ndim=2),
         ]
-        for res, exp in zip(result, expected):
+        for res, exp in zip(result, expected, strict=True):
             assert_block_equal(res, exp)
 
 
@@ -391,8 +391,8 @@ class TestBlockManager:
         mgr = BlockManager(blocks, axes)
         mgr.iget(1)
 
-    def test_pickle(self, mgr, tmp_path):
-        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
+    def test_pickle(self, mgr, temp_file):
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
@@ -407,24 +407,24 @@ class TestBlockManager:
         assert not mgr2._known_consolidated
 
     @pytest.mark.parametrize("mgr_string", ["a,a,a:f8", "a: f8; a: i8"])
-    def test_non_unique_pickle(self, mgr_string, tmp_path):
+    def test_non_unique_pickle(self, mgr_string, temp_file):
         mgr = create_mgr(mgr_string)
-        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
-    def test_categorical_block_pickle(self, tmp_path):
+    def test_categorical_block_pickle(self, temp_file):
         mgr = create_mgr("a: category")
-        mgr2 = tm.round_trip_pickle(mgr, tmp_path)
+        mgr2 = tm.round_trip_pickle(mgr, temp_file)
         tm.assert_frame_equal(
             DataFrame._from_mgr(mgr, axes=mgr.axes),
             DataFrame._from_mgr(mgr2, axes=mgr2.axes),
         )
 
         smgr = create_single_mgr("category")
-        smgr2 = tm.round_trip_pickle(smgr, tmp_path)
+        smgr2 = tm.round_trip_pickle(smgr, temp_file)
         tm.assert_series_equal(
             Series()._constructor_from_mgr(smgr, axes=smgr.axes),
             Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
@@ -485,11 +485,11 @@ class TestBlockManager:
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)
-        for blk, cp_blk in zip(mgr.blocks, cp.blocks):
+        for blk, cp_blk in zip(mgr.blocks, cp.blocks, strict=True):
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
-                assert cp_blk.values.base is blk.values.base
+                assert cp_blk.values.base.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._ndarray.base is blk.values._ndarray.base
@@ -498,7 +498,7 @@ class TestBlockManager:
         #  fail is mgr is not consolidated
         mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
-        for blk, cp_blk in zip(mgr.blocks, cp.blocks):
+        for blk, cp_blk in zip(mgr.blocks, cp.blocks, strict=True):
             bvals = blk.values
             cpvals = cp_blk.values
 

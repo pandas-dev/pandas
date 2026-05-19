@@ -13,7 +13,6 @@
 *.dta binary
 *.xls binary
 *.xlsx binary
-pandas/_version.py export-subst
 
 
 *.bz2 export-ignore
@@ -72,7 +71,6 @@ web export-ignore
 CITATION.cff export-ignore
 codecov.yml export-ignore
 environment.yml export-ignore
-setup.py export-ignore
 
 
 # GH 39321

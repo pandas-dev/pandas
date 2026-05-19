@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -257,7 +258,9 @@ def test_apply(test_frame):
     def f_0(x):
         return x.resample("2s").sum()
 
-    result = r.apply(f_0)
+    msg = "Converting a Series or array of length 1 into a scalar"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = r.apply(f_0)
     tm.assert_frame_equal(result, expected)
 
     def f_1(x):
@@ -669,3 +672,16 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     rs = gb.resample("2D")
     with pytest.raises(KeyError, match="Columns not found"):
         rs[["val_not_in_dataframe"]]
+
+
+def test_groupby_resample_agg_dict_as_index_false():
+    # GH#52397 dict-style agg used to raise on as_index=False; should now
+    # match the shape of calling the reduction directly on the resampler
+    df = DataFrame(
+        {"a": np.repeat([0, 1, 2, 3, 4], 10), "b": range(50, 100)},
+        index=date_range("2023-01-01", freq="1min", periods=50),
+    )
+    gb = df.groupby("a", as_index=False).resample("2min")
+    result = gb.agg({"b": "min"})
+    expected = gb.min()
+    tm.assert_frame_equal(result, expected)

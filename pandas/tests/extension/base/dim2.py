@@ -33,14 +33,15 @@ class Dim2CompatTests:
                 pytest.skip(f"{dtype} does not support 2D.")
 
     def test_shift_2d(self, data):
-        arr2d = data.repeat(2).reshape(-1, 2)
+        # shift operates along the last axis
+        arr2d = data.repeat(2).reshape(-1, 2).T
 
         for n in [1, -2]:
             for fill_value in [None, data[0]]:
                 result = arr2d.shift(n, fill_value=fill_value)
-                expected_col = data.shift(n, fill_value=fill_value)
-                tm.assert_extension_array_equal(result[:, 0], expected_col)
-                tm.assert_extension_array_equal(result[:, 1], expected_col)
+                expected_row = data.shift(n, fill_value=fill_value)
+                tm.assert_extension_array_equal(result[0, :], expected_row)
+                tm.assert_extension_array_equal(result[1, :], expected_row)
 
     def test_transpose(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)

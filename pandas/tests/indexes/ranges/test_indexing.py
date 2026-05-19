@@ -71,17 +71,17 @@ class TestTake:
         expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        # fill_value
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
-        with pytest.raises(ValueError, match=msg):
-            idx.take(np.array([1, 0, -1]), fill_value=True)
+        # fill_value: RangeIndex falls back to Index (which can hold NA)
+        result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
+        expected = Index([2, 1, np.nan], name="xxx")
+        tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = "Unable to fill values because RangeIndex cannot contain NA"
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -100,26 +100,26 @@ class TestTake:
 
         # no errors
         result = idx.take(np.array([1, -3]))
-        expected = Index([2, 1], dtype=np.int64, name="xxx")
-        tm.assert_index_equal(result, expected)
+        expected = RangeIndex(start=2, stop=0, step=-1, name="xxx")
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_take_accepts_empty_array(self):
         idx = RangeIndex(1, 4, name="foo")
         result = idx.take(np.array([]))
-        expected = Index([], dtype=np.int64, name="foo")
-        tm.assert_index_equal(result, expected)
+        expected = RangeIndex(start=0, stop=0, step=1, name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
 
         # empty index
         idx = RangeIndex(0, name="foo")
         result = idx.take(np.array([]))
-        expected = Index([], dtype=np.int64, name="foo")
-        tm.assert_index_equal(result, expected)
+        expected = RangeIndex(start=0, stop=0, step=1, name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_take_accepts_non_int64_array(self):
         idx = RangeIndex(1, 4, name="foo")
         result = idx.take(np.array([2, 1], dtype=np.uint32))
-        expected = Index([3, 2], dtype=np.int64, name="foo")
-        tm.assert_index_equal(result, expected)
+        expected = RangeIndex(start=3, stop=1, step=-1, name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
 
     def test_take_when_index_has_step(self):
         idx = RangeIndex(1, 11, 3, name="foo")  # [1, 4, 7, 10]

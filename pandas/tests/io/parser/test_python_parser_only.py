@@ -399,7 +399,7 @@ good{sep}bye
         {"0": "foo", "1": "bar"},
         {"0": "good", "1": "bye"},
     ]
-    for i, (result, expected) in enumerate(zip(result_iter, expecteds)):
+    for i, (result, expected) in enumerate(zip(result_iter, expecteds, strict=True)):
         expected = DataFrame(expected, index=range(i, i + 1))
         tm.assert_frame_equal(result, expected)
 
@@ -574,7 +574,7 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
     def fixer(bad_line):
-        return list(bad_line) + ["EXTRA1", "EXTRA2"]
+        return [*list(bad_line), "EXTRA1", "EXTRA2"]
 
     result = parser.read_csv_check_warnings(
         ParserWarning,
@@ -641,3 +641,19 @@ a b
     # don't skip anything
     with pytest.raises(ParserError, match="unexpected end of data"):
         parser.read_csv(StringIO(tbl), delimiter=" ", skiprows=0, engine="python")
+
+
+def test_memory_map_multichar_sep(python_parser_only, tmp_path):
+    # GH#34577 - memory_map with multi-character separator should not raise
+    # TypeError about mixing string patterns and bytes-like objects
+    parser = python_parser_only
+    path = tmp_path / "test.csv"
+    path.write_text("key1 - value1\nkey2 - value2\nkey3 - value3\n", encoding="utf-8")
+
+    result = parser.read_csv(
+        path, header=None, sep=" - ", names=["key", "value"], memory_map=True
+    )
+    expected = DataFrame(
+        {"key": ["key1", "key2", "key3"], "value": ["value1", "value2", "value3"]}
+    )
+    tm.assert_frame_equal(result, expected)

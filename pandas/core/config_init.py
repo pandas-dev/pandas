@@ -43,7 +43,7 @@ use_bottleneck_doc = """
 def use_bottleneck_cb(key: str) -> None:
     from pandas.core import nanops
 
-    nanops.set_use_bottleneck(cf.get_option(key))
+    nanops.set_use_bottleneck(cf._global_config["compute"]["use_bottleneck"])
 
 
 use_numexpr_doc = """
@@ -57,7 +57,7 @@ use_numexpr_doc = """
 def use_numexpr_cb(key: str) -> None:
     from pandas.core.computation import expressions
 
-    expressions.set_use_numexpr(cf.get_option(key))
+    expressions.set_use_numexpr(cf._global_config["compute"]["use_numexpr"])
 
 
 use_numba_doc = """
@@ -71,7 +71,7 @@ use_numba_doc = """
 def use_numba_cb(key: str) -> None:
     from pandas.core.util import numba_
 
-    numba_.set_use_numba(cf.get_option(key))
+    numba_.set_use_numba(cf._global_config["compute"]["use_numba"])
 
 
 with cf.config_prefix("compute"):
@@ -258,7 +258,7 @@ pc_chop_threshold_doc = """
 
 pc_max_seq_items = """
 : int or None
-    When pretty-printing a long sequence, no more then `max_seq_items`
+    When pretty-printing a long sequence, no more than `max_seq_items`
     will be printed. If items are omitted, they will be denoted by the
     addition of "..." to the resulting string.
 
@@ -290,7 +290,7 @@ pc_memory_usage_doc = """
 def table_schema_cb(key: str) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
-    enable_data_resource_formatter(cf.get_option(key))
+    enable_data_resource_formatter(cf._global_config["display"]["html"]["table_schema"])
 
 
 def is_terminal() -> bool:
@@ -500,7 +500,7 @@ with cf.config_prefix("io.excel.xls"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xls", others=", ".join(_xls_options)),
-        validator=is_one_of_factory(_xls_options + ["auto"]),
+        validator=is_one_of_factory([*_xls_options, "auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsm"):
@@ -508,7 +508,7 @@ with cf.config_prefix("io.excel.xlsm"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsm", others=", ".join(_xlsm_options)),
-        validator=is_one_of_factory(_xlsm_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsm_options, "auto"]),
     )
 
 
@@ -517,7 +517,7 @@ with cf.config_prefix("io.excel.xlsx"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsx", others=", ".join(_xlsx_options)),
-        validator=is_one_of_factory(_xlsx_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsx_options, "auto"]),
     )
 
 
@@ -526,7 +526,7 @@ with cf.config_prefix("io.excel.ods"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="ods", others=", ".join(_ods_options)),
-        validator=is_one_of_factory(_ods_options + ["auto"]),
+        validator=is_one_of_factory([*_ods_options, "auto"]),
     )
 
 with cf.config_prefix("io.excel.xlsb"):
@@ -534,7 +534,7 @@ with cf.config_prefix("io.excel.xlsb"):
         "reader",
         "auto",
         reader_engine_doc.format(ext="xlsb", others=", ".join(_xlsb_options)),
-        validator=is_one_of_factory(_xlsb_options + ["auto"]),
+        validator=is_one_of_factory([*_xlsb_options, "auto"]),
     )
 
 # Set up the io.excel specific writer configuration.
@@ -651,7 +651,7 @@ def register_converter_cb(key: str) -> None:
         register_matplotlib_converters,
     )
 
-    if cf.get_option(key):
+    if cf._global_config["plotting"]["matplotlib"]["register_converters"]:
         register_matplotlib_converters()
     else:
         deregister_matplotlib_converters()
@@ -907,6 +907,16 @@ with cf.config_prefix("future"):
         "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
         "Currently experimental, setting to True is not recommended for end users.",
         validator=is_one_of_factory([True, False]),
+    )
+
+    cf.register_option(
+        "infer_freq_returns_offset",
+        None,
+        "Whether pd.infer_freq and .inferred_freq return a BaseOffset object "
+        "instead of a string, which will be the default in a future version of "
+        "pandas. Set to True to opt in to the future behavior, or False to "
+        "keep the old behavior and silence the warning.",
+        validator=is_one_of_factory([True, False, None]),
     )
 
 

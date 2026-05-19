@@ -51,7 +51,7 @@ class TestSeriesArgsort:
         tm.assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series(list(range(4)) + [4], dtype=np.intp)
+        expected = Series([*list(range(4)), 4], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):

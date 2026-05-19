@@ -8,7 +8,6 @@ from functools import partial
 from io import (
     BytesIO,
     StringIO,
-    UnsupportedOperation,
 )
 import mmap
 import os
@@ -138,7 +137,7 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    def test_get_handle_pyarrow_compat(self):
+    def test_get_handle_pyarrow_compat(sel, using_infer_string):
         pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
@@ -154,6 +153,8 @@ Look,a snake,🐍"""
             df = pa_csv.read_csv(handles.handle).to_pandas()
             if pa_version_under19p0:
                 expected = expected.astype("object")
+            elif not using_infer_string:
+                expected = expected.astype(pd.StringDtype(na_value=np.nan))
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 
@@ -607,7 +608,7 @@ def test_encoding_errors_badtype(encoding_errors):
         reader(content)
 
 
-def test_bad_encdoing_errors(temp_file):
+def test_bad_encoding_errors(temp_file):
     # GH 39777
     with pytest.raises(LookupError, match="unknown error handler name"):
         icom.get_handle(temp_file, "w", errors="bad")
@@ -622,7 +623,10 @@ def test_errno_attribute():
 
 
 def test_fail_mmap():
-    with pytest.raises(UnsupportedOperation, match="fileno"):
+    # GH#45630 raise a clear ValueError instead of the cryptic
+    # UnsupportedOperation("fileno") from BytesIO
+    msg = "memory_map=True is only supported when reading from a file path"
+    with pytest.raises(ValueError, match=msg):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
 

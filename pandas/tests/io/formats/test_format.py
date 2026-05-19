@@ -109,7 +109,7 @@ class TestDataFrameFormatting:
 
             adj = printing.get_adjustment()
 
-            for line, value in zip(r.split("\n"), df["B"]):
+            for line, value in zip(r.split("\n"), df["B"], strict=True):
                 if adj.len(value) + 1 > max_len:
                     assert "..." in line
                 else:
@@ -284,6 +284,31 @@ class TestDataFrameFormatting:
             "pandas.io.formats.format.get_terminal_size", lambda: terminal_size
         )
         assert "..." not in str(df)
+
+    def test_repr_truncation_accounts_for_dot_separator(self, monkeypatch):
+        # GH#32461 - repr should not exceed terminal width after inserting
+        # the " ..." separator column during horizontal truncation.
+        # Width 82 hits the boundary where the unfixed code overflows by 4
+        # because the " ..." separator column (4 chars + 1 adjoin spacing)
+        # was not budgeted.
+        terminal_width = 82
+        monkeypatch.setattr(
+            "pandas.io.formats.string.get_terminal_size",
+            lambda: (terminal_width, 24),
+        )
+
+        ncols = 20
+        df = DataFrame(
+            {
+                f"col_{idx:02d}": np.random.default_rng(2).standard_normal(3)
+                for idx in range(ncols)
+            }
+        )
+
+        with option_context("display.width", terminal_width, "display.max_columns", 0):
+            result = repr(df)
+            for line in result.split("\n"):
+                assert len(line) <= terminal_width
 
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
@@ -907,6 +932,20 @@ class TestDataFrameFormatting:
         result2 = repr(frame.iloc[:5])
         assert result.startswith(result2)
 
+    def test_to_string_truncate_formatters(self):
+        # GH#35410 - formatters dict applied to wrong columns after truncation
+        df = DataFrame(
+            np.arange(30).reshape(5, 6),
+            columns=[f"Col{i}" for i in range(6)],
+        )
+        formatters = {c: (lambda x, c=c: f"{c}: {x}") for c in df.columns}
+        result = df.to_string(formatters=formatters, max_cols=4)
+        # Col4 and Col5 should use their own formatters, not Col2/Col3
+        assert "Col4:" in result
+        assert "Col5:" in result
+        assert "Col2: 4" not in result
+        assert "Col3: 5" not in result
+
     def test_datetimelike_frame(self):
         # GH 12211
         df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})
@@ -1246,10 +1285,6 @@ class TestDataFrameFormatting:
             5,
         ):
             assert not has_non_verbose_info_repr(df)
-
-        # FIXME: don't leave commented-out
-        # test verbose overrides
-        # set_option('display.max_info_columns', 4)  # exceeded
 
     def test_pprint_pathological_object(self):
         """
@@ -1742,7 +1777,7 @@ class TestSeriesFormatting:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = list(zip(*arrays))
+        tuples = list(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 
@@ -1923,6 +1958,16 @@ class TestGenericArrayFormatter:
         assert res[1] == " [[False, True], [True, False]]"
 
 
+def test_precision_float_in_object_index():
+    # GH#25919 - display.precision not honored for float values in object index
+    float_val = 0.55555555
+    df = DataFrame([float_val, "foo"], index=[float_val, "foo"])
+    with option_context("display.precision", 3):
+        result = repr(df)
+    assert "0.556" in result
+    assert "0.55555555" not in result
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 
@@ -2054,7 +2099,7 @@ class TestFloatArrayFormatter:
 
 class TestTimedelta64Formatter:
     def test_days(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "1 days"
@@ -2070,25 +2115,25 @@ class TestTimedelta64Formatter:
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(-x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "-1 days"
 
     def test_subdays(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "0 days 00:00:01"
 
     def test_subdays_neg(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "-1 days +23:59:59"
 
     def test_zero(self):
-        x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(1)), NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
 
@@ -2183,7 +2228,7 @@ class TestDatetime64Formatter:
             .dt.tz_localize("US/Pacific")
             ._values
         )
-        result = fmt._Datetime64TZFormatter(x).get_result()
+        result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2999-01-01 00:00:00-08:00"
         assert result[1].strip() == "2999-01-02 00:00:00-08:00"
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import (
     Callable,
+    Mapping,
     Sequence,
 )
 from functools import partial
@@ -19,7 +20,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -51,7 +52,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter: TypeAlias = str | Callable
-ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+ExtFormatter: TypeAlias = BaseFormatter | Mapping[Any, BaseFormatter | None]
 CSSPair: TypeAlias = tuple[str, str | float]
 CSSList: TypeAlias = list[CSSPair]
 CSSProperties: TypeAlias = str | CSSList
@@ -137,7 +138,7 @@ class StylerRenderer:
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
         precision = (
-            get_option("styler.format.precision") if precision is None else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
@@ -329,9 +330,9 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        max_elements = get_option("styler.render.max_elements")
-        max_rows = max_rows if max_rows else get_option("styler.render.max_rows")
-        max_cols = max_cols if max_cols else get_option("styler.render.max_columns")
+        max_elements = config["styler"]["render"]["max_elements"]
+        max_rows = max_rows if max_rows else config["styler"]["render"]["max_rows"]
+        max_cols = max_cols if max_cols else config["styler"]["render"]["max_columns"]
         max_rows, max_cols = _get_trimming_maximums(
             len(self.data.index),
             len(self.data.columns),
@@ -381,7 +382,7 @@ class StylerRenderer:
             )
 
         table_attr = self.table_attributes
-        if not get_option("styler.html.mathjax"):
+        if not config["styler"]["html"]["mathjax"]:
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace(
@@ -596,7 +597,9 @@ class StylerRenderer:
         column_blanks: list = []
         visible_col_count: int = 0
         if clabels:
-            last_level = self.columns.nlevels - 1  # use last level since never sparsed
+            last_level = (
+                self.columns.nlevels - 1
+            )  # use last level since never sparsified
             for c, value in enumerate(clabels[last_level]):
                 header_element_visible = _is_visible(c, last_level, col_lengths)
                 if header_element_visible:
@@ -989,6 +992,12 @@ class StylerRenderer:
         r"""
         Format the text display value of cells.
 
+        This method allows control over how each data cell is displayed
+        by assigning a formatter function or format string. It is particularly
+        useful for adjusting floating point precision, handling missing values,
+        escaping special characters in HTML or LaTeX output, and adding
+        hyperlinks.
+
         Parameters
         ----------
         formatter : str, callable, dict or None
@@ -1212,7 +1221,7 @@ class StylerRenderer:
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(data.columns, formatter)
 
         cis = self.columns.get_indexer_for(data.columns)
@@ -1246,6 +1255,12 @@ class StylerRenderer:
     ) -> StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
+
+        This method assigns a formatting function to the index or column header
+        labels of the DataFrame, similar to :meth:`Styler.format` but applied
+        to the axis labels rather than the data cells. It supports the same
+        formatter types: callables, format strings, and dicts keyed by
+        MultiIndex level.
 
         Parameters
         ----------
@@ -1396,7 +1411,7 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
@@ -1428,6 +1443,12 @@ class StylerRenderer:
     ) -> StylerRenderer:
         r"""
         Relabel the index, or column header, keys to display a set of specified values.
+
+        This method provides a way to completely replace the displayed index or
+        column header labels with user-specified values without modifying the
+        underlying DataFrame. It is especially useful when the desired display
+        labels are not a simple function of the existing keys, or when
+        enumeration-based labeling is needed.
 
         Parameters
         ----------
@@ -1691,7 +1712,7 @@ class StylerRenderer:
             display_funcs_.clear()
             return self  # clear the formatter / revert to default and avoid looping
 
-        if not isinstance(formatter, dict):
+        if not isinstance(formatter, Mapping):
             formatter = dict.fromkeys(levels_, formatter)
         else:
             formatter = {
@@ -1986,7 +2007,7 @@ def _maybe_wrap_formatter(
         func_0 = formatter
     elif formatter is None:
         precision = (
-            get_option("styler.format.precision") if precision is None else precision
+            config["styler"]["format"]["precision"] if precision is None else precision
         )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)

@@ -5,10 +5,10 @@ import zoneinfo
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
+from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -341,45 +341,45 @@ def test_resample_basic_from_daily(unit):
         result = s.resample("w-sun").last()
 
     assert len(result) == 3
-    assert (result.index.dayofweek == [6, 6, 6]).all()
+    assert (result.index.day_of_week == [6, 6, 6]).all()
     assert result.iloc[0] == s["1/2/2005"]
     assert result.iloc[1] == s["1/9/2005"]
     assert result.iloc[2] == s.iloc[-1]
 
     result = s.resample("W-MON").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [0, 0]).all()
+    assert (result.index.day_of_week == [0, 0]).all()
     assert result.iloc[0] == s["1/3/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-TUE").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [1, 1]).all()
+    assert (result.index.day_of_week == [1, 1]).all()
     assert result.iloc[0] == s["1/4/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-WED").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [2, 2]).all()
+    assert (result.index.day_of_week == [2, 2]).all()
     assert result.iloc[0] == s["1/5/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-THU").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [3, 3]).all()
+    assert (result.index.day_of_week == [3, 3]).all()
     assert result.iloc[0] == s["1/6/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     result = s.resample("W-FRI").last()
     assert len(result) == 2
-    assert (result.index.dayofweek == [4, 4]).all()
+    assert (result.index.day_of_week == [4, 4]).all()
     assert result.iloc[0] == s["1/7/2005"]
     assert result.iloc[1] == s["1/10/2005"]
 
     # to biz day
     result = s.resample("B").last()
     assert len(result) == 7
-    assert (result.index.dayofweek == [4, 0, 1, 2, 3, 4, 0]).all()
+    assert (result.index.day_of_week == [4, 0, 1, 2, 3, 4, 0]).all()
 
     assert result.iloc[0] == s["1/2/2005"]
     assert result.iloc[1] == s["1/3/2005"]
@@ -1112,7 +1112,7 @@ def test_resample_anchored_intraday(unit):
     result = df.resample("ME").mean()
     expected = df.resample("ME").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
@@ -1121,7 +1121,7 @@ def test_resample_anchored_intraday(unit):
     exp = df.shift(1, freq="D").resample("ME").mean().to_period()
     exp = exp.to_timestamp(how="end")
 
-    exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
+    exp.index = exp.index + Timedelta(1, unit="us") - Timedelta(1, unit="D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
     assert exp.index.freq == "ME"
     tm.assert_frame_equal(result, exp)
@@ -1134,9 +1134,8 @@ def test_resample_anchored_intraday2(unit):
     result = df.resample("QE").mean()
     expected = df.resample("QE").mean().to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
-    expected.index._data.freq = "QE"
-    expected.index._freq = lib.no_default
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -1144,9 +1143,8 @@ def test_resample_anchored_intraday2(unit):
     expected = df.shift(1, freq="D").resample("QE").mean()
     expected = expected.to_period()
     expected = expected.to_timestamp(how="end")
-    expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
-    expected.index._data.freq = "QE"
-    expected.index._freq = lib.no_default
+    expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
+    expected.index.freq = "QE"
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -1335,10 +1333,8 @@ dates1: list[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: list[DatetimeNaTType] = (
-    dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
-)
-dates3 = [pd.NaT] + dates1 + [pd.NaT]
+dates2: list[DatetimeNaTType] = [*dates1[:2], pd.NaT, *dates1[2:4], pd.NaT, *dates1[4:]]
+dates3 = [pd.NaT, *dates1, pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
@@ -2145,7 +2141,7 @@ def test_resample_b_55282(unit):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=is_platform_windows(),
+                condition=is_platform_windows() and pa_version_under22p0,
                 reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
             ),
         ),
@@ -2189,3 +2185,17 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_sum_with_inat_value():
+    # GH#16674 - int64 min value (same as iNaT sentinel) should not
+    # cause incorrect dtype casting during resample aggregation
+    max_int = np.iinfo(np.int64).max
+    min_int = np.iinfo(np.int64).min
+    df = DataFrame(
+        [max_int, min_int],
+        index=[datetime(2013, 1, 1), datetime(2013, 1, 1)],
+    )
+    result = df.resample("MS").apply(np.sum)
+    expected = DataFrame([-1], index=date_range("2013-01-01", periods=1, freq="MS"))
+    tm.assert_frame_equal(result, expected)

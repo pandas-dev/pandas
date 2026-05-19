@@ -49,6 +49,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import DataFrame
+    from pandas.api.typing import (
+        DataFrameGroupBy,
+        SeriesGroupBy,
+    )
 
 
 @set_module("pandas")
@@ -112,7 +116,7 @@ def pivot_table(
     margins_name : str, default 'All'
         Name of the row / column that will contain the totals
         when margins is True.
-    observed : bool, default False
+    observed : bool, default True
         This only applies if any of the groupers are Categoricals.
         If True: only show observed values for categorical groupers.
         If False: show all values for categorical groupers.
@@ -146,6 +150,11 @@ def pivot_table(
     Notes
     -----
     Reference :ref:`the user guide <reshaping.pivot>` for more examples.
+
+    .. versionchanged:: 3.1.0
+        When ``values`` is empty, which is the case when all columns of
+        ``data`` are either in ``index`` or ``columns`` arguments, aggregation
+        will act on a Series of all NA values.
 
     Examples
     --------
@@ -335,11 +344,16 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    grouped: SeriesGroupBy | DataFrameGroupBy = data.groupby(
+        keys, observed=observed, sort=sort, dropna=dropna
+    )
     if values_passed:
         # GH#57876 and GH#61292
-        # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
-        grouped = grouped[values]  # type: ignore[assignment]
+        grouped = grouped[values]
+    elif grouped._obj_with_exclusions.columns.empty:
+        grouped = Series(np.nan, index=data.index).groupby(
+            [data[key] for key in keys], observed=observed, sort=sort, dropna=dropna
+        )
 
     agged = grouped.agg(aggfunc, **kwargs)
 
@@ -409,7 +423,7 @@ def __internal_pivot_table(
     if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how="all", axis=1)
 
-    return table
+    return cast("DataFrame", table)
 
 
 def _add_margins(
@@ -450,9 +464,10 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table._append_internal(
-            table._constructor({key: grand_margin[margins_name]})
-        )
+        row = table._constructor({key: grand_margin[margins_name]})
+        if not isinstance(table.index, MultiIndex):
+            row.index.name = table.index.name
+        return table._append_internal(row)
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -480,7 +495,6 @@ def _add_margins(
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
 
-    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     # populate grand margin
     for k in margin_keys:
         if isinstance(k, str):
@@ -488,22 +502,31 @@ def _add_margins(
         else:
             row_margin[k] = grand_margin[k[0]]
 
+    # GH#55484 recover the correct dtype when row_margin was initialized as
+    # object (len(cols)==0 path); no-op for already-typed series.
+    row_margin = row_margin.infer_objects()
+
     from pandas import DataFrame
 
+    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
     margin_dummy = DataFrame(row_margin, columns=Index([key])).T
 
-    row_names = result.index.names
-    # check the result column and leave floats
-
     for dtype in set(result.dtypes):
-        if isinstance(dtype, ExtensionDtype):
-            # Can hold NA already
-            continue
-
         cols = result.select_dtypes([dtype]).columns
-        margin_dummy[cols] = margin_dummy[cols].apply(
-            maybe_downcast_to_dtype, args=(dtype,)
-        )
+        if isinstance(dtype, ExtensionDtype):
+            # GH#55484 margin_dummy may be object-dtype when row_margin was
+            # initialized with dtype=object (len(cols)==0 path); cast back.
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+        elif dtype != object and (margin_dummy[cols].dtypes == object).all():
+            # GH#55484 object-initialized row_margin can leave non-EA columns
+            # as object (mixed-values case); astype back to the target dtype.
+            margin_dummy[cols] = margin_dummy[cols].astype(dtype)
+        else:
+            margin_dummy[cols] = margin_dummy[cols].apply(
+                maybe_downcast_to_dtype, args=(dtype,)
+            )
+
+    row_names = result.index.names
     result = concat([result, margin_dummy])
     result.index.names = row_names
 
@@ -530,7 +553,15 @@ def _compute_grand_margin(
                 pass
         return grand_margin
     else:
-        return {margins_name: aggfunc(data.index, **kwargs)}
+        from pandas import Categorical
+
+        # Use groupby for consistency with how values are aggregated.
+        gb = Series(np.nan, index=data.index).groupby(
+            Categorical(np.zeros(len(data.index)), categories=[0]), observed=False
+        )
+        agged = gb.agg(aggfunc, **kwargs)
+        assert isinstance(agged, Series) and len(agged) == 1
+        return {margins_name: agged.iloc[0]}
 
 
 def _generate_marginal_results(
@@ -590,10 +621,7 @@ def _generate_marginal_results(
                     # We are adding an empty level
                     transformed_piece.index = MultiIndex.from_tuples(
                         [all_key],
-                        names=piece.index.names
-                        + [
-                            None,
-                        ],
+                        names=[*piece.index.names, None],
                     )
                 else:
                     transformed_piece.index = Index([all_key], name=piece.index.name)
@@ -627,7 +655,10 @@ def _generate_marginal_results(
         new_order_names = [row_margin.index.names[i] for i in new_order_indices]
         row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
-        row_margin = data._constructor_sliced(np.nan, index=result.columns)
+        # GH#55484 use object dtype so setitem works for grand-margin scalars
+        # whose dtype cannot hold NA (e.g. IntervalDtype with integer subtype);
+        # infer_objects is called in _add_margins after the values are set.
+        row_margin = data._constructor_sliced(index=result.columns, dtype=object)
 
     return result, margin_keys, row_margin
 
@@ -654,16 +685,27 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data.groupby(rows, observed=observed, dropna=dropna)[rows].apply(
-                aggfunc, **kwargs
-            )
+            if len(data.index) > 0:
+                gb = Series(np.nan, index=data.index).groupby(
+                    [data[row] for row in rows], observed=observed, dropna=dropna
+                )
+                margin = gb.agg(aggfunc, **kwargs)
+            else:
+                from pandas import Categorical
+
+                gb = Series(np.nan, index=data.index).groupby(
+                    Categorical(np.zeros(0), categories=[0]), observed=False
+                )
+                agged = gb.agg(aggfunc, **kwargs)
+                assert isinstance(agged, Series) and len(agged) == 1
+                margin = agged.iloc[0]
             all_key = _all_key()
             table[all_key] = margin
             result = table
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, observed=observed, dropna=dropna).apply(
+            margin = data.groupby(level=0, observed=observed, dropna=dropna).agg(
                 aggfunc, **kwargs
             )
             all_key = _all_key()
@@ -675,9 +717,11 @@ def _generate_marginal_results_without_values(
         result = table
         margin_keys = table.columns
 
-    if len(cols):
-        row_margin = data.groupby(cols, observed=observed, dropna=dropna)[cols].apply(
-            aggfunc, **kwargs
+    if len(result.columns) > 0:
+        row_margin = (
+            Series(np.nan, index=data.index)
+            .groupby([data[col] for col in cols], observed=observed, dropna=dropna)
+            .agg(aggfunc, **kwargs)
         )
     else:
         row_margin = Series(np.nan, index=result.columns)

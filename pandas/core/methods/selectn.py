@@ -4,10 +4,6 @@ Implementation of nlargest and nsmallest.
 
 from __future__ import annotations
 
-from collections.abc import (
-    Hashable,
-    Sequence,
-)
 from typing import (
     TYPE_CHECKING,
     Generic,
@@ -33,6 +29,11 @@ from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.indexes.api import default_index
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         DtypeObj,
         IndexLabel,
@@ -126,7 +127,7 @@ class SelectNSeries(SelectN[Series]):
             result = default_index.sort_values(ascending=ascending, kind="stable").head(
                 n
             )
-            result.index = original_index.take(result.index)
+            result.index = original_index.take(result.index)  # type: ignore[arg-type]
             return result
 
         # Fast method used in the general case
@@ -176,11 +177,10 @@ class SelectNSeries(SelectN[Series]):
         if self.keep != "all":
             inds = inds[:n]
             findex = nbase
+        elif len(inds) < nbase <= len(nan_index) + len(inds):
+            findex = len(nan_index) + len(inds)
         else:
-            if len(inds) < nbase <= len(nan_index) + len(inds):
-                findex = len(nan_index) + len(inds)
-            else:
-                findex = len(inds)
+            findex = len(inds)
 
         if self.keep == "last":
             # reverse indices
@@ -218,7 +218,7 @@ class SelectNFrame(SelectN[DataFrame]):
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
 
-        columns = cast(Sequence[Hashable], columns)
+        columns = cast("Sequence[Hashable]", columns)
         columns = list(columns)
         self.columns = columns
 
@@ -290,7 +290,7 @@ class SelectNFrame(SelectN[DataFrame]):
         frame = frame.take(indexer)
 
         # Restore the index on frame
-        frame.index = original_index.take(indexer)
+        frame.index = original_index.take(indexer)  # type: ignore[arg-type]
 
         # If there is only one column, the frame is already sorted.
         if len(columns) == 1:

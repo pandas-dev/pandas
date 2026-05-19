@@ -67,10 +67,9 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     expected = DataFrame(
         {"a": [1, 1, 2], "b": Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
     )
-    if parser.engine == "pyarrow":
+    if parser.engine == "pyarrow" and any(isinstance(key, int) for key in dtype):
         mark = pytest.mark.xfail(
-            strict=False,
-            reason="Flaky test sometimes gives object dtype instead of Categorical",
+            reason="pyarrow doesn't support specifying dtype by column index",
         )
         request.applymarker(mark)
 
@@ -170,7 +169,7 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
     with parser.read_csv(
         StringIO(data), dtype={"b": "category"}, chunksize=2
     ) as actuals:
-        for actual, expected in zip(actuals, expecteds):
+        for actual, expected in zip(actuals, expecteds, strict=True):
             tm.assert_frame_equal(actual, expected)
 
 
@@ -199,7 +198,7 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
         return
 
     with parser.read_csv(StringIO(data), dtype={"b": dtype}, chunksize=2) as actuals:
-        for actual, expected in zip(actuals, expecteds):
+        for actual, expected in zip(actuals, expecteds, strict=True):
             tm.assert_frame_equal(actual, expected)
 
 

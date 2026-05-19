@@ -78,7 +78,7 @@ class TestDataFrameMisc:
         # them in __dir__.
         df = DataFrame(
             [list("abcd"), list("efgh")],
-            columns=pd.MultiIndex.from_tuples(list(zip("ABCD", "EFGH"))),
+            columns=pd.MultiIndex.from_tuples(list(zip("ABCD", "EFGH", strict=True))),
         )
         for key in list("ABCD"):
             assert key in dir(df)
@@ -226,6 +226,7 @@ class TestDataFrameMisc:
         cp.loc[0, "A"] = 10
         assert not float_frame.equals(cp)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
     def test_inplace_return_self(self):
         # GH 1893
 

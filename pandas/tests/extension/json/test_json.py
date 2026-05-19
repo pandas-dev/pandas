@@ -140,6 +140,16 @@ class TestJSONArray(base.ExtensionTests):
         return super().test_unstack(data, index)
 
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_scalar(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_scalar(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_readonly(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_readonly(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_series()
@@ -189,10 +199,13 @@ class TestJSONArray(base.ExtensionTests):
                 data_missing, limit_area, input_ilocs, expected_ilocs
             )
 
-    def test_value_counts(self, all_data, dropna, request):
-        if len(all_data) == 10 or dropna:
-            request.applymarker(unhashable)
+    @unhashable
+    def test_value_counts(self, all_data, dropna):
         super().test_value_counts(all_data, dropna)
+
+    @unhashable
+    def test_value_counts_with_normalize(self, data):
+        super().test_value_counts_with_normalize(data)
 
     @unhashable
     def test_sort_values_frame(self):
@@ -203,12 +216,6 @@ class TestJSONArray(base.ExtensionTests):
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
 
-    @pytest.mark.xfail(
-        reason="combine for JSONArray not supported - "
-        "may pass depending on random data",
-        strict=False,
-        raises=AssertionError,
-    )
     def test_combine_first(self, data):
         super().test_combine_first(data)
 
@@ -287,6 +294,12 @@ class TestJSONArray(base.ExtensionTests):
             mark = pytest.mark.xfail(reason="raises in coercing to Series")
             request.applymarker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
+    def test_compare_scalar(self, data, comparison_op, request):
+        if comparison_op.__name__ in ["eq", "ne"]:
+            mark = pytest.mark.xfail(reason="Comparison methods not implemented")
+            request.applymarker(mark)
+        super().test_compare_scalar(data, comparison_op)
 
     def test_compare_array(self, data, comparison_op, request):
         if comparison_op.__name__ in ["eq", "ne"]:

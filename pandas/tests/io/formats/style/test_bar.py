@@ -17,11 +17,12 @@ def bar_grad(a=None, b=None, c=None, d=None):
     ret = [("width", "10em")]
     if all(x is None for x in [a, b, c, d]):
         return ret
-    return ret + [
+    return [
+        *ret,
         (
             "background",
             f"linear-gradient(90deg,{','.join([x for x in [a, b, c, d] if x])})",
-        )
+        ),
     ]
 
 
@@ -259,7 +260,7 @@ def test_vmin_vmax_widening(df_pos, df_neg, df_mix, values, vmin, vmax, nullify,
 
 
 def test_numerics():
-    # test data is pre-selected for numeric values
+    # test data is preselected for numeric values
     data = DataFrame([[1, "a"], [2, "b"]])
     result = data.style.bar()._compute().ctx
     assert (0, 1) not in result
