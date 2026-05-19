@@ -1058,6 +1058,12 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return np.nan
         return super()._wrap_reduction_result(axis, result)
 
+    def any(self, axis=None, skipna: bool = True, **kwargs) -> bool:
+        return self._reduce("any", axis=axis, skipna=skipna, **kwargs)
+
+    def all(self, axis=None, skipna: bool = True, **kwargs) -> bool:
+        return self._reduce("all", axis=axis, skipna=skipna, **kwargs)
+
     def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(

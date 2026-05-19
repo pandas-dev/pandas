@@ -166,7 +166,7 @@ class TestSparseArray(base.ExtensionTests):
             mark = pytest.mark.xfail(
                 reason="This should be viable but is not implemented"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         super().test_reduce_array(data, all_numeric_reductions, skipna)
 
