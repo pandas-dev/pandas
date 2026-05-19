@@ -7049,32 +7049,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if isinstance(self.index, MultiIndex) and isinstance(
                 other.index, MultiIndex
             ):
-                self_names = list(self.index.names)
-                other_names = list(other.index.names)
-
-                other_names_left = list(other_names)
-                is_self_in_other = True
-                for name in self_names:
-                    try:
-                        other_names_left.remove(name)
-                    except ValueError:
-                        is_self_in_other = False
-                        break
-
-                self_names_left = list(self_names)
-                is_other_in_self = True
-                for name in other_names:
-                    try:
-                        self_names_left.remove(name)
-                    except ValueError:
-                        is_other_in_self = False
-                        break
-
-                if not (is_self_in_other or is_other_in_self):
+                self_names = set(self.index.names)
+                other_names = set(other.index.names)
+                if not (self_names <= other_names or other_names <= self_names):
                     # GH#25891
                     warnings.warn(
                         "The silent alignment on arithmetic operations between "
-                        "'Series' with non-aligned MultiIndexes is deprecated "
+                        "'Series' with incomparable MultiIndexes is deprecated "
                         "and will be removed in a future version.",
                         Pandas4Warning,
                         stacklevel=find_stack_level(),

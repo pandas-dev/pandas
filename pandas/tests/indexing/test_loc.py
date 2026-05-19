@@ -724,9 +724,10 @@ class TestLocBaseIndependent:
         df = df.infer_objects()
 
         # Adding a new key
-        df.loc[:, ("Respondent", "Duration")] = df.loc[
-            :, ("Respondent", "EndDate")
-        ].sub(df.loc[:, ("Respondent", "StartDate")])
+        df.loc[:, ("Respondent", "Duration")] = (
+            df.loc[:, ("Respondent", "EndDate")]
+            - df.loc[:, ("Respondent", "StartDate")]
+        )
 
         # timedelta64[m] -> float, so this cannot be done inplace, so
         #  no warning

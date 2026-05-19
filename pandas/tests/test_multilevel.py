@@ -103,15 +103,15 @@ class TestMultiLevel:
             data=[4, 5, 6], index=MultiIndex.from_tuples([("Z", 1), ("Z", 2), ("B", 3)])
         )
 
-        res = x.sub(y)
+        res = x - y
         exp_index = x.index.union(y.index)
-        exp = x.reindex(exp_index).sub(y.reindex(exp_index))
+        exp = x.reindex(exp_index) - y.reindex(exp_index)
         tm.assert_series_equal(res, exp)
 
         # hit non-monotonic code path
-        res = x[::-1].sub(y[::-1])
+        res = x[::-1] - y[::-1]
         exp_index = x.index.union(y.index)
-        exp = x.reindex(exp_index).sub(y.reindex(exp_index))
+        exp = x.reindex(exp_index) - y.reindex(exp_index)
         tm.assert_series_equal(res, exp)
 
     def test_groupby_multilevel(self, multiindex_year_month_day_dataframe_random_data):

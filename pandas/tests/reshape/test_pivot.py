@@ -1039,7 +1039,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"dull": [12, 21, 3, 9, 45], "shiny": [33, 0, 36, 51, 120]}, index=mi
         ).rename_axis("C", axis=1)
-        expected["All"] = expected["dull"].add(expected["shiny"])
+        expected["All"] = expected["dull"] + expected["shiny"]
 
         result = df.pivot_table(
             values="D",
@@ -1058,7 +1058,7 @@ class TestPivotTable:
         expected = DataFrame(
             {"dull": [1, 1, 2, 1, 5], "shiny": [2, 0, 2, 2, 6]}, index=mi
         ).rename_axis("C", axis=1)
-        expected["All"] = expected["dull"].add(expected["shiny"])
+        expected["All"] = expected["dull"] + expected["shiny"]
 
         result = data.pivot_table(
             values="D",

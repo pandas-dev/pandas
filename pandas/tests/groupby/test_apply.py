@@ -770,7 +770,7 @@ def test_gb_apply_list_of_unequal_len_arrays():
     df_grouped = df.groupby(level=["group1", "group2"], sort=True)
 
     def noddy(value, weight):
-        out = np.array(value.mul(weight)).repeat(3)
+        out = np.array(value * weight).repeat(3)
         return out
 
     # the kernel function returns arrays of unequal length
