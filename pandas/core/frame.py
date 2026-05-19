@@ -6234,7 +6234,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#63207
             warnings.warn(
                 "The inplace keyword in DataFrame.drop is deprecated "
-                "and will be removed in a future version."
+                "and will be removed in a future version. "
                 "See PDEP-8 for more details:"
                 "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
                 Pandas4Warning,
