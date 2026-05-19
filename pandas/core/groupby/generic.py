@@ -2614,6 +2614,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             If a string is chosen, then it needs to be the name
             of the groupby method you want to use.
+
+        .. versionchanged:: 3.1.0
+
         *args
             Positional arguments to pass to func.
         engine : str, default None
@@ -2633,8 +2636,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs
             Keyword arguments to be passed into func.
             When ``func=None``, ``**kwargs`` should be pairs of
-            ``output_name=NamedFunc(column, func)`` for named transformation or
-            ``output_name=NamedAgg(column, aggfunc)`` for named aggregation.
+            ``output_name=NamedFunc(column, func)``.
 
         Returns
         -------
@@ -2747,8 +2749,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1    1   0     1   0
         2    2   2     2   2
 
-        .. versionchanged:: 3.0.1
-
         Dictionary arguments
 
         >>> df2.groupby("col").transform({"val": "sum", "other": "min"})
@@ -2756,8 +2756,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         0    1      0
         1    1      0
         2    2      2
-
-        .. versionchanged:: 3.0.1
 
         Named aggregation
 
@@ -2770,7 +2768,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1        1          0
         2        2          2
 
-        .. versionchanged:: 3.0.1
         """
         # GH#58318 - extended to accept list, dict, and NamedAgg kwargs.
 
@@ -2826,7 +2823,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         from pandas.core.reshape.concat import concat
 
         if is_dict_like(func):
-            # ── dict / NamedAgg path ─────────────────────────────────────────
+            # Also includes NamedAgg / NamedFunc
             func = cast("dict", func)
             results: list[Series] = []
             for name, agg in func.items():
@@ -2853,9 +2850,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 results.append(result)
             return concat(results, axis=1)
 
-        # ── list path ────────────────────────────────────────────────────────
+        # list path
         # Apply every func to every non-key column.
-        # _obj_with_exclusions already omits groupby keys and excluded columns.
         assert is_list_like(func)
         results_list: list[Series] = []
         col_order: list[tuple] = []
