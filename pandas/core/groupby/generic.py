@@ -2605,6 +2605,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             - Dict ``{column: func}`` or ``{name: NamedAgg(column, func)}``:
               applied per-column as specified.
 
+            .. versionchanged:: 3.1.0
+                    Added support for list-like, dict, and :class:`NamedAgg` arguments.
+
             Only passing a single function is supported with the numba engine.
             If the ``'numba'`` engine is chosen, the function must be
             a user defined function with ``values`` and ``index`` as the
@@ -2615,7 +2618,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If a string is chosen, then it needs to be the name
             of the groupby method you want to use.
 
-        .. versionchanged:: 3.1.0
 
         *args
             Positional arguments to pass to func.
