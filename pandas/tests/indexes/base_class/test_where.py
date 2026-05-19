@@ -28,3 +28,17 @@ class TestWhere:
         expected = idx.copy()
 
         tm.assert_index_equal(result, expected, exact=False)
+
+    def test_where_index_with_ea_index(self):
+        # GH 65685
+        # Make BOTH indexes an Extension Array (Int64)
+        idx = Index([1, 2, 3], dtype="Int64")
+        mask = np.array([False, False, False])
+        
+        other = Index([4, 5, 6], dtype="Int64")
+        
+        # If mask is all False, result should be exactly 'other'
+        result = idx.where(mask, other)
+        expected = Index([4, 5, 6], dtype="Int64")
+        
+        tm.assert_index_equal(result, expected)

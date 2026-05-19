@@ -1,0 +1,1 @@
+Bug in :meth:`Index.where` raising ``AssertionError`` when ``other`` is an :class:`Index` (:issue:`65685`)
