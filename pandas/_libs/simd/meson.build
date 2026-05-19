@@ -1,28 +1,16 @@
-# All architectures we might support
-# Key is the architecture name used in file suffixes and macros
-is_msvc_syntax = cxx.get_argument_syntax() == 'msvc'
-simd_x86_flags = {
-    'sse2': is_msvc_syntax ? ['/arch:SSE2'] : ['-msse2'],
-    'avx2': is_msvc_syntax ? ['/arch:AVX2'] : ['-mavx2'],
-    'avx512cd': is_msvc_syntax ? ['/arch:AVX512'] : ['-mavx512cd'],
-}
+host_cpu = host_machine.cpu_family()
 
 simd_config = configuration_data()
-supported_simd_archs = {}
-if host_machine.cpu_family() == 'aarch64'
-    supported_simd_archs += {'neon': []}
+if host_cpu == 'aarch64'
+    simd_target = 'neon'
     simd_config.set('PANDAS_HAVE_NEON', 1)
-elif host_machine.cpu_family() in ['x86', 'x86_64']
-    foreach name, flags : simd_x86_flags
-        if cxx.has_multi_arguments(flags)
-            supported_simd_archs += {name: flags}
-            simd_config.set('PANDAS_HAVE_@0@'.format(name.to_upper()), 1)
-        endif
-    endforeach
+elif host_cpu == 'x86_64'
+    simd_target = 'sse2'
+    simd_config.set('PANDAS_HAVE_SSE2', 1)
+else
+    simd_target = 'scalar'
+    simd_config.set('PANDAS_HAVE_SCALAR', 1)
 endif
-
-# Ensure scalar version on all architectures for now...
-simd_config.set('PANDAS_HAVE_SCALAR', 1)
 
 configure_file(
     output: 'pandas_simd_config.h',
