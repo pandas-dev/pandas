@@ -345,35 +345,4 @@ Moments accumulate_moments_simd::operator()(
   return moments_acc;
 }
 
-extern template Moments accumulate_moments_simd::operator()<xsimd::avx512cd>(
-    xsimd::avx512cd, std::span<const double>, bool,
-    std::optional<std::span<const uint8_t>>, int) noexcept;
-extern template Moments accumulate_moments_simd::operator()<xsimd::avx2>(
-    xsimd::avx2, std::span<const double>, bool,
-    std::optional<std::span<const uint8_t>>, int) noexcept;
-extern template Moments accumulate_moments_simd::operator()<xsimd::sse2>(
-    xsimd::sse2, std::span<const double>, bool,
-    std::optional<std::span<const uint8_t>>, int) noexcept;
-extern template Moments accumulate_moments_simd::operator()<xsimd::neon64>(
-    xsimd::neon64, std::span<const double>, bool,
-    std::optional<std::span<const uint8_t>>, int) noexcept;
-
-// TODO: remove macro
-using arch_list = xsimd::arch_list<>
-#if PANDAS_HAVE_AVX512CD
-    ::add<xsimd::avx512cd>
-#endif
-#if PANDAS_HAVE_AVX2
-    ::add<xsimd::avx2>
-#endif
-#if PANDAS_HAVE_SSE2
-    ::add<xsimd::sse2>
-#endif
-#if PANDAS_HAVE_NEON
-    ::add<xsimd::neon64>
-#endif
-#if PANDAS_HAVE_SCALAR
-    ::add<xsimd::common>
-#endif
-    ;
 } // namespace pandas::moments

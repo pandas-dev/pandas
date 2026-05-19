@@ -19,25 +19,14 @@ configure_file(
 
 simd_config_inc = include_directories('.')
 
-moments_libs = []
-foreach arch_name, arch_flags : supported_simd_archs
-    moments_libs += static_library(
-        'moments_simd_@0@'.format(arch_name),
-        'moments_inst_@0@.cpp'.format(arch_name),
-        include_directories: [inc_pd],
-        dependencies: [xsimd_dep],
-        cpp_args: arch_flags,
-    )
-endforeach
-
-moments_libs += static_library(
-    'moments_base',
-    'moments.cpp',
+moments_lib = static_library(
+    'moments_@0@'.format(simd_target),
+    'moments_@0@.cpp'.format(simd_target),
     include_directories: [inc_pd],
     dependencies: [xsimd_dep],
 )
 
 moments_simd_dep = declare_dependency(
-    link_with: moments_libs,
+    link_with: moments_lib,
     include_directories: [inc_pd],
 )
