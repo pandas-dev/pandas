@@ -127,6 +127,7 @@ class BaseReduceTests:
 
         self.check_reduce_frame(ser, op_name, skipna)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_reduce_array(self, data, all_numeric_reductions, skipna: bool):
         op_name = all_numeric_reductions
         ser = pd.Series(data)
