@@ -1140,7 +1140,7 @@ def test_arithmetic_with_incomparible_multiindex_deprecated(
     )
     msg = (
         "The silent alignment on arithmetic operations between "
-        "'Series' with non-aligned MultiIndexes"
+        "'Series' with incomparable MultiIndexes"
     )
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = s1 * s2
