@@ -10139,8 +10139,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         from pandas.core.dtypes.generic import ABCIndex
 
         if isinstance(other, ABCIndex):
-            # GH#65685: Extract raw array to bypass label alignment
-            other = other.to_numpy()
+            # GH#65685: Extract raw array to preserve ExtensionArray dtypes
+            other = extract_array(other, extract_numpy=True)
+            # If extract_array refuses to unwrap an optimized Index (like RangeIndex), force it
+            if isinstance(other, ABCIndex):
+                other = other.to_numpy()
 
         # try to align with other
         if isinstance(other, NDFrame):
