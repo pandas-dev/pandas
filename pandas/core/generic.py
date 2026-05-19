@@ -10136,6 +10136,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
+        from pandas.core.dtypes.generic import ABCIndex
+        if isinstance(other, ABCIndex):
+            # GH#65685: Extract raw array to bypass label alignment
+            other = other.to_numpy()
+
         # try to align with other
         if isinstance(other, NDFrame):
             # align with me

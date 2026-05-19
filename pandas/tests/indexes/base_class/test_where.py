@@ -18,3 +18,13 @@ class TestWhere:
         result = idx.where(np.array([True, False, True]), other="x")
         expected = Index(["a", "x", "c"], dtype="object")
         tm.assert_index_equal(result, expected)
+
+    def test_where_index_with_index(self):
+        # GH 65685
+        idx = Index(range(48))
+        mask = np.ones(48, dtype=bool)
+
+        result = idx.where(mask, idx)
+        expected = idx.copy()
+
+        tm.assert_index_equal(result, expected, exact=False)
