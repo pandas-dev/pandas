@@ -42,8 +42,12 @@ try:
     import fastparquet
 
     _HAVE_FASTPARQUET = True
+    _fp_version_lt_2025 = Version(fastparquet.__version__) < Version("2025.12.0")
+    _fp_version_lt_2026_5 = Version(fastparquet.__version__) < Version("2026.5.0")
 except ImportError:
     _HAVE_FASTPARQUET = False
+    _fp_version_lt_2025 = False
+    _fp_version_lt_2026_5 = False
 
 
 pytestmark = [
@@ -353,6 +357,13 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
     tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+@pytest.mark.xfail(
+    using_string_dtype()
+    and _HAVE_PYARROW
+    and not _fp_version_lt_2025
+    and _fp_version_lt_2026_5,
+    reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+)
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
@@ -1255,6 +1266,13 @@ class TestParquetFastParquet(Base):
         msg = "Can't infer object conversion type"
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
         check_round_trip(df, temp_file, fp)
@@ -1278,6 +1296,13 @@ class TestParquetFastParquet(Base):
             write_kwargs={"compression": None, "storage_options": s3so},
         )
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
@@ -1294,6 +1319,13 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 2
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
         partition_cols = "bool"
@@ -1310,6 +1342,13 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 1
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
