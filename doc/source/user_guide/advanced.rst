@@ -210,7 +210,6 @@ axes will work as you expect; data alignment will work the same as an Index of
 tuples:
 
 .. ipython:: python
-   :okwarning:
 
    s + s[:-2]
    s + s[::2]
