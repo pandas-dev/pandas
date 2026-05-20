@@ -10136,15 +10136,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
-        from pandas.core.dtypes.generic import ABCIndex
-
-        if isinstance(other, ABCIndex):
+        if isinstance(other, Index):
             # GH#65685: Extract raw array to preserve ExtensionArray dtypes
-            other = extract_array(other, extract_numpy=True)
-            # If extract_array refuses to unwrap an optimized Index
-            # (like RangeIndex), force it
-            if isinstance(other, ABCIndex):
-                other = other.to_numpy()
+            other = extract_array(
+                other, extract_numpy=True, extract_range=True
+            )
 
         # try to align with other
         if isinstance(other, NDFrame):
@@ -10281,7 +10277,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
-        other : scalar, Series/DataFrame, or callable
+        other : scalar, array-like, Series/DataFrame, Index, or callable
             Entries where `cond` is False are replaced with
             corresponding value from `other`.
             If other is callable, it is computed on the Series/DataFrame and
