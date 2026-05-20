@@ -2618,7 +2618,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If a string is chosen, then it needs to be the name
             of the groupby method you want to use.
 
-
         *args
             Positional arguments to pass to func.
         engine : str, default None
@@ -2769,7 +2768,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         0        1          0
         1        1          0
         2        2          2
-
         """
         # GH#58318 - extended to accept list, dict, and NamedAgg kwargs.
 
