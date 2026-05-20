@@ -1176,6 +1176,7 @@ class ArrowExtensionArray(
         return type(self)._from_sequence(result, dtype=self.dtype)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        result: Self | npt.NDArray[np.object_]
         if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
             self._pa_array.type
         ):
@@ -1185,6 +1186,8 @@ class ArrowExtensionArray(
                 result = self._str_arith_method_object_fallback(other, op)
         else:
             result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        if isinstance(result, np.ndarray):
+            return result
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
             mask = pc.is_nan(parr).fill_null(False).to_numpy()
