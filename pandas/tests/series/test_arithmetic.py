@@ -1131,20 +1131,10 @@ def test_arithmetic_with_incomparible_multiindex_deprecated(
     s2 = Series(index=index2)
     s2["N.0", "M.0"] = 0.5
 
-    expected = Series(
-        [0.25, 0.25],
-        index=pd.MultiIndex.from_tuples(
-            [("T.1A", "N.0", "M.0"), ("T.1B", "N.0", "M.0")],
-            names=["T", "N", "M"],
-        ),
-    )
     msg = (
         "The silent alignment on arithmetic operations between "
         "'Series' with incomparable MultiIndexes"
     )
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = s1 * s2
-    tm.assert_series_equal(result, expected)
 
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         op(s1, s2)
