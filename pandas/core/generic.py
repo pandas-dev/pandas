@@ -10138,9 +10138,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if isinstance(other, Index):
             # GH#65685: Extract raw array to preserve ExtensionArray dtypes
-            other = extract_array(
-                other, extract_numpy=True, extract_range=True
-            )
+            other = extract_array(other, extract_numpy=True, extract_range=True)
 
         # try to align with other
         if isinstance(other, NDFrame):
