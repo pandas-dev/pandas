@@ -10136,10 +10136,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond = -cond if inplace else cond
         cond = cond.reindex(self._info_axis, axis=self._info_axis_number)
 
-        if isinstance(other, Index):
-            # GH#65685: Extract raw array to preserve ExtensionArray dtypes
-            other = extract_array(other, extract_numpy=True, extract_range=True)
-
         # try to align with other
         if isinstance(other, NDFrame):
             # align with me
@@ -10202,7 +10198,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
-            other = extract_array(other, extract_numpy=True)
+            other = extract_array(other, extract_numpy=True, extract_range=True)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
             if other.shape != self.shape:
