@@ -351,7 +351,6 @@ def eval(
     _check_resolvers(resolvers)
 
     ret = None
-    first_expr = True
     target_modified = False
 
     for expr in exprs:
@@ -409,7 +408,24 @@ def eval(
         if env.target is not None and assigner is not None:
             target_modified = True
 
-            # Prevent CoW alias corruption by forcing a copy of the evaluated result
+            # if returning a copy, copy only on the first assignment
+            if not inplace and first_expr:
+                try:
+                    target = env.target
+                    if isinstance(target, NDFrame):
+                        target = target.copy(deep=False)
+                    else:
+                        target = target.copy()
+                except AttributeError as err:
+                    raise ValueError("Cannot return a copy of the target") from err
+            else:
+                target = env.target
+
+            # TypeError is most commonly raised (e.g. int, list), but you
+            # get IndexError if you try to do this assignment on np.ndarray.
+            # we will ignore numpy warnings here; e.g. if trying
+            # to use a non-numeric indexer
+            # Prevent CoW alias corruption
             if inplace and hasattr(ret, "copy"):
                 ret = ret.copy()  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -420,13 +436,6 @@ def eval(
                     target[assigner] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
-            else:
-                target = env.target
-
-            # TypeError is most commonly raised (e.g. int, list), but you
-            # get IndexError if you try to do this assignment on np.ndarray.
-            # we will ignore numpy warnings here; e.g. if trying
-            # to use a non-numeric indexer
 
             if not resolvers:
                 resolvers = ({assigner: ret},)
@@ -441,7 +450,6 @@ def eval(
                     resolvers += ({assigner: ret},)
 
             ret = None
-            first_expr = False
 
     # We want to exclude `inplace=None` as being False.
     if inplace is False:
