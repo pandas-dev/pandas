@@ -149,6 +149,7 @@ from pandas.core.sorting import (
 from pandas.core.strings.accessor import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
+from pandas.io._util import arrow_table_to_pandas
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
     SeriesInfo,
@@ -2014,7 +2015,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             pa_array = data
 
-        ser = pa_array.to_pandas()
+        ser = arrow_table_to_pandas(pa.table({"col": pa_array}))["col"]
+
+        # for pyarrow, preserve to_pandas() behaviour of using a field name
+        name = None
+        try:
+            name = pa_array._name
+        except AttributeError:
+            pass
+        ser.name = name
+
         return ser
 
     def _set_name(self, name, inplace: bool = False) -> Series:

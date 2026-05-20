@@ -181,6 +181,7 @@ from pandas.core.sorting import (
     nargsort,
 )
 
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import get_handle
 from pandas.io.formats import (
     console,
@@ -1654,7 +1655,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             pa_table = data
 
-        df = pa_table.to_pandas()
+        df = arrow_table_to_pandas(pa_table)
         return df
 
     @classmethod
