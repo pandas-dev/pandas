@@ -431,7 +431,7 @@ def eval(
                 ret = ret.copy()  # pyright: ignore[reportAttributeAccessIssue]
 
             try:
-                target[assigner] = ret  # pyright: ignore[reportOptionalSubscript, reportIndexIssue]
+               target.loc[:, assigner] = ret
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

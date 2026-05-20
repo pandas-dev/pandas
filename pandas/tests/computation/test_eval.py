@@ -2030,20 +2030,13 @@ def test_method_calls_on_binop():
     expected = (x + y).dropna().reset_index(drop=True)
     tm.assert_series_equal(result, expected)
 
-
 def test_eval_inplace_cow_alias_corruption():
-    
-    """
-    Test that df.eval(..., inplace=True) does not corrupt memory
-    when modifying the evaluated column under Copy-on-Write.
-    GH 65664
-    """
-    if not using_copy_on_write:
-        pytest.skip("Test only applicable when Copy-on-Write is enabled.")
-
     df = DataFrame({"old": [1, 2, 3]})
     df.eval("new = old", inplace=True)
-    df.iloc[0, df.columns.get_loc("new")] = 99
-
+    
+    # Update the first row of the 'new' column (which is at index 1)
+    df.iloc[0, 1] = 99
+    
     expected = Series([1, 2, 3], name="old")
-    tm.assert_series_equal(df["old"], expected)
+    result = df["old"]
+    tm.assert_series_equal(result, expected)
