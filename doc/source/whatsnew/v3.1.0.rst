@@ -255,6 +255,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
+- Fixed a regression in :meth:`Index.str.findall` raising a ``TypeError`` for list-like object results. (:issue:`65469`)
 -
 
 Interval

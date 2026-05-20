@@ -369,6 +369,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
+                result = np.asarray(result, dtype=object)
                 return Index(result, name=name, dtype=dtype, copy=False)
         else:
             index = self._orig.index
