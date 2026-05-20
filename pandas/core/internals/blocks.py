@@ -1372,9 +1372,6 @@ class Block(PandasObject, libinternals.Block):
             except (LossySetitemError, NotImplementedError):
                 pass
             else:
-                if values.dtype.kind == "f" and not np.isnan(values).any():
-                    return [self.copy(deep=False)]
-
                 copy, refs = self._get_refs_and_copy(inplace)
                 new_values = values.copy() if copy else values
 
