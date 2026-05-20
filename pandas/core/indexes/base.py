@@ -5463,7 +5463,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         cond : bool array-like with the same length as self
             Condition to select the values on.
-        other : scalar, array-like, or Index, default None
+        other : scalar, or array-like, default None
             Replacement if the condition is False.
 
         Returns
