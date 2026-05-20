@@ -2030,13 +2030,14 @@ def test_method_calls_on_binop():
     expected = (x + y).dropna().reset_index(drop=True)
     tm.assert_series_equal(result, expected)
 
+
 def test_eval_inplace_cow_alias_corruption():
     df = DataFrame({"old": [1, 2, 3]})
     df.eval("new = old", inplace=True)
-    
+
     # Update the first row of the 'new' column (which is at index 1)
     df.iloc[0, 1] = 99
-    
+
     expected = Series([1, 2, 3], name="old")
     result = df["old"]
     tm.assert_series_equal(result, expected)

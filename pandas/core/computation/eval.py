@@ -451,7 +451,7 @@ def eval(
                     resolvers += ({assigner: ret},)
 
             ret = None
-            first_expr = False  # noqa: F841
+            first_expr = False
 
     # We want to exclude `inplace=None` as being False.
     if inplace is False:
