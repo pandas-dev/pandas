@@ -50,10 +50,9 @@ static inline void moments_add_value(Moments &moments, double val,
 }
 
 template <class Arch>
-void update_moments_batch(MomentsBatch<Arch> &acc,
-                          xsimd::batch<double, Arch> val,
-                          xsimd::batch_bool<double, Arch> nan_mask,
-                          int max_moment) {
+inline void
+update_moments_batch(MomentsBatch<Arch> &acc, xsimd::batch<double, Arch> val,
+                     xsimd::batch_bool<double, Arch> nan_mask, int max_moment) {
   using batch_type = xsimd::batch<double, Arch>;
   const batch_type zero(0.0);
   const batch_type one(1.0);
