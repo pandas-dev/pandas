@@ -351,6 +351,7 @@ def eval(
     _check_resolvers(resolvers)
 
     ret = None
+    first_expr = True
     target_modified = False
 
     for expr in exprs:
@@ -450,6 +451,7 @@ def eval(
                     resolvers += ({assigner: ret},)
 
             ret = None
+            first_expr = False  # noqa: F841
 
     # We want to exclude `inplace=None` as being False.
     if inplace is False:
