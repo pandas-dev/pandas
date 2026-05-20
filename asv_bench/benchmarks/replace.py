@@ -6,6 +6,7 @@ import pandas as pd
 class FillNa:
     params = [True, False]
     param_names = ["inplace"]
+    number = 1
 
     def setup(self, inplace):
         N = 10**6
