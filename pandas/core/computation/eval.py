@@ -10,6 +10,7 @@ from typing import (
     Any,
 )
 import warnings
+import numpy as np
 
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -427,8 +428,8 @@ def eval(
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
             # Prevent CoW alias corruption
-            if inplace and hasattr(ret, "copy"):
-                ret = ret.copy()  # pyright: ignore[reportAttributeAccessIssue]
+            if inplace and isinstance(ret, (NDFrame, np.ndarray)):
+                ret = ret.copy()
 
             try:
                 if inplace and isinstance(target, NDFrame):
