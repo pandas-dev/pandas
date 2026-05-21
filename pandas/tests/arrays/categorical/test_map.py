@@ -125,7 +125,7 @@ def test_map_nan_identity_preserves_categorical():
 
     def mapper(x):
         if pd.isna(x):
-            return np.nan
+            return float("nan")
         return x.upper()
 
     result = cat.map(mapper, na_action=None)

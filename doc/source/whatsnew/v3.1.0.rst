@@ -224,7 +224,7 @@ Categorical
 
 - Fixed ``Categorical.map`` incorrectly returning an ``Index`` instead of a
   ``Categorical`` when the mapping was one-to-one and missing values were
-  preserved (:issue:`64064`).
+  preserved (:issue:`64064`)
 
 - Bug in :meth:`Categorical.__repr__` where the values and categories lines could exceed ``display.width`` (:issue:`12066`)
 - Bug in :meth:`Categorical.map` where mapping with a ``defaultdict`` and ``na_action=None`` would bypass the default factory ...
