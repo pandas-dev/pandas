@@ -238,8 +238,10 @@ static inline bool pandas_is_NA(PyTypeObject *t) {
     if (PyType_Check(na_type) == 0) {
       goto end;
     }
-    // keep a reference to NAType forever (until the interpreter exits) to ensure pandas_na_type never points to an invalid address
-    // this is a hack and should be cleaned up, possibly by generating NAType in this header or upstream of whatever compilation unit this header gets pulled into
+    // keep a reference to NAType forever (until the interpreter exits) to
+    // ensure pandas_na_type never points to an invalid address this is a hack
+    // and should be cleaned up, possibly by generating NAType in this header or
+    // upstream of whatever compilation unit this header gets pulled into
     Py_INCREF(na_type);
     pandas_na_type = (PyTypeObject *)na_type;
   }
