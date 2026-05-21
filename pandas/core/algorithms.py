@@ -109,7 +109,7 @@ if TYPE_CHECKING:
 # --------------- #
 # dtype access    #
 # --------------- #
-def _ensure_data(values: ArrayLike) -> np.ndarray:
+def _ensure_data(values: AnyArrayLike) -> np.ndarray:
     """
     routine to ensure that our data is of the correct
     input dtype for lower-level routines
@@ -124,7 +124,7 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
 
     Parameters
     ----------
-    values : np.ndarray or ExtensionArray
+    values : np.ndarray, ExtensionArray, Index, or Series
 
     Returns
     -------
@@ -980,7 +980,7 @@ def value_counts_arraylike(
 
 
 def duplicated(
-    values: ArrayLike,
+    values: AnyArrayLike,
     keep: Literal["first", "last", False] = "first",
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.bool_]:
@@ -989,7 +989,7 @@ def duplicated(
 
     Parameters
     ----------
-    values : np.ndarray or ExtensionArray
+    values : np.ndarray, ExtensionArray, Index, or Series
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
