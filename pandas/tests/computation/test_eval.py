@@ -2033,6 +2033,7 @@ def test_method_calls_on_binop():
 
 def test_eval_inplace_cow_alias_corruption():
     # https://github.com/pandas-dev/pandas/issues/65664
+    # https://github.com/pandas-dev/pandas/issues/65664
     df = DataFrame({"old": [1, 2, 3]})
     df.eval("new = old", inplace=True)
 
