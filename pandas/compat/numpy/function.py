@@ -82,12 +82,12 @@ class CompatValidator:
         method = self.method if method is None else method
 
         if method == "args":
-            validate_args(fname, args, max_fname_arg_count, self.defaults)
+            validate_args(fname, args, cast("int", max_fname_arg_count), self.defaults)
         elif method == "kwargs":
             validate_kwargs(fname, kwargs, self.defaults)
         elif method == "both":
             validate_args_and_kwargs(
-                fname, args, kwargs, max_fname_arg_count, self.defaults
+                fname, args, kwargs, cast("int", max_fname_arg_count), self.defaults
             )
         else:
             raise ValueError(f"invalid validation method '{method}'")
@@ -110,20 +110,6 @@ def process_skipna(
         skipna = True
 
     return skipna, args
-
-
-def validate_argmin_with_skipna(
-    skipna: bool | ndarray | None, args: tuple[Any, ...], kwargs: dict[str, Any]
-) -> bool:
-    """
-    If 'Series.argmin' is called via the 'numpy' library, the third parameter
-    in its signature is 'out', which takes either an ndarray or 'None', so
-    check if the 'skipna' parameter is either an instance of ndarray or is
-    None, since 'skipna' itself should be a boolean
-    """
-    skipna, args = process_skipna(skipna, args)
-    validate_argmin(args, kwargs)
-    return skipna
 
 
 def validate_argmax_with_skipna(

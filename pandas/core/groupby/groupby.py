@@ -54,6 +54,8 @@ from pandas._typing import (
     NDFrameT,
     PositionalIndexer,
     RandomState,
+    RankMethod,
+    RankNaOption,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -3173,7 +3175,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the first entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the first non-NA
+        value per column — which may differ from the first row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3183,7 +3187,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3196,9 +3200,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        api.typing.DataFrameGroupBy.last : Compute the last entry of each
+            column within each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3258,7 +3262,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the last entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the last non-NA
+        value per column — which may differ from the last row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3269,22 +3275,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
         Returns
         -------
         Series or DataFrame
-            Last of values within each group.
+            Last values within each group.
 
         See Also
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        api.typing.DataFrameGroupBy.first : Compute the first entry of each
+            column within each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3461,7 +3467,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return the 25th, 50th, and 75th percentiles.
         include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - 'all' : All columns of the input will be included in the output.
             - A list-like of dtypes : Limits the results to the
@@ -3475,7 +3482,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             - None (default) : The result will include all numeric columns.
         exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - A list-like of dtypes : Excludes the provided data types
               from the result. To exclude numeric types submit
@@ -3526,7 +3534,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
+        Passing them when analyzing a ``Series`` is deprecated and will
+        raise in a future version; the parameters are ignored today.
 
         Examples
         --------
@@ -4900,9 +4909,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def rank(
         self,
-        method: str = "average",
+        method: RankMethod = "average",
         ascending: bool = True,
-        na_option: str = "keep",
+        na_option: RankNaOption = "keep",
         pct: bool = False,
     ) -> NDFrameT:
         """
