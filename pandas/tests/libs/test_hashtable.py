@@ -850,36 +850,36 @@ def test_float_complex_int_are_equal_as_objects():
     tm.assert_numpy_array_equal(result, expected)
 
 
-class testkey:
+class hash_eq_raiser:
     # GH 57052
-    def __init__(self, value, throw_hash=False, throw_eq=False):
+    def __init__(self, value, raise_hash=False, raise_eq=False):
         self.value = value
-        self.throw_hash = throw_hash
-        self.throw_eq = throw_eq
+        self.raise_hash = raise_hash
+        self.raise_eq = raise_eq
 
     def __hash__(self):
-        if self.throw_hash:
+        if self.raise_hash:
             raise RuntimeError(f"exception in {self!r}.__hash__")
         return hash(self.value)
 
     def __eq__(self, other):
-        if self.throw_eq:
+        if self.raise_eq:
             raise RuntimeError(f"exception in {self!r}.__eq__")
         return self.value == other.value
 
     def __repr__(self):
-        return f"testkey({self.value}, {self.throw_hash}, {self.throw_eq})"
+        return f"hash_eq_raiser({self.value}, {self.raise_hash}, {self.raise_eq})"
 
 
-@pytest.mark.parametrize("throw1, throw2", product([True, False], repeat=2))
-def test_error_raised_from_hash_method_in_set_item(throw1, throw2):
+@pytest.mark.parametrize("raise1, raise2", product([True, False], repeat=2))
+def test_error_raised_from_hash_method_in_set_item(raise1, raise2):
     # GH 57052
     table = ht.PyObjectHashTable()
 
-    key1 = testkey(value="hello1", throw_hash=throw1)
-    key2 = testkey(value="hello2", throw_hash=throw2)
+    key1 = hash_eq_raiser(value="hello1", raise_hash=raise1)
+    key2 = hash_eq_raiser(value="hello2", raise_hash=raise2)
 
-    if throw1:
+    if raise1:
         with pytest.raises(
             RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
         ):
@@ -888,7 +888,7 @@ def test_error_raised_from_hash_method_in_set_item(throw1, throw2):
         table.set_item(key1, 123)
         assert table.get_item(key1) == 123
 
-    if throw2:
+    if raise2:
         with pytest.raises(
             RuntimeError, match=re.escape(f"exception in {key2!r}.__hash__")
         ):
@@ -898,21 +898,21 @@ def test_error_raised_from_hash_method_in_set_item(throw1, throw2):
         assert table.get_item(key2) == 456
 
 
-@pytest.mark.parametrize("throw1, throw2", product([True, False], repeat=2))
-def test_error_raised_from_hash_method_in_get_item(throw1, throw2):
+@pytest.mark.parametrize("raise1, raise2", product([True, False], repeat=2))
+def test_error_raised_from_hash_method_in_get_item(raise1, raise2):
     # GH 57052
     table = ht.PyObjectHashTable()
 
-    key1 = testkey(value="hello1")
-    key2 = testkey(value="hello2")
+    key1 = hash_eq_raiser(value="hello1")
+    key2 = hash_eq_raiser(value="hello2")
 
     table.set_item(key1, 123)
     table.set_item(key2, 456)
 
-    key1.throw_hash = throw1
-    key2.throw_hash = throw2
+    key1.raise_hash = raise1
+    key2.raise_hash = raise2
 
-    if throw1:
+    if raise1:
         with pytest.raises(
             RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
         ):
@@ -920,7 +920,7 @@ def test_error_raised_from_hash_method_in_get_item(throw1, throw2):
     else:
         assert table.get_item(key1) == 123
 
-    if throw2:
+    if raise2:
         with pytest.raises(
             RuntimeError, match=re.escape(f"exception in {key2!r}.__hash__")
         ):
@@ -929,15 +929,15 @@ def test_error_raised_from_hash_method_in_get_item(throw1, throw2):
         assert table.get_item(key2) == 456
 
 
-@pytest.mark.parametrize("throw", [True, False])
-def test_error_raised_from_eq_method_in_set_item(throw):
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_set_item(do_raise):
     # GH 57052
     table = ht.PyObjectHashTable()
 
-    key1 = testkey(value="hello", throw_eq=throw)
-    key2 = testkey(value=key1.value)
+    key1 = hash_eq_raiser(value="hello", raise_eq=do_raise)
+    key2 = hash_eq_raiser(value=key1.value)
 
-    if throw:
+    if do_raise:
         table.set_item(key1, 123)
         with pytest.raises(
             RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
@@ -948,19 +948,19 @@ def test_error_raised_from_eq_method_in_set_item(throw):
         assert table.get_item(key2) == 456
 
 
-@pytest.mark.parametrize("throw", [True, False])
-def test_error_raised_from_eq_method_in_get_item(throw):
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_get_item(do_raise):
     # GH 57052
     table = ht.PyObjectHashTable()
 
-    key1 = testkey(value="hello")
-    key2 = testkey(value=key1.value)
+    key1 = hash_eq_raiser(value="hello")
+    key2 = hash_eq_raiser(value=key1.value)
 
     table.set_item(key1, 123)
     table.set_item(key2, 456)
 
-    if throw:
-        key1.throw_eq = True
+    if do_raise:
+        key1.raise_eq = True
         with pytest.raises(
             RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
         ):
