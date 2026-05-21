@@ -289,11 +289,11 @@ def test_multiindex_equals_different_bit_widths():
     # even if internal codes have different integer bit-widths (int32 vs int64)
 
     # Create first index (default int64 codes on 64-bit systems)
-    mi1 = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
+    mi1 = MultiIndex.from_arrays([[1, 2], [3, 4]])
 
     # Create second index and force int32 codes
     codes2 = [np.array([0, 1], dtype=np.int32), np.array([0, 1], dtype=np.int32)]
-    mi2 = pd.MultiIndex(levels=mi1.levels, codes=codes2)
+    mi2 = MultiIndex(levels=mi1.levels, codes=codes2)
 
     # Assert they are equal logically, despite memory differences
     assert mi1.equals(mi2)
