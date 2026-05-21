@@ -1327,7 +1327,7 @@ cdef class PyObjectHashTable(HashTable):
         cdef khiter_t index
         if self.table is not NULL:
             for index in range(self.table.n_buckets):
-                if kh_exist_pymap(self.table, index):
+                if kh_exist_pymap_checked(self.table, index):
                     Py_DECREF(<object>self.table.keys[index])
             kh_destroy_pymap_checked(self.table)
             self.table = NULL
@@ -1382,7 +1382,6 @@ cdef class PyObjectHashTable(HashTable):
         hash(key)
 
         k = kh_put_pymap_checked(self.table, <PyObject*>key, &ret)
-        raise_if_errors()
         if kh_exist_pymap_checked(self.table, k):
             if ret != 0:
                 Py_INCREF(key)
