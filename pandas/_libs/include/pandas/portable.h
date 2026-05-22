@@ -36,7 +36,7 @@ The full license is in the LICENSE file, distributed with this software.
     } while (0) /* fallthrough */
 #endif
 
-#if defined(_WIN32)
+#if defined(_MSC_VER)
 #  ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #    define ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #  endif
