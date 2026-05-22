@@ -309,7 +309,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         True if this is a fixed-offset timezone with no transitions.
     """
     cdef:
-        int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
+        int64_t fixed_offset_seconds, last_hist_ts, max_i8_seconds, start_utc, end_utc
         list trans_utc, deltas_seconds, future_trans
         int year, last_year, std_offset, dst_offset
 
@@ -350,7 +350,8 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
             last_year = 1970
 
         future_trans = []
-        for year in range(last_year, 2100):
+        max_i8_seconds = np.iinfo(np.int64).max // 1_000_000_000
+        for year in range(last_year, 2263):
             try:
                 year_trans = tz_after.transitions(year)
                 if not year_trans:
@@ -358,10 +359,14 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
                 start_local, end_local = year_trans
                 start_utc = start_local - std_offset
                 end_utc = end_local - dst_offset
-                if start_utc > last_hist_ts:
-                    future_trans.append((start_utc, dst_offset))
-                if end_utc > last_hist_ts:
-                    future_trans.append((end_utc, std_offset))
+
+                # transitions are is currently converted to nanoseconds below, so guard
+                # against overflow by only including those that fit in the ns range
+                if end_utc <= max_i8_seconds:
+                    if start_utc > last_hist_ts:
+                        future_trans.append((start_utc, dst_offset))
+                    if end_utc > last_hist_ts:
+                        future_trans.append((end_utc, std_offset))
             except Exception:
                 break
 

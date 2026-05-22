@@ -21,6 +21,7 @@ from pandas.compat import is_platform_windows
 from pandas import (
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -229,6 +230,32 @@ def test_zoneinfo_utc_to_local_post_2037():
         dtype=np.int32,
     )
     tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
+
+
+def test_zoneinfo_utc_to_local_post_2037_2():
+    # https://github.com/pandas-dev/pandas/pull/64379#discussion_r3282274973
+    # verify that ZoneInfo DST transitions after 2037
+    # (generated from POSIX TZ string rules) produce correct local times.
+    tz = zoneinfo.ZoneInfo("US/Pacific")
+    # fmt: off
+    data = [
+        "2000-01-01", "2000-07-01",
+        "2036-01-01", "2036-07-01",
+        "2038-01-01", "2038-07-01",
+        "2100-01-01",  "2100-07-01",
+        "2200-01-01",  "2200-07-01",
+    ]
+    # fmt: on
+    utc_times = to_datetime(data, utc=True)
+    local = utc_times.tz_convert(tz)
+
+    expected = [
+        datetime.fromisoformat(date).replace(tzinfo=timezone.utc).astimezone(tz)
+        for date in data
+    ]
+
+    tm.assert_numpy_array_equal(local.to_pydatetime(), np.array(expected))
+    assert [ts.utcoffset() for ts in local] == [dt.utcoffset() for dt in expected]
 
 
 @pytest.mark.parametrize("key", ["US/Eastern", "Africa/Lusaka", "Asia/Qyzylorda"])
