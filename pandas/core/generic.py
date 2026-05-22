@@ -7996,7 +7996,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'outside': Only fill NaNs outside valid values (extrapolate).
 
         **kwargs : optional
-            Keyword arguments to pass on to the interpolating function.
+            Keyword arguments to pass on to SciPy interpolation methods.
+            These arguments are not passed to ``numpy.interp`` for
+            ``method='linear'``.
 
         Returns
         -------
