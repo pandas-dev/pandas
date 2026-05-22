@@ -128,7 +128,35 @@ step size of that instance's resolution:
    td.resolution
 
 Different resolutions can be converted to each other through
-:meth:`Timedelta.as_unit`.
+:meth:`Timedelta.as_unit`, which can be useful before arithmetic that requires
+finer precision.
+
+The stored resolution also affects scalar arithmetic. If the result of an
+operation cannot be represented in the stored resolution, it is rounded down.
+
+.. ipython:: python
+
+   td = pd.Timedelta(1, unit="s")
+   td.unit
+   td / 2
+
+To perform arithmetic that requires finer precision, convert to a finer
+resolution before the operation.
+
+.. ipython:: python
+
+   td.as_unit("ms") / 2
+   td.as_unit("us") / 2
+   td.as_unit("ns") / 2
+
+The stored resolution can depend on how the ``Timedelta`` is constructed.
+
+.. ipython:: python
+
+   pd.Timedelta(1, unit="s").unit
+   pd.Timedelta(1.5, unit="s").unit
+   pd.Timedelta(seconds=1).unit
+   pd.Timedelta("1 second").unit
 
 .. _timedeltas.operations:
 
