@@ -7,7 +7,6 @@ from typing import (
     Self,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -15,9 +14,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import register_extension_dtype
@@ -25,7 +22,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_accumulations
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -398,16 +394,17 @@ class BooleanArray(BaseMaskedArray):
         if isinstance(other, BooleanArray):
             other, mask = other._data, other._mask
         elif is_list_like(other):
-            if not isinstance(
-                other, (list, ExtensionArray, np.ndarray)
-            ) and not ops.has_castable_attr(other):
-                warnings.warn(
-                    f"Operation with {type(other).__name__} is deprecated. "
-                    "In a future version these will be treated as scalar-like. "
-                    "To retain the old behavior, explicitly wrap in a Series "
-                    "instead.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
+            if not hasattr(other, "dtype"):
+                # GH#52264 align with the numpy-backed Series behavior, which
+                # raises on logical ops with dtype-less sequences (e.g. list,
+                # tuple).  Previously this either silently coerced the values to
+                # bool or raised a confusing "boolean value of NA is ambiguous"
+                # error when the sequence contained ``pd.NA``.
+                raise TypeError(
+                    "Logical ops (and, or, xor) between Pandas objects and "
+                    "dtype-less sequences (e.g. list, tuple) are no longer "
+                    "supported. Wrap the object in a Series, Index, or "
+                    "np.array before operating instead."
                 )
 
             other = np.asarray(other, dtype="bool")

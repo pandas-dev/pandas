@@ -67,13 +67,23 @@ class TestLogicalOps(BaseOpsUtil):
         msg = "Lengths must match"
 
         with pytest.raises(ValueError, match=msg):
-            getattr(a, op_name)(other)
-
-        with pytest.raises(ValueError, match=msg):
             getattr(a, op_name)(np.array(other))
 
         with pytest.raises(ValueError, match=msg):
             getattr(a, op_name)(pd.array(other, dtype="boolean"))
+
+    @pytest.mark.parametrize("other", [[True, False], [pd.NA, False], (True, False)])
+    def test_logical_dtypeless_sequence_raises(self, other, all_logical_operators):
+        # GH#63095 logical ops with a dtype-less sequence (e.g. list, tuple)
+        # should raise consistently with the numpy-backed Series behavior,
+        # instead of silently coercing or raising a confusing
+        # "boolean value of NA is ambiguous" error when it contains pd.NA.
+        op_name = all_logical_operators
+        a = pd.array([True, False], dtype="boolean")
+        msg = "dtype-less sequences"
+
+        with pytest.raises(TypeError, match=msg):
+            getattr(a, op_name)(other)
 
     def test_logical_nan_raises(self, all_logical_operators):
         op_name = all_logical_operators
