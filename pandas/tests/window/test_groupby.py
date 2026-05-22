@@ -1230,6 +1230,15 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_ewm_agg_callable_sum(self):
+        # GH 63855
+        df = DataFrame({"A": ["a"] * 4, "B": range(4)})
+
+        result = df.groupby("A").ewm(com=1.0).agg(np.sum)
+        expected = df.groupby("A").ewm(com=1.0).sum()
+
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "method, expected_data",
         [["corr", [np.nan, 1.0, 1.0, 1]], ["cov", [np.nan, 0.5, 0.928571, 1.385714]]],

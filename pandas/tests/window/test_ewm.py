@@ -654,6 +654,30 @@ def test_ewm_pairwise_cov_corr(func, frame):
     tm.assert_series_equal(result, expected, check_names=False)
 
 
+@pytest.mark.parametrize("func", [sum, np.sum])
+def test_ewm_agg_callable_sum(frame_or_series, func):
+    # GH 63855
+    obj = frame_or_series(range(4))
+
+    result = obj.ewm(1).agg(func)
+    expected = obj.ewm(1).sum()
+
+    if isinstance(obj, DataFrame):
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
+
+
+def test_ewm_agg_callable_sum_dict_list():
+    # GH 63855
+    df = DataFrame({"A": range(4), "B": range(4, 8)})
+
+    result = df.ewm(1).agg({"A": np.sum, "B": [sum, "mean"]})
+    expected = df.ewm(1).agg({"A": "sum", "B": ["sum", "mean"]})
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     # GH#46560
     kernel = arithmetic_win_operators
