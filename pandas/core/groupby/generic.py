@@ -2478,6 +2478,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same=True,
                 is_transform=is_transform,
             )
+        elif len(values) == 1 and first_not_none.index.equals(self._selected_obj.index):
+            # GH 54992
+            # With a single group, a Series result indexed like the selected object
+            # should follow the same concatenation path as multiple groups.
+            return self._concat_objects(
+                values,
+                not_indexed_same=True,
+                is_transform=is_transform,
+            )
 
         # Combine values
         # vstack+constructor is faster than concat and handles MI-columns

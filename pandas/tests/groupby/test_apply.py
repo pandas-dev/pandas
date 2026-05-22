@@ -1484,6 +1484,24 @@ def test_inconsistent_return_type():
     tm.assert_series_equal(result, e)
 
 
+def test_apply_single_group_returns_series_like_multiple_groups():
+    # GH 54992
+    def func(group):
+        return Series([group["A"] + group["B"]], index=group.index)
+
+    df = DataFrame(
+        {
+            "A": [1, 2],
+            "B": [2, 2],
+            "C": ["c", "d"],
+        }
+    )
+    result = df.iloc[:1].groupby("C").apply(func)
+    expected = df.groupby("C").apply(func).iloc[:1]
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_nonreducer_nonstransform():
     # GH3380, GH60619
     # Was originally testing mutating in a UDF; now kept as an example
