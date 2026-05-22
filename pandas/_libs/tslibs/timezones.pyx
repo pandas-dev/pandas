@@ -362,7 +362,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
                 # transitions are is currently converted to nanoseconds below, so guard
                 # against overflow by only including those that fit in the ns range
-                if end_utc <= max_i8_seconds:
+                if start_utc <= max_i8_seconds and end_utc <= max_i8_seconds:
                     if start_utc > last_hist_ts:
                         future_trans.append((start_utc, dst_offset))
                     if end_utc > last_hist_ts:

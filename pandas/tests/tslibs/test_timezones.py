@@ -232,11 +232,14 @@ def test_zoneinfo_utc_to_local_post_2037():
     tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
 
 
-def test_zoneinfo_utc_to_local_post_2037_2():
+@pytest.mark.parametrize("tz_name", ["America/New_York", "Australia/Melbourne"])
+def test_zoneinfo_utc_to_local_post_2037_2(tz_name):
     # https://github.com/pandas-dev/pandas/pull/64379#discussion_r3282274973
     # verify that ZoneInfo DST transitions after 2037
     # (generated from POSIX TZ string rules) produce correct local times.
-    tz = zoneinfo.ZoneInfo("US/Pacific")
+    # test with a tz from both northern and southern hemisphere
+    # (start/end of DST transition in different order)
+    tz = zoneinfo.ZoneInfo(tz_name)
     # fmt: off
     data = [
         "2000-01-01", "2000-07-01",
