@@ -644,6 +644,16 @@ def test_groupby_finalize(obj, method):
 @pytest.mark.parametrize(
     "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
 )
+def test_groupby_finalize_duplicate_labels(obj):
+    # GH#46505 ensure allows_duplicate_labels propagates through groupby splitter
+    obj = obj.set_flags(allows_duplicate_labels=False)
+    result = obj.groupby([0, 0]).sum()
+    assert result.flags.allows_duplicate_labels is False
+
+
+@pytest.mark.parametrize(
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})]
+)
 @pytest.mark.parametrize(
     "method",
     [

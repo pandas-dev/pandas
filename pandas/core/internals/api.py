@@ -85,7 +85,11 @@ class _DatetimeTZBlock(DatetimeLikeBlock):
 
 
 def make_block(
-    values, placement, klass=None, ndim=None, dtype: Dtype | None = None
+    values: ArrayLike,
+    placement: BlockPlacement | np.ndarray,
+    klass: type[Block] | None = None,
+    ndim: int | None = None,
+    dtype: Dtype | None = None,
 ) -> Block:
     """
     This is a pseudo-public analogue to blocks.new_block.
@@ -127,10 +131,14 @@ def make_block(
     elif klass is _DatetimeTZBlock and not isinstance(values.dtype, DatetimeTZDtype):
         # pyarrow calls get here (pyarrow<15)
         values = DatetimeArray._simple_new(
+            # error: Argument 1 to "_simple_new" of "DatetimeArray" has
+            # incompatible type "ExtensionArray | ndarray[tuple[Any, ...],
+            # dtype[Any]]"; expected
+            # "ndarray[tuple[Any, ...], dtype[datetime64[date | int | None]]]"
+            values,  # type: ignore[arg-type]
             # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
             # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
             # expected "Union[dtype[datetime64], DatetimeTZDtype]"
-            values,
             dtype=dtype,  # type: ignore[arg-type]
         )
 
@@ -149,7 +157,9 @@ def make_block(
     return klass(values, ndim=ndim, placement=placement)
 
 
-def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+def _maybe_infer_ndim(
+    values: ArrayLike, placement: BlockPlacement, ndim: int | None
+) -> int:
     """
     If `ndim` is not provided, infer it from placement and values.
     """
@@ -165,7 +175,9 @@ def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> in
     return ndim
 
 
-def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+def maybe_infer_ndim(
+    values: ArrayLike, placement: BlockPlacement, ndim: int | None
+) -> int:
     """
     If `ndim` is not provided, infer it from placement and values.
     """
