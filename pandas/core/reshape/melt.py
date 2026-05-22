@@ -15,7 +15,10 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -240,6 +243,11 @@ def melt(
     else:
         var_name = [var_name]
 
+    mcolumns = id_vars + var_name + [value_name]
+
+    if not Index(mcolumns).is_unique:
+        raise ValueError("melt output column names must be unique.")
+
     num_rows, K = frame.shape
     num_cols_adjusted = K - len(id_vars)
 
@@ -255,8 +263,6 @@ def melt(
                 mdata[col] = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
         else:
             mdata[col] = np.tile(id_data._values, num_cols_adjusted)
-
-    mcolumns = id_vars + var_name + [value_name]
 
     if frame.shape[1] > 0 and not any(
         not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes

@@ -555,6 +555,27 @@ class TestMelt:
         ):
             df.melt(var_name=["first", "second", "third"])
 
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"id_vars": "id", "var_name": "id"},
+            {"var_name": "value", "value_name": "value"},
+        ],
+    )
+    def test_melt_duplicate_output_columns_raises(self, kwargs):
+        # GH 65654
+        df = DataFrame({"id": [1, 2], "a": [10, 20], "b": [100, 200]})
+
+        with pytest.raises(ValueError, match="melt output column names must be unique"):
+            df.melt(**kwargs)
+
+    def test_melt_multiindex_columns_duplicate_var_name_raises(self):
+        # GH 65654
+        df = DataFrame({("A", "a"): [1], ("A", "b"): [2]})
+
+        with pytest.raises(ValueError, match="melt output column names must be unique"):
+            df.melt(var_name=["first", "first"])
+
     def test_melt_duplicate_column_header_raises(self):
         # GH61475
         df = DataFrame([[1, 2, 3], [3, 4, 5]], columns=["A", "A", "B"])
