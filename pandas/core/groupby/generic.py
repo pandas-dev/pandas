@@ -2478,7 +2478,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 not_indexed_same=True,
                 is_transform=is_transform,
             )
-        elif len(values) == 1 and first_not_none.index.equals(self._selected_obj.index):
+        elif (
+            len(values) == 1
+            and first_not_none.index.equals(self._selected_obj.index)
+            and not first_not_none.index.equals(self._selected_obj.columns)
+        ):
             # GH 54992
             # With a single group, a Series result indexed like the selected object
             # should follow the same concatenation path as multiple groups.
