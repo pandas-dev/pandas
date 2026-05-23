@@ -259,3 +259,23 @@ class TestDataFrameUpdate:
         expected = DataFrame({"date": [pd.Timestamp("2026-02-05")]}, dtype=object)
 
         tm.assert_frame_equal(other, expected)
+    
+    def test_update_raises_on_index_dtype_mismatch(self):
+        # GH#19905 - warn when index dtypes differ and update does nothing
+        df_int = pd.DataFrame({"col": ["foo", "bar", np.nan]}, index=[1, 2, 3])
+        df_str = pd.DataFrame({"col": [np.nan, np.nan, "baz"]}, index=["1", "2", "3"])
+
+        with tm.assert_produces_warning(FutureWarning, match="dtype"):
+            df_int.update(df_str)
+
+        # The DataFrame should be unchanged since no indices matched
+        expected = pd.DataFrame({"col": ["foo", "bar", np.nan]}, index=[1, 2, 3])
+        tm.assert_frame_equal(df_int, expected)
+
+    def test_update_no_warning_same_dtype_no_overlap(self):
+        # GH#19905 - no warning when dtypes are the same (even if no overlap)
+        df1 = pd.DataFrame({"col": ["foo", "bar"]}, index=[1, 2])
+        df2 = pd.DataFrame({"col": ["baz"]}, index=[3])
+
+        with tm.assert_produces_warning(None):
+            df1.update(df2)
