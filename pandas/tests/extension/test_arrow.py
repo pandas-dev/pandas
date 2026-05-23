@@ -1100,8 +1100,8 @@ class TestArrowArray(base.ExtensionTests):
         ):
             try:
                 super().test_json_roundtrip(data)
-            # date32/date64
             except NotImplementedError as err:
+                # date32/date64
                 if "as_unit not implemented for date" in str(err):
                     request.applymarker(
                         pytest.mark.xfail(
@@ -1109,20 +1109,18 @@ class TestArrowArray(base.ExtensionTests):
                             reason="as_unit not implemented for date",
                         )
                     )
-                raise
-            # timestamp with s unit and US/Pacific or US/Eastern tz
-            except ValueError as err:
-                # second error message for Python 3.14+
-                if any(
-                    s in str(err)
-                    for s in [
-                        "year 51970 is out of range",
-                        "year must be in 1..9999, not 51970",
-                    ]
+                # timestamp with s unit and US/Pacific or US/Eastern tz
+                elif (
+                    "toordinal not yet supported on Timestamps which are outside the range of Python's standard library."
+                    in str(err)
                 ):
                     request.applymarker(
                         pytest.mark.xfail(
-                            raises=ValueError, reason="year 51970 is out of range"
+                            raises=NotImplementedError,
+                            reason=(
+                                "toordinal not yet supported on Timestamps which are "
+                                "outside the range of Python's standard library."
+                            ),
                         )
                     )
                 raise
