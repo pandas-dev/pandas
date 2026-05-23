@@ -94,6 +94,11 @@ from pandas._libs.khash cimport (
 
 {{endfor}}
 
+from pandas._libs.khash cimport (
+    kh_put_pymap,
+    raise_if_errors,
+)
+
 # ----------------------------------------------------------------------
 # VectorData
 # ----------------------------------------------------------------------
@@ -1381,10 +1386,11 @@ cdef class PyObjectHashTable(HashTable):
 
         hash(key)
 
-        k = kh_put_pymap_checked(self.table, <PyObject*>key, &ret)
+        k = kh_put_pymap(self.table, <PyObject*>key, &ret)
+        if ret != 0:
+            Py_INCREF(key)
+        raise_if_errors()
         if kh_exist_pymap_checked(self.table, k):
-            if ret != 0:
-                Py_INCREF(key)
             self.table.vals[k] = val
         else:
             raise KeyError(key)
@@ -1403,10 +1409,11 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            k = kh_put_pymap_checked(self.table, <PyObject*>val, &ret)
-            self.table.vals[k] = i
+            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             if ret != 0:
                 Py_INCREF(val)
+            raise_if_errors()
+            self.table.vals[k] = i
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1505,8 +1512,9 @@ cdef class PyObjectHashTable(HashTable):
             k = kh_get_pymap_checked(self.table, <PyObject*>val)
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
-                k = kh_put_pymap_checked(self.table, <PyObject*>val, &ret)
+                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
                 Py_INCREF(val)
+                raise_if_errors()
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count

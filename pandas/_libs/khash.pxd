@@ -125,6 +125,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     khuint_t kh_needed_n_buckets(khuint_t element_n) nogil
 
+cdef int raise_if_errors() except -1
 cdef kh_pymap_t* kh_init_pymap_checked()
 cdef void kh_destroy_pymap_checked(kh_pymap_t*)
 cdef void kh_clear_pymap_checked(kh_pymap_t*)
