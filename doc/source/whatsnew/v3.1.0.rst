@@ -218,6 +218,9 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
+- :meth:`DataFrame.update` now raises a ``FutureWarning`` when the index
+  of ``other`` has a different dtype than the calling DataFrame's index,
+  which would previously cause the update to silently do nothing (:issue:`19905`)
 
 Categorical
 ^^^^^^^^^^^
