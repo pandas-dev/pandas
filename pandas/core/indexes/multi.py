@@ -124,6 +124,14 @@ if TYPE_CHECKING:
         Series,
     )
 
+def _array_equivalent_int(left, right) -> bool:
+    """
+    Fast equivalence check for integer arrays.
+    Uses byte-level comparison if dtypes match, falls back to value comparison otherwise.
+    """
+    if left.dtype == right.dtype:
+        return lib.array_equivalent_bytes(left, right)
+    return array_equivalent(left, right)
 
 class MultiIndexUInt64Engine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
     """Manages a MultiIndex by mapping label combinations to positive integers.
@@ -4424,7 +4432,7 @@ class MultiIndex(Index):
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
-            if not array_equivalent(self_codes, new_codes):
+            if not _array_equivalent_int(self_codes, new_codes):
                 return False
             if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64
