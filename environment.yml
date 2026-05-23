@@ -127,6 +127,6 @@ dependencies:
   - jupyterlite-pyodide-kernel
 
   - pip:
-      - mypy=2.1.0  # pre-commit uses locally installed mypy
+      - mypy==2.1.0  # pre-commit uses locally installed mypy
       - tzdata>=2023.3
       - https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip
