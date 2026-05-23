@@ -367,7 +367,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
     def _unbox_scalar(
         self,
-        value: Period | NaTType,
+        # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
+        # "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin"; supertype
+        #  defines the argument type as "Period | Timestamp | Timedelta | NaTType"
+        value: Period | NaTType,  # type: ignore[override]
     ) -> np.int64:
         if value is NaT:
             return np.int64(value._value)
@@ -380,7 +383,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:
+    def _check_compatible_with(
+        self,
+        #  error: Argument 1 of "_check_compatible_with" is incompatible with
+        # supertype "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin";
+        # supertype defines the argument type as "Period | Timestamp | Timedelta
+        # | NaTType"
+        other: Period | NaTType | PeriodArray,  # type: ignore[override]
+    ) -> None:
         if other is NaT:
             return
         elif isinstance(other, Period):

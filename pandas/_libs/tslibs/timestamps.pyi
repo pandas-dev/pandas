@@ -1,4 +1,5 @@
 from datetime import (
+    _IsoCalendarDate,
     date as _date,
     datetime,
     time as _time,
@@ -33,16 +34,15 @@ _TimeZones: TypeAlias = str | _tzinfo | None | int
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
 
-# error: Definition of "__eq__" in base class "datetime" is incompatible with
-# definition in base class "NaTType"
-class Timestamp(datetime, NaTType):  # type: ignore[misc]
+class Timestamp(datetime):
     _creso: int
     min: ClassVar[Timestamp]
     max: ClassVar[Timestamp]
 
     resolution: ClassVar[Timedelta]
     _value: int  # np.int64
-    def __new__(
+    #  error: "__new__" must return a class instance (got "Timestamp | NaTType")
+    def __new__(  # type: ignore[misc]
         cls: type[Self],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         year: int | None = ...,
@@ -58,7 +58,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
         tz: _TimeZones = ...,
         unit: str | int | None = ...,
         fold: int | None = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _TimeZones
@@ -81,12 +81,10 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
     def microsecond(self) -> int: ...
     @property
     def nanosecond(self) -> int: ...
-    # error: Signature of "tzinfo" incompatible with supertype "NaTType"
     @property
-    def tzinfo(self) -> _tzinfo | None: ...  # type: ignore[override]
-    # error: Signature of "tz" incompatible with supertype "NaTType"
+    def tzinfo(self) -> _tzinfo | None: ...
     @property
-    def tz(self) -> _tzinfo | None: ...  # type: ignore[override]
+    def tz(self) -> _tzinfo | None: ...
     @property
     def fold(self) -> int: ...
     @classmethod
@@ -112,17 +110,13 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
     ) -> datetime: ...
     @classmethod
     def fromisoformat(cls, date_string: str) -> Self: ...
-    # error: Return type "str" of "strftime" incompatible with return type "Never"
-    # in supertype "pandas._libs.tslibs.nattype.NaTType"
-    def strftime(self, format: str) -> str: ...  # type: ignore[override]
+    def strftime(self, format: str) -> str: ...
     def __format__(self, fmt: str) -> str: ...
     def toordinal(self) -> int: ...
     def timetuple(self) -> struct_time: ...
     def timestamp(self) -> float: ...
     def utctimetuple(self) -> struct_time: ...
-    # error: Return type "date" of "date" incompatible with return type "NaTType"
-    # in supertype "pandas._libs.tslibs.nattype.NaTType"
-    def date(self) -> _date: ...  # type: ignore[override]
+    def date(self) -> _date: ...
     def time(self) -> _time: ...
     def timetz(self) -> _time: ...
     # LSP violation: nanosecond is not present in datetime.datetime.replace
@@ -163,11 +157,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
     def __add__(self, other: np.ndarray) -> np.ndarray: ...
     @overload
     def __add__(self, other: timedelta | np.timedelta64 | Tick) -> Self: ...
-    # error: Argument 1 of "__radd__" is incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type as
-    # "Timestamp | datetime | timedelta | Period | datetime64[date | int | None]
-    # | timedelta64[timedelta | int | None]"
-    def __radd__(self, other: timedelta) -> Self: ...  # type: ignore[override]
+    def __radd__(self, other: timedelta) -> Self: ...
     @overload  # type: ignore[override]
     def __sub__(self, other: datetime) -> Timedelta: ...
     @overload
@@ -175,9 +165,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
     def __hash__(self) -> int: ...
     def weekday(self) -> int: ...
     def isoweekday(self) -> int: ...
-    # Return type "Tuple[int, int, int]" of "isocalendar" incompatible with return
-    # type "_IsoCalendarDate" in supertype "date"
-    def isocalendar(self) -> tuple[int, int, int]: ...  # type: ignore[override]
+    def isocalendar(self) -> _IsoCalendarDate: ...
     @property
     def is_leap_year(self) -> bool: ...
     @property
@@ -192,9 +180,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
     def is_quarter_end(self) -> bool: ...
     @property
     def is_year_end(self) -> bool: ...
-    # error: Signature of "to_pydatetime" incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"
-    def to_pydatetime(self, warn: bool = ...) -> datetime: ...  # type: ignore[override]
+    def to_pydatetime(self, warn: bool = ...) -> datetime: ...
     def to_datetime64(self) -> np.datetime64: ...
     def to_period(self, freq: BaseOffset | str | None = None) -> Period: ...
     def to_julian_date(self) -> np.float64: ...
@@ -209,9 +195,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def normalize(self) -> Self: ...
-    #  error: Signature of "round" incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"
-    @overload  # type: ignore[override]
+    @overload
     def round(
         self,
         freq: Frequency | timedelta,
@@ -227,9 +211,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
-    #  error: Signature of "floor" incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"
-    @overload  # type: ignore[override]
+    @overload
     def floor(
         self,
         freq: Frequency | timedelta,
@@ -245,9 +227,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
-    #  error: Signature of "ceil" incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"
-    @overload  # type: ignore[override]
+    @overload
     def ceil(
         self,
         freq: Frequency | timedelta,
@@ -263,12 +243,8 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
-    # error: Signature of "day_name" incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"
-    def day_name(self, locale: str | None = ...) -> str: ...  # type: ignore[override]
-    # error: Signature of "month_name" incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"
-    def month_name(self, locale: str | None = ...) -> str: ...  # type: ignore[override]
+    def day_name(self, locale: str | None = ...) -> str: ...
+    def month_name(self, locale: str | None = ...) -> str: ...
     @property
     def day_of_week(self) -> int: ...
     @property
@@ -281,10 +257,7 @@ class Timestamp(datetime, NaTType):  # type: ignore[misc]
     def quarter(self) -> int: ...
     @property
     def week(self) -> int: ...
-    #  error: Argument 1 of "to_numpy" is incompatible with supertype
-    # "pandas._libs.tslibs.nattype.NaTType"; supertype defines the argument type
-    # as "dtype[Any] | None"
-    def to_numpy(self) -> np.datetime64: ...  # type: ignore[override]
+    def to_numpy(self) -> np.datetime64: ...
     @property
     def _date_repr(self) -> str: ...
     @property
