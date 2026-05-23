@@ -73,6 +73,7 @@ cimported_types = ['complex64',
                    'int16',
                    'int32',
                    'int64',
+                   'pymap',
                    'pymap_checked',
                    'str',
                    'strbox',
@@ -94,10 +95,7 @@ from pandas._libs.khash cimport (
 
 {{endfor}}
 
-from pandas._libs.khash cimport (
-    kh_put_pymap,
-    raise_if_errors,
-)
+from pandas._libs.khash cimport raise_if_errors
 
 # ----------------------------------------------------------------------
 # VectorData
