@@ -69,16 +69,17 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     def __hash__(self) -> int: ...
     @overload
     def __contains__(
-        self: Interval[Timedelta], key: Timedelta | Interval[Timedelta]
+        self: Interval[Timedelta], key: Timedelta | Interval[Timedelta], /
     ) -> bool: ...
     @overload
     def __contains__(
-        self: Interval[Timestamp], key: Timestamp | Interval[Timestamp]
+        self: Interval[Timestamp], key: Timestamp | Interval[Timestamp], /
     ) -> bool: ...
     @overload
     def __contains__(
         self: Interval[_OrderableScalarT],
         key: _OrderableScalarT | Interval[_OrderableScalarT],
+        /,
     ) -> bool: ...
     @overload
     def __add__(
@@ -112,14 +113,14 @@ class Interval(IntervalMixin, Generic[_OrderableT]):
     def __sub__(self: Interval[float], y: float) -> Interval[float]: ...
     @overload
     def __rsub__(
-        self: Interval[_OrderableTimesT], y: Timedelta
+        self: Interval[_OrderableTimesT], y: Timedelta, /
     ) -> Interval[_OrderableTimesT]: ...
     @overload
     def __rsub__(
-        self: Interval[int], y: _OrderableScalarT
+        self: Interval[int], y: _OrderableScalarT, /
     ) -> Interval[_OrderableScalarT]: ...
     @overload
-    def __rsub__(self: Interval[float], y: float) -> Interval[float]: ...
+    def __rsub__(self: Interval[float], y: float, /) -> Interval[float]: ...
     @overload
     def __mul__(
         self: Interval[int], y: _OrderableScalarT
