@@ -1111,9 +1111,9 @@ class TestArrowArray(base.ExtensionTests):
                     )
                 # timestamp with s unit and US/Pacific or US/Eastern tz
                 elif (
-                    "toordinal not yet supported on Timestamps which are outside the range of Python's standard library."
-                    in str(err)
-                ):
+                    "toordinal not yet supported on Timestamps which are "
+                    "outside the range of Python's standard library."
+                ) in str(err):
                     request.applymarker(
                         pytest.mark.xfail(
                             raises=NotImplementedError,
