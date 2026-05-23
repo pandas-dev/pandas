@@ -36,7 +36,12 @@ The full license is in the LICENSE file, distributed with this software.
     } while (0) /* fallthrough */
 #endif
 
-#if defined(_MSC_VER)
+#if (defined(__has_builtin) && __has_builtin(__builtin_add_overflow)) ||       \
+    __GNUC__ > 7
+#  define checked_add(a, b, res) __builtin_add_overflow(a, b, res)
+#  define checked_sub(a, b, res) __builtin_sub_overflow(a, b, res)
+#  define checked_mul(a, b, res) __builtin_mul_overflow(a, b, res)
+#elif defined(_WIN32)
 #  ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #    define ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #  endif
@@ -74,11 +79,6 @@ The full license is in the LICENSE file, distributed with this software.
         short *: ShortMult,                                                    \
         unsigned short *: UShortMult)(a, b, res)
 
-#elif (defined(__has_builtin) && __has_builtin(__builtin_add_overflow)) ||     \
-    __GNUC__ > 7
-#  define checked_add(a, b, res) __builtin_add_overflow(a, b, res)
-#  define checked_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#  define checked_mul(a, b, res) __builtin_mul_overflow(a, b, res)
 #else
 _Static_assert(0,
                "Overflow checking not detected; please try a newer compiler");
