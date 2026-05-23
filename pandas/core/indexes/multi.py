@@ -124,14 +124,16 @@ if TYPE_CHECKING:
         Series,
     )
 
+
 def _array_equivalent_int(left, right) -> bool:
     """
     Fast equivalence check for integer arrays.
-    Uses byte-level comparison if dtypes match, falls back to value comparison otherwise.
+    Uses byte-level comparison if dtypes match; falls back to value comparison.
     """
     if left.dtype == right.dtype:
         return lib.array_equivalent_bytes(left, right)
     return array_equivalent(left, right)
+
 
 class MultiIndexUInt64Engine(libindex.BaseMultiIndexCodesEngine, libindex.UInt64Engine):
     """Manages a MultiIndex by mapping label combinations to positive integers.
