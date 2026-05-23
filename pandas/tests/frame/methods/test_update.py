@@ -260,7 +260,7 @@ class TestDataFrameUpdate:
 
         tm.assert_frame_equal(other, expected)
     
-    def test_update_raises_on_index_dtype_mismatch():
+    def test_update_raises_on_index_dtype_mismatch(self):
         # GH#19905 - warn when index dtypes differ and update does nothing
         df_int = pd.DataFrame({"col": ["foo", "bar", np.nan]}, index=[1, 2, 3])
         df_str = pd.DataFrame({"col": [np.nan, np.nan, "baz"]}, index=["1", "2", "3"])
@@ -272,7 +272,7 @@ class TestDataFrameUpdate:
         expected = pd.DataFrame({"col": ["foo", "bar", np.nan]}, index=[1, 2, 3])
         tm.assert_frame_equal(df_int, expected)
 
-    def test_update_no_warning_same_dtype_no_overlap():
+    def test_update_no_warning_same_dtype_no_overlap(self):
         # GH#19905 - no warning when dtypes are the same (even if no overlap)
         df1 = pd.DataFrame({"col": ["foo", "bar"]}, index=[1, 2])
         df2 = pd.DataFrame({"col": ["baz"]}, index=[3])
