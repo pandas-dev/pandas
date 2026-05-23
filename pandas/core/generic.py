@@ -10304,7 +10304,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The where method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``True`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
+        ``other`` is used. If the axis of ``self`` does not align with axis of
         ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
         will be filled with False.
 
@@ -10472,7 +10472,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The mask method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``False`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
+        ``other`` is used. If the axis of ``self`` does not align with axis of
         ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
         will be filled with True.
 
