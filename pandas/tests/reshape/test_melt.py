@@ -1224,6 +1224,35 @@ class TestWideToLong:
         ):
             df.melt(id_vars="value", value_name="value")
 
+    def test_raise_var_name_collides_with_id_vars(self):
+        # GH65654 - var_name silently overwriting id_vars data
+        df = DataFrame({"id": [1, 2], "a": [10, 20], "b": [100, 200]})
+        with pytest.raises(
+            ValueError, match="var_name produces duplicate output column names"
+        ):
+            df.melt(id_vars="id", var_name="id")
+
+    def test_raise_var_name_collides_with_value_name(self):
+        # GH65654 - var_name colliding with value_name
+        df = DataFrame({"id": [1, 2], "a": [10, 20], "b": [100, 200]})
+        with pytest.raises(
+            ValueError, match="var_name produces duplicate output column names"
+        ):
+            df.melt(id_vars="id", var_name="value", value_name="value")
+
+    def test_raise_duplicate_var_name_list(self):
+        # GH65654 - duplicate entries within a list-like var_name on MultiIndex
+        df = DataFrame(
+            [[1, 2, 3, 4]],
+            columns=pd.MultiIndex.from_tuples(
+                [("A", "x"), ("A", "y"), ("B", "x"), ("B", "y")]
+            ),
+        )
+        with pytest.raises(
+            ValueError, match="var_name produces duplicate output column names"
+        ):
+            df.melt(var_name=["v", "v"])
+
     def test_missing_stubname(self, any_string_dtype):
         # GH46044
         df = DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})

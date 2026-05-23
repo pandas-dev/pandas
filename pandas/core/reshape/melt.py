@@ -240,6 +240,23 @@ def melt(
     else:
         var_name = [var_name]
 
+    # GH#65654 - reject output-name collisions before they silently overwrite
+    # data in the melted frame. ``value_name`` already cannot match an existing
+    # column above; mirror that for ``var_name``: it must not duplicate other
+    # ``var_name`` entries, ``id_vars`` labels, or ``value_name``.
+    out_names: list[Hashable] = list(id_vars) + list(var_name) + [value_name]
+    if len(set(out_names)) != len(out_names):
+        seen: set[Hashable] = set()
+        dupes: list[Hashable] = []
+        for name in out_names:
+            if name in seen and name not in dupes:
+                dupes.append(name)
+            seen.add(name)
+        raise ValueError(
+            "var_name produces duplicate output column names with id_vars / "
+            f"value_name; duplicates: {dupes}"
+        )
+
     num_rows, K = frame.shape
     num_cols_adjusted = K - len(id_vars)
 
