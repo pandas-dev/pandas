@@ -1332,9 +1332,9 @@ cdef class PyObjectHashTable(HashTable):
         cdef khiter_t index
         if self.table is not NULL:
             for index in range(self.table.n_buckets):
-                if kh_exist_pymap_checked(self.table, index):
+                if kh_exist_pymap(self.table, index):
                     Py_DECREF(<object>self.table.keys[index])
-            kh_destroy_pymap_checked(self.table)
+            kh_destroy_pymap(self.table)
             self.table = NULL
 
     def __len__(self) -> int:
