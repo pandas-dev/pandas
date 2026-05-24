@@ -71,7 +71,6 @@ def b(df, cols):
     return df.drop_duplicates(subset=cols[:-1])
 
 
-@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 @pytest.mark.parametrize("lexsort_depth", list(range(5)))
@@ -80,10 +79,15 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
     # GH7724, GH2646
 
     frame = request.getfixturevalue(frame_fixture)
+    print(f"\na frame:\n{frame}")
+    print(f"lexsort_depth: {lexsort_depth}")
     if lexsort_depth == 0:
         df = frame.copy(deep=False)
     else:
         df = frame.sort_values(by=cols[:lexsort_depth])
+
+    print(f"\nSame frame maybe different:\n{df}")
+    print(f"\nAnd df.loc[0]:\n{df.iloc[0]}")
 
     mi = df.set_index(cols[:-1])
     assert not mi.index._lexsort_depth < lexsort_depth
@@ -102,8 +106,7 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
             right = df[mask].copy(deep=False)
 
             if i + 1 != len(key):  # partial key
-                return_value = right.drop(cols[: i + 1], axis=1, inplace=True)
-                assert return_value is None
+                right = right.drop(cols[: i + 1], axis=1)
                 return_value = right.set_index(cols[i + 1 : -1], inplace=True)
                 assert return_value is None
                 tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
