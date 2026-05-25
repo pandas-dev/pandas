@@ -21,6 +21,7 @@ from pandas.compat import is_platform_windows
 from pandas import (
     Timestamp,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -229,6 +230,68 @@ def test_zoneinfo_utc_to_local_post_2037():
         dtype=np.int32,
     )
     tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
+
+
+@pytest.mark.parametrize("tz_name", ["America/New_York", "Australia/Melbourne"])
+def test_zoneinfo_utc_to_local_post_2100(tz_name):
+    # GH#65712 - verify zoneinfo-generated future DST transitions are used
+    # beyond year 2100 for both hemispheres.
+    tz = zoneinfo.ZoneInfo(tz_name)
+    # fmt: off
+    data = [
+        "2038-01-01", "2038-07-01",
+        "2100-01-01", "2100-07-01",
+        "2200-01-01", "2200-07-01",
+    ]
+    # fmt: on
+    utc_times = to_datetime(data, utc=True)
+    local = utc_times.tz_convert(tz)
+
+    expected = [
+        datetime.fromisoformat(date).replace(tzinfo=timezone.utc).astimezone(tz)
+        for date in data
+    ]
+
+    tm.assert_numpy_array_equal(local.to_pydatetime(), np.array(expected))
+    assert [ts.utcoffset() for ts in local] == [dt.utcoffset() for dt in expected]
+
+
+def test_zoneinfo_utc_to_local_far_future_seconds_resolution():
+    # GH#65712 - for dates beyond cached transition data, we should fall back
+    # to zoneinfo's API and preserve correct DST offsets.
+    utc_times = to_datetime(
+        np.array(["3000-01-01T00:00:00", "3000-07-01T00:00:00"], dtype="M8[s]"),
+        utc=True,
+    )
+    local = utc_times.tz_convert("Europe/Brussels")
+
+    tz = zoneinfo.ZoneInfo("Europe/Brussels")
+    expected = [
+        datetime(3000, 1, 1, tzinfo=timezone.utc).astimezone(tz),
+        datetime(3000, 7, 1, tzinfo=timezone.utc).astimezone(tz),
+    ]
+
+    assert local.dtype == "datetime64[s, Europe/Brussels]"
+    tm.assert_numpy_array_equal(local.to_pydatetime(), np.array(expected))
+
+
+def test_zoneinfo_local_to_utc_far_future_seconds_resolution():
+    # GH#65712 - localize should also preserve future DST rules when converting
+    # from local wall times to UTC beyond cached transition data.
+    local_times = to_datetime(
+        np.array(["3000-01-01T00:00:00", "3000-07-01T00:00:00"], dtype="M8[s]")
+    )
+    localized = local_times.tz_localize("Europe/Brussels")
+    result_utc = localized.tz_convert("UTC")
+
+    tz = zoneinfo.ZoneInfo("Europe/Brussels")
+    expected_utc = [
+        datetime(3000, 1, 1, tzinfo=tz).astimezone(timezone.utc),
+        datetime(3000, 7, 1, tzinfo=tz).astimezone(timezone.utc),
+    ]
+
+    assert result_utc.dtype == "datetime64[s, UTC]"
+    tm.assert_numpy_array_equal(result_utc.to_pydatetime(), np.array(expected_utc))
 
 
 @pytest.mark.parametrize("key", ["US/Eastern", "Africa/Lusaka", "Asia/Qyzylorda"])

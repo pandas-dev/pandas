@@ -72,7 +72,7 @@ cdef class Localizer:
         self.tz = tz
         self._creso = creso
         self.use_utc = self.use_tzlocal = self.use_fixed = False
-        self.use_dst = self.use_pytz = False
+        self.use_dst = self.use_pytz = self.use_zoneinfo = False
         self.ntrans = -1  # placeholder
         self.delta = -1  # placeholder
         self.deltas = _deltas_placeholder
@@ -115,6 +115,8 @@ cdef class Localizer:
                 self.use_dst = True
                 if typ == "pytz":
                     self.use_pytz = True
+                elif typ == "zoneinfo":
+                    self.use_zoneinfo = True
                 self.tdata = <int64_t*>cnp.PyArray_DATA(trans)
 
     @cython.wraparound(False)
@@ -131,6 +133,11 @@ cdef class Localizer:
         elif self.use_fixed:
             return utc_val + self.delta
         else:
+            if self.use_zoneinfo and utc_val > self.tdata[self.ntrans - 1]:
+                return utc_val + _tz_localize_using_tzinfo_api(
+                    utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
+                )
+
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             if fold is not NULL:
                 fold[0] = _infer_dateutil_fold(
@@ -308,9 +315,7 @@ timedelta-like}
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
-    result_a, result_b =_get_utc_bounds(
-        vals, info.tdata, info.ntrans, info.deltas, creso=creso
-    )
+    result_a, result_b =_get_utc_bounds(vals, info)
 
     # silence false-positive compiler warning
     dst_hours = np.empty(0, dtype=np.int64)
@@ -388,17 +393,28 @@ timedelta-like}
                     # nonexistent times
                     new_local = val - remaining_mins - 1
 
-                delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
-                # Logic similar to the precompute section. But check the current
-                # delta in case we are moving between UTC+0 and non-zero timezone
-                if (
-                    (shift_forward or shift_delta > 0)
-                    and info.deltas[delta_idx - 1] >= 0
-                ):
-                    delta_idx = delta_idx - 1
+                if info.use_zoneinfo and new_local > info.tdata[info.ntrans - 1]:
+                    if shift_forward or shift_delta > 0:
+                        delta = _tz_localize_using_tzinfo_api(
+                            new_local, tz, True, creso, NULL, 0
+                        )
+                    else:
+                        delta = _tz_localize_using_tzinfo_api(
+                            new_local, tz, True, creso, NULL, 1
+                        )
+                    result[i] = new_local - delta
                 else:
-                    delta_idx = delta_idx - delta_idx_offset
-                result[i] = new_local - info.deltas[delta_idx]
+                    delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
+                    # Logic similar to the precompute section. But check the current
+                    # delta in case we are moving between UTC+0 and non-zero timezone
+                    if (
+                        (shift_forward or shift_delta > 0)
+                        and info.deltas[delta_idx - 1] >= 0
+                    ):
+                        delta_idx = delta_idx - 1
+                    else:
+                        delta_idx = delta_idx - delta_idx_offset
+                    result[i] = new_local - info.deltas[delta_idx]
             elif fill_nonexist:
                 result[i] = NPY_NAT
             else:
@@ -453,20 +469,20 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef _get_utc_bounds(
-    ndarray[int64_t] vals,
-    const int64_t* tdata,
-    Py_ssize_t ntrans,
-    const int64_t[::1] deltas,
-    NPY_DATETIMEUNIT creso,
-):
+cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
 
     cdef:
         ndarray[int64_t] result_a, result_b
         Py_ssize_t i, n = vals.size
-        int64_t val, v_left, v_right
+        const int64_t* tdata = info.tdata
+        const int64_t[::1] deltas = info.deltas
+        Py_ssize_t ntrans = info.ntrans
+        NPY_DATETIMEUNIT creso = info._creso
+        bint use_zoneinfo = info.use_zoneinfo
+        tzinfo tz = info.tz
+        int64_t val, v_left, v_right, delta0, delta1, local0, local1
         Py_ssize_t isl, isr, pos_left, pos_right
         int64_t ppd = periods_per_day(creso)
 
@@ -481,6 +497,29 @@ cdef _get_utc_bounds(
 
         val = vals[i]
         if val == NPY_NAT:
+            continue
+
+        if use_zoneinfo and val > tdata[ntrans - 1]:
+            # For values beyond cached transition coverage, derive the two
+            # candidate UTC instants via zoneinfo and keep whichever
+            # round-trip back to this wall time.
+            delta0 = _tz_localize_using_tzinfo_api(val, tz, True, creso, NULL, 0)
+            delta1 = _tz_localize_using_tzinfo_api(val, tz, True, creso, NULL, 1)
+
+            v_left = val - delta0
+            v_right = val - delta1
+
+            local0 = v_left + _tz_localize_using_tzinfo_api(
+                v_left, tz, to_utc=False, creso=creso
+            )
+            local1 = v_right + _tz_localize_using_tzinfo_api(
+                v_right, tz, to_utc=False, creso=creso
+            )
+
+            if local0 == val:
+                result_a[i] = v_left
+            if local1 == val:
+                result_b[i] = v_right
             continue
 
         # TODO: be careful of overflow in val-ppd
@@ -628,6 +667,7 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     bint to_utc=True,
     NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_ns,
     bint* fold=NULL,
+    int fold_in=-1,
 ) except? -1:
     """
     Convert the i8 representation of a datetime from a general-case timezone to
@@ -645,7 +685,9 @@ cdef int64_t _tz_localize_using_tzinfo_api(
     fold : bint*, default NULL
         pointer to fold: whether datetime ends up in a fold or not
         after adjustment.
-        Only passed with to_utc=False.
+        Only used with to_utc=False.
+    fold_in : int, default -1
+        Input fold when to_utc=True. By default, not specified (-1).
 
     Returns
     -------
@@ -675,8 +717,12 @@ cdef int64_t _tz_localize_using_tzinfo_api(
             # NB: fold is only passed with to_utc=False
             fold[0] = dt.fold
     else:
-        dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, None)
+        if fold_in == -1:
+            dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                              dts.min, dts.sec, dts.us, None)
+        else:
+            dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                              dts.min, dts.sec, dts.us, None, fold=fold_in)
 
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * pps)
