@@ -219,6 +219,22 @@ potentially be :class:`NA`. In such cases, :func:`isna` can be used to check
 for :class:`NA` or ``condition`` being :class:`NA` can be avoided, for example by
 filling missing values beforehand.
 
+For the same reason, the Python keywords ``and``, ``or``, and ``not`` cannot be
+used with :class:`NA`: these keywords always call ``bool()`` on their operands
+and cannot be overridden, so they will raise the same ``TypeError``. This
+manifests as an asymmetry depending on operand position, since ``and`` and
+``or`` only call ``bool()`` on the left operand:
+
+.. ipython:: python
+   :okexcept:
+
+   True and pd.NA
+   pd.NA and True
+
+Use the bitwise operators ``&``, ``|``, and ``~`` instead, which dispatch to
+``__and__``, ``__or__``, and ``__invert__`` and follow Kleene logic as
+described above.
+
 A similar situation occurs when using :class:`Series` or :class:`DataFrame` objects in ``if``
 statements, see :ref:`gotchas.truth`.
 
@@ -320,6 +336,19 @@ The descriptive statistics and computational methods discussed in the
 <api.series.stats>` and :ref:`here <api.dataframe.stats>`) all
 account for missing data.
 
+The default behavior differs from many NumPy reduction functions. For example,
+pandas reductions such as :meth:`Series.std` and :meth:`DataFrame.std`
+skip missing values by default, while :func:`numpy.std` returns ``nan``
+when the input contains ``nan`` values. To include missing values in
+pandas reductions, pass ``skipna=False``.
+
+.. ipython:: python
+
+   ser = pd.Series([1.0, np.nan, 3.0])
+   ser.std()
+   ser.std(skipna=False)
+   np.std(ser.to_numpy(), ddof=1)
+
 When summing data, NA values or empty data will be treated as zero.
 
 .. ipython:: python
@@ -381,6 +410,12 @@ Replace NA with a scalar value
    df = pd.DataFrame(data)
    df
    df.fillna(0)
+
+Replace NA with column-specific values using a dict
+
+.. ipython:: python
+
+   df.fillna({"np": 0, "arrow": 1})
 
 When the data has object dtype, you can control what type of NA values are present.
 

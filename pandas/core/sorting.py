@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Iterable,
         Sequence,
     )
 
@@ -122,7 +123,10 @@ def get_indexer_indexer(
 
 
 def get_group_index(
-    labels, shape: Shape, sort: bool, xnull: bool
+    labels: Sequence[npt.NDArray[np.signedinteger]],
+    shape: Shape,
+    sort: bool,
+    xnull: bool,
 ) -> npt.NDArray[np.int64]:
     """
     For the particular label_list, gets the offsets into the hypothetical list
@@ -156,7 +160,7 @@ def get_group_index(
     The length of `labels` and `shape` must be identical.
     """
 
-    def _int64_cut_off(shape) -> int:
+    def _int64_cut_off(shape: list[int]) -> int:
         acc = 1
         for i, mul in enumerate(shape):
             acc *= int(mul)
@@ -164,7 +168,7 @@ def get_group_index(
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size: int) -> tuple[np.ndarray, int]:
+    def maybe_lift(lab: np.ndarray, size: int) -> tuple[np.ndarray, int]:
         # promote nan values (assigned -1 label in lab array)
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
@@ -212,7 +216,7 @@ def get_group_index(
 
 
 def get_compressed_ids(
-    labels, sizes: Shape
+    labels: Sequence[npt.NDArray[np.signedinteger]], sizes: Shape
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
@@ -304,7 +308,7 @@ def decons_obs_group_ids(
 
 def lexsort_indexer(
     keys: Sequence[ArrayLike | Index | Series],
-    orders=None,
+    orders: bool | Sequence[bool] | None = None,
     na_position: str = "last",
     key: Callable | None = None,
     codes_given: bool = False,
@@ -339,16 +343,17 @@ def lexsort_indexer(
     if na_position not in ["last", "first"]:
         raise ValueError(f"invalid na_position: {na_position}")
 
+    orders_iter: Iterable[bool]
     if isinstance(orders, bool):
-        orders = itertools.repeat(orders, len(keys))
+        orders_iter = itertools.repeat(orders, len(keys))
     elif orders is None:
-        orders = itertools.repeat(True, len(keys))
+        orders_iter = itertools.repeat(True, len(keys))
     else:
-        orders = reversed(orders)
+        orders_iter = reversed(orders)
 
     labels = []
 
-    for k, order in zip(reversed(keys), orders, strict=True):
+    for k, order in zip(reversed(keys), orders_iter, strict=True):
         k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast("np.ndarray", k)
@@ -480,7 +485,9 @@ def nargsort(
     return ensure_platform_int(indexer)
 
 
-def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
+def nargminmax(
+    values: ExtensionArray, method: str, axis: AxisInt = 0
+) -> int | np.ndarray:
     """
     Implementation of np.argmin/argmax but for ExtensionArray and which
     handles missing values.
@@ -513,7 +520,9 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     return _nanargminmax(arr_values, mask, func)
 
 
-def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
+def _nanargminmax(
+    values: np.ndarray, mask: npt.NDArray[np.bool_], func: Callable
+) -> int:
     """
     See nanargminmax.__doc__.
     """
@@ -525,7 +534,9 @@ def _nanargminmax(values: np.ndarray, mask: npt.NDArray[np.bool_], func) -> int:
 
 
 def _ensure_key_mapped_multiindex(
-    index: MultiIndex, key: Callable, level=None
+    index: MultiIndex,
+    key: Callable,
+    level: Level | list[Level] | None = None,
 ) -> MultiIndex:
     """
     Returns a new MultiIndex in which key has been applied
@@ -555,9 +566,9 @@ def _ensure_key_mapped_multiindex(
 
     if level is not None:
         if isinstance(level, (str, int)):
-            level_iter = [level]
+            level_iter: list[Level] = [level]
         else:
-            level_iter = level
+            level_iter = cast("list[Level]", level)
 
         sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
@@ -576,7 +587,9 @@ def _ensure_key_mapped_multiindex(
 
 
 def ensure_key_mapped(
-    values: ArrayLike | Index | Series, key: Callable | None, levels=None
+    values: ArrayLike | Index | Series,
+    key: Callable | None,
+    levels: Level | list[Level] | None = None,
 ) -> ArrayLike | Index | Series:
     """
     Applies a callable key function to the values function and checks

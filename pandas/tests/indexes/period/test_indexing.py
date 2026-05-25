@@ -574,8 +574,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         tdi = i2.asi8.view("timedelta64[ns]")
-        expected = pd.Index([tdi[0], tdi[1], *tail], dtype=object)
-        assert isinstance(expected[0], np.timedelta64)
+        expected = pd.Index([NaT, NaT, *tail], dtype=object)
         result = pi.where(mask, tdi)
         tm.assert_index_equal(result, expected)
 

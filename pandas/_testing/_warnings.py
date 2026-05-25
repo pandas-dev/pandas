@@ -10,6 +10,7 @@ import re
 import sys
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Union,
     cast,
@@ -143,7 +144,7 @@ def assert_produces_warning(
 
 
 def maybe_produces_warning(
-    warning: type[Warning], condition: bool, **kwargs
+    warning: type[Warning], condition: bool, **kwargs: Any
 ) -> AbstractContextManager:
     """
     Return a context manager that possibly checks a warning based on the condition

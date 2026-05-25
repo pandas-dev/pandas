@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    cast,
 )
 
 import numpy as np
@@ -209,6 +210,8 @@ class IntervalIndex(ExtensionIndex):
     from_arrays
     from_tuples
     from_breaks
+    get_loc
+    get_indexer
     contains
     overlaps
     set_closed
@@ -868,7 +871,7 @@ class IntervalIndex(ExtensionIndex):
                 indexer = self._get_indexer_monotonic(target)
             else:
                 target = self._maybe_convert_i8(target)
-                indexer = self._engine.get_indexer(target.values)
+                indexer = self._engine.get_indexer(cast("np.ndarray", target.values))
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
             # we should always have self._should_partial_index(target) here
@@ -954,7 +957,9 @@ class IntervalIndex(ExtensionIndex):
             # Note: this case behaves differently from other Index subclasses
             #  because IntervalIndex does partial-int indexing
             target = self._maybe_convert_i8(target)
-            indexer, missing = self._engine.get_indexer_non_unique(target.values)  # type: ignore[union-attr]
+            indexer, missing = self._engine.get_indexer_non_unique(
+                cast("np.ndarray", target.values)  # type: ignore[union-attr]
+            )
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
