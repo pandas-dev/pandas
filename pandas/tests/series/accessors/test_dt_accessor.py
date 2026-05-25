@@ -633,6 +633,39 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_strftime_period_nanoseconds_capital_N(self):
+        # GH#65432 %N is the new directive for nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%N")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_lowercase_n_deprecated(self):
+        # GH#65432 %n collides with the POSIX newline directive; warn once
+        # per call regardless of array length, and still produce nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        msg = "The %n directive in Period.strftime is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%n")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "data",
         [
