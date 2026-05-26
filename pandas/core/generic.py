@@ -10198,7 +10198,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
-            other = extract_array(other, extract_numpy=True)
+            other = extract_array(other, extract_numpy=True, extract_range=True)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
             if other.shape != self.shape:
@@ -10271,7 +10271,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
-        other : scalar, Series/DataFrame, or callable
+        other : scalar, array-like, Series/DataFrame, Index, or callable
             Entries where `cond` is False are replaced with
             corresponding value from `other`.
             If other is callable, it is computed on the Series/DataFrame and
