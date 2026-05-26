@@ -1474,7 +1474,7 @@ def dt64arr_to_periodarr(
         if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
-            data, freq = data._values, data._values.inferred_freq
+            data, freq = data._values, data._values._inferred_freq_str
 
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
