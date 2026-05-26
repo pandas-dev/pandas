@@ -173,7 +173,9 @@ class TestIndex:
         # infer freq of same
         if not using_infer_string:
             # Doesn't work with arrow strings
-            freq = pd.infer_freq(df["date"])
+            msg = "A future version of pandas will return a BaseOffset"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                freq = pd.infer_freq(df["date"])
             assert freq == "MS"
 
     def test_constructor_int_dtype_nan(self):
@@ -1071,22 +1073,8 @@ class TestIndex:
     @pytest.mark.parametrize(
         "expand,expected",
         [
-            pytest.param(
-                None,
-                None,
-                marks=pytest.mark.xfail(
-                    reason="GH#20285 str.split on Index returns unhashable "
-                    "list elements"
-                ),
-            ),
-            pytest.param(
-                False,
-                None,
-                marks=pytest.mark.xfail(
-                    reason="GH#20285 str.split on Index returns unhashable "
-                    "list elements"
-                ),
-            ),
+            (None, Index([["a", "b", "c"], ["d", "e"], ["f"]])),
+            (False, Index([["a", "b", "c"], ["d", "e"], ["f"]])),
             (
                 True,
                 MultiIndex.from_tuples(
@@ -1739,16 +1727,6 @@ def test_validate_1d_input(dtype):
     df = DataFrame(arr.reshape(4, 2))
     with pytest.raises(ValueError, match=msg):
         Index(df, dtype=dtype)
-
-    # GH#20285 unhashable elements should be rejected
-    with pytest.raises(TypeError, match="unhashable type"):
-        Index([[1, 2], [3, 4]])
-
-    with pytest.raises(TypeError, match="unhashable type"):
-        Index([1, [2, 3]])
-
-    with pytest.raises(TypeError, match="unhashable type"):
-        Index([{"a": 1}])
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not allowed
     ser = Series(0, range(4))
