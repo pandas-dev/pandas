@@ -79,6 +79,7 @@ dependencies:
 
   # code checks
   # mypy 2.1.0 not available on conda as of 5/23/26, pypi avail on 5/11/26
+  # https://github.com/conda-forge/mypy-feedstock/pull/147
   # - mypy=2.1.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
