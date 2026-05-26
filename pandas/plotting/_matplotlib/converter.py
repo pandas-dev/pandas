@@ -78,15 +78,15 @@ def plottable_ea_dtypes() -> list[type[ExtensionDtype]]:
     return [dtype for dtype in _ea_dtypes_registry.dtypes if dtype._is_plottable]
 
 
-def plottable_types() -> list[type | str | type[ExtensionDtype]]:
+def plottable_types() -> list[type]:
     """Return a list of plottable types."""
-    types: list[type | str | type[ExtensionDtype]] = [
+    types: list[type] = [
         np.number,
-        "datetime",
-        "datetimetz",
-        "timedelta",
+        np.datetime64,
+        Timestamp,
+        np.timedelta64,
     ]
-    types.extend(plottable_ea_dtypes())
+    types.extend([dtype.type for dtype in plottable_ea_dtypes()])
     return types
 
 

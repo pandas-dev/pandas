@@ -41,7 +41,9 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
+    CategoricalDtypeType,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -701,17 +703,28 @@ class MPLPlot(ABC):
             include_type.append(np.bool_)
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = None
+        exclude_type = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
-            exclude_type = ["timedelta"]
+            exclude_type = [np.timedelta64]
 
         # GH 18755, include object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend(["object", "category", "string"])
+            include_type.extend([object, CategoricalDtypeType, str])
 
-        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
+        # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
+        def predicate_for_plottability(blk_vals) -> bool:
+            dtype = blk_vals.dtype
+            if isinstance(dtype, ArrowDtype):
+                dtype = dtype.numpy_dtype
+            type_ = dtype.type
+            return issubclass(type_, tuple(include_type)) and not issubclass(
+                type_, tuple(exclude_type)
+            )
+
+        mgr = data._mgr._get_data_subset(predicate_for_plottability)
+        numeric_data = data._constructor_from_mgr(mgr, axes=mgr.axes)
 
         is_empty = numeric_data.shape[-1] == 0
         # no non-numeric frames or series allowed
