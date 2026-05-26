@@ -1436,6 +1436,22 @@ class ArrowExtensionArray(
         """
         return self._from_pyarrow_array(self._pa_array)
 
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # Override since the ExtensionArray.view create a new pa_array.
+        if dtype is not None:
+            return super().view(dtype)
+        result = type(self).__new__(type(self))
+        result._pa_array = self._pa_array
+        result._dtype = self._dtype
+        result._readonly = self._readonly
+        return result
+
     def count(self) -> int:
         return len(self) - self._pa_array.null_count
 

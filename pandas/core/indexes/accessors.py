@@ -396,7 +396,7 @@ class DatetimeProperties(Properties):
         >>> ser.dt.freq
         '2YS-JAN'
         """
-        return self._get_values().inferred_freq
+        return self._get_values()._inferred_freq_str
 
     def isocalendar(self) -> DataFrame:
         """
@@ -556,7 +556,7 @@ class TimedeltaProperties(Properties):
 
     @property
     def freq(self):
-        return self._get_values().inferred_freq
+        return self._get_values()._inferred_freq_str
 
 
 @delegate_names(
