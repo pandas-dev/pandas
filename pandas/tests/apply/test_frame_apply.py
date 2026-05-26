@@ -169,15 +169,34 @@ def test_apply_axis1_ea_preserves_dtype():
 
 
 def test_apply_axis1_arrow_heterogeneous_dtypes():
-    # GH#65097 - rows across columns of different pyarrow types must build
-    # against the upcast row dtype, not the first column's type
-    pytest.importorskip("pyarrow")
+    # GH#65097 - columns of differing pyarrow types must not raise; each row
+    # is built as the upcast common dtype rather than the first column's type
+    pa = pytest.importorskip("pyarrow")
     df = DataFrame(
         {
             "a": pd.array([1, 2, 3], dtype="int64[pyarrow]"),
             "b": pd.array([1.5, 2.5, 3.5], dtype="float64[pyarrow]"),
         }
     )
+    row_dtypes = df.apply(lambda row: row.dtype, axis=1)
+    tm.assert_series_equal(row_dtypes, Series([pd.ArrowDtype(pa.float64())] * 3))
+
+    result = df.apply(lambda x: x.sum(), axis=1)
+    expected = Series([2.5, 4.5, 6.5])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_axis1_masked_heterogeneous_dtypes():
+    # GH#65097 - Int64 + Float64 columns build each row as the upcast Float64
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="Int64"),
+            "b": pd.array([1.5, 2.5, 3.5], dtype="Float64"),
+        }
+    )
+    row_dtypes = df.apply(lambda row: row.dtype, axis=1)
+    tm.assert_series_equal(row_dtypes, Series([pd.Float64Dtype()] * 3))
+
     result = df.apply(lambda x: x.sum(), axis=1)
     expected = Series([2.5, 4.5, 6.5])
     tm.assert_series_equal(result, expected)

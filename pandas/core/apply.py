@@ -31,7 +31,11 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -73,7 +77,11 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.arrays import ExtensionArray
+    from pandas.core.arrays import (
+        ArrowExtensionArray,
+        BaseMaskedArray,
+        ExtensionArray,
+    )
     from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
@@ -1468,20 +1476,17 @@ class FrameColumnApply(FrameApply):
     ) -> Callable[[int], ExtensionArray]:
         """Build a callable that constructs an EA row for a given row index.
 
-        Special-cases BaseMaskedArray and ArrowExtensionArray to avoid
-        the overhead of _from_sequence per row. The fast paths require all
-        columns to share ``dtype``; mixed-dtype frames fall through to the
-        generic ``_from_sequence`` path (GH#65097).
+        Special-cases BaseMaskedArray and ArrowExtensionArray to avoid the
+        overhead of _from_sequence per row. The fast paths require all columns
+        to share ``dtype``; mixed-dtype frames fall through to the generic
+        ``_from_sequence`` path (GH#65097).
         """
-        from pandas.core.arrays.arrow import ArrowExtensionArray
-        from pandas.core.arrays.masked import BaseMaskedArray
-
         homogeneous = all(col_arr.dtype == dtype for col_arr in col_arrays)
 
-        if homogeneous and isinstance(col_arrays[0], BaseMaskedArray):
+        if homogeneous and isinstance(dtype, BaseMaskedDtype):
             col_data = [col_arr._data for col_arr in col_arrays]
             col_masks = [col_arr._mask for col_arr in col_arrays]
-            np_dtype = col_arrays[0]._data.dtype
+            np_dtype = dtype.numpy_dtype
             masked_cls = cast("type[BaseMaskedArray]", cls)
 
             def build_row(row_idx: int) -> ExtensionArray:
@@ -1489,11 +1494,11 @@ class FrameColumnApply(FrameApply):
                 mask = np.array([cm[row_idx] for cm in col_masks], dtype=np.bool_)
                 return masked_cls._simple_new(data, mask)
 
-        elif homogeneous and isinstance(col_arrays[0], ArrowExtensionArray):
+        elif homogeneous and isinstance(dtype, ArrowDtype):
             import pyarrow as pa
 
             pa_arrays = [col_arr._pa_array for col_arr in col_arrays]
-            pa_type = pa_arrays[0].type
+            pa_type = dtype.pyarrow_dtype
             arrow_cls = cast("type[ArrowExtensionArray]", cls)
 
             def build_row(row_idx: int) -> ExtensionArray:
