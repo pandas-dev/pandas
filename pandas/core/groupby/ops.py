@@ -1063,7 +1063,11 @@ class BaseGrouper:
                         "the group passed to a user-defined function in "
                         "groupby operations (e.g., .apply(), .transform(), "
                         ".filter()) is deprecated and will not be done in a "
-                        "future version of pandas.",
+                        "future version of pandas. Access the group key "
+                        "through the group's index instead (e.g. "
+                        "'group.index'), or iterate over the groupby object "
+                        "directly (e.g. 'for key, group in gb:') when you "
+                        "need the key inside the function.",
                         Pandas4Warning,
                         stacklevel=find_stack_level(),
                     )
