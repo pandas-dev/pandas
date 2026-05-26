@@ -565,7 +565,7 @@ def _homogenize(
         if isinstance(val, (ABCSeries, Index)):
             if dtype is not None:
                 val = val.astype(dtype)
-            if isinstance(val, ABCSeries) and val.index is not index:
+            if isinstance(val, ABCSeries) and val.index._id is not index._id:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index)

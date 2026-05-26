@@ -215,6 +215,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         Scalar,
         SortKind,
         TakeIndexer,
@@ -1423,6 +1425,22 @@ class ArrowExtensionArray(
         """
         return self._from_pyarrow_array(self._pa_array)
 
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # Override since the ExtensionArray.view create a new pa_array.
+        if dtype is not None:
+            return super().view(dtype)
+        result = type(self).__new__(type(self))
+        result._pa_array = self._pa_array
+        result._dtype = self._dtype
+        result._readonly = self._readonly
+        return result
+
     def count(self) -> int:
         return len(self) - self._pa_array.null_count
 
@@ -2606,8 +2624,8 @@ class ArrowExtensionArray(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):
@@ -2673,7 +2691,11 @@ class ArrowExtensionArray(
             return False
         if len(pa_array) <= 1:
             return True
-        return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        try:
+            return pc.all(pc.greater_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
 
     @property
     def _is_monotonic_decreasing(self) -> bool:
@@ -2682,14 +2704,18 @@ class ArrowExtensionArray(
             return False
         if len(pa_array) <= 1:
             return True
-        return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        try:
+            return pc.all(pc.less_equal(pa_array[1:], pa_array[:-1])).as_py()
+        except pa.ArrowNotImplementedError:
+            # If the type doesn't support comparison, e.g. list types
+            return False
 
     def _rank(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:

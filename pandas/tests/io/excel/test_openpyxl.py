@@ -12,6 +12,7 @@ import pandas._testing as tm
 
 from pandas.io.excel import (
     ExcelWriter,
+    _base as _excel_base,
     _OpenpyxlWriter,
 )
 from pandas.io.excel._openpyxl import OpenpyxlReader
@@ -346,10 +347,14 @@ def test_read_with_bad_dimension(
 @pytest.mark.parametrize(
     "filename", ["dimension_missing", "dimension_small", "dimension_large"]
 )
-def test_read_with_bad_dimension_skiprows_callable_all(datapath, ext, filename):
+def test_read_with_bad_dimension_skiprows_callable_all(
+    datapath, ext, filename, monkeypatch
+):
     # GH 64027
     path = datapath("io", "data", "excel", f"{filename}{ext}")
-    result = pd.read_excel(path, skiprows=lambda _: True, nrows=1)
+    with monkeypatch.context() as m:
+        m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
+        result = pd.read_excel(path, skiprows=lambda _: True, nrows=1)
     expected = DataFrame()
     tm.assert_frame_equal(result, expected)
 

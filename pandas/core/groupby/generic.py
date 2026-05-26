@@ -604,9 +604,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
-            if not self.as_index and not_indexed_same:
-                result = self._insert_inaxis_grouper(result)
-                result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
         else:
             # GH #6265 #24880
@@ -973,7 +970,8 @@ class SeriesGroupBy(GroupBy[Series]):
             return the 25th, 50th, and 75th percentiles.
         include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - 'all' : All columns of the input will be included in the output.
             - A list-like of dtypes : Limits the results to the
@@ -987,7 +985,8 @@ class SeriesGroupBy(GroupBy[Series]):
             - None (default) : The result will include all numeric columns.
         exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - A list-like of dtypes : Excludes the provided data types
               from the result. To exclude numeric types submit
@@ -1038,7 +1037,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
+        Passing them when analyzing a ``Series`` is deprecated and will
+        raise in a future version; the parameters are ignored today.
 
         Examples
         --------
@@ -2393,7 +2393,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if is_transform:
                 # GH#47787 see test_group_on_empty_multiindex
                 res_index = data.index
-            elif not self.group_keys:
+            elif not self.group_keys or not self.as_index:
                 res_index = None
             else:
                 res_index = self._grouper.result_index
@@ -3828,13 +3828,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs,
     ):
         """
-        Make a histogram of the DataFrame's columns.
+        Draw histogram of the DataFrame's columns for each group.
 
-        A `histogram`_ is a representation of the distribution of data.
-        This function calls :meth:`matplotlib.pyplot.hist`, on each series in
-        the DataFrame, resulting in one histogram per column.
-
-        .. _histogram: https://en.wikipedia.org/wiki/Histogram
+        A separate histogram subplot is generated for each group, making it
+        easier to visually compare the distribution of each numeric column
+        across groups. Internally this calls :meth:`DataFrame.hist` on every
+        group's frame, so the same matplotlib options are accepted.
 
         Parameters
         ----------
@@ -3897,23 +3896,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See Also
         --------
+        DataFrame.hist : Equivalent histogram plotting method on DataFrame.
         matplotlib.pyplot.hist : Plot a histogram using matplotlib.
 
         Examples
         --------
-        This example draws a histogram based on the length and width of
-        some animals, displayed in three bins
+        For each animal category, draw a histogram of the numeric columns.
+        The grouping column is used to split the data; one set of histogram
+        subplots is produced per group.
 
         .. plot::
             :context: close-figs
 
-            >>> data = {
-            ...     "length": [1.5, 0.5, 1.2, 0.9, 3],
-            ...     "width": [0.7, 0.2, 0.15, 0.2, 1.1],
-            ... }
-            >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
-            >>> df = pd.DataFrame(data, index=index)
-            >>> hist = df.groupby("length").hist(bins=3)
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "animal": ["cat", "cat", "dog", "dog", "dog"],
+            ...         "length": [1.0, 1.2, 1.5, 1.7, 2.0],
+            ...         "weight": [4.5, 5.0, 10.0, 12.5, 15.0],
+            ...     }
+            ... )
+            >>> hist = df.groupby("animal").hist(bins=3)
         """
         result = self._op_via_apply(
             "hist",

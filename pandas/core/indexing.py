@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Self,
+    TypeAlias,
+    TypeVar,
     cast,
     final,
 )
@@ -58,7 +60,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import (
     construct_1d_array_from_inferred_fill_value,
-    infer_fill_value,
     is_valid_na_for_dtype,
     na_value_for_dtype,
 )
@@ -68,6 +69,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -91,6 +93,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         DtypeObj,
+        Scalar,
         T,
         npt,
     )
@@ -100,6 +103,16 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.arrays import ExtensionArray
+    from pandas.core.base import IndexOpsMixin
+
+    _IndexSliceTuple: TypeAlias = tuple[IndexOpsMixin | Scalar | Sequence | slice, ...]
+
+    _IndexSliceUnion: TypeAlias = (
+        Scalar | Sequence | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
+    )
+
+    _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
+
 
 # "null slice"
 _NS = slice(None, None)
@@ -154,7 +167,7 @@ class _IndexSlice:
            B1   10   11
     """
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: _IndexSliceUnionT) -> _IndexSliceUnionT:
         return arg
 
 
@@ -1037,7 +1050,6 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # It is unambiguous what axis this Ellipsis is indexing,
                 #  treat as a single null slice.
                 i = tup.index(Ellipsis)
-                # FIXME: this assumes only one Ellipsis
                 new_key = (*tup[:i], _NS, *tup[i + 1 :])
                 return new_key
 
@@ -1366,6 +1378,22 @@ class _LocIndexer(_LocationIndexer):
                 max_speed  shield
     viper               4       5
     sidewinder          7       8
+
+    Single column label. Note this returns the column as a Series.
+
+    >>> df.loc[:, "max_speed"]
+    cobra         1
+    viper         4
+    sidewinder    7
+    Name: max_speed, dtype: int64
+
+    List with a single column label. Note this returns a DataFrame.
+
+    >>> df.loc[:, ["max_speed"]]
+                max_speed
+    cobra               1
+    viper               4
+    sidewinder          7
 
     Single label for row and column
 
@@ -2456,8 +2484,7 @@ class _iLocIndexer(_LocationIndexer):
                 # if not Series (in which case we need to align),
                 #  we can short-circuit
                 if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
-                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-                    arr = arr[0, ...]
+                    arr = arr[0]
                 empty_value[indexer[0]] = arr
                 self.obj[key] = empty_value
                 return
@@ -2468,8 +2495,16 @@ class _iLocIndexer(_LocationIndexer):
                 value, len(self.obj)
             )
         else:
-            # FIXME: GH#42099#issuecomment-864326014
-            self.obj[key] = infer_fill_value(value)
+            # GH#42099 list-like (non-array-like): convert to an array first
+            #  so we can preserve dtype the same way as the is_array_like path
+            arr = sanitize_array(value, Index(range(len(value))), copy=False)
+            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+            empty_value = algos.take_nd(arr, taker)
+            if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+                arr = arr[0]
+            empty_value[indexer[0]] = arr
+            self.obj[key] = empty_value
+            return
 
         new_indexer = convert_from_missing_indexer_tuple(indexer, self.obj.axes)
         self._setitem_with_indexer(new_indexer, value, name)
@@ -2588,6 +2623,13 @@ class _iLocIndexer(_LocationIndexer):
                 # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
 
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes._values[ilocs[0]]
+            ):
+                # We are setting nested data into a single cell,
+                # only possible for object dtype. Bypasses length checks.
+                self._setitem_single_column(ilocs[0], value, pi)
+
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
                 #  column, which is invalid for N != M
@@ -2605,12 +2647,6 @@ class _iLocIndexer(_LocationIndexer):
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with an all-False mask
                 pass
-
-            elif self._is_scalar_access(indexer) and is_object_dtype(
-                self.obj.dtypes._values[ilocs[0]]
-            ):
-                # We are setting nested data, only possible for object dtype data
-                self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.

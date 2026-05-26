@@ -50,9 +50,12 @@ from pandas._typing import (
     ArrayLike,
     IndexLabel,
     IntervalClosedType,
+    ListLike,
     NDFrameT,
     PositionalIndexer,
     RandomState,
+    RankMethod,
+    RankNaOption,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -136,8 +139,11 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
+        Level,
         P,
         T,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
     )
 
     from pandas.core.indexers.objects import BaseIndexer
@@ -2213,6 +2219,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series.std : Apply function std to a Series.
         DataFrame.std : Apply function std to each row or column of a DataFrame.
 
+        Notes
+        -----
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
+
         Examples
         --------
         For SeriesGroupBy:
@@ -3164,7 +3175,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the first entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the first non-NA
+        value per column — which may differ from the first row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3174,7 +3187,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3187,9 +3200,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        api.typing.DataFrameGroupBy.last : Compute the last entry of each
+            column within each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3249,7 +3262,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the last entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the last non-NA
+        value per column — which may differ from the last row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3260,22 +3275,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
         Returns
         -------
         Series or DataFrame
-            Last of values within each group.
+            Last values within each group.
 
         See Also
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        api.typing.DataFrameGroupBy.first : Compute the first entry of each
+            column within each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3452,7 +3467,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return the 25th, 50th, and 75th percentiles.
         include : 'all', list-like of dtypes or None (default), optional
             A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - 'all' : All columns of the input will be included in the output.
             - A list-like of dtypes : Limits the results to the
@@ -3466,7 +3482,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             - None (default) : The result will include all numeric columns.
         exclude : list-like of dtypes or None (default), optional,
             A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
+            for ``Series`` (deprecated; will be removed in a future
+            version). Here are the options:
 
             - A list-like of dtypes : Excludes the provided data types
               from the result. To exclude numeric types submit
@@ -3517,7 +3534,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
+        Passing them when analyzing a ``Series`` is deprecated and will
+        raise in a future version; the parameters are ignored today.
 
         Examples
         --------
@@ -3702,10 +3720,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def resample(
-        self, rule, *args, include_groups: bool = False, **kwargs
+        self,
+        rule,
+        closed: Literal["right", "left"] | None = None,
+        label: Literal["right", "left"] | None = None,
+        convention: Literal["start", "end", "s", "e"] | None = None,
+        on: Level | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool = False,
+        *,
+        include_groups: bool = False,
+        **kwargs,
     ) -> Resampler:
         """
-        Provide resampling when using a TimeGrouper.
+        Provide resampling within each group of a groupby.
 
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
@@ -3717,10 +3746,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
-        *args
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
-        include_groups : bool, default True
+        closed : {'right', 'left'}, optional
+            Which side of bin interval is closed. See :meth:`Series.resample`.
+        label : {'right', 'left'}, optional
+            Which bin edge label to label bucket with. See :meth:`Series.resample`.
+        convention : {'start', 'end', 's', 'e'}, optional
+            For ``PeriodIndex`` only. See :meth:`Series.resample`.
+        on : str, optional
+            For a DataFrame, column to use instead of index for resampling.
+            Column must be datetime-like.
+        origin : Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. See
+            :meth:`Series.resample` for accepted string values.
+        offset : Timedelta or str, optional
+            An offset timedelta added to the origin.
+        group_keys : bool, default False
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object.
+        include_groups : bool, default False
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
             TypeError, the result will be computed with the groupings excluded.
@@ -3733,16 +3776,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                The default was changed to False, and True is no longer allowed.
 
         **kwargs
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
+            Additional keyword arguments forwarded to the underlying
+            :class:`Grouper`.
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimdeltaResampler
+        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
             Resampler object for the type of the index.
 
         See Also
         --------
+        Series.resample : Resample a Series.
+        DataFrame.resample : Resample a DataFrame.
         Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
@@ -3818,7 +3863,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if include_groups:
             raise ValueError("include_groups=True is no longer allowed.")
 
-        return get_resampler_for_grouping(self, rule, *args, **kwargs)
+        return get_resampler_for_grouping(
+            self,
+            rule,
+            on=on,
+            closed=closed,
+            label=label,
+            convention=convention,
+            origin=origin,
+            offset=offset,
+            group_keys=group_keys,
+            **kwargs,
+        )
 
     @final
     def rolling(
@@ -4853,9 +4909,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def rank(
         self,
-        method: str = "average",
+        method: RankMethod = "average",
         ascending: bool = True,
-        na_option: str = "keep",
+        na_option: RankNaOption = "keep",
         pct: bool = False,
     ) -> NDFrameT:
         """
@@ -5756,7 +5812,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         n: int | None = None,
         frac: float | None = None,
         replace: bool = False,
-        weights: Sequence | Series | None = None,
+        weights: ListLike | None = None,
         random_state: RandomState | None = None,
     ):
         """
