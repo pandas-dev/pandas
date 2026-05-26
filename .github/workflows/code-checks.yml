@@ -33,8 +33,6 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
-        persist-credentials: true
-        token: ${{ github.token }}
 
     - name: Create virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
@@ -71,8 +69,6 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
-        persist-credentials: true
-        token: ${{ github.token }}
 
     - name: Create virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
@@ -106,8 +102,6 @@ jobs:
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
         fetch-depth: 0
-        persist-credentials: true
-        token: ${{ github.token }}
 
     - name: Create virtual environment with Pixi
       uses: ./.github/actions/setup-pixi
@@ -140,8 +134,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          persist-credentials: true
-          token: ${{ github.token }}
 
       - name: Setup Python
         id: setup_python
