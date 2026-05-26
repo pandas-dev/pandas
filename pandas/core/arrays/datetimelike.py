@@ -757,17 +757,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     @ravel_compat
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
-        from pandas import (
-            Index,
-            MultiIndex,
-        )
+        from pandas import Index
 
         result = map_array(self, mapper, na_action=na_action)
-        if isinstance(result, MultiIndex):
+        result = Index(result)
+
+        if isinstance(result, ABCMultiIndex):
             return result.to_numpy()
-        if isinstance(result, Index):
-            result = result._data
-        return self._cast_pointwise_result(result)
+        else:
+            return result.array
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
