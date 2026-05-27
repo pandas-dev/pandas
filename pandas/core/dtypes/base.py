@@ -453,27 +453,21 @@ class ExtensionDtype:
         """
         return False
 
-    _is_plottable: bool = False
-    """
-    Whether this dtype should be considered plottable.
-
-    By default only numeric ExtensionDtypes are assumed to be plottable.
-    For non-numeric ExtensionDtypes, set _is_plottable to True and implement
-    _get_plot_converter.
-    """
-
     @classmethod
     def _get_plot_converter(
         cls,
-    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]]:
+    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]] | None:
         """
-        Return the type and converter to use for plotting this dtype.
+        If dtype is plottable, return the type and converter to use for plotting.
 
-        This is only relevant if _is_plottable is True. The returned type is likely
-        the same as ``cls._type``. The returned converter should be a subclass
-        of matplotlib.units.ConversionInterface.
+        By default only numeric ExtensionDtypes are plottable. In other cases, this
+        function just returns None and ExtensionArrays of this dtype are filtered out
+        during plotting.
+        If the dtype is plottable, this function shall return a tuple of the type and a
+        converter. The returned type is likely the same as ``cls._type``. The returned
+        converter should be a subclass of ``matplotlib.units.ConversionInterface``.
         """
-        raise AbstractMethodError(cls)
+        return None
 
 
 class StorageExtensionDtype(ExtensionDtype):

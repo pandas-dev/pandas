@@ -29,7 +29,6 @@ from pandas._libs.tslibs.dtypes import (
 )
 
 from pandas.core.dtypes.base import (
-    ExtensionDtype,
     _registry as _ea_dtypes_registry,
 )
 from pandas.core.dtypes.common import (
@@ -73,9 +72,13 @@ if TYPE_CHECKING:
 _mpl_units: dict = {}  # Cache for units overwritten by us
 
 
-def plottable_ea_dtypes() -> list[type[ExtensionDtype]]:
-    """Return a list of plottable ExtensionDtypes."""
-    return [dtype for dtype in _ea_dtypes_registry.dtypes if dtype._is_plottable]
+def plottable_ea_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
+    """Return a list of (type, Converter) pairs of all plottable ExtensionDtypes."""
+    return [
+        tpl
+        for tpl in [dtype._get_plot_converter() for dtype in _ea_dtypes_registry.dtypes]
+        if tpl is not None
+    ]
 
 
 def plottable_types() -> list[type]:
@@ -87,7 +90,7 @@ def plottable_types() -> list[type]:
         np.timedelta64,
     ]
     # Get the types supported by ExtensionDtypes that are plottable
-    types.extend([dtype._get_plot_converter()[0] for dtype in plottable_ea_dtypes()])
+    types.extend([tpl[0] for tpl in plottable_ea_pairs()])
     return types
 
 
@@ -101,7 +104,7 @@ def get_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
         (pydt.time, TimeConverter),
         (np.datetime64, DatetimeConverter),
     ]
-    pairs.extend([dtype._get_plot_converter() for dtype in plottable_ea_dtypes()])
+    pairs.extend(plottable_ea_pairs())
     return pairs
 
 
