@@ -86,7 +86,8 @@ def plottable_types() -> list[type]:
         Timestamp,
         np.timedelta64,
     ]
-    types.extend([dtype.type for dtype in plottable_ea_dtypes()])
+    # Get the types supported by ExtensionDtypes that are plottable
+    types.extend([dtype._get_plot_converter()[0] for dtype in plottable_ea_dtypes()])
     return types
 
 
