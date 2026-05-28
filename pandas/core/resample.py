@@ -2707,7 +2707,9 @@ class TimeGrouper(Grouper):
             # which correspond to the end of a super-daily period - "month start", for
             # example, is excluded.
             rule = self.freq.rule_code
-            if rule in _END_TYPES or ("-" in rule and rule[: rule.find("-")] in _END_TYPES):
+            if rule in _END_TYPES or (
+                "-" in rule and rule[: rule.find("-")] in _END_TYPES
+            ):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
                     edges_dti

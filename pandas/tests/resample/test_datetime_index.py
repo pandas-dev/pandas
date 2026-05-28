@@ -2080,7 +2080,9 @@ def test_resample_ms_closed_right(unit):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["B", "C", "W", "ME", "SME", "BME", "CBME", "QE", "BQE"])
+@pytest.mark.parametrize(
+    "freq", ["B", "C", "W", "ME", "SME", "BME", "CBME", "QE", "BQE"]
+)
 def test_resample_c_b_default(freq: str, unit):
     # https://github.com/pandas-dev/pandas/issues/55281
     # check the default.
