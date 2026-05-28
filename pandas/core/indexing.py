@@ -2704,8 +2704,10 @@ class _iLocIndexer(_LocationIndexer):
         else:
             # When the target has a MultiIndex and the value has fewer
             # levels (e.g. from partial-key indexing like df.loc[:, "a"]),
-            # we need to look up by the trailing level(s) of the item
-            # in the value DataFrame. GH#43719
+            # the value's columns match the trailing level(s) of each item.
+            # This assumes the dropped levels are the leading ones, which holds
+            # for scalar / partial-tuple keys (a (list, scalar) key that drops a
+            # trailing level instead is not handled here). GH#43719
             if multiindex_indexer and value.columns.nlevels < self.obj.columns.nlevels:
                 nlevels_dropped = self.obj.columns.nlevels - value.columns.nlevels
             else:

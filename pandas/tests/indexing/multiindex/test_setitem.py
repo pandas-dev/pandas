@@ -590,11 +590,16 @@ def test_loc_setitem_partial_column_key_identity():
 
 
 def test_loc_setitem_partial_column_key_preserves_dtype():
-    # GH#18415 - assignment to multiindexed columns changed float32 to float64
+    # GH#18415 - assignment to multiindexed columns via a DataFrame RHS under a
+    #  partial key preserves float32 (previously cast to float64 / NaN-filled)
     df = DataFrame(np.zeros((6, 5), dtype=np.float32))
     df = pd.concat([df, df], axis=1, keys=[1, 2])
-    df.loc[:, (1, slice(2, 3))] = np.ones((6, 2), dtype=np.float32)
+    df.loc[:, 1] = df.loc[:, 1] + np.float32(1)
     assert (df.dtypes == np.float32).all()
+    block1 = DataFrame(np.ones((6, 5), dtype=np.float32))
+    block2 = DataFrame(np.zeros((6, 5), dtype=np.float32))
+    expected = pd.concat([block1, block2], axis=1, keys=[1, 2])
+    tm.assert_frame_equal(df, expected)
 
 
 def test_loc_setitem_partial_column_key_3d():
