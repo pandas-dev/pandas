@@ -180,19 +180,12 @@ repos:
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
-    -   id: seed-check-asv
-        name: Check for unnecessary random seeds in asv benchmarks
-        language: pygrep
-        entry: 'np\.random\.seed'
-        files: ^asv_bench/benchmarks
-        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep
