@@ -2385,6 +2385,8 @@ class ArrowExtensionArray(
                     [0, len(data)], data.combine_chunks()
                 )[0]
                 return pc.binary_join(data_list, "")
+        elif name in ["argmin", "argmax"]:
+            return super()._reduce(name, skipna=skipna, **kwargs)
 
         else:
             pyarrow_name = {
