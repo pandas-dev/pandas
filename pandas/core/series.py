@@ -7056,7 +7056,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     warnings.warn(
                         "The silent alignment on arithmetic operations between "
                         "'Series' with incomparable MultiIndexes is deprecated "
-                        "and will be removed in a future version.",
+                        "and will be removed in a future version. Please align "
+                        "MultiIndexes manually.",
                         Pandas4Warning,
                         stacklevel=find_stack_level(),
                     )
