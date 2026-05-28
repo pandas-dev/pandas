@@ -2483,7 +2483,7 @@ class TimeGrouper(Grouper):
                 )
 
         rule = freq.rule_code
-        if rule in _END_TYPES or ("-" in rule and rule[: rule.find("-")] in _END_TYPES):
+        if rule in _END_TYPES or ("-" in rule and rule.split("-", 1)[0] in _END_TYPES):
             if closed is None:
                 closed = "right"
             if label is None:
@@ -2708,7 +2708,7 @@ class TimeGrouper(Grouper):
             # example, is excluded.
             rule = self.freq.rule_code
             if rule in _END_TYPES or (
-                "-" in rule and rule[: rule.find("-")] in _END_TYPES
+                "-" in rule and rule.split("-", 1)[0] in _END_TYPES
             ):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
