@@ -1683,25 +1683,7 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         if self.formatter is not None:
             return [self.formatter(x) for x in self.values]
 
-        if self.values._is_dates_only:
-            format = None
-        else:
-            arr = self.values
-            i8 = arr.asi8
-            vals = i8[i8 != iNaT]
-            if vals.size == 0 or not (vals % periods_per_second(arr._creso)).any():
-                format = "long"
-            elif (
-                cast("int", NpyDatetimeUnit.NPY_FR_ns.value) == arr._creso
-                and (vals % 1_000).any()
-            ):
-                format = "all"  # nanosecond precision → 9 digits
-            else:
-                format = "us"  # microsecond precision → 6 digits
-
-        formatter = get_format_timedelta64(
-            self.values, na_rep=self.na_rep, box=False, format=format
-        )
+        formatter = get_format_timedelta64(self.values, na_rep=self.na_rep, box=False)
         return [formatter(x) for x in self.values]
 
 
@@ -1709,7 +1691,6 @@ def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
-    format: str | None = None,
 ) -> Callable:
     """
     Return a formatter function for a range of timedeltas.
@@ -1717,9 +1698,20 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    if format is None:
-        # preserve existing behaviour for callers that don't pass format
-        format = None if values._is_dates_only else "long"
+    if values._is_dates_only:
+        format = None
+    else:
+        i8 = values.asi8
+        vals = i8[i8 != iNaT]
+        if vals.size == 0 or not (vals % periods_per_second(values._creso)).any():
+            format = "long"
+        elif (
+            cast("int", NpyDatetimeUnit.NPY_FR_ns.value) == values._creso
+            and (vals % 1_000).any()
+        ):
+            format = "all"  # nanosecond precision → 9 digits
+        else:
+            format = "us"  # microsecond precision → 6 digits
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
