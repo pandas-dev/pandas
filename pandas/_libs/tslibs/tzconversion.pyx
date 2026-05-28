@@ -315,7 +315,7 @@ timedelta-like}
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
-    result_a, result_b =_get_utc_bounds(vals, info)
+    result_a, result_b = _get_utc_bounds(vals, info)
 
     # silence false-positive compiler warning
     dst_hours = np.empty(0, dtype=np.int64)
