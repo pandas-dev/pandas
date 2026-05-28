@@ -447,6 +447,19 @@ class TestJSONArray(base.ExtensionTests):
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
 
+    @pytest.mark.xfail(
+        raises=AssertionError,
+        reason="JSONArray does not support roundtrip via JSON",
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # JSONArray does not support roundtrip as during JSON serialization each element
+        # of the array is packed into another dictionary ``{"data": element}`` with
+        # element being a dictionary itself, and during deserialization these
+        # dictionaries are not unpacked again, so the JSONArray cannot be reconstructed
+        # with the simple deserialization in the test.
+        super().test_json_roundtrip(data)
+
 
 def custom_assert_series_equal(left, right, *args, **kwargs):
     # NumPy doesn't handle an array of equal-length UserDicts.
