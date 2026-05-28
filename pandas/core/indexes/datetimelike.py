@@ -311,6 +311,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             if other.dtype == object:
                 # Use the cached inferred_type as a cheap pre-filter
                 inferred = other.inferred_type
+                compatible: tuple[str, ...]
                 if self.dtype.kind == "M":
                     compatible = ("datetime", "datetime64", "date")
                 elif self.dtype.kind == "m":
