@@ -2080,8 +2080,8 @@ def test_resample_ms_closed_right(unit):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["B", "C", "W", "ME", "SME", "BCME", "QE", "BQE"])
-def test_resample_c_b_label_right_closed_right_default(freq: str, unit):
+@pytest.mark.parametrize("freq", ["B", "C", "W", "ME", "SME", "BME", "CBME", "QE", "BQE"])
+def test_resample_c_b_default(freq: str, unit):
     # https://github.com/pandas-dev/pandas/issues/55281
     # check the default.
     # it's very important that the default be the same direction.
@@ -2093,7 +2093,7 @@ def test_resample_c_b_label_right_closed_right_default(freq: str, unit):
     # it samples future days (Saturday Sunday) onto the previous business day (Thursday)
     # - the interval covers Thursday 23:59 to Friday 23:59 (closed=right).
     # - the label shows Thursday date (label=left), as a plain date without time.
-    dti = date_range(start="2020-01-31", freq="1hour", periods=1000, unit=unit)
+    dti = date_range(start="2020-01-31", freq="1h", periods=1000, unit=unit)
     df = DataFrame({"ts": dti}, index=dti)
     grouped_right_right = df.resample(freq, label="right", closed="right")
     grouped_default = df.resample(freq, label="right", closed="right")
@@ -2103,7 +2103,7 @@ def test_resample_c_b_label_right_closed_right_default(freq: str, unit):
 
 
 @pytest.mark.parametrize("freq", ["B", "C"])
-def test_resample_c_b_label_right_closed_right_default(freq: str, unit):
+def test_resample_c_b_label_right_closed_right(freq: str, unit):
     # https://github.com/pandas-dev/pandas/issues/55281
     dti = date_range(start="2020-01-31", freq="1min", periods=6000, unit=unit)
     df = DataFrame({"ts": dti}, index=dti)
