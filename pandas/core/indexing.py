@@ -3047,15 +3047,17 @@ class _iLocIndexer(_LocationIndexer):
                     new_ix = ax[idx]
                     if not is_list_like_indexer(new_ix):
                         new_ix = Index([new_ix])
-                    # GH#22493: partial MultiIndex setitem.
-                    # When setting via a partial key the target
-                    # slice retains the full MultiIndex but the
-                    # value's index has only the remaining levels.
-                    # Drop the consumed leading levels so reindex
-                    # can align properly.
+                    # GH#22493: align a flat-indexed value against the
+                    # innermost level of a MultiIndexed target.  Fires for a
+                    # partial key (e.g. df.loc['a1'] = val) and, more broadly,
+                    # for any flat-indexed value assigned to a MultiIndexed
+                    # target (list keys, boolean masks, df.loc[:]), aligning
+                    # on / broadcasting across the innermost level rather than
+                    # reindexing the flat index against the full MultiIndex.
                     elif isinstance(new_ix, MultiIndex) and not isinstance(
                         ser.index, MultiIndex
                     ):
+                        # value is flat, so keep only the innermost level
                         new_ix = new_ix.droplevel(list(range(new_ix.nlevels - 1)))
                     else:
                         new_ix = Index(new_ix)
@@ -3137,15 +3139,17 @@ class _iLocIndexer(_LocationIndexer):
                         "specifying the join levels"
                     )
 
-                # GH#22493: handle partial MultiIndex setitem.
-                # When setting via a partial key (e.g. df.loc['a1'] = val),
-                # the target slice retains the full MultiIndex but the value
-                # has an index matching only the remaining levels.  Drop the
-                # consumed leading levels so the reindex can align properly.
+                # GH#22493: align a flat-indexed value against the innermost
+                # level of a MultiIndexed target.  Fires for a partial key
+                # (e.g. df.loc['a1'] = val) and, more broadly, for any
+                # flat-indexed value assigned to a MultiIndexed target (list
+                # keys, boolean masks, df.loc[:]), aligning on / broadcasting
+                # across the innermost level rather than reindexing the flat
+                # index against the full MultiIndex (which yields all-NaN).
                 if isinstance(ax, MultiIndex) and not isinstance(df.index, MultiIndex):
+                    # value is flat, so keep only the innermost level
                     remaining = ax.droplevel(list(range(ax.nlevels - 1)))
-                    val = df.reindex(index=remaining)
-                    return val
+                    return df.reindex(index=remaining)
 
                 val = df.reindex(index=ax)
             return val

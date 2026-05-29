@@ -508,6 +508,25 @@ class TestMultiIndexSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_full_slice_flat_value_broadcasts(self):
+        # GH#22493 - a flat-indexed value assigned across the full MultiIndex
+        # (not a partial key) aligns on the innermost level and broadcasts
+        # across the outer level(s)
+        idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        rhs = DataFrame({"c1": [-1, -2], "c2": [-3, -4]}, index=["b1", "b2"])
+        df.loc[:] = rhs
+        expected = DataFrame(
+            [[-1, -3], [-2, -4], [-1, -3], [-2, -4]],
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemWithExpansionMultiIndex:
     def test_setitem_new_column_mixed_depth(self):
