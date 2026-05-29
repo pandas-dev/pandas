@@ -356,6 +356,27 @@ def test_select_iterator(temp_hdfstore):
     tm.assert_frame_equal(result, expected)
 
 
+def test_select_iterator_no_where_skips_coordinates(temp_hdfstore):
+    # GH#15937 chunked iteration without a `where` filter should not
+    # materialize an np.arange(0, nrows) coordinate array, which can
+    # exhaust memory on very large tables.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df", df)
+
+    it = temp_hdfstore.select("df", chunksize=2)
+    it.get_result()
+    assert it.coordinates is None
+
+    where = "index >= '2000-01-01'"
+    it_where = temp_hdfstore.select("df", where=where, chunksize=2)
+    it_where.get_result()
+    assert it_where.coordinates is not None
+
+
 def test_select_iterator2(temp_h5_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),

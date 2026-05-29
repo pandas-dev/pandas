@@ -255,6 +255,29 @@ _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
+_MISSING = object()
+
+
+def _set_attr_if_changed(attrs, name: str, value) -> None:
+    """
+    setattr on a PyTables AttributeSet only if the on-disk value differs.
+
+    Re-writing an HDF5 attribute to the same value is expensive — pytables
+    deletes and re-creates it, hitting the disk per attribute. On wide-table
+    appends this dominates runtime (GH#25839).
+    """
+    current = getattr(attrs, name, _MISSING)
+    if current is _MISSING:
+        setattr(attrs, name, value)
+        return
+    try:
+        equal = bool(current == value)
+    except (ValueError, TypeError):
+        equal = False
+    if not equal:
+        setattr(attrs, name, value)
+
+
 def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
@@ -354,6 +377,14 @@ def read_hdf(
     Retrieve pandas object stored in file, optionally based on where
     criteria. This function requires the
     `PyTables <https://www.pytables.org/>`_ library.
+
+    .. note::
+
+       This function only reads HDF5 files written by pandas (via
+       :meth:`DataFrame.to_hdf`, :meth:`Series.to_hdf`, or :class:`HDFStore`),
+       which use a pandas-specific layout built on PyTables. Arbitrary HDF5
+       files produced by other tools such as ``h5py`` or plain PyTables are
+       not supported; use those libraries directly to read such files.
 
     .. warning::
 
@@ -518,6 +549,13 @@ class HDFStore:
     Dict-like IO interface for storing pandas objects in PyTables.
 
     Either Fixed or Table format.
+
+    .. note::
+
+       ``HDFStore`` uses a pandas-specific layout on top of PyTables and is
+       intended for round-tripping pandas objects. It cannot read arbitrary
+       HDF5 files produced by other tools such as ``h5py`` or plain PyTables;
+       use those libraries directly for general HDF5 interoperability.
 
     .. warning::
 
@@ -2173,6 +2211,7 @@ class TableIterator:
         self.stop = stop
 
         self.coordinates = None
+        self._called_get_result = False
         if iterator or chunksize is not None:
             if chunksize is None:
                 chunksize = 100000
@@ -2184,12 +2223,18 @@ class TableIterator:
 
     def __iter__(self) -> Iterator:
         # iterate
-        current = self.start
-        if self.coordinates is None:
+        if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
+        current = self.start
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
-            value = self.func(None, None, self.coordinates[current:stop])
+            if self.coordinates is None:
+                # no `where` filter: iterate by (start, stop) directly so we
+                # don't materialize an np.arange(0, nrows) coordinate array,
+                # which can exhaust memory on very large tables (GH#15937)
+                value = self.func(current, stop, None)
+            else:
+                value = self.func(None, None, self.coordinates[current:stop])
             current = stop
             if value is None or not len(value):
                 continue
@@ -2204,16 +2249,21 @@ class TableIterator:
 
     def get_result(self, coordinates: bool = False):
         #  return the actual iterator
+        self._called_get_result = True
         if self.chunksize is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only use an iterator or chunksize on a table")
 
-            self.coordinates = self.s.read_coordinates(where=self.where)
+            if self.where is not None:
+                self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
 
         # if specified read via coordinates (necessary for multiple selections
-        if coordinates:
+        # so each table reads the same row set). Skip when self.where is None
+        # since every row would be selected anyway, and a coordinate-based read
+        # is much slower than a sequential read (GH#26771).
+        if coordinates and self.where is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
@@ -2357,11 +2407,21 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
-        factory: type[Index | DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex | TimedeltaIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
             factory = DatetimeIndex
+        elif val_kind.startswith("timedelta64"):
+            # GH#21466 timedelta values are stored as i8; restore the original
+            #  m8[unit] view so we round-trip to TimedeltaIndex (and not to
+            #  PeriodIndex/Index via the i8 branches below).
+            if val_kind == "timedelta64":
+                # legacy file: written before we stored timedelta64 resolution
+                values = values.view("m8[ns]")
+            else:
+                values = values.view(val_kind)
+            factory = TimedeltaIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
             # error: Incompatible types in assignment (expression has type
@@ -2518,7 +2578,7 @@ class IndexCol:
 
     def set_attr(self) -> None:
         """set the kind for this column"""
-        setattr(self.attrs, self.kind_attr, self.kind)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -2533,8 +2593,10 @@ class IndexCol:
                 )
             ):
                 raise ValueError(
-                    "cannot append a categorical with "
-                    "different categories to the existing"
+                    "cannot append a categorical with different categories "
+                    "to the existing; align with `cat.set_categories(...)` "
+                    "or pre-merge with `pd.api.types.union_categoricals` "
+                    "before writing"
                 )
 
     def write_metadata(self, handler: AppendableTable) -> None:
@@ -2671,9 +2733,17 @@ class DataCol(IndexCol):
         Get an appropriately typed and shaped pytables.Col object for values.
         """
         dtype = values.dtype
-        # error: Item "ExtensionDtype" of "Union[ExtensionDtype, dtype[Any]]" has no
-        # attribute "itemsize"
-        itemsize = dtype.itemsize  # type: ignore[union-attr]
+        # GH#26144, GH#38305, GH#42070. CategoricalDtype/DatetimeTZDtype have
+        # working code paths below; PeriodDtype is handled in a separate effort.
+        if isinstance(dtype, ExtensionDtype) and not isinstance(
+            dtype, (CategoricalDtype, DatetimeTZDtype, PeriodDtype)
+        ):
+            raise NotImplementedError(
+                f"Cannot store a column with dtype {dtype} in an HDF5 file. "
+                "HDFStore supports NumPy dtypes, datetime64 with timezone, "
+                "categorical, and string extension types."
+            )
+        itemsize = dtype.itemsize
 
         shape = values.shape
         if values.ndim == 1:
@@ -2808,6 +2878,13 @@ class DataCol(IndexCol):
                 converted = np.asarray(converted, dtype="m8[ns]")
             else:
                 converted = np.asarray(converted, dtype=dtype)
+        elif dtype.startswith("period"):
+            # GH#41978 PeriodArray values are stored as i8 ordinals; the
+            # PyTables atom has shape (1,) per row, so ravel before wrapping.
+            pdtype = PeriodDtype.construct_from_string(dtype)
+            converted = PeriodArray._simple_new(
+                np.asarray(converted, dtype="i8").ravel(), dtype=pdtype
+            )
         elif dtype == "date":
             try:
                 converted = np.asarray(
@@ -2850,18 +2927,23 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
+            # Old files may have been written without nan_rep persisted; the
+            # writer (write_data) defaulted None to "nan", so do the same here.
             converted = _unconvert_string_array(
-                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
+                converted,
+                nan_rep=nan_rep if nan_rep is not None else "nan",
+                encoding=encoding,
+                errors=errors,
             )
 
         return self.values, converted
 
     def set_attr(self) -> None:
         """set the data for this column"""
-        setattr(self.attrs, self.kind_attr, self.values)
-        setattr(self.attrs, self.meta_attr, self.meta)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.values)
+        _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
         assert self.dtype is not None
-        setattr(self.attrs, self.dtype_attr, self.dtype)
+        _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
 
 
 class DataIndexableCol(DataCol):
@@ -3095,10 +3177,9 @@ class GenericFixed(Fixed):
 
             def f(values, freq=None, tz=None):  # pyright: ignore[reportRedeclaration]
                 # data are already in UTC, localize and convert if tz present
-                dta = DatetimeArray._simple_new(
-                    values.values, dtype=values.dtype, freq=freq
-                )
+                dta = DatetimeArray._simple_new(values.values, dtype=values.dtype)
                 result = DatetimeIndex._simple_new(dta, name=None)
+                result._freq = freq
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
                 return result
@@ -3200,6 +3281,10 @@ class GenericFixed(Fixed):
                     ret = np.asarray(ret, dtype="m8[ns]")
                 else:
                     ret = np.asarray(ret, dtype=dtype)
+
+            elif dtype and dtype.startswith("period"):
+                pdtype = PeriodDtype.construct_from_string(dtype)
+                ret = PeriodArray._simple_new(np.asarray(ret, dtype="i8"), dtype=pdtype)
 
         if transposed:
             return ret.T
@@ -3448,9 +3533,30 @@ class GenericFixed(Fixed):
             elif lib.is_np_dtype(value.dtype, "m"):
                 self._handle.create_array(self.group, key, value.view("i8"))
                 getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
+            elif isinstance(value.dtype, PeriodDtype):
+                # GH#41978 store PeriodArray as i8 ordinals + freq attr
+                # error: "ExtensionArray" has no attribute "asi8"
+                self._handle.create_array(
+                    self.group,
+                    key,
+                    value.asi8,  # type: ignore[attr-defined]
+                )
+                node = getattr(self.group, key)
+                node._v_attrs.value_type = str(value.dtype)
             elif empty_array:
                 self.write_array_empty(key, value)
             else:
+                # GH#26144, GH#38305, GH#42070. PeriodDtype intentionally falls
+                # through here; it is handled in a separate effort.
+                if isinstance(value.dtype, ExtensionDtype) and not isinstance(
+                    value.dtype, PeriodDtype
+                ):
+                    raise NotImplementedError(
+                        f"Cannot store a column with dtype {value.dtype} in "
+                        'an HDF5 file with format="fixed". HDFStore supports '
+                        "NumPy dtypes, datetime64 with timezone, categorical, "
+                        "and string extension types."
+                    )
                 self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
@@ -3563,7 +3669,13 @@ class BlockManagerFixed(GenericFixed):
             values = self.read_array(f"block{i}_values", start=_start, stop=_stop)
 
             columns = items[items.get_indexer(blk_items)]
-            df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
+            arr = values.T
+            if isinstance(arr, np.ndarray):
+                # DataFrame stores the block as arr.T, so pass a Fortran-ordered
+                # arr to get a C-contiguous block (column-major DataFrame), so
+                # per-column access is contiguous (GH#22073, GH#60469).
+                arr = np.asfortranarray(arr)
+            df = DataFrame(arr, columns=columns, index=axes[1], copy=False)
             if (
                 using_string_dtype()
                 and isinstance(values, np.ndarray)
@@ -3573,7 +3685,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1).copy()
+            out = concat(dfs, axis=1)
             return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
@@ -3739,6 +3851,13 @@ class Table(Fixed):
         new object
         """
         levels = com.fill_missing_names(obj.index.names)
+        if "index" in levels:
+            # GH#6208 'index' is reserved as the implicit row-index name
+            # in the table format and collides with a level named 'index'.
+            raise ValueError(
+                "cannot store a MultiIndex with a level named 'index' as a "
+                "table; 'index' is reserved for the implicit row index"
+            )
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:
@@ -4119,11 +4238,23 @@ class Table(Fixed):
 
         axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, {})
-        if info.get("type") == "MultiIndex" and data_columns:
-            raise ValueError(
-                f"cannot use a multi-index on axis [{axis}] with "
-                f"data_columns {data_columns}"
-            )
+        if info.get("type") == "MultiIndex":
+            if data_columns:
+                raise ValueError(
+                    f"cannot use a multi-index on axis [{axis}] with "
+                    f"data_columns {data_columns}"
+                )
+            if isinstance(min_itemsize, dict):
+                mi_keys = [k for k in min_itemsize if k != "values"]
+                if mi_keys:
+                    raise ValueError(
+                        f"cannot use min_itemsize keys {mi_keys} on axis "
+                        f"[{axis}] with a MultiIndex; per-column "
+                        "min_itemsize requires data_columns, which are not "
+                        "supported with MultiIndex columns. Use "
+                        "min_itemsize={'values': N} to apply a single "
+                        "min_itemsize across all string columns."
+                    )
 
         # evaluate the passed data_columns, True == use all columns
         # take only valid axis labels
@@ -5225,6 +5356,25 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     assert isinstance(name, str)
 
     index_name = index.name
+    # GH#26144, GH#38305, GH#42070: most extension dtypes cannot be stored as
+    # an Index in HDF5. Allow the ones that have working code paths below
+    # (DatetimeTZ/Period via i8 conversion, BooleanDtype via is_bool_dtype,
+    # StringDtype, CategoricalDtype) and reject everything else early before
+    # _dtype_to_kind / _get_atom choke with a low-level error.
+    # CategoricalDtype is intentionally not caught here; that is handled in
+    # a separate effort. BooleanDtype round-trips lossily but does not error
+    # on main, so it remains carved out here.
+    if (
+        isinstance(index.dtype, ExtensionDtype)
+        and not needs_i8_conversion(index.dtype)
+        and not is_bool_dtype(index.dtype)
+        and not isinstance(index.dtype, (StringDtype, CategoricalDtype))
+    ):
+        raise NotImplementedError(
+            f"Cannot store an Index with dtype {index.dtype} in an HDF5 file. "
+            "HDFStore supports NumPy dtypes, datetime64 with timezone, "
+            "categorical, and string extension types."
+        )
     # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
     # expected "Union[ExtensionArray, ndarray]"
     converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
@@ -5436,7 +5586,10 @@ def _unconvert_string_array(
     Parameters
     ----------
     data : np.ndarray[fixed-length-string]
-    nan_rep : the storage repr of NaN
+    nan_rep : the storage repr of NaN, or None to skip substitution.
+        Pass None when the writer did not encode NaN as a sentinel string
+        (e.g. for string indices); otherwise legitimate occurrences of the
+        sentinel value would be incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -5462,10 +5615,8 @@ def _unconvert_string_array(
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
-    if nan_rep is None:
-        nan_rep = "nan"
-
-    libwriters.string_array_replace_from_nan_rep(data, nan_rep)
+    if nan_rep is not None:
+        libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 
@@ -5572,7 +5723,7 @@ def _get_data_and_dtype_name(data: ArrayLike):
         # TODO: we used to reshape for the dt64tz case, but no longer
         #  doing that doesn't seem to break anything.  why?
 
-    elif isinstance(data, PeriodIndex):
+    elif isinstance(data, (PeriodIndex, PeriodArray)):
         data = data.asi8
 
     data = np.asarray(data)

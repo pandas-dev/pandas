@@ -284,8 +284,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
-        arr = self._data.to_timestamp(freq, how)
-        return DatetimeIndex._simple_new(arr, name=self.name)
+        parr = self._data
+        arr = parr.to_timestamp(freq, how)
+        result = DatetimeIndex._simple_new(arr, name=self.name)
+        result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
+        return result
 
     @property
     def hour(self) -> Index:
@@ -561,8 +564,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Returns True if this PeriodIndex is range-like in that all Periods
-        between start and end are present, in order.
+        Return True if the index contains all periods from start to end
+        (inclusive) with no gaps.
+
+        Requires monotonic increasing order. Duplicate periods are allowed.
         """
         if len(self) == 0:
             return True
