@@ -705,7 +705,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             elif self.tz is None:
                 # GH#49281 treat as wall times, consistent with the
                 # Series(dt64_values, dtype=tzaware_dtype) constructor.
-                return self.tz_localize(dtype.tz)
+                #  as_unit handles a target resolution different from our own.
+                return self.tz_localize(dtype.tz).as_unit(dtype.unit)
             else:
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)

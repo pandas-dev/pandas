@@ -359,6 +359,17 @@ class TestDatetimeArray:
         assert res.dtype == "M8[s]"
         assert isinstance(res, pd.core.arrays.DatetimeArray)  # used to be ndarray
 
+    def test_astype_tznaive_to_tzaware_different_unit(self):
+        # GH#49281 tz-naive to tz-aware must honor the target resolution,
+        #  matching the Series(values, dtype=...) constructor
+        dta = pd.date_range("2016-01-01", periods=3, unit="s")._data
+
+        result = dta.astype("M8[ns, US/Pacific]")
+        assert result.dtype == "M8[ns, US/Pacific]"
+
+        expected = pd.array(dta._ndarray, dtype="M8[ns, US/Pacific]")
+        tm.assert_extension_array_equal(result, expected)
+
     def test_astype_non_nano_tzaware(self):
         dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
 

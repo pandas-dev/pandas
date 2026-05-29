@@ -95,10 +95,13 @@ class TestDatetimeIndex:
         # GH 18951, GH#49281: tz-naive to tz-aware
         idx = date_range("20170101", periods=4)
         idx = idx._with_freq(None)  # tz_localize does not preserve freq
-        expected = idx.tz_localize("US/Eastern")
+        # astype honors the requested resolution even when it differs from
+        #  idx's own (GH#49281)
+        expected = idx.tz_localize("US/Eastern").as_unit("ns")
 
         result = idx.astype("datetime64[ns, US/Eastern]")
         tm.assert_index_equal(result, expected)
+        assert result.dtype == "datetime64[ns, US/Eastern]"
 
         result = idx._data.astype("datetime64[ns, US/Eastern]")
         expected_dta = expected._data
