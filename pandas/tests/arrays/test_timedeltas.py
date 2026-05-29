@@ -104,6 +104,22 @@ class TestNonNano:
         # Vectorized result agrees with the scalar Timedelta path
         assert result[0] == Timedelta(value).total_seconds()
 
+    def test_total_seconds_matches_scalar_at_large_ns(self):
+        # The vectorized result must match Timedelta.total_seconds bit-for-bit,
+        # not just at integer-second boundaries: large ns values lose precision
+        # under a single asi8 / pps division, so we mirror the scalar's
+        # `int_seconds + sub_ns / 1e9` split (GH#46819).
+        values = [
+            256_790_988_018_092_305,
+            2_530_160_323_573_146_516,
+            4_847_449_854_178_473_008,
+            9_223_372_036_854_775_807,  # int64 ns max
+        ]
+        values = values + [-val for val in values]
+        result = pd.to_timedelta(values, unit="ns").total_seconds()
+        expected = [Timedelta(val).total_seconds() for val in values]
+        assert list(result) == expected
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )

@@ -757,21 +757,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         pps = periods_per_second(self._creso)
         asi8 = self.asi8
-        result = asi8 / pps
-        if self.unit == "ns" and (asi8 % 1000).any():
-            # Boundary collapse requires a sub-microsecond residual whose
-            # float representation rounds onto an integer-second boundary;
-            # us/ms residuals and us-aligned ns values are safely off the
-            # boundary at all representable magnitudes. Mirrors the scalar's
-            # `_ns != 0` gate in `_Timedelta.total_seconds`.
+        if self.unit == "ns":
+            # Divide the integer-second part and the sub-second residual
+            # separately, mirroring the scalar's `int_seconds + sub_ns / 1e9`,
+            # so the result matches Timedelta.total_seconds bit-for-bit. A
+            # single asi8 / pps division rounds at the nanosecond magnitude and
+            # loses precision relative to the scalar for ns values above 2**53.
             floor_s, residual = np.divmod(asi8, pps)
-            has_residual = residual != 0
-            if has_residual.any():
-                # Sub-second residuals put the true value strictly inside
-                # (floor, floor + 1); guard against float rounding collapsing
-                # onto either boundary, otherwise bisect-style lookups (e.g.
-                # dateutil DST, GH#31043) misclassify the timestamp as on a
-                # transition.
+            result = floor_s + residual / pps
+            if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():
+                # Only above 2**53 ns can the float result round onto an
+                # integer-second boundary. A sub-second residual puts the true
+                # value strictly inside (floor, floor + 1), so nudge off either
+                # boundary, otherwise bisect-style lookups (e.g. dateutil DST,
+                # GH#31043) misclassify the timestamp as on a transition. This
+                # mirrors the scalar guard in `_Timedelta.total_seconds`.
+                has_residual = residual != 0
                 floor_f = floor_s.astype(np.float64)
                 on_floor = has_residual & (result == floor_f)
                 on_ceil = has_residual & (result == floor_f + 1.0)
@@ -783,6 +784,8 @@ class TimedeltaArray(dtl.TimelikeOps):
                     result = np.where(
                         on_ceil, np.nextafter(result, result - 1.0), result
                     )
+        else:
+            result = asi8 / pps
         return self._maybe_mask_results(result, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
