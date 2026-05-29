@@ -1061,6 +1061,81 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+    )
+    def test_values_for_json(self, data, request):
+        # GH 65127
+        # The date32 and date64 dtypes fail already in serialization due to as_unit not
+        # implemented for them. Currently the json serialization relies on the default
+        # 'epoch' format for datetimes, leading to the filtered Pandas4Warning.
+        if data.dtype in [ArrowDtype(pa.date32()), ArrowDtype(pa.date64())]:
+            try:
+                super().test_values_for_json(data)
+            # date32/date64
+            except NotImplementedError as err:
+                if "as_unit not implemented for date" in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=NotImplementedError,
+                            reason="as_unit not implemented for date",
+                        )
+                    )
+                raise
+        else:
+            super().test_values_for_json(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+    )
+    def test_json_roundtrip(self, data, request):
+        # GH 65127
+        # All datetime and duration ArrowDtypes with non default resolution of ms fail
+        # on roundtrip. The date32 and date64 dtypes fail already in serialization due
+        # to as_unit not implemented for them. Currently the json serialization relies
+        # on the default 'epoch' format for datetimes, leading to the filtered
+        # Pandas4Warning.
+        if ((data.dtype.kind in "Mm") and ("ms" not in str(data.dtype))) or (
+            data.dtype in [ArrowDtype(pa.date32()), ArrowDtype(pa.date64())]
+        ):
+            try:
+                super().test_json_roundtrip(data)
+            except NotImplementedError as err:
+                # date32/date64
+                if "as_unit not implemented for date" in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=NotImplementedError,
+                            reason="as_unit not implemented for date",
+                        )
+                    )
+                # timestamp with s unit and US/Pacific or US/Eastern tz
+                elif (
+                    "toordinal not yet supported on Timestamps which are "
+                    "outside the range of Python's standard library."
+                ) in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=NotImplementedError,
+                            reason=(
+                                "toordinal not yet supported on Timestamps which are "
+                                "outside the range of Python's standard library."
+                            ),
+                        )
+                    )
+                raise
+            # all others
+            except AssertionError as err:
+                if "Series are different" in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=AssertionError, reason="Series are different"
+                        )
+                    )
+                raise
+        else:
+            super().test_json_roundtrip(data)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""
@@ -3796,7 +3871,7 @@ def test_date_vs_timestamp_scalar_comparison():
 # TODO: reuse assert_invalid_comparison?
 def test_date_vs_timestamp_array_comparison():
     # GH#62157 match non-pyarrow behavior
-    # GH#
+    # GH#60937
     ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser2 = ser.astype("timestamp[ns][pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
