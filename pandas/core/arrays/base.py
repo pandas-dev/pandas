@@ -2901,6 +2901,8 @@ class ExtensionArray:
         """
         result = map_array(self, mapper, na_action=na_action)
         if isinstance(result, np.ndarray):
+            if isinstance(mapper, ABCSeries):
+                return result
             return self._cast_pointwise_result(result)
         return result
 

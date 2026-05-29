@@ -702,3 +702,36 @@ def test_map_retains_dtype_with_na(dtype):
     ser = Series([1, 2, 3, pd.NA, 10], dtype=dtype)
     result = ser.map(lambda x: x)
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize(
+    "values, mapper, expected",
+    [
+        ([1, 2], Series([10, 20], index=[2, 3]), Series([np.nan, 10.0])),
+        (
+            Series([1, None], dtype="Int16"),
+            Series([10, 20], index=[2, 1]),
+            Series([20.0, np.nan]),
+        ),
+        (
+            Series([None, None], dtype="Int16"),
+            Series([10, 20], index=[2, 1]),
+            Series([np.nan, np.nan]),
+        ),
+    ],
+)
+def test_map_series_mapper_with_missing_uses_mapper_dtype(values, mapper, expected):
+    # GH#65735
+    result = Series(values).map(mapper)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("mapper_values", [[10, 20], [260, 20]])
+def test_map_series_mapper_full_match_uses_mapper_dtype(mapper_values):
+    # GH#65735
+    ser = Series([1, 2], dtype="Int8")
+    mapper = Series(mapper_values, index=[1, 2], dtype="int32")
+
+    result = ser.map(mapper)
+    expected = Series(mapper_values, dtype="int32")
+    tm.assert_series_equal(result, expected)
