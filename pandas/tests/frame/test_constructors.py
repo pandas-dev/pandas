@@ -2164,14 +2164,19 @@ class TestDataFrameConstructors:
     def test_constructor_list_of_ragged_arrays_first_shortest(self):
         # GH#64958 the uniform-dtype fast path must not silently truncate
         # ragged rows; they should be padded to max width with NaN
-        result = DataFrame([np.array([1, 2]), np.array([3, 4, 5])])
+        # (pin int64 so the result dtype matches on 32- and 64-bit platforms)
+        result = DataFrame(
+            [np.array([1, 2], dtype=np.int64), np.array([3, 4, 5], dtype=np.int64)]
+        )
         expected = DataFrame([[1, 2, np.nan], [3, 4, 5]])
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_ragged_arrays_first_longest(self):
         # GH#64958 a longer first row must not raise IndexError; ragged rows
         # should be padded to max width with NaN
-        result = DataFrame([np.array([1, 2, 3]), np.array([4, 5])])
+        result = DataFrame(
+            [np.array([1, 2, 3], dtype=np.int64), np.array([4, 5], dtype=np.int64)]
+        )
         expected = DataFrame([[1, 2, 3], [4, 5, np.nan]])
         tm.assert_frame_equal(result, expected)
 
