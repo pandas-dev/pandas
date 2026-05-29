@@ -137,6 +137,17 @@ def test_encoding_infer(datapath):
     tm.assert_frame_equal(df1, df2)
 
 
+@pytest.mark.parametrize("encoding", ["ascii", "cp1252"])
+def test_sas_string_strict_decode_errors(datapath, encoding):
+    # GH#47339 the fast string-decoding path must still raise on bytes that are
+    # invalid for the declared encoding, matching a strict per-cell decode.
+    # test16 holds multibyte utf-8 text, whose bytes are invalid as ascii
+    # (>= 0x80) and include a byte undefined under cp1252.
+    fname = datapath("io", "sas", "data", "test16.sas7bdat")
+    with pytest.raises(UnicodeDecodeError):
+        pd.read_sas(fname, encoding=encoding)
+
+
 def test_productsales(datapath):
     fname = datapath("io", "sas", "data", "productsales.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")

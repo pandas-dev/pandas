@@ -155,7 +155,7 @@ Performance improvements
 - Performance improvement in :func:`read_sas` by reading page header fields directly in Cython instead of falling back to Python (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for SAS7BDAT files by pre-computing date/datetime column classification once during metadata parsing instead of per chunk (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for SAS7BDAT files with full-precision (8-byte) numeric columns, with up to ~2x speedup on bulk reads (:issue:`47339`)
-- Performance improvement in :func:`read_sas` for SAS7BDAT files with string columns when using the default pandas string dtype (:issue:`47339`)
+- Performance improvement in :func:`read_sas` for SAS7BDAT files with string columns when an ``encoding`` is specified and the default pandas string dtype is in use (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for compressed SAS7BDAT files by reusing the decompression buffer instead of allocating per row (:issue:`47339`)
 - Performance improvement in :func:`read_sas` when decoding strings (:issue:`47339`)
 - Performance improvement in :func:`util.hash_pandas_object` for PyArrow-backed string and binary types by using PyArrow's ``dictionary_encode`` instead of converting to NumPy for factorization (:issue:`48964`)

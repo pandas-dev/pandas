@@ -2,6 +2,7 @@
 # cython: warn.maybe_uninitialized=True, warn.unused=True
 cimport cython
 from cpython.unicode cimport (
+    PyUnicode_DecodeASCII,
     PyUnicode_DecodeLatin1,
     PyUnicode_FromStringAndSize,
 )
@@ -325,16 +326,22 @@ cdef class Parser:
         # col js writes into [str_col_starts[js], str_col_starts[js+1]).
         # str_offsets[js, :] holds large_string offsets (length nrows+1);
         # str_valid[js, r] is 1 for non-null, 0 for null.
-        # str_encoding_mode: 0 = utf-8/ascii (memcpy), 1 = latin-1 (expand).
+        # str_encoding_mode: 0 = utf-8 (copy verbatim), 1 = latin-1 (expand
+        # inline), 2 = other single-byte encoding via str_byte_table.
         bint use_pyarrow_strings
         int str_encoding_mode
         uint8_t[::1] str_values
         int64_t[:, ::1] str_offsets
         uint8_t[:, ::1] str_valid
         int64_t[::1] str_col_starts
+        # Single-byte -> utf-8 translation (str_encoding_mode == 2):
+        # str_byte_table[b, :str_byte_len[b]] is the utf-8 for source byte b;
+        # str_byte_len[b] == 0xFF marks a byte undefined in str_table_encoding.
+        uint8_t[:, ::1] str_byte_table
+        uint8_t[::1] str_byte_len
+        object str_table_encoding
         # Object-mode dispatch when use_pyarrow_strings is unset:
-        # 0 = raw bytes, 1 = PyUnicode_FromStringAndSize (utf-8/ascii),
-        # 2 = PyUnicode_DecodeLatin1.
+        # 0 = raw bytes, 1 = utf-8, 2 = latin-1, 3 = ascii.
         int str_object_mode
         uint8_t *cached_page
         int cached_page_len
@@ -382,6 +389,10 @@ cdef class Parser:
             self.str_offsets = parser._str_offsets
             self.str_valid = parser._str_valid
             self.str_col_starts = parser._str_col_starts
+            # None unless str_encoding_mode == 1 (single-byte table).
+            self.str_byte_table = parser._str_byte_table
+            self.str_byte_len = parser._str_byte_len
+            self.str_table_encoding = parser._str_table_encoding
         else:
             self.string_chunk = parser._string_chunk
         self.row_length = parser.row_length
@@ -572,6 +583,7 @@ cdef class Parser:
         cdef:
             Py_ssize_t j
             int s, k, m, jb, js, current_row, rpos
+            int bi, blen
             int64_t lngt, start, ct
             int64_t write_pos, col_start
             uint8_t bval
@@ -585,6 +597,8 @@ cdef class Parser:
             int64_t[:, ::1] str_offsets
             uint8_t[:, ::1] str_valid
             int64_t[::1] str_col_starts
+            uint8_t[:, ::1] str_byte_table
+            uint8_t[::1] str_byte_len
             bint compressed
             bint use_pa
             int enc_mode, obj_mode
@@ -607,20 +621,19 @@ cdef class Parser:
         lengths = self.lengths
         offsets = self.offsets
         byte_chunk = self.byte_chunk
-        # Initialize both mode locals up front so the C compiler doesn't
-        # warn about maybe-uninitialized reads under -Werror.
-        enc_mode = 0
-        obj_mode = 0
+        # Assign every string-output local up front. The inactive path's
+        # memoryviews are None and never dereferenced; doing it unconditionally
+        # keeps these out of the maybe-uninitialized analysis.
         use_pa = self.use_pyarrow_strings
-        if use_pa:
-            str_values = self.str_values
-            str_offsets = self.str_offsets
-            str_valid = self.str_valid
-            str_col_starts = self.str_col_starts
-            enc_mode = self.str_encoding_mode
-        else:
-            string_chunk = self.string_chunk
-            obj_mode = self.str_object_mode
+        enc_mode = self.str_encoding_mode
+        obj_mode = self.str_object_mode
+        string_chunk = self.string_chunk
+        str_values = self.str_values
+        str_offsets = self.str_offsets
+        str_valid = self.str_valid
+        str_col_starts = self.str_col_starts
+        str_byte_table = self.str_byte_table
+        str_byte_len = self.str_byte_len
         s = 8 * self.current_row_in_chunk_index
         js = 0
         jb = 0
@@ -655,19 +668,19 @@ cdef class Parser:
                     lngt -= 1
                 if use_pa:
                     write_pos = str_offsets[js, current_row]
+                    col_start = str_col_starts[js]
                     if lngt == 0 and self.blank_missing:
                         str_valid[js, current_row] = 0
                     elif enc_mode == 0:
-                        # utf-8 / ascii: direct byte copy
-                        col_start = str_col_starts[js]
+                        # utf-8: copy bytes verbatim (validated after the
+                        # large_string array is built).
                         for k in range(lngt):
                             str_values[col_start + write_pos + k] = (
                                 buf_get(source, start + k)
                             )
                         write_pos += lngt
-                    else:
+                    elif enc_mode == 1:
                         # latin-1 -> utf-8: 1 byte expands to 1 or 2 bytes
-                        col_start = str_col_starts[js]
                         for k in range(lngt):
                             bval = buf_get(source, start + k)
                             if bval < 0x80:
@@ -681,13 +694,27 @@ cdef class Parser:
                                     0x80 | (bval & 0x3F)
                                 )
                                 write_pos += 2
+                    else:
+                        # other single-byte encoding -> utf-8 via lookup table
+                        for k in range(lngt):
+                            bval = buf_get(source, start + k)
+                            blen = str_byte_len[bval]
+                            if blen == 0xFF:
+                                # byte undefined in this encoding; raise the
+                                # same error a strict per-cell decode would.
+                                bytes([bval]).decode(self.str_table_encoding)
+                            for bi in range(blen):
+                                str_values[col_start + write_pos + bi] = (
+                                    str_byte_table[bval, bi]
+                                )
+                            write_pos += blen
                     str_offsets[js, current_row + 1] = write_pos
                 else:
                     if lngt == 0 and self.blank_missing:
                         string_chunk[js, current_row] = np_nan
                     elif obj_mode == 1:
-                        # utf-8 / ascii: PyUnicode_FromStringAndSize interprets
-                        # bytes as utf-8 (covers the ascii subset).
+                        # utf-8: PyUnicode_FromStringAndSize interprets bytes as
+                        # utf-8 and raises on invalid sequences.
                         string_chunk[js, current_row] = (
                             PyUnicode_FromStringAndSize(
                                 <const char *>&source.data[start], lngt
@@ -697,6 +724,11 @@ cdef class Parser:
                         # latin-1: every byte is a valid codepoint, this call
                         # cannot fail.
                         string_chunk[js, current_row] = PyUnicode_DecodeLatin1(
+                            <const char *>&source.data[start], lngt, NULL
+                        )
+                    elif obj_mode == 3:
+                        # ascii: raises on any byte >= 0x80.
+                        string_chunk[js, current_row] = PyUnicode_DecodeASCII(
                             <const char *>&source.data[start], lngt, NULL
                         )
                     else:

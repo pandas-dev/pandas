@@ -61,20 +61,61 @@ if TYPE_CHECKING:
 _unix_origin = Timestamp("1970-01-01")
 _sas_origin = Timestamp("1960-01-01")
 
-# Cython hot-loop modes for encodings that turn into utf-8 in place, keyed
-# by codecs canonical name: 0 = source bytes are already valid utf-8
-# (utf-8/ascii), 1 = single-byte latin-1, expanded to utf-8 inline.
-_FAST_PATH_ENCODINGS = {"utf-8": 0, "ascii": 0, "iso8859-1": 1}
+# Fast-path encodings for string columns, keyed by codecs canonical name and
+# mapping to ``(pyarrow_mode, object_mode)``:
+#   pyarrow_mode 0 = source bytes are copied verbatim and validated as utf-8;
+#   pyarrow_mode 1 = latin-1, expanded to utf-8 inline (no lookup table);
+#   pyarrow_mode 2 = other single-byte encoding translated to utf-8 via a
+#     256-entry lookup table (covers ascii, cp1252, ...).
+#   object_mode is the Cython str-producing mode used when the pyarrow path is
+#   unavailable: 1 = utf-8, 2 = latin-1, 3 = ascii, 0 = decode via the per-cell
+#   fallback (encodings without a dedicated fast decoder, e.g. cp1252).
+_FAST_PATH_ENCODINGS = {
+    "utf-8": (0, 1),
+    "iso8859-1": (1, 2),
+    "ascii": (2, 3),
+    "cp1252": (2, 0),
+}
 
 
-def _fast_path_encoding_mode(encoding: str | None) -> int | None:
+def _fast_path_encoding(encoding: str | None) -> str | None:
+    """Return the codecs canonical name if `encoding` has a fast path, else None."""
     if not encoding:
         return None
     try:
         canonical = codecs.lookup(encoding).name
     except LookupError:
         return None
-    return _FAST_PATH_ENCODINGS.get(canonical)
+    return canonical if canonical in _FAST_PATH_ENCODINGS else None
+
+
+def _single_byte_to_utf8_table(encoding: str) -> tuple[np.ndarray, np.ndarray, int]:
+    """
+    Build a lookup table translating each source byte of a single-byte
+    `encoding` to its utf-8 bytes.
+
+    Returns ``(table, lengths, max_len)`` where ``table[b, :lengths[b]]`` is the
+    utf-8 for byte ``b``, ``lengths[b] == 0xFF`` marks a byte undefined in
+    `encoding` (the parser raises on it, matching the strict-decode slow path),
+    and ``max_len`` is the largest utf-8 length, i.e. the per-byte expansion.
+    """
+    encoded: list[bytes | None] = []
+    max_len = 1
+    for value in range(256):
+        try:
+            utf8 = bytes([value]).decode(encoding).encode("utf-8")
+        except UnicodeDecodeError:
+            utf8 = None
+        encoded.append(utf8)
+        if utf8 is not None:
+            max_len = max(max_len, len(utf8))
+    table = np.zeros((256, max_len), dtype=np.uint8)
+    lengths = np.full(256, 0xFF, dtype=np.uint8)
+    for value, utf8 in enumerate(encoded):
+        if utf8 is not None:
+            lengths[value] = len(utf8)
+            table[value, : len(utf8)] = bytearray(utf8)
+    return table, lengths, max_len
 
 
 # SAS uses a modified Gregorian calendar where years divisible by 4000 are
@@ -730,14 +771,11 @@ class SAS7BDATReader(SASReader):
         # Choose the Cython hot-loop output for string columns:
         #   pyarrow path: write utf-8 bytes + int64 offsets + valid bytes
         #     into flat buffers, wrapped as a large_string array later.
-        #   direct-str path: write str objects (PyUnicode_FromStringAndSize
-        #     for utf-8/ascii, PyUnicode_DecodeLatin1 for latin-1) into the
-        #     object array.
+        #   direct-str path: write str objects (PyUnicode_* per encoding) into
+        #     the object array.
         #   raw-bytes path: write bytes objects; caller decodes per cell.
-        enc_mode = _fast_path_encoding_mode(
-            self.encoding if self.convert_text else None
-        )
-        use_pa = ns > 0 and enc_mode is not None and using_string_dtype()
+        canonical = _fast_path_encoding(self.encoding if self.convert_text else None)
+        use_pa = ns > 0 and canonical is not None and using_string_dtype()
         if use_pa:
             try:
                 import_optional_dependency("pyarrow")
@@ -747,13 +785,34 @@ class SAS7BDATReader(SASReader):
         if not use_pa:
             self._use_pyarrow_strings = False
             self._string_chunk = np.empty((ns, nrows), dtype=object)
-            # 0 = raw bytes, 1 = utf-8/ascii str, 2 = latin-1 str
-            self._str_object_mode = 0 if enc_mode is None else enc_mode + 1
+            # 0 = raw bytes, 1 = utf-8, 2 = latin-1, 3 = ascii
+            self._str_object_mode = (
+                0 if canonical is None else _FAST_PATH_ENCODINGS[canonical][1]
+            )
             return
 
-        # Per-column upper bound on utf-8 bytes: latin-1 -> utf-8 doubles
-        # the worst case; utf-8/ascii is 1:1.
-        expansion = 2 if enc_mode == 1 else 1
+        # use_pa being True implies a fast-path encoding was found.
+        assert canonical is not None
+        pa_mode = _FAST_PATH_ENCODINGS[canonical][0]
+        self._str_byte_table = None
+        self._str_byte_len = None
+        self._str_table_encoding = None
+        self._str_validate_utf8 = False
+        if pa_mode == 0:
+            # utf-8: copied verbatim (1 byte in -> 1 byte out), validated later.
+            expansion = 1
+            self._str_validate_utf8 = True
+        elif pa_mode == 1:
+            # latin-1: expanded inline, 1 byte -> at most 2 utf-8 bytes.
+            expansion = 2
+        else:
+            # other single-byte encoding: per-byte expansion is the table's max
+            # utf-8 length (cp1252 -> 3, ascii -> 1).
+            table, lengths, expansion = _single_byte_to_utf8_table(canonical)
+            self._str_byte_table = table
+            self._str_byte_len = lengths
+            self._str_table_encoding = canonical
+
         col_starts = np.empty(ns, dtype=np.int64)
         running = 0
         js = 0
@@ -765,10 +824,12 @@ class SAS7BDATReader(SASReader):
 
         self._use_pyarrow_strings = True
         self._str_object_mode = 0
-        self._str_encoding_mode = enc_mode
+        self._str_encoding_mode = pa_mode
         self._str_col_starts = col_starts
         self._str_values_buf = np.empty(running, dtype=np.uint8)
         self._str_offsets = np.zeros((ns, nrows + 1), dtype=np.int64)
+        # Non-null by default; the parser clears blank-missing cells, and
+        # _chunk_to_dataframe clears any columns the parser never reached.
         self._str_valid = np.ones((ns, nrows), dtype=np.uint8)
 
     def _read_page_data(self):
@@ -810,6 +871,28 @@ class SAS7BDATReader(SASReader):
         ix = range(m - n, m)
 
         infer_string = using_string_dtype()
+        if self._use_pyarrow_strings:
+            # The parser breaks its per-row loop at the first zero-length column
+            # (GH#47099); string columns at/after that point are never written,
+            # so mark them all-null to match the object path's NaN fill.
+            first_zero = next(
+                (
+                    j
+                    for j in range(self.column_count)
+                    if self._column_data_lengths[j] == 0
+                ),
+                None,
+            )
+            if first_zero is not None:
+                js0 = self._column_types[:first_zero].count(b"s")
+                self._str_valid[js0:, :] = 0
+            # The flat parse buffers are sized to the worst case (declared width
+            # x nrows x expansion). Zero-copy views pin that whole allocation
+            # for the lifetime of the result, so copy out instead when more than
+            # half of it is unused slack (see _build_pyarrow_string_column).
+            total_alloc = self._str_values_buf.shape[0]
+            total_used = int(self._str_offsets[:, n].sum()) if n else 0
+            self._str_compact = total_alloc - total_used > total_used
         arrays: list = []
         js, jb = 0, 0
         for j in range(self.column_count):
@@ -828,6 +911,9 @@ class SAS7BDATReader(SASReader):
                 self.close()
                 raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
+        # _from_arrays keeps one array per column even when names collide,
+        # whereas the previous dict-based construction silently dropped all but
+        # the last of any duplicate-named columns.
         df = DataFrame._from_arrays(
             arrays,
             columns=self.column_names[: len(arrays)],
@@ -866,9 +952,16 @@ class SAS7BDATReader(SASReader):
 
         from pandas.core.arrays.string_arrow import ArrowStringArray
 
-        offsets = np.ascontiguousarray(self._str_offsets[js, : nrows + 1])
+        offsets = self._str_offsets[js, : nrows + 1]
         col_start = int(self._str_col_starts[js])
         values = self._str_values_buf[col_start : col_start + int(offsets[-1])]
+        if self._str_compact:
+            # Copy out so the oversized shared parse buffers can be released
+            # rather than pinned by these zero-copy views.
+            offsets = offsets.copy()
+            values = values.copy()
+        else:
+            offsets = np.ascontiguousarray(offsets)
 
         valid = self._str_valid[js, :nrows]
         if valid.all():
@@ -881,6 +974,12 @@ class SAS7BDATReader(SASReader):
             nrows,
             [validity_buf, pa.py_buffer(offsets), pa.py_buffer(values)],
         )
+        if self._str_validate_utf8:
+            # from_buffers does no validation; SAS data declared utf-8 may still
+            # contain invalid byte sequences. Validate so we raise at read time
+            # (as the per-cell decode did) instead of deferring to first access.
+            # Single-byte encodings always emit valid utf-8 and skip this scan.
+            pa_arr.validate(full=True)
         return ArrowStringArray(
             pa.chunked_array([pa_arr]), dtype=pd.StringDtype(na_value=np.nan)
         )
