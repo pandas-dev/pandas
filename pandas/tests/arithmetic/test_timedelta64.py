@@ -1560,6 +1560,20 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(OverflowError, match=msg):
             tdi * np.array([2, 2], dtype="i8")
 
+    def test_td64arr_mul_uint_overflow(self, box_with_array):
+        # GH#43178: an unsigned multiplier above int64.max must not wrap to a
+        #  negative int64 before the overflow check; it should raise instead.
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(1, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.uint64(2**63 + 5)
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.array([2**63 + 5, 2**63 + 5], dtype="u8")
+        with pytest.raises(OverflowError, match=msg):
+            tdi * (2**63 + 5)
+
     def test_td64arr_mul_float_overflow(self, box_with_array):
         # GH#43178: float multiplication on timedelta64[ns] used to silently
         #  saturate to int64.max
@@ -1576,6 +1590,28 @@ class TestTimedeltaArraylikeMulDivOps:
             tdi * np.float64(2.5)
         with pytest.raises(OverflowError, match=msg):
             tdi * np.array([2.5, 2.5])
+
+    def test_td64arr_mul_float_overflow_boundary(self, box_with_array):
+        # GH#43178: a product landing exactly on 2**63 (= int64.max + 1) must
+        #  raise rather than silently saturate on the float -> int64 cast.
+        tdi = TimedeltaIndex([Timedelta(2**62, "ns"), Timedelta(2**62, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OverflowError, match=msg):
+            tdi * 2.0
+
+    def test_td64arr_mul_preserves_nat(self, box_with_array):
+        # GH#43178: NaT is preserved (not corrupted) through the overflow-safe
+        #  int and float multiplication paths.
+        tdi = TimedeltaIndex([Timedelta(5, "ns"), NaT])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex([Timedelta(10, "ns"), NaT])
+        expected = tm.box_expected(expected, box_with_array)
+
+        tm.assert_equal(tdi * 2, expected)
+        tm.assert_equal(tdi * 2.0, expected)
 
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")

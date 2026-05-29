@@ -450,7 +450,11 @@ class TimedeltaArray(dtl.TimelikeOps):
         f_result = i8 * other
         nan_mask = np.isnan(f_result)
         finite = f_result[~nan_mask]
-        if finite.size and np.max(np.abs(finite), initial=0.0) > lib.i8max:
+        # Compare against 2**63 rather than i8max: i8max (2**63 - 1) is not
+        #  exactly representable in float64 and rounds up to 2**63, so a product
+        #  that lands exactly on 2**63 (e.g. (2**62) * 2.0) would otherwise slip
+        #  past the check and silently saturate on the i8 cast below.
+        if finite.size and np.max(np.abs(finite), initial=0.0) >= 2.0**63:
             raise OverflowError("Overflow in timedelta multiplication")
         # NaN-to-int cast is platform-dependent; substitute 0 then re-mask as NaT
         if nan_mask.any():
@@ -471,7 +475,11 @@ class TimedeltaArray(dtl.TimelikeOps):
                     "integers instead"
                 )
             if lib.is_integer(other):
-                # GH#43178: detect int64 overflow rather than silently wrapping
+                # GH#43178: detect int64 overflow rather than silently wrapping.
+                #  A multiplier above int64.max (e.g. a large np.uint64) would
+                #  wrap to a negative value in the i8 cast below.
+                if other > lib.i8max:
+                    raise OverflowError("Overflow in int64 multiplication")
                 i8_result = mul_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
                 result = i8_result.view(self._ndarray.dtype)
                 return type(self)._simple_new(result, dtype=result.dtype)
@@ -513,7 +521,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             return type(self)._simple_new(obj_result, dtype=obj_result.dtype)
 
         if other.dtype.kind in "iu":
-            # GH#43178: detect int64 overflow rather than silently wrapping
+            # GH#43178: detect int64 overflow rather than silently wrapping.
+            #  An unsigned multiplier above int64.max would wrap to a negative
+            #  value in the i8 cast below, silently corrupting the result.
+            if other.dtype.kind == "u" and (other > lib.i8max).any():
+                raise OverflowError("Overflow in int64 multiplication")
             i8_result = mul_overflowsafe(self.asi8, other.astype("i8", copy=False))
             result = i8_result.view(self._ndarray.dtype)
             return type(self)._simple_new(result, dtype=result.dtype)
