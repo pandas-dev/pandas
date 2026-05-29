@@ -857,7 +857,7 @@ def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
-    # GH#XXXXX shorter sequences get padded with NaN out to the longest one,
+    # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
     lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
