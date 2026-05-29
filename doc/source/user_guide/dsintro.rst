@@ -391,10 +391,9 @@ From a list of namedtuples
 
 The field names of the first ``namedtuple`` in the list determine the columns
 of the :class:`DataFrame`. The remaining namedtuples (or tuples) are simply unpacked
-and their values are fed into the rows of the :class:`DataFrame`. If any of those
-tuples is shorter than the first ``namedtuple`` then the later columns in the
-corresponding row are marked as missing values. If any are longer than the
-first ``namedtuple``, a ``ValueError`` is raised.
+and their values are fed into the rows of the :class:`DataFrame`, and should all
+have the same length as the first ``namedtuple``. Passing entries of differing
+lengths is deprecated.
 
 .. ipython:: python
 
@@ -403,10 +402,6 @@ first ``namedtuple``, a ``ValueError`` is raised.
     Point = namedtuple("Point", "x y")
 
     pd.DataFrame([Point(0, 0), Point(0, 3), (2, 3)])
-
-    Point3D = namedtuple("Point3D", "x y z")
-
-    pd.DataFrame([Point3D(0, 0, 0), Point3D(0, 3, 5), Point(2, 3)])
 
 
 .. _basics.dataframe.from_list_dataclasses:
