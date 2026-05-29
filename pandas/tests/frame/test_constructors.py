@@ -23,7 +23,10 @@ import pytest
 
 from pandas._libs import lib
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -2378,9 +2381,32 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
-        expected = DataFrame([list("abc"), list("abdefg")])
+        # GH#XXXXX ragged input is padded with NaN, which is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = DataFrame([list("abc"), list("abdefg")])
         tm.assert_frame_equal(df, expected)
+
+    def test_construct_ragged_list_deprecated(self):
+        # GH#XXXXX constructing from sequences of mismatched lengths pads the
+        #  shorter ones with NaN out to the longest, which is deprecated
+        msg = "Constructing a DataFrame from a list of sequences with mismatched"
+        expected = DataFrame({0: [1, 3], 1: [2, 4], 2: [np.nan, 5]})
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame([[1, 2], [3, 4, 5]])
+        tm.assert_frame_equal(result, expected)
+
+        # list of tuples takes the same code path
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = DataFrame([(1, 2), (3, 4, 5)])
+        tm.assert_frame_equal(result, expected)
+
+        # equal-length sequences are unaffected
+        with tm.assert_produces_warning(None):
+            DataFrame([[1, 2], [3, 4]])
 
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]

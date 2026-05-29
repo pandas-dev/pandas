@@ -381,7 +381,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_frame_from_json_missing_data(self, orient, convert_axes, dtype):
-        num_df = DataFrame([[1, 2], [4, 5, 6]])
+        num_df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
 
         result = read_json(
             StringIO(num_df.to_json(orient=orient)),
@@ -391,7 +391,7 @@ class TestPandasContainer:
         )
         assert np.isnan(result.iloc[0, 2])
 
-        obj_df = DataFrame([["1", "2"], ["4", "5", "6"]])
+        obj_df = DataFrame([["1", "2", np.nan], ["4", "5", "6"]])
         result = read_json(
             StringIO(obj_df.to_json(orient=orient)),
             orient=orient,
@@ -414,7 +414,7 @@ class TestPandasContainer:
     def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
         # deserialisation
-        df = DataFrame([[1, 2], [4, 5, 6]])
+        df = DataFrame([[1, 2, np.nan], [4, 5, 6]])
         df.loc[0, 2] = inf
 
         data = StringIO(df.to_json())
