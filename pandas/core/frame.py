@@ -15815,12 +15815,20 @@ class DataFrame(NDFrame, OpsMixin):
                         # for backwards compatibility for now.
                         # See https://github.com/pandas-dev/pandas/issues/57171
                         skipna = True
-                    if name in ("idxmin", "idxmax") and not skipna and arr.isna().any():
-                        # Match the error raised by GroupBy._idxmax_idxmin
-                        # which the previous ser.groupby(...).agg(...) path used.
-                        raise ValueError(
-                            f"{name} with skipna=False encountered an NA value."
-                        )
+                    if name in ("idxmin", "idxmax"):
+                        if not skipna and arr.isna().any():
+                            # Match the error raised by GroupBy._idxmax_idxmin
+                            # which the previous ser.groupby(...).agg(...) path
+                            # used.
+                            raise ValueError(
+                                f"{name} with skipna=False encountered an NA value."
+                            )
+                        # group_idxmin_idxmax mishandles skipna=False (GH#56903):
+                        # it returns the all-NA sentinel for every group. Any NA
+                        # would already have raised above, so the values here have
+                        # no NA and skipna is irrelevant; force skipna=True to take
+                        # the correct code path.
+                        skipna = True
                     op_kwargs = dict(kwds)
                     min_count = op_kwargs.pop("min_count", -1)
                     res_values = arr._groupby_op(
