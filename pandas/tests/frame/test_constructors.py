@@ -2381,7 +2381,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_listlikes_mismatched_lengths(self):
-        # GH#XXXXX ragged input is padded with NaN, which is deprecated
+        # GH#65751 ragged input is padded with NaN, which is deprecated
         msg = "Constructing a DataFrame from a list of sequences with mismatched"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df = DataFrame([Categorical(list("abc")), Categorical(list("abdefg"))])
@@ -2390,7 +2390,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_construct_ragged_list_deprecated(self):
-        # GH#XXXXX constructing from sequences of mismatched lengths pads the
+        # GH#65751 constructing from sequences of mismatched lengths pads the
         #  shorter ones with NaN out to the longest, which is deprecated
         msg = "Constructing a DataFrame from a list of sequences with mismatched"
         expected = DataFrame({0: [1, 3], 1: [2, 4], 2: [np.nan, 5]})
