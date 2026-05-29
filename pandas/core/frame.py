@@ -6439,7 +6439,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "The inplace keyword in DataFrame.rename is "
                 "deprecated and will be removed in a future version. "
-                "See `PDEP-8 for more details:"
+                "See PDEP-8 for more details:"
                 "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
