@@ -4238,11 +4238,23 @@ class Table(Fixed):
 
         axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, {})
-        if info.get("type") == "MultiIndex" and data_columns:
-            raise ValueError(
-                f"cannot use a multi-index on axis [{axis}] with "
-                f"data_columns {data_columns}"
-            )
+        if info.get("type") == "MultiIndex":
+            if data_columns:
+                raise ValueError(
+                    f"cannot use a multi-index on axis [{axis}] with "
+                    f"data_columns {data_columns}"
+                )
+            if isinstance(min_itemsize, dict):
+                mi_keys = [k for k in min_itemsize if k != "values"]
+                if mi_keys:
+                    raise ValueError(
+                        f"cannot use min_itemsize keys {mi_keys} on axis "
+                        f"[{axis}] with a MultiIndex; per-column "
+                        "min_itemsize requires data_columns, which are not "
+                        "supported with MultiIndex columns. Use "
+                        "min_itemsize={'values': N} to apply a single "
+                        "min_itemsize across all string columns."
+                    )
 
         # evaluate the passed data_columns, True == use all columns
         # take only valid axis labels
