@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from pandas.core.algorithms import unique1d
+from pandas.core.dtypes.cast import coerce_indexer_dtype
+
+from pandas.core.algorithms import (
+    take_nd,
+    unique1d,
+)
 from pandas.core.arrays.categorical import (
     Categorical,
     CategoricalDtype,
@@ -49,6 +54,10 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
 
         if sort:
             take_codes = np.sort(take_codes)
+            if len(take_codes) == len(c.categories):
+                # Every category is observed; sorted codes are already
+                # 0..n-1, so c is unchanged.
+                return c
 
     elif sort:
         # Already sorted according to c.categories; all is fine
@@ -70,16 +79,17 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         else:
             take_codes = unique_notnan_codes
 
-    # GH#48749: Remap codes using direct array indexing instead of
-    # hash-based recode_for_categories / Categorical constructor,
-    # which use get_indexer_for (hash table lookup).
+    # GH#48749: Build the old-code -> new-code mapping by scatter-assignment
+    # (cheap integer indexing) rather than recode_for_categories / the
+    # Categorical constructor, which call get_indexer_for -- a hash-table
+    # lookup over the categories that is expensive when there are many
+    # (especially string) categories. The mapping is then applied with
+    # take_nd, which maps the NaN sentinel (-1) to -1 via fill_value.
     reverse_indexer = np.empty(len(c.categories), dtype=np.intp)
     reverse_indexer[take_codes] = np.arange(len(take_codes))
+    reverse_indexer = coerce_indexer_dtype(reverse_indexer, c.categories)
 
-    mask = c.codes >= 0
-    new_codes = np.full_like(c.codes, fill_value=-1)
-    if mask.any():
-        new_codes[mask] = reverse_indexer[c.codes[mask]]
+    new_codes = take_nd(reverse_indexer, c.codes, fill_value=-1)
 
     new_cats = c.categories.take(take_codes)
     dtype = CategoricalDtype(new_cats, ordered=c.ordered)

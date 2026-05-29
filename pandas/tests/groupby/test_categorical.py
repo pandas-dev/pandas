@@ -638,6 +638,26 @@ def test_dataframe_categorical_with_nan(observed):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("categories", [["a", "b"], []])
+def test_groupby_categorical_all_nan(observed, sort, categories):
+    # GH#48749 grouping by a Categorical whose codes are all -1 (every value
+    # is NaN) must not raise, including when there are no categories at all.
+    cat = Categorical([np.nan, np.nan, np.nan], categories=categories)
+    result = Series([1, 2, 3]).groupby(cat, observed=observed, sort=sort).sum()
+
+    if observed or not categories:
+        # no observed groups -> empty result
+        expected = Series(
+            [], index=CategoricalIndex([], dtype=cat.dtype), dtype="int64"
+        )
+    else:
+        # every category is an empty group
+        expected = Series(
+            [0, 0], index=CategoricalIndex(categories, dtype=cat.dtype), dtype="int64"
+        )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("ordered", [True, False])
 def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
     # GH 25871: Fix groupby sorting on ordered Categoricals
