@@ -61,6 +61,23 @@ def test_rolling_corr(series):
     tm.assert_almost_equal(result.iloc[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
 
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("corr", [np.nan] * 5),
+        ("cov", [np.nan, np.nan, np.nan, np.nan, 0.0]),
+    ],
+)
+def test_rolling_cov_corr_degenerate(method, expected_values):
+    # GH#24019
+    a = Series([1e5, 0, 0, 0, 0])
+    b = Series([9.45] * 5)
+    wind = a.rolling(5)
+    result = getattr(wind, method)(b)
+    expected = Series(expected_values)
+    tm.assert_series_equal(result, expected)
+
+
 def test_rolling_corr_bias_correction():
     # test for correct bias correction
     a = Series(

@@ -750,7 +750,7 @@ class DataFrameFormatter:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
-            frame.iloc[:, i]._values,
+            frame._get_column_array(i),
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -767,8 +767,8 @@ class DataFrameFormatter:
             else:
                 return None
         else:
-            if is_integer(i) and i not in self.columns:
-                i = self.columns[i]
+            if is_integer(i):
+                i = self.tr_frame.columns[i]
             return self.formatters.get(i, None)
 
     def _get_formatted_column_labels(self, frame: DataFrame) -> list[list[str]]:
