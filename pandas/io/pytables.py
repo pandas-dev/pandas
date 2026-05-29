@@ -255,6 +255,29 @@ _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
+_MISSING = object()
+
+
+def _set_attr_if_changed(attrs, name: str, value) -> None:
+    """
+    setattr on a PyTables AttributeSet only if the on-disk value differs.
+
+    Re-writing an HDF5 attribute to the same value is expensive — pytables
+    deletes and re-creates it, hitting the disk per attribute. On wide-table
+    appends this dominates runtime (GH#25839).
+    """
+    current = getattr(attrs, name, _MISSING)
+    if current is _MISSING:
+        setattr(attrs, name, value)
+        return
+    try:
+        equal = bool(current == value)
+    except (ValueError, TypeError):
+        equal = False
+    if not equal:
+        setattr(attrs, name, value)
+
+
 def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
@@ -2237,7 +2260,10 @@ class TableIterator:
             return self
 
         # if specified read via coordinates (necessary for multiple selections
-        if coordinates:
+        # so each table reads the same row set). Skip when self.where is None
+        # since every row would be selected anyway, and a coordinate-based read
+        # is much slower than a sequential read (GH#26771).
+        if coordinates and self.where is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
@@ -2552,7 +2578,7 @@ class IndexCol:
 
     def set_attr(self) -> None:
         """set the kind for this column"""
-        setattr(self.attrs, self.kind_attr, self.kind)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -2909,10 +2935,10 @@ class DataCol(IndexCol):
 
     def set_attr(self) -> None:
         """set the data for this column"""
-        setattr(self.attrs, self.kind_attr, self.values)
-        setattr(self.attrs, self.meta_attr, self.meta)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.values)
+        _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
         assert self.dtype is not None
-        setattr(self.attrs, self.dtype_attr, self.dtype)
+        _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
 
 
 class DataIndexableCol(DataCol):
@@ -3654,7 +3680,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1).copy()
+            out = concat(dfs, axis=1)
             return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
