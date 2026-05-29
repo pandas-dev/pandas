@@ -3175,7 +3175,7 @@ def test_merge_on_all_nan_column():
 
 
 def test_merge_on_nan_label():
-    # GH#48590 — equality test for join-key labels needs to handle NaN,
+    # GH#48062 — equality test for join-key labels needs to handle NaN,
     # which compares unequal to itself.
     left = DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
     right = DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
@@ -3185,28 +3185,54 @@ def test_merge_on_nan_label():
 
 
 def test_merge_on_label_eq_raises():
-    # GH#48590 — pd.NA on one side of the label comparison makes `lk == rk`
+    # GH#48062 — pd.NA on one side of the label comparison makes `lk == rk`
     # raise TypeError; that should be treated as "not equal", not propagated.
     left = DataFrame({pd.NA: [1, 2, 3], "a": [10, 20, 30]})
     right = DataFrame({"x": [1, 2, 3], "b": [40, 50, 60]})
     # Pre-fix this raised TypeError("boolean value of NA is ambiguous").
     result = merge(left, right, left_on=pd.NA, right_on="x")
-    # Whether the resulting NA-flavored column label is np.nan or pd.NA depends
-    # on infer_string mode; only assert structural invariants.
-    assert "a" in result.columns and "b" in result.columns and "x" in result.columns
-    assert len(result) == 3
+    # Both join-key columns are kept (labels differ). The NA-flavored label is
+    # np.nan or pd.NA depending on infer_string mode, so derive it from the
+    # result rather than hard-coding a flavor.
+    expected = DataFrame(
+        {
+            result.columns[0]: [1, 2, 3],
+            "a": [10, 20, 30],
+            "x": [1, 2, 3],
+            "b": [40, 50, 60],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_label_eq_raises_valueerror():
+    # GH#48062 — a numpy-scalar label on one side and a tuple label on the other
+    # make `lk == rk` evaluate to a multi-element array whose bool() raises
+    # ValueError; that should be treated as "not equal", not propagated.
+    left = DataFrame({np.int64(10): [1, 2, 3], "a": [4, 5, 6]})
+    right = DataFrame([[1, 2], [2, 3], [3, 4]])
+    right.columns = Index([(1, 2), "b"], dtype=object)
+    # Pre-fix this raised ValueError("truth value of an array ... is ambiguous").
+    result = merge(left, right, left_on=[np.int64(10)], right_on=[(1, 2)])
+    # Labels differ, so both join-key columns are preserved.
+    expected = DataFrame(
+        [[1, 4, 1, 2], [2, 5, 2, 3], [3, 6, 3, 4]],
+        columns=Index([np.int64(10), "a", (1, 2), "b"], dtype=object),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_merge_on_mismatched_na_labels():
-    # GH#48590 — different NA flavors on each side are not considered the same
+    # GH#48062 — different NA flavors on each side are not considered the same
     # label: don't drop a column and don't raise from the equality check.
     left = DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
     right = DataFrame({pd.NaT: [1, 2, 3], "b": [40, 50, 60]})
     result = merge(left, right, left_on=np.nan, right_on=pd.NaT)
     # Both NA-labeled join-key columns are preserved; nothing dropped.
-    assert "a" in result.columns and "b" in result.columns
-    assert len(result.columns) == 4
-    assert len(result) == 3
+    expected = DataFrame(
+        {np.nan: [1, 2, 3], "a": [10, 20, 30], pd.NaT: [1, 2, 3], "b": [40, 50, 60]}
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("suffixes", [("_dup", ""), ("", "_dup")])

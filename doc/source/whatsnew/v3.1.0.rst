@@ -348,6 +348,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`merge` where a ``NaN`` join-key label (e.g. ``left_on=np.nan``) produced a duplicate join-key column, and some other join-key labels (e.g. ``pd.NA``, or a NumPy scalar paired with a tuple label) raised ``TypeError`` or ``ValueError`` (:issue:`48062`)
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)

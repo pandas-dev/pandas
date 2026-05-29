@@ -1607,8 +1607,9 @@ class _MergeOperation:
                         if lk is not None:
                             try:
                                 same_label = bool(lk == rk)
-                            except TypeError:
-                                # e.g. pd.NA
+                            except (TypeError, ValueError):
+                                # e.g. pd.NA (TypeError) or numpy scalar vs
+                                #  tuple label (ValueError); cf _maybe_match_name
                                 same_label = False
                             if same_label or is_matching_na(lk, rk):
                                 right_drop.append(rk)
