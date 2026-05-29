@@ -79,15 +79,10 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
     # GH7724, GH2646
 
     frame = request.getfixturevalue(frame_fixture)
-    print(f"\na frame:\n{frame}")
-    print(f"lexsort_depth: {lexsort_depth}")
     if lexsort_depth == 0:
         df = frame.copy(deep=False)
     else:
         df = frame.sort_values(by=cols[:lexsort_depth])
-
-    print(f"\nSame frame maybe different:\n{df}")
-    print(f"\nAnd df.loc[0]:\n{df.iloc[0]}")
 
     mi = df.set_index(cols[:-1])
     assert not mi.index._lexsort_depth < lexsort_depth
