@@ -6,9 +6,11 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     _testing as tm,
 )
@@ -770,3 +772,59 @@ def test_get_strings(any_string_dtype):
     result = ser.str.get(2)
     expected = Series([np.nan, np.nan, np.nan, "c"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_split_arrow_dtype_regex_inference():
+    # GH#58321 - ArrowDtype string should infer regex for multi-char patterns
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["230/270/270", "240-290-290"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split(r"/|-", expand=True)
+    expected = DataFrame(
+        {"0": ["230", "240"], "1": ["270", "290"], "2": ["270", "290"]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_split_arrow_dtype_regex_true():
+    # GH#58321 - explicit regex=True should use regex splitting
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["230/270/270", "240-290-290"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split(r"/|-", expand=True, regex=True)
+    expected = DataFrame(
+        {"0": ["230", "240"], "1": ["270", "290"], "2": ["270", "290"]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_split_arrow_dtype_single_char_literal():
+    # GH#58321 - single-char pattern with regex=None should be literal
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["a.b.c"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split(".", expand=True)
+    expected = DataFrame(
+        {"0": ["a"], "1": ["b"], "2": ["c"]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_split_arrow_dtype_regex_false_multichar():
+    # GH#58321 - regex=False with multi-char pattern: "|" is literal, not alternation
+    pa = pytest.importorskip("pyarrow")
+
+    ser = Series(["a|b|c", "d/e/f"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.split("|", regex=False, expand=True)
+    expected = DataFrame(
+        {"0": ["a", "d/e/f"], "1": ["b", None], "2": ["c", None]},
+        dtype=ArrowDtype(pa.string()),
+    )
+    expected.columns = RangeIndex(3)
+    tm.assert_frame_equal(result, expected)
