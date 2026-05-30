@@ -321,7 +321,18 @@ def _read(
     # and type-conversion code in parsers.pyx runs truly in parallel.
     if not iterator and chunksize is None and nrows is None:
         _max = get_option("mode.max_threads")
-        _n_workers = _max if _max is not None else (os.cpu_count() or 1)
+        if _max is not None:
+            _n_workers = _max
+        elif sys.platform == "win32":
+            # Parallel CSV reading does not currently speed up on Windows: even
+            # with the file warm in the OS cache, using more than one thread is
+            # no faster (and slower at two threads).  Default to serial there;
+            # users can still opt in explicitly via mode.max_threads.  See the
+            # benchmark numbers in the GH#64347 discussion:
+            # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
+            _n_workers = 1
+        else:
+            _n_workers = os.cpu_count() or 1
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             try:
                 _filepath = stringify_path(filepath_or_buffer)

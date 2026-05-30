@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 from pandas import (
     DataFrame,
+    option_context,
     read_csv,
 )
 import pandas._testing as tm
@@ -520,7 +521,10 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     # Lower the threshold so any file triggers the parallel path.
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
 
-    result = read_csv(path)  # auto-selects parallel path for C engine
+    # Force the parallel path regardless of the platform default (it is off by
+    # default on Windows) so this exercises parallel == serial on every platform.
+    with option_context("mode.max_threads", 4):
+        result = read_csv(path)  # auto-selects parallel path for C engine
     expected = read_csv(path, engine="python")
     tm.assert_frame_equal(result, expected)
 
@@ -539,5 +543,42 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
 
     serial = read_csv(path, engine="python")
-    parallel = read_csv(path, engine="c")
+    # Force the parallel path so this runs on every platform (off by default on
+    # Windows).
+    with option_context("mode.max_threads", 4):
+        parallel = read_csv(path, engine="c")
     tm.assert_frame_equal(parallel, serial)
+
+
+def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
+    """The parallel path is off by default on Windows but on elsewhere.
+
+    Windows shows no speedup (and a slowdown at two threads) even with the file
+    warm in the OS cache, so the default is serial there; users opt in via
+    ``mode.max_threads`` (which is honoured on every platform).
+    """
+    import pandas.io.parsers.readers as _readers
+
+    path = tmp_path / "big.csv"
+    _make_large_csv(path)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    # Pin the non-Windows default so the test does not depend on the host's
+    # actual core count.
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
+
+    calls = []
+    real_parallel = _readers._read_csv_parallel
+
+    def spy(*args, **kwargs):
+        calls.append(args)
+        return real_parallel(*args, **kwargs)
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", spy)
+
+    monkeypatch.setattr(_readers.sys, "platform", "win32")
+    read_csv(path)
+    assert calls == []  # serial by default on Windows
+
+    monkeypatch.setattr(_readers.sys, "platform", "linux")
+    read_csv(path)
+    assert len(calls) == 1  # parallel by default elsewhere
