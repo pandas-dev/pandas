@@ -2968,6 +2968,47 @@ def test_merge_datetime_different_resolution(
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_datetime_different_tz_preserves_dtype(join_type):
+    # GH#55212 - merging on keys that differ only by tz must keep the join
+    #  key tz-aware (left's tz) rather than collapsing to object dtype.
+    i0 = pd.Timestamp("2023-05-12 12:00", tz="UTC")
+    i1 = pd.Timestamp("2023-05-12 13:00", tz="UTC")
+    i2 = pd.Timestamp("2023-05-12 14:00", tz="UTC")
+
+    left = DataFrame({"t": [i0, i1], "a": [1.0, 2.0]})
+    left["t"] = left["t"].dt.tz_convert("US/Eastern")
+    right = DataFrame({"t": [i0, i2], "b": [3.0, 4.0]})
+    right["t"] = right["t"].dt.tz_convert("US/Pacific")
+
+    result = left.merge(right, on="t", how=join_type)
+
+    keys = {"inner": [i0], "left": [i0, i1], "outer": [i0, i1, i2], "right": [i0, i2]}
+    avals = {
+        "inner": [1.0],
+        "left": [1.0, 2.0],
+        "outer": [1.0, 2.0, None],
+        "right": [1.0, None],
+    }
+    bvals = {
+        "inner": [3.0],
+        "left": [3.0, None],
+        "outer": [3.0, None, 4.0],
+        "right": [3.0, 4.0],
+    }
+    expected = DataFrame(
+        {
+            "t": pd.DatetimeIndex(keys[join_type])
+            .tz_convert("US/Eastern")
+            .as_unit("us"),
+            "a": avals[join_type],
+            "b": bvals[join_type],
+        }
+    )
+    # tz-aware result key; with the workaround removed this dtype becomes object
+    assert result["t"].dtype == left["t"].dtype
+    tm.assert_frame_equal(result, expected)
+
+
 def test_merge_multiindex_single_level():
     # GH52331
     df = DataFrame({"col": ["A", "B"]})

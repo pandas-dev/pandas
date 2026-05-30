@@ -1361,8 +1361,9 @@ class _MergeOperation:
                         and rvals.dtype.kind == "M"
                         and result_dtype.kind == "O"
                     ):
-                        # TODO(non-nano) Workaround for common_type not dealing
-                        # with different resolutions
+                        # find_common_type returns object for datetimes with
+                        # different timezones; keep the combined datetime key
+                        # dtype instead of degrading to object.
                         result_dtype = key_col.dtype
 
                 if result._is_label_reference(name):
