@@ -522,11 +522,16 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         if other.dtype.kind in "iu":
             # GH#43178: detect int64 overflow rather than silently wrapping.
-            #  An unsigned multiplier above int64.max would wrap to a negative
-            #  value in the i8 cast below, silently corrupting the result.
-            if other.dtype.kind == "u" and (other > lib.i8max).any():
+            #  Cast to int64 first: an unsigned multiplier above int64.max wraps
+            #  to a negative value here, which we detect via its sign and raise
+            #  on rather than silently multiplying by the wrong number. We check
+            #  the sign instead of comparing ``other > i8max`` because comparing
+            #  a broadcast unsigned array against a Python int segfaults on
+            #  numpy < 2.2, and the DataFrame blockwise path passes such an array.
+            i8_other = other.astype("i8", copy=False)
+            if other.dtype.kind == "u" and (i8_other < 0).any():
                 raise OverflowError("Overflow in int64 multiplication")
-            i8_result = mul_overflowsafe(self.asi8, other.astype("i8", copy=False))
+            i8_result = mul_overflowsafe(self.asi8, i8_other)
             result = i8_result.view(self._ndarray.dtype)
             return type(self)._simple_new(result, dtype=result.dtype)
 
