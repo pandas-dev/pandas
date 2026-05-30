@@ -862,15 +862,69 @@ For example:
 
 .. _advanced.intervalindex:
 
-IntervalIndex
-~~~~~~~~~~~~~
+Intervals
+~~~~~~~~~
 
-:class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
-as well as the :class:`Interval` scalar type,  allow first-class support in pandas
-for interval notation.
+:class:`Interval` represents a single interval, while a collection of intervals
+can be held in an :class:`IntervalIndex` (with corresponding dtype
+:class:`~pandas.api.types.IntervalDtype`). Together these provide first-class
+support for interval notation in pandas. The ``IntervalIndex`` allows some
+unique indexing and is also used as a return type for the categories in
+:func:`cut` and :func:`qcut`.
 
-The ``IntervalIndex`` allows some unique indexing and is also used as a
-return type for the categories in :func:`cut` and :func:`qcut`.
+The ``Interval`` scalar
+^^^^^^^^^^^^^^^^^^^^^^^
+
+An :class:`Interval` is constructed from a left and a right endpoint:
+
+.. ipython:: python
+
+   iv = pd.Interval(0, 5)
+   iv
+
+By default, an ``Interval`` is closed on the right.  The ``closed`` argument
+controls which side(s) are inclusive — ``"right"``, ``"left"``, ``"both"``,
+or ``"neither"``:
+
+.. ipython:: python
+
+   pd.Interval(0, 5, closed="left")
+   pd.Interval(0, 5, closed="both")
+   pd.Interval(0, 5, closed="neither")
+
+The endpoints and derived quantities are accessible as attributes:
+
+.. ipython:: python
+
+   iv.left, iv.right
+   iv.mid
+   iv.length
+
+Membership is tested with ``in``.  Inclusion respects the ``closed`` setting,
+so an endpoint is only contained when its side is closed:
+
+.. ipython:: python
+
+   2.5 in iv
+   0 in iv
+   5 in iv
+   0 in pd.Interval(0, 5, closed="left")
+
+Two intervals can be compared with :meth:`Interval.overlaps`.  Intervals that
+share only an open endpoint do not overlap:
+
+.. ipython:: python
+
+   iv.overlaps(pd.Interval(3, 8))
+   iv.overlaps(pd.Interval(5, 10))
+   iv.overlaps(pd.Interval(5, 10, closed="both"))
+
+Endpoints may also be :class:`Timestamp` or :class:`Timedelta` values, which
+makes ``Interval`` useful for representing time ranges:
+
+.. ipython:: python
+
+   pd.Interval(pd.Timestamp("2017-01-01"), pd.Timestamp("2017-01-08"))
 
 Indexing with an ``IntervalIndex``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

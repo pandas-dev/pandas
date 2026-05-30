@@ -176,7 +176,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit", "freq"]
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
@@ -221,8 +221,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Constructors
 
-    _freq: Tick | Day | None = None
-
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
@@ -237,7 +235,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.timedelta64],
-        freq: Tick | Day | None = None,
         dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
     ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
@@ -245,11 +242,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
-        assert freq is None or isinstance(freq, (Tick, Day))
 
-        result = super()._simple_new(values=values, dtype=dtype)
-        result._freq = freq
-        return result
+        return super()._simple_new(values=values, dtype=dtype)
 
     @classmethod
     def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
@@ -259,12 +253,12 @@ class TimedeltaArray(dtl.TimelikeOps):
             if lib.infer_dtype(data) == "integer":
                 unit = np.datetime_data(dtype)[0]
 
-        data, freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        data = sequence_to_td64ns(data, copy=copy, unit=unit)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
-        return cls._simple_new(data, dtype=data.dtype, freq=freq)
+        return cls._simple_new(data, dtype=data.dtype)
 
     @classmethod
     def _generate_range(
@@ -307,7 +301,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             index = index[:-1]
 
         td64values = index.view(f"m8[{unit}]")
-        return cls._simple_new(td64values, dtype=td64values.dtype, freq=freq)
+        return cls._simple_new(td64values, dtype=td64values.dtype)
 
     # ----------------------------------------------------------------
     # DatetimeLike Interface
@@ -409,7 +403,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             op = getattr(datetimelike_accumulations, name)
             result = op(self._ndarray.copy(), skipna=skipna, **kwargs)
 
-            return type(self)._simple_new(result, freq=None, dtype=self.dtype)
+            return type(self)._simple_new(result, dtype=self.dtype)
         elif name == "cumprod":
             raise TypeError("cumprod not supported for Timedelta.")
 
@@ -1047,7 +1041,7 @@ def sequence_to_td64ns(
     copy: bool = False,
     unit=None,
     errors: DateTimeErrorChoices = "raise",
-) -> tuple[np.ndarray, Tick | Day | None]:
+) -> np.ndarray:
     """
     Parameters
     ----------
@@ -1065,8 +1059,6 @@ def sequence_to_td64ns(
     -------
     converted : numpy.ndarray
         The sequence converted to a numpy array with dtype ``timedelta64[ns]``.
-    inferred_freq : Tick, Day, or None
-        The inferred frequency of the sequence.
 
     Raises
     ------
@@ -1080,16 +1072,12 @@ def sequence_to_td64ns(
     """
     assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
-    inferred_freq = None
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="TimedeltaArray"
     )
-
-    if isinstance(data, TimedeltaArray):
-        inferred_freq = data.freq
 
     # Convert whatever we have into timedelta64[ns] dtype
     if data.dtype == object or is_string_dtype(data.dtype):
@@ -1132,11 +1120,11 @@ def sequence_to_td64ns(
             )
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
-                result, _ = sequence_to_td64ns(
+                result = sequence_to_td64ns(
                     int_data, copy=False, unit=unit, errors=errors
                 )
                 result[mask] = iNaT
-                return result, inferred_freq
+                return result
 
         data = data.astype(np.float64, copy=False)
         try:
@@ -1166,7 +1154,7 @@ def sequence_to_td64ns(
     assert data.dtype.kind == "m"
     assert data.dtype != "m8"  # i.e. not unit-less
 
-    return data, inferred_freq
+    return data
 
 
 def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:

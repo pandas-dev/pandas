@@ -87,6 +87,8 @@ if TYPE_CHECKING:
         ListLike,
         NumpySorter,
         NumpyValueArrayLike,
+        RankMethod,
+        RankNaOption,
         TakeIndexer,
         npt,
     )
@@ -172,7 +174,9 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
-        return cast("np.ndarray", values)
+        # NumpyExtensionArray needs to be unwrapped to the underlying ndarray
+        # so the hashtable fused-type dispatch works (GH#54761)
+        return np.asarray(values)
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
@@ -338,15 +342,20 @@ def unique(values):
 
     Returns
     -------
-    numpy.ndarray, ExtensionArray or NumpyExtensionArray
+    Index, ExtensionArray or numpy.ndarray
+        The return type depends on the type of the input:
 
-        The return can be:
-
-        * Index : when the input is an Index
-        * Categorical : when the input is a Categorical dtype
-        * ndarray : when the input is a Series/ndarray
-
-        Return numpy.ndarray, ExtensionArray or NumpyExtensionArray.
+        * :class:`Index` : when the input is an :class:`Index`, the result is
+          an :class:`Index` (or a subclass such as :class:`DatetimeIndex`).
+        * :class:`ExtensionArray` : when the input has an
+          :class:`ExtensionDtype` (for example :class:`Categorical`,
+          tz-aware ``datetime64``, :class:`IntervalArray`, a masked
+          integer/boolean/float array, an Arrow-backed array, or
+          :class:`NumpyExtensionArray`), the result is an
+          :class:`ExtensionArray` of the same dtype.
+        * :class:`numpy.ndarray` : for any other input (a NumPy-dtype
+          :class:`Series`, a :class:`numpy.ndarray`, or any other 1-D
+          array-like), the result is a :class:`numpy.ndarray`.
 
     See Also
     --------
@@ -820,7 +829,9 @@ def factorize(
             if null_mask.any():
                 na_value = na_value_for_dtype(values.dtype, compat=False)
                 # Don't modify (potentially user-provided) array
-                values = np.where(null_mask, na_value, values)
+                # error: Argument 2 to "where" has incompatible type "Scalar";
+                # expected "_Buffer | _SupportsArray[dtype[Any]] | ..."
+                values = np.where(null_mask, na_value, values)  # type: ignore[arg-type]
 
         codes, uniques = factorize_array(
             values,
@@ -917,10 +928,10 @@ def value_counts_internal(
                 not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
-                and values.inferred_freq is not None
+                and values._inferred_freq_str is not None
             ):
                 # Preserve freq of original index
-                idx.freq = values.inferred_freq  # type: ignore[attr-defined]
+                idx.freq = values._inferred_freq_str  # type: ignore[attr-defined]
 
             result = Series(counts, index=idx, name=name, copy=False)
 
@@ -1046,10 +1057,11 @@ def mode(
 def rank(
     values: ArrayLike,
     axis: AxisInt = 0,
-    method: str = "average",
-    na_option: str = "keep",
+    method: RankMethod = "average",
+    na_option: RankNaOption = "keep",
     ascending: bool = True,
     pct: bool = False,
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.float64]:
     """
     Rank the values along a given axis.
@@ -1073,6 +1085,8 @@ def rank(
     pct : bool, default False
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
+    mask : bool ndarray, optional
+        Boolean array indicating which elements to exclude from ranking.
     """
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)
@@ -1085,8 +1099,10 @@ def rank(
             ascending=ascending,
             na_option=na_option,
             pct=pct,
+            mask=mask,
         )
     elif values.ndim == 2:
+        assert mask is None
         ranks = algos.rank_2d(
             values,
             axis=axis,

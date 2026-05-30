@@ -1,0 +1,31 @@
+.. _whatsnew_304:
+
+What's new in 3.0.4 (June XX 2026)
+----------------------------------
+
+These are the changes in pandas 3.0.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_304.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_304.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_304.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.0.3..v3.0.4|HEAD
