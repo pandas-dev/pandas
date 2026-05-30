@@ -2953,6 +2953,9 @@ class ArrowExtensionArray(
 
         Analogous to pyarrow.compute.replace_with_mask, with logic
         to fallback to numpy for unsupported types.
+        """
+        if pa.types.is_null(values.type):
+            return values
 
         Parameters
         ----------
