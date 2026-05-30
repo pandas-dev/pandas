@@ -566,14 +566,16 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     # actual core count.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
 
+    # Stub the parallel reader so this exercises only the platform-gating
+    # decision.  Calling the real one would start threads, which fails on
+    # no-thread platforms such as Pyodide/WASM.
     calls = []
-    real_parallel = _readers._read_csv_parallel
 
-    def spy(*args, **kwargs):
+    def stub(*args, **kwargs):
         calls.append(args)
-        return real_parallel(*args, **kwargs)
+        return DataFrame()
 
-    monkeypatch.setattr(_readers, "_read_csv_parallel", spy)
+    monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     monkeypatch.setattr(_readers.sys, "platform", "win32")
     read_csv(path)
