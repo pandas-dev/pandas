@@ -337,5 +337,27 @@ class IsInIndexes:
     def time_isin_range_index(self):
         self.series.isin(self.range_idx)
 
+
+class IsInWithSet:
+    # GH#25507: cover both regimes that decide whether the set-membership
+    # fast path is taken: "values_dominate" (small comps, large set) is the
+    # win; "lookup_dominates" (large comps, small set) must not regress.
+    params = [
+        ["int64", "uint64"],
+        ["values_dominate", "lookup_dominates"],
+    ]
+    param_names = ["dtype", "regime"]
+
+    def setup(self, dtype, regime):
+        if regime == "values_dominate":
+            self.series = Series(np.arange(100), dtype=dtype)
+            self.values = set(range(10**6))
+        else:
+            self.series = Series(np.arange(10**6), dtype=dtype)
+            self.values = {1, 2, 3}
+
+    def time_isin(self, dtype, regime):
+        self.series.isin(self.values)
+
     def time_isin_index(self):
         self.series.isin(self.index)

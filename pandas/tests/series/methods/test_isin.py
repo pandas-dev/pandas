@@ -270,18 +270,26 @@ def test_isin_filtering_on_iterable(data, isin):
 
 
 @pytest.mark.parametrize("set_cls", [set, frozenset])
-@pytest.mark.parametrize("dtype", ["int64", "int32", "uint8", "uint64", "bool"])
-def test_isin_set_matches_list(set_cls, dtype):
-    # GH#25507: set membership fast path for integer/bool comps must match
-    # the result of the list-based path.
-    if dtype == "bool":
-        ser = Series([True, False, True, False])
-        targets = [True]
-    else:
-        ser = Series([1, 2, 3, 4, 5], dtype=dtype)
-        targets = [2, 4, 7]
+@pytest.mark.parametrize("dtype", ["int64", "int32", "uint8", "uint64"])
+@pytest.mark.parametrize("n_comps", [2, 20])
+def test_isin_set_matches_list(set_cls, dtype, n_comps):
+    # GH#25507: passing a set must match the list-based path. With a small
+    # comps (n_comps=2 < len(targets)) this exercises the set-membership fast
+    # path; with a larger comps it exercises the materialize-to-list fallback.
+    ser = Series(range(n_comps), dtype=dtype)
+    targets = [1, 3, 5, 7, 9, 11, 13]
     expected = ser.isin(list(targets))
     result = ser.isin(set_cls(targets))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("set_cls", [set, frozenset])
+def test_isin_set_matches_list_bool(set_cls):
+    # GH#25507: boolean comps go through the same set fast path (taken here
+    # since the single-element comps is smaller than the two-element set).
+    ser = Series([True])
+    expected = ser.isin([True, False])
+    result = ser.isin(set_cls([True, False]))
     tm.assert_series_equal(result, expected)
 
 

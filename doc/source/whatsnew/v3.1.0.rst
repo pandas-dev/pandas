@@ -218,8 +218,8 @@ Performance improvements
   when ``values`` is a ``set`` or ``frozenset`` and the caller has integer
   or boolean dtype (:issue:`25507`).
 - Performance improvement in :meth:`Series.isin` and :meth:`DataFrame.isin`
-  for unsigned-integer, float, complex, and boolean callers against a
-  list-like of numeric values (:issue:`46485`).
+  when checking a numeric :class:`Series` or :class:`Index` against a
+  list-like of numbers of a different numeric dtype (:issue:`46485`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:

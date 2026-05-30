@@ -502,6 +502,10 @@ unique1d = unique
 
 _MINIMUM_COMP_ARR_LEN = 1_000_000
 
+# Integers with magnitude <= 2**53 are exactly representable as float64; above
+# this a 64-bit int cast to float64 may collide with a distinct value.
+_FLOAT64_INT_EXACT_MAX = 2**53
+
 
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
@@ -543,6 +547,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             isinstance(comps_arr, np.ndarray)
             and comps_arr.ndim == 1
             and comps_arr.dtype.kind in "iub"
+            # Only worth it when comps is smaller than values: this path does
+            # an O(len(comps)) Python-level scan, which is much slower per
+            # element than the vectorized htable path below. It wins only by
+            # skipping the O(len(values)) materialization of the set, so it
+            # must not fire for the common large-comps/small-set case.
+            and comps_arr.size < len(values)
         ):
             return np.fromiter(
                 (item in values for item in comps_arr.tolist()),
@@ -560,11 +570,11 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             and not is_signed_integer_dtype(comps)
             and not is_dtype_equal(values, comps)
         ):
-            # GH#46485: np.result_type(int, uint) is float64, which loses
-            # precision for uint64 magnitudes > 2**53. Only recast to object
-            # in that precision-losing case — otherwise keep the numeric
-            # ndarray so the downstream htable dispatch can use the fast
-            # numeric path.
+            # GH#46485: casting a 64-bit integer to float64 loses precision
+            # for magnitudes > 2**53, so a numeric comparison can give wrong
+            # results. Recast to object only when such a lossy cast is actually
+            # at risk; otherwise keep the numeric ndarray so the downstream
+            # htable dispatch can use the fast numeric path.
             # TODO: Share with _find_common_type_compat
             comps_dtype = getattr(comps, "dtype", None)
             # values came from _ensure_arraylike's numeric branch, so its
@@ -574,11 +584,30 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                 needs_object = True
             else:
                 common = np_find_common_type(values_dtype, comps_dtype)
-                needs_object = common.kind not in "iufcb" or (
-                    common.kind == "f"
-                    and values_dtype.kind in "iu"
-                    and comps_dtype.kind in "iu"
-                )
+                if common.kind not in "iufcb":
+                    needs_object = True
+                elif common.kind != "f":
+                    # integer/complex/bool common type -> no lossy float cast
+                    needs_object = False
+                elif comps_dtype.kind in "iu" and comps_dtype.itemsize == 8:
+                    # comps is the (potentially large) caller and a 64-bit
+                    # integer that would be cast down to float64; too costly to
+                    # inspect element-wise, so fall back to object to be safe.
+                    needs_object = True
+                elif values_dtype.kind in "iu" and values_dtype.itemsize == 8:
+                    # values is the (small) targets list -> cheap to check
+                    # exactly. Only object-cast if a target falls outside
+                    # float64's exact integer range; otherwise the numeric
+                    # cast is lossless and the fast path stays correct.
+                    # values is an ndarray here (it came from the numeric
+                    # branch of _ensure_arraylike above).
+                    values_arr = cast("np.ndarray", values)
+                    needs_object = (
+                        int(values_arr.min()) < -_FLOAT64_INT_EXACT_MAX
+                        or int(values_arr.max()) > _FLOAT64_INT_EXACT_MAX
+                    )
+                else:
+                    needs_object = False
             if needs_object:
                 values = construct_1d_object_array_from_listlike(orig_values)
 
