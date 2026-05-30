@@ -1041,3 +1041,50 @@ def test_new_style_with_template():
     result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
     expected = ',A\n0,"Value: 1,234.57"\n'
     assert result == expected
+
+
+@pytest.mark.parametrize("chunksize", [1, 2, 3, 5])
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.date_range("2016-01-01", periods=5, freq="D"),
+        pd.date_range("2016-01-01 01:00", periods=5, freq="D"),
+        pd.timedelta_range("1 day", periods=5, freq="D"),
+        pd.timedelta_range("1 hour", periods=5, freq="h"),
+        pd.date_range("2016-01-01", periods=5, freq="D", tz="US/Eastern"),
+        pd.DatetimeIndex(
+            ["2016-01-01", "NaT", "2016-01-03 01:00", "2016-01-04", "2016-01-05"]
+        ),
+        pd.TimedeltaIndex(["1 days", "NaT", "3 days 01:00:00", "4 days", "5 days"]),
+    ],
+    ids=[
+        "dates_only",
+        "with_time",
+        "td_days",
+        "td_time",
+        "tz_aware",
+        "dt_nat",
+        "td_nat",
+    ],
+)
+def test_to_csv_chunksize_consistent_datetimelike(data, chunksize):
+    # GH#55481 - chunked output must match unchunked output, for both the
+    # column and the index paths, regardless of where chunk boundaries fall.
+    df = DataFrame({"A": data}, index=data)
+    assert df.to_csv(chunksize=chunksize) == df.to_csv()
+
+
+@pytest.mark.parametrize("chunksize", [1, 2, 3])
+def test_to_csv_chunksize_mixed_dtypes(chunksize):
+    # GH#55481 - non-datetimelike columns are unaffected and datetimelike
+    # columns stay consistent when mixed with other dtypes.
+    df = DataFrame(
+        {
+            "dt": pd.date_range("2016-01-01", periods=4, freq="D"),
+            "flt": [1.5, 2.5, 3.5, 4.5],
+            "str": ["a", "b", "c", "d"],
+            "td": pd.timedelta_range("1 hour", periods=4, freq="h"),
+        }
+    )
+    df.iloc[-1, 0] += pd.Timedelta(minutes=1)  # "dt" column is not dates-only
+    assert df.to_csv(chunksize=chunksize) == df.to_csv()
