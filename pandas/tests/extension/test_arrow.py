@@ -4120,7 +4120,7 @@ def test_fillna_zero():
 
 def test_fillna_null_dtype():
     # GH#65483 - fillna on pa.null() columns caused a C++ core dump
-    dtype = pd.ArrowDtype(pa.null())
+    dtype = ArrowDtype(pa.null())
     df = pd.DataFrame({"x": pd.array([pd.NA], dtype=dtype)})
     result = df.fillna(df)
     expected = pd.DataFrame({"x": pd.array([pd.NA], dtype=dtype)})
