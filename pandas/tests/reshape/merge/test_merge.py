@@ -2997,9 +2997,7 @@ def test_merge_datetime_different_tz_preserves_dtype(join_type):
     }
     expected = DataFrame(
         {
-            "t": pd.DatetimeIndex(keys[join_type])
-            .tz_convert("US/Eastern")
-            .as_unit("us"),
+            "t": DatetimeIndex(keys[join_type]).tz_convert("US/Eastern").as_unit("us"),
             "a": avals[join_type],
             "b": bvals[join_type],
         }
