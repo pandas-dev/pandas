@@ -4116,3 +4116,12 @@ def test_fillna_zero():
     result = ser.fillna(0)
     expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+def test_fillna_null_dtype():
+    # GH#65483 - fillna on pa.null() columns caused a C++ core dump
+    dtype = pd.ArrowDtype(pa.null())
+    df = pd.DataFrame({"x": pd.array([pd.NA], dtype=dtype)})
+    result = df.fillna(df)
+    expected = pd.DataFrame({"x": pd.array([pd.NA], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
