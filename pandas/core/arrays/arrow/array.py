@@ -36,7 +36,10 @@ from pandas.compat import (
     pa_version_under21p0,
 )
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import set_module
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -176,6 +179,63 @@ if HAS_PYARROW:
             result = pc.floor(divided)
         return result
 
+    # Conversion factors for duration units to various time components.
+    # Maps component -> {unit: divisor} to extract that component from the unit.
+    # Units coarser than a component are absent (e.g. "s" is missing from
+    # "millisecond"), in which case that component is always 0.
+    _DURATION_DIVISORS: dict[str, dict[str, int]] = {
+        "day": {
+            "s": 86400,
+            "ms": 86_400_000,
+            "us": 86_400_000_000,
+            "ns": 86_400_000_000_000,
+        },
+        "hour": {
+            "s": 3600,
+            "ms": 3_600_000,
+            "us": 3_600_000_000,
+            "ns": 3_600_000_000_000,
+        },
+        "minute": {"s": 60, "ms": 60_000, "us": 60_000_000, "ns": 60_000_000_000},
+        "second": {"s": 1, "ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000},
+        "millisecond": {"ms": 1, "us": 1_000, "ns": 1_000_000},
+        "microsecond": {"us": 1, "ns": 1_000},
+        "nanosecond": {"ns": 1},
+    }
+
+    def floor_div_int64(
+        arr: pa.Array | pa.ChunkedArray, divisor: int
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Floor division for an int64 (chunked) array, handling negatives correctly.
+
+        PyArrow's ``pc.divide`` truncates toward zero, but we need floor division
+        (toward negative infinity) to match pandas behavior for negative durations.
+        Uses a fast path for all-non-negative arrays (the common case).
+        """
+        min_scalar = pc.min(arr)
+        if not min_scalar.is_valid or min_scalar.as_py() >= 0:
+            # Fast path: truncation equals floor when all values are non-negative
+            return pc.divide(arr, divisor)
+        # Truncated division (toward zero) and remainder with the dividend's sign
+        trunc_div = pc.divide(arr, divisor)
+        remainder = pc.subtract(arr, pc.multiply(trunc_div, divisor))
+        # floor(a/b) = trunc(a/b) - 1 when a < 0 and remainder != 0
+        needs_adjustment = pc.and_(pc.less(arr, 0), pc.not_equal(remainder, 0))
+        return pc.subtract(trunc_div, pc.if_else(needs_adjustment, 1, 0))
+
+    def mod_int(
+        arr: pa.Array | pa.ChunkedArray, modulo: int
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Compute ``arr % modulo`` for a non-negative int (chunked) array.
+
+        PyArrow lacks a modulo kernel, so emulate it with divide/multiply/subtract.
+        TODO: revisit once Arrow has a modulo kernel.
+        """
+        quotient = pc.divide(arr, modulo)
+        return pc.subtract(arr, pc.multiply(quotient, modulo))
+
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
         "radd": lambda x, y: pc.add_checked(y, x),
@@ -310,6 +370,8 @@ class ArrowExtensionArray(
 
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
+    # results from calls to methods decorated with cache_readonly get added here
+    _cache: dict[str, pa.ChunkedArray]
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if not HAS_PYARROW:
@@ -327,6 +389,7 @@ class ArrowExtensionArray(
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._pa_array.type)
+        self._cache = {}
 
     @classmethod
     def _from_sequence(
@@ -442,6 +505,7 @@ class ArrowExtensionArray(
         obj._dtype = (
             self._dtype if pa_type == self._dtype.pyarrow_dtype else ArrowDtype(pa_type)
         )
+        obj._cache = {}
         return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -1437,6 +1501,7 @@ class ArrowExtensionArray(
         result._pa_array = self._pa_array
         result._dtype = self._dtype
         result._readonly = self._readonly
+        result._cache = {}
         return result
 
     def count(self) -> int:
@@ -2617,8 +2682,8 @@ class ArrowExtensionArray(
         if isinstance(data, pa.Array):
             data = pa.chunked_array([data])
         self._pa_array = data
-        # Invalidate any cached properties that depend on _pa_array
-        self.__dict__.pop("_dt_day_remainder", None)
+        # Invalidate any cache_readonly properties that depend on _pa_array
+        self._cache.clear()
 
     def _rank_calc(
         self,
@@ -3280,73 +3345,25 @@ class ArrowExtensionArray(
             return type(self)(pa.chunked_array(result))
         return type(self)(pc.utf8_zfill(self._pa_array, width))
 
-    # Conversion factors for duration units to various time components.
-    # Maps component -> {unit: divisor} to extract that component from the unit.
-    _DURATION_DIVISORS: dict[str, dict[str, int]] = {
-        "day": {
-            "s": 86400,
-            "ms": 86_400_000,
-            "us": 86_400_000_000,
-            "ns": 86_400_000_000_000,
-        },
-        "hour": {
-            "s": 3600,
-            "ms": 3_600_000,
-            "us": 3_600_000_000,
-            "ns": 3_600_000_000_000,
-        },
-        "minute": {"s": 60, "ms": 60_000, "us": 60_000_000, "ns": 60_000_000_000},
-        "second": {"s": 1, "ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000},
-        "millisecond": {"ms": 1, "us": 1_000, "ns": 1_000_000},
-        "microsecond": {"us": 1, "ns": 1_000},
-        "nanosecond": {"ns": 1},
-    }
-
-    @staticmethod
-    def _dt_floor_div_int64(arr: pa.Array, divisor: int) -> pa.Array:
+    def _dt_zero_or_null_int32(self) -> Self:
         """
-        Floor division for int64 arrays, handling negative values correctly.
+        Return an int32 result that is 0 where the input is valid and null
+        where the input is null.
 
-        PyArrow's pc.divide truncates toward zero, but we need floor division
-        (toward negative infinity) to match pandas behavior for negative durations.
-
-        Uses a fast path for all-positive arrays (the common case).
-
-        Parameters
-        ----------
-        arr : pa.Array
-            Array already cast to int64.
-        divisor : int
-            The divisor for floor division.
+        Used for duration components that are always 0 because the array's
+        resolution is coarser than the component (e.g. nanoseconds of a
+        second-resolution duration).
         """
-        # Fast path: if all values are non-negative, truncation equals floor
-        min_scalar = pc.min(arr)
-        if not min_scalar.is_valid or min_scalar.as_py() >= 0:
-            return pc.divide(arr, divisor)
-        # Slow path: handle negative values properly
-        # Truncated division (toward zero)
-        trunc_div = pc.divide(arr, divisor)
-        # Remainder with same sign as dividend
-        remainder = pc.subtract(arr, pc.multiply(trunc_div, divisor))
-        # Adjust for negative values with non-zero remainder:
-        # floor(a/b) = trunc(a/b) - 1 when a < 0 and remainder != 0
-        is_negative = pc.less(arr, 0)
-        has_remainder = pc.not_equal(remainder, 0)
-        needs_adjustment = pc.and_(is_negative, has_remainder)
-        adjustment = pc.if_else(needs_adjustment, 1, 0)
-        return pc.subtract(trunc_div, adjustment)
+        return self._from_pyarrow_array(
+            pc.if_else(
+                pc.is_null(self._pa_array),
+                pa.scalar(None, type=pa.int32()),
+                pa.scalar(0, type=pa.int32()),
+            )
+        )
 
-    def _dt_floor_div(self, divisor: int) -> pa.Array:
-        """
-        Floor division for duration arrays.
-
-        Convenience wrapper that casts to int64 first.
-        """
-        arr = self._pa_array.cast(pa.int64())
-        return self._dt_floor_div_int64(arr, divisor)
-
-    @functools.cached_property
-    def _dt_day_remainder(self) -> pa.Array:
+    @cache_readonly
+    def _dt_day_remainder(self) -> pa.ChunkedArray:
         """
         Return the remainder after removing full days, always non-negative.
 
@@ -3356,9 +3373,9 @@ class ArrowExtensionArray(
         This is cached because it's used by all sub-day component accessors.
         """
         unit = self._pa_array.type.unit
-        divisor = self._DURATION_DIVISORS["day"][unit]
+        divisor = _DURATION_DIVISORS["day"][unit]
         arr = self._pa_array.cast(pa.int64())
-        days = self._dt_floor_div(divisor)
+        days = floor_div_int64(arr, divisor)
         # remainder = arr - days * divisor (always non-negative)
         return pc.subtract(arr, pc.multiply(days, divisor))
 
@@ -3369,28 +3386,20 @@ class ArrowExtensionArray(
         The remainder is always non-negative, so we can use integer division.
         """
         unit = self._pa_array.type.unit
-        divisors = self._DURATION_DIVISORS[component]
+        divisors = _DURATION_DIVISORS[component]
         # For units coarser than this component, the result is always 0
         if unit not in divisors:
-            return self._from_pyarrow_array(
-                pc.if_else(
-                    pc.is_null(self._pa_array),
-                    pa.scalar(None, type=pa.int32()),
-                    pa.scalar(0, type=pa.int32()),
-                )
-            )
-        remainder = self._dt_day_remainder
+            return self._dt_zero_or_null_int32()
         # Integer division is fine here since remainder is non-negative
-        result = pc.divide(remainder, divisors[unit])
-        # result % modulo (PyArrow lacks a modulo kernel, so we use div/mul/sub)
-        quotient = pc.divide(result, modulo)
-        result = pc.subtract(result, pc.multiply(quotient, modulo))
+        result = pc.divide(self._dt_day_remainder, divisors[unit])
+        result = mod_int(result, modulo)
         return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_days(self) -> Self:
         unit = self._pa_array.type.unit
-        result = self._dt_floor_div(self._DURATION_DIVISORS["day"][unit])
+        arr = self._pa_array.cast(pa.int64())
+        result = floor_div_int64(arr, _DURATION_DIVISORS["day"][unit])
         return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
@@ -3403,21 +3412,13 @@ class ArrowExtensionArray(
 
     @property
     def _dt_seconds(self) -> Self:
-        # Total seconds in sub-day portion (0-86399), per Python timedelta semantics
+        # Total seconds in sub-day portion (0-86399), per Python timedelta semantics.
+        # Every duration unit (s/ms/us/ns) is at least as fine as seconds, so the
+        # remainder always has enough resolution and no zero-result shortcut is
+        # needed here.
         unit = self._pa_array.type.unit
-        divisors = self._DURATION_DIVISORS
-        if unit not in divisors["second"]:
-            # Unit is coarser than seconds, result is always 0
-            return self._from_pyarrow_array(
-                pc.if_else(
-                    pc.is_null(self._pa_array),
-                    pa.scalar(None, type=pa.int32()),
-                    pa.scalar(0, type=pa.int32()),
-                )
-            )
-        remainder = self._dt_day_remainder
         # Convert remainder to seconds (no modulo - we want total sub-day seconds)
-        result = pc.divide(remainder, divisors["second"][unit])
+        result = pc.divide(self._dt_day_remainder, _DURATION_DIVISORS["second"][unit])
         return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
@@ -3428,23 +3429,12 @@ class ArrowExtensionArray(
     def _dt_microseconds(self) -> Self:
         # Total microseconds in sub-second portion (0-999999), per Python timedelta
         unit = self._pa_array.type.unit
-        divisors = self._DURATION_DIVISORS
+        divisors = _DURATION_DIVISORS
         if unit not in divisors["microsecond"]:
             # Unit is coarser than microseconds, result is always 0
-            return self._from_pyarrow_array(
-                pc.if_else(
-                    pc.is_null(self._pa_array),
-                    pa.scalar(None, type=pa.int32()),
-                    pa.scalar(0, type=pa.int32()),
-                )
-            )
-        remainder = self._dt_day_remainder
+            return self._dt_zero_or_null_int32()
         # Get sub-second portion: remainder % (divisor for 1 second)
-        second_divisor = divisors["second"][unit]
-        second_quotient = pc.divide(remainder, second_divisor)
-        sub_second = pc.subtract(
-            remainder, pc.multiply(second_quotient, second_divisor)
-        )
+        sub_second = mod_int(self._dt_day_remainder, divisors["second"][unit])
         # Convert to microseconds
         result = pc.divide(sub_second, divisors["microsecond"][unit])
         return self._from_pyarrow_array(result.cast(pa.int32()))
@@ -3457,50 +3447,22 @@ class ArrowExtensionArray(
     @property
     def _dt_components(self) -> dict[str, ArrowExtensionArray]:
         """
-        Return all duration components efficiently in a single pass.
+        Return all duration components.
 
-        Computes days and the day remainder once, then extracts all sub-day
-        components from that remainder. This is much faster than calling
-        each _dt_* property individually.
+        The day remainder is computed once (and cached on ``_dt_day_remainder``),
+        so every sub-day component below reuses it. Note that the per-field
+        semantics differ from the like-named accessors: ``seconds`` here is the
+        0-59 seconds field (not the 0-86399 total) and ``microseconds`` is the
+        0-999 field (not the 0-999999 total).
         """
-        unit = self._pa_array.type.unit
-        divisors = self._DURATION_DIVISORS
-
-        # Cast to int64 once and reuse
-        arr = self._pa_array.cast(pa.int64())
-        day_divisor = divisors["day"][unit]
-
-        # Compute days and remainder once
-        days = self._dt_floor_div_int64(arr, day_divisor)
-        remainder = pc.subtract(arr, pc.multiply(days, day_divisor))
-
-        def extract_component(
-            component: str, modulo: int, from_remainder: pa.Array
-        ) -> ArrowExtensionArray:
-            """Extract a component from the given remainder."""
-            if unit not in divisors[component]:
-                # Unit is coarser than this component, result is always 0
-                return self._from_pyarrow_array(
-                    pc.if_else(
-                        pc.is_null(self._pa_array),
-                        pa.scalar(None, type=pa.int32()),
-                        pa.scalar(0, type=pa.int32()),
-                    )
-                )
-            result = pc.divide(from_remainder, divisors[component][unit])
-            # TODO: revisit once Arrow has a modulo kernel
-            quotient = pc.divide(result, modulo)
-            result = pc.subtract(result, pc.multiply(quotient, modulo))
-            return self._from_pyarrow_array(result.cast(pa.int32()))
-
         return {
-            "days": self._from_pyarrow_array(days.cast(pa.int32())),
-            "hours": extract_component("hour", 24, remainder),
-            "minutes": extract_component("minute", 60, remainder),
-            "seconds": extract_component("second", 60, remainder),
-            "milliseconds": extract_component("millisecond", 1000, remainder),
-            "microseconds": extract_component("microsecond", 1000, remainder),
-            "nanoseconds": extract_component("nanosecond", 1000, remainder),
+            "days": self._dt_days,
+            "hours": self._dt_hours,
+            "minutes": self._dt_minutes,
+            "seconds": self._dt_subday_component("second", modulo=60),
+            "milliseconds": self._dt_milliseconds,
+            "microseconds": self._dt_subday_component("microsecond", modulo=1000),
+            "nanoseconds": self._dt_nanoseconds,
         }
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
