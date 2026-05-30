@@ -2,9 +2,9 @@
 
 {{ header }}
 
-*******************
+********************
 Chart visualization
-*******************
+********************
 
 
 .. note::
@@ -95,7 +95,7 @@ You can plot one column versus another using the ``x`` and ``y`` keywords in
    :ref:`formatting <visualization.formatting>` below.
 
 .. ipython:: python
-    :suppress:
+   :suppress:
 
     plt.close("all")
 
@@ -128,12 +128,12 @@ For example, a bar plot can be created the following way:
 
 You can also create these other plots using the methods ``DataFrame.plot.<kind>`` instead of providing the ``kind`` keyword argument. This makes it easier to discover plot methods and the specific arguments they use:
 
-.. ipython::
+.. ipython:: python
     :verbatim:
 
     In [14]: df = pd.DataFrame()
 
-    In [15]: df.plot.<TAB>  # noqa: E225, E999
+    In [15]: df.plot.<TAB>   # noqa: E225, E999
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
@@ -271,7 +271,7 @@ horizontal and cumulative histograms can be drawn by
 .. ipython:: python
    :suppress:
 
-   plt.close("all")
+    plt.close("all")
 
 See the :meth:`hist <matplotlib.axes.Axes.hist>` method and the
 `matplotlib hist documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html>`__ for more.
@@ -369,7 +369,7 @@ a uniform random variable on [0,1).
    @savefig box_plot_new.png
    df.plot.box();
 
-Boxplot can be colorized by passing ``color`` keyword. You can pass a ``dict``
+Boxplot can be colorized by passing the ``color`` keyword. You can pass a ``dict``
 whose keys are ``boxes``, ``whiskers``, ``medians`` and ``caps``.
 If some keys are missing in the ``dict``, default colors are used
 for the corresponding artists. Also, boxplot has ``sym`` keyword to specify fliers style.
@@ -503,23 +503,23 @@ You could also create groupings with :meth:`DataFrame.plot.box`, for instance:
 .. _visualization.box.return:
 
 In ``boxplot``, the return type can be controlled by the ``return_type``, keyword. The valid choices are ``{"axes", "dict", "both", None}``.
-Faceting, created by ``DataFrame.boxplot`` with the ``by``
+Factoring, created by ``DataFrame.boxplot`` with the ``by``
 keyword, will affect the output type as well:
 
-================ ======= ==========================
-``return_type``  Faceted Output type
-================ ======= ==========================
-``None``         No      axes
-``None``         Yes     2-D ndarray of axes
-``'axes'``       No      axes
-``'axes'``       Yes     Series of axes
-``'dict'``       No      dict of artists
-``'dict'``       Yes     Series of dicts of artists
-``'both'``       No      namedtuple
-``'both'``       Yes     Series of namedtuples
-================ ======= ==========================
+========================= ========= =========================================
+``return_type``           Factored  Output type
+========================= ========= =========================================
+``None``                  No        axes
+``None``                  Yes       2-D ndarray of axes
+``'axes'``                No        axes
+``'axes'``                Yes       Series of axes
+``'dict'``                No        dict of artists
+``'dict'``                Yes       Series of dicts of artists
+``'both'``                No        namedtuple
+``'both'``                Yes       Series of namedtuples
+========================= ========= =========================================
 
-``Groupby.boxplot`` always returns a ``Series`` of ``return_type``.
+``GroupBy.boxplot`` always returns a ``Series`` of ``return_type``.
 
 .. ipython:: python
    :okwarning:
@@ -620,7 +620,7 @@ It is recommended to specify ``color`` and ``label`` keywords to distinguish eac
 .. ipython:: python
    :okwarning:
 
-   ax = df.plot.scatter(x="a", y="b", color="DarkBlue", label="Group 1")
+   ax = df.plot.scatter(x="a", y="b", color="DarkBlue", label="Group 1");
    @savefig scatter_plot_repeated.png
    df.plot.scatter(x="c", y="d", color="DarkGreen", label="Group 2", ax=ax);
 
@@ -839,42 +839,42 @@ If you pass values whose sum total is less than 1.0 they will be rescaled so tha
 See the `matplotlib pie documentation <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.pie.html>`__ for more.
 
 .. ipython:: python
-    :suppress:
+   :suppress:
 
     plt.close("all")
 
 .. _visualization.missing_data:
 
 Plotting with missing data
---------------------------
+---------------------------
 
 pandas tries to be pragmatic about plotting ``DataFrames`` or ``Series``
 that contain missing data. Missing values are dropped, left out, or filled
 depending on the plot type.
 
-+----------------+--------------------------------------+
-| Plot Type      | NaN Handling                         |
-+================+======================================+
-| Line           | Leave gaps at NaNs                   |
-+----------------+--------------------------------------+
-| Line (stacked) | Fill 0's                             |
-+----------------+--------------------------------------+
-| Bar            | Fill 0's                             |
-+----------------+--------------------------------------+
-| Scatter        | Drop NaNs                            |
-+----------------+--------------------------------------+
-| Histogram      | Drop NaNs (column-wise)              |
-+----------------+--------------------------------------+
-| Box            | Drop NaNs (column-wise)              |
-+----------------+--------------------------------------+
-| Area           | Fill 0's                             |
-+----------------+--------------------------------------+
-| KDE            | Drop NaNs (column-wise)              |
-+----------------+--------------------------------------+
-| Hexbin         | Drop NaNs                            |
-+----------------+--------------------------------------+
-| Pie            | Fill 0's                             |
-+----------------+--------------------------------------+
++-----------------------+-----------------------------------------------------+
+| Plot Type             | NaN Handling                                         |
++=======================+======================================================+
+| Line                  | Leave gaps at NaNs                                   |
++-----------------------+------------------------------------------------------+
+| Line (stacked)        | Fill 0's                                             |
++-----------------------+------------------------------------------------------+
+| Bar                   | Fill 0's                                             |
++-----------------------+------------------------------------------------------+
+| Scatter               | Drop NaNs                                            |
++-----------------------+------------------------------------------------------+
+| Histogram             | Drop NaNs (column-wise)                              |
++-----------------------+------------------------------------------------------+
+| Box                   | Drop NaNs (column-wise)                              |
++-----------------------+------------------------------------------------------+
+| Area                  | Fill 0's                                             |
++-----------------------+------------------------------------------------------+
+| KDE                   | Drop NaNs (column-wise)                              |
++-----------------------+------------------------------------------------------+
+| Hexbin                | Drop NaNs                                            |
++-----------------------+------------------------------------------------------+
+| Pie                   | Fill 0's                                             |
++-----------------------+------------------------------------------------------+
 
 If any of these defaults are not what you want, or if you want to be
 explicit about how missing values are handled, consider using
@@ -1110,7 +1110,7 @@ unit interval). The point in the plane, where our sample settles to (where the
 forces acting on our sample are at an equilibrium) is where a dot representing
 our sample will be drawn. Depending on which class that sample belongs it will
 be colored differently.
-See the R package `Radviz <https://cran.r-project.org/web/packages/Radviz/index.html>`__
+See the R package `RadViz <https://cran.r-project.org/web/packages/Radviz/index.html>`__
 for more information.
 
 **Note**: The "Iris" dataset is available `here <https://raw.githubusercontent.com/pandas-dev/pandas/main/pandas/tests/io/data/csv/iris.csv>`__.
@@ -1165,8 +1165,8 @@ layout and formatting of the returned plot:
 
    plt.close("all")
 
-For each kind of plot (e.g. ``line``, ``bar``, ``scatter``) any additional arguments
-keywords are passed along to the corresponding matplotlib function
+For each kind of plot (e.g. ``line``, ``bar``, ``scatter``) any additional
+keywords arguments are passed along to the corresponding matplotlib function
 (:meth:`ax.plot() <matplotlib.axes.Axes.plot>`,
 :meth:`ax.bar() <matplotlib.axes.Axes.bar>`,
 :meth:`ax.scatter() <matplotlib.axes.Axes.scatter>`). These can be used
@@ -1338,7 +1338,7 @@ Using the ``x_compat`` parameter, you can suppress this behavior:
 
    plt.figure();
 
-   @savefig ser_plot_suppress_parm.png
+   @savefig ser_plot_suppress_param.png
    df["A"].plot(x_compat=True);
 
 .. ipython:: python
@@ -1371,8 +1371,8 @@ Automatic date tick adjustment
 tick locator methods, it is useful to call the automatic
 date tick adjustment from matplotlib for figures whose ticklabels overlap.
 
-See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
-`matplotlib documentation <https://matplotlib.org/2.0.2/users/recipes.html#fixing-common-date-annoyances>`__ for more.
+See the :meth:`autofmt_xdate <matplotlib.figure.Figure.autofmt_xdate>` method and the
+`matplotlib documentation <https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.autofmt_xdate>`__ for more.
 
 Subplots
 ~~~~~~~~
@@ -1391,7 +1391,7 @@ with the ``subplots`` keyword:
    plt.close("all")
 
 Using layout and targeting multiple axes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The layout of subplots can be specified by the ``layout`` keyword. It can accept
 ``(rows, columns)``. The ``layout`` keyword can be used in
@@ -1538,9 +1538,9 @@ Here is an example of one way to easily plot group means with standard deviation
 
    plt.close("all")
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
+Asymmetric error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetric errors should be in a ``Mx2xN`` array.
 
-Here is an example of one way to plot the min/max range using asymmetrical error bars.
+Here is an example of one way to plot the min/max range using asymmetric error bars.
 
 .. ipython:: python
 
@@ -1552,7 +1552,7 @@ Here is an example of one way to plot the min/max range using asymmetrical error
 
    # Plot
    fig, ax = plt.subplots()
-   @savefig errorbar_asymmetrical_example.png
+   @savefig errorbar_asymmetric_example.png
    means.plot.bar(yerr=errors, ax=ax, capsize=4, rot=0);
 
 .. ipython:: python
@@ -1572,7 +1572,7 @@ Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :
    np.random.seed(123456)
    fig, ax = plt.subplots(1, 1, figsize=(7, 6.5))
    df = pd.DataFrame(np.random.rand(5, 3), columns=["a", "b", "c"])
-   ax.xaxis.tick_top()  # Display x-axis ticks on top.
+   ax.xaxis.tick_top()   # Display x-axis ticks on top.
 
    @savefig line_plot_table_true.png
    df.plot(table=True, ax=ax);
@@ -1641,7 +1641,7 @@ colors are selected based on an even spacing determined by the number of columns
 in the ``DataFrame``. There is no consideration made for background color, so some
 colormaps will produce lines that are not easily visible.
 
-To use the cubehelix colormap, we can pass ``colormap='cubehelix'``.
+To use the cubhelix colormap, we can pass ``colormap='cubehelix'``.
 
 .. ipython:: python
 
@@ -1722,7 +1722,7 @@ Andrews curves charts:
    plt.close("all")
 
 Plotting directly with Matplotlib
----------------------------------
+----------------------------------
 
 In some situations it may still be preferable or necessary to prepare plots
 directly with matplotlib, for instance when a certain type of plot or
@@ -1759,7 +1759,7 @@ when plotting a large number of points.
     plt.close("all")
 
 Plotting backends
------------------
+------------------
 
 pandas can be extended with third-party plotting backends. The
 main idea is letting users select a plotting backend different than the provided
@@ -1794,9 +1794,9 @@ This would be more or less equivalent to:
     >>> import backend.module
     >>> backend.module.plot(pd.Series([1, 2, 3]))
 
-The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
-to generate the plots. Some libraries implementing a backend for pandas are listed
-on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
+The backend module can then use other visualization tools (Bokeh, Altair, hvplot, ...)
+to generate the plots. Some libraries implementing a backend for pandas are listed on
+`the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 Developers guide can be found at
 https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends
