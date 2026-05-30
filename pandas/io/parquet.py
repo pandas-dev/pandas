@@ -16,7 +16,7 @@ from warnings import (
     filterwarnings,
 )
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = _global_config["io"]["parquet"]["engine"]
+        engine = config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -433,9 +433,18 @@ def to_parquet(
     path : str, path object, file-like object, or None, default None
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function. If None, the result
-        is returned as bytes. If a string, it will be used as Root Directory
+        is returned as bytes. If a string, it will be used as the root directory
         path when writing a partitioned dataset. The engine fastparquet does
         not accept file-like objects.
+
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gs, and file. For file URLs, a host is expected. A local file could be:
+        ``file://localhost/path/to/table.parquet``. A remote example could be:
+        ``s3://bucket/path/to/table.parquet``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -542,6 +551,9 @@ def read_parquet(
 ) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
+
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
 
     The function automatically handles reading the data from a parquet file
     and creates a DataFrame with the appropriate structure.
