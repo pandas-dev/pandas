@@ -23,7 +23,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.masked import BaseMaskedDtype
 
 # The fixture it's mostly used in pandas/tests/apply, so it's defined in that
 # conftest, which is out of scope here. So we need to manually import
@@ -244,12 +243,9 @@ def test_map_empty(request, index):
     s = Series(index)
     result = s.map({})
 
-    # GH#63903
-    if isinstance(s.dtype, BaseMaskedDtype):
-        expected = Series(pd.NA, index=s.index, dtype=s.dtype)
-    else:
-        expected = Series(np.nan, index=s.index)
-    tm.assert_series_equal(result, expected)
+    # GH#63903, GH#62164 - _cast_pointwise_result retains EA dtype
+    assert result.isna().all()
+    assert len(result) == len(s)
 
 
 def test_map_compat():
@@ -674,13 +670,12 @@ def test_map_pyarrow_timestamp(as_td):
     mapper = {date: i for i, date in enumerate(ser)}
 
     res_series = ser.map(mapper)
-    expected = Series(range(len(ser)), name="a", dtype="int64")
+    # GH#62164 - _cast_pointwise_result retains Arrow dtype backend
+    expected = Series(range(len(ser)), name="a", dtype="int64[pyarrow]")
     tm.assert_series_equal(res_series, expected)
 
     res_index = Index(ser).map(mapper)
-    # For now (as of 2025-09-06) at least, we do inference on Index.map that
-    #  we don't for Series.map
-    expected_index = Index(expected).astype("int64[pyarrow]")
+    expected_index = Index(range(len(ser)), dtype="int64[pyarrow]", name="a")
     tm.assert_index_equal(res_index, expected_index)
 
 
@@ -693,3 +688,17 @@ def test_map_nullable_integer_precision(dtype):
     result = ser.map(lambda x: x + 2 if pd.notna(x) else x)
     expected = Series([large_int + 2, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_map_retains_dtype_with_na(dtype):
+    # GH#57189 - map should not coerce Int64/Arrow int to float64
+    ser = Series([1, 2, 3, pd.NA, 10], dtype=dtype)
+    result = ser.map(lambda x: x)
+    tm.assert_series_equal(result, ser)

@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import numpy as np
 import pytest
 
@@ -134,3 +136,21 @@ def test_map_with_dict_or_series(na_action):
     result = cat.map(mapper, na_action=na_action)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)
+
+
+def test_map_defaultdict_na_action_none():
+    # GH#62710
+    cat = Categorical(["one", "two", None])
+    mapper = defaultdict(lambda: True)
+    result = cat.map(mapper, na_action=None)
+    expected = Index([True, True, True])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_defaultdict_na_action_ignore():
+    # GH#62710
+    cat = Categorical(["one", "two", None])
+    mapper = defaultdict(lambda: True)
+    result = cat.map(mapper, na_action="ignore")
+    expected = Index([True, True, np.nan])
+    tm.assert_index_equal(result, expected)

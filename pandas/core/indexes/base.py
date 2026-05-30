@@ -130,16 +130,14 @@ from pandas.core import (
 )
 from pandas.core.accessor import Accessor
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import (
-    setitem_datetimelike_compat,
-    validate_putmask,
-)
+from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    PeriodArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.floating import FloatingDtype
@@ -216,10 +214,7 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import (
-        IntervalArray,
-        PeriodArray,
-    )
+    from pandas.core.arrays import IntervalArray
 
 __all__ = ["Index"]
 
@@ -361,6 +356,12 @@ class Index(IndexOpsMixin, PandasObject):
     -----
     An Index instance can **only** contain hashable objects.
     An Index instance *can not* hold numpy float16 dtype.
+
+    NumPy arrays with ``dtype=object`` are handled like other list-like inputs:
+    pandas may infer a more specific dtype (for example ``str`` for an array of
+    Python strings) instead of preserving NumPy object dtype. Values that
+    NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
+    not altered in the same way. To force object dtype, pass ``dtype=object``.
 
     Examples
     --------
@@ -583,7 +584,14 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
-        return klass._simple_new(arr, name, refs=refs)  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+        out = klass._simple_new(arr, name, refs=refs)
+        # Preserve freq when wrapping a DatetimeIndex/TimedeltaIndex input,
+        # since _simple_new doesn't copy Index-level attributes like _freq.
+        if isinstance(data, (ABCDatetimeIndex, ABCTimedeltaIndex)) and isinstance(
+            out, (ABCDatetimeIndex, ABCTimedeltaIndex)
+        ):
+            out._freq = data._freq
+        return out  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
 
     @classmethod
     def _ensure_array(cls, data: ArrayLike, dtype: DtypeObj, copy: bool) -> ArrayLike:
@@ -1191,8 +1199,8 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         indices: Sequence[int] | np.ndarray,
         axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value: object = None,
+        allow_fill: bool | lib.NoDefault = no_default,
+        fill_value: object = no_default,
         **kwargs: Any,
     ) -> Self:
         """
@@ -1206,20 +1214,27 @@ class Index(IndexOpsMixin, PandasObject):
             Indices to be taken.
         axis : {0 or 'index'}, optional
             The axis over which to select values, always 0 or 'index'.
-        allow_fill : bool, default True
+        allow_fill : bool, optional
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-              from the right (the default). This is similar to
-              :func:`numpy.take`.
+              from the right, matching :func:`numpy.take`.
+            * True: negative values in `indices` indicate missing values. ``-1``
+              entries are set to ``fill_value`` (using the default NA value of
+              the caller's dtype if not supplied). Any other negative values
+              raise a ``ValueError``.
+            * Not supplied: defaults to ``allow_fill=False`` unless ``fill_value``
+              is explicitly provided, in which case fill semantics apply
+              (``allow_fill=True``).
 
-            * True: negative values in `indices` indicate
-              missing values. These values are set to `fill_value`. Any
-              other negative values raise a ``ValueError``.
-
-        fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, indices specified by
-            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        fill_value : scalar, optional
+            If fill semantics apply (see ``allow_fill``), indices specified by
+            ``-1`` are filled with ``fill_value``. Not specifying ``fill_value``
+            or passing ``fill_value=None`` will fill using the default NA value
+            of the caller's dtype. If the Index's dtype cannot hold
+            ``fill_value``, the result is promoted to a common dtype (e.g. an
+            integer Index + ``np.nan`` fill is cast to float, while an integer
+            Index + a string fill is cast to object).
         **kwargs
             Required for compatibility with numpy.
 
@@ -1245,49 +1260,52 @@ class Index(IndexOpsMixin, PandasObject):
         if is_scalar(indices):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        if allow_fill is no_default:
+            if fill_value is None:
+                # GH#65210: preserve pre-3.1 wrap behavior for this one case,
+                # but warn since the sentinel-based default would otherwise
+                # flip it into fill-with-NA semantics.
+                warnings.warn(
+                    "Passing fill_value=None without allow_fill previously "
+                    "used numpy-style wrapping of negative indices. In a "
+                    "future version this will trigger fill semantics "
+                    "(filling -1 entries with the dtype's NA value). Pass "
+                    "allow_fill=False to keep wrapping behavior, or "
+                    "allow_fill=True to opt into fill semantics.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_fill = False
+            else:
+                # Default: opt into fill semantics only if fill_value is
+                # explicit.
+                allow_fill = fill_value is not no_default
+
+        if allow_fill:
+            # Per the ExtensionArray convention, fill_value=None (or unsupplied)
+            # falls back to self._na_value.
+            if fill_value is no_default or fill_value is None:
+                fill_value = self._na_value
+            if (indices < -1).any():
+                raise ValueError("When allow_fill=True, all indices must be >= -1")
+        elif fill_value is no_default:
+            # algos.take does not understand the no_default sentinel; it will
+            # ignore fill_value anyway since allow_fill is False.
+            fill_value = None
 
         if indices.ndim == 1 and lib.is_range_indexer(indices, len(self)):
             return self.copy()
 
-        # Note: we discard fill_value and use self._na_value, only relevant
-        #  in the case where allow_fill is True and fill_value is not None
         values = self._values
         if isinstance(values, np.ndarray):
             taken = algos.take(
-                values, indices, allow_fill=allow_fill, fill_value=self._na_value
+                values, indices, allow_fill=allow_fill, fill_value=fill_value
             )
         else:
             # algos.take passes 'axis' keyword which not all EAs accept
-            taken = values.take(
-                indices, allow_fill=allow_fill, fill_value=self._na_value
-            )
+            taken = values.take(indices, allow_fill=allow_fill, fill_value=fill_value)
         return self._constructor._simple_new(taken, name=self.name)  # pyright: ignore[reportArgumentType]
-
-    @final
-    def _maybe_disallow_fill(
-        self, allow_fill: bool, fill_value: object, indices: npt.NDArray[np.intp]
-    ) -> bool:
-        """
-        We only use pandas-style take when allow_fill is True _and_
-        fill_value is not None.
-        """
-        if allow_fill and fill_value is not None:
-            # only fill if we are passing a non-None fill_value
-            if self._can_hold_na:
-                if (indices < -1).any():
-                    raise ValueError(
-                        "When allow_fill=True and fill_value is not None, "
-                        "all indices must be >= -1"
-                    )
-            else:
-                cls_name = type(self).__name__
-                raise ValueError(
-                    f"Unable to fill values because {cls_name} cannot contain NA"
-                )
-        else:
-            allow_fill = False
-        return allow_fill
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Self:
         """
@@ -2396,23 +2414,11 @@ class Index(IndexOpsMixin, PandasObject):
         if len(new_levels) == 1:
             lev = new_levels[0]
 
-            if len(lev) == 0:
-                # If lev is empty, lev.take will fail GH#42055
-                if len(new_codes[0]) == 0:
-                    # GH#45230 preserve RangeIndex here
-                    #  see test_reset_index_empty_rangeindex
-                    result = lev[:0]
-                else:
-                    res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
-                    # _constructor instead of type(lev) for RangeIndex compat GH#35230
-                    result = lev._constructor._simple_new(res_values, name=new_names[0])
+            if len(lev) == 0 and len(new_codes[0]) == 0:
+                # GH#42055, GH#45230 preserve RangeIndex here
+                result = lev[:0]
             else:
-                # set nan if needed
-                mask = new_codes[0] == -1
-                result = new_levels[0].take(new_codes[0])
-                if mask.any():
-                    result = result.putmask(mask, np.nan)
-
+                result = lev.take(new_codes[0], allow_fill=True)
                 result._name = new_names[0]
 
             return result
@@ -2464,6 +2470,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
+        if isinstance(self._values, ExtensionArray) and isinstance(
+            self._engine, libindex.ObjectEngine
+        ):
+            # For custom EAs we use ObjectEngine by default, which gets the EA as
+            # object ndarray -> use the EA's implementation directly instead of engine
+            return self._values._is_monotonic_increasing
         return self._engine.is_monotonic_increasing
 
     @property
@@ -2492,6 +2504,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
+        if isinstance(self._values, ExtensionArray) and isinstance(
+            self._engine, libindex.ObjectEngine
+        ):
+            # For custom EAs we use ObjectEngine by default, which gets the EA as
+            # object ndarray -> use the EA's implementation directly instead of engine
+            return self._values._is_monotonic_decreasing
         return self._engine.is_monotonic_decreasing
 
     @final
@@ -3069,7 +3087,7 @@ class Index(IndexOpsMixin, PandasObject):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all()."
         )
 
     # --------------------------------------------------------------------
@@ -5143,12 +5161,6 @@ class Index(IndexOpsMixin, PandasObject):
         #  which negates the performance benefit of libjoin.
         # Also exclude RangeIndex which allocates memory in _get_join_target,
         #  negating the performance benefit of the fastpath.
-        if isinstance(self, ABCCategoricalIndex) and not self.ordered:
-            # For unordered CategoricalIndex, dtype equality does not
-            # guarantee matching category order across indexes. Since libjoin
-            # operates on codes, mismatched category order leads to incorrect
-            # results. GH#55335
-            return False
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex, ABCRangeIndex))
 
     # --------------------------------------------------------------------
@@ -5164,6 +5176,17 @@ class Index(IndexOpsMixin, PandasObject):
            We recommend using :attr:`Index.array` or
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
+           The return type of ``.values`` depends on the dtype: it is a
+           :class:`numpy.ndarray` for some dtypes (for example ``int64``
+           or ``float64``) and an
+           :class:`~pandas.api.extensions.ExtensionArray` for others (for
+           example ``interval``, ``category``, or nullable ``Int64``),
+           which makes it harder to write code that works across dtypes.
+           :attr:`Index.array` always returns the underlying array as an
+           :class:`~pandas.api.extensions.ExtensionArray`, and
+           :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`
+           and accepts ``dtype``, ``copy``, and ``na_value`` arguments to
+           control the conversion.
 
         .. versionchanged:: 3.0.0
 
@@ -5180,7 +5203,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        For :class:`pandas.Index`:
+        For an :class:`Index` backed by a NumPy dtype such as ``int64``,
+        ``.values`` returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.Index([1, 2, 3])
         >>> idx
@@ -5188,13 +5212,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.values
         array([1, 2, 3])
 
-        For :class:`pandas.IntervalIndex`:
+        For an :class:`Index` backed by an extension dtype such as
+        ``interval``, ``.values`` returns an
+        :class:`~pandas.api.extensions.ExtensionArray` instead, while
+        :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.interval_range(start=0, end=5)
         >>> idx.values
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
         Length: 5, dtype: interval[int64, right]
+        >>> idx.to_numpy()
+        array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+               Interval(2, 3, closed='right'), Interval(3, 4, closed='right'),
+               Interval(4, 5, closed='right')], dtype=object)
         """
         data = self._data
         if isinstance(data, np.ndarray):
@@ -5454,7 +5485,22 @@ class Index(IndexOpsMixin, PandasObject):
                 ".where is not supported for MultiIndex operations"
             )
         cond = np.asarray(cond, dtype=bool)
-        return self.putmask(~cond, other)
+
+        from pandas import Series
+
+        ser = Series(self._values, copy=False, dtype=self.dtype)
+        try:
+            result_ser = ser.where(cond, other)
+        except (TypeError, ValueError):
+            # e.g. Categorical with a value not in categories;
+            # find a common dtype and retry
+            dtype = self._find_common_type_compat(other)
+            if dtype == self.dtype:
+                raise
+            return self.astype(dtype).where(cond, other)
+        return Index(
+            result_ser._values, dtype=result_ser.dtype, name=self.name, copy=False
+        )
 
     # construction helpers
     @final
@@ -5746,45 +5792,7 @@ class Index(IndexOpsMixin, PandasObject):
         mask, noop = validate_putmask(self._values, mask)
         if noop:
             return self.copy()
-
-        if self.dtype != object and is_valid_na_for_dtype(value, self.dtype):
-            # e.g. None -> np.nan, see also Block._standardize_fill_value
-            value = self._na_value
-
-        try:
-            converted = self._validate_fill_value(value)
-        except (LossySetitemError, ValueError, TypeError) as err:
-            if is_object_dtype(self.dtype):  # pragma: no cover
-                raise err
-
-            # See also: Block.coerce_to_target_dtype
-            dtype = self._find_common_type_compat(value)
-            if dtype == self.dtype:
-                # GH#56376 avoid RecursionError
-                raise AssertionError(
-                    "Something has gone wrong. Please report a bug at "
-                    "github.com/pandas-dev/pandas"
-                ) from err
-            return self.astype(dtype).putmask(mask, value)
-
-        values = self._values.copy()
-
-        if isinstance(values, np.ndarray):
-            converted = setitem_datetimelike_compat(values, mask.sum(), converted)
-            if isinstance(converted, tuple):
-                # GH#37681 np.putmask unpacks tuples, so wrap in an
-                #  object array to ensure the tuple is treated as a scalar
-                fill_arr = np.empty(1, dtype=object)
-                fill_arr[0] = converted
-                converted = fill_arr
-            np.putmask(values, mask, converted)  # pyright: ignore[reportArgumentType]
-
-        else:
-            # Note: we use the original value here, not converted, as
-            #  _validate_fill_value is not idempotent
-            values._putmask(mask, value)
-
-        return self._shallow_copy(values)
+        return self.where(~mask, value)
 
     def equals(self, other: Any) -> bool:
         """
@@ -6466,9 +6474,6 @@ class Index(IndexOpsMixin, PandasObject):
         self._raise_if_missing(keyarr, indexer, axis_name)
 
         keyarr = self.take(indexer)
-        if isinstance(key, Index):
-            # GH 42790 - Preserve name from an Index
-            keyarr.name = key.name
         if lib.is_np_dtype(keyarr.dtype, "mM") or isinstance(
             keyarr.dtype, DatetimeTZDtype
         ):
@@ -6894,7 +6899,18 @@ class Index(IndexOpsMixin, PandasObject):
             return type(self).from_arrays(values)
         else:
             items = [func(x) for x in self]
-            return Index(items, name=self.name, tupleize_cols=False)
+            if not items:
+                return Index(
+                    items, dtype=self.dtype, name=self.name, tupleize_cols=False
+                )
+            new_values = self.array._cast_pointwise_result(items)
+            return Index(
+                new_values,
+                dtype=new_values.dtype,
+                copy=False,
+                name=self.name,
+                tupleize_cols=False,
+            )
 
     def isin(
         self, values: Axes | set, level: str_t | int | None = None
@@ -7257,16 +7273,28 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Index.get_loc : Get location for a single label.
+        Index.get_slice_bound : Calculate the slice bound for a single label;
+            used internally by ``slice_locs`` for each of ``start`` and ``end``.
 
         Notes
         -----
         This method only works if the index is monotonic or unique.
+
+        If ``start`` or ``end`` is not present in a monotonic index, the
+        returned position is the insertion point that preserves ordering
+        (analogous to :func:`numpy.searchsorted`); no error is raised. If the
+        index is not monotonic and the label is missing, a ``KeyError`` is
+        raised.
 
         Examples
         --------
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        ``start`` and ``end`` need not be present in the index; for a
+        monotonic index they are mapped to the appropriate insertion
+        positions:
 
         >>> idx = pd.Index(list("bcde"))
         >>> idx.slice_locs(start="a", end="c")
@@ -8388,7 +8416,7 @@ def get_values_for_csv(
 
     values = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
 
-    if isinstance(values, (DatetimeArray, TimedeltaArray)):
+    if isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
         if values.ndim == 1:
             result = values._format_native_types(na_rep=na_rep, date_format=date_format)
             result = result.astype(object, copy=False)
@@ -8403,14 +8431,7 @@ def get_values_for_csv(
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
-    elif isinstance(values.dtype, PeriodDtype):
-        # TODO: tests that get here in column path
-        values = cast("PeriodArray", values)
-        res = values._format_native_types(na_rep=na_rep, date_format=date_format)
-        return res
-
     elif isinstance(values.dtype, IntervalDtype):
-        # TODO: tests that get here in column path
         values = cast("IntervalArray", values)
         mask = values.isna()
         if not quoting:
