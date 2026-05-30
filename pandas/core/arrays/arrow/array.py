@@ -2953,9 +2953,6 @@ class ArrowExtensionArray(
 
         Analogous to pyarrow.compute.replace_with_mask, with logic
         to fallback to numpy for unsupported types.
-        """
-        if pa.types.is_null(values.type):
-            return values
 
         Parameters
         ----------
@@ -2968,6 +2965,8 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
+        if pa.types.is_null(values.type):  # GH#65483
+            return values
         if isinstance(replacements, pa.ChunkedArray):
             # replacements must be array or scalar, not ChunkedArray
             replacements = replacements.combine_chunks()
