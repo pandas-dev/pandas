@@ -293,7 +293,8 @@ class TestTSPlot:
         idx = date_range("12/31/1999", freq=freq, periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         ser = Series(ser.values, Index(np.asarray(ser.index)))
-        _check_plot_works(ser.plot, ser.index.inferred_freq)
+        inferred = ser.index._data._inferred_freq_str
+        _check_plot_works(ser.plot, inferred)
 
         ser = ser.iloc[[0, 3, 5, 6]]
         _check_plot_works(ser.plot)

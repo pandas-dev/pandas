@@ -1588,6 +1588,11 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.var : Compute variance of groups, excluding missing
             values.
 
+        Notes
+        -----
+        To use the same divisor as ``numpy.std``, use ``ddof=0`` instead of
+        the default ``ddof=1``.
+
         Examples
         --------
 
@@ -2179,7 +2184,7 @@ class DatetimeIndexResampler(Resampler):
         # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
-            and to_offset(ax.inferred_freq) == self.freq
+            and to_offset(ax._inferred_freq_str) == self.freq
             and len(obj) == len(res_index)
             and obj.index.equals(res_index)
         ):

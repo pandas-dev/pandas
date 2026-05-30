@@ -130,10 +130,7 @@ from pandas.core import (
 )
 from pandas.core.accessor import Accessor
 import pandas.core.algorithms as algos
-from pandas.core.array_algos.putmask import (
-    setitem_datetimelike_compat,
-    validate_putmask,
-)
+from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
@@ -360,6 +357,12 @@ class Index(IndexOpsMixin, PandasObject):
     An Index instance can **only** contain hashable objects.
     An Index instance *can not* hold numpy float16 dtype.
 
+    NumPy arrays with ``dtype=object`` are handled like other list-like inputs:
+    pandas may infer a more specific dtype (for example ``str`` for an array of
+    Python strings) instead of preserving NumPy object dtype. Values that
+    NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
+    not altered in the same way. To force object dtype, pass ``dtype=object``.
+
     Examples
     --------
     >>> pd.Index([1, 2, 3])
@@ -576,11 +579,6 @@ class Index(IndexOpsMixin, PandasObject):
             if "Data must be 1-dimensional" in str(err):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
-
-        if isinstance(arr, np.ndarray) and arr.dtype == np.object_:
-            # GH#20285 reject unhashable elements (e.g. list, dict, set)
-            lib.check_all_hashable(arr)
-
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
         klass = cls._dtype_to_subclass(arr.dtype)
@@ -2471,6 +2469,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
+        if isinstance(self._values, ExtensionArray) and isinstance(
+            self._engine, libindex.ObjectEngine
+        ):
+            # For custom EAs we use ObjectEngine by default, which gets the EA as
+            # object ndarray -> use the EA's implementation directly instead of engine
+            return self._values._is_monotonic_increasing
         return self._engine.is_monotonic_increasing
 
     @property
@@ -2499,6 +2503,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
+        if isinstance(self._values, ExtensionArray) and isinstance(
+            self._engine, libindex.ObjectEngine
+        ):
+            # For custom EAs we use ObjectEngine by default, which gets the EA as
+            # object ndarray -> use the EA's implementation directly instead of engine
+            return self._values._is_monotonic_decreasing
         return self._engine.is_monotonic_decreasing
 
     @final
@@ -3076,7 +3086,7 @@ class Index(IndexOpsMixin, PandasObject):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all()."
         )
 
     # --------------------------------------------------------------------
@@ -5165,6 +5175,17 @@ class Index(IndexOpsMixin, PandasObject):
            We recommend using :attr:`Index.array` or
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
+           The return type of ``.values`` depends on the dtype: it is a
+           :class:`numpy.ndarray` for some dtypes (for example ``int64``
+           or ``float64``) and an
+           :class:`~pandas.api.extensions.ExtensionArray` for others (for
+           example ``interval``, ``category``, or nullable ``Int64``),
+           which makes it harder to write code that works across dtypes.
+           :attr:`Index.array` always returns the underlying array as an
+           :class:`~pandas.api.extensions.ExtensionArray`, and
+           :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`
+           and accepts ``dtype``, ``copy``, and ``na_value`` arguments to
+           control the conversion.
 
         .. versionchanged:: 3.0.0
 
@@ -5181,7 +5202,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        For :class:`pandas.Index`:
+        For an :class:`Index` backed by a NumPy dtype such as ``int64``,
+        ``.values`` returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.Index([1, 2, 3])
         >>> idx
@@ -5189,13 +5211,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.values
         array([1, 2, 3])
 
-        For :class:`pandas.IntervalIndex`:
+        For an :class:`Index` backed by an extension dtype such as
+        ``interval``, ``.values`` returns an
+        :class:`~pandas.api.extensions.ExtensionArray` instead, while
+        :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.interval_range(start=0, end=5)
         >>> idx.values
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
         Length: 5, dtype: interval[int64, right]
+        >>> idx.to_numpy()
+        array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+               Interval(2, 3, closed='right'), Interval(3, 4, closed='right'),
+               Interval(4, 5, closed='right')], dtype=object)
         """
         data = self._data
         if isinstance(data, np.ndarray):
@@ -5455,7 +5484,22 @@ class Index(IndexOpsMixin, PandasObject):
                 ".where is not supported for MultiIndex operations"
             )
         cond = np.asarray(cond, dtype=bool)
-        return self.putmask(~cond, other)
+
+        from pandas import Series
+
+        ser = Series(self._values, copy=False, dtype=self.dtype)
+        try:
+            result_ser = ser.where(cond, other)
+        except (TypeError, ValueError):
+            # e.g. Categorical with a value not in categories;
+            # find a common dtype and retry
+            dtype = self._find_common_type_compat(other)
+            if dtype == self.dtype:
+                raise
+            return self.astype(dtype).where(cond, other)
+        return Index(
+            result_ser._values, dtype=result_ser.dtype, name=self.name, copy=False
+        )
 
     # construction helpers
     @final
@@ -5747,45 +5791,7 @@ class Index(IndexOpsMixin, PandasObject):
         mask, noop = validate_putmask(self._values, mask)
         if noop:
             return self.copy()
-
-        if self.dtype != object and is_valid_na_for_dtype(value, self.dtype):
-            # e.g. None -> np.nan, see also Block._standardize_fill_value
-            value = self._na_value
-
-        try:
-            converted = self._validate_fill_value(value)
-        except (LossySetitemError, ValueError, TypeError) as err:
-            if is_object_dtype(self.dtype):  # pragma: no cover
-                raise err
-
-            # See also: Block.coerce_to_target_dtype
-            dtype = self._find_common_type_compat(value)
-            if dtype == self.dtype:
-                # GH#56376 avoid RecursionError
-                raise AssertionError(
-                    "Something has gone wrong. Please report a bug at "
-                    "github.com/pandas-dev/pandas"
-                ) from err
-            return self.astype(dtype).putmask(mask, value)
-
-        values = self._values.copy()
-
-        if isinstance(values, np.ndarray):
-            converted = setitem_datetimelike_compat(values, mask.sum(), converted)
-            if isinstance(converted, tuple):
-                # GH#37681 np.putmask unpacks tuples, so wrap in an
-                #  object array to ensure the tuple is treated as a scalar
-                fill_arr = np.empty(1, dtype=object)
-                fill_arr[0] = converted
-                converted = fill_arr
-            np.putmask(values, mask, converted)  # pyright: ignore[reportArgumentType]
-
-        else:
-            # Note: we use the original value here, not converted, as
-            #  _validate_fill_value is not idempotent
-            values._putmask(mask, value)
-
-        return self._shallow_copy(values)
+        return self.where(~mask, value)
 
     def equals(self, other: Any) -> bool:
         """
@@ -7266,16 +7272,28 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Index.get_loc : Get location for a single label.
+        Index.get_slice_bound : Calculate the slice bound for a single label;
+            used internally by ``slice_locs`` for each of ``start`` and ``end``.
 
         Notes
         -----
         This method only works if the index is monotonic or unique.
+
+        If ``start`` or ``end`` is not present in a monotonic index, the
+        returned position is the insertion point that preserves ordering
+        (analogous to :func:`numpy.searchsorted`); no error is raised. If the
+        index is not monotonic and the label is missing, a ``KeyError`` is
+        raised.
 
         Examples
         --------
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        ``start`` and ``end`` need not be present in the index; for a
+        monotonic index they are mapped to the appropriate insertion
+        positions:
 
         >>> idx = pd.Index(list("bcde"))
         >>> idx.slice_locs(start="a", end="c")
