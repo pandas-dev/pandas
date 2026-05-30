@@ -531,7 +531,10 @@ class TestDataFrameAnalytics:
         df = DataFrame(d)
 
         with pytest.raises(
-            TypeError, match="unsupported operand type|does not support|Cannot perform"
+            TypeError,
+            match="|".join(
+                ["unsupported operand type", "does not support", "Cannot perform"]
+            ),
         ):
             df.mean()
         result = df[["A", "C"]].mean()
@@ -1002,7 +1005,7 @@ class TestDataFrameAnalytics:
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        msg = "Could not convert|does not support|Cannot perform"
+        msg = "|".join(["Could not convert", "does not support", "Cannot perform"])
         with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
@@ -2316,7 +2319,8 @@ def test_minmax_extensionarray(method, numeric_only):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with pytest.raises(TypeError, match="does not support operation|Cannot perform"):
+    msg = "|".join(["does not support operation", "Cannot perform"])
+    with pytest.raises(TypeError, match=msg):
         df.sum()
 
 

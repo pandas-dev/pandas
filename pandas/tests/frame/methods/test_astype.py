@@ -725,7 +725,7 @@ class TestAstype:
             result = df.astype(float, errors=errors)
             tm.assert_frame_equal(result, expected)
         else:
-            msg = "(Cannot cast)|(could not convert)"
+            msg = "|".join(["(Cannot cast)", "(could not convert)"])
             with pytest.raises((ValueError, TypeError), match=msg):
                 df.astype(float, errors=errors)
 

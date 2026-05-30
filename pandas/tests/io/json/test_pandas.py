@@ -1519,7 +1519,7 @@ class TestPandasContainer:
     def test_read_json_large_numbers(self, bigNum):
         # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = r"Value is too small|Value is too big"
+        msg = "|".join(["Value is too small", "Value is too big"])
         with pytest.raises(ValueError, match=msg):
             read_json(json)
 

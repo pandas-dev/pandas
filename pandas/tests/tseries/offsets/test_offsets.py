@@ -188,7 +188,7 @@ class TestCommon:
     def test_immutable(self, offset_types):
         # GH#21341 check that __setattr__ raises
         offset = _create_offset(offset_types)
-        msg = "objects is not writable|DateOffset objects are immutable"
+        msg = "|".join(["objects is not writable", "DateOffset objects are immutable"])
         with pytest.raises(AttributeError, match=msg):
             offset.normalize = True
         with pytest.raises(AttributeError, match=msg):
