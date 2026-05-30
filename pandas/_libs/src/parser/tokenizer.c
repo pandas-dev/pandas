@@ -25,7 +25,42 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "pandas/parser/simd_scan.h"
+#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
+#  define PANDAS_HAS_NEON
+#  include <arm_neon.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#elif defined(__SSE2__) || defined(_M_X64) ||                                  \
+    (defined(_M_IX86_FP) && (_M_IX86_FP >= 2))
+#  define PANDAS_HAS_SSE2
+#  include <emmintrin.h>
+#  ifdef _MSC_VER
+#    include <intrin.h>
+#  endif
+#endif
+
+// Portable count-trailing-zeros
+#ifdef _MSC_VER
+static __inline int _pandas_ctz(unsigned int mask) {
+  unsigned long index;
+  _BitScanForward(&index, mask);
+  return (int)index;
+}
+static __inline int _pandas_ctzll(unsigned long long mask) {
+  unsigned long index;
+  _BitScanForward64(&index, mask);
+  return (int)index;
+}
+#else
+#  if defined(PANDAS_HAS_SSE2)
+#    define _pandas_ctz(x) __builtin_ctz(x)
+#  endif
+#  if defined(PANDAS_HAS_NEON)
+#    define _pandas_ctzll(x) __builtin_ctzll(x)
+#  endif
+#endif
+
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
@@ -584,8 +619,6 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
   ((!delim_whitespace && c == delimiter) || (delim_whitespace && isblank(c)))
 
 #define _TOKEN_CLEANUP()                                                       \
-  pd_scanner_destroy(unquoted_scanner);                                        \
-  pd_scanner_destroy(quoted_scanner);                                          \
   self->stream_len = slen;                                                     \
   self->datapos = i;
 
@@ -617,6 +650,106 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
+#ifdef PANDAS_HAS_NEON
+
+// Scan data for any special character using NEON.
+// Returns the byte offset of the first special character,
+// or the number of bytes scanned (all clean) if none found.
+static inline size_t fast_scan_neon(const char *data, size_t len,
+                                    uint8x16_t vdelim, uint8x16_t vterm,
+                                    uint8x16_t vcr, uint8x16_t vquote,
+                                    uint8x16_t vescape, uint8x16_t vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vdelim);
+    m = vorrq_u8(m, vceqq_u8(chunk, vterm));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcr));
+    m = vorrq_u8(m, vceqq_u8(chunk, vquote));
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+    m = vorrq_u8(m, vceqq_u8(chunk, vcomment));
+
+    // Each matching byte is 0xFF, non-matching is 0x00.
+    // Extract as two u64 lanes and find the first set byte.
+    uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
+    if (low)
+      return i + _pandas_ctzll(low) / 8;
+    uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
+    if (high)
+      return i + 8 + _pandas_ctzll(high) / 8;
+  }
+  return i;
+}
+
+// Lighter scan for quoted fields: only check quote and escape chars.
+static inline size_t fast_scan_quoted_neon(const char *data, size_t len,
+                                           uint8x16_t vquote,
+                                           uint8x16_t vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    uint8x16_t chunk = vld1q_u8((const uint8_t *)&data[i]);
+    uint8x16_t m = vceqq_u8(chunk, vquote);
+    m = vorrq_u8(m, vceqq_u8(chunk, vescape));
+
+    uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
+    if (low)
+      return i + _pandas_ctzll(low) / 8;
+    uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
+    if (high)
+      return i + 8 + _pandas_ctzll(high) / 8;
+  }
+  return i;
+}
+
+#elif defined(PANDAS_HAS_SSE2)
+
+static inline size_t fast_scan_sse(const char *data, size_t len, __m128i vdelim,
+                                   __m128i vterm, __m128i vcr, __m128i vquote,
+                                   __m128i vescape, __m128i vcomment) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vdelim);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vterm));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcr));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vquote));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vcomment));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + _pandas_ctz(mask);
+  }
+  return i;
+}
+
+static inline size_t fast_scan_quoted_sse(const char *data, size_t len,
+                                          __m128i vquote, __m128i vescape) {
+  size_t i = 0;
+  for (; i + 15 < len; i += 16) {
+    __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
+    __m128i m = _mm_cmpeq_epi8(chunk, vquote);
+    m = _mm_or_si128(m, _mm_cmpeq_epi8(chunk, vescape));
+
+    int mask = _mm_movemask_epi8(m);
+    if (mask)
+      return i + _pandas_ctz(mask);
+  }
+  return i;
+}
+
+#endif
+
+// Unified dispatch macros so call sites don't need to repeat
+// NEON-vs-SSE2 #ifdefs.
+#ifdef PANDAS_HAS_NEON
+#  define fast_scan_simd fast_scan_neon
+#  define fast_scan_quoted_simd fast_scan_quoted_neon
+#elif defined(PANDAS_HAS_SSE2)
+#  define fast_scan_simd fast_scan_sse
+#  define fast_scan_quoted_simd fast_scan_quoted_sse
+#endif
+
 static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                           uint64_t start_lines) {
   char *buf = self->data + self->datapos;
@@ -636,27 +769,37 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
                          self->skip_first_N_rows >= 0);
 
-  // Build SIMD scanners over the chars that halt a bulk scan. Disabled
-  // features alias to lineterminator so the scanners always see 6/2 chars
-  // and the call sites stay branch-free.
-  const char unquoted_chars[6] = {
-      delimiter,
-      lineterminator,
-      has_carriage ? carriage_symbol : lineterminator,
-      (self->quoting != QUOTE_NONE) ? self->quotechar : lineterminator,
-      has_escape ? escape_symbol : lineterminator,
-      has_comment ? comment_symbol : lineterminator,
-  };
-  const char quoted_chars[2] = {
-      (self->quoting != QUOTE_NONE) ? self->quotechar : lineterminator,
-      has_escape ? escape_symbol : lineterminator,
-  };
-  pd_scanner *unquoted_scanner = pd_scanner_create(unquoted_chars, 6);
-  pd_scanner *quoted_scanner = pd_scanner_create(quoted_chars, 2);
+#ifdef PANDAS_HAS_NEON
+  const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
+  const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
+  const uint8x16_t vcr =
+      has_carriage ? vdupq_n_u8((uint8_t)carriage_symbol) : vterm;
+  const uint8x16_t vquote = (self->quoting != QUOTE_NONE)
+                                ? vdupq_n_u8((uint8_t)self->quotechar)
+                                : vterm;
+  const uint8x16_t vescape = (self->escapechar != '\0')
+                                 ? vdupq_n_u8((uint8_t)self->escapechar)
+                                 : vterm;
+  const uint8x16_t vcomment = (self->commentchar != '\0')
+                                  ? vdupq_n_u8((uint8_t)self->commentchar)
+                                  : vterm;
+#elif defined(PANDAS_HAS_SSE2)
+  const __m128i vdelim = _mm_set1_epi8((char)delimiter);
+  const __m128i vterm = _mm_set1_epi8((char)lineterminator);
+  const __m128i vcr =
+      has_carriage ? _mm_set1_epi8((char)carriage_symbol) : vterm;
+  const __m128i vquote = (self->quoting != QUOTE_NONE)
+                             ? _mm_set1_epi8((char)self->quotechar)
+                             : vterm;
+  const __m128i vescape = (self->escapechar != '\0')
+                              ? _mm_set1_epi8((char)self->escapechar)
+                              : vterm;
+  const __m128i vcomment = (self->commentchar != '\0')
+                               ? _mm_set1_epi8((char)self->commentchar)
+                               : vterm;
+#endif
 
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-    pd_scanner_destroy(unquoted_scanner);
-    pd_scanner_destroy(quoted_scanner);
     const size_t bufsize = 100;
     self->error_msg = malloc(bufsize);
     snprintf(self->error_msg, bufsize, "out of memory");
@@ -945,12 +1088,14 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         // normal character - save in field
         PUSH_CHAR(c);
 
-        // SIMD bulk scan: process a full SIMD chunk at a time, copying
+        // SIMD bulk scan: process 16 bytes at a time, copying
         // normal characters directly without state-machine overhead.
-        if (unquoted_scanner && !self->delim_whitespace) {
+#if defined(PANDAS_HAS_NEON) || defined(PANDAS_HAS_SSE2)
+        if (!self->delim_whitespace) {
           size_t remaining = self->datalen - (i + 1);
-          if (remaining >= PD_SCAN_MIN_BYTES) {
-            size_t skip = pd_scanner_scan(unquoted_scanner, buf, remaining);
+          if (remaining >= 16) {
+            size_t skip = fast_scan_simd(buf, remaining, vdelim, vterm, vcr,
+                                         vquote, vescape, vcomment);
             if (skip > 0) {
               memcpy(stream, buf, skip);
               stream += skip;
@@ -960,6 +1105,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             }
           }
         }
+#endif
         // Scalar bulk scan fallback: copy remaining ordinary characters
         // directly, bypassing the per-char state machine overhead.
         while (i + 1 < self->datalen &&
@@ -990,10 +1136,12 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
 
         // SIMD bulk scan for quoted fields: only quote and escape
         // chars are special, so use a lighter scan.
-        if (quoted_scanner) {
+#if defined(PANDAS_HAS_NEON) || defined(PANDAS_HAS_SSE2)
+        {
           size_t remaining = self->datalen - (i + 1);
-          if (remaining >= PD_SCAN_MIN_BYTES) {
-            size_t skip = pd_scanner_scan(quoted_scanner, buf, remaining);
+          if (remaining >= 16) {
+            size_t skip =
+                fast_scan_quoted_simd(buf, remaining, vquote, vescape);
             if (skip > 0) {
               memcpy(stream, buf, skip);
               stream += skip;
@@ -1003,6 +1151,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             }
           }
         }
+#endif
         // Scalar bulk scan fallback: copy remaining ordinary characters
         // directly, bypassing the per-char state machine overhead.
         while (i + 1 < self->datalen &&

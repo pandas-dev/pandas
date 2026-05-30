@@ -96,9 +96,8 @@ libs_sources = {
             'lib.pyx',
             'src/parser/tokenizer.c',
             'src/parser/fast_float_strtod.cpp',
-            'src/parser/simd_scan.cpp',
         ],
-        'deps': [fast_float_dep, xsimd_dep],
+        'deps': [fast_float_dep],
     },
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
@@ -113,21 +112,19 @@ libs_sources = {
         'sources': [
             'src/parser/tokenizer.c',
             'src/parser/fast_float_strtod.cpp',
-            'src/parser/simd_scan.cpp',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
-        'deps': [fast_float_dep, xsimd_dep],
+        'deps': [fast_float_dep],
     },
     'parsers': {
         'sources': [
             'parsers.pyx',
             'src/parser/tokenizer.c',
             'src/parser/fast_float_strtod.cpp',
-            'src/parser/simd_scan.cpp',
             'src/parser/io.c',
         ],
-        'deps': [fast_float_dep, xsimd_dep, _khash_primitive_helper_dep],
+        'deps': [fast_float_dep, _khash_primitive_helper_dep],
     },
     '_ujson': {
         'sources': [
