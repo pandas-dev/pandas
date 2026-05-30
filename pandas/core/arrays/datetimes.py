@@ -1197,10 +1197,7 @@ default 'raise'
         return dta
 
     def _normalize_naive(self) -> Self:
-        # Normalized values as a tz-naive array (local midnight). Callers that
-        # need the resulting freq can infer it from these naive values, avoiding
-        # the expensive per-element tz conversion the frequency inferer would
-        # otherwise do on tz-aware data (e.g. tzlocal).
+        """Normalize times to midnight, ignoring the timezone."""
         new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
         dt64_values = new_values.view(self._ndarray.dtype)
         return type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
