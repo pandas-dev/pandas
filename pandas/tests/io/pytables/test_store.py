@@ -967,6 +967,19 @@ def test_preserve_timedeltaindex_type(temp_hdfstore, unit):
     tm.assert_frame_equal(temp_hdfstore["df"], df)
 
 
+@pytest.mark.parametrize("freq", ["1s", None])
+def test_preserve_timedeltaindex_type_table_format(temp_h5_path, unit, freq):
+    # GH#21466 with format="table", a TimedeltaIndex used to round-trip as
+    #  PeriodIndex (when freq was set) or Int64Index (otherwise)
+    df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
+    df.index = timedelta_range(
+        start="0s", periods=10, freq=freq, name="example", unit=unit
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df)
+
+
 def test_columns_multiindex_modified(temp_h5_path):
     # BUG: 7212
 

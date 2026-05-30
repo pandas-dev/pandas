@@ -245,6 +245,29 @@ _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
+_MISSING = object()
+
+
+def _set_attr_if_changed(attrs, name: str, value) -> None:
+    """
+    setattr on a PyTables AttributeSet only if the on-disk value differs.
+
+    Re-writing an HDF5 attribute to the same value is expensive — pytables
+    deletes and re-creates it, hitting the disk per attribute. On wide-table
+    appends this dominates runtime (GH#25839).
+    """
+    current = getattr(attrs, name, _MISSING)
+    if current is _MISSING:
+        setattr(attrs, name, value)
+        return
+    try:
+        equal = bool(current == value)
+    except (ValueError, TypeError):
+        equal = False
+    if not equal:
+        setattr(attrs, name, value)
+
+
 def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
@@ -2178,6 +2201,7 @@ class TableIterator:
         self.stop = stop
 
         self.coordinates = None
+        self._called_get_result = False
         if iterator or chunksize is not None:
             if chunksize is None:
                 chunksize = 100000
@@ -2189,12 +2213,18 @@ class TableIterator:
 
     def __iter__(self) -> Iterator:
         # iterate
-        current = self.start
-        if self.coordinates is None:
+        if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
+        current = self.start
         while current < self.stop:
             stop = min(current + self.chunksize, self.stop)
-            value = self.func(None, None, self.coordinates[current:stop])
+            if self.coordinates is None:
+                # no `where` filter: iterate by (start, stop) directly so we
+                # don't materialize an np.arange(0, nrows) coordinate array,
+                # which can exhaust memory on very large tables (GH#15937)
+                value = self.func(current, stop, None)
+            else:
+                value = self.func(None, None, self.coordinates[current:stop])
             current = stop
             if value is None or not len(value):
                 continue
@@ -2209,16 +2239,21 @@ class TableIterator:
 
     def get_result(self, coordinates: bool = False):
         #  return the actual iterator
+        self._called_get_result = True
         if self.chunksize is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only use an iterator or chunksize on a table")
 
-            self.coordinates = self.s.read_coordinates(where=self.where)
+            if self.where is not None:
+                self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
 
         # if specified read via coordinates (necessary for multiple selections
-        if coordinates:
+        # so each table reads the same row set). Skip when self.where is None
+        # since every row would be selected anyway, and a coordinate-based read
+        # is much slower than a sequential read (GH#26771).
+        if coordinates and self.where is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
@@ -2362,11 +2397,21 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
-        factory: type[Index | DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex | TimedeltaIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
             factory = DatetimeIndex
+        elif val_kind.startswith("timedelta64"):
+            # GH#21466 timedelta values are stored as i8; restore the original
+            #  m8[unit] view so we round-trip to TimedeltaIndex (and not to
+            #  PeriodIndex/Index via the i8 branches below).
+            if val_kind == "timedelta64":
+                # legacy file: written before we stored timedelta64 resolution
+                values = values.view("m8[ns]")
+            else:
+                values = values.view(val_kind)
+            factory = TimedeltaIndex
         elif values.dtype == "i8" and "freq" in kwargs:
             # PeriodIndex data is stored as i8
             # error: Incompatible types in assignment (expression has type
@@ -2523,7 +2568,7 @@ class IndexCol:
 
     def set_attr(self) -> None:
         """set the kind for this column"""
-        setattr(self.attrs, self.kind_attr, self.kind)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -2538,8 +2583,10 @@ class IndexCol:
                 )
             ):
                 raise ValueError(
-                    "cannot append a categorical with "
-                    "different categories to the existing"
+                    "cannot append a categorical with different categories "
+                    "to the existing; align with `cat.set_categories(...)` "
+                    "or pre-merge with `pd.api.types.union_categoricals` "
+                    "before writing"
                 )
 
     def write_metadata(self, handler: AppendableTable) -> None:
@@ -2870,18 +2917,23 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
+            # Old files may have been written without nan_rep persisted; the
+            # writer (write_data) defaulted None to "nan", so do the same here.
             converted = _unconvert_string_array(
-                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
+                converted,
+                nan_rep=nan_rep if nan_rep is not None else "nan",
+                encoding=encoding,
+                errors=errors,
             )
 
         return self.values, converted
 
     def set_attr(self) -> None:
         """set the data for this column"""
-        setattr(self.attrs, self.kind_attr, self.values)
-        setattr(self.attrs, self.meta_attr, self.meta)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.values)
+        _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
         assert self.dtype is not None
-        setattr(self.attrs, self.dtype_attr, self.dtype)
+        _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
 
 
 class DataIndexableCol(DataCol):
@@ -3602,7 +3654,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1).copy()
+            out = concat(dfs, axis=1)
             return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
@@ -3763,6 +3815,13 @@ class Table(Fixed):
         new object
         """
         levels = com.fill_missing_names(obj.index.names)
+        if "index" in levels:
+            # GH#6208 'index' is reserved as the implicit row-index name
+            # in the table format and collides with a level named 'index'.
+            raise ValueError(
+                "cannot store a MultiIndex with a level named 'index' as a "
+                "table; 'index' is reserved for the implicit row index"
+            )
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:
@@ -4131,11 +4190,23 @@ class Table(Fixed):
 
         axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, {})
-        if info.get("type") == "MultiIndex" and data_columns:
-            raise ValueError(
-                f"cannot use a multi-index on axis [{axis}] with "
-                f"data_columns {data_columns}"
-            )
+        if info.get("type") == "MultiIndex":
+            if data_columns:
+                raise ValueError(
+                    f"cannot use a multi-index on axis [{axis}] with "
+                    f"data_columns {data_columns}"
+                )
+            if isinstance(min_itemsize, dict):
+                mi_keys = [k for k in min_itemsize if k != "values"]
+                if mi_keys:
+                    raise ValueError(
+                        f"cannot use min_itemsize keys {mi_keys} on axis "
+                        f"[{axis}] with a MultiIndex; per-column "
+                        "min_itemsize requires data_columns, which are not "
+                        "supported with MultiIndex columns. Use "
+                        "min_itemsize={'values': N} to apply a single "
+                        "min_itemsize across all string columns."
+                    )
 
         # evaluate the passed data_columns, True == use all columns
         # take only valid axis labels
@@ -5457,7 +5528,10 @@ def _unconvert_string_array(
     Parameters
     ----------
     data : np.ndarray[fixed-length-string]
-    nan_rep : the storage repr of NaN
+    nan_rep : the storage repr of NaN, or None to skip substitution.
+        Pass None when the writer did not encode NaN as a sentinel string
+        (e.g. for string indices); otherwise legitimate occurrences of the
+        sentinel value would be incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -5483,10 +5557,8 @@ def _unconvert_string_array(
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
-    if nan_rep is None:
-        nan_rep = "nan"
-
-    libwriters.string_array_replace_from_nan_rep(data, nan_rep)
+    if nan_rep is not None:
+        libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 

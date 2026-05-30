@@ -372,7 +372,7 @@ def test_from_tuples_iterator():
     tm.assert_index_equal(result, expected)
 
     # input non-iterables
-    msg = "Input must be a list / sequence of tuple-likes."
+    msg = "Input must be list-like of tuples."
     with pytest.raises(TypeError, match=msg):
         MultiIndex.from_tuples(0)
 

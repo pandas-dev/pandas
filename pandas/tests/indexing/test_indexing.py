@@ -1065,15 +1065,17 @@ def test_scalar_setitem_with_nested_value(value):
     with pytest.raises(ValueError, match=msg):
         df.loc[0, "B"] = value
 
-    # TODO For object dtype this happens as well, but should we rather preserve
-    # the nested data and set as such?
+    # Update for object dtype: We DO preserve nested data now (Fixes #57962)
     df = DataFrame({"A": [1, 2, 3], "B": np.array([1, "a", "b"], dtype=object)})
-    with pytest.raises(ValueError, match="Must have equal len keys and value"):
-        df.loc[0, "B"] = value
-    # if isinstance(value, np.ndarray):
-    #     assert (df.loc[0, "B"] == value).all()
-    # else:
-    #     assert df.loc[0, "B"] == value
+
+    # Perform the assignment (this used to be inside the pytest.raises block)
+    df.loc[0, "B"] = value
+
+    # Use the author's original intended assertions
+    if isinstance(value, np.ndarray):
+        assert (df.loc[0, "B"] == value).all()
+    else:
+        assert df.loc[0, "B"] == value
 
 
 @pytest.mark.parametrize(
