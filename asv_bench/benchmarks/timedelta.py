@@ -46,10 +46,13 @@ class TimedeltaComponents:
         self.series.dt.days
 
     def time_seconds(self, backend):
-        self.series.dt.components.seconds
+        self.series.dt.seconds
 
     def time_microseconds(self, backend):
-        self.series.dt.components.microseconds
+        self.series.dt.microseconds
+
+    def time_nanoseconds(self, backend):
+        self.series.dt.nanoseconds
 
     def time_components(self, backend):
         self.series.dt.components
