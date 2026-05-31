@@ -1394,9 +1394,9 @@ int to_boolean(const char *item, uint8_t *val) {
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error,
-                       int *maybe_int) {
+double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
+                                char sci, char tsep, int skip_trailing,
+                                int *error, int *maybe_int, const char *end) {
   // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
   if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
@@ -1413,10 +1413,16 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL).
-    const char *end = p;
-    while (*end && !isspace_ascii(*end))
-      end++;
+    // Find end of token (next whitespace or NUL) unless the caller already
+    // knows it. read_csv threads in the tokenizer's word length, letting us
+    // skip this scan on the hot path; fast_float stops at the first
+    // non-numeric byte regardless, so a looser end bound is harmless.
+    if (end == NULL) {
+      const char *scan = p;
+      while (*scan && !isspace_ascii(*scan))
+        scan++;
+      end = scan;
+    }
 
     double value;
     const char *parsed_end;
@@ -1599,6 +1605,13 @@ fallback:
   if (endptr)
     *endptr = (char *)p;
   return number;
+}
+
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
+  return precise_xstrtod_with_end(str, endptr, decimal, sci, tsep,
+                                  skip_trailing, error, maybe_int, NULL);
 }
 
 // End of xstrtod code

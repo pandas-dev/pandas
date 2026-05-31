@@ -143,7 +143,7 @@ typedef struct parser_t {
   int64_t skip_first_N_rows;
   int64_t skip_footer;
   double (*double_converter)(const char *, char **, char, char, char, int,
-                             int *, int *);
+                             int *, int *, const char *);
 
   // error handling
   char *warn_msg;
@@ -223,4 +223,10 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
+// As precise_xstrtod, but the caller may pass the known end of the token
+// (one past its last byte) to skip the internal end-of-token scan; pass NULL
+// to have it located as usual.
+double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
+                                char tsep, int skip_trailing, int *error,
+                                int *maybe_int, const char *end);
 int to_boolean(const char *item, uint8_t *val);
