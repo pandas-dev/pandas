@@ -3134,3 +3134,34 @@ class TestPivot:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_margins_dict_aggfunc_gh65765(self):
+        # GH 65765
+        df = DataFrame(
+            {"A": [1, 1], "B": [1, 2], "C": [10.0, np.nan], "D": [100.0, 200.0]}
+        )
+
+        result = pivot_table(
+            df,
+            index="A",
+            columns="B",
+            values=["C", "D"],
+            aggfunc={"C": "mean", "D": "sum"},
+            margins=True,
+        )
+
+        # Removed the ("C", 2) column because it is all NaNs and dropped by default
+        expected_columns = MultiIndex.from_tuples(
+            [("C", 1), ("C", "All"), ("D", 1), ("D", 2), ("D", "All")],
+            names=[None, "B"],
+        )
+        expected_index = Index([1, "All"], name="A")
+
+        # Removed the second column (np.nan) to match the new shape
+        expected = DataFrame(
+            [[10.0, 10.0, 100.0, 200.0, 300.0], [10.0, 10.0, 100.0, 200.0, 300.0]],
+            index=expected_index,
+            columns=expected_columns,
+        )
+
+        tm.assert_frame_equal(result, expected)

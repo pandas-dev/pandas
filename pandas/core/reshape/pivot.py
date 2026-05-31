@@ -397,8 +397,12 @@ def __internal_pivot_table(
             table = table.astype(np.int64)
 
     if margins:
-        if dropna:
+        # Only do the blanket dropna if we are NOT using a dict of aggfuncs.
+        # If aggfunc is a dict, we need all the rows so each function can
+        # handle NaNs independently.
+        if dropna and not isinstance(aggfunc, dict):
             data = data[data.notna().all(axis=1)]
+
         table = _add_margins(
             table,
             data,
