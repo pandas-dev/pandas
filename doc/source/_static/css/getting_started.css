@@ -8,6 +8,7 @@
 .gs-data-title {
   align-items: center;
   font-size: 0.9rem;
+  color: var(--pst-color-text-base);
 }
 
 .gs-data-header {
@@ -16,6 +17,7 @@
 
 .gs-data-list {
   background-color: var(--pst-color-on-background);
+  color: var(--pst-color-text-base);
 }
 
 .gs-data-title .badge {
