@@ -1076,7 +1076,7 @@ def group_skew(
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
+                out[i, j] = calc_skew(nobs[i, j], mean[i, j], M2[i, j], M3[i, j])
                 if result_mask is not None and nobs[i, j] < 3:
                     result_mask[i, j] = 1
 
@@ -1148,7 +1148,7 @@ def group_kurt(
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
+                out[i, j] = calc_kurt(nobs[i, j], mean[i, j], M2[i, j], M4[i, j])
                 if result_mask is not None and nobs[i, j] < 4:
                     result_mask[i, j] = 1
 
