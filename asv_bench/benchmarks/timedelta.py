@@ -35,6 +35,11 @@ class DatetimeAccessor:
 class TimedeltaComponents:
     params = ["NumPy", "PyArrow"]
     param_names = ["backend"]
+    # number=1 so asv re-runs setup before every timed call. The PyArrow
+    # accessors cache ``_dt_day_remainder`` on the array; rebuilding the series
+    # each call keeps every measurement cold (no cache reuse) and keeps the
+    # NumPy/PyArrow comparison fair.
+    number = 1
 
     def setup(self, backend):
         N = 100000
