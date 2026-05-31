@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 
@@ -21,7 +23,7 @@ def _does_string_look_like_datetime(py_string: str) -> bool: ...
 def quarter_to_myear(year: int, quarter: int, freq: str) -> tuple[int, int]: ...
 def try_parse_dates(
     values: npt.NDArray[np.object_],  # object[:]
-    parser,
+    parser: Callable[[Any], Any],
 ) -> npt.NDArray[np.object_]: ...
 def guess_datetime_format(
     dt_str: str,

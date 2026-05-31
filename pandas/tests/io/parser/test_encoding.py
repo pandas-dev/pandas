@@ -205,8 +205,11 @@ def test_encoding_temp_file(
     encoding = encoding_fmt.format(utf_value)
 
     if parser.engine == "pyarrow" and pass_encoding is True and utf_value in [16, 32]:
-        # FIXME: this is bad!
-        pytest.skip("These cases freeze")
+        # GH#24130: pyarrow's CSV reader splits the input into byte-blocks
+        # before decoding, which corrupts multi-byte utf-16/utf-32 sequences
+        # (raises "straddling object straddles two block boundaries"). The
+        # error path is slow (~9s per case), so skip rather than xfail.
+        pytest.skip("pyarrow utf-16/32 block-boundary error is slow to surface")
 
     expected = DataFrame({"foo": ["bar"]})
 

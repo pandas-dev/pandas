@@ -736,6 +736,286 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
 
 
 # ----------------------------------------------------------------------
+# Rolling covariance
+
+
+cdef float64_t calc_cov(
+    float64_t nobs,
+    int ddof,
+    float64_t ssqdm_xy,
+) noexcept nogil:
+    if nobs <= ddof:
+        return NaN
+
+    return ssqdm_xy / (nobs - <float64_t>ddof)
+
+
+cdef void add_cov(
+    float64_t val_x,
+    float64_t val_y,
+    float64_t *nobs,
+    float64_t *mean_x,
+    float64_t *mean_y,
+    float64_t *ssqdm_xy,
+    bint *numerically_unstable,
+) noexcept nogil:
+    """ add a value from the cov calc """
+    cdef:
+        float64_t dx, dy, old_ssqdm_xy
+
+    if val_x != val_x or val_y != val_y:
+        return
+
+    nobs[0] += 1
+    old_ssqdm_xy = ssqdm_xy[0]
+
+    dx = val_x - mean_x[0]
+    dy = val_y - mean_y[0]
+    mean_x[0] += dx / nobs[0]
+    mean_y[0] += dy / nobs[0]
+    ssqdm_xy[0] += (val_x - mean_x[0]) * dy
+
+    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+        # possible catastrophic cancellation
+        numerically_unstable[0] = True
+
+
+cdef void remove_cov(
+    float64_t val_x,
+    float64_t val_y,
+    float64_t *nobs,
+    float64_t *mean_x,
+    float64_t *mean_y,
+    float64_t *ssqdm_xy,
+    bint *numerically_unstable,
+) noexcept nogil:
+    """ remove a value from the cov calc """
+    cdef:
+        float64_t dx, dy, old_ssqdm_xy
+
+    if val_x != val_x or val_y != val_y:
+        return
+
+    old_ssqdm_xy = ssqdm_xy[0]
+    dx = val_x - mean_x[0]
+    dy = val_y - mean_y[0]
+
+    nobs[0] -= 1
+    mean_x[0] -= dx / nobs[0]
+    mean_y[0] -= dy / nobs[0]
+    ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
+
+    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+        # possible catastrophic cancellation
+        numerically_unstable[0] = True
+
+
+def roll_cov(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,
+             ndarray[int64_t] end, int64_t minp, int ddof=1) -> np.ndarray:
+    cdef:
+        float64_t mean_x, mean_y, ssqdm_xy, nobs
+        int64_t s, e
+        Py_ssize_t i, j, N = len(start)
+        ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable = False
+
+    minp = max(minp, 1)
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    output = np.empty(N, dtype=np.float64)
+
+    with nogil:
+
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
+
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
+
+            if not requires_recompute:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    remove_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
+                               &numerically_unstable)
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    add_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
+                            &numerically_unstable)
+
+            if requires_recompute or numerically_unstable:
+                mean_x = mean_y = ssqdm_xy = nobs = 0
+                for j in range(s, e):
+                    add_cov(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
+                            &numerically_unstable)
+                numerically_unstable = False
+
+            output[i] = NaN if nobs < minp else calc_cov(nobs, ddof, ssqdm_xy)
+
+            if not is_monotonic_increasing_bounds:
+                nobs = 0.0
+                mean_x = mean_y = ssqdm_xy = 0.0
+
+    return output
+
+
+# ----------------------------------------------------------------------
+# Rolling correlation
+
+
+cdef float64_t calc_corr(
+    float64_t nobs,
+    float64_t ssqdm_xy,
+    float64_t ssqdm_x,
+    float64_t ssqdm_y,
+) noexcept nogil:
+    cdef float64_t den, val
+    if nobs <= 0.0 or ssqdm_x == 0.0 or ssqdm_y == 0.0:
+        return NaN
+
+    den = (ssqdm_x * ssqdm_y) ** 0.5
+    val = ssqdm_xy / den
+
+    if val > 1.0:
+        val = 1.0
+    elif val < -1.0:
+        val = -1.0
+    return val
+
+
+cdef void add_corr(
+    float64_t val_x,
+    float64_t val_y,
+    float64_t *nobs,
+    float64_t *mean_x,
+    float64_t *mean_y,
+    float64_t *ssqdm_xy,
+    float64_t *ssqdm_x,
+    float64_t *ssqdm_y,
+    bint *numerically_unstable,
+) noexcept nogil:
+    """ add a value from the corr calc """
+    cdef:
+        float64_t dx, dy, old_ssqdm_xy
+
+    if val_x != val_x or val_y != val_y:
+        return
+
+    nobs[0] += 1
+    old_ssqdm_xy = ssqdm_xy[0]
+
+    dx = val_x - mean_x[0]
+    dy = val_y - mean_y[0]
+    mean_x[0] += dx / nobs[0]
+    mean_y[0] += dy / nobs[0]
+    ssqdm_xy[0] += (val_x - mean_x[0]) * dy
+    ssqdm_x[0] += (val_x - mean_x[0]) * dx
+    ssqdm_y[0] += (val_y - mean_y[0]) * dy
+
+    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+        # possible catastrophic cancellation
+        numerically_unstable[0] = True
+
+
+cdef void remove_corr(
+    float64_t val_x,
+    float64_t val_y,
+    float64_t *nobs,
+    float64_t *mean_x,
+    float64_t *mean_y,
+    float64_t *ssqdm_xy,
+    float64_t *ssqdm_x,
+    float64_t *ssqdm_y,
+    bint *numerically_unstable,
+) noexcept nogil:
+    """ remove a value from the corr calc """
+    cdef:
+        float64_t dx, dy, old_ssqdm_xy
+
+    if val_x != val_x or val_y != val_y:
+        return
+
+    old_ssqdm_xy = ssqdm_xy[0]
+    dx = val_x - mean_x[0]
+    dy = val_y - mean_y[0]
+
+    nobs[0] -= 1
+    mean_x[0] -= dx / nobs[0]
+    mean_y[0] -= dy / nobs[0]
+    ssqdm_xy[0] -= (val_x - mean_x[0]) * dy
+    ssqdm_x[0] -= (val_x - mean_x[0]) * dx
+    ssqdm_y[0] -= (val_y - mean_y[0]) * dy
+
+    if fabs(old_ssqdm_xy) * InvCondTol > fabs(ssqdm_xy[0]):
+        # possible catastrophic cancellation
+        numerically_unstable[0] = True
+
+
+def roll_corr(const float64_t[:] x, const float64_t[:] y, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+    cdef:
+        float64_t mean_x, mean_y, ssqdm_xy, ssqdm_x, ssqdm_y, nobs
+        int64_t s, e
+        Py_ssize_t i, j, N = len(start)
+        ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable = False
+
+    minp = max(minp, 1)
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    output = np.empty(N, dtype=np.float64)
+
+    with nogil:
+
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
+
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
+
+            if not requires_recompute:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    remove_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
+                                &ssqdm_x, &ssqdm_y, &numerically_unstable)
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    add_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
+                             &ssqdm_x, &ssqdm_y, &numerically_unstable)
+
+            if requires_recompute or numerically_unstable:
+                mean_x = mean_y = ssqdm_xy = ssqdm_x = ssqdm_y = nobs = 0
+                for j in range(s, e):
+                    add_corr(x[j], y[j], &nobs, &mean_x, &mean_y, &ssqdm_xy,
+                             &ssqdm_x, &ssqdm_y, &numerically_unstable)
+                numerically_unstable = False
+
+            output[i] = (
+                NaN if nobs < minp
+                else calc_corr(nobs, ssqdm_xy, ssqdm_x, ssqdm_y)
+            )
+
+            if not is_monotonic_increasing_bounds:
+                nobs = 0.0
+                mean_x = mean_y = ssqdm_xy = ssqdm_x = ssqdm_y = 0.0
+
+    return output
+
+
+# ----------------------------------------------------------------------
 # Rolling median, min, max
 
 
