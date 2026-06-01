@@ -654,10 +654,8 @@ def test_numpy_random_permute(dtype, box):
 
 def test_sort_unique_result(dtype):
     # https://github.com/pandas-dev/pandas/issues/64977
-    entries = [{"name": "Bob", "age": 30}, {"name": "Alice", "age": 25}]
-    df = pd.DataFrame(entries)
-    with pd.option_context("mode.string_storage", dtype.storage):
-        unique_names = df["name"].astype(dtype).unique()
+    arr = pd.array(["Bob", "Alice", "Bob"], dtype=dtype)
+    unique_names = arr.unique()
     unique_names.sort()
     expected = pd.array(["Alice", "Bob"], dtype=dtype)
     tm.assert_extension_array_equal(unique_names, expected)
