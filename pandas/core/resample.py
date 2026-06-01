@@ -2698,20 +2698,26 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
+        rule = self.freq.rule_code
+        rule_prefix = rule.split("-")[0]
+        adjust_to_day_end = rule in ("BME", "CBME", "ME", "W") or rule_prefix in (
             "BQE",
             "BYE",
             "QE",
+            "SME",
             "YE",
             "W",
-        ):
+        )
+
+        if rule == "C" and self.label == "right":
+            adjust_to_day_end = True
+
+        if self.closed == "right":
             # If the right end-point is on the last day of the month, roll forwards
             # until the last moment of that day. Note that we only do this for offsets
             # which correspond to the end of a super-daily period - "month start", for
             # example, is excluded.
-            if self.closed == "right":
+            if adjust_to_day_end:
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
@@ -2723,8 +2729,8 @@ class TimeGrouper(Grouper):
             else:
                 bin_edges = binner.asi8
 
-            # intraday values on last day
-            if bin_edges[-2] > ax_values.max():
+            # trim a trailing empty bin from right-closed grids
+            if len(bin_edges) >= 2 and bin_edges[-2] >= ax_values.max():
                 bin_edges = bin_edges[:-1]
                 binner = binner[:-1]
         else:

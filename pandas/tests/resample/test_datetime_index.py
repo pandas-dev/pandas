@@ -637,7 +637,7 @@ def test_resample_reresample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
-    assert len(result) == 25
+    assert len(result) == 22
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
 
@@ -2131,6 +2131,66 @@ def test_resample_b_55282(unit):
         index=exp_dti,
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_custom_business_day_right_labeled_65740(unit):
+    # https://github.com/pandas-dev/pandas/issues/65740
+    cbd = offsets.CustomBusinessDay(holidays=["2022-11-24"])
+    dti = DatetimeIndex(
+        [
+            "2022-11-22",
+            "2022-11-23",
+            "2022-11-25",
+            "2022-11-28",
+            "2022-11-29",
+        ]
+    ).as_unit(unit)
+    df = DataFrame({"x": [1, 2, 3, 4, 5]}, index=dti)
+
+    result = df.resample(cbd, closed="right", label="right").last()
+
+    exp_dti = DatetimeIndex(
+        [
+            "2022-11-22",
+            "2022-11-23",
+            "2022-11-25",
+            "2022-11-28",
+            "2022-11-29",
+        ],
+        freq=cbd,
+    ).as_unit(unit)
+    expected = DataFrame({"x": [1, 2, 3, 4, 5]}, index=exp_dti)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_custom_business_day_right_labeled_intraday_65740(unit):
+    # https://github.com/pandas-dev/pandas/issues/65740
+    cbd = offsets.CustomBusinessDay(holidays=["2022-11-24"])
+    dti = DatetimeIndex(
+        [
+            "2022-11-21 16:00",
+            "2022-11-22 16:00",
+            "2022-11-23 16:00",
+            "2022-11-25 16:00",
+            "2022-11-28 16:00",
+        ]
+    ).as_unit(unit)
+    df = DataFrame({"x": [1, 2, 3, 4, 5]}, index=dti)
+
+    result = df.resample(cbd, closed="right", label="right").last()
+
+    exp_dti = DatetimeIndex(
+        [
+            "2022-11-21",
+            "2022-11-22",
+            "2022-11-23",
+            "2022-11-25",
+            "2022-11-28",
+        ],
+        freq=cbd,
+    ).as_unit(unit)
+    expected = DataFrame({"x": [1, 2, 3, 4, 5]}, index=exp_dti)
+    tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_no("pyarrow")
