@@ -182,6 +182,12 @@ def _p_tz_cache_key(tz: tzinfo):
 # Timezone data caches, key is the pytz string or dateutil file name.
 dst_cache = {}
 
+# Cache of whether a ZoneInfo (keyed by its IANA key) is a fixed-offset zone.
+# Computing this requires constructing the pure-Python ZoneInfo to read its
+# private ``_fixed_offset`` attribute, which is comparatively expensive; the
+# answer never changes for a given key, so we memoize it.
+_zoneinfo_fixed_offset_cache = {}
+
 
 cdef object tz_cache_key(tzinfo tz):
     """
@@ -242,11 +248,13 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
+        cached = _zoneinfo_fixed_offset_cache.get(tz.key, -1)
+        if cached != -1:
+            return cached
         tz_py = _ZoneInfo(tz.key)
-        if tz_py._fixed_offset:
-            return 1
-        else:
-            return 0
+        result = 1 if tz_py._fixed_offset else 0
+        _zoneinfo_fixed_offset_cache[tz.key] = result
+        return result
     # This also implicitly accepts datetime.timezone objects which are
     # considered fixed
     return 1
