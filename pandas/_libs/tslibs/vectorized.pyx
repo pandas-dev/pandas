@@ -128,7 +128,7 @@ def ints_to_pydatetime(
         assert (tz is None), "tz should be None when converting to date"
 
     if stamps.size == 0:
-        # Avoid the cost of initializing Localizer when there's nothing to do.
+        # Avoid the cost of initializing Localizer
         return cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_OBJECT, 0)
 
     cdef:
@@ -229,7 +229,7 @@ def get_resolution(
 ) -> Resolution:
     # stamps is int64_t, any ndim
     if stamps.size == 0:
-        # Avoid the cost of initializing Localizer when there's nothing to do.
+        # Avoid the cost of initializing Localizer
         return Resolution(c_Resolution.RESO_DAY)
 
     cdef:
@@ -286,7 +286,7 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
     result : int64 ndarray of converted of normalized nanosecond timestamps
     """
     if stamps.size == 0:
-        # Avoid the cost of initializing Localizer when there's nothing to do.
+        # Avoid the cost of initializing Localizer
         return cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
 
     cdef:
@@ -341,7 +341,7 @@ def is_date_array_normalized(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -
     is_normalized : bool True if all stamps are normalized
     """
     if stamps.size == 0:
-        # Avoid the cost of initializing Localizer when there's nothing to do.
+        # Avoid the cost of initializing Localizer
         return True
 
     cdef:
@@ -376,7 +376,7 @@ def dt64arr_to_periodarr(
 ):
     # stamps is int64_t, arbitrary ndim
     if stamps.size == 0:
-        # Avoid the cost of initializing Localizer when there's nothing to do.
+        # Avoid the cost of initializing Localizer
         return cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
 
     cdef:
