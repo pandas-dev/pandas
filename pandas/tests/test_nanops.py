@@ -1246,6 +1246,44 @@ def test_nanops_independent_of_mask_param(operation):
     assert median_expected == median_result
 
 
+def test_nansem_mask_skipna_false_axis_returns_array():
+    # GH#65373
+    rng = np.random.default_rng(2)
+    n = 5
+    values = rng.standard_normal((n, n))
+    np.fill_diagonal(values, np.nan)
+
+    mask = np.zeros((n, n), dtype=bool)
+    for i in range(n):
+        mask[i, (i + 1) % n] = True
+
+    expected = np.full(n, np.nan)
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=1)
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=None)
+    assert np.isnan(result)
+
+    values_no_nan = rng.standard_normal((n, n))
+    result_skipna = nanops.nansem(values_no_nan, mask=mask, skipna=True, axis=0)
+    assert result_skipna.shape == (n,)
+    assert not np.any(np.isnan(result_skipna))
+
+    values_partial = rng.standard_normal((n, n))
+    values_partial[0, 0] = np.nan
+    mask_partial = np.zeros((n, n), dtype=bool)
+    mask_partial[0, 1] = True
+
+    result = nanops.nansem(values_partial, mask=mask_partial, skipna=False, axis=0)
+    assert np.isnan(result[0])
+    assert not np.isnan(result[1])
+    assert not np.any(np.isnan(result[2:]))
+
+
 @pytest.mark.parametrize("min_count", [-1, 0])
 def test_check_below_min_count_negative_or_zero_min_count(min_count):
     # GH35227
