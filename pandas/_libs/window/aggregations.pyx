@@ -603,7 +603,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
 
                 numerically_unstable = False
 
-            output[i] = NaN if nobs < minp else calc_skew(nobs, mean, m2, m3)
+            output[i] = NaN if nobs < minp else calc_skew(nobs, m2, m3)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -723,7 +723,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
                     add_kurt(values[j], &nobs, &mean, &m2, &m3, &m4,
                              &numerically_unstable)
 
-            output[i] = NaN if nobs < minp else calc_kurt(nobs, mean, m2, m4)
+            output[i] = NaN if nobs < minp else calc_kurt(nobs, m2, m4)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0

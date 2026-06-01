@@ -1,6 +1,5 @@
 cimport cython
 from cython cimport size_t
-from libc.float cimport DBL_EPSILON
 from libc.math cimport (
     NAN,
     sqrt,
@@ -71,15 +70,12 @@ cdef extern from "pandas/moments.h":
 
 @cython.cdivision(True)
 cdef inline float64_t calc_skew(
-    int64_t nobs, float64_t mean, float64_t m2, float64_t m3
+    int64_t nobs, float64_t m2, float64_t m3
 ) noexcept nogil:
     cdef:
         float64_t moments_ratio, correction, dnobs
 
     if nobs < 3:
-        return NAN
-
-    if m2 < nobs * (DBL_EPSILON * DBL_EPSILON * mean * mean):
         return NAN
 
     dnobs = <float64_t>nobs
@@ -91,7 +87,7 @@ cdef inline float64_t calc_skew(
 
 @cython.cdivision(True)
 cdef inline float64_t calc_kurt(
-    int64_t nobs, float64_t mean, float64_t m2, float64_t m4
+    int64_t nobs, float64_t m2, float64_t m4
 ) noexcept nogil:
     cdef:
         float64_t result, dnobs, term1, term2, inner, correction
@@ -99,10 +95,6 @@ cdef inline float64_t calc_kurt(
 
     if nobs < 4:
         return NAN
-
-    if m2 < nobs * (DBL_EPSILON * DBL_EPSILON * mean * mean):
-        return NAN
-
     dnobs = <float64_t>nobs
     moments_ratio = m4 / (m2 * m2)
     term1 = dnobs * (dnobs + 1.0) * moments_ratio

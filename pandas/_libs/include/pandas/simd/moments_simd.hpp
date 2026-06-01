@@ -21,13 +21,13 @@ namespace pandas::moments {
 
 namespace detail {
 
-struct FirstPassAcc {
-  double sum{};
-  std::size_t count{};
+template <typename T, typename U> struct FirstPassAcc {
+  T sum{};
+  U count{};
 };
 
-struct SecondPassAcc {
-  double m1, m2, m3, m4;
+template <typename T> struct SecondPassAcc {
+  T m1{}, m2{}, m3{}, m4{};
 };
 
 /// Compute Moments struct using two-pass
@@ -39,8 +39,9 @@ struct SecondPassAcc {
 /// and online computation of higher-order multivariate central moments with
 /// arbitrary weights. Comput. Stat., 31(4), 1305–1325.
 /// https://doi.org/10.1007/s00180-015-0637-z
-inline Moments compute_moments_with_correction(FirstPassAcc total_acc,
-                                               SecondPassAcc central_diffs) {
+inline Moments
+compute_moments_with_correction(FirstPassAcc<double, std::size_t> total_acc,
+                                SecondPassAcc<double> central_diffs) {
   const auto count_double = static_cast<double>(total_acc.count);
   const double trial_mean = total_acc.sum / count_double;
   const double mean = trial_mean + (central_diffs.m1 / count_double);
@@ -59,29 +60,150 @@ inline Moments compute_moments_with_correction(FirstPassAcc total_acc,
   return {.mean = mean, .m2 = m2, .m3 = m3, .m4 = m4, .n = total_acc.count};
 }
 
+template <class Arch>
+std::optional<
+    FirstPassAcc<xsimd::batch<double, Arch>, xsimd::batch<std::uint64_t, Arch>>>
+accumulate_first_pass_internal(std::span<const double> values, bool skipna) {
+  using batch_type = xsimd::batch<double, Arch>;
+  constexpr std::size_t step = batch_type::size;
+  constexpr std::size_t leaf_size = 128 * step;
+
+  assert(values.size() % step == 0);
+
+  if (values.size() <= leaf_size) {
+    xsimd::batch<std::uint64_t, Arch> vec_count{};
+    batch_type vec_sum{};
+    for (std::size_t i = 0; i < values.size(); i += step) {
+      const auto val = xsimd::load_unaligned(&values[i]);
+      const xsimd::batch_bool<double, Arch> isna = xsimd::isnan(val);
+
+      if (!skipna && xsimd::any(isna)) {
+        return std::nullopt;
+      }
+
+      vec_count = xsimd::incr_if(vec_count,
+                                 xsimd::batch_bool_cast<uint64_t, double, Arch>(
+                                     xsimd::bitwise_not(isna)));
+      vec_sum += xsimd::select(isna, batch_type(0), val);
+    }
+    return FirstPassAcc{.sum = vec_sum, .count = vec_count};
+  }
+
+  const std::size_t mid = (values.size() / 2 / step) * step;
+
+  const auto left =
+      accumulate_first_pass_internal<Arch>(values.first(mid), skipna);
+  if (!left) {
+    return std::nullopt;
+  }
+
+  const auto right = accumulate_first_pass_internal<Arch>(
+      values.last(values.size() - mid), skipna);
+  if (!right) {
+    return std::nullopt;
+  }
+
+  return FirstPassAcc{.sum = left->sum + right->sum,
+                      .count = left->count + right->count};
+}
+
+template <class Arch>
+std::optional<
+    FirstPassAcc<xsimd::batch<double, Arch>, xsimd::batch<std::uint64_t, Arch>>>
+accumulate_first_pass_internal(std::span<const double> values,
+                               std::span<const uint8_t> mask, bool skipna) {
+  using value_batch_type = xsimd::batch<double, Arch>;
+  using mask_batch_type = xsimd::batch<uint8_t, Arch>;
+  constexpr std::size_t mask_step = mask_batch_type::size;
+  constexpr std::size_t value_step = value_batch_type::size;
+
+  // Use multiple accumulators to increase throughput.
+  constexpr std::size_t naccumulators = 4;
+  constexpr std::size_t leaf_size = 128 * naccumulators * value_step;
+  static_assert(leaf_size % mask_step == 0);
+
+  assert(values.size() == mask.size());
+  assert(values.size() % mask_step == 0);
+
+  if (values.size() <= leaf_size) {
+    std::array<value_batch_type, naccumulators> sum{};
+    xsimd::batch<std::uint64_t, Arch> count{};
+
+    for (std::size_t i = 0; i < values.size(); i += mask_step) {
+      const auto vector_mask = xsimd::load_unaligned(&mask[i]);
+      const typename mask_batch_type::batch_bool_type isna =
+          vector_mask != mask_batch_type(0);
+
+      if (!skipna && xsimd::any(isna)) {
+        return std::nullopt;
+      }
+
+      const auto isna_bitmask = isna.mask();
+      if (isna_bitmask == 0) {
+        for (std::size_t j = 0; j < mask_step;
+             j += naccumulators * value_step) {
+          for (std::size_t k = 0; k < naccumulators; k++) {
+            sum[k] += xsimd::load_unaligned(&values[i + j + (k * value_step)]);
+          }
+        }
+
+        count += xsimd::batch<std::uint64_t, Arch>(8);
+        continue;
+      }
+
+      constexpr uint64_t batch_mask = (1ULL << value_step) - 1;
+      for (std::size_t j = 0; j < mask_step; j += naccumulators * value_step) {
+        for (std::size_t k = 0; k < naccumulators; k++) {
+          std::size_t idx = j + (k * value_step);
+          const std::uint64_t batch_isna_bitmask =
+              (isna_bitmask >> idx) & batch_mask;
+
+          const auto isna_batch =
+              xsimd::batch_bool<uint64_t, Arch>::from_mask(batch_isna_bitmask);
+          const auto val = xsimd::load_unaligned(&values[i + idx]);
+
+          count = xsimd::incr_if(count, !isna_batch);
+          sum[k] += xsimd::select(
+              xsimd::batch_bool_cast<double, uint64_t, Arch>(isna_batch),
+              value_batch_type(0), val);
+        }
+      }
+    }
+
+    for (std::size_t k = naccumulators / 2; k > 0; k /= 2) {
+      for (std::size_t i = 0; i < k; i++) {
+        sum[i] += sum[i + k];
+      }
+    }
+
+    return FirstPassAcc{.sum = sum[0], .count = count};
+  }
+
+  const std::size_t mid = (values.size() / 2 / mask_step) * mask_step;
+  const auto left = accumulate_first_pass_internal<Arch>(
+      values.first(mid), mask.first(mid), skipna);
+  if (!left)
+    return std::nullopt;
+  const auto right = accumulate_first_pass_internal<Arch>(
+      values.last(values.size() - mid), mask.last(mask.size() - mid), skipna);
+  if (!right)
+    return std::nullopt;
+
+  return FirstPassAcc{left->sum + right->sum, left->count + right->count};
+}
+
 // TODO: use std::expected when we start to use c++23
 template <class Arch>
-std::optional<FirstPassAcc>
+std::optional<FirstPassAcc<double, std::size_t>>
 accumulate_first_pass(std::span<const double> values, bool skipna) {
   using batch_type = xsimd::batch<double, Arch>;
   constexpr std::size_t step = batch_type::size;
-  const std::size_t tail_size = values.size() % step;
-  const std::size_t vec_size = values.size() - tail_size;
+  const std::size_t vec_size = (values.size() / step) * step;
 
-  xsimd::batch<std::uint64_t, Arch> vec_count{};
-  batch_type vec_sum{};
-  for (std::size_t i = 0; i < vec_size; i += step) {
-    const auto val = xsimd::load_unaligned(&values[i]);
-    const xsimd::batch_bool<double, Arch> isna = xsimd::isnan(val);
-
-    if (!skipna && xsimd::any(isna)) {
-      return std::nullopt;
-    }
-
-    vec_count = xsimd::incr_if(vec_count,
-                               xsimd::batch_bool_cast<uint64_t, double, Arch>(
-                                   xsimd::bitwise_not(isna)));
-    vec_sum += xsimd::select(isna, batch_type(0), val);
+  const auto vec_acc =
+      accumulate_first_pass_internal<Arch>(values.first(vec_size), skipna);
+  if (!vec_acc) {
+    return std::nullopt;
   }
 
   double tail_sum = 0.0;
@@ -101,79 +223,25 @@ accumulate_first_pass(std::span<const double> values, bool skipna) {
     tail_sum += val;
   }
 
-  const std::size_t count = xsimd::reduce_add(vec_count) + tail_count;
-  const double sum = xsimd::reduce_add(vec_sum) + tail_sum;
-  return FirstPassAcc{.sum = sum, .count = count};
+  return FirstPassAcc{.sum = xsimd::reduce_add(vec_acc->sum) + tail_sum,
+                      .count = xsimd::reduce_add(vec_acc->count) + tail_count};
 }
 
 template <class Arch>
-std::optional<FirstPassAcc>
+std::optional<FirstPassAcc<double, std::size_t>>
 accumulate_first_pass(std::span<const double> values,
                       std::span<const uint8_t> mask, bool skipna) {
   assert(values.size() == mask.size());
-  using value_batch_type = xsimd::batch<double, Arch>;
   using mask_batch_type = xsimd::batch<uint8_t, Arch>;
 
   constexpr std::size_t mask_step = mask_batch_type::size;
-  constexpr std::size_t value_step = value_batch_type::size;
-  constexpr std::size_t num_accumulators = mask_step / value_step;
 
-  const std::size_t tail_size = values.size() % mask_step;
-  const std::size_t vec_size = values.size() - tail_size;
+  const std::size_t vec_size = (values.size() / mask_step) * mask_step;
 
-  std::array<xsimd::batch<std::uint64_t, Arch>, num_accumulators> vec_counts{};
-  std::array<value_batch_type, num_accumulators> vec_sums{};
-
-  for (std::size_t i = 0; i < vec_size; i += mask_step) {
-    const auto vector_mask = xsimd::load_unaligned(&mask[i]);
-    const typename mask_batch_type::batch_bool_type isna =
-        vector_mask != mask_batch_type(0);
-
-    if (!skipna && xsimd::any(isna)) {
-      return std::nullopt;
-    }
-
-    const auto isna_bitmask = isna.mask();
-
-    if (isna_bitmask == 0) {
-      for (std::size_t k = 0; k < num_accumulators; ++k) {
-        vec_sums[k] += xsimd::load_unaligned(&values[i + (k * value_step)]);
-        vec_counts[k] = xsimd::incr(vec_counts[k]);
-      }
-      continue;
-    }
-
-    constexpr uint64_t all_na_mask = (1ULL << mask_step) - 1;
-    if (isna_bitmask == all_na_mask) {
-      continue;
-    }
-
-    constexpr uint64_t batch_mask = (1ULL << value_step) - 1;
-
-    static_assert(mask_step % value_step == 0);
-
-    for (std::size_t k = 0; k < num_accumulators; ++k) {
-      const std::size_t value_offset = k * value_step;
-      const std::uint64_t batch_isna_bitmask =
-          (isna_bitmask >> value_offset) & batch_mask;
-
-      const auto isna_batch =
-          xsimd::batch_bool<uint64_t, Arch>::from_mask(batch_isna_bitmask);
-      const auto val = xsimd::load_unaligned(&values[i + value_offset]);
-
-      vec_counts[k] = xsimd::incr_if(vec_counts[k], !isna_batch);
-      vec_sums[k] += xsimd::select(
-          xsimd::batch_bool_cast<double, uint64_t, Arch>(isna_batch),
-          value_batch_type(0), val);
-    }
-  }
-
-  // Reduce accumulators to the first one
-  for (std::size_t k = num_accumulators / 2; k > 0; k /= 2) {
-    for (std::size_t i = 0; i < k; ++i) {
-      vec_counts[i] += vec_counts[i + k];
-      vec_sums[i] += vec_sums[i + k];
-    }
+  const auto vec_acc = accumulate_first_pass_internal<Arch>(
+      values.first(vec_size), mask.first(vec_size), skipna);
+  if (!vec_acc) {
+    return std::nullopt;
   }
 
   double tail_sum = 0.0;
@@ -193,37 +261,116 @@ accumulate_first_pass(std::span<const double> values,
     tail_sum += val;
   }
 
-  const std::size_t count = xsimd::reduce_add(vec_counts[0]) + tail_count;
-  const double sum = xsimd::reduce_add(vec_sums[0]) + tail_sum;
-  return FirstPassAcc{.sum = sum, .count = count};
+  return FirstPassAcc{.sum = xsimd::reduce_add(vec_acc->sum) + tail_sum,
+                      .count = xsimd::reduce_add(vec_acc->count) + tail_count};
 }
 
 template <class Arch>
-SecondPassAcc accumulate_second_pass(std::span<const double> values,
-                                     double mean) {
+SecondPassAcc<xsimd::batch<double, Arch>>
+accumulate_second_pass_internal(std::span<const double> values,
+                                const xsimd::batch<double, Arch> &mean_vector) {
   using batch_type = xsimd::batch<double, Arch>;
   constexpr std::size_t step = batch_type::size;
-  const std::size_t tail_size = values.size() % step;
-  const std::size_t vec_size = values.size() - tail_size;
+  constexpr std::size_t leaf_size = 128 * step;
+
+  if (values.size() <= leaf_size) {
+    SecondPassAcc<xsimd::batch<double, Arch>> acc{};
+    for (std::size_t i = 0; i < values.size(); i += step) {
+      const auto val = xsimd::load_unaligned(&values[i]);
+      const auto isna = xsimd::isnan(val);
+
+      const auto diff = xsimd::select(isna, batch_type(0), val - mean_vector);
+      const auto diff2 = diff * diff;
+
+      acc.m1 += diff;
+      acc.m2 += diff2;
+      acc.m3 += diff2 * diff;
+      acc.m4 += diff2 * diff2;
+    }
+    return acc;
+  }
+
+  const std::size_t mid = (values.size() / 2 / step) * step;
+  const auto left =
+      accumulate_second_pass_internal<Arch>(values.first(mid), mean_vector);
+  const auto right = accumulate_second_pass_internal<Arch>(
+      values.last(values.size() - mid), mean_vector);
+
+  return SecondPassAcc{
+      .m1 = left.m1 + right.m1,
+      .m2 = left.m2 + right.m2,
+      .m3 = left.m3 + right.m3,
+      .m4 = left.m4 + right.m4,
+  };
+}
+
+template <class Arch>
+SecondPassAcc<xsimd::batch<double, Arch>>
+accumulate_second_pass_masked_internal(
+    std::span<const double> values, std::span<const uint8_t> mask,
+    const xsimd::batch<double, Arch> &mean_vector) {
+  using value_batch_type = xsimd::batch<double, Arch>;
+  using mask_batch_type = xsimd::batch<uint8_t, Arch>;
+  constexpr std::size_t mask_step = mask_batch_type::size;
+  constexpr std::size_t value_step = value_batch_type::size;
+  constexpr std::size_t leaf_size = 128 * mask_step;
+
+  if (values.size() <= leaf_size) {
+    SecondPassAcc<xsimd::batch<double, Arch>> acc{};
+    const uint64_t batch_mask = (1ULL << value_step) - 1;
+
+    for (std::size_t i = 0; i < values.size(); i += mask_step) {
+      const auto vector_mask = xsimd::load_unaligned(&mask[i]);
+      const typename mask_batch_type::batch_bool_type isna =
+          vector_mask != mask_batch_type(0);
+      const auto isna_bitmask = isna.mask();
+
+      for (std::size_t k = 0; k < mask_step; k += value_step) {
+        const std::uint64_t batch_isna_bitmask =
+            (isna_bitmask >> k) & batch_mask;
+        const auto isna_batch =
+            xsimd::batch_bool<double, Arch>::from_mask(batch_isna_bitmask);
+        const auto val = xsimd::load_unaligned(&values[i + k]);
+
+        const auto diff =
+            xsimd::select(isna_batch, value_batch_type(0), val - mean_vector);
+        const auto diff2 = diff * diff;
+
+        acc.m1 += diff;
+        acc.m2 += diff2;
+        acc.m3 += diff2 * diff;
+        acc.m4 += diff2 * diff2;
+      }
+    }
+    return acc;
+  }
+
+  const std::size_t mid = (values.size() / 2 / mask_step) * mask_step;
+  const auto left = accumulate_second_pass_masked_internal<Arch>(
+      values.first(mid), mask.first(mid), mean_vector);
+  const auto right = accumulate_second_pass_masked_internal<Arch>(
+      values.last(values.size() - mid), mask.last(values.size() - mid),
+      mean_vector);
+
+  return {
+      left.m1 + right.m1,
+      left.m2 + right.m2,
+      left.m3 + right.m3,
+      left.m4 + right.m4,
+  };
+}
+
+template <class Arch>
+SecondPassAcc<double> accumulate_second_pass(std::span<const double> values,
+                                             double mean) {
+  using batch_type = xsimd::batch<double, Arch>;
+  constexpr std::size_t step = batch_type::size;
+  const std::size_t vec_size = (values.size() / step) * step;
 
   batch_type mean_vector = xsimd::broadcast(mean);
 
-  batch_type m1_vector{};
-  batch_type m2_vector{};
-  batch_type m3_vector{};
-  batch_type m4_vector{};
-  for (std::size_t i = 0; i < vec_size; i += step) {
-    const auto val = xsimd::load_unaligned(&values[i]);
-    const auto isna = xsimd::isnan(val);
-
-    const auto diff = xsimd::select(isna, batch_type(0), val - mean_vector);
-    const auto diff2 = diff * diff;
-
-    m1_vector += diff;
-    m2_vector += diff2;
-    m3_vector += diff2 * diff;
-    m4_vector += diff2 * diff2;
-  }
+  const auto vec_acc = accumulate_second_pass_internal<Arch>(
+      values.first(vec_size), mean_vector);
 
   double tail_m1{};
   double tail_m2{};
@@ -247,56 +394,27 @@ SecondPassAcc accumulate_second_pass(std::span<const double> values,
     tail_m4 += diff2 * diff2;
   }
 
-  return {xsimd::reduce_add(m1_vector) + tail_m1,
-          xsimd::reduce_add(m2_vector) + tail_m2,
-          xsimd::reduce_add(m3_vector) + tail_m3,
-          xsimd::reduce_add(m4_vector) + tail_m4};
+  return {.m1 = xsimd::reduce_add(vec_acc.m1) + tail_m1,
+          .m2 = xsimd::reduce_add(vec_acc.m2) + tail_m2,
+          .m3 = xsimd::reduce_add(vec_acc.m3) + tail_m3,
+          .m4 = xsimd::reduce_add(vec_acc.m4) + tail_m4};
 }
 
 template <class Arch>
-SecondPassAcc accumulate_second_pass(std::span<const double> values,
-                                     std::span<const uint8_t> mask,
-                                     double mean) {
+SecondPassAcc<double> accumulate_second_pass(std::span<const double> values,
+                                             std::span<const uint8_t> mask,
+                                             double mean) {
   assert(values.size() == mask.size());
   using value_batch_type = xsimd::batch<double, Arch>;
   using mask_batch_type = xsimd::batch<uint8_t, Arch>;
   constexpr std::size_t mask_step = mask_batch_type::size;
-  constexpr std::size_t value_step = value_batch_type::size;
 
-  const std::size_t tail_size = values.size() % mask_step;
-  const std::size_t vec_size = values.size() - tail_size;
+  const std::size_t vec_size = (values.size() / mask_step) * mask_step;
 
   value_batch_type mean_vector = xsimd::broadcast(mean);
 
-  value_batch_type m1_vector{};
-  value_batch_type m2_vector{};
-  value_batch_type m3_vector{};
-  value_batch_type m4_vector{};
-  for (std::size_t i = 0; i < vec_size; i += mask_step) {
-    const auto vector_mask = xsimd::load_unaligned(&mask[i]);
-    const typename mask_batch_type::batch_bool_type isna =
-        vector_mask != mask_batch_type(0);
-
-    const auto isna_bitmask = isna.mask();
-    const uint64_t batch_mask = (1ULL << value_step) - 1;
-
-    static_assert(mask_step % value_step == 0);
-    for (std::size_t j = 0; j < mask_step; j += value_step) {
-      const std::uint64_t batch_isna_bitmask = (isna_bitmask >> j) & batch_mask;
-      const auto isna_batch =
-          xsimd::batch_bool<double, Arch>::from_mask(batch_isna_bitmask);
-      const auto val = xsimd::load_unaligned(&values[i + j]);
-
-      const auto diff =
-          xsimd::select(isna_batch, value_batch_type(0), val - mean_vector);
-      const auto diff2 = diff * diff;
-
-      m1_vector += diff;
-      m2_vector += diff2;
-      m3_vector += diff2 * diff;
-      m4_vector += diff2 * diff2;
-    }
-  }
+  const auto vec_acc = accumulate_second_pass_masked_internal<Arch>(
+      values.first(vec_size), mask.first(vec_size), mean_vector);
 
   double tail_m1{};
   double tail_m2{};
@@ -319,17 +437,16 @@ SecondPassAcc accumulate_second_pass(std::span<const double> values,
     tail_m4 += diff2 * diff2;
   }
 
-  return {xsimd::reduce_add(m1_vector) + tail_m1,
-          xsimd::reduce_add(m2_vector) + tail_m2,
-          xsimd::reduce_add(m3_vector) + tail_m3,
-          xsimd::reduce_add(m4_vector) + tail_m4};
+  return {.m1 = xsimd::reduce_add(vec_acc.m1) + tail_m1,
+          .m2 = xsimd::reduce_add(vec_acc.m2) + tail_m2,
+          .m3 = xsimd::reduce_add(vec_acc.m3) + tail_m3,
+          .m4 = xsimd::reduce_add(vec_acc.m4) + tail_m4};
 }
 
 template <class Arch>
 Moments accumulate_moments_simd_impl(std::span<const double> values,
                                      bool skipna) {
-  const std::optional<FirstPassAcc> total_acc_opt =
-      accumulate_first_pass<Arch>(values, skipna);
+  const auto total_acc_opt = accumulate_first_pass<Arch>(values, skipna);
   if (!total_acc_opt.has_value()) {
     return {.mean = NAN, .m2 = NAN, .m3 = NAN, .m4 = NAN, .n = values.size()};
   }
@@ -348,20 +465,18 @@ template <class Arch>
 Moments accumulate_moments_simd_impl(std::span<const double> values,
                                      std::span<const uint8_t> mask,
                                      bool skipna) {
-  const std::optional<FirstPassAcc> total_acc_opt =
-      accumulate_first_pass<Arch>(values, mask, skipna);
-  if (!total_acc_opt.has_value()) {
+  const auto total_acc = accumulate_first_pass<Arch>(values, mask, skipna);
+  if (!total_acc.has_value()) {
     return {.mean = NAN, .m2 = NAN, .m3 = NAN, .m4 = NAN, .n = values.size()};
   }
 
-  const auto total_acc = *total_acc_opt;
-  const auto count_double = static_cast<double>(total_acc.count);
-  double trial_mean = total_acc.sum / count_double;
+  const auto count_double = static_cast<double>(total_acc->count);
+  double trial_mean = total_acc->sum / count_double;
 
-  const SecondPassAcc central_diffs =
+  const SecondPassAcc<double> central_diffs =
       accumulate_second_pass<Arch>(values, mask, trial_mean);
 
-  return compute_moments_with_correction(total_acc, central_diffs);
+  return compute_moments_with_correction(*total_acc, central_diffs);
 }
 
 } // namespace detail
