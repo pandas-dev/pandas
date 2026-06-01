@@ -176,10 +176,16 @@ class TestDataFrameEval:
             columns={"b": "a"}
         )
 
-        result = df.eval("a == 1", engine=engine, parser=parser)
-        expected = pd.eval("a == 1", resolvers=(df,), engine=engine, parser=parser)
+        result_frame = df.eval("a == 1", engine=engine, parser=parser)
+        result_func = pd.eval("a == 1", resolvers=(df,), engine=engine, parser=parser)
 
-        tm.assert_frame_equal(result, expected)
+        expected = DataFrame(
+            [[False, False], [True, False], [False, False]],
+            columns=["a", "a"],
+        )
+
+        tm.assert_frame_equal(result_frame, expected)
+        tm.assert_frame_equal(result_func, expected)
 
     def test_eval_resolvers_as_list(self):
         # GH 14095
