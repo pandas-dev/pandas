@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from builtins import type as type_t  # pyright: ignore[reportUnusedImport]
+from builtins import type as type_t
 from collections.abc import (
     Callable,
     Hashable,
