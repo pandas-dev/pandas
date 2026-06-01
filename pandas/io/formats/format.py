@@ -1680,10 +1680,9 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         super().__init__(values, na_rep=na_rep, **kwargs)
 
     def _format_strings(self) -> list[str]:
-        if self.formatter is not None:
-            return [self.formatter(x) for x in self.values]
-
-        formatter = get_format_timedelta64(self.values, na_rep=self.na_rep, box=False)
+        formatter = self.formatter or get_format_timedelta64(
+            self.values, na_rep=self.na_rep, box=False
+        )
         return [formatter(x) for x in self.values]
 
 
@@ -1716,8 +1715,11 @@ def get_format_timedelta64(
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
             return na_rep
+
         if not isinstance(x, Timedelta):
             x = Timedelta(x)
+
+        # Timedelta._repr_base uses string formatting (faster than strftime)
         result = x._repr_base(format=format)
         if box:
             result = f"'{result}'"
