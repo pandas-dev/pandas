@@ -26,6 +26,7 @@ from pandas._config import is_nan_na
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
+    BaseOffset,
     Timedelta,
     Timestamp,
     timezones,
@@ -96,7 +97,6 @@ from pandas.core.nanops import check_below_min_count
 
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import DateOffset
 
 if HAS_PYARROW:
     import pyarrow as pa
@@ -1153,17 +1153,12 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
-        if isinstance(other, DateOffset) and pa.types.is_date(self._pa_array.type):
+        if isinstance(other, BaseOffset) and pa.types.is_date(self._pa_array.type):
             # Cast date32/date64 → timestamp, apply offset via DatetimeArray, cast back
             ts_array = type(self)(self._pa_array.cast(pa.timestamp("us")))
             dt_array = ts_array._to_datetimearray()
 
-            if op is operator.add:
-                shifted = dt_array + other
-            elif op is operator.sub:
-                shifted = dt_array - other
-            else:
-                raise TypeError(f"unsupported op {op} for DateOffset on date32/date64")
+            shifted = op(dt_array, other)
             if not shifted[~shifted.isna()].is_normalized:
                 raise TypeError(
                     f"DateOffset {other} is intra-day and cannot be "
@@ -1172,7 +1167,7 @@ class ArrowExtensionArray(
             result_pa = pa.array(shifted._ndarray, from_pandas=True).cast(
                 self._pa_array.type
             )
-            return type(self)(pa.chunked_array([result_pa]))
+            return self._from_pyarrow_array(result_pa)
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
