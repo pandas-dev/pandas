@@ -1665,9 +1665,7 @@ def test_mean_numeric_only_validates_bool():
         "prod",
     ],
 )
-def test_groupby_reductions_dont_skip_nan_with_mask(
-    method, skipna, using_nan_is_na, request
-):
+def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is_na):
     values = np.array([1.0, 2.0, 3.0, 4.0, np.nan], dtype="float64")
     mask = np.array([False, False, False, False, False], dtype="bool")
 
