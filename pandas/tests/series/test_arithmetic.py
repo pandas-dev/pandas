@@ -1117,7 +1117,7 @@ def test_comparison_mismatched_datetime_units(index):
     tm.assert_series_equal(result2, expected2)
 
 
-def test_arithmetic_with_incomparible_multiindex_deprecated(
+def test_arithmetic_with_incomparable_multiindex_deprecated(
     all_arithmetic_operators,
 ):
     # GH#25891
