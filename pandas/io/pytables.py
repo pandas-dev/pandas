@@ -2124,8 +2124,24 @@ class HDFStore:
 
         # remove the node if we are not appending
         if group is not None and not append:
-            self._handle.remove_node(group, recursive=True)
-            group = None
+            assert _table_mod is not None  # for mypy
+            children = list(group._v_children.values())
+            has_subgroups = any(
+                isinstance(child, _table_mod.group.Group) for child in children
+            )
+            if has_subgroups:
+                # GH#17267: the group has child keys nested underneath it, so a
+                # recursive removal would silently delete them.  Remove only the
+                # data nodes of the object stored at this key and reset its
+                # attributes, leaving the nested keys intact.
+                for child in children:
+                    if not isinstance(child, _table_mod.group.Group):
+                        self._handle.remove_node(child)
+                for attr_name in group._v_attrs._f_list("user"):
+                    delattr(group._v_attrs, attr_name)
+            else:
+                self._handle.remove_node(group, recursive=True)
+                group = None
 
         if group is None:
             group = self._create_nodes_and_group(key)

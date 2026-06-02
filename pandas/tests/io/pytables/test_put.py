@@ -124,6 +124,30 @@ def test_put(temp_hdfstore):
     tm.assert_frame_equal(df[:10], store["c"])
 
 
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_put_preserves_nested_keys(temp_hdfstore, format):
+    # GH#17267 writing to a key must not delete keys nested beneath it
+    store = temp_hdfstore
+    child = Series(np.arange(20, dtype=np.float64))
+    parent = Series(np.arange(10, dtype=np.float64))
+
+    store.put("All/atest", child, format=format, track_times=False)
+    store.put("All", parent, format=format, track_times=False)
+
+    assert sorted(store.keys()) == ["/All", "/All/atest"]
+    tm.assert_series_equal(store["All"], parent)
+    tm.assert_series_equal(store["All/atest"], child)
+
+    # overwriting the parent again (now a real object with a nested key, and
+    # changing dtype/shape) still leaves the nested key untouched
+    new_parent = DataFrame({"a": range(3), "b": list("xyz")})
+    store.put("All", new_parent, format=format, track_times=False)
+
+    assert sorted(store.keys()) == ["/All", "/All/atest"]
+    tm.assert_frame_equal(store["All"], new_parent)
+    tm.assert_series_equal(store["All/atest"], child)
+
+
 def test_put_string_index(temp_hdfstore):
     store = temp_hdfstore
     index = Index([f"I am a very long string index: {i}" for i in range(20)])
