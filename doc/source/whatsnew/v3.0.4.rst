@@ -21,6 +21,8 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`Series.str.__getitem__` raising ``AttributeError`` when underlying array is :class:`ArrowExtensionArray` (:issue:`65112`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_304.contributors:
