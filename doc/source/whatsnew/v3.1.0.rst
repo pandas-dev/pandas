@@ -413,6 +413,7 @@ Other
 ^^^^^
 
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+- Bug in :func:`testing.assert_series_equal` where ``check_exact`` was not passed through to the ExtensionArray comparison path, causing it to be silently ignored for ExtensionArray-backed Series (:issue:`XXXX`)
 
 .. ***DO NOT USE THIS SECTION***
 

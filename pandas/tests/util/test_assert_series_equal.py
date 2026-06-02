@@ -543,3 +543,20 @@ def test_assert_series_equal_int_near_bounds():
     msg = "Series are different"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(ser1, ser2)
+
+
+def test_assert_series_equal_check_exact_extension_array():
+    # GH#XXXX - check_exact was not being passed through to
+    # assert_extension_array_equal in the ExtensionArray exact comparison path.
+    # This caused check_exact=True to be silently ignored for float
+    # ExtensionArrays.
+    left = Series([1.0, 2.000001], dtype="Float64")
+    right = Series([1.0, 2.0], dtype="Float64")
+
+    # With check_exact=True, the difference should be caught
+    msg = "Series values are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_exact=True)
+
+    # Without check_exact, the default rtol should allow the small difference
+    tm.assert_series_equal(left, right, check_exact=False)

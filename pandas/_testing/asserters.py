@@ -1112,6 +1112,9 @@ def assert_series_equal(
                 check_dtype=check_dtype,
                 index_values=left.index,
                 obj=str(obj),
+                check_exact=check_exact,
+                rtol=rtol,
+                atol=atol,
             )
         else:
             # convert both to NumPy if not, check_dtype would raise earlier
