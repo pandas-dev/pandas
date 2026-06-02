@@ -167,6 +167,23 @@ def test_invalid_terms_reference(temp_h5_path):
         read_hdf(temp_h5_path, "dfq", where="A>0 or C>0")
 
 
+def test_select_too_many_conditions_raises(temp_hdfstore):
+    # GH#39752 a where with too many OR-ed terms over indexed columns hits
+    # numexpr's input limit; we should raise an actionable message rather than
+    # leak the opaque "too many inputs" ValueError.
+    n = 40  # > 31, the numexpr input limit for the indexed query path
+    df = DataFrame(
+        {"A": range(n)},
+        index=MultiIndex.from_arrays([["a"] * n, range(n)], names=("la", "lb")),
+    )
+    temp_hdfstore.put("df", df, format="table", track_times=False)
+
+    where = " | ".join(f"(la == 'a' & lb == {i})" for i in range(n))
+    msg = "too many OR-ed conditions"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=where)
+
+
 def test_append_with_diff_col_name_types_raises_value_error(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
     df2 = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})

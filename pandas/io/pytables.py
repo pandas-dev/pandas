@@ -5821,9 +5821,25 @@ class Selection:
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.read_where(
-                self.condition.format(), start=self.start, stop=self.stop
-            )
+            try:
+                return self.table.table.read_where(
+                    self.condition.format(), start=self.start, stop=self.stop
+                )
+            except ValueError as err:
+                # GH#39752 PyTables evaluates a query against indexed columns by
+                # combining one array per OR-ed term in a single numexpr call,
+                # which is capped at 31 inputs. Translate the opaque numexpr
+                # error into actionable guidance.
+                if "too many inputs" not in str(err):
+                    raise
+                raise ValueError(
+                    "The passed where expression has too many OR-ed conditions "
+                    "for a query against indexed columns; the underlying numexpr "
+                    "engine supports at most 31. Reduce the number of OR-ed "
+                    "conditions, or store the table with 'index=False' (e.g. "
+                    "DataFrame.to_hdf(..., index=False)) so the query does not "
+                    "use the column index."
+                ) from err
         elif self.coordinates is not None:
             return self.table.table.read_coordinates(self.coordinates)
         return self.table.table.read(start=self.start, stop=self.stop)
