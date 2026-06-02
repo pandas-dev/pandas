@@ -13937,7 +13937,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
 
-        Functions that accepts a Series will recieve each Series as a column
+        Functions that accepts a Series will receive each Series as a column
         if ``axis=0``. Otherwise, each Series will be passed as a row.
 
         Called functions are found according to the MRO of a DataFrame object,
