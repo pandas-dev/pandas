@@ -250,7 +250,15 @@ class BinOp(ops.BinOp):
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
-                result = -1
+                # GH#22977 the queried value is not one of the categories. In
+                # memory Categorical._cmp_method routes this through
+                # ops.invalid_comparison (== matches nothing, != matches
+                # everything). We reproduce that here as a condition on the
+                # stored codes: -2 can never equal a real code, and crucially is
+                # distinct from the -1 code marking missing (NaN) values, so the
+                # query does not incorrectly match NaN rows. -2 always fits the
+                # signed codes dtype (which holds -1 by construction).
+                result = -2
             else:
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
