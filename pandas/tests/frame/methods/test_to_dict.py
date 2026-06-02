@@ -271,6 +271,24 @@ class TestDataFrameToDict:
         expected = DataFrame.from_dict(expected, orient="index")[cols]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("into", [OrderedDict, defaultdict(dict)])
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame({"A": [1, 2], "B": ["x", "y"]}),  # mixed dtypes
+            DataFrame({"A": ["p", "q"], "B": ["x", "y"]}),  # all object dtypes
+            DataFrame({"A": [1, 2], "B": [3, 4]}),  # all numeric dtypes
+        ],
+    )
+    def test_to_dict_index_nested_into(self, df, into):
+        # GH#65778
+        # orient="index" must apply ``into`` to the nested row mappings too
+        result = df.to_dict(orient="index", into=into)
+        expected_type = type(into) if isinstance(into, defaultdict) else into
+        assert isinstance(result, expected_type)
+        for row in result.values():
+            assert isinstance(row, expected_type)
+
     def test_to_dict_numeric_names(self):
         # GH#24940
         df = DataFrame({str(i): [i] for i in range(5)})
