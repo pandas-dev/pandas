@@ -221,3 +221,21 @@ numpy array values are different \\(100.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_numpy_array_equal(a, b)
+
+
+def test_numpy_array_equal_check_class_ndarray_subclass():
+    # GH#65770 - check_class=False should allow ndarray subclasses
+    arr = np.array([1])
+
+    class OtherArray(np.ndarray):
+        pass
+
+    other = arr.view(OtherArray)
+
+    # With check_class=False, subclasses are allowed
+    tm.assert_numpy_array_equal(arr, other, check_class=False)
+
+    # With check_class=True (default), the class difference is caught
+    msg = "numpy array classes are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(arr, other, check_class=True)

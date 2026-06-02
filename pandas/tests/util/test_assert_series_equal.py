@@ -543,3 +543,24 @@ def test_assert_series_equal_int_near_bounds():
     msg = "Series are different"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(ser1, ser2)
+
+
+def test_assert_series_equal_ndarray_subclass_check_series_type():
+    # GH#65770 - assert_series_equal with check_series_type=False should
+    # not fail on ndarray subclass-backed Series
+    arr = np.array([1])
+
+    class OtherArray(np.ndarray):
+        pass
+
+    left = Series(arr)
+    right = Series(arr.view(OtherArray))
+
+    # Series are equal when check_series_type is False
+    assert left.equals(right)
+    tm.assert_series_equal(left, right, check_series_type=False)
+
+    # With check_series_type=True (default), the test should still catch
+    # real class differences
+    with pytest.raises(AssertionError, match="Series classes are different"):
+        tm.assert_series_equal(left, right, check_series_type=True)

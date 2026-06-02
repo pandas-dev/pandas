@@ -413,6 +413,8 @@ Other
 ^^^^^
 
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+- Bug in :func:`testing.assert_series_equal` where the ``check_series_type`` parameter was not respected for :class:`numpy.ndarray` subclass-backed Series in the exact comparison path (:issue:`65770`)
+- Added ``check_class`` parameter to :func:`testing.assert_numpy_array_equal` to allow skipping exact class comparison for :class:`numpy.ndarray` subclasses (:issue:`65770`)
 
 .. ***DO NOT USE THIS SECTION***
 
