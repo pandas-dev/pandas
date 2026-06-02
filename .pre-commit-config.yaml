@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
+    rev: v0.15.15
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -92,7 +92,7 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.4
+    rev: v22.1.5
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
@@ -186,12 +186,6 @@ repos:
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
-    -   id: seed-check-asv
-        name: Check for unnecessary random seeds in asv benchmarks
-        language: pygrep
-        entry: 'np\.random\.seed'
-        files: ^asv_bench/benchmarks
-        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep
