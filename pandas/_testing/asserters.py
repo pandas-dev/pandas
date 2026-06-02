@@ -1408,7 +1408,14 @@ def assert_frame_equal(
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(
-                lblocks[dtype], rblocks[dtype], check_dtype=check_dtype, obj=obj
+                lblocks[dtype],
+                rblocks[dtype],
+                check_dtype=check_dtype,
+                check_exact=check_exact,
+                rtol=rtol,
+                atol=atol,
+                check_categorical=check_categorical,
+                obj=obj,
             )
 
     # compare by columns

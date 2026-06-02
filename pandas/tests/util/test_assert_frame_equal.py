@@ -459,3 +459,18 @@ def test_assert_frame_equal_nested_arraylike_type_mismatch_check_exact(left, rig
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(right, left, check_exact=True)
+
+
+def test_assert_frame_equal_by_blocks_check_exact():
+    # GH#XXXX - by_blocks path was not forwarding check_exact, rtol, atol,
+    # and check_categorical to recursive assert_frame_equal calls.
+    df1 = DataFrame({"a": [1.0, 2.000001], "b": [0, 1]})
+    df2 = DataFrame({"a": [1.0, 2.0], "b": [0, 1]})
+
+    # With check_exact=True, the 1e-6 difference should be caught
+    msg = "DataFrame.iloc"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, check_exact=True, by_blocks=True)
+
+    # Without check_exact (default rtol=1e-5), 1e-6 diff should pass
+    tm.assert_frame_equal(df1, df2, by_blocks=True)
