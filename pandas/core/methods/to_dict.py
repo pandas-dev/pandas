@@ -261,9 +261,7 @@ def to_dict(
             return into_c(
                 (
                     t[0],
-                    into_c(
-                        zip(df.columns, map(maybe_box_native, t[1:]), strict=True)
-                    ),
+                    into_c(zip(df.columns, map(maybe_box_native, t[1:]), strict=True)),
                 )
                 for t in df.itertuples(name=None)
             )
