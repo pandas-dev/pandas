@@ -2053,8 +2053,9 @@ def test_str_find_negative_start_negative_end_no_match():
 
 
 @pytest.mark.parametrize(
-    "i, exp",
+    "idx, expected_values",
     [
+        [0, ["a", "d", None]],
         [1, ["b", "e", None]],
         [-1, ["c", "e", None]],
         [2, ["c", None, None]],
@@ -2062,10 +2063,29 @@ def test_str_find_negative_start_negative_end_no_match():
         [4, [None, None, None]],
     ],
 )
-def test_str_get(i, exp):
+def test_str_get(idx, expected_values):
     ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.get(i)
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    result = ser.str.get(idx)
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx, expected_values",
+    [
+        [0, ["a", "d", None]],
+        [1, ["b", "e", None]],
+        [-1, ["c", "e", None]],
+        [2, ["c", None, None]],
+        [-3, ["a", None, None]],
+        [4, [None, None, None]],
+    ],
+)
+def test_str_getitem(idx, expected_values):
+    # GH 65112
+    ser = pd.Series(["abc", "de", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str[idx]
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
@@ -2088,18 +2108,39 @@ def test_str_join_string_type():
 
 
 @pytest.mark.parametrize(
-    "start, stop, step, exp",
+    "start, stop, step, expected_values",
     [
         [None, 2, None, ["ab", None]],
         [None, 2, 1, ["ab", None]],
         [1, 3, 1, ["bc", None]],
         (None, None, -1, ["dcba", None]),
+        (1, None, 2, ["bd", None]),
+        (None, None, None, ["abcd", None]),
     ],
 )
-def test_str_slice(start, stop, step, exp):
+def test_str_slice(start, stop, step, expected_values):
     ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.slice(start, stop, step)
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.string()))
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, expected_values",
+    [
+        [None, 2, None, ["ab", None]],
+        [None, 2, 1, ["ab", None]],
+        [1, 3, 1, ["bc", None]],
+        (None, None, -1, ["dcba", None]),
+        (1, None, 2, ["bd", None]),
+        (None, None, None, ["abcd", None]),
+    ],
+)
+def test_str_getitem_range(start, stop, step, expected_values):
+    # GH 65112
+    ser = pd.Series(["abcd", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str[slice(start, stop, step)]
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa.string()))
     tm.assert_series_equal(result, expected)
 
 
