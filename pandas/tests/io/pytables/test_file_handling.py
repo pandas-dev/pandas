@@ -286,6 +286,31 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert node.filters.complib == lib
 
 
+def test_complib_object_dtype_compressed(temp_h5_path):
+    # GH#45286 object-dtype columns are stored in a VLArray; the compression
+    # filter used to be dropped on that path, so string-heavy frames written
+    # with format="fixed" were never compressed regardless of complib/complevel.
+    df = DataFrame({"a": np.array(["foo"] * 10_000, dtype=object)}).astype(object)
+    assert df["a"].dtype == object
+
+    df.to_hdf(temp_h5_path, key="df", complib="zlib", complevel=9)
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df.astype(result.dtypes))
+
+    # the VLArray holding the object column must carry the requested filter
+    with tables.open_file(temp_h5_path, mode="r") as h5table:
+        node = h5table.get_node("/df/block0_values")
+        assert isinstance(node, tables.VLArray)
+        assert node.filters.complevel == 9
+        assert node.filters.complib == "zlib"
+
+    # the highly repetitive column dominates the file, so compression must make
+    # it dramatically smaller than the uncompressed version
+    uncompressed = temp_h5_path.with_name("uncompressed.h5")
+    df.to_hdf(uncompressed, key="df")
+    assert os.path.getsize(temp_h5_path) * 10 < os.path.getsize(uncompressed)
+
+
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
