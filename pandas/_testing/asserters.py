@@ -1451,7 +1451,7 @@ def assert_frame_equal(
                     check_index=False,
                     check_flags=False,
                     check_series_type=check_series_type,
-                     )
+                )
 
 
 def assert_equal(left: Any, right: Any, **kwargs: Any) -> None:
