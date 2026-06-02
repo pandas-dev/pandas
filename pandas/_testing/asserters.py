@@ -598,8 +598,8 @@ def assert_interval_array_equal(
     """
     _check_isinstance(left, right, IntervalArray)
 
-    assert_equal(left._left, right._left, obj=f"{obj}.left")
-    assert_equal(left._right, right._right, obj=f"{obj}.right")
+    assert_equal(left._left, right._left, obj=f"{obj}.left", exact=exact)
+    assert_equal(left._right, right._right, obj=f"{obj}.right", exact=exact)
 
     assert_attr_equal("closed", left, right, obj=obj)
 
