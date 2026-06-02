@@ -354,6 +354,7 @@ I/O
 - Fixed bug in :func:`read_hdf` where the literal string ``"nan"`` in a string :class:`Index` was incorrectly converted to ``NaN`` on read, even when a custom ``nan_rep`` was supplied (:issue:`9604`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
 - Fixed bug in :meth:`HDFStore.select` where passing ``where`` as a list of conditions referencing caller-scope variables failed on Python 3.12+ due to :pep:`709` inlining list comprehension stack frames (:issue:`64881`)
+- Fixed bug in :meth:`HDFStore.select` with ``format="table"`` where reading a frame with a string :class:`Index` could crash with a bus error on strict-alignment platforms such as 32-bit ARM (:issue:`54396`)
 - Storing a :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` level named ``'index'`` via :meth:`HDFStore.put` or :meth:`HDFStore.append` with ``format='table'`` now raises a clear ``ValueError`` instead of an opaque reshape error (:issue:`6208`)
 
 Period
