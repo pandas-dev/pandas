@@ -1104,3 +1104,57 @@ def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit)
     )
     expected = df[(df.index >= "2020-01-02") & (df.index <= "2020-01-03")]
     tm.assert_frame_equal(result, expected)
+
+
+def _multichunk_indexed_frame(n=200):
+    # wide "pad" column forces the table to span more than one chunk (row group),
+    # a precondition for the PyTables bug in GH#50598
+    return DataFrame(
+        {
+            "a": np.arange(n) % 5,
+            "b": np.arange(n) % 7,
+            "pad": ["x" * 2000] * n,
+        }
+    )
+
+
+def test_select_nested_or_query_warns(temp_hdfstore):
+    # GH#50598 nested '(A & B) | (C & D)' queries over indexed columns on a
+    # multi-chunk table can return incorrect results due to an upstream PyTables
+    # bug, so warn the user.
+    n = 200
+    df = _multichunk_indexed_frame(n)
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    # sanity check: the table really does span more than one chunk
+    assert temp_hdfstore.get_storer("df").table.chunkshape[0] < n
+
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        temp_hdfstore.select("df", where="(a >= 0 & b <= 3) | (a <= 4 & b >= 2)")
+
+    # query shapes not affected by the bug must NOT warn
+    for where in [
+        "a <= 4 & b >= 2",  # single AND, no OR
+        "b <= 3 | b >= 5",  # single-column OR
+        "a <= 4 | b >= 2",  # OR of two single-column conditions
+    ]:
+        with tm.assert_produces_warning(None):
+            temp_hdfstore.select("df", where=where)
+
+
+def test_select_nested_or_query_no_warn_without_index(temp_hdfstore):
+    # GH#50598 the bug requires column indexes; writing with index=False is the
+    # recommended workaround and must not trigger the warning
+    n = 200
+    df = _multichunk_indexed_frame(n)
+    temp_hdfstore.put(
+        "df",
+        df,
+        format="table",
+        data_columns=["a", "b"],
+        index=False,
+        track_times=False,
+    )
+    with tm.assert_produces_warning(None):
+        temp_hdfstore.select("df", where="(a >= 0 & b <= 3) | (a <= 4 & b >= 2)")
