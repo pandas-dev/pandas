@@ -1527,14 +1527,6 @@ def check_below_min_count(
     return False
 
 
-def _zero_out_fperr(arg, tol: float | np.ndarray):
-    # #18044 reference this behavior to fix rolling skew/kurt issue
-    if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < tol, 0, arg)
-    else:
-        return arg.dtype.type(0) if np.abs(arg) < tol else arg
-
-
 @disallow("M8", "m8")
 def nancorr(
     a: np.ndarray,

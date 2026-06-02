@@ -30,6 +30,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.excel._base as _excel_base
+
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
     # Add any engines to test here
@@ -1372,9 +1374,11 @@ class TestReaders:
         expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
-    def test_read_excel_skiprows_callable_all(self, read_ext):
+    def test_read_excel_skiprows_callable_all(self, read_ext, monkeypatch):
         # GH 64027
-        actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
+        with monkeypatch.context() as m:
+            m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
+            actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
         expected = DataFrame()
         tm.assert_frame_equal(actual, expected)
 

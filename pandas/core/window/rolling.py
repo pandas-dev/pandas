@@ -1901,16 +1901,9 @@ class RollingAndExpandingMixin(BaseWindow):
             )
             self._check_window_bounds(start, end, len(x_array))
 
-            with np.errstate(all="ignore"):
-                mean_x_y = window_aggregations.roll_mean(
-                    x_array * y_array, start, end, min_periods
-                )
-                mean_x = window_aggregations.roll_mean(x_array, start, end, min_periods)
-                mean_y = window_aggregations.roll_mean(y_array, start, end, min_periods)
-                count_x_y = window_aggregations.roll_sum(
-                    notna(x_array + y_array).astype(np.float64), start, end, 0
-                )
-                result = (mean_x_y - mean_x * mean_y) * (count_x_y / (count_x_y - ddof))
+            result = window_aggregations.roll_cov(
+                x_array, y_array, start, end, min_periods, ddof
+            )
             return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
@@ -1948,26 +1941,9 @@ class RollingAndExpandingMixin(BaseWindow):
             )
             self._check_window_bounds(start, end, len(x_array))
 
-            with np.errstate(all="ignore"):
-                mean_x_y = window_aggregations.roll_mean(
-                    x_array * y_array, start, end, min_periods
-                )
-                mean_x = window_aggregations.roll_mean(x_array, start, end, min_periods)
-                mean_y = window_aggregations.roll_mean(y_array, start, end, min_periods)
-                count_x_y = window_aggregations.roll_sum(
-                    notna(x_array + y_array).astype(np.float64), start, end, 0
-                )
-                x_var = window_aggregations.roll_var(
-                    x_array, start, end, min_periods, ddof
-                )
-                y_var = window_aggregations.roll_var(
-                    y_array, start, end, min_periods, ddof
-                )
-                numerator = (mean_x_y - mean_x * mean_y) * (
-                    count_x_y / (count_x_y - ddof)
-                )
-                denominator = (x_var * y_var) ** 0.5
-                result = numerator / denominator
+            result = window_aggregations.roll_corr(
+                x_array, y_array, start, end, min_periods
+            )
             return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
@@ -2213,7 +2189,9 @@ class Rolling(RollingAndExpandingMixin):
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray
-              objects instead.
+              objects instead. Pandas-only attributes such as ``.iloc``
+              or ``.index`` are not available on ndarrays and will raise
+              ``AttributeError`` if used inside ``func``.
 
             If you are just applying a NumPy reduction function this will
             achieve much better performance.

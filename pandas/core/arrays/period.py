@@ -896,7 +896,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Cast to DatetimeArray/Index.
 
         If possible, gives microsecond-unit DatetimeArray/Index. Otherwise
-        gives nanosecond unit.
+        gives nanosecond unit. On the ``Series.dt`` accessor, this is only
+        available for period-typed Series.
 
         Parameters
         ----------
@@ -1008,7 +1009,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # TODO: other cases?
             return None
 
-        result_freq = to_offset(dta.inferred_freq)
+        result_freq = to_offset(dta._inferred_freq_str)
         if target_freq is not None:
             # match the normalization applied in to_timestamp
             target_freq = Period._maybe_convert_freq(target_freq)

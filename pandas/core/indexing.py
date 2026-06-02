@@ -1379,6 +1379,22 @@ class _LocIndexer(_LocationIndexer):
     viper               4       5
     sidewinder          7       8
 
+    Single column label. Note this returns the column as a Series.
+
+    >>> df.loc[:, "max_speed"]
+    cobra         1
+    viper         4
+    sidewinder    7
+    Name: max_speed, dtype: int64
+
+    List with a single column label. Note this returns a DataFrame.
+
+    >>> df.loc[:, ["max_speed"]]
+                max_speed
+    cobra               1
+    viper               4
+    sidewinder          7
+
     Single label for row and column
 
     >>> df.loc["cobra", "shield"]
@@ -2607,6 +2623,13 @@ class _iLocIndexer(_LocationIndexer):
                 # We are setting multiple rows in a single column.
                 self._setitem_single_column(ilocs[0], value, pi)
 
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes._values[ilocs[0]]
+            ):
+                # We are setting nested data into a single cell,
+                # only possible for object dtype. Bypasses length checks.
+                self._setitem_single_column(ilocs[0], value, pi)
+
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
                 # We are trying to set N values into M entries of a single
                 #  column, which is invalid for N != M
@@ -2624,12 +2647,6 @@ class _iLocIndexer(_LocationIndexer):
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with an all-False mask
                 pass
-
-            elif self._is_scalar_access(indexer) and is_object_dtype(
-                self.obj.dtypes._values[ilocs[0]]
-            ):
-                # We are setting nested data, only possible for object dtype data
-                self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.

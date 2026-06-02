@@ -538,7 +538,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        tuples : list / sequence of tuple-likes
+        tuples : list-like of tuples
             Each tuple is the index of one row/column.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
@@ -568,7 +568,7 @@ class MultiIndex(Index):
                    names=['number', 'color'])
         """
         if not is_list_like(tuples):
-            raise TypeError("Input must be a list / sequence of tuple-likes.")
+            raise TypeError("Input must be list-like of tuples.")
         if is_iterator(tuples):
             tuples = list(tuples)
         tuples = cast("Collection[tuple[Hashable, ...]]", tuples)

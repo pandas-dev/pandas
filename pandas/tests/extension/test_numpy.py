@@ -499,13 +499,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     @skip_nested
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
-        if engine == "c" and data.dtype.kind == "c":
-            # GH#54761 the c parser does not support complex dtypes
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=f"engine '{engine}' cannot parse dtype {data.dtype.name}",
-                )
-            )
         super().test_EA_types(engine, data, request)
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
@@ -513,6 +506,24 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             mark = pytest.mark.xfail(reason="Unpacks tuple")
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+    def test_json_roundtrip(self, data, request):
+        # GH 65127
+        # NumpyExtensionArray does not support roundtrip for complex128 dtype as
+        # the Array cannot be created from dictionary created in JSON serialization
+        if data.dtype.numpy_dtype == np.dtype("complex128"):
+            try:
+                super().test_json_roundtrip(data)
+            except AssertionError as err:
+                if 'Attribute "dtype" are different' in str(err):
+                    request.applymarker(
+                        pytest.mark.xfail(
+                            raises=AssertionError, reason="Attributes are different"
+                        )
+                    )
+                raise
+        else:
+            super().test_json_roundtrip(data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):
