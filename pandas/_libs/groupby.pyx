@@ -6,6 +6,7 @@ from cython cimport (
 from libc.math cimport (
     NAN,
     isfinite,
+    isnan,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -1068,12 +1069,9 @@ def group_skew(
 
         for i in range(ngroups):
             for j in range(K):
-                if nobs[i, j] < 3:
-                    if result_mask is not None:
-                        result_mask[i, j] = 1
-                    out[i, j] = NaN
-                else:
-                    out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
+                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
+                if result_mask is not None and isnan(out[i, j]):
+                    result_mask[i, j] = 1
 
 
 @cython.wraparound(False)
@@ -1138,12 +1136,9 @@ def group_kurt(
 
         for i in range(ngroups):
             for j in range(K):
-                if nobs[i, j] < 4:
-                    if result_mask is not None:
-                        result_mask[i, j] = 1
-                    out[i, j] = NaN
-                else:
-                    out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
+                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
+                if result_mask is not None and isnan(out[i, j]):
+                    result_mask[i, j] = 1
 
 
 @cython.wraparound(False)
