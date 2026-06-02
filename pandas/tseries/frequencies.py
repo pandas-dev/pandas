@@ -16,10 +16,8 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
 )
 from pandas._libs.tslibs.ccalendar import (
-    DAYS,
     MONTH_ALIASES,
     MONTH_NUMBERS,
-    MONTHS,
     int_to_weekday,
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
@@ -63,25 +61,6 @@ if TYPE_CHECKING:
     from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 # --------------------------------------------------------------------
 # Offset related functions
-
-_need_suffix = ["QS", "BQS", "YS", "BYS"]
-
-_period_alias = {"QS": "Q", "BQS": "Q", "YS": "Y", "BYS": "Y"}
-for _prefix in _need_suffix:
-    for _idx, _m in enumerate(MONTHS):
-        key = f"{_prefix}-{_m}"
-        # Start offsets need month shifted back by one:
-        # e.g. YS-APR (year starting April) -> Y-MAR (year ending March)
-        _end_month = MONTHS[_idx - 1]  # MONTHS[-1] == "DEC" for JAN, which is correct
-        OFFSET_TO_PERIOD_FREQSTR[key] = f"{_period_alias[_prefix]}-{_end_month}"
-
-for _prefix in ["Y", "Q"]:
-    for _m in MONTHS:
-        _alias = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[_alias] = _alias
-
-for _d in DAYS:
-    OFFSET_TO_PERIOD_FREQSTR[f"W-{_d}"] = f"W-{_d}"
 
 
 def get_period_alias(offset_str: str) -> str | None:

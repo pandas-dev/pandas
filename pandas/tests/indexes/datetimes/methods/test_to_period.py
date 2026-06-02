@@ -69,6 +69,9 @@ class TestToPeriod:
             ("QS-APR", "Q-MAR"),
             ("BQS-APR", "Q-MAR"),
             ("BQE-APR", "Q-APR"),
+            # start-offset month is shifted back one; JAN wraps to DEC
+            ("QS-JAN", "Q-DEC"),
+            ("QS-DEC", "Q-NOV"),
         ],
     )
     def test_to_period_quarterly_anchored(self, off, expected_freq):
@@ -83,6 +86,9 @@ class TestToPeriod:
             ("YS-APR", "Y-MAR"),
             ("BYS-APR", "Y-MAR"),
             ("BYE-APR", "Y-APR"),
+            # start-offset month is shifted back one; JAN wraps to DEC
+            ("YS-JAN", "Y-DEC"),
+            ("YS-DEC", "Y-NOV"),
         ],
     )
     def test_to_period_annual_anchored(self, off, expected_freq):
