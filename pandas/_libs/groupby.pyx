@@ -6,7 +6,6 @@ from cython cimport (
 from libc.math cimport (
     NAN,
     isfinite,
-    isnan,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -1059,10 +1058,14 @@ def group_skew(
                 else:
                     isna_entry = _treat_as_na(val, False)
 
-                if skipna and isna_entry:
+                if isna_entry:
+                    if not skipna:
+                        if result_mask is not None:
+                            result_mask[lab, j] = 1
+                        mean[lab, j] = NaN
+                        M2[lab, j] = NaN
+                        M3[lab, j] = NaN
                     continue
-                elif isna_entry:
-                    val = NaN
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
                                   &M3[lab, j], NULL, 3)
@@ -1070,7 +1073,7 @@ def group_skew(
         for i in range(ngroups):
             for j in range(K):
                 out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
-                if result_mask is not None and isnan(out[i, j]):
+                if result_mask is not None and nobs[i, j] < 3:
                     result_mask[i, j] = 1
 
 
@@ -1126,10 +1129,15 @@ def group_kurt(
                 else:
                     isna_entry = _treat_as_na(val, False)
 
-                if skipna and isna_entry:
+                if isna_entry:
+                    if not skipna:
+                        if result_mask is not None:
+                            result_mask[lab, j] = 1
+                        mean[lab, j] = NaN
+                        M2[lab, j] = NaN
+                        M3[lab, j] = NaN
+                        M4[lab, j] = NaN
                     continue
-                elif isna_entry:
-                    val = NaN
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
                                   &M3[lab, j], &M4[lab, j], 4)
@@ -1137,7 +1145,7 @@ def group_kurt(
         for i in range(ngroups):
             for j in range(K):
                 out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
-                if result_mask is not None and isnan(out[i, j]):
+                if result_mask is not None and nobs[i, j] < 4:
                     result_mask[i, j] = 1
 
 
