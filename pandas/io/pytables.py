@@ -4410,6 +4410,16 @@ class Table(Fixed):
             data_columns, min_itemsize, new_non_index_axes
         )
 
+        if new_index.cname in data_columns:
+            # GH#41437 the implicit row index is stored under the reserved
+            # cname (typically 'index') and a data column of the same name
+            # would collide with it in the table description.
+            raise ValueError(
+                f"cannot use a column named {new_index.cname!r} as a "
+                f"data_column; {new_index.cname!r} is reserved for the "
+                "implicit row index"
+            )
+
         frame = self.get_object(obj, transposed)._consolidate()
 
         blocks, blk_items = self._get_blocks_and_items(
