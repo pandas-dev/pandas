@@ -825,9 +825,15 @@ def to_arrays(
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
-        # (e.g. timedelta64, pyarrow, Int64, Categorical)
+        # (e.g. timedelta64, pyarrow, Int64, Categorical). Only take this
+        # path for non-ragged rows; ragged rows fall through to the
+        # object/pad path below so they are padded to max width with NaN.
         row_dtypes = {row.dtype for row in data if hasattr(row, "dtype")}
-        if len(row_dtypes) == 1 and all(hasattr(row, "dtype") for row in data):
+        if (
+            len(row_dtypes) == 1
+            and all(hasattr(row, "dtype") for row in data)
+            and len({len(row) for row in data}) == 1
+        ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
             arrays = [
