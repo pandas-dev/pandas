@@ -1684,3 +1684,30 @@ def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is
             [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+        "prod",
+    ],
+)
+def test_groupby_skipna_false_propagates_na_when_distinguish_nan_and_na(method):
+    # GH-65372: under future.distinguish_nan_and_na, a genuine NA with
+    # skipna=False must propagate to NA.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = Series([1.0, 2.0, 3.0, 4.0, pd.NA], dtype="Float64")
+        df = DataFrame({"A": [1] * 5, "B": ser})
+        gb = df.groupby("A")["B"]
+        expected = Series(
+            [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+        result = getattr(gb, method)(skipna=False)
+        tm.assert_series_equal(result, expected)
