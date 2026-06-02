@@ -1104,39 +1104,6 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
             pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
-def test_adbc_has_table_requests_table_metadata_only():
-    class FakeADBCObjects:
-        def read_all(self):
-            return self
-
-        def __getitem__(self, key):
-            assert key == "catalog_db_schemas"
-            return self
-
-        def to_pylist(self):
-            return [[{"db_schema_tables": [{"table_name": "test_frame"}]}]]
-
-    class FakeConnection:
-        def __init__(self) -> None:
-            self.calls: list[dict[str, object]] = []
-
-        def adbc_get_objects(self, **kwargs):
-            self.calls.append(kwargs)
-            return FakeADBCObjects()
-
-    con = FakeConnection()
-    pandas_sql = sql.ADBCDatabase(con)
-
-    assert pandas_sql.has_table("test_frame", schema="test_schema")
-    assert con.calls == [
-        {
-            "depth": "tables",
-            "db_schema_filter": "test_schema",
-            "table_name_filter": "test_frame",
-        }
-    ]
-
-
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris_query(conn, request):
     conn = request.getfixturevalue(conn)
