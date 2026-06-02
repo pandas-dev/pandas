@@ -4987,8 +4987,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
 
-        Called functions are found according to the MRO of a Series object, 
-        e.g., ``getattr(s, 'function_name')``. If no matching function is found, 
+        Called functions are found according to the MRO of a Series object,
+        e.g., ``getattr(s, 'function_name')``. If no matching function is found,
         the MRO of numpy will be used as a fallback.
 
         Examples
