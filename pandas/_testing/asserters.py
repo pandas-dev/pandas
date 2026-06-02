@@ -706,6 +706,8 @@ def assert_numpy_array_equal(
         assertion message.
     index_values : Index | numpy.ndarray, default None
         optional index (shared by both left and right), used in output.
+        check_class : bool, default True
+        Whether to check that left and right are the same class
     """
     __tracebackhide__ = True
 
