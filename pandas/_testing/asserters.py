@@ -1271,6 +1271,8 @@ def assert_frame_equal(
         :func:`assert_index_equal`.
     check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
+    check_series_type : bool, default True
+        Whether to check that each column Series class is identical.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical.
