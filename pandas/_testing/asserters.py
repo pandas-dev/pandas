@@ -684,6 +684,7 @@ def assert_numpy_array_equal(
     check_same: Literal["copy", "same"] | None = None,
     obj: str = "numpy array",
     index_values: Index | np.ndarray | None = None,
+    check_class: bool = True,
 ) -> None:
     """
     Check that 'np.ndarray' is equivalent.
@@ -710,7 +711,8 @@ def assert_numpy_array_equal(
 
     # instance validation
     # Show a detailed error message when classes are different
-    assert_class_equal(left, right, obj=obj)
+    if check_class:
+        assert_class_equal(left, right, obj=obj)
     # both classes must be an np.ndarray
     _check_isinstance(left, right, np.ndarray)
 
@@ -1126,6 +1128,7 @@ def assert_series_equal(
                 check_dtype=check_dtype,
                 obj=str(obj),
                 index_values=left.index,
+                check_class=check_series_type,
             )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -1228,6 +1231,7 @@ def assert_frame_equal(
     check_index_type: bool | Literal["equiv"] = "equiv",
     check_column_type: bool | Literal["equiv"] = "equiv",
     check_frame_type: bool = True,
+    check_series_type: bool = True,
     check_names: bool = True,
     by_blocks: bool = False,
     check_exact: bool | lib.NoDefault = lib.no_default,
@@ -1444,7 +1448,8 @@ def assert_frame_equal(
                     atol=atol,
                     check_index=False,
                     check_flags=False,
-                )
+                    check_series_type=check_series_type,
+                     )
 
 
 def assert_equal(left: Any, right: Any, **kwargs: Any) -> None:
