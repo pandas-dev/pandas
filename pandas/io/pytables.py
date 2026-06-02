@@ -2912,8 +2912,16 @@ class DataCol(IndexCol):
             else:
                 mask = isna(categories)
                 if mask.any():
+                    # Some categories are NaN, e.g. because the string used
+                    # as nan_rep was itself a genuine category and got
+                    # converted back to NaN on read. Drop those categories,
+                    # remap codes that pointed at a surviving category to its
+                    # new position, and treat codes that pointed at a dropped
+                    # (NaN) category as missing (-1). GH#21741
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum()._values
+                    codes = np.where(codes < 0, codes, remap[codes])
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered, validate=False
