@@ -4683,12 +4683,6 @@ class Table(Fixed):
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         coords = selection.select_coords()
-        if selection.filter is not None:
-            for field, op, filt in selection.filter.format():
-                data = self.read_column(
-                    field, start=coords.min(), stop=coords.max() + 1
-                )
-                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
         return Index(coords, copy=False)
 
@@ -5850,4 +5844,14 @@ class Selection:
         elif self.coordinates is not None:
             return self.coordinates
 
-        return np.arange(start, stop)
+        coords = np.arange(start, stop)
+        if self.filter is not None and len(coords):
+            # e.g. an "index in [...]" clause with more selectors than numexpr
+            #  can handle is realized as a post-read filter rather than a
+            #  numexpr condition (GH#17567)
+            for field, op, filt in self.filter.format():
+                data = self.table.read_column(
+                    field, start=coords.min(), stop=coords.max() + 1
+                )
+                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
+        return coords

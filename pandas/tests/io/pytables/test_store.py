@@ -576,6 +576,30 @@ def test_remove(temp_hdfstore):
     assert len(store) == 0
 
 
+@pytest.mark.parametrize("n_selectors", [3, 100])
+def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
+    # GH#17567 removing with a large "in" selector (more than numexpr can
+    #  handle, i.e. > _max_selectors=31) falls back to a post-read filter;
+    #  remove must apply that filter rather than dropping every row
+    store = temp_hdfstore
+    df = DataFrame(
+        {"A": np.arange(1000)},
+        index=date_range("2020-01-01", periods=1000, unit="ns"),
+    )
+    store.put("df", df, format="table", track_times=False)
+
+    selector = list(df.index[:n_selectors])
+    # the where clause matches exactly the selected rows
+    assert len(store.select("df", where="index in selector")) == n_selectors
+
+    removed = store.remove("df", where="index in selector")
+    assert removed == n_selectors
+
+    result = store.select("df")
+    expected = df[~df.index.isin(selector)]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_same_name_scoping(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 2)),
