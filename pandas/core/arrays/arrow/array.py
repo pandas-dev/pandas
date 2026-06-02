@@ -1154,22 +1154,39 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
-        if (
-            op in [operator.truediv, roperator.rtruediv]
-            and isinstance(other, Path)
-            and (
-                pa.types.is_string(self._pa_array.type)
-                or pa.types.is_large_string(self._pa_array.type)
-            )
+        if op in [operator.truediv, roperator.rtruediv] and (
+            pa.types.is_string(self._pa_array.type)
+            or pa.types.is_large_string(self._pa_array.type)
         ):
-            # GH#61940
-            return np.array(
-                [
-                    op(x, other) if isinstance(x, str) else self.dtype.na_value
-                    for x in self
-                ],
-                dtype=object,
-            )
+            if isinstance(other, Path):
+                # GH#61940
+                return np.array(
+                    [
+                        op(x, other) if isinstance(x, str) else self.dtype.na_value
+                        for x in self
+                    ],
+                    dtype=object,
+                )
+            elif is_array_like(other):
+                other_array = np.asarray(
+                    extract_array(other, extract_numpy=True), dtype=object
+                )
+                if other_array.ndim == 1 and len(other_array) == len(self):
+                    other_mask = isna(other_array)
+                    other_path = np.array(
+                        [isinstance(x, Path) for x in other_array], dtype=bool
+                    )
+                    if other_path.any() and (other_path | other_mask).all():
+                        # GH#63832
+                        return np.array(
+                            [
+                                op(x, y)
+                                if isinstance(x, str) and isinstance(y, Path)
+                                else self.dtype.na_value
+                                for x, y in zip(self, other_array, strict=True)
+                            ],
+                            dtype=object,
+                        )
 
         result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
         if is_nan_na() and result.dtype.kind == "f":

@@ -91,6 +91,21 @@ def test_pathlib_path_division(any_string_dtype, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_pathlib_path_division_chained_series():
+    # GH#63832
+    pytest.importorskip("pyarrow")
+    item = Path("/Users/Irv/")
+    suffix1 = Series(["A", "B", NA], dtype=StringDtype("pyarrow"))
+    suffix2 = Series(["C", "D", "E"], dtype=StringDtype("pyarrow"))
+
+    result = item / suffix1 / suffix2
+    expected = Series(
+        [item / "A" / "C", item / "B" / "D", suffix2.dtype.na_value],
+        dtype=object,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_mixed_object_comparison(any_string_dtype):
     # GH#60228
     dtype = any_string_dtype

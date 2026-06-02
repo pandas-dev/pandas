@@ -286,6 +286,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
+- Bug in chained division between :class:`pathlib.Path` objects and PyArrow-backed string :class:`Series` raising ``ArrowInvalid`` (:issue:`63832`)
 
 Interval
 ^^^^^^^^
