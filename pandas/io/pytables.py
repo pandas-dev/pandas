@@ -3571,7 +3571,12 @@ class SeriesFixed(GenericFixed):
     @property
     def shape(self) -> tuple[int] | None:
         try:
-            return (len(self.group.values),)
+            node = self.group.values
+            if "shape" in node._v_attrs:
+                # GH#37235 an empty array is stored as a length-1 sentinel
+                # (see write_array_empty); the true shape is in this attr.
+                return tuple(node._v_attrs.shape)
+            return (len(node),)
         except (TypeError, AttributeError):
             return None
 
@@ -3632,9 +3637,17 @@ class BlockManagerFixed(GenericFixed):
 
             # data shape
             node = self.group.block0_values
-            shape = getattr(node, "shape", None)
-            if shape is not None:
-                shape = list(shape[0 : (ndim - 1)])
+            data_shape: tuple[Any, ...] | None
+            if "shape" in node._v_attrs:
+                # GH#37235 an empty block is stored un-transposed as a
+                # (1,)*ndim sentinel (see write_array_empty), with the true
+                # shape in this attr. Reverse it to match the transposed
+                # layout used for non-empty blocks.
+                data_shape = tuple(reversed(node._v_attrs.shape))
+            else:
+                data_shape = getattr(node, "shape", None)
+            if data_shape is not None:
+                shape = list(data_shape[0 : (ndim - 1)])
             else:
                 shape = []
 
