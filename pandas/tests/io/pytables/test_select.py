@@ -308,6 +308,27 @@ def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore):
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "where",
+    [
+        "(A % 3) == 0",
+        "A % 3 == 0",
+        "(A * 2) > 10",
+        "(A + B) < 25",
+        "A + 1",
+    ],
+)
+def test_select_arithmetic_where_not_supported(temp_hdfstore, where):
+    # GH#41100 arithmetic operators inside a where clause are not supported;
+    # raise an informative error instead of an opaque PyTables one
+    df = DataFrame({"A": np.arange(0, 10), "B": np.arange(10, 20)})
+    temp_hdfstore.append("df", df, data_columns=["A", "B"])
+
+    msg = "arithmetic operations are not supported"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where=[where])
+
+
 def test_select_with_many_inputs(temp_hdfstore):
     df = DataFrame(
         {
