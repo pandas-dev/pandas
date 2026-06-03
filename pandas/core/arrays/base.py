@@ -1079,6 +1079,10 @@ class ExtensionArray:
         """
         Sort the array in-place.
 
+        Reorders the elements of the array using :meth:`argsort` and writes the
+        sorted result back through ``self[:]``. Subclasses backed by immutable
+        storage may override this method to raise ``NotImplementedError``.
+
         Parameters
         ----------
         ascending : bool, default True
@@ -1092,6 +1096,7 @@ class ExtensionArray:
         Returns
         -------
         None
+            This method mutates the array in place and does not return a value.
 
         See Also
         --------
