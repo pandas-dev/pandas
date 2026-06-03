@@ -1043,7 +1043,8 @@ class HDFStore:
         Returns
         -------
         Index
-            The row labels matching the selection.
+            Integer positions of the matching rows; can be passed as
+            ``where`` to a subsequent ``select``.
 
         See Also
         --------
@@ -1107,15 +1108,15 @@ class HDFStore:
         KeyError
             If the column is not found, or ``key`` is not a valid store.
         ValueError
-            If the column cannot be extracted individually (e.g. it is part
-            of a data block).
+            If the column cannot be extracted individually (not an
+            indexable or a data column).
 
         See Also
         --------
         HDFStore.select : Retrieve a stored object, optionally filtered by
             ``where``.
-        HDFStore.select_as_coordinates : Return the matching row labels as
-            an Index.
+        HDFStore.select_as_coordinates : Return the matching row coordinates
+            as an Index.
 
         Examples
         --------
@@ -2311,10 +2312,10 @@ class HDFStore:
             #       or a table that exists (and we are putting)
             if not s.is_table or (s.is_table and format == "fixed" and s.is_exists):
                 raise ValueError(
-                    "Can only append to Tables; the existing object stored at "
-                    f"{key!r} uses the 'fixed' format, which is not appendable. "
-                    "Re-create it with format='table' (or remove it first) to "
-                    "enable appending."
+                    f"Can only append to Tables; the write for key {key!r} "
+                    "resolved to the 'fixed' format. Use format='table' "
+                    "(removing any existing fixed-format object at this key "
+                    "first)."
                 )
             if not s.is_exists:
                 s.set_object_info()
