@@ -13,6 +13,7 @@ from typing import (
 )
 
 import numpy as np
+import numpy._typing as np_t
 
 from pandas._libs.tslibs.period import Period
 from pandas._typing import (
@@ -35,8 +36,17 @@ class NaTType:
     @property
     def asm8(self) -> np.datetime64: ...
     def to_datetime64(self) -> np.datetime64: ...
+    @overload
     def to_numpy(
-        self, dtype: np.dtype | str | None = ..., copy: bool = ...
+        self,
+        dtype: np.dtype[np.timedelta64] | np_t._TD64Codes,
+        copy: bool = ...,
+    ) -> np.timedelta64: ...
+    @overload
+    def to_numpy(
+        self,
+        dtype: np.dtype[np.datetime64] | np_t._DT64Codes | None = ...,
+        copy: bool = ...,
     ) -> np.datetime64: ...
     @property
     def is_leap_year(self) -> bool: ...
