@@ -224,8 +224,9 @@ accumulate_first_pass(std::span<const double> values, bool skipna) {
     tail_sum += val;
   }
 
-  return FirstPassAcc{.sum = xsimd::reduce_add(vec_acc->sum) + tail_sum,
-                      .count = xsimd::reduce_add(vec_acc->count) + tail_count};
+  return FirstPassAcc<double, std::size_t>{
+      .sum = xsimd::reduce_add(vec_acc->sum) + tail_sum,
+      .count = xsimd::reduce_add(vec_acc->count) + tail_count};
 }
 
 template <class Arch>
@@ -262,8 +263,9 @@ accumulate_first_pass(std::span<const double> values,
     tail_sum += val;
   }
 
-  return FirstPassAcc{.sum = xsimd::reduce_add(vec_acc->sum) + tail_sum,
-                      .count = xsimd::reduce_add(vec_acc->count) + tail_count};
+  return FirstPassAcc<double, std::size_t>{
+      .sum = xsimd::reduce_add(vec_acc->sum) + tail_sum,
+      .count = xsimd::reduce_add(vec_acc->count) + tail_count};
 }
 
 template <class Arch>
@@ -275,7 +277,7 @@ accumulate_second_pass_internal(std::span<const double> values,
   constexpr std::size_t leaf_size = 128 * step;
 
   if (values.size() <= leaf_size) {
-    SecondPassAcc<xsimd::batch<double, Arch>> acc{};
+    SecondPassAcc<batch_type> acc{};
     for (std::size_t i = 0; i < values.size(); i += step) {
       const auto val = xsimd::load_unaligned<Arch>(&values[i]);
       const auto isna = xsimd::isnan(val);
@@ -297,7 +299,7 @@ accumulate_second_pass_internal(std::span<const double> values,
   const auto right = accumulate_second_pass_internal<Arch>(
       values.last(values.size() - mid), mean_vector);
 
-  return SecondPassAcc{
+  return SecondPassAcc<batch_type>{
       .m1 = left.m1 + right.m1,
       .m2 = left.m2 + right.m2,
       .m3 = left.m3 + right.m3,
@@ -317,7 +319,7 @@ accumulate_second_pass_masked_internal(
   constexpr std::size_t leaf_size = 128 * mask_step;
 
   if (values.size() <= leaf_size) {
-    SecondPassAcc<xsimd::batch<double, Arch>> acc{};
+    SecondPassAcc<value_batch_type> acc{};
     const uint64_t batch_mask = (1ULL << value_step) - 1;
 
     for (std::size_t i = 0; i < values.size(); i += mask_step) {
@@ -456,7 +458,7 @@ Moments accumulate_moments_simd_impl(std::span<const double> values,
   const auto count_double = static_cast<double>(total_acc.count);
   double trial_mean = total_acc.sum / count_double;
 
-  const SecondPassAcc central_diffs =
+  const SecondPassAcc<double> central_diffs =
       accumulate_second_pass<Arch>(values, trial_mean);
 
   return compute_moments_with_correction(total_acc, central_diffs);
