@@ -1000,6 +1000,10 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # We added rows but not columns
                 changed_dtypes = new_dtypes != orig_dtypes
                 for idx in np.flatnonzero(changed_dtypes):
+                    if orig_dtypes[idx].kind == "V":
+                        # np.void NA-proxy placeholder from new-column
+                        #  creation; not a meaningful dtype to retain
+                        continue
                     orig_arr = pd_array([], dtype=orig_dtypes[idx])
                     new_arr = infer_and_maybe_downcast(
                         orig_arr,
@@ -1014,6 +1018,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 for col, orig_dtype in zip(orig_columns, orig_dtypes, strict=True):
                     new_dtype = self.obj[col].dtype
                     if new_dtype != orig_dtype:
+                        if orig_dtype.kind == "V":
+                            # np.void NA-proxy placeholder, as above
+                            continue
                         orig_arr = pd_array([], dtype=orig_dtype)
                         new_arr = infer_and_maybe_downcast(
                             orig_arr,
@@ -3634,37 +3641,39 @@ def infer_and_maybe_downcast(
             # Only accept the conversion if no values were truncated
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
-    elif (
-        warn_if_cast and is_np_dtype(dtype, "fc") and is_np_dtype(new_arr.dtype, "iufc")
-    ):
-        # _cast_pointwise_result may have inferred a narrower numeric dtype
-        # (e.g. int64 from a float64 array with integer values).
-        # Cast back to the original dtype since float/complex can hold
-        # int/float values without loss.
-        new_arr = new_arr.astype(dtype, copy=False)
 
     if warn_if_cast and new_arr.dtype != dtype:
-        # PDEP6 exception: int/uint -> float when result contains NaN
-        pdep6_allowed = (
-            is_np_dtype(dtype, "iu")
-            and is_np_dtype(new_arr.dtype, "f")
-            and isna(new_arr).any()
-        )
-        # If the original dtype can hold the new values (e.g. object
-        # can hold anything), retaining it in the future is fine.
-        orig_can_hold = can_hold_element(orig, new_arr)
-        if not pdep6_allowed and not orig_can_hold:
-            warnings.warn(
-                f"Setting an item of incompatible dtype is deprecated "
-                f"and will raise in a future version of pandas. "
-                f"The existing dtype is {dtype} but the new values "
-                f"have dtype {new_arr.dtype}. In a future version, the "
-                f"existing dtype will be retained. Cast the object to "
-                f"{new_arr.dtype} before this operation to retain the "
-                f"current behavior.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
+        if is_np_dtype(dtype, "fc") and is_np_dtype(new_arr.dtype, "iufc"):
+            # _cast_pointwise_result may have inferred a narrower numeric
+            # dtype (e.g. int64 from a float64 array with integer values).
+            # float/complex can hold int/float values losslessly, so retain
+            # the original dtype instead of warning.
+            new_arr = new_arr.astype(dtype, copy=False)
+        else:
+            # PDEP6 exception: int/uint -> float when result contains NaN
+            pdep6_allowed = (
+                is_np_dtype(dtype, "iu")
+                and is_np_dtype(new_arr.dtype, "f")
+                and isna(new_arr).any()
             )
+            # If the original dtype can hold the new values (e.g. object
+            # can hold anything), retaining it in the future is fine.
+            orig_for_check: ArrayLike = orig
+            if isinstance(orig.dtype, NumpyEADtype):
+                # can_hold_element treats generic ExtensionArrays as able
+                # to hold anything; unwrap so the numpy dtype is checked.
+                orig_for_check = np.asarray(orig)
+            if not pdep6_allowed and not can_hold_element(orig_for_check, new_arr):
+                warnings.warn(
+                    f"Setting an item of incompatible dtype is deprecated "
+                    f"and will raise in a future version of pandas. "
+                    f"The existing dtype is {dtype} and the new values have "
+                    f"dtype {new_arr.dtype}. Cast the object to "
+                    f"{new_arr.dtype} before this operation to retain the "
+                    f"current behavior.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
     if arr_type is not None:
         new_arr = arr_type(new_arr)
