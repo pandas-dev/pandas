@@ -529,6 +529,21 @@ class TestDataFrameToDict:
         }
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "df",
+        [
+            DataFrame({"B": ["x", "y"], "A": ["a", "b"]}),  # all object dtype cols
+            DataFrame({"B": [1, 2], "A": ["x", "y"]}),  # mixed object/non-object
+            DataFrame({"B": [1, 2], "A": [3, 4]}),  # no object dtype cols
+        ],
+    )
+    def test_to_dict_index_into_applies_to_nested_mappings(self, df: DataFrame):
+
+        result = df.to_dict(orient="index", into=OrderedDict)
+
+        assert isinstance(result, OrderedDict)
+        assert all(isinstance(row, OrderedDict) for row in result.values())
+
 
 @pytest.mark.parametrize(
     "val", [Timestamp(2020, 1, 1), Timedelta(1), Period("2020"), Interval(1, 2)]
