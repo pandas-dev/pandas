@@ -17,6 +17,7 @@ from pandas import (
     date_range,
     read_hdf,
 )
+import pandas._testing as tm
 
 from pandas.io.pytables import Term
 
@@ -269,6 +270,32 @@ def test_to_hdf_multiindex_level_named_index_raises(temp_hdfstore):
     series = Series([1, 2, 3], index=mi, name="vals")
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.put("s", series, format="table", track_times=False)
+
+
+@pytest.mark.parametrize("data_columns", [["index"], True, ["column_1", "index"]])
+def test_to_hdf_data_column_named_index_raises(temp_hdfstore, data_columns):
+    # GH#41437 a data column named 'index' collides with the table format's
+    # implicit row index; surface a clear error instead of the confusing
+    # reshape failure that used to come from write_data
+    df = DataFrame({"column_1": [1, 2], "index": [3, 4]})
+    df.index.name = "something_else"
+    msg = "cannot use a column named 'index' as a data_column"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put(
+            "df", df, format="table", data_columns=data_columns, track_times=False
+        )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, format="table", data_columns=data_columns)
+
+
+def test_to_hdf_column_named_index_without_data_columns(temp_h5_path):
+    # GH#41437 a column named 'index' is fine as long as it is not a
+    # data_column; it round-trips like any other column
+    df = DataFrame({"column_1": [1, 2], "index": [3, 4]})
+    df.index.name = "something_else"
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df)
 
 
 def test_unsupported_hdf_file_error(datapath):
