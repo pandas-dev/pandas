@@ -2753,15 +2753,25 @@ class ExtensionArray:
         """
         Return (is_monotonic_increasing, is_monotonic_decreasing).
 
-        Default implementation using ranks. Subclasses should override
-        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
-        instead of this method.
+        Default implementation using ``_values_for_argsort``. Subclasses
+        should override ``_is_monotonic_increasing`` and
+        ``_is_monotonic_decreasing`` instead of this method.
         """
-        try:
-            ranks = self._rank()
-        except TypeError:
+        if self._hasna:
             return False, False
-        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
+        values = self._values_for_argsort()
+        if values.dtype.kind == "b":
+            values = values.view("uint8")
+        try:
+            inc, dec, _ = libalgos.is_monotonic(values, timelike=False)
+        except TypeError:
+            # ``is_monotonic`` only supports numeric and object dtypes; for
+            # other dtypes (e.g. datetime64, timedelta64) fall back to ranks.
+            try:
+                ranks = self._rank()
+            except TypeError:
+                return False, False
+            inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
         return bool(inc), bool(dec)
 
     def _rank(
