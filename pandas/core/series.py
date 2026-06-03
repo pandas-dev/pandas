@@ -3050,6 +3050,111 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = maybe_unbox_numpy_scalar(result)
         return result
 
+    def describe(
+        self,
+        percentiles=None,
+        include=None,
+        exclude=None,
+    ) -> Series:
+        """
+        Generate descriptive statistics.
+
+        Summarize the central tendency, dispersion, and shape of the
+        Series's distribution, excluding ``NaN`` values. The set of
+        statistics returned depends on the Series's dtype; see Notes.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : None
+            Has no effect on Series. Deprecated and will be removed in a
+            future version.
+        exclude : None
+            Has no effect on Series. Deprecated and will be removed in a
+            future version.
+
+        Returns
+        -------
+        Series
+            Summary statistics of the Series.
+
+        See Also
+        --------
+        DataFrame.describe : Generate descriptive statistics of a DataFrame.
+        Series.count : Count of non-NA observations.
+        Series.max : Maximum of the values.
+        Series.min : Minimum of the values.
+        Series.mean : Mean of the values.
+        Series.std : Standard deviation of the observations.
+
+        Notes
+        -----
+        For numeric dtypes, the result's index includes ``count``,
+        ``mean``, ``std``, ``min``, ``max``, and the requested
+        percentiles. By default the lower percentile is ``25`` and the
+        upper is ``75``; the ``50`` percentile is the same as the median.
+
+        For object dtypes (e.g. strings), the result's index includes
+        ``count``, ``unique``, ``top``, and ``freq``. The ``top`` is the
+        most common value and ``freq`` is its count. If multiple values
+        tie for the highest count, ``top`` is chosen arbitrarily from
+        among them.
+
+        For datetime dtypes, the result also includes ``mean`` and the
+        requested percentiles, computed on the underlying timestamps.
+
+        Examples
+        --------
+        A numeric Series.
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.describe()
+        count    3.0
+        mean     2.0
+        std      1.0
+        min      1.0
+        25%      1.5
+        50%      2.0
+        75%      2.5
+        max      3.0
+        dtype: float64
+
+        An object Series.
+
+        >>> s = pd.Series(["a", "a", "b", "c"])
+        >>> s.describe()
+        count     4
+        unique    3
+        top       a
+        freq      2
+        dtype: object
+
+        A datetime Series.
+
+        >>> s = pd.Series(
+        ...     [
+        ...         np.datetime64("2000-01-01"),
+        ...         np.datetime64("2010-01-01"),
+        ...         np.datetime64("2010-01-01"),
+        ...     ]
+        ... )
+        >>> s.describe()
+        count                      3
+        mean     2006-09-01 08:00:00
+        min      2000-01-01 00:00:00
+        25%      2004-12-31 12:00:00
+        50%      2010-01-01 00:00:00
+        75%      2010-01-01 00:00:00
+        max      2010-01-01 00:00:00
+        dtype: object
+        """
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
+
     def diff(self, periods: int = 1) -> Series:
         """
         First discrete difference of Series elements.
