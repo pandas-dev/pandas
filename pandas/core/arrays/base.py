@@ -2760,13 +2760,17 @@ class ExtensionArray:
         if self._hasna:
             return False, False
         values = self._values_for_argsort()
+        timelike = False
         if values.dtype.kind == "b":
             values = values.view("uint8")
+        elif values.dtype.kind in "mM":
+            values = values.view("i8")
+            timelike = True
         try:
-            inc, dec, _ = libalgos.is_monotonic(values, timelike=False)
+            inc, dec, _ = libalgos.is_monotonic(values, timelike=timelike)
         except TypeError:
             # ``is_monotonic`` only supports numeric and object dtypes; for
-            # other dtypes (e.g. datetime64, timedelta64) fall back to ranks.
+            # other dtypes (e.g. complex, float16) fall back to ranks.
             try:
                 ranks = self._rank()
             except TypeError:

@@ -84,16 +84,10 @@ def test_is_extension_array_dtype(dtype):
 
 def test_monotonic_check_unsupported_argsort_dtype():
     # GH#65585
-    # Test ExtensionArray._monotonic_check on non-numeric and non-object dtypes
-    arr = pd.array(pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"]))
-    assert arr._values_for_argsort().dtype.kind == "M"
-
+    # Test fallback in ExtensionArray._monotonic_check when is_monotonic can't be used
+    arr = pd.array(np.array([1, 2, 3], dtype="float16"))
     assert ExtensionArray._monotonic_check(arr) == (True, False)
     assert ExtensionArray._monotonic_check(arr[::-1]) == (False, True)
-
-    td = pd.array(pd.to_timedelta([1, 2, 3], unit="D"))
-    assert td._values_for_argsort().dtype.kind == "m"
-    assert ExtensionArray._monotonic_check(td) == (True, False)
 
 
 class CapturingStringArray(pd.arrays.StringArray):
