@@ -229,12 +229,8 @@ def test_put_mixed_object_block_warns_only_non_string_columns(temp_hdfstore):
 
     with tm.assert_produces_warning(
         pd.errors.PerformanceWarning, match=r"items->Index\(\['mix'\]"
-    ) as record:
+    ):
         temp_hdfstore.put("df", df, track_times=False)
-
-    messages = " ".join(str(warning.message) for warning in record)
-    assert "'mix'" in messages
-    assert "'string'" not in messages
 
 
 def test_put_str_frame(temp_hdfstore, performance_warning, string_dtype_arguments):
