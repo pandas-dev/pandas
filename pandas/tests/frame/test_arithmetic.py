@@ -2345,3 +2345,20 @@ def test_sum_mixed_empty(any_string_dtype):
     )
     result = empty_df.sum()
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other, expect",
+    [
+        (3, DataFrame([[False, False, pd.NA], [pd.NA, True, False]])),
+        (
+            DataFrame([[1, 2, 3], [3, 2, 1]]),
+            DataFrame([[True, True, pd.NA], [pd.NA, False, False]]),
+        ),
+    ],
+)
+def test_dataframe_comparison_preserve_na(other, expect):
+    # GH#63328
+    df = DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
+    res = df == other
+    tm.assert_frame_equal(res, expect)
