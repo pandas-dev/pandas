@@ -3007,6 +3007,23 @@ def test_merge_datetime_different_tz_preserves_dtype(join_type):
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_datetime_different_resolution_right_on(join_type):
+    # GH#55212 - when the join key lives only in the right frame
+    # (via left_index=True + right_on), it must still upcast to the highest
+    # datetime64 resolution.
+    vals = [
+        pd.Timestamp("2023-05-12"),
+        pd.Timestamp("2023-05-13"),
+        pd.Timestamp("2023-05-14"),
+    ]
+    left = DataFrame({"a": [1.0, 2.0]}, index=DatetimeIndex(vals[:2]).as_unit("ns"))
+    right = DataFrame({"rk": vals[1:], "b": [3.0, 4.0]})
+    right["rk"] = right["rk"].dt.as_unit("us")
+
+    result = left.merge(right, left_index=True, right_on="rk", how=join_type)
+    assert result["rk"].dtype == np.dtype("datetime64[ns]")
+
+
 def test_merge_multiindex_single_level():
     # GH52331
     df = DataFrame({"col": ["A", "B"]})

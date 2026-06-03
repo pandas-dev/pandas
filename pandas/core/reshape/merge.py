@@ -1311,7 +1311,13 @@ class _MergeOperation:
                                 else (right_indexer == -1).any()
                             )
 
-                        if right_has_missing:
+                        left_key_dtype = self.left_join_keys[i].dtype
+                        needs_resolution_cast = (
+                            result[name].dtype.kind == "M"
+                            and left_key_dtype.kind == "M"
+                            and result[name].dtype != left_key_dtype
+                        )
+                        if right_has_missing or needs_resolution_cast:
                             take_left = self.left_join_keys[i]
 
                             if result[name].dtype != self.right[name].dtype:
