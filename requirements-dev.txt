@@ -54,6 +54,7 @@ ipython
 moto
 asv>=0.6.5
 py-rattler
+mypy==2.1.0
 tokenize-rt
 pre-commit>=4.2.0
 gitpython
@@ -83,6 +84,5 @@ requests
 pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
-mypy==2.1.0
 tzdata>=2023.3
 https://github.com/jorisvandenbossche/pydata-sphinx-theme/archive/refs/heads/v0.16.1+dismissable-announcement-banner.zip

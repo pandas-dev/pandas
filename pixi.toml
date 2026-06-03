@@ -182,16 +182,12 @@ pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
 [feature.typing.dependencies]
 pre-commit = ">=4.2.0"
 ipython = "*"
+mypy = "==2.1.0"
 scipy-stubs = "*"
 types-python-dateutil = "*"
 types-PyMySQL = "*"
 types-pytz = "*"
 types-PyYAML = "*"
-
-[feature.typing.pypi-dependencies]
-# mypy 2.1.0 not available on conda as of 5/23/26, pypi avail on 5/11/26
-# https://github.com/conda-forge/mypy-feedstock/pull/147
-mypy = "==2.1.0"
 
 [environments]
 py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
