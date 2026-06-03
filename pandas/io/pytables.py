@@ -5743,19 +5743,20 @@ class Selection:
                     self.condition.format(), start=self.start, stop=self.stop
                 )
             except ValueError as err:
-                # GH#39752 PyTables evaluates a query against indexed columns by
-                # combining one array per OR-ed term in a single numexpr call,
-                # which is capped at 31 inputs. Translate the opaque numexpr
-                # error into actionable guidance.
+                # GH#39752 PyTables queries indexed columns by combining one
+                # boolean array per comparison term in a single numexpr call,
+                # capped at NPY_MAXARGS-1 inputs (a numexpr build-time
+                # constant, 32 or 64 depending on the targeted numpy).
+                # Translate the opaque numexpr error into actionable guidance.
                 if "too many inputs" not in str(err):
                     raise
                 raise ValueError(
-                    "The passed where expression has too many OR-ed conditions "
-                    "for a query against indexed columns; the underlying numexpr "
-                    "engine supports at most 31. Reduce the number of OR-ed "
-                    "conditions, or store the table with 'index=False' (e.g. "
-                    "DataFrame.to_hdf(..., index=False)) so the query does not "
-                    "use the column index."
+                    "The passed where expression has too many comparisons "
+                    "for a query against indexed columns (a numexpr "
+                    "limitation). Reduce the number of comparisons, or store "
+                    "the table with 'index=False' (e.g. "
+                    "DataFrame.to_hdf(..., index=False)) so the query does "
+                    "not use the column index."
                 ) from err
         elif self.coordinates is not None:
             return self.table.table.read_coordinates(self.coordinates)

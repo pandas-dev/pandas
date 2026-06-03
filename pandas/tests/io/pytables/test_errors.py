@@ -165,10 +165,12 @@ def test_invalid_terms_reference(temp_h5_path):
 
 
 def test_select_too_many_conditions_raises(temp_hdfstore):
-    # GH#39752 a where with too many OR-ed terms over indexed columns hits
+    # GH#39752 a where with too many comparisons over indexed columns hits
     # numexpr's input limit; we should raise an actionable message rather than
     # leak the opaque "too many inputs" ValueError.
-    n = 40  # > 31, the numexpr input limit for the indexed query path
+    # 64 clauses x 2 comparisons each exceeds the limit (NPY_MAXARGS-1, i.e.
+    # 31 or 63 depending on the numexpr build).
+    n = 64
     df = DataFrame(
         {"A": range(n)},
         index=MultiIndex.from_arrays([["a"] * n, range(n)], names=("la", "lb")),
@@ -176,7 +178,7 @@ def test_select_too_many_conditions_raises(temp_hdfstore):
     temp_hdfstore.put("df", df, format="table", track_times=False)
 
     where = " | ".join(f"(la == 'a' & lb == {i})" for i in range(n))
-    msg = "too many OR-ed conditions"
+    msg = "too many comparisons"
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.select("df", where=where)
 
