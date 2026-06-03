@@ -50,7 +50,6 @@ from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
     AttributeConflictWarning,
     ClosedFileError,
-    IncompatibilityWarning,
     Pandas4Warning,
     PerformanceWarning,
     PossibleDataLossError,
@@ -119,7 +118,6 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterator,
-        Sequence,
     )
     from types import (
         ModuleType,
@@ -144,8 +142,6 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
-# versioning attribute
-_version = "0.15.2"
 
 # encoding
 _default_encoding = "UTF-8"
@@ -200,12 +196,6 @@ def _ensure_term(where, scope_level: int):
         where = Term(where, scope_level=level)
     return where if where is None or len(where) else None
 
-
-incompatibility_doc: Final = """
-where criteria is being ignored as this version [%s] is too old (or
-not-defined), read the file in and write it out to a new file to upgrade (with
-the copy_to method)
-"""
 
 attribute_conflict_doc: Final = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
@@ -3013,23 +3003,6 @@ class Fixed:
         self.errors = errors
 
     @property
-    def is_old_version(self) -> bool:
-        return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
-
-    @property
-    def version(self) -> tuple[int, int, int]:
-        """compute and set our version"""
-        version = getattr(self.group._v_attrs, "pandas_version", None)
-        if isinstance(version, str):
-            version_tup = tuple(int(x) for x in version.split("."))
-            if len(version_tup) == 2:
-                version_tup = (*version_tup, 0)
-            assert len(version_tup) == 3  # needed for mypy
-            return version_tup
-        else:
-            return (0, 0, 0)
-
-    @property
     def pandas_type(self):
         return getattr(self.group._v_attrs, "pandas_type", None)
 
@@ -3045,9 +3018,8 @@ class Fixed:
         return self.pandas_type
 
     def set_object_info(self) -> None:
-        """set my pandas type & version"""
+        """set my pandas type"""
         self.attrs.pandas_type = str(self.pandas_kind)
-        self.attrs.pandas_version = str(_version)
 
     def copy(self) -> Fixed:
         new_self = copy.copy(self)
@@ -3105,9 +3077,6 @@ class Fixed:
         if other is None:
             return None
         return True
-
-    def validate_version(self, where=None) -> None:
-        """are we trying to operate on an old version?"""
 
     def infer_axes(self) -> bool:
         """
@@ -3780,14 +3749,9 @@ class Table(Fixed):
         jdc = ",".join(self.data_columns) if len(self.data_columns) else ""
         dc = f",dc->[{jdc}]"
 
-        ver = ""
-        if self.is_old_version:
-            jver = ".".join([str(x) for x in self.version])
-            ver = f"[{jver}]"
-
         jindex_axes = ",".join([a.name for a in self.index_axes])
         return (
-            f"{self.pandas_type:12.12}{ver} "
+            f"{self.pandas_type:12.12} "
             f"(typ->{self.table_type_short},nrows->{self.nrows},"
             f"ncols->{self.ncols},indexers->[{jindex_axes}]{dc})"
         )
@@ -3995,17 +3959,6 @@ class Table(Fixed):
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
-    def validate_version(self, where=None) -> None:
-        """are we trying to operate on an old version?"""
-        if where is not None:
-            if self.is_old_version:
-                ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(
-                    ws,
-                    IncompatibilityWarning,
-                    stacklevel=find_stack_level(),
-                )
-
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
         validate the min_itemsize doesn't contain items that are not in the
@@ -4069,11 +4022,10 @@ class Table(Fixed):
                 klass = DataIndexableCol
 
             atom = getattr(desc, c)
-            adj_name = _maybe_adjust_name(c, self.version)
 
             # TODO: why kind_attr here?
-            values = getattr(table_attrs, f"{adj_name}_kind", None)
-            dtype = getattr(table_attrs, f"{adj_name}_dtype", None)
+            values = getattr(table_attrs, f"{c}_kind", None)
+            dtype = getattr(table_attrs, f"{c}_dtype", None)
             # Argument 1 to "_dtype_to_kind" has incompatible type
             # "Optional[Any]"; expected "str"  [arg-type]
             kind = _dtype_to_kind(dtype)  # type: ignore[arg-type]
@@ -4081,10 +4033,10 @@ class Table(Fixed):
             md = self.read_metadata(c)
             # TODO: figure out why these two versions of `meta` dont always match.
             #  meta = "category" if md is not None else None
-            meta = getattr(table_attrs, f"{adj_name}_meta", None)
+            meta = getattr(table_attrs, f"{c}_meta", None)
 
             obj = klass(
-                name=adj_name,
+                name=c,
                 cname=c,
                 values=values,
                 kind=kind,
@@ -4457,7 +4409,6 @@ class Table(Fixed):
                 errors=self.errors,
                 columns=b_items,
             )
-            adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
@@ -4476,7 +4427,7 @@ class Table(Fixed):
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
             col = klass(
-                name=adj_name,
+                name=new_name,
                 cname=new_name,
                 values=list(b_items),
                 typ=typ,
@@ -4673,9 +4624,6 @@ class Table(Fixed):
         select coordinates (row numbers) from a table; return the
         coordinates object
         """
-        # validate the version
-        self.validate_version(where)
-
         # infer the data kind
         if not self.infer_axes():
             return False
@@ -4703,9 +4651,6 @@ class Table(Fixed):
         return a single column from the table, generally only indexables
         are interesting
         """
-        # validate the version
-        self.validate_version()
-
         # infer the data kind
         if not self.infer_axes():
             return False
@@ -5023,9 +4968,6 @@ class AppendableFrameTable(AppendableTable):
         start: int | None = None,
         stop: int | None = None,
     ):
-        # validate the version
-        self.validate_version(where)
-
         # infer the data kind
         if not self.infer_axes():
             return None
@@ -5645,31 +5587,6 @@ def _need_convert(kind: str) -> bool:
     if kind in ("datetime64", "string") or "datetime64" in kind:
         return True
     return False
-
-
-def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
-    """
-    Prior to 0.10.1, we named values blocks like: values_block_0 and the
-    name values_0, adjust the given name if necessary.
-
-    Parameters
-    ----------
-    name : str
-    version : Tuple[int, int, int]
-
-    Returns
-    -------
-    str
-    """
-    if isinstance(version, str) or len(version) < 3:
-        raise ValueError("Version is incorrect, expected sequence of 3 integers.")
-
-    if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-        m = re.search(r"values_block_(\d+)", name)
-        if m:
-            grp = m.groups()[0]
-            name = f"values_{grp}"
-    return name
 
 
 def _dtype_to_kind(dtype_str: str) -> str:
