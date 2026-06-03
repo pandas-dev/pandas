@@ -175,10 +175,13 @@ def test_repr_get_storer(temp_hdfstore):
 @pytest.mark.parametrize(
     "obj, expected",
     [
-        (DataFrame(range(10)).iloc[:0], [0, 1]),
-        (DataFrame(np.zeros((5, 3))).iloc[:0], [0, 3]),
-        (DataFrame({"a": np.arange(5), "b": np.arange(5.0)}).iloc[:0], [0, 2]),
-        (Series(range(10), dtype="int64").iloc[:0], (0,)),
+        (DataFrame(np.zeros((0, 1), dtype=np.int64)), [0, 1]),
+        (DataFrame(np.zeros((0, 3))), [0, 3]),
+        (
+            DataFrame({"a": Series(dtype=np.int64), "b": Series(dtype=np.float64)}),
+            [0, 2],
+        ),
+        (Series(dtype=np.int64), (0,)),
     ],
 )
 def test_get_storer_shape_empty(temp_hdfstore, obj, expected):
