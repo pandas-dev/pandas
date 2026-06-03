@@ -203,14 +203,14 @@ class Timestamp(datetime):
         nonexistent: (
             Literal["raise", "shift_forward", "shift_backward"] | timedelta
         ) = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     @overload
     def round(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     @overload
     def floor(
         self,
@@ -219,14 +219,14 @@ class Timestamp(datetime):
         nonexistent: (
             Literal["raise", "shift_forward", "shift_backward"] | timedelta
         ) = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     @overload
     def floor(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     @overload
     def ceil(
         self,
@@ -235,14 +235,14 @@ class Timestamp(datetime):
         nonexistent: (
             Literal["raise", "shift_forward", "shift_backward"] | timedelta
         ) = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     @overload
     def ceil(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> Self: ...
+    ) -> Self | NaTType: ...
     def day_name(self, locale: str | None = ...) -> str: ...
     def month_name(self, locale: str | None = ...) -> str: ...
     @property
