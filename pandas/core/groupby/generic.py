@@ -604,9 +604,6 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
-            if not self.as_index and not_indexed_same:
-                result = self._insert_inaxis_grouper(result)
-                result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
         else:
             # GH #6265 #24880
@@ -954,105 +951,50 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
         """
-        Generate descriptive statistics.
+        Generate descriptive statistics for each group.
 
-        Descriptive statistics include those that summarize the central
-        tendency, dispersion and shape of a
-        dataset's distribution, excluding ``NaN`` values.
-
-        Analyzes both numeric and object series, as well
-        as ``DataFrame`` column sets of mixed data types. The output
-        will vary depending on what is provided. Refer to the notes
-        below for more detail.
+        Within each group, summarize the central tendency, dispersion,
+        and shape of the Series's distribution, excluding ``NaN`` values.
+        The per-group statistics depend on the Series's dtype; see Notes.
 
         Parameters
         ----------
         percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should
-            fall between 0 and 1. The default, ``None``, will automatically
-            return the 25th, 50th, and 75th percentiles.
-        include : 'all', list-like of dtypes or None (default), optional
-            A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
-
-            - 'all' : All columns of the input will be included in the output.
-            - A list-like of dtypes : Limits the results to the
-              provided data types.
-              To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to object columns submit
-              the ``numpy.object`` data type. Strings
-              can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
-              select pandas categorical columns, use ``'category'``
-            - None (default) : The result will include all numeric columns.
-        exclude : list-like of dtypes or None (default), optional,
-            A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
-
-            - A list-like of dtypes : Excludes the provided data types
-              from the result. To exclude numeric types submit
-              ``numpy.number``. To exclude object columns submit the data
-              type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
-              exclude pandas categorical columns, use ``'category'``
-            - None (default) : The result will exclude nothing.
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : None
+            Has no effect on a Series groupby. Deprecated and will be
+            removed in a future version.
+        exclude : None
+            Has no effect on a Series groupby. Deprecated and will be
+            removed in a future version.
 
         Returns
         -------
-        Series or DataFrame
-            Summary statistics of the Series or Dataframe provided.
+        DataFrame
+            One row per group; columns are the per-group statistics.
 
         See Also
         --------
-        DataFrame.count: Count number of non-NA/null observations.
-        DataFrame.max: Maximum of the values in the object.
-        DataFrame.min: Minimum of the values in the object.
-        DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the observations.
-        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
-            columns based on their dtype.
+        Series.describe : Generate descriptive statistics of a Series.
+        DataFrameGroupBy.describe : Generate descriptive statistics for
+            each group of a DataFrame.
 
         Notes
         -----
-        For numeric data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
-        upper percentiles. By default the lower percentile is ``25`` and the
-        upper percentile is ``75``. The ``50`` percentile is the
-        same as the median.
+        For numeric Series, the per-group columns are ``count``, ``mean``,
+        ``std``, ``min``, ``max``, and the requested percentiles. By
+        default the lower percentile is ``25`` and the upper is ``75``;
+        the ``50`` percentile is the same as the median.
 
-        For object data (e.g. strings), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
-        is the most common value. The ``freq`` is the most common value's
-        frequency.
-
-        If multiple object values have the highest count, then the
-        ``count`` and ``top`` results will be arbitrarily chosen from
-        among those with the highest count.
-
-        For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the DataFrame consists
-        only of object and categorical data without any numeric columns, the
-        default is to return an analysis of both the object and categorical
-        columns. If ``include='all'`` is provided as an option, the result
-        will include a union of attributes of each type.
-
-        The `include` and `exclude` parameters can be used to limit
-        which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
+        For object Series (e.g. strings), the per-group columns are
+        ``count``, ``unique``, ``top``, and ``freq``. The ``top`` is the
+        most common value within the group and ``freq`` is its count.
 
         Examples
         --------
-        Describing a numeric ``Series``.
-
         >>> s = pd.Series([1, 2, 3, 4])
-
-        >>> s
-        0    1
-        1    2
-        2    3
-        3    4
-        dtype: int64
-
         >>> s.groupby([1, 1, 2, 2]).describe()
            count  mean       std  min   25%  50%   75%  max
         1    2.0   1.5  0.707107  1.0  1.25  1.5  1.75  2.0
@@ -3167,6 +3109,83 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     boxplot = boxplot_frame_groupby
 
+    def describe(
+        self,
+        percentiles=None,
+        include=None,
+        exclude=None,
+    ) -> DataFrame:
+        """
+        Generate descriptive statistics for each group.
+
+        Within each group, summarize the central tendency, dispersion,
+        and shape of each analyzed column's distribution, excluding
+        ``NaN`` values. By default only numeric columns are analyzed;
+        pass ``include`` to also analyze non-numeric columns (or
+        ``exclude`` to omit columns by dtype).
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            Which column dtypes to include. Options:
+
+            - ``'all'`` : Include all columns, including non-numeric ones.
+            - list-like of dtypes : Limit the result to columns of the
+              given dtypes, in the style of
+              :meth:`DataFrame.select_dtypes` (e.g. ``include=[np.number]``
+              or ``include=["category"]``).
+            - ``None`` (default) : Include only numeric columns, falling
+              back to object and categorical columns if there are no
+              numeric columns.
+        exclude : list-like of dtypes or None (default), optional
+            Column dtypes to omit from the result, in the style of
+            :meth:`DataFrame.select_dtypes`. ``None`` (default) excludes
+            nothing.
+
+        Returns
+        -------
+        DataFrame
+            One row per group. The columns form a MultiIndex whose
+            outer level is the analyzed column and whose inner level is
+            the statistic name.
+
+        See Also
+        --------
+        DataFrame.describe : Generate descriptive statistics of a DataFrame.
+        SeriesGroupBy.describe : Generate descriptive statistics for each
+            group of a Series.
+        DataFrame.select_dtypes : Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
+        Notes
+        -----
+        For numeric columns, the per-group statistics are ``count``,
+        ``mean``, ``std``, ``min``, ``max``, and the requested
+        percentiles. By default the lower percentile is ``25`` and the
+        upper is ``75``; the ``50`` percentile is the same as the median.
+
+        For object columns, the per-group statistics are ``count``,
+        ``unique``, ``top``, and ``freq``. The ``top`` is the most common
+        value within the group and ``freq`` is its count.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"group": ["a", "a", "b", "b"], "value": [1, 2, 3, 4]})
+        >>> df.groupby("group").describe()
+              value
+              count mean       std  min   25%  50%   75%  max
+        group
+        a       2.0  1.5  0.707107  1.0  1.25  1.5  1.75  2.0
+        b       2.0  3.5  0.707107  3.0  3.25  3.5  3.75  4.0
+        """
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
+
     def value_counts(
         self,
         subset: Sequence[Hashable] | None = None,
@@ -3828,13 +3847,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         **kwargs,
     ):
         """
-        Make a histogram of the DataFrame's columns.
+        Draw histogram of the DataFrame's columns for each group.
 
-        A `histogram`_ is a representation of the distribution of data.
-        This function calls :meth:`matplotlib.pyplot.hist`, on each series in
-        the DataFrame, resulting in one histogram per column.
-
-        .. _histogram: https://en.wikipedia.org/wiki/Histogram
+        A separate histogram subplot is generated for each group, making it
+        easier to visually compare the distribution of each numeric column
+        across groups. Internally this calls :meth:`DataFrame.hist` on every
+        group's frame, so the same matplotlib options are accepted.
 
         Parameters
         ----------
@@ -3897,23 +3915,26 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See Also
         --------
+        DataFrame.hist : Equivalent histogram plotting method on DataFrame.
         matplotlib.pyplot.hist : Plot a histogram using matplotlib.
 
         Examples
         --------
-        This example draws a histogram based on the length and width of
-        some animals, displayed in three bins
+        For each animal category, draw a histogram of the numeric columns.
+        The grouping column is used to split the data; one set of histogram
+        subplots is produced per group.
 
         .. plot::
             :context: close-figs
 
-            >>> data = {
-            ...     "length": [1.5, 0.5, 1.2, 0.9, 3],
-            ...     "width": [0.7, 0.2, 0.15, 0.2, 1.1],
-            ... }
-            >>> index = ["pig", "rabbit", "duck", "chicken", "horse"]
-            >>> df = pd.DataFrame(data, index=index)
-            >>> hist = df.groupby("length").hist(bins=3)
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "animal": ["cat", "cat", "dog", "dog", "dog"],
+            ...         "length": [1.0, 1.2, 1.5, 1.7, 2.0],
+            ...         "weight": [4.5, 5.0, 10.0, 12.5, 15.0],
+            ...     }
+            ... )
+            >>> hist = df.groupby("animal").hist(bins=3)
         """
         result = self._op_via_apply(
             "hist",

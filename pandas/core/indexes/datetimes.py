@@ -496,9 +496,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        arr = self._data.normalize()
+        data = self._data
+        # Inferring frequency from naive normalization is significantly
+        # cheaper than tz-aware.
+        naive = data._normalize_naive()
+        freq = to_offset(naive._inferred_freq_str)
+        arr = naive.tz_localize(data.tz) if data.tz is not None else naive
         result = type(self)._simple_new(arr, name=self.name)
-        result._freq = to_offset(arr.inferred_freq)
+        result._freq = freq
         return result
 
     def tz_convert(self, tz) -> Self:
@@ -596,9 +601,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        tz : str, zoneinfo.ZoneInfo,, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
-            Time zone to convert timestamps to. Passing ``None`` will
-            remove the time zone information preserving local time.
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+            Time zone to attach to the tz-naive timestamps; the wall time is
+            preserved. Passing ``None`` detaches the time zone from a tz-aware
+            DatetimeIndex, returning a tz-naive DatetimeIndex with the same
+            wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -662,8 +669,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                        '2018-03-03 09:00:00-05:00'],
                       dtype='datetime64[us, US/Eastern]', freq=None)
 
-        With the ``tz=None``, we can remove the time zone information
-        while keeping the local time (not converted to UTC):
+        With ``tz=None`` we can remove the time zone information while
+        preserving the wall time (no conversion to UTC):
 
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
@@ -799,7 +806,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 freq = PeriodDtype(dt_freq)._freqstr
 
             if freq is None:
-                freq = self.inferred_freq
+                freq = self._inferred_freq_str
 
             if freq is not None:
                 res = get_period_alias(freq)

@@ -64,7 +64,7 @@ def test_bad_quoting(all_parsers, quoting, msg):
     if parser.engine == "pyarrow":
         # pyarrow rejects ``quoting`` outright before any value validation.
         msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
-        err: type[Exception] = ValueError
+        err = ValueError
     else:
         err = TypeError
     with pytest.raises(err, match=msg):

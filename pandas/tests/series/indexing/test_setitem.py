@@ -853,16 +853,25 @@ class SetitemCastingEquivalents:
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        if is_list_like(val) and len(val) < len(obj):
+            # see test_series_where
+            return
+
         res = Index(obj).where(~mask, val)
-        expected_idx = Index(expected, dtype=expected.dtype)
-        tm.assert_index_equal(res, expected_idx)
+        ser_res = obj.where(~mask, val)
+        tm.assert_index_equal(res, Index(ser_res, dtype=ser_res.dtype))
 
     def test_index_putmask(self, obj, key, expected, raises, val):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
+        if is_list_like(val) and len(val) < len(obj):
+            # see test_series_where
+            return
+
         res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        ser_res = obj.where(~mask, val)
+        tm.assert_index_equal(res, Index(ser_res, dtype=ser_res.dtype))
 
 
 @pytest.mark.parametrize(
@@ -1468,6 +1477,22 @@ class TestCoercionFloat32(CoercionTest):
 
         if isinstance(val, float):
             # the xfail would xpass bc test_slice_key short-circuits
+            raise AssertionError("xfail not relevant for this test.")
+
+    def test_index_where(self, obj, key, expected, raises, val):
+        super().test_index_where(obj, key, expected, raises, val)
+
+        if isinstance(val, float) and not np_version_gt2:
+            # Index.where delegates to Series.where, so the comparison is
+            #  trivially satisfied and the xfail would xpass
+            raise AssertionError("xfail not relevant for this test.")
+
+    def test_index_putmask(self, obj, key, expected, raises, val):
+        super().test_index_putmask(obj, key, expected, raises, val)
+
+        if isinstance(val, float) and not np_version_gt2:
+            # Index.putmask delegates to Series.where, so the comparison is
+            #  trivially satisfied and the xfail would xpass
             raise AssertionError("xfail not relevant for this test.")
 
 

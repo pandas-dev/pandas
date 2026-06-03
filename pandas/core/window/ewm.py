@@ -1189,7 +1189,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
             update_deltas,
-            self.min_periods,
+            self.min_periods,  # type: ignore[arg-type]
             ewma_func,
         )
         if not is_frame:

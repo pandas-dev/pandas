@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     _testing as tm,
     concat,
@@ -428,6 +429,36 @@ def test_append_with_strings2(temp_hdfstore):
     )
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.append("df", df, min_itemsize={"foo": 20, "foobar": 20})
+
+
+def test_append_min_itemsize_multiindex_columns(temp_hdfstore):
+    # GH#12154 per-column min_itemsize is unsupported for MultiIndex columns
+    # (data_columns themselves are unsupported), but the prior errors were
+    # opaque ("not an axis or data_column" / "non-object label
+    # DataIndexableCol"). Ensure the user gets a clear message pointing at
+    # the workaround.
+    df = DataFrame(
+        [["xx", "yy", "zz"], ["aa", "bb", "cc"]],
+        columns=MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")]),
+    )
+
+    msg = (
+        r"cannot use min_itemsize keys \[1\] on axis \[1\] with a "
+        r"MultiIndex.*min_itemsize=\{'values': N\}"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, min_itemsize={1: 20})
+
+    msg = (
+        r"cannot use min_itemsize keys \[\(1, 'a'\)\] on axis \[1\] with a "
+        r"MultiIndex.*min_itemsize=\{'values': N\}"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, min_itemsize={(1, "a"): 20})
+
+    # the 'values' key is the documented workaround and should still work
+    temp_hdfstore.append("df", df, min_itemsize={"values": 20})
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
 def test_append_with_empty_string(temp_hdfstore):
