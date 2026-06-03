@@ -15,9 +15,10 @@ The full license is in the LICENSE file, distributed with this software.
 Moments moments_reduce(const double *values, size_t n, bool skipna,
                        const uint8_t *mask, int max_moment) {
   std::span<const double> values_span(values, n);
-  std::optional<std::span<const uint8_t>> mask_span{};
-  if (mask != nullptr)
-    mask_span = std::span(mask, n);
+  const auto mask_span =
+      mask == nullptr
+          ? std::nullopt
+          : std::optional<std::span<const uint8_t>>(std::span(mask, n));
   return pandas::moments::accumulate_moments_simd{}(
       xsimd::neon64{}, values_span, skipna, mask_span, max_moment);
 }
