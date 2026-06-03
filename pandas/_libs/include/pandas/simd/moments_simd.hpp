@@ -74,7 +74,7 @@ accumulate_first_pass_internal(std::span<const double> values, bool skipna) {
     xsimd::batch<std::uint64_t, Arch> vec_count{};
     batch_type vec_sum{};
     for (std::size_t i = 0; i < values.size(); i += step) {
-      const auto val = xsimd::load_unaligned(&values[i]);
+      const auto val = xsimd::load_unaligned<Arch>(&values[i]);
       const xsimd::batch_bool<double, Arch> isna = xsimd::isnan(val);
 
       if (!skipna && xsimd::any(isna)) {
@@ -130,7 +130,7 @@ accumulate_first_pass_internal(std::span<const double> values,
     xsimd::batch<std::uint64_t, Arch> count{};
 
     for (std::size_t i = 0; i < values.size(); i += mask_step) {
-      const auto vector_mask = xsimd::load_unaligned(&mask[i]);
+      const auto vector_mask = xsimd::load_unaligned<Arch>(&mask[i]);
       const typename mask_batch_type::batch_bool_type isna =
           vector_mask != mask_batch_type(0);
 
@@ -143,7 +143,8 @@ accumulate_first_pass_internal(std::span<const double> values,
         for (std::size_t j = 0; j < mask_step;
              j += naccumulators * value_step) {
           for (std::size_t k = 0; k < naccumulators; k++) {
-            sum[k] += xsimd::load_unaligned(&values[i + j + (k * value_step)]);
+            sum[k] +=
+                xsimd::load_unaligned<Arch>(&values[i + j + (k * value_step)]);
           }
         }
 
@@ -160,7 +161,7 @@ accumulate_first_pass_internal(std::span<const double> values,
 
           const auto isna_batch =
               xsimd::batch_bool<uint64_t, Arch>::from_mask(batch_isna_bitmask);
-          const auto val = xsimd::load_unaligned(&values[i + idx]);
+          const auto val = xsimd::load_unaligned<Arch>(&values[i + idx]);
 
           count = xsimd::incr_if(count, !isna_batch);
           sum[k] += xsimd::select(
@@ -276,7 +277,7 @@ accumulate_second_pass_internal(std::span<const double> values,
   if (values.size() <= leaf_size) {
     SecondPassAcc<xsimd::batch<double, Arch>> acc{};
     for (std::size_t i = 0; i < values.size(); i += step) {
-      const auto val = xsimd::load_unaligned(&values[i]);
+      const auto val = xsimd::load_unaligned<Arch>(&values[i]);
       const auto isna = xsimd::isnan(val);
 
       const auto diff = xsimd::select(isna, batch_type(0), val - mean_vector);
@@ -320,7 +321,7 @@ accumulate_second_pass_masked_internal(
     const uint64_t batch_mask = (1ULL << value_step) - 1;
 
     for (std::size_t i = 0; i < values.size(); i += mask_step) {
-      const auto vector_mask = xsimd::load_unaligned(&mask[i]);
+      const auto vector_mask = xsimd::load_unaligned<Arch>(&mask[i]);
       const typename mask_batch_type::batch_bool_type isna =
           vector_mask != mask_batch_type(0);
       const auto isna_bitmask = isna.mask();
@@ -330,7 +331,7 @@ accumulate_second_pass_masked_internal(
             (isna_bitmask >> k) & batch_mask;
         const auto isna_batch =
             xsimd::batch_bool<double, Arch>::from_mask(batch_isna_bitmask);
-        const auto val = xsimd::load_unaligned(&values[i + k]);
+        const auto val = xsimd::load_unaligned<Arch>(&values[i + k]);
 
         const auto diff =
             xsimd::select(isna_batch, value_batch_type(0), val - mean_vector);
@@ -367,7 +368,7 @@ SecondPassAcc<double> accumulate_second_pass(std::span<const double> values,
   constexpr std::size_t step = batch_type::size;
   const std::size_t vec_size = (values.size() / step) * step;
 
-  batch_type mean_vector = xsimd::broadcast(mean);
+  batch_type mean_vector = xsimd::broadcast<double, Arch>(mean);
 
   const auto vec_acc = accumulate_second_pass_internal<Arch>(
       values.first(vec_size), mean_vector);
@@ -411,7 +412,7 @@ SecondPassAcc<double> accumulate_second_pass(std::span<const double> values,
 
   const std::size_t vec_size = (values.size() / mask_step) * mask_step;
 
-  value_batch_type mean_vector = xsimd::broadcast(mean);
+  value_batch_type mean_vector = xsimd::broadcast<double, Arch>(mean);
 
   const auto vec_acc = accumulate_second_pass_masked_internal<Arch>(
       values.first(vec_size), mask.first(vec_size), mean_vector);
