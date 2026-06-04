@@ -4054,10 +4054,15 @@ def test_fillna_zero():
         pd.offsets.Nano(),
     ],
 )
-def test_date32_pyarrow_intraday_offset_raises(offset):
-    s = pd.Series([date(2022, 12, 30)], dtype="date32[pyarrow]")
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_intraday_offset_raises(offset, dtype):
+    s = pd.Series([date(2022, 12, 30)], dtype=dtype)
     with pytest.raises(TypeError, match="intra-day"):
         s + offset
+    with pytest.raises(TypeError, match="intra-day"):
+        s - offset
+    with pytest.raises(TypeError, match="intra-day"):
+        offset + s
 
 
 @pytest.mark.parametrize(
@@ -4069,19 +4074,32 @@ def test_date32_pyarrow_intraday_offset_raises(offset):
         pd.DateOffset(years=1),
     ],
 )
-def test_date32_pyarrow_dateoffset_add(offset):
-    s = pd.Series([date(2022, 12, 30)], dtype="date32[pyarrow]")
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_dateoffset_add(offset, dtype):
+    s = pd.Series([date(2022, 12, 30)], dtype=dtype)
+
     result = s + offset
-    expected_date = offset + date(2022, 12, 30)
-    # Normalize both sides to datetime.date for comparison
-    if isinstance(expected_date, pd.Timestamp):
-        expected_date = expected_date.date()
-    assert result.dtype == ArrowDtype(pa.date32())
-    assert result[0] == expected_date
+    expected = offset + date(2022, 12, 30)
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+    result = s - offset
+    expected = date(2022, 12, 30) - offset
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+    result = offset + s
+    expected = offset + date(2022, 12, 30)
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
 
 
-def test_date32_pyarrow_dateoffset_with_nulls():
-    s = pd.Series([date(2022, 12, 30), None], dtype="date32[pyarrow]")
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_dateoffset_with_nulls(dtype):
+    s = pd.Series([date(2022, 12, 30), None], dtype=dtype)
     result = s + pd.offsets.MonthEnd()
     assert result[0] == date(2022, 12, 31)
     assert pd.isna(result[1])  # handles NA, NaT, None uniformly
