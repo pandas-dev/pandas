@@ -3174,7 +3174,8 @@ def test_dt_timedelta_components_negative_and_nulls():
 
 
 def test_dt_timedelta_accessors_match_python_timedelta():
-    # Test that .dt.days, .dt.seconds, .dt.microseconds match Python timedelta
+    # GH 63470: .dt.seconds/.dt.microseconds previously returned the
+    # .dt.components field values (0-59 / 0-999) instead of Python timedelta
     # semantics (total sub-day seconds, total sub-second microseconds)
     td = timedelta(
         days=1, hours=2, minutes=3, seconds=45, milliseconds=678, microseconds=123
