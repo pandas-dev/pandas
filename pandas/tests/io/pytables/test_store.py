@@ -172,6 +172,25 @@ def test_repr_get_storer(temp_hdfstore):
     str(s)
 
 
+@pytest.mark.parametrize(
+    "obj, expected",
+    [
+        (DataFrame(np.zeros((0, 1), dtype=np.int64)), [0, 1]),
+        (DataFrame(np.zeros((0, 3))), [0, 3]),
+        (
+            DataFrame({"a": Series(dtype=np.int64), "b": Series(dtype=np.float64)}),
+            [0, 2],
+        ),
+        (Series(dtype=np.int64), (0,)),
+    ],
+)
+def test_get_storer_shape_empty(temp_hdfstore, obj, expected):
+    # GH#37235 fixed-format storer reported a phantom length-1 axis for
+    # objects with no rows
+    temp_hdfstore.put("obj", obj, format="fixed", track_times=False)
+    assert temp_hdfstore.get_storer("obj").shape == expected
+
+
 def test_contains(temp_hdfstore):
     store = temp_hdfstore
     store["a"] = Series(
