@@ -193,12 +193,14 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
 
     def test_set_axis_columns_and_labels_raises(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        with pytest.raises(TypeError, match="Cannot specify both 'labels' and 'columns'"):
+        msg = "Cannot specify both 'labels' and 'columns'"
+        with pytest.raises(TypeError, match=msg):
             df.set_axis(["X", "Y"], columns=["X", "Y"])
 
     def test_set_axis_columns_and_index_raises(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        with pytest.raises(TypeError, match="Cannot specify both 'index' and 'columns'"):
+        msg = "Cannot specify both 'index' and 'columns'"
+        with pytest.raises(TypeError, match=msg):
             df.set_axis(index=["a", "b", "c"], columns=["X", "Y"])
 
     def test_set_axis_columns_and_axis_raises(self):
