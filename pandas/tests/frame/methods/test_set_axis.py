@@ -43,13 +43,15 @@ class SharedSetAxisTests:
 
     def test_set_axis_index_and_labels_raises(self, obj):
         with pytest.raises(
-            TypeError, match="Cannot specify both 'labels' and 'index'"
+            TypeError, 
+            match="Cannot specify both 'labels' and 'index'"
         ):
             obj.set_axis(list("ab"), index=list("ab"))
 
     def test_set_axis_index_and_axis_raises(self, obj):
         with pytest.raises(
-            TypeError, match="Cannot specify both 'axis' and 'index'"
+            TypeError, 
+            match="Cannot specify both 'axis' and 'index'"
         ):
             obj.set_axis(index=list("abcd")[: len(obj)], axis=0)
 
@@ -198,28 +200,32 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
     def test_set_axis_columns_and_labels_raises(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(
-            TypeError, match="Cannot specify both 'labels' and 'columns'"
+            TypeError, 
+            match="Cannot specify both 'labels' and 'columns'"
         ):
             df.set_axis(["X", "Y"], columns=["X", "Y"])
 
     def test_set_axis_columns_and_index_raises(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(
-            TypeError, match="Cannot specify both 'index' and 'columns'"
+            TypeError, 
+            match="Cannot specify both 'index' and 'columns'"
         ):
             df.set_axis(index=["a", "b", "c"], columns=["X", "Y"])
 
     def test_set_axis_columns_and_axis_raises(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(
-            TypeError, match="Cannot specify both 'axis' and 'columns'"
+            TypeError, 
+            match="Cannot specify both 'axis' and 'columns'"
         ):
             df.set_axis(columns=["X", "Y"], axis=1)
 
     def test_set_axis_missing_labels_raises(self):
         df = DataFrame({"A": [1, 2, 3]})
         with pytest.raises(
-            TypeError, match="missing 1 required positional argument"
+            TypeError, 
+            match="missing 1 required positional argument"
         ):
             df.set_axis()
 
@@ -240,6 +246,7 @@ class TestSeriesSetAxis(SharedSetAxisTests):
     def test_set_axis_no_columns_kwarg_on_series(self):
         ser = Series([1, 2, 3])
         with pytest.raises(
-            TypeError, match="unexpected keyword argument 'columns'"
+            TypeError, 
+            match="unexpected keyword argument 'columns'"
         ):
             ser.set_axis(columns=["a", "b", "c"])
