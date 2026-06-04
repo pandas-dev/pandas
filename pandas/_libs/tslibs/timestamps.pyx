@@ -3336,16 +3336,18 @@ timedelta}, default 'raise'
 
     def tz_localize(self, tz, ambiguous="raise", nonexistent="raise"):
         """
-        Localize the Timestamp to a timezone.
+        Attach or detach a time zone on a Timestamp.
 
-        Convert naive Timestamp to local time zone or remove
-        timezone from timezone-aware Timestamp.
+        This method does not shift the date/time values. It attaches a time
+        zone to a tz-naive Timestamp, or detaches the time zone from a
+        tz-aware Timestamp. In both cases the wall time is preserved.
 
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+            Time zone to attach to the tz-naive Timestamp; the wall time is
+            preserved. ``None`` detaches the time zone from a tz-aware
+            Timestamp, returning a tz-naive Timestamp with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
@@ -3713,11 +3715,32 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
+        cdef:
+            npy_datetimestruct dts
+            int64_t year
+            int month, day, hour, minute, second, microsecond
+
         from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 
-        year = self._year
-        month = self.month
-        day = self.day
+        if self.tzinfo is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
+            year = dts.year
+            month = dts.month
+            day = dts.day
+            hour = dts.hour
+            minute = dts.min
+            second = dts.sec
+            microsecond = dts.us
+        else:
+            year = self._year
+            month = self.month
+            day = self.day
+            hour = self.hour
+            minute = self.minute
+            second = self.second
+            microsecond = self.microsecond
+
         if month <= 2:
             year -= 1
             month += 12
@@ -3729,10 +3752,10 @@ default 'raise'
             np.floor(year / 100) +
             np.floor(year / 400) +
             1721118.5 +
-            (self.hour +
-             self.minute / 60.0 +
-             self.second / 3600.0 +
-             self.microsecond / 3600.0 / 1e+6 +
+            (hour +
+             minute / 60.0 +
+             second / 3600.0 +
+             microsecond / 3600.0 / 1e+6 +
              self._nanosecond / 3600.0 / 1e+9
              ) / 24.0
         )

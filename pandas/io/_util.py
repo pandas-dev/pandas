@@ -4,6 +4,7 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Literal,
+    cast,
 )
 import zoneinfo
 
@@ -195,22 +196,57 @@ def _post_convert_dtypes(
     ):
         # Convert any StringDtype columns back to object dtype (pyarrow always
         # uses string dtype even when the infer_string option is False)
-        for col, dtype in zip(df.columns, df.dtypes, strict=True):
-            if isinstance(dtype, pd.StringDtype) and dtype.na_value is np.nan:
-                df[col] = df[col].astype("object").fillna(None)
-            if isinstance(dtype, pd.CategoricalDtype):
-                cat_dtype = dtype.categories.dtype
-                if (
-                    isinstance(cat_dtype, pd.StringDtype)
-                    and cat_dtype.na_value is np.nan
-                ):
-                    cat_dtype = pd.CategoricalDtype(
-                        categories=dtype.categories.astype("object"),
-                        ordered=dtype.ordered,
-                    )
-                    df[col] = df[col].astype(cat_dtype)
+        for i in range(len(df.columns)):
+            new_col = _maybe_convert_string_to_object(df.iloc[:, i])
+            if new_col is not None:
+                df.isetitem(i, new_col)
+
+        new_idx = _maybe_convert_string_index_to_object(df.index)
+        if new_idx is not None:
+            df.index = new_idx
+        new_cols = _maybe_convert_string_index_to_object(df.columns)
+        if new_cols is not None:
+            df.columns = new_cols
 
     return df
+
+
+def _maybe_convert_string_to_object(
+    data: pd.Series | pd.Index,
+) -> pd.Series | pd.Index | None:
+    if isinstance(data.dtype, pd.StringDtype) and data.dtype.na_value is np.nan:
+        return data.astype("object").fillna(None)
+    elif isinstance(data.dtype, pd.CategoricalDtype):
+        cat_dtype = data.dtype.categories.dtype
+        if isinstance(cat_dtype, pd.StringDtype) and cat_dtype.na_value is np.nan:
+            cat_dtype = pd.CategoricalDtype(
+                categories=data.dtype.categories.astype("object"),
+                ordered=data.dtype.ordered,
+            )
+            return data.astype(cat_dtype)
+
+    # no conversion needed
+    return None
+
+
+def _maybe_convert_string_index_to_object(index: pd.Index) -> pd.Index | None:
+    if isinstance(index, pd.MultiIndex):
+        if any(
+            isinstance(level.dtype, pd.StringDtype) and level.dtype.na_value is np.nan
+            for level in index.levels
+        ):
+            new_levels = []
+            for level in index.levels:
+                new_level = _maybe_convert_string_to_object(level)
+                if new_level is not None:
+                    new_levels.append(new_level)
+                else:
+                    new_levels.append(level)
+            return index.set_levels(new_levels)
+        return None
+
+    else:
+        return cast("pd.Index | None", _maybe_convert_string_to_object(index))
 
 
 def _normalize_pytz_timezone(tz: dt.tzinfo) -> dt.tzinfo:

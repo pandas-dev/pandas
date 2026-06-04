@@ -1837,7 +1837,7 @@ class AreaPlot(LinePlot):
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
 
-        is_shared_y = len(list(ax.get_shared_y_axes())) > 0
+        is_shared_y = len(ax.get_shared_y_axes().get_siblings(ax)) > 1
         # do not override the default axis behaviour in case of shared y axes
         if self.ylim is None and not is_shared_y:
             if (data >= 0).all().all():
@@ -2146,10 +2146,9 @@ class PiePlot(MPLPlot):
 
     def __init__(self, data: Series | DataFrame, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        lt_zero = data < 0
-        if isinstance(data, ABCDataFrame) and lt_zero.any().any():
+        if isinstance(data, ABCDataFrame) and (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
-        elif isinstance(data, ABCSeries) and lt_zero.any():
+        elif isinstance(data, ABCSeries) and (data < 0).any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 
