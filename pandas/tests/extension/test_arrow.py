@@ -4056,13 +4056,13 @@ def test_fillna_zero():
 )
 @pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
 def test_date32_pyarrow_intraday_offset_raises(offset, dtype):
-    s = pd.Series([date(2022, 12, 30)], dtype=dtype)
+    ser = pd.Series([date(2022, 12, 30)], dtype=dtype)
     with pytest.raises(TypeError, match="intra-day"):
-        s + offset
+        ser + offset
     with pytest.raises(TypeError, match="intra-day"):
-        s - offset
+        ser - offset
     with pytest.raises(TypeError, match="intra-day"):
-        offset + s
+        offset + ser
 
 
 @pytest.mark.parametrize(
@@ -4076,21 +4076,21 @@ def test_date32_pyarrow_intraday_offset_raises(offset, dtype):
 )
 @pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
 def test_date32_pyarrow_dateoffset_add(offset, dtype):
-    s = pd.Series([date(2022, 12, 30)], dtype=dtype)
+    ser = pd.Series([date(2022, 12, 30)], dtype=dtype)
 
-    result = s + offset
+    result = ser + offset
     expected = offset + date(2022, 12, 30)
     if isinstance(expected, pd.Timestamp):
         expected = expected.date()
     assert result[0] == expected
 
-    result = s - offset
+    result = ser - offset
     expected = date(2022, 12, 30) - offset
     if isinstance(expected, pd.Timestamp):
         expected = expected.date()
     assert result[0] == expected
 
-    result = offset + s
+    result = offset + ser
     expected = offset + date(2022, 12, 30)
     if isinstance(expected, pd.Timestamp):
         expected = expected.date()
@@ -4099,7 +4099,7 @@ def test_date32_pyarrow_dateoffset_add(offset, dtype):
 
 @pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
 def test_date32_pyarrow_dateoffset_with_nulls(dtype):
-    s = pd.Series([date(2022, 12, 30), None], dtype=dtype)
-    result = s + pd.offsets.MonthEnd()
+    ser = pd.Series([date(2022, 12, 30), None], dtype=dtype)
+    result = ser + pd.offsets.MonthEnd()
     assert result[0] == date(2022, 12, 31)
     assert pd.isna(result[1])  # handles NA, NaT, None uniformly

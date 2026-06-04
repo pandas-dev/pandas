@@ -1159,7 +1159,8 @@ class ArrowExtensionArray(
             dt_array = ts_array._to_datetimearray()
 
             shifted = op(dt_array, other)
-            if not shifted[~shifted.isna()].is_normalized:
+            check = shifted[~shifted.isna()] if shifted._hasna else shifted
+            if not check.is_normalized:
                 raise TypeError(
                     f"DateOffset {other} is intra-day and cannot be "
                     f"applied to date32/date64 arrays"
