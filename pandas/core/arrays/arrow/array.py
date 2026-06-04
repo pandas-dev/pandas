@@ -1025,6 +1025,8 @@ class ArrowExtensionArray(
     def __getstate__(self):
         state = self.__dict__.copy()
         state["_pa_array"] = self._pa_array.combine_chunks()
+        # cached properties can be recomputed; don't bloat the pickle
+        state["_cache"] = {}
         return state
 
     def __setstate__(self, state) -> None:
@@ -1033,6 +1035,8 @@ class ArrowExtensionArray(
         else:
             data = state["_pa_array"]
         state["_pa_array"] = pa.chunked_array(data)
+        # pickles created before _cache existed
+        state.setdefault("_cache", {})
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:

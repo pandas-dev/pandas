@@ -3344,6 +3344,22 @@ def test_dt_day_remainder_cache_invalidation():
     assert result_after.iloc[0] != result_before.iloc[0]
 
 
+def test_dt_day_remainder_cache_not_pickled(tmp_path):
+    # The _dt_day_remainder cache can be recomputed, so it should not be
+    # serialized with the array
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+    arr._dt_day_remainder  # populate the cache
+    assert "_dt_day_remainder" in arr._cache
+
+    result = tm.round_trip_pickle(arr, tmp_path / "cache.pkl")
+    assert result._cache == {}
+    tm.assert_extension_array_equal(result, arr)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624
