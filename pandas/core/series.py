@@ -5595,7 +5595,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
-
         Returns
         -------
         Series
