@@ -2759,7 +2759,11 @@ class ExtensionArray:
         """
         if self._hasna:
             return False, False
-        values = self._values_for_argsort()
+        try:
+            values = self._values_for_argsort()
+        except TypeError:
+            return False, False
+
         timelike = False
         if values.dtype.kind == "b":
             values = values.view("uint8")
