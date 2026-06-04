@@ -2544,11 +2544,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             - Numba JIT function with ``engine='numba'`` specified.
             - List of strings/functions: applied to every non-key column,
               returning a MultiIndex-column DataFrame ``(column, func)``.
-            - Dict ``{column: func}`` or ``{name: NamedAgg(column, func)}``:
+            - Dict ``{column: func}`` or ``{name: NamedFunc(column, func)}``:
               applied per-column as specified.
 
             .. versionchanged:: 3.1.0
-                    Added support for list-like, dict, and :class:`NamedAgg` arguments.
+                    Added support for list-like, dict, and :class:`NamedFunc` arguments.
 
             Only passing a single function is supported with the numba engine.
             If the ``'numba'`` engine is chosen, the function must be
