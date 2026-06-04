@@ -17,11 +17,9 @@ from pandas import (
     date_range,
     read_hdf,
 )
+import pandas._testing as tm
 
-from pandas.io.pytables import (
-    Term,
-    _maybe_adjust_name,
-)
+from pandas.io.pytables import Term
 
 pytestmark = [pytest.mark.single_cpu]
 
@@ -274,6 +272,32 @@ def test_to_hdf_multiindex_level_named_index_raises(temp_hdfstore):
         temp_hdfstore.put("s", series, format="table", track_times=False)
 
 
+@pytest.mark.parametrize("data_columns", [["index"], True, ["column_1", "index"]])
+def test_to_hdf_data_column_named_index_raises(temp_hdfstore, data_columns):
+    # GH#41437 a data column named 'index' collides with the table format's
+    # implicit row index; surface a clear error instead of the confusing
+    # reshape failure that used to come from write_data
+    df = DataFrame({"column_1": [1, 2], "index": [3, 4]})
+    df.index.name = "something_else"
+    msg = "cannot use a column named 'index' as a data_column"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.put(
+            "df", df, format="table", data_columns=data_columns, track_times=False
+        )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, format="table", data_columns=data_columns)
+
+
+def test_to_hdf_column_named_index_without_data_columns(temp_h5_path):
+    # GH#41437 a column named 'index' is fine as long as it is not a
+    # data_column; it round-trips like any other column
+    df = DataFrame({"column_1": [1, 2], "index": [3, 4]})
+    df.index.name = "something_else"
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df)
+
+
 def test_unsupported_hdf_file_error(datapath):
     # GH 9539
     data_path = datapath("io", "data", "legacy_hdf/incompatible_dataset.h5")
@@ -310,10 +334,3 @@ def test_read_hdf_generic_buffer_errors():
     msg = "Support for generic buffers has not been implemented."
     with pytest.raises(NotImplementedError, match=msg):
         read_hdf(BytesIO(b""), "df")
-
-
-@pytest.mark.parametrize("bad_version", [(1, 2), (1,), [], "12", "123"])
-def test_maybe_adjust_name_bad_version_raises(bad_version):
-    msg = "Version is incorrect, expected sequence of 3 integers"
-    with pytest.raises(ValueError, match=msg):
-        _maybe_adjust_name("values_block_0", version=bad_version)
