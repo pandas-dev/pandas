@@ -40,7 +40,10 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    is_matching_na,
+    NA
+)
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
@@ -7653,15 +7656,15 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(other, Index) and self.is_(other):
             # fastpath
             if op in {operator.eq, operator.le, operator.ge}:
-                arr = np.ones(len(self), dtype=bool)
+                arr = np.full(len(self), True, dtype=object)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
-                    arr[self.isna()] = False
+                    arr[self.isna()] = NA
                 return arr
             elif op is operator.ne:
-                arr = np.zeros(len(self), dtype=bool)
+                arr = np.full(len(self), False, dtype=object)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
-                    arr[self.isna()] = True
+                    arr[self.isna()] = NA
                 return arr
 
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
