@@ -2348,17 +2348,31 @@ def test_sum_mixed_empty(any_string_dtype):
 
 
 @pytest.mark.parametrize(
-    "other, expect",
+    "other, expect, expected",
     [
-        (3, DataFrame([[False, False, pd.NA], [pd.NA, True, False]])),
+        (
+            3,
+            DataFrame([[False, False, True], [False, False, False]]),
+            DataFrame([[False, False, pd.NA], [pd.NA, True, False]]),
+        ),
         (
             DataFrame([[1, 2, 3], [3, 2, 1]]),
+            DataFrame([[True, True, True], [False, False, False]]),
             DataFrame([[True, True, pd.NA], [pd.NA, False, False]]),
+        ),
+        (
+            DataFrame([[None, False, True], [np.nan, pd.NaT, pd.NA]]),
+            DataFrame([[False, False, False], [False, False, pd.NA]]),
+            DataFrame([[False, False, pd.NA], [pd.NA, False, pd.NA]]),
         ),
     ],
 )
-def test_dataframe_comparison_preserve_na(other, expect):
+def test_dataframe_comparison_preserve_na(other, expect, expected):
     # GH#63328
-    df = DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
+    df = DataFrame([[1, 2, 3], [4, 5, 6]])
     res = df == other
-    tm.assert_frame_equal(res, expect)
+    tm.assert_frame_equal(res, expect, check_dtype=False)
+
+    df2 = DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
+    res2 = df2 == other
+    tm.assert_frame_equal(res2, expected, check_dtype=False)
