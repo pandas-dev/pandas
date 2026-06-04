@@ -264,7 +264,9 @@ class BinOp(ops.BinOp):
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
-                result = -1
+                # GH#22977 value is not a category; use -2 as a code that
+                # matches no row, unlike -1 which is the code for NaN values.
+                result = -2
             else:
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
