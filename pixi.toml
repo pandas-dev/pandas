@@ -23,6 +23,11 @@ platforms = ["win-64"]
 dependencies = { gcc = "*", gxx = "*" }
 activation = { env = { CC = "gcc", CXX = "g++" } }
 
+[feature.sanitizers]
+platforms = ["linux-64"]
+dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
+activation = { env = { CC = "clang", CXX = "clang++" } }
+
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
 
@@ -211,6 +216,7 @@ doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dep
 typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing" ] }
 docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website" ]}
 mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
+sanitizers = { features = ["py313", "numpy", "test-base", "sanitizers", "optional-dependencies"] }
 
 
 [tasks]
