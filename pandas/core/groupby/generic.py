@@ -2802,10 +2802,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._apply_filter(indices, dropna)
 
     def __getitem__(self, key) -> DataFrameGroupBy | SeriesGroupBy:
-        # per GH 23566
         if isinstance(key, tuple) and len(key) > 1:
-            # if len == 1, then it becomes a SeriesGroupBy and this is actually
-            # valid syntax, so don't raise
+            if self._selection is None and isinstance(self.obj.columns, MultiIndex):
+                # a tuple is a (possibly partial) key into the MultiIndex
+                # columns; follow DataFrame.__getitem__ rather than treating it
+                # as a list of column labels (GH#58282). The result is a
+                # SeriesGroupBy when the key selects a single column and a
+                # DataFrameGroupBy when it selects several (e.g. a partial key
+                # or duplicate columns).
+                return self._gotitem(key, ndim=self.obj[key].ndim)
+            # per GH 23566: with a flat Index a multi-element tuple is
+            # ambiguous, so we require a list instead.
             raise ValueError(
                 "Cannot subset columns with a tuple with more than one element. "
                 "Use a list instead."
