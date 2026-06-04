@@ -849,6 +849,7 @@ class TestSeriesPlots:
 
         _check_plot_works(s.plot)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     @pytest.mark.xfail(
         reason="GH#24426, see also "
         "github.com/pandas-dev/pandas/commit/"
