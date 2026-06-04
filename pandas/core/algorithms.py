@@ -928,10 +928,10 @@ def value_counts_internal(
                 not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
-                and values.inferred_freq is not None
+                and values._inferred_freq_str is not None
             ):
                 # Preserve freq of original index
-                idx.freq = values.inferred_freq  # type: ignore[attr-defined]
+                idx.freq = values._inferred_freq_str  # type: ignore[attr-defined]
 
             result = Series(counts, index=idx, name=name, copy=False)
 

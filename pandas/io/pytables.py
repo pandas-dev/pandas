@@ -50,7 +50,6 @@ from pandas.compat.pickle_compat import patch_pickle
 from pandas.errors import (
     AttributeConflictWarning,
     ClosedFileError,
-    IncompatibilityWarning,
     Pandas4Warning,
     PerformanceWarning,
     PossibleDataLossError,
@@ -120,7 +119,6 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterator,
-        Sequence,
     )
     from types import (
         ModuleType,
@@ -145,8 +143,6 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
-# versioning attribute
-_version = "0.15.2"
 
 # encoding
 _default_encoding = "UTF-8"
@@ -202,12 +198,6 @@ def _ensure_term(where, scope_level: int):
     return where if where is None or len(where) else None
 
 
-incompatibility_doc: Final = """
-where criteria is being ignored as this version [%s] is too old (or
-not-defined), read the file in and write it out to a new file to upgrade (with
-the copy_to method)
-"""
-
 attribute_conflict_doc: Final = """
 the [%s] attribute of the existing index is [%s] which conflicts with the new
 [%s], resetting the attribute to None
@@ -254,6 +244,29 @@ cf.deprecate_option(
 # oh the troubles to reduce import time
 _table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
+
+
+_MISSING = object()
+
+
+def _set_attr_if_changed(attrs, name: str, value) -> None:
+    """
+    setattr on a PyTables AttributeSet only if the on-disk value differs.
+
+    Re-writing an HDF5 attribute to the same value is expensive — pytables
+    deletes and re-creates it, hitting the disk per attribute. On wide-table
+    appends this dominates runtime (GH#25839).
+    """
+    current = getattr(attrs, name, _MISSING)
+    if current is _MISSING:
+        setattr(attrs, name, value)
+        return
+    try:
+        equal = bool(current == value)
+    except (ValueError, TypeError):
+        equal = False
+    if not equal:
+        setattr(attrs, name, value)
 
 
 def _tables():
@@ -2238,7 +2251,10 @@ class TableIterator:
             return self
 
         # if specified read via coordinates (necessary for multiple selections
-        if coordinates:
+        # so each table reads the same row set). Skip when self.where is None
+        # since every row would be selected anyway, and a coordinate-based read
+        # is much slower than a sequential read (GH#26771).
+        if coordinates and self.where is not None:
             if not isinstance(self.s, Table):
                 raise TypeError("can only read_coordinates on a table")
             where = self.s.read_coordinates(
@@ -2565,7 +2581,7 @@ class IndexCol:
 
     def set_attr(self) -> None:
         """set the kind for this column"""
-        setattr(self.attrs, self.kind_attr, self.kind)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -2914,18 +2930,23 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
+            # Old files may have been written without nan_rep persisted; the
+            # writer (write_data) defaulted None to "nan", so do the same here.
             converted = _unconvert_string_array(
-                converted, nan_rep=nan_rep, encoding=encoding, errors=errors
+                converted,
+                nan_rep=nan_rep if nan_rep is not None else "nan",
+                encoding=encoding,
+                errors=errors,
             )
 
         return self.values, converted
 
     def set_attr(self) -> None:
         """set the data for this column"""
-        setattr(self.attrs, self.kind_attr, self.values)
-        setattr(self.attrs, self.meta_attr, self.meta)
+        _set_attr_if_changed(self.attrs, self.kind_attr, self.values)
+        _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
         assert self.dtype is not None
-        setattr(self.attrs, self.dtype_attr, self.dtype)
+        _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
 
 
 class DataIndexableCol(DataCol):
@@ -2995,23 +3016,6 @@ class Fixed:
         self.errors = errors
 
     @property
-    def is_old_version(self) -> bool:
-        return self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1
-
-    @property
-    def version(self) -> tuple[int, int, int]:
-        """compute and set our version"""
-        version = getattr(self.group._v_attrs, "pandas_version", None)
-        if isinstance(version, str):
-            version_tup = tuple(int(x) for x in version.split("."))
-            if len(version_tup) == 2:
-                version_tup = (*version_tup, 0)
-            assert len(version_tup) == 3  # needed for mypy
-            return version_tup
-        else:
-            return (0, 0, 0)
-
-    @property
     def pandas_type(self):
         return getattr(self.group._v_attrs, "pandas_type", None)
 
@@ -3027,9 +3031,8 @@ class Fixed:
         return self.pandas_type
 
     def set_object_info(self) -> None:
-        """set my pandas type & version"""
+        """set my pandas type"""
         self.attrs.pandas_type = str(self.pandas_kind)
-        self.attrs.pandas_version = str(_version)
 
     def copy(self) -> Fixed:
         new_self = copy.copy(self)
@@ -3087,9 +3090,6 @@ class Fixed:
         if other is None:
             return None
         return True
-
-    def validate_version(self, where=None) -> None:
-        """are we trying to operate on an old version?"""
 
     def infer_axes(self) -> bool:
         """
@@ -3509,6 +3509,16 @@ class GenericFixed(Fixed):
                 elif inferred_type == "string":
                     pass
                 elif config["mode"]["performance_warnings"]:
+                    # GH#28460 a single object block may hold several columns;
+                    #  only flag the ones that are not plain strings, since a
+                    #  string-only column would not warn on its own.
+                    if value.ndim == 2 and items is not None:
+                        block = cast("np.ndarray", value)
+                        mask = [
+                            not lib.is_string_array(block[:, j], skipna=False)
+                            for j in range(block.shape[1])
+                        ]
+                        items = items[mask]
                     ws = performance_doc % (inferred_type, key, items)
                     warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
@@ -3576,7 +3586,12 @@ class SeriesFixed(GenericFixed):
     @property
     def shape(self) -> tuple[int] | None:
         try:
-            return (len(self.group.values),)
+            node = self.group.values
+            if "shape" in node._v_attrs:
+                # GH#37235 an empty array is stored as a length-1 sentinel
+                # (see write_array_empty); the true shape is in this attr.
+                return tuple(node._v_attrs.shape)
+            return (len(node),)
         except (TypeError, AttributeError):
             return None
 
@@ -3637,9 +3652,17 @@ class BlockManagerFixed(GenericFixed):
 
             # data shape
             node = self.group.block0_values
-            shape = getattr(node, "shape", None)
-            if shape is not None:
-                shape = list(shape[0 : (ndim - 1)])
+            data_shape: tuple[Any, ...] | None
+            if "shape" in node._v_attrs:
+                # GH#37235 an empty block is stored un-transposed as a
+                # (1,)*ndim sentinel (see write_array_empty), with the true
+                # shape in this attr. Reverse it to match the transposed
+                # layout used for non-empty blocks.
+                data_shape = tuple(reversed(node._v_attrs.shape))
+            else:
+                data_shape = getattr(node, "shape", None)
+            if data_shape is not None:
+                shape = list(data_shape[0 : (ndim - 1)])
             else:
                 shape = []
 
@@ -3690,7 +3713,7 @@ class BlockManagerFixed(GenericFixed):
             dfs.append(df)
 
         if len(dfs) > 0:
-            out = concat(dfs, axis=1).copy()
+            out = concat(dfs, axis=1)
             return out.reindex(columns=items)
 
         return DataFrame(columns=axes[0], index=axes[1])
@@ -3785,14 +3808,9 @@ class Table(Fixed):
         jdc = ",".join(self.data_columns) if len(self.data_columns) else ""
         dc = f",dc->[{jdc}]"
 
-        ver = ""
-        if self.is_old_version:
-            jver = ".".join([str(x) for x in self.version])
-            ver = f"[{jver}]"
-
         jindex_axes = ",".join([a.name for a in self.index_axes])
         return (
-            f"{self.pandas_type:12.12}{ver} "
+            f"{self.pandas_type:12.12} "
             f"(typ->{self.table_type_short},nrows->{self.nrows},"
             f"ncols->{self.ncols},indexers->[{jindex_axes}]{dc})"
         )
@@ -4000,17 +4018,6 @@ class Table(Fixed):
         self.index_axes = [a for a in self.indexables if a.is_an_indexable]
         self.values_axes = [a for a in self.indexables if not a.is_an_indexable]
 
-    def validate_version(self, where=None) -> None:
-        """are we trying to operate on an old version?"""
-        if where is not None:
-            if self.is_old_version:
-                ws = incompatibility_doc % ".".join([str(x) for x in self.version])
-                warnings.warn(
-                    ws,
-                    IncompatibilityWarning,
-                    stacklevel=find_stack_level(),
-                )
-
     def validate_min_itemsize(self, min_itemsize) -> None:
         """
         validate the min_itemsize doesn't contain items that are not in the
@@ -4074,11 +4081,10 @@ class Table(Fixed):
                 klass = DataIndexableCol
 
             atom = getattr(desc, c)
-            adj_name = _maybe_adjust_name(c, self.version)
 
             # TODO: why kind_attr here?
-            values = getattr(table_attrs, f"{adj_name}_kind", None)
-            dtype = getattr(table_attrs, f"{adj_name}_dtype", None)
+            values = getattr(table_attrs, f"{c}_kind", None)
+            dtype = getattr(table_attrs, f"{c}_dtype", None)
             # Argument 1 to "_dtype_to_kind" has incompatible type
             # "Optional[Any]"; expected "str"  [arg-type]
             kind = _dtype_to_kind(dtype)  # type: ignore[arg-type]
@@ -4086,10 +4092,10 @@ class Table(Fixed):
             md = self.read_metadata(c)
             # TODO: figure out why these two versions of `meta` dont always match.
             #  meta = "category" if md is not None else None
-            meta = getattr(table_attrs, f"{adj_name}_meta", None)
+            meta = getattr(table_attrs, f"{c}_meta", None)
 
             obj = klass(
-                name=adj_name,
+                name=c,
                 cname=c,
                 values=values,
                 kind=kind,
@@ -4243,11 +4249,23 @@ class Table(Fixed):
 
         axis, axis_labels = non_index_axes[0]
         info = self.info.get(axis, {})
-        if info.get("type") == "MultiIndex" and data_columns:
-            raise ValueError(
-                f"cannot use a multi-index on axis [{axis}] with "
-                f"data_columns {data_columns}"
-            )
+        if info.get("type") == "MultiIndex":
+            if data_columns:
+                raise ValueError(
+                    f"cannot use a multi-index on axis [{axis}] with "
+                    f"data_columns {data_columns}"
+                )
+            if isinstance(min_itemsize, dict):
+                mi_keys = [k for k in min_itemsize if k != "values"]
+                if mi_keys:
+                    raise ValueError(
+                        f"cannot use min_itemsize keys {mi_keys} on axis "
+                        f"[{axis}] with a MultiIndex; per-column "
+                        "min_itemsize requires data_columns, which are not "
+                        "supported with MultiIndex columns. Use "
+                        "min_itemsize={'values': N} to apply a single "
+                        "min_itemsize across all string columns."
+                    )
 
         # evaluate the passed data_columns, True == use all columns
         # take only valid axis labels
@@ -4403,6 +4421,16 @@ class Table(Fixed):
             data_columns, min_itemsize, new_non_index_axes
         )
 
+        if new_index.cname in data_columns:
+            # GH#41437 the implicit row index is stored under the reserved
+            # cname (typically 'index') and a data column of the same name
+            # would collide with it in the table description.
+            raise ValueError(
+                f"cannot use a column named {new_index.cname!r} as a "
+                f"data_column; {new_index.cname!r} is reserved for the "
+                "implicit row index"
+            )
+
         frame = self.get_object(obj, transposed)._consolidate()
 
         blocks, blk_items = self._get_blocks_and_items(
@@ -4450,7 +4478,6 @@ class Table(Fixed):
                 errors=self.errors,
                 columns=b_items,
             )
-            adj_name = _maybe_adjust_name(new_name, self.version)
 
             typ = klass._get_atom(data_converted)
             kind = _dtype_to_kind(data_converted.dtype.name)
@@ -4469,7 +4496,7 @@ class Table(Fixed):
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
             col = klass(
-                name=adj_name,
+                name=new_name,
                 cname=new_name,
                 values=list(b_items),
                 typ=typ,
@@ -4666,9 +4693,6 @@ class Table(Fixed):
         select coordinates (row numbers) from a table; return the
         coordinates object
         """
-        # validate the version
-        self.validate_version(where)
-
         # infer the data kind
         if not self.infer_axes():
             return False
@@ -4696,9 +4720,6 @@ class Table(Fixed):
         return a single column from the table, generally only indexables
         are interesting
         """
-        # validate the version
-        self.validate_version()
-
         # infer the data kind
         if not self.infer_axes():
             return False
@@ -5016,9 +5037,6 @@ class AppendableFrameTable(AppendableTable):
         start: int | None = None,
         stop: int | None = None,
     ):
-        # validate the version
-        self.validate_version(where)
-
         # infer the data kind
         if not self.infer_axes():
             return None
@@ -5598,7 +5616,10 @@ def _unconvert_string_array(
     Parameters
     ----------
     data : np.ndarray[fixed-length-string]
-    nan_rep : the storage repr of NaN
+    nan_rep : the storage repr of NaN, or None to skip substitution.
+        Pass None when the writer did not encode NaN as a sentinel string
+        (e.g. for string indices); otherwise legitimate occurrences of the
+        sentinel value would be incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -5624,10 +5645,8 @@ def _unconvert_string_array(
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
-    if nan_rep is None:
-        nan_rep = "nan"
-
-    libwriters.string_array_replace_from_nan_rep(data, nan_rep)
+    if nan_rep is not None:
+        libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 
@@ -5656,31 +5675,6 @@ def _need_convert(kind: str) -> bool:
     if kind in ("datetime64", "string") or "datetime64" in kind:
         return True
     return False
-
-
-def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
-    """
-    Prior to 0.10.1, we named values blocks like: values_block_0 and the
-    name values_0, adjust the given name if necessary.
-
-    Parameters
-    ----------
-    name : str
-    version : Tuple[int, int, int]
-
-    Returns
-    -------
-    str
-    """
-    if isinstance(version, str) or len(version) < 3:
-        raise ValueError("Version is incorrect, expected sequence of 3 integers.")
-
-    if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-        m = re.search(r"values_block_(\d+)", name)
-        if m:
-            grp = m.groups()[0]
-            name = f"values_{grp}"
-    return name
 
 
 def _dtype_to_kind(dtype_str: str) -> str:
@@ -5832,9 +5826,26 @@ class Selection:
         generate the selection
         """
         if self.condition is not None:
-            return self.table.table.read_where(
-                self.condition.format(), start=self.start, stop=self.stop
-            )
+            try:
+                return self.table.table.read_where(
+                    self.condition.format(), start=self.start, stop=self.stop
+                )
+            except ValueError as err:
+                # GH#39752 PyTables queries indexed columns by combining one
+                # boolean array per comparison term in a single numexpr call,
+                # capped at NPY_MAXARGS-1 inputs (a numexpr build-time
+                # constant, 32 or 64 depending on the targeted numpy).
+                # Translate the opaque numexpr error into actionable guidance.
+                if "too many inputs" not in str(err):
+                    raise
+                raise ValueError(
+                    "The passed where expression has too many comparisons "
+                    "for a query against indexed columns (a numexpr "
+                    "limitation). Reduce the number of comparisons, or store "
+                    "the table with 'index=False' (e.g. "
+                    "DataFrame.to_hdf(..., index=False)) so the query does "
+                    "not use the column index."
+                ) from err
         elif self.coordinates is not None:
             return self.table.table.read_coordinates(self.coordinates)
         return self.table.table.read(start=self.start, stop=self.stop)
