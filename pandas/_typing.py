@@ -223,6 +223,9 @@ ParseDatesArg: TypeAlias = (
 # For functions like rename that convert one label to another
 Renamer: TypeAlias = Mapping[Any, Hashable] | Callable[[Any], Hashable]
 
+# For set_axis: callable receives the full axis Index and returns new labels
+AxisLabels: TypeAlias = ListLike | Callable[["Index"], ListLike | "Index"]
+
 # to maintain type information across generic functions and parametrization
 T = TypeVar("T")
 

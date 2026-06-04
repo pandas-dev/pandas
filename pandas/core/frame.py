@@ -211,6 +211,7 @@ if TYPE_CHECKING:
         Axes,
         Axis,
         AxisInt,
+        AxisLabels,
         ColspaceArgType,
         CompressionOptions,
         CorrelationMethod,
@@ -5721,25 +5722,37 @@ class DataFrame(NDFrame, OpsMixin):
 
     def set_axis(
         self,
-        labels,
+        labels: AxisLabels | lib.NoDefault = lib.no_default,
         *,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        index: AxisLabels | lib.NoDefault = lib.no_default,
+        columns: AxisLabels | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Assign desired index to given axis.
 
         Indexes for column or row labels can be changed by assigning
-        a list-like or Index.
+        a list-like, Index, or callable.
 
         Parameters
         ----------
-        labels : list-like, Index
-            The values for the new index.
+        labels : list-like, Index, or callable
+            The values for the new index. If callable, it is called with the
+            current axis (an :class:`Index`) and must return the new labels.
+            Cannot be used together with ``index`` or ``columns``.
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to update. The value 0 identifies the rows. For `Series`
-            this parameter is unused and defaults to 0.
+            The axis to update. The value 0 identifies the rows. Cannot be
+            used together with ``index`` or ``columns``.
+
+        index : list-like, Index, or callable, optional
+            Alternative to specifying ``labels`` with ``axis=0``. Cannot be
+            used together with ``labels``, ``axis``, or ``columns``.
+
+        columns : list-like, Index, or callable, optional
+            Alternative to specifying ``labels`` with ``axis=1``. Cannot be
+            used together with ``labels``, ``axis``, or ``index``.
 
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
@@ -5762,6 +5775,7 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         DataFrame.rename_axis : Alter the name of the index or columns.
+        DataFrame.rename : Alter column or index labels element-wise.
 
         Examples
         --------
@@ -5782,8 +5796,34 @@ class DataFrame(NDFrame, OpsMixin):
         0  1   4
         1  2   5
         2  3   6
+
+        Use keyword syntax to set column labels.
+
+        >>> df.set_axis(columns=["I", "II"])
+            I  II
+        0  1   4
+        1  2   5
+        2  3   6
+
+        Use a callable to flatten MultiIndex columns.
+
+        >>> df2 = pd.DataFrame({{("A", 1): range(3), ("B", 2): range(10, 13)}})
+        >>> df2.set_axis(columns=lambda cols: ["_".join(map(str, t)) for t in cols])
+           A_1  B_2
+        0    0   10
+        1    1   11
+        2    2   12
         """
-        return super().set_axis(labels, axis=axis, copy=copy)
+        if columns is not lib.no_default:
+            if labels is not lib.no_default:
+                raise TypeError("Cannot specify both 'labels' and 'columns'")
+            if index is not lib.no_default:
+                raise TypeError("Cannot specify both 'index' and 'columns'")
+            if axis is not lib.no_default:
+                raise TypeError("Cannot specify both 'axis' and 'columns'")
+            labels = columns
+            axis = 1
+        return super().set_axis(labels, axis=axis, index=index, copy=copy)
 
     def reindex(
         self,
