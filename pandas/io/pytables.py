@@ -3473,6 +3473,16 @@ class GenericFixed(Fixed):
                 elif inferred_type == "string":
                     pass
                 elif config["mode"]["performance_warnings"]:
+                    # GH#28460 a single object block may hold several columns;
+                    #  only flag the ones that are not plain strings, since a
+                    #  string-only column would not warn on its own.
+                    if value.ndim == 2 and items is not None:
+                        block = cast("np.ndarray", value)
+                        mask = [
+                            not lib.is_string_array(block[:, j], skipna=False)
+                            for j in range(block.shape[1])
+                        ]
+                        items = items[mask]
                     ws = performance_doc % (inferred_type, key, items)
                     warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
