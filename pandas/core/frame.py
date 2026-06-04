@@ -5807,7 +5807,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Use a callable to flatten MultiIndex columns.
 
-        >>> df2 = pd.DataFrame({{("A", 1): range(3), ("B", 2): range(10, 13)}})
+        >>> df2 = pd.DataFrame({("A", 1): range(3), ("B", 2): range(10, 13)})
         >>> df2.set_axis(columns=lambda cols: ["_".join(map(str, t)) for t in cols])
            A_1  B_2
         0    0   10
