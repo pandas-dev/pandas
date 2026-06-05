@@ -1640,22 +1640,27 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: int | None = 0,
+        **kwargs,
     ):
         result: Any
         if name == "count":
             result = self.count()
         elif name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
-            result = getattr(self, name)(skipna=skipna, **kwargs)
+            result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
         else:
             # median, skew, kurt, sem
             data = self._data
             mask = self._mask
             op = getattr(nanops, f"nan{name}")
-            axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
-        if self.ndim == 2 and kwargs.get("axis", 0) is not None:
+        if self.ndim == 2 and axis is not None:
             if keepdims:
                 raise NotImplementedError(
                     "keepdims=True is not implemented for 2D MaskedArray "

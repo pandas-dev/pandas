@@ -4032,3 +4032,29 @@ def test_fillna_zero():
     result = ser.fillna(0)
     expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [0, None, -1])
+def test_reduction_axis_valid(method, axis):
+    # axis equivalent to 0 (the only axis of a 1-D array) or None is accepted
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    result = getattr(arr, method)(axis=axis)
+    expected = getattr(arr, method)()
+    assert result == expected or (pd.isna(result) and pd.isna(expected))
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [1, 2])
+def test_reduction_axis_out_of_bounds(method, axis):
+    # axis beyond the array's dimensions is rejected rather than silently ignored
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    msg = "`axis` must be fewer than the number of dimensions"
+    with pytest.raises(ValueError, match=msg):
+        getattr(arr, method)(axis=axis)

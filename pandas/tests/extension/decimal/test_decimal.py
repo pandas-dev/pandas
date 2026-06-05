@@ -102,7 +102,7 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
-    def test_reduce_array(self, data, all_reductions, skipna: bool):
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
         op_name = all_reductions
         ser = pd.Series(data)
 
@@ -113,7 +113,7 @@ class TestDecimalArray(base.ExtensionTests):
             with pytest.raises(AttributeError, match=msg):
                 getattr(ser.array, op_name)()
         else:
-            return super().test_reduce_array(data, all_reductions, skipna)
+            return super().test_reduce_array(request, data, all_reductions, skipna)
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)

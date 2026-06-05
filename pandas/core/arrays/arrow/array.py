@@ -35,6 +35,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under21p0,
 )
+from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     set_module,
@@ -2406,11 +2407,14 @@ class ArrowExtensionArray(
                 )
 
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
-        if name in ["any", "all"] and "min_count" not in kwargs:
+        if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
         elif name == "median":
             # GH 52679: Use quantile instead of approximate_median
             kwargs["q"] = 0.5
+        elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
+            # pyarrow defaults to ddof=0, pandas behavior is ddof=1
+            kwargs["ddof"] = 1
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -2514,81 +2518,105 @@ class ArrowExtensionArray(
         self,
         *,
         skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
-        return self._reduce("sum", skipna=skipna, **kwargs)
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._reduce("sum", skipna=skipna, min_count=min_count, **kwargs)
 
     def min(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         return self._reduce("min", skipna=skipna, **kwargs)
 
     def max(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         return self._reduce("max", skipna=skipna, **kwargs)
 
     def mean(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         return self._reduce("mean", skipna=skipna, **kwargs)
 
     def sem(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         return self._reduce("sem", skipna=skipna, **kwargs)
 
     def skew(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         return self._reduce("skew", skipna=skipna, **kwargs)
 
     def median(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         return self._reduce("median", skipna=skipna, **kwargs)
 
     def var(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
         **kwargs,
     ):
-        return self._reduce("var", skipna=skipna, **kwargs)
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._reduce("var", skipna=skipna, ddof=ddof, **kwargs)
 
     def std(
         self,
         *,
         skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
         **kwargs,
     ):
-        return self._reduce("std", skipna=skipna, **kwargs)
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._reduce("std", skipna=skipna, ddof=ddof, **kwargs)
 
     def prod(
         self,
         *,
         skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
         **kwargs,
     ):
-        return self._reduce("prod", skipna=skipna, **kwargs)
+        nv.validate_minmax_axis(axis, self.ndim)
+        return self._reduce("prod", skipna=skipna, min_count=min_count, **kwargs)
 
     def _explode(self):
         """

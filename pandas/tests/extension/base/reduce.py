@@ -128,15 +128,17 @@ class BaseReduceTests:
         self.check_reduce_frame(ser, op_name, skipna)
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    def test_reduce_array(self, data, all_reductions, skipna: bool):
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
         # https://github.com/pandas-dev/pandas/pull/63512
         op_name = all_reductions
         ser = pd.Series(data)
 
         kwargs = {}
-        if op_name == "mean" and isinstance(ser.array, pd.arrays.SparseArray):
+        if op_name in ["mean", "any", "all"] and isinstance(
+            ser.array, pd.arrays.SparseArray
+        ):
             # https://github.com/pandas-dev/pandas/issues/65478
-            # SparseArray.mean is missing the skipna argument
+            # Methods are missing the skipna argument
             pass
         elif op_name != "count":
             kwargs["skipna"] = skipna
@@ -161,13 +163,17 @@ class BaseReduceTests:
             with pytest.raises((TypeError, AttributeError), match=msg):
                 getattr(ser.array, op_name)(**kwargs)
             return
+
         if (
             isinstance(ser.array.dtype, pd.SparseDtype)
-            and op_name in ["sum", "min", "max"]
             and not skipna
+            and (
+                (op_name in ["min", "max"] and data._hasna)
+                or (op_name == "sum" and not data._hasna)
+            )
         ):
-            # TODO: Bug - ._reduce doesn't properly handle not skipna
-            return
+            msg = "GH#63512: _reduce doesn't properly handle not skipna"
+            request.node.add_marker(pytest.mark.xfail(reason=msg))
 
         res_op = getattr(ser.array, op_name)
         expected = ser.array._reduce(op_name, **kwargs)
