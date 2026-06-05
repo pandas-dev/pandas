@@ -293,6 +293,7 @@ class BaseMethodsTests:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
         arr = data_for_sorting.copy()
         result = arr.sort()
         assert result is None
@@ -300,6 +301,7 @@ class BaseMethodsTests:
         tm.assert_extension_array_equal(arr, expected)
 
     def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
         arr = data_for_sorting.copy()
         arr.sort(ascending=False)
         if pd.Series(data_for_sorting).nunique() == 2:
@@ -310,6 +312,7 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("na_position", ["first", "last"])
     def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
         arr = data_missing_for_sorting.copy()
         arr.sort(na_position=na_position)
         if na_position == "last":

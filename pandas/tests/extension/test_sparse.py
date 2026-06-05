@@ -331,15 +331,18 @@ class TestSparseArray(base.ExtensionTests):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
         with pytest.raises(NotImplementedError):
             data_for_sorting.sort()
 
     def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
         with pytest.raises(NotImplementedError):
             data_for_sorting.sort(ascending=False)
 
     @pytest.mark.parametrize("na_position", ["first", "last"])
     def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
         with pytest.raises(NotImplementedError):
             data_missing_for_sorting.sort(na_position=na_position)
 
