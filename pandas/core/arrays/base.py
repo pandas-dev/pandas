@@ -153,6 +153,7 @@ class ExtensionArray:
     repeat
     searchsorted
     shift
+    sort
     take
     tolist
     unique
