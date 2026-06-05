@@ -2345,3 +2345,107 @@ def test_filepath_or_buffer_bad_arg_raises(float_frame, method):
     msg = "buf is not a file name and it has no write method"
     with pytest.raises(TypeError, match=msg):
         getattr(float_frame, method)(buf=object())
+
+
+# Tests for DataFrame.to_string(ending_header=True).
+# Closes: https://github.com/pandas-dev/pandas/issues/32296
+
+
+class TestEndingHeader:
+    def test_basic(self):
+        # Ending header matches the opening header exactly.
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        result = df.to_string(ending_header=True)
+        lines = result.split("\n")
+        assert lines[0] == lines[-1]
+
+    def test_default_is_false(self):
+        # ending_header=False (default) produces identical output to no argument.
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        assert df.to_string() == df.to_string(ending_header=False)
+
+    def test_header_alignment(self):
+        # Column widths must be identical between top and bottom headers.
+        df = DataFrame({"alpha": [100, 200], "beta": [300, 400]})
+        lines = df.to_string(ending_header=True).split("\n")
+        assert lines[0] == lines[-1]
+
+    def test_multiindex_columns(self):
+        # All header levels are repeated at the bottom.
+        df = DataFrame(
+            np.arange(12).reshape(3, 4),
+            columns=MultiIndex.from_tuples(
+                [("A", "x"), ("A", "y"), ("B", "z"), ("B", "w")]
+            ),
+        )
+        lines = df.to_string(ending_header=True).split("\n")
+        # Two header lines at top; two matching lines at bottom.
+        assert lines[0] == lines[-2]
+        assert lines[1] == lines[-1]
+
+    def test_index_name_row_included(self):
+        # The blank row carrying the index name is part of the header block
+        # and should appear in the ending header too.
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df.index.name = "idx"
+        lines = df.to_string(ending_header=True).split("\n")
+        # col-label row + index-name row → 2-line header block
+        assert lines[0] == lines[-2]
+        assert lines[1] == lines[-1]
+
+    def test_empty_dataframe_no_ending_header(self):
+        # Empty DataFrames produce the standard empty repr; no footer is appended.
+        df = DataFrame(columns=["x", "y"])
+        result = df.to_string(ending_header=True)
+        assert "Empty DataFrame" in result
+        # The last line should be the standard "Index: []" line, not a column header.
+        assert result.split("\n")[-1].startswith("Index:")
+
+    def test_header_false_suppresses_ending_header(self):
+        # ending_header is a no-op when header=False.
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        assert df.to_string(header=False) == df.to_string(
+            header=False, ending_header=True
+        )
+
+    def test_show_dimensions_comes_after_ending_header(self):
+        # The dimensions string should appear after the ending header, not between
+        # the data and the ending header.
+        df = DataFrame({"a": range(4), "b": range(4)})
+        result = df.to_string(ending_header=True, show_dimensions=True)
+        lines = result.split("\n")
+        non_empty = [line for line in lines if line.strip()]
+        # Last non-empty line: dimensions info.
+        assert non_empty[-1].startswith("[")
+        # Second-to-last non-empty line: ending header == opening header.
+        assert non_empty[-2] == lines[0]
+
+    def test_truncated_vertical(self):
+        # Ending header works correctly for vertically truncated DataFrames.
+        df = DataFrame({"x": range(30), "y": range(30)})
+        lines = df.to_string(ending_header=True, max_rows=6, min_rows=4).split("\n")
+        assert lines[0] == lines[-1]
+
+    def test_no_index(self):
+        # Works when the index column is suppressed.
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        lines = df.to_string(index=False, ending_header=True).split("\n")
+        assert lines[0] == lines[-1]
+
+    def test_custom_header_aliases(self):
+        # Works when header= receives a list of label aliases.
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        result = df.to_string(header=["col_a", "col_b"], ending_header=True)
+        lines = result.split("\n")
+        assert lines[0] == lines[-1]
+        assert "col_a" in lines[0]
+
+    def test_single_row_dataframe(self):
+        df = DataFrame({"a": [42], "b": [99]})
+        lines = df.to_string(ending_header=True).split("\n")
+        assert lines[0] == lines[-1]
+
+    def test_single_column_dataframe(self):
+        df = DataFrame({"only": range(5)})
+        lines = df.to_string(ending_header=True).split("\n")
+        assert lines[0] == lines[-1]
