@@ -424,8 +424,7 @@ class ExponentialMovingWindow(BaseWindow):
             return [self._resolve_aggregate_func(arg) for arg in func]
         if isinstance(func, dict):
             return {
-                key: self._resolve_aggregate_func(value)
-                for key, value in func.items()
+                key: self._resolve_aggregate_func(value) for key, value in func.items()
             }
         return func
 
@@ -548,8 +547,7 @@ class ExponentialMovingWindow(BaseWindow):
             result.columns = columns
         if result is None:
             raise NotImplementedError(
-                "ExponentialMovingWindow.aggregate does not support "
-                "arbitrary callables"
+                "ExponentialMovingWindow.aggregate does not support arbitrary callables"
             )
         return result
 
