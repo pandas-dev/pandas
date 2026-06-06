@@ -883,10 +883,8 @@ def test_select_filter_corner(temp_hdfstore):
 
 
 def test_select_string_index_aligned(temp_hdfstore):
-    # GH#54396: PyTables packs compound types, so a float64 values block that
-    # follows an odd-width string-index field is byte-unaligned. The read-back
-    # block must be realigned, otherwise take/other kernels SIGBUS on
-    # strict-alignment platforms (e.g. 32-bit ARM).
+    # GH#54396 string index -> byte-unaligned values block; the read-back
+    #  block must be realigned to avoid SIGBUS on strict-alignment platforms
     df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
     df.index = [f"{c:3d}" for c in df.index]
 

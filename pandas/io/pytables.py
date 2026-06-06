@@ -2842,11 +2842,8 @@ class DataCol(IndexCol):
         if values.dtype.fields is not None:
             values = values[self.cname]
             if not values.flags["ALIGNED"]:
-                # GH#54396: PyTables packs compound types, so a field that
-                # follows an odd-width field (e.g. a string index) can be
-                # byte-unaligned. take and other kernels assume aligned
-                # buffers and SIGBUS on strict-alignment platforms (e.g.
-                # 32-bit ARM); copy to realign.
+                # GH#54396 copy to realign; unaligned buffers SIGBUS
+                #  on strict-alignment platforms (e.g. 32-bit ARM)
                 values = values.copy()
 
         assert self.typ is not None
