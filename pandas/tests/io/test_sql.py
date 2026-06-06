@@ -2752,6 +2752,26 @@ def test_delete_rows_is_atomic(conn_name, request):
             tm.assert_frame_equal(result_df, original_df)
 
 
+
+
+@pytest.mark.parametrize("conn_name", ["sqlite_adbc_conn"])
+def test_adbc_identifier_quoting(conn_name, request):
+    # GH#65065 ADBCDatabase did not escape SQL identifiers in
+    # delete_rows, read_table, and to_sql (DROP TABLE path)
+    conn = request.getfixturevalue(conn_name)
+    tricky_name = "my table"
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    # to_sql: adbc_ingest handles quoting internally — should pass
+    df.to_sql(tricky_name, conn, index=False, if_exists="replace")
+    # read_table: was interpolating name raw into f-string
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+    # delete_rows: was interpolating name raw into DELETE FROM f-string
+    df.to_sql(tricky_name, conn, index=False, if_exists="delete_rows")
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":

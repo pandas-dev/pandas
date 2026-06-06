@@ -2130,6 +2130,7 @@ class ADBCDatabase(PandasSQL):
     def __init__(self, con) -> None:
         self.con = con
 
+
     @contextmanager
     def run_transaction(self):
         with self.con.cursor() as cur:
@@ -2238,9 +2239,9 @@ class ADBCDatabase(PandasSQL):
         else:
             select_list = "*"
         if schema:
-            stmt = f"SELECT {select_list} FROM {schema}.{table_name}"
+            stmt = f"SELECT {select_list} FROM {_get_valid_adbc_name(schema)}.{_get_valid_adbc_name(table_name)}"
         else:
-            stmt = f"SELECT {select_list} FROM {table_name}"
+            stmt = f"SELECT {select_list} FROM {_get_valid_adbc_name(table_name)}"
 
         with self.execute(stmt) as cur:
             pa_table = cur.fetch_arrow_table()
@@ -2399,7 +2400,11 @@ class ADBCDatabase(PandasSQL):
             if if_exists == "fail":
                 raise ValueError(f"Table '{table_name}' already exists.")
             elif if_exists == "replace":
-                sql_statement = f"DROP TABLE {table_name}"
+                if schema:
+                    quoted = f"{_get_valid_adbc_name(schema)}.{_get_valid_adbc_name(name)}"
+                else:
+                    quoted = _get_valid_adbc_name(name)
+                sql_statement = f"DROP TABLE {quoted}"
                 self.execute(sql_statement).close()
             elif if_exists == "append":
                 mode = "append"
@@ -2444,9 +2449,12 @@ class ADBCDatabase(PandasSQL):
         return False
 
     def delete_rows(self, name: str, schema: str | None = None) -> None:
-        table_name = f"{schema}.{name}" if schema else name
+        if schema:
+            quoted = f"{_get_valid_adbc_name(schema)}.{_get_valid_adbc_name(name)}"
+        else:
+            quoted = _get_valid_adbc_name(name)
         if self.has_table(name, schema):
-            self.execute(f"DELETE FROM {table_name}").close()
+            self.execute(f"DELETE FROM {quoted}").close()
 
     def _create_sql_schema(
         self,
@@ -2495,6 +2503,22 @@ def _get_valid_sqlite_name(name: object) -> str:
     nul_index = uname.find("\x00")
     if nul_index >= 0:
         raise ValueError("SQLite identifier cannot contain NULs")
+
+
+
+def _get_valid_adbc_name(name: object) -> str:
+    """
+    Escape a SQL identifier for safe use in ADBC-generated SQL statements.
+
+    Uses ANSI SQL double-quote escaping, compatible with PostgreSQL,
+    DuckDB, SQLite, and other ADBC-targeted databases.
+    """
+    uname = _get_unicode_name(name)
+    if not len(uname):
+        raise ValueError("Empty table or column name specified")
+    nul_index = uname.find("\x00")
+    if nul_index >= 0:
+        raise ValueError("SQL identifier cannot contain NUL characters")
     return '"' + uname.replace('"', '""') + '"'
 
 
