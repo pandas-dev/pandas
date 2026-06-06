@@ -2752,8 +2752,6 @@ def test_delete_rows_is_atomic(conn_name, request):
             tm.assert_frame_equal(result_df, original_df)
 
 
-
-
 @pytest.mark.parametrize("conn_name", ["sqlite_adbc_conn"])
 def test_adbc_identifier_quoting(conn_name, request):
     # GH#65065 ADBCDatabase did not escape SQL identifiers in

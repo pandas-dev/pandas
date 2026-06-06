@@ -2130,7 +2130,6 @@ class ADBCDatabase(PandasSQL):
     def __init__(self, con) -> None:
         self.con = con
 
-
     @contextmanager
     def run_transaction(self):
         with self.con.cursor() as cur:
@@ -2239,7 +2238,9 @@ class ADBCDatabase(PandasSQL):
         else:
             select_list = "*"
         if schema:
-            stmt = f"SELECT {select_list} FROM {_get_valid_adbc_name(schema)}.{_get_valid_adbc_name(table_name)}"
+            quoted_schema = _get_valid_adbc_name(schema)
+            quoted_table = _get_valid_adbc_name(table_name)
+            stmt = f"SELECT {select_list} FROM {quoted_schema}.{quoted_table}"
         else:
             stmt = f"SELECT {select_list} FROM {_get_valid_adbc_name(table_name)}"
 
@@ -2401,7 +2402,9 @@ class ADBCDatabase(PandasSQL):
                 raise ValueError(f"Table '{table_name}' already exists.")
             elif if_exists == "replace":
                 if schema:
-                    quoted = f"{_get_valid_adbc_name(schema)}.{_get_valid_adbc_name(name)}"
+                    quoted = (
+                        f"{_get_valid_adbc_name(schema)}.{_get_valid_adbc_name(name)}"
+                    )
                 else:
                     quoted = _get_valid_adbc_name(name)
                 sql_statement = f"DROP TABLE {quoted}"
@@ -2503,7 +2506,6 @@ def _get_valid_sqlite_name(name: object) -> str:
     nul_index = uname.find("\x00")
     if nul_index >= 0:
         raise ValueError("SQLite identifier cannot contain NULs")
-
 
 
 def _get_valid_adbc_name(name: object) -> str:
