@@ -3487,7 +3487,7 @@ class GenericFixed(Fixed):
                     warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
                 vlarr = self._handle.create_vlarray(
-                    self.group, key, _tables().ObjectAtom()
+                    self.group, key, _tables().ObjectAtom(), filters=self._filters
                 )
                 vlarr.append(value)
 
