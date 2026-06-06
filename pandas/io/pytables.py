@@ -2245,6 +2245,13 @@ class TableIterator:
                 raise TypeError("can only use an iterator or chunksize on a table")
 
             if self.where is not None:
+                if self.s._where_selects_columns(self.where):
+                    raise NotImplementedError(
+                        "selecting columns through the 'where' expression "
+                        "(e.g. \"columns=['A']\") is not supported with "
+                        "'iterator' or 'chunksize'; use the 'columns' argument "
+                        "instead"
+                    )
                 self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
@@ -4672,6 +4679,30 @@ class Table(Fixed):
                 coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
         return Index(coords, copy=False)
+
+    def _where_selects_columns(self, where) -> bool:
+        """
+        Whether ``where`` contains a column selection such as "columns=['A']".
+
+        Such a selection is a column projection rather than a row filter, which
+        cannot be applied via row coordinates and so is unsupported when
+        iterating (GH#12953); callers raise a clear error instead of returning
+        the wrong columns.
+        """
+        if not self.non_index_axes:
+            return False
+
+        selection = Selection(self, where=where)
+        if selection.filter is None:
+            return False
+
+        # a data-column row filter has a field matching a readable column; a
+        # column selection's field is the column-axis name (e.g. "columns")
+        data_column_names = {a.name for a in self.axes}
+        return any(
+            field not in data_column_names
+            for field, _op, _filt in selection.filter.format()
+        )
 
     def read_column(
         self,
