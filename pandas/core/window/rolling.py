@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_bool,
     is_integer,
-    is_integer_dtype,
     is_numeric_dtype,
     needs_i8_conversion,
 )
@@ -369,11 +368,7 @@ class BaseWindow(SelectionMixin):
         # the results in the same location
         from pandas import Series
 
-        if (
-            self.on is not None
-            and not self._on.equals(obj.index)
-            and not is_integer_dtype(self._on.dtype)
-        ):
+        if self.on is not None and not self._on.equals(obj.index):
             name = self._on.name
             extra_col = Series(self._on, index=self.obj.index, name=name, copy=False)
             if name in result.columns:
@@ -915,8 +910,11 @@ class Window(BaseWindow):
         For a DataFrame, a column label or Index level on which
         to calculate the rolling window, rather than the DataFrame's index.
 
-        Provided integer column is ignored and excluded from result since
-        an integer index is not used to calculate the rolling window.
+        For integer ``window`` values, the window bounds are based on the number
+        of observations and are not calculated using the values of the
+        ``on`` column. The ``on`` column is excluded from the aggregation,
+        but is included in the result when its values differ from the
+        object's index.
 
     closed : str, default None
         Determines the inclusivity of points in the window
