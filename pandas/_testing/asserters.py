@@ -683,6 +683,7 @@ def assert_numpy_array_equal(
     err_msg: str | None = None,
     check_same: Literal["copy", "same"] | None = None,
     obj: str = "numpy array",
+    class_obj: str | None = None,
     index_values: Index | np.ndarray | None = None,
 ) -> None:
     """
@@ -703,6 +704,9 @@ def assert_numpy_array_equal(
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    class_obj : str, default None
+        Specify object name for class comparison, internally used to show
+        appropriate assertion message.
     index_values : Index | numpy.ndarray, default None
         optional index (shared by both left and right), used in output.
     """
@@ -710,7 +714,7 @@ def assert_numpy_array_equal(
 
     # instance validation
     # Show a detailed error message when classes are different
-    assert_class_equal(left, right, obj=obj)
+    assert_class_equal(left, right, obj=class_obj or obj)
     # both classes must be an np.ndarray
     _check_isinstance(left, right, np.ndarray)
 
@@ -1125,6 +1129,7 @@ def assert_series_equal(
                 rv,
                 check_dtype=check_dtype,
                 obj=str(obj),
+                class_obj=f"{obj} values",
                 index_values=left.index,
             )
     elif check_datetimelike_compat and (
