@@ -1,0 +1,31 @@
+name: Issue and PR maintenance
+on:
+  schedule:
+  - cron: "0 1 * * *"
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  maintenance:
+    if: github.repository_owner == 'pandas-dev'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          sparse-checkout: scripts
+          persist-credentials: false
+      - name: Unassign inactive or freed issues
+        run: python3 -m scripts.issue_assignment.unassign_inactive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Reconcile Awaiting Review labels
+        if: github.event_name == 'schedule'
+        run: python3 -m scripts.issue_assignment.label_awaiting_review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

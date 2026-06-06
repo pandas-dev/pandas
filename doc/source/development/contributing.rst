@@ -52,16 +52,13 @@ to find issues that interest you and are available to work on. Issues available 
 
 * Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
   from a maintainer before proceeding.
-* Issues that have not been started by another contributor. Please check that another contributor has not commented their intent
-  to work on the issue or already submitted an open pull request to address the issue before proceeding.
+* Issues that are not already assigned to another contributor.
 
-Once you've found an interesting, available issue, leave a comment with your intention
-to start working on it. If somebody else has
-already commented on the issue but they have shown a lack of activity in the issue
-or a pull request in the past 2-3 weeks, you may take it over.
-
-If for whatever reason you are not able to continue working with the issue, please
-leave a comment on an issue, so other people know it's available again.
+Once you've found an interesting, available issue, claim it by commenting ``/take``
+on the issue and it will be assigned to you. See
+:ref:`contributing.issue_assignment` for the full set of rules around claiming
+issues, taking over inactive ones, releasing an issue, and how pull requests
+progress once opened.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -70,6 +67,65 @@ All pandas contributors are welcome to these spaces, where they can connect with
 maintainers who have been with us for a long time felt just like you when they started out, and
 are happy to welcome you and support you as you get to know how we work, and where things are.
 Take a look at the next sections to learn more.
+
+.. _contributing.issue_assignment:
+
+Issue assignment and the pull request lifecycle
+===============================================
+
+To keep contributing fair and avoid duplicated effort, pandas automates how
+issues are claimed and how pull requests progress. This section explains the
+rules and what the automation does.
+
+Claiming an issue
+-----------------
+
+Before opening a pull request, claim the issue by commenting ``/take`` on it.
+The bot will assign the issue to you.
+
+An issue is available to claim if it is:
+
+* **not** labeled ``Needs Triage`` or ``Needs Discussion`` — these still need a
+  maintainer's review before work begins, and ``/take`` will be declined; and
+* **not** already assigned to someone else.
+
+If you change your mind, comment ``/untake`` to release the issue so others can
+pick it up. If an issue is already assigned but the assignee has had no activity
+for **14 days**, you may comment ``/take`` to take it over.
+
+Opening a pull request
+----------------------
+
+Link your pull request to the issue it resolves using a closing keyword in the
+description, for example ``closes #1234``.
+
+Your pull request must be linked to an issue that is **assigned to you**. If you
+open one linked to an issue you haven't claimed, the bot adds the
+``Needs Issue Assignment`` label and comments with what to do next: comment
+``/take`` on the issue to claim it, then reopen your pull request (you can reopen
+it yourself — nothing is lost). Pull requests not linked to any issue are left
+alone by this automation.
+
+Review and staleness
+--------------------
+
+While your pull request is waiting on review, it is labeled ``Awaiting Review``
+and will **not** be marked stale — you keep your assignment for as long as review
+takes. You are never penalized for the team's review latency.
+
+If a maintainer requests changes and there is then no activity from you for **14
+days**, your pull request is marked ``Stale``; pushing an update or commenting
+clears the label. If it stays stale for another **7 days**, it is automatically
+closed. You can reopen a closed pull request yourself at any time to continue.
+When a stale pull request is closed, its linked issue is automatically unassigned
+and becomes available again.
+
+Inactive assignments
+--------------------
+
+If you claim an issue but do not open a linked pull request or stay active on it
+for **14 days**, the issue is automatically unassigned and made available again.
+You're welcome to ``/take`` it again whenever you're ready.
 
 .. _contributing.github:
 
