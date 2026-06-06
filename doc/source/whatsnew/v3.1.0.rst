@@ -361,6 +361,8 @@ I/O
 - Storing a :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` level named ``'index'`` via :meth:`HDFStore.put` or :meth:`HDFStore.append` with ``format='table'`` now raises a clear ``ValueError`` instead of an opaque reshape error (:issue:`6208`)
 - Writing a :class:`DataFrame` with ``format='table'`` and a column named ``'index'`` as a ``data_columns`` entry (including ``data_columns=True``) now raises a clear ``ValueError`` instead of an opaque reshape error (:issue:`41437`)
 
+- Fixed bug in :class:`ADBCDatabase` where table and schema names were not quoted as SQL identifiers in ``read_table``, ``to_sql``, and ``delete_rows``, causing failures for identifiers containing spaces or reserved words (:issue:`65065`)
+
 Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
