@@ -214,6 +214,19 @@ class TestConvertDtypes:
         expected = df.astype({"a": "string"})
         tm.assert_frame_equal(result, expected)
 
+    def test_convert_dtypes_pyarrow_list_struct(self):
+        # GH#65034
+        pa = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "a": [[1, 2], [3], None],
+                "b": [{"x": 1}, {"x": 2}, None],
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="pyarrow")
+        assert result["a"].dtype == pd.ArrowDtype(pa.list_(pa.int64()))
+        assert result["b"].dtype == pd.ArrowDtype(pa.struct([("x", pa.int64())]))
+
     def test_convert_dtype_pyarrow_timezone_preserve(self):
         # GH 60237
         pytest.importorskip("pyarrow")

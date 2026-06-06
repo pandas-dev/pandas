@@ -1042,6 +1042,19 @@ def convert_dtypes(
                 import pyarrow as pa
 
                 pa_type = pa.null()
+            elif base_dtype.kind == "O":  # type: ignore[union-attr]
+                import pyarrow as pa
+
+                # For object dtype with actual values (e.g. lists, dicts),
+                # try pyarrow inference on the non-NA values. GH#65034
+                non_na = input_array[~isna(input_array)]
+                if len(non_na) == 0:
+                    pa_type = to_pyarrow_type(base_dtype)
+                else:
+                    try:
+                        pa_type = pa.array(non_na).type
+                    except (pa.ArrowInvalid, pa.ArrowTypeError, TypeError):
+                        pa_type = to_pyarrow_type(base_dtype)
             else:
                 pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
