@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_bool,
     is_integer,
+    is_integer_dtype,
     is_numeric_dtype,
     needs_i8_conversion,
 )
@@ -368,7 +369,11 @@ class BaseWindow(SelectionMixin):
         # the results in the same location
         from pandas import Series
 
-        if self.on is not None and not self._on.equals(obj.index):
+        if (
+            self.on is not None
+            and not self._on.equals(obj.index)
+            and not is_integer_dtype(self._on.dtype)
+        ):
             name = self._on.name
             extra_col = Series(self._on, index=self.obj.index, name=name, copy=False)
             if name in result.columns:
