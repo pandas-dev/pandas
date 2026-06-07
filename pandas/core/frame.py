@@ -16454,9 +16454,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -16566,9 +16566,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -16652,9 +16652,9 @@ class DataFrame(NDFrame, OpsMixin):
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -16762,9 +16762,9 @@ class DataFrame(NDFrame, OpsMixin):
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -16881,9 +16881,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -17010,9 +17010,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -17385,9 +17385,9 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns. Not implemented for Series.
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -17509,9 +17509,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -17635,9 +17635,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 

@@ -4787,9 +4787,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -4883,9 +4883,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -4971,9 +4971,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             will be NA.
         **kwargs : dict, optional
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
@@ -5067,9 +5067,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             will be NA.
         **kwargs : dict, optional
             Additional keyword arguments to be passed to the function.
-            
+
             .. note::
-            
+
                 Some kwargs may have no effect and are accepted only for
                 compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
