@@ -136,12 +136,16 @@ class TestSelection:
 
         # a full key selects a single column -> Series result
         result = df.groupby("a")[("b", "x", 1)].sum()
-        expected = df[("b", "x", 1)].groupby(level="a").sum()
+        expected = Series(
+            [1, 2], index=Index([1, 2], name="a"), name=("b", "x", 1)
+        )
         tm.assert_series_equal(result, expected)
 
         # a partial key selects multiple columns -> DataFrame result
         result = df.groupby("a")[("b", "x")].sum()
-        expected = df[("b", "x")].groupby(level="a").sum()
+        expected = DataFrame(
+            {1: [1, 2], 2: [7, 5]}, index=Index([1, 2], name="a")
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_multiindex_columns_duplicate(self):
@@ -149,8 +153,12 @@ class TestSelection:
         df = DataFrame({"a": [1, 1, 2], "x": [3, 5, 7], "y": [4, 6, 8]}).set_index("a")
         df.columns = MultiIndex.from_tuples([("b", 1), ("b", 1)])
         result = df.groupby("a")[("b", 1)].sum()
-        assert isinstance(result, DataFrame)
-        assert result.shape == (2, 2)
+        expected = DataFrame(
+            [[8, 10], [7, 8]],
+            index=Index([1, 2], name="a"),
+            columns=MultiIndex.from_tuples([("b", 1), ("b", 1)]),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_getitem_single_column(self):
         df = DataFrame(
