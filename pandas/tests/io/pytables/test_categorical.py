@@ -202,3 +202,23 @@ def test_categorical_select_non_sorted_categories(temp_h5_path):
 
     expected = df[df["col1"] == "a"]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "where, mask",
+    [
+        ('col == "z"', lambda col: col == "z"),
+        ('col in ["z", "y"]', lambda col: col.isin(["z", "y"])),
+        ('col in ["a", "z"]', lambda col: col.isin(["a", "z"])),
+        ('col != "z"', lambda col: col != "z"),
+    ],
+)
+def test_categorical_where_non_category_with_nan(temp_h5_path, where, mask):
+    # GH#22977 - querying for a value that is not one of the categories must
+    # not match NaN rows (whose code is also -1)
+    df = DataFrame({"col": Categorical(["a", "b", np.nan, "a"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    result = read_hdf(temp_h5_path, "df", where=where)
+    expected = df[mask(df["col"])]
+    tm.assert_frame_equal(result, expected)
