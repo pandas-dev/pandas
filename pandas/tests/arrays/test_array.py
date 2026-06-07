@@ -622,20 +622,20 @@ def test_masked_array_kinds(data, mask, np_dtype, copy):
     else:
         result_data = result._data
 
-    expect_data_shares = (
+    expect_data_shares = not (
         copy
         # np.shares_memory is always False on length 0.
         or len(ma_arr) == 0
         # If the result has no mask, data needs to be modified if there are NA values
         or (np.any(mask) and result_missing_mask)
     )
-    assert np.shares_memory(result_data, ma_arr.data) == (not expect_data_shares)
+    assert np.shares_memory(result_data, ma_arr.data) == expect_data_shares
 
     if result_missing_mask:
         return
 
-    expect_mask_shares = copy or len(ma_arr) == 0 or mask is np.False_
-    assert np.shares_memory(result._mask, ma_arr.mask) == (not expect_mask_shares)
+    expect_mask_shares = not (copy or len(ma_arr) == 0 or mask is np.False_)
+    assert np.shares_memory(result._mask, ma_arr.mask) == expect_mask_shares
 
 
 @pytest.mark.parametrize("dtype", [None, "Int64"])
