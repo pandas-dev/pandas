@@ -9099,6 +9099,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9170,6 +9175,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9248,6 +9258,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9347,6 +9362,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9427,6 +9447,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9486,6 +9511,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9777,6 +9807,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused.
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9831,6 +9866,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

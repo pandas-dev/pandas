@@ -1380,6 +1380,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
             .. deprecated:: 3.1.0
                 Passing ``**kwargs`` to SeriesGroupBy.skew is deprecated
@@ -1462,6 +1467,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -3621,6 +3631,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
             .. deprecated:: 3.1.0
                 Passing ``**kwargs`` to DataFrameGroupBy.skew is deprecated
@@ -3708,6 +3723,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Additional keyword arguments to be passed to the function.
+            
+            .. note::
+            
+                Some kwargs may have no effect and are accepted only for
+                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

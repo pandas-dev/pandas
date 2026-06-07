@@ -372,6 +372,15 @@ via ``object`` dtype:
    series.astype("float64").prod()
    series.astype("object").prod()
 
+.. _gotchas.numpy_kwargs:
+
+NumPy compatibility kwargs
+--------------------------
+
+Many pandas methods accept additional keyword arguments (often passed as ``**kwargs``) to ensure compatibility with NumPy's API. This allows pandas objects to be passed to NumPy functions seamlessly. However, in many cases, these additional keywords have no effect on the behavior of the pandas method itself.
+
+For example, when using methods like :meth:`DataFrame.clip` or :meth:`DataFrame.sum`, the method signature includes ``**kwargs``. While you can pass additional arguments, they may be ignored by pandas if they are only meant for NumPy compatibility. This design choice prevents errors when NumPy attempts to pass its own arguments to the pandas object.
+
 Differences with NumPy
 ----------------------
 For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by
