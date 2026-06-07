@@ -333,8 +333,8 @@ def array(
                 "Use DataFrame instead."
             )
         mask = ma.getmask(data)
-        if mask is ma.nomask or not mask.any():
-            # No need to materialize an all-False mask.
+        if mask is ma.nomask:
+            # Avoid materializing an all-False mask.
             data = np.asarray(data)
         else:
             try:

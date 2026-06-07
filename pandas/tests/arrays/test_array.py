@@ -17,11 +17,9 @@ from pandas.arrays import (
     FloatingArray,
     IntegerArray,
     IntervalArray,
+    NumpyExtensionArray,
     SparseArray,
     TimedeltaArray,
-)
-from pandas.core.arrays import (
-    NumpyExtensionArray,
 )
 from pandas.tests.extension.decimal import (
     DecimalArray,
@@ -578,65 +576,74 @@ def test_array_to_numpy_na():
 
 
 @pytest.mark.parametrize(
-    "np_dtype, expected_dtype",
+    "data, mask",
     [
-        ("int32", "Int32"),
-        ("int64", "Int64"),
-        ("uint8", "UInt8"),
-        ("float32", "Float32"),
-        ("float64", "Float64"),
+        ([1, 2, 3], [False, True, False]),
+        ([1, 2, 3], [False, False, False]),
+        ([1, 2, 3], ma.nomask),
+        ([], ma.nomask),
     ],
 )
-def test_pd_array_from_masked_array_nullable_dtypes(np_dtype, expected_dtype):
-    # GH#63879 - numeric masked arrays map to the corresponding nullable masked
-    # dtype, preserving the exact width
-    ma_arr = ma.array([1, 2, 3], mask=[False, True, False], dtype=np_dtype)
-    result = pd.array(ma_arr)
-    expected = pd.array([1, pd.NA, 3], dtype=expected_dtype)
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_pd_array_from_masked_array_bool():
-    # GH#63879 - bool masked array maps to the nullable boolean dtype
-    ma_arr = ma.array([True, False, True], mask=[False, True, False])
-    result = pd.array(ma_arr)
-    expected = pd.array([True, pd.NA, True], dtype="boolean")
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_pd_array_from_masked_array_explicit_dtype_no_float_detour():
-    # GH#63879 - an explicit nullable dtype must not round-trip integer data
-    # through float64, which would silently corrupt values above 2**53
-    big = 2**53 + 1
-    ma_arr = ma.array([big, 2, 3], mask=[False, True, False], dtype=np.int64)
-    result = pd.array(ma_arr, dtype="Int64")
-    expected = pd.array([big, pd.NA, 3], dtype="Int64")
-    tm.assert_extension_array_equal(result, expected)
-
-
 @pytest.mark.parametrize(
-    "np_dtype", [np.float16, np.complex128], ids=["float16", "complex128"]
+    "np_dtype",
+    [
+        "uint8",
+        "int32",
+        "int64",
+        "bool",
+        "float16",
+        "float32",
+        "complex128",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ],
 )
-def test_pd_array_from_masked_array_no_nullable_dtype(np_dtype):
-    # GH#63879 - kinds without a nullable masked dtype (float16, complex) fall
-    # back to filling masked positions with NaN rather than raising
-    values = np.array([1, 2, 3], dtype=np_dtype)
-    result = pd.array(ma.array(values, mask=[False, True, False]))
-    expected_values = values.copy()
-    expected_values[1] = np.nan
-    expected = pd.array(expected_values)
+@pytest.mark.parametrize("copy", [True, False])
+def test_masked_array_kinds(data, mask, np_dtype, copy):
+    # GH#63879
+    arr = np.array(data, dtype=np_dtype)
+    ma_arr = ma.array(arr, mask=mask)
+    result = pd.array(ma_arr, copy=copy)
+    expected = pd.array(arr)
+    if np.any(mask):
+        na = np.nan if np_dtype in ("float16", "complex128") else pd.NA
+        expected[np.asarray(mask)] = na
     tm.assert_extension_array_equal(result, expected)
 
+    # Check whether we made a copy.
+    result_missing_mask = np_dtype in [
+        "float16",
+        "complex128",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ]
+    if result_missing_mask:
+        result_data = result._ndarray
+    else:
+        result_data = result._data
 
-@pytest.mark.parametrize("np_dtype", ["datetime64[ns]", "timedelta64[ns]"])
-def test_pd_array_from_masked_array_datetimelike(np_dtype):
-    # GH#63879 - datetime64/timedelta64 masked arrays map to Datetime/Timedelta
-    # arrays with NaT at masked positions
-    values = np.array([1, 2, 3], dtype=np_dtype)
-    result = pd.array(ma.array(values, mask=[False, True, False]))
-    expected_values = values.copy()
-    expected_values[1] = "NaT"
-    expected = pd.array(expected_values)
+    expect_data_shares = (
+        copy
+        # np.shares_memory is always False on length 0.
+        or len(ma_arr) == 0
+        # If the result has no mask, data needs to be modified if there are NA values
+        or (np.any(mask) and result_missing_mask)
+    )
+    assert np.shares_memory(result_data, ma_arr.data) == (not expect_data_shares)
+
+    if result_missing_mask:
+        return
+
+    expect_mask_shares = copy or len(ma_arr) == 0 or mask is np.False_
+    assert np.shares_memory(result._mask, ma_arr.mask) == (not expect_mask_shares)
+
+
+@pytest.mark.parametrize("dtype", [None, "Int64"])
+def test_masked_array_no_float_detour(dtype):
+    # GH#63879 - ensure we don't round-trip through float64
+    ma_arr = ma.array([2**53 + 1, 2, 3], mask=[False, True, False], dtype=np.int64)
+    result = pd.array(ma_arr, dtype=dtype)
+    expected = pd.array([2**53 + 1, pd.NA, 3], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -648,53 +655,12 @@ def test_pd_array_from_masked_array_datetimelike(np_dtype):
     ],
     ids=["str", "bytes"],
 )
-def test_pd_array_from_masked_array_string(data, expected):
+def test_masked_array_string(data, expected):
     # GH#63879 - str and bytes masked arrays both infer the string dtype (bytes
     # are UTF-8 decoded), consistently with the no-missing-value case
     result = pd.array(ma.array(data, mask=[False, True, False]))
     expected = pd.array(expected, dtype="string")
     tm.assert_extension_array_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "mask", [[False, False, False], ma.nomask], ids=["allFalse", "nomask"]
-)
-def test_pd_array_from_masked_array_no_missing_values(mask):
-    # GH#63879 - an all-False mask or nomask yields the nullable dtype with no NA
-    ma_arr = ma.array([1, 2, 3], mask=mask, dtype=np.int64)
-    result = pd.array(ma_arr)
-    expected = pd.array([1, 2, 3], dtype="Int64")
-    tm.assert_extension_array_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "np_dtype",
-    [
-        "int64",
-        "float64",
-        "bool",
-        "datetime64[ns]",
-        "timedelta64[ns]",
-        "complex128",
-        "U1",
-    ],
-)
-def test_pd_array_from_masked_array_empty(np_dtype):
-    # GH#63879 - empty masked arrays infer the same result as the empty ndarray
-    result = pd.array(ma.array(np.array([], dtype=np_dtype)))
-    expected = pd.array(np.array([], dtype=np_dtype))
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_pd_array_from_masked_array_copy():
-    # GH#63879 - copy=False reuses the source data and mask buffers; copy=True does not
-    ma_arr = ma.array([1, 2, 3], mask=[False, True, False], dtype=np.int64)
-    no_copy = pd.array(ma_arr, copy=False)
-    assert np.shares_memory(no_copy._data, ma_arr.data)
-    assert np.shares_memory(no_copy._mask, ma_arr.mask)
-    copy = pd.array(ma_arr, copy=True)
-    assert not np.shares_memory(copy._data, ma_arr.data)
-    assert not np.shares_memory(copy._mask, ma_arr.mask)
 
 
 def test_pd_array_structured_masked_array_raises():
