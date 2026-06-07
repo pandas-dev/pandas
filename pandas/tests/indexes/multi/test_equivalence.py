@@ -12,6 +12,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
 
+
 def test_equals(idx):
     assert idx.equals(idx)
     assert idx.equals(idx.copy())
@@ -297,4 +298,3 @@ def test_multiindex_equals_different_bit_widths():
     mi2._codes = FrozenList(codes2)
 
     assert mi1.equals(mi2)
-
