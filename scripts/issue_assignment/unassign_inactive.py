@@ -19,6 +19,7 @@ from datetime import (
 )
 import json
 import os
+from typing import Any
 
 from scripts.issue_assignment import (
     core,
@@ -27,7 +28,7 @@ from scripts.issue_assignment import (
 from scripts.issue_assignment.client import GitHubClient
 
 
-def run_sweep(client):
+def run_sweep(client: GitHubClient) -> None:
     now = datetime.now(timezone.utc)
     for number in client.list_open_assigned_issue_numbers():
         activity = client.issue_activity(number)
@@ -46,7 +47,7 @@ def run_sweep(client):
             client.comment(number, messages.issue_unassigned_inactive(assignees))
 
 
-def run_pr_closed(client, event):
+def run_pr_closed(client: GitHubClient, event: dict[str, Any]) -> None:
     pr = event["pull_request"]
     if pr.get("merged"):
         return
@@ -60,7 +61,7 @@ def run_pr_closed(client, event):
             client.comment(issue["number"], messages.issue_freed_stale_pr())
 
 
-def main():
+def main() -> None:
     repo = os.environ["GITHUB_REPOSITORY"]
     client = GitHubClient(repo)
     if os.environ.get("GITHUB_EVENT_NAME") == "schedule":

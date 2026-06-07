@@ -10,7 +10,22 @@ from __future__ import annotations
 from datetime import datetime
 import json
 import subprocess
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 from urllib.parse import quote
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from scripts.issue_assignment.core import (
+        Comment,
+        IssueActivity,
+        LinkedIssue,
+        OpenPRState,
+        Review,
+    )
 
 _LINKED_ISSUES_QUERY = """
 query($owner: String!, $name: String!, $number: Int!) {
@@ -60,23 +75,23 @@ query($owner: String!, $name: String!, $cursor: String) {
 """
 
 
-def parse_dt(value):
+def parse_dt(value: str | None) -> datetime | None:
     if not value:
         return None
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 class GitHubClient:
-    def __init__(self, repo):
+    def __init__(self, repo: str) -> None:
         self.repo = repo
         self.owner, self.name = repo.split("/")
 
-    def _gh(self, args):
+    def _gh(self, args: list[str]) -> str:
         return subprocess.run(
             ["gh", *args], check=True, capture_output=True, text=True
         ).stdout
 
-    def _graphql(self, query, **variables):
+    def _graphql(self, query: str, **variables: str | int | None) -> dict[str, Any]:
         args = [
             "api",
             "graphql",
@@ -100,7 +115,7 @@ class GitHubClient:
 
     # --- reads ---------------------------------------------------------------
 
-    def linked_issues_for_pr(self, number):
+    def linked_issues_for_pr(self, number: int) -> list[LinkedIssue]:
         nodes = self._graphql(_LINKED_ISSUES_QUERY, number=number)["pullRequest"][
             "closingIssuesReferences"
         ]["nodes"]
@@ -112,18 +127,18 @@ class GitHubClient:
             for node in nodes
         ]
 
-    def iter_open_pull_requests_review_state(self):
+    def iter_open_pull_requests_review_state(self) -> Iterator[OpenPRState]:
         """Yield review state for every open PR, paginating in batches of 50.
 
         Each item has ``number``, ``is_draft``, ``reviews``, ``last_commit_at``,
         and current ``labels`` — enough for the daily ``Awaiting Review``
         reconciliation to decide without any per-PR follow-up requests.
         """
-        cursor = None
+        cursor: str | None = None
         while True:
             connection = self._graphql(_OPEN_PRS_QUERY, cursor=cursor)["pullRequests"]
             for node in connection["nodes"]:
-                reviews = [
+                reviews: list[Review] = [
                     {"state": r["state"], "submitted_at": parse_dt(r["submittedAt"])}
                     for r in node["reviews"]["nodes"]
                 ]
@@ -145,7 +160,7 @@ class GitHubClient:
                 break
             cursor = page["endCursor"]
 
-    def list_open_assigned_issue_numbers(self):
+    def list_open_assigned_issue_numbers(self) -> list[int]:
         out = self._gh(
             [
                 "issue",
@@ -157,22 +172,22 @@ class GitHubClient:
                 "--json",
                 "number",
                 "--limit",
-                "500",
+                "1500",
             ]
         )
         return [item["number"] for item in json.loads(out)]
 
-    def issue_activity(self, number):
+    def issue_activity(self, number: int) -> IssueActivity:
         issue = self._graphql(_ISSUE_ACTIVITY_QUERY, number=number)["issue"]
         assignees = [a["login"] for a in issue["assignees"]["nodes"]]
-        comments = [
+        comments: list[Comment] = [
             {
                 "author": (c["author"] or {}).get("login"),
                 "created_at": parse_dt(c["createdAt"]),
             }
             for c in issue["comments"]["nodes"]
         ]
-        open_pr_authors = []
+        open_pr_authors: list[str] = []
         for node in issue["timelineItems"]["nodes"]:
             source = node.get("source") or {}
             if source.get("state") == "OPEN":
@@ -187,13 +202,13 @@ class GitHubClient:
 
     # --- writes --------------------------------------------------------------
 
-    def add_labels(self, number, labels):
+    def add_labels(self, number: int, labels: list[str]) -> None:
         args = ["api", "--method", "POST", f"repos/{self.repo}/issues/{number}/labels"]
         for label in labels:
             args += ["-f", f"labels[]={label}"]
         self._gh(args)
 
-    def remove_label(self, number, label):
+    def remove_label(self, number: int, label: str) -> None:
         path = f"repos/{self.repo}/issues/{number}/labels/{quote(label)}"
         try:
             self._gh(["api", "--method", "DELETE", path])
@@ -201,7 +216,7 @@ class GitHubClient:
             if "404" not in (err.stderr or ""):
                 raise
 
-    def comment(self, number, body):
+    def comment(self, number: int, body: str) -> None:
         self._gh(
             [
                 "api",
@@ -213,7 +228,7 @@ class GitHubClient:
             ]
         )
 
-    def remove_assignees(self, number, assignees):
+    def remove_assignees(self, number: int, assignees: list[str]) -> None:
         args = [
             "api",
             "--method",
@@ -224,7 +239,7 @@ class GitHubClient:
             args += ["-f", f"assignees[]={assignee}"]
         self._gh(args)
 
-    def close_pull_request(self, number):
+    def close_pull_request(self, number: int) -> None:
         self._gh(
             [
                 "api",

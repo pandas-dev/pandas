@@ -46,15 +46,15 @@ jobs:
               owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body,
             });
             if (blocking) {
-              await comment(`Thanks for your interest, @${user}! This issue is still labeled \`${blocking}\`, which means a maintainer needs to review it before work starts — so it isn't open to claim just yet. Please hold off on a PR until that label is removed. See the [contributing guide](${docsUrl}) for how issue assignment works. Thanks for understanding! 🙏`);
+              await comment(`Thanks for your interest, @${user}! This issue is still labeled \`${blocking}\`, which means a maintainer needs to review it before work starts — so it isn't open to claim just yet. Please hold off on a PR until that label is removed. See the [contributing guide](${docsUrl}) for more.`);
               return;
             }
             if (assignees.includes(user)) {
-              await comment(`You already have this one, @${user} — it's assigned to you and you're all set to work on it. 👍`);
+              await comment(`You already have this one, @${user} — it's assigned to you and you're all set to work on it.`);
               return;
             }
             if (assignees.length > 0) {
-              await comment(`Thanks @${user}! This issue is currently assigned to @${assignees[0]}, who's already on it — so to avoid two people doing the same work, please pick a different available issue for now. If there's no activity here for **14 days**, you're welcome to comment \`/take\` again to take it over. See the [contributing guide](${docsUrl}) for more.`);
+              await comment(`Thanks @${user}! This issue is currently assigned to @${assignees[0]}, who's already on it — so to avoid two people doing the same work, please pick a different available issue for now. If @${assignees[0]} becomes inactive, the issue is released automatically and you'll be able to \`/take\` it then. See the [contributing guide](${docsUrl}) for more.`);
               return;
             }
             await github.rest.issues.addAssignees({

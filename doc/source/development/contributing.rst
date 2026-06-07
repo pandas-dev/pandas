@@ -57,8 +57,7 @@ to find issues that interest you and are available to work on. Issues available 
 Once you've found an interesting, available issue, claim it by commenting ``/take``
 on the issue and it will be assigned to you. See
 :ref:`contributing.issue_assignment` for the full set of rules around claiming
-issues, taking over inactive ones, releasing an issue, and how pull requests
-progress once opened.
+and releasing issues, and how pull requests progress once opened.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -90,8 +89,7 @@ An issue is available to claim if it is:
 * **not** already assigned to someone else.
 
 If you change your mind, comment ``/untake`` to release the issue so others can
-pick it up. If an issue is already assigned but the assignee has had no activity
-for **14 days**, you may comment ``/take`` to take it over.
+pick it up.
 
 Opening a pull request
 ----------------------
@@ -103,15 +101,14 @@ Your pull request must be linked to an issue that is **assigned to you**. If you
 open one linked to an issue you haven't claimed, the bot adds the
 ``Needs Issue Assignment`` label and comments with what to do next: comment
 ``/take`` on the issue to claim it, then reopen your pull request (you can reopen
-it yourself — nothing is lost). Pull requests not linked to any issue are left
-alone by this automation.
+it yourself — nothing is lost).
 
 Review and staleness
 --------------------
 
 While your pull request is waiting on review, it is labeled ``Awaiting Review``
 and will **not** be marked stale — you keep your assignment for as long as review
-takes. You are never penalized for the team's review latency.
+takes.
 
 If a maintainer requests changes and there is then no activity from you for **14
 days**, your pull request is marked ``Stale``; pushing an update or commenting

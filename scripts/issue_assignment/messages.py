@@ -8,10 +8,7 @@ The ``/take`` and ``/untake`` replies live inline in
 
 from __future__ import annotations
 
-from scripts.issue_assignment.core import (
-    STALE_ASSIGNEE_DAYS,
-    TAKEOVER_DAYS,
-)
+from scripts.issue_assignment.core import STALE_ASSIGNEE_DAYS
 
 DOCS_URL = (
     "https://pandas.pydata.org/docs/development/contributing.html"
@@ -19,7 +16,7 @@ DOCS_URL = (
 )
 
 
-def gate_unassigned(author, issue):
+def gate_unassigned(author: str, issue: int) -> str:
     return (
         f"Thanks for the pull request, @{author}! It's linked to #{issue}, but "
         f"that issue isn't assigned to you yet. To make sure two people don't "
@@ -29,19 +26,19 @@ def gate_unassigned(author, issue):
     )
 
 
-def gate_assigned_other(author, issue, assignee):
+def gate_assigned_other(author: str, issue: int, assignee: str) -> str:
     return (
         f"Thanks for the pull request, @{author}! It's linked to #{issue}, which "
         f"is currently assigned to @{assignee}, who's already working on it. We "
         f"keep one contributor per issue to avoid duplicated effort. If "
-        f"@{assignee} has been inactive for **{TAKEOVER_DAYS} days or more**, "
-        f"you're welcome to comment `/take` on #{issue} to take it over — "
-        f"otherwise, please coordinate with them on the issue. See the "
-        f"[contributing guide]({DOCS_URL}) for details."
+        f"@{assignee} has had no activity for **{STALE_ASSIGNEE_DAYS} days**, the "
+        f"issue is released automatically and you'll then be able to claim it "
+        f"with `/take` on #{issue} — for now, please coordinate with them on the "
+        f"issue. See the [contributing guide]({DOCS_URL}) for details."
     )
 
 
-def gate_close_addendum(issue):
+def gate_close_addendum(issue: int) -> str:
     return (
         "I've closed this PR for now to keep the queue tidy — **none of your "
         "work is lost.** To pick it back up: **1)** comment `/take` on "
@@ -50,11 +47,11 @@ def gate_close_addendum(issue):
     )
 
 
-def _mention_list(assignees):
+def _mention_list(assignees: list[str]) -> str:
     return ", ".join(f"@{a}" for a in assignees)
 
 
-def issue_unassigned_inactive(assignees):
+def issue_unassigned_inactive(assignees: list[str]) -> str:
     mentions = _mention_list(assignees)
     return (
         f"This issue has been automatically unassigned from {mentions} because "
@@ -66,7 +63,7 @@ def issue_unassigned_inactive(assignees):
     )
 
 
-def issue_freed_stale_pr():
+def issue_freed_stale_pr() -> str:
     return (
         "The pull request linked to this issue was closed after going stale, so "
         "I've unassigned it — this issue is available again. Anyone interested "

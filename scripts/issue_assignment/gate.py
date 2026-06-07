@@ -15,7 +15,7 @@ from scripts.issue_assignment import (
 from scripts.issue_assignment.client import GitHubClient
 
 
-def main():
+def main() -> None:
     with open(os.environ["GITHUB_EVENT_PATH"]) as fh:
         event = json.load(fh)
     repo = os.environ["GITHUB_REPOSITORY"]

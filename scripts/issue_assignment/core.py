@@ -1,15 +1,20 @@
 """Pure decision logic for issue-assignment automation.
 
 Every function here takes plain Python data and performs no I/O, so the rules
-can be exercised directly in ``scripts/tests/test_issue_assignment.py``.
+can be exercised directly in ``scripts/tests/test_issue_assignment.py``. The
+``TypedDict``\\ s below document the record shapes produced by :mod:`client` and
+consumed here.
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
+from typing import TypedDict
 
 STALE_ASSIGNEE_DAYS = 14
-TAKEOVER_DAYS = 14
 
 EXEMPT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 BLOCKING_LABELS = ("Needs Triage", "Needs Discussion")
@@ -19,39 +24,75 @@ AWAITING_REVIEW_LABEL = "Awaiting Review"
 STALE_LABEL = "Stale"
 
 
-def is_exempt(author_association, author_is_bot):
+class LinkedIssue(TypedDict):
+    number: int
+    assignees: list[str]
+
+
+class Review(TypedDict):
+    state: str | None
+    submitted_at: datetime | None
+
+
+class Comment(TypedDict):
+    author: str | None
+    created_at: datetime | None
+
+
+class IssueActivity(TypedDict):
+    assignees: list[str]
+    comments: list[Comment]
+    open_pr_authors: list[str]
+
+
+class OpenPRState(TypedDict):
+    number: int
+    is_draft: bool
+    reviews: list[Review]
+    last_commit_at: datetime | None
+    labels: list[str]
+
+
+class GateDecision(TypedDict, total=False):
+    action: str  # "skip" | "pass" | "flag"; always present
+    reason: str  # "exempt" | "no_linked_issue" (skip only)
+    variant: str  # "unassigned" | "assigned_other" (flag only)
+    issue: int  # flag only
+    assignee: str  # assigned_other only
+
+
+def is_exempt(author_association: str | None, author_is_bot: bool) -> bool:
     """Maintainers, collaborators, and bots are never gated."""
     return bool(author_is_bot) or (author_association or "") in EXEMPT_ASSOCIATIONS
 
 
-def latest_changes_requested_at(reviews):
-    """Newest ``CHANGES_REQUESTED`` review time, or ``None``.
-
-    ``reviews`` is a list of ``{"state": str, "submitted_at": datetime}``.
-    """
+def latest_changes_requested_at(reviews: list[Review]) -> datetime | None:
+    """Newest ``CHANGES_REQUESTED`` review time, or ``None``."""
     times = [
-        r["submitted_at"]
+        submitted
         for r in reviews
-        if r.get("state") == "CHANGES_REQUESTED" and r.get("submitted_at")
+        if r.get("state") == "CHANGES_REQUESTED"
+        and (submitted := r["submitted_at"]) is not None
     ]
     return max(times) if times else None
 
 
-def latest_assignee_comment_at(comments, assignees):
-    """Newest comment time authored by one of ``assignees``, or ``None``.
-
-    ``comments`` is a list of ``{"author": str, "created_at": datetime}``.
-    """
-    assignees = set(assignees)
+def latest_assignee_comment_at(
+    comments: list[Comment], assignees: list[str]
+) -> datetime | None:
+    """Newest comment time authored by one of ``assignees``, or ``None``."""
+    assignee_set = set(assignees)
     times = [
-        c["created_at"]
+        created
         for c in comments
-        if c.get("author") in assignees and c.get("created_at")
+        if c.get("author") in assignee_set and (created := c["created_at"]) is not None
     ]
     return max(times) if times else None
 
 
-def awaiting_contributor(changes_requested_at, last_commit_at):
+def awaiting_contributor(
+    changes_requested_at: datetime | None, last_commit_at: datetime | None
+) -> bool:
     """True when changes were requested and the author hasn't pushed since."""
     if changes_requested_at is None:
         return False
@@ -61,18 +102,25 @@ def awaiting_contributor(changes_requested_at, last_commit_at):
 
 
 def should_label_awaiting_review(
-    is_open, is_draft, changes_requested_at, last_commit_at
-):
+    is_open: bool,
+    is_draft: bool,
+    changes_requested_at: datetime | None,
+    last_commit_at: datetime | None,
+) -> bool:
     """An open, non-draft PR with the ball in the maintainers' court."""
     if not is_open or is_draft:
         return False
     return not awaiting_contributor(changes_requested_at, last_commit_at)
 
 
-def gate_decision(author, author_association, author_is_bot, linked_issues):
+def gate_decision(
+    author: str,
+    author_association: str | None,
+    author_is_bot: bool,
+    linked_issues: list[LinkedIssue],
+) -> GateDecision:
     """Decide what the assignment gate should do for a pull request.
 
-    ``linked_issues`` is a list of ``{"number": int, "assignees": [login]}``.
     Returns a dict with an ``action`` of ``skip``, ``pass``, or ``flag``; a
     ``flag`` also carries a ``variant`` (``unassigned`` / ``assigned_other``),
     the ``issue`` number to reference, and (for ``assigned_other``) the
@@ -101,8 +149,11 @@ def gate_decision(author, author_association, author_is_bot, linked_issues):
 
 
 def issue_is_active(
-    now, has_open_linked_pr_by_assignee, last_assignee_comment_at, stale_days
-):
+    now: datetime,
+    has_open_linked_pr_by_assignee: bool,
+    last_assignee_comment_at: datetime | None,
+    stale_days: int,
+) -> bool:
     """Whether a claimed issue should keep its assignment.
 
     An open linked PR by an assignee keeps the claim regardless of age; failing

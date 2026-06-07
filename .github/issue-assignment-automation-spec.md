@@ -81,8 +81,9 @@ only (`!issue.pull_request`).
 - Issue has `Needs Triage` or `Needs Discussion` → refuse with a comment
   ("not available until triaged"); no assignment.
 - Issue unassigned → assign commenter, react 👍.
-- Issue already assigned to someone else → refuse, point to the 14-day
-  takeover policy (`TAKEOVER_DAYS`).
+- Issue already assigned to someone else → refuse. There is no manual takeover;
+  an inactive assignment is freed automatically (Component 4) after
+  `STALE_ASSIGNEE_DAYS`, after which the issue can be claimed with `/take`.
 
 **`/untake`:**
 - Remove the commenter from assignees, react 👍. (Maintainers unassign others via
@@ -121,9 +122,11 @@ adds co-assignees; the gate checks "author is *among* assignees."
 - **`awaiting_contributor`** ≝ latest `CHANGES_REQUESTED` review is newer than the
   latest commit (author hasn't pushed since changes were requested). No
   changes-requested, or pushed-after → *not* awaiting_contributor.
-- **Apply** `Awaiting Review` when the PR is open, non-draft, and **not**
-  `awaiting_contributor`. **Remove** otherwise (awaiting_contributor, draft,
-  closed).
+- **Apply** `Awaiting Review` to an open, non-draft PR that is **not**
+  `awaiting_contributor`; **remove** it when the PR becomes draft or
+  `awaiting_contributor`. The daily batch only scans *open* PRs, so a closed PR
+  keeps whatever label it last had — harmless, since closed PRs aren't subject to
+  stale.
 - **Trigger:** a **daily reconciliation** over all open PRs, folded into the
   scheduled maintenance job (Component 4) so it shares a single runner boot
   rather than firing on every push. The batched GraphQL read also returns
@@ -140,7 +143,7 @@ adds co-assignees; the gate checks "author is *among* assignees."
 - **Issue stays claimed** if an assignee has **any open linked PR** (Stale or not)
   **or** an assignee commented within 14 days (assignee-scoped — third-party
   chatter doesn't count).
-- **Issue is freed when:*\
+- **Issue is freed when:**
   1. A `Stale`-labeled PR by the assignee is **closed** → free immediately (on the
      close event). `Stale`-at-close is a reliable proxy for "contributor's court,
      abandoned," because awaiting-review PRs are exempt from Stale.
@@ -171,12 +174,14 @@ adds co-assignees; the gate checks "author is *among* assignees."
   Awaiting Review, unassign — split into an API-client layer + **pure decision
   functions**.
 - **Unit tests** in `scripts/tests/` covering the pure logic
-  (awaiting_contributor, activity rules, gate decision, exemptions) with mocked
-  API data.
-- **Thin YAML:** checkout (base repo only) → `setup-python` (pip-cached) →
-  `python scripts/…`, event data passed via env.
-- **GitHub API:** minimal deps — `gh` CLI (pre-authed) or a thin `requests`
-  wrapper for REST + the one GraphQL call. No PyGithub.
+  (awaiting_contributor, activity rules, gate decision, exemptions) and the daily
+  label reconciliation (via a fake client) with mocked API data.
+- **Thin YAML:** checkout (base repo only, sparse `scripts/`) → run
+  `python3 -m scripts.issue_assignment.…` on the runner's **system Python** (the
+  code is stdlib-only, so no `setup-python` / pip step). Event data passed via env.
+- **GitHub API:** the pre-authenticated **`gh` CLI only** — REST for writes,
+  several GraphQL queries for reads (linked issues, issue activity, the batched
+  open-PR scan). No `requests`, no PyGithub.
 - All actions **SHA-pinned**; `permissions: {}` top-level + granular per-job;
   `if: github.repository_owner == 'pandas-dev'`; `ubuntu-24.04`.
   `pull_request_target` is safe here — we only read metadata and call the API,
@@ -193,7 +198,7 @@ adds co-assignees; the gate checks "author is *among* assignees."
 | `.github/workflows/unassign-inactive.yml` | new — daily sweep + `Awaiting Review` reconcile + PR-close unassign |
 | `.github/workflows/stale-pr.yml` | edit — thresholds, `remove-stale-when-updated`, exempt-label swap |
 | `scripts/issue_assignment/…` | new — Python logic |
-| `scripts/tests/test_issue_assignment*.py` | new — unit tests |
+| `scripts/tests/test_issue_assignment.py` | new — unit tests |
 | `doc/source/development/contributing.rst` | edit — document new flow |
 
 ---
@@ -222,4 +227,4 @@ Needs-Triage/Discussion blocking, and the 14-day auto-unassign.
 ## Tunable parameters (single constants)
 
 `STALE_ASSIGNEE_DAYS = 14` · `days-before-pr-stale = 14` · `days-before-close = 7`
-· `TAKEOVER_DAYS = 14` · gate `CLOSE_ENABLED = false`.
+· gate `CLOSE_ENABLED = false`.
