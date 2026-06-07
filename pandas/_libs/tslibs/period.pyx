@@ -880,7 +880,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
     int64_t
     """
     cdef:
-        int64_t sub, factor
+        int64_t periods_per_day, nanos_per_period, periods_since_midnight
         int64_t nanos_in_day = 24 * 3600 * 10**9
 
     freq = get_freq_group(freq)
@@ -889,26 +889,30 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
         return 0
 
     elif freq == FR_NS:
-        factor = 1
+        nanos_per_period = 1
 
     elif freq == FR_US:
-        factor = 10**3
+        nanos_per_period = 10**3
 
     elif freq == FR_MS:
-        factor = 10**6
+        nanos_per_period = 10**6
 
     elif freq == FR_SEC:
-        factor = 10 **9
+        nanos_per_period = 10 **9
 
     elif freq == FR_MIN:
-        factor = 10**9 * 60
+        nanos_per_period = 10**9 * 60
 
     else:
         # We must have freq == FR_HR
-        factor = 10**9 * 3600
+        nanos_per_period = 10**9 * 3600
 
-    sub = ordinal - unix_date * (nanos_in_day / factor)
-    return sub * factor
+    periods_per_day = nanos_in_day // nanos_per_period
+    periods_since_midnight = ordinal % periods_per_day
+    if periods_since_midnight < 0:
+        periods_since_midnight += periods_per_day
+
+    return periods_since_midnight * nanos_per_period
 
 
 cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
