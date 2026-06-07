@@ -10,7 +10,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-
+from pandas.core.indexes.frozen import FrozenList
 
 def test_equals(idx):
     assert idx.equals(idx)
@@ -293,9 +293,8 @@ def test_multiindex_equals_different_bit_widths():
 
     # Hack the internal _codes to force them to be int32,
     # bypassing the constructor's automatic downcasting to int8
-    from pandas.core.indexes.frozen import FrozenList
-
     codes2 = [np.array([0, 1], dtype=np.int32), np.array([0, 1], dtype=np.int32)]
     mi2._codes = FrozenList(codes2)
 
     assert mi1.equals(mi2)
+
