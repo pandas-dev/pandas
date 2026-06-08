@@ -27,7 +27,7 @@ from pandas.core.arrays.sparse import SparseArray
 try:
     import pyarrow as pa
 except ImportError:
-    pa = None
+    pa = None  # type: ignore[assignment]
 
 
 class TestGetDummies:
