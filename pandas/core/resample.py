@@ -2969,6 +2969,7 @@ def _get_timestamp_range_edges(
         )
     else:
         first = first.normalize()
+        last_start = last
         last = last.normalize()
 
         if closed == "left":
@@ -2976,7 +2977,19 @@ def _get_timestamp_range_edges(
         else:
             first = Timestamp(first - freq)
 
-        last = Timestamp(last + freq)
+        # GH 65740: for right-closed bins, do not extend past the last
+        # timestamp if it already falls on the frequency boundary.
+        # Mirrors the logic in _adjust_dates_anchored for Tick offsets.
+        # Compare against last_start since is_on_offset ignores time-of-day
+        # for offsets such as BusinessDay.
+        if (
+            closed == "right"
+            and last_start == last
+            and freq.is_on_offset(last)
+        ):
+            last = Timestamp(last)
+        else:
+            last = Timestamp(last + freq)
 
     return first, last
 
