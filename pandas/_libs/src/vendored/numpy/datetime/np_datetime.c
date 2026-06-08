@@ -160,7 +160,6 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
     year = 400 * (days / days_per_400years);
     days = days % days_per_400years;
   } else {
-
     npy_int64 cycles = days / days_per_400years;
     days = days % days_per_400years;
 
@@ -765,7 +764,6 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       per_sec = 1000000000;
     }
 
-    const npy_int64 per_day = sec_per_day * per_sec;
     npy_int64 frac;
     // put frac in seconds
     if (td < 0 && td % per_sec != 0)
@@ -776,9 +774,9 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
     const int sign = frac < 0 ? -1 : 1;
     if (frac < 0) {
       // even fraction
-      if ((-frac % sec_per_day) != 0) {
-        out->days = -frac / sec_per_day + 1;
-        frac += sec_per_day * out->days;
+      if ((frac % sec_per_day) != 0) {
+        out->days = -(frac / sec_per_day) + 1;
+        frac = sec_per_day + (frac % sec_per_day);
       } else {
         frac = -frac;
       }
@@ -786,7 +784,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
 
     if (frac >= sec_per_day) {
       out->days += frac / sec_per_day;
-      frac -= out->days * sec_per_day;
+      frac %= sec_per_day;
     }
 
     if (frac >= sec_per_hour) {
@@ -808,11 +806,10 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       out->days = -out->days;
 
     if (base > NPY_FR_s) {
-      const npy_int64 sfrac =
-          (out->hrs * sec_per_hour + out->min * sec_per_min + out->sec) *
-          per_sec;
-
-      npy_int64 ifrac = td - (out->days * per_day + sfrac);
+      npy_int64 ifrac = td % per_sec;
+      if (ifrac < 0) {
+        ifrac += per_sec;
+      }
 
       if (base == NPY_FR_ms) {
         out->ms = (npy_int32)ifrac;
