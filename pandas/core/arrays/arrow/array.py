@@ -1398,6 +1398,11 @@ class ArrowExtensionArray(
         kind: SortKind = "quicksort",
         na_position: str = "last",
     ) -> None:
+        # This override replaces self._pa_array directly, bypassing __setitem__,
+        # so enforce the read-only guard here to stay consistent with it and
+        # with the base ExtensionArray.sort.
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         sort_indices = self.argsort(
             ascending=ascending, kind=kind, na_position=na_position
         )
