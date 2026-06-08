@@ -324,6 +324,21 @@ def test_series_equal_series_type():
         tm.assert_series_equal(s3, s1, check_series_type=True)
 
 
+def test_series_equal_ndarray_subclass_values_check_series_type_false():
+    # GH#65770
+    class ArraySubclass(np.ndarray):
+        pass
+
+    left = Series(np.array([1, 2]).view(ArraySubclass))
+    right = Series(np.array([1, 2]))
+
+    tm.assert_series_equal(left, right, check_series_type=False)
+    tm.assert_series_equal(right, left, check_series_type=False)
+
+    with pytest.raises(AssertionError, match="Series classes are different"):
+        tm.assert_series_equal(left, right)
+
+
 def test_series_equal_exact_for_nonnumeric():
     # https://github.com/pandas-dev/pandas/issues/35446
     s1 = Series(["a", "b"])
