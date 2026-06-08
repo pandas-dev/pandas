@@ -1112,6 +1112,10 @@ def assert_series_equal(
                 lv = left_values.to_numpy()
             if isinstance(right_values, ExtensionArray):
                 rv = right_values.to_numpy()
+            if not check_series_type:
+                # GH#65770
+                lv = np.asarray(lv)
+                rv = np.asarray(rv)
             assert_numpy_array_equal(
                 lv,
                 rv,
