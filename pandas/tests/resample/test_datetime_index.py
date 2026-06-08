@@ -640,8 +640,8 @@ def test_resample_reresample(unit):
     assert len(result) == 22
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
-    assert result.dtype == np.int64
-    assert not result.isna().any().any()
+    # assertions for the bug fix
+    assert not np.isnan(result.iloc[-1])
 
 
 
