@@ -611,27 +611,27 @@ def test_masked_array_kinds(data, mask, np_dtype, copy):
     tm.assert_extension_array_equal(result, expected)
 
     # Check whether we made a copy.
-    result_missing_mask = np_dtype in [
+    result_has_mask = np_dtype not in [
         "float16",
         "complex128",
         "datetime64[ns]",
         "timedelta64[ns]",
     ]
-    if result_missing_mask:
-        result_data = result._ndarray
-    else:
+    if result_has_mask:
         result_data = result._data
+    else:
+        result_data = result._ndarray
 
     expect_data_shares = not (
         copy
         # np.shares_memory is always False on length 0.
         or len(ma_arr) == 0
         # If the result has no mask, data needs to be modified if there are NA values
-        or (np.any(mask) and result_missing_mask)
+        or (np.any(mask) and not result_has_mask)
     )
     assert np.shares_memory(result_data, ma_arr.data) == expect_data_shares
 
-    if result_missing_mask:
+    if not result_has_mask:
         return
 
     expect_mask_shares = not (copy or len(ma_arr) == 0 or mask is np.False_)

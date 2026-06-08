@@ -348,8 +348,12 @@ def array(
                     data[mask] = np.nan
                 else:
                     # datetime64/timedelta64 use NaT; float16/complex/object NaN.
-                    data = data.filled(na_value_for_dtype(data.dtype, compat=False))
+                    # Argument to "filled" of "MaskedArray" has incompatible type...;
+                    # expected "complex | str | bytes | generic[Any] | None"
+                    data = data.filled(na_value_for_dtype(data.dtype, compat=False))  # type: ignore[arg-type]
             else:
+                # Argument 2 to "BaseMaskedArray" has incompatible type...;
+                # expected "ndarray[tuple[Any, ...], dtype[numpy.bool[builtins.bool]]]"
                 data = masked_cls(np.asarray(data.data), mask, copy=copy)
 
     # this returns None for not-found dtypes.
