@@ -239,6 +239,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         kind: SortKind = "quicksort",
         na_position: str = "last",
     ) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         sort_indices = self.argsort(
             ascending=ascending, kind=kind, na_position=na_position
         )
