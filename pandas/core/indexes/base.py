@@ -579,11 +579,6 @@ class Index(IndexOpsMixin, PandasObject):
             if "Data must be 1-dimensional" in str(err):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
-
-        if isinstance(arr, np.ndarray) and arr.dtype == np.object_:
-            # GH#20285 reject unhashable elements (e.g. list, dict, set)
-            lib.check_all_hashable(arr)
-
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
         klass = cls._dtype_to_subclass(arr.dtype)
@@ -5493,7 +5488,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False)
+        ser = Series(self._values, copy=False, dtype=self.dtype)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
@@ -5698,7 +5693,7 @@ class Index(IndexOpsMixin, PandasObject):
         https://github.com/pandas-dev/pandas/issues/19764
         """
         if (
-            is_object_dtype(self.dtype)
+            self.dtype == object
             or is_string_dtype(self.dtype)
             or isinstance(self.dtype, CategoricalDtype)
         ):

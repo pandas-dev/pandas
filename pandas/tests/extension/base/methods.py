@@ -1,9 +1,11 @@
 import inspect
+from io import StringIO
 import operator
 
 import numpy as np
 import pytest
 
+from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
@@ -860,3 +862,27 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
+
+    def test_values_for_json(self, data):
+        # GH 65047
+        values: np.ndarray = data._values_for_json()
+
+        # Check that the result is a numpy array
+        assert isinstance(values, np.ndarray)
+
+        # Check that the result is JSON-serializable
+        assert isinstance(ujson_dumps(values), str)
+
+        # Check that Series.to_json uses _values_for_json
+        ser = pd.Series(data)
+        result: str = ser.to_json()
+        expected: str = pd.Series(values).to_json()
+        assert result == expected
+
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # Test roundtrip through JSON
+        ser = pd.Series(data)
+        result: str = ser.to_json()
+        ser_new = pd.read_json(StringIO(result), typ="series", dtype=data.dtype)
+        tm.assert_series_equal(ser_new, ser)

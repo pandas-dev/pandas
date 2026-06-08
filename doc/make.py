@@ -152,7 +152,7 @@ class DocBuilder:
 
     def _open_browser(self, single_doc_html) -> None:
         """
-        Open a browser tab showing single
+        Open a browser tab showing a single document.
         """
         url = os.path.join("file://", DOC_PATH, "build", "html", single_doc_html)
         webbrowser.open(url, new=2)
