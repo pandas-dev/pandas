@@ -4160,9 +4160,6 @@ def test_fillna_zero():
 
 
 def test_sort_readonly():
-    # GH#64977 - in-place sort must not mutate a read-only array. The
-    # ArrowExtensionArray.sort override reassigns self._pa_array directly, so it
-    # must honor the read-only guard like __setitem__ does.
     arr = pd.array([3, 1, 2], dtype="int64[pyarrow]")
     arr._readonly = True
     with pytest.raises(ValueError, match="Cannot modify read-only array"):
