@@ -80,7 +80,7 @@ def test_list_getitem_slice_invalid():
         ):
             ser.list[1:None:0]
     else:
-        with pytest.raises(pa.lib.ArrowInvalid, match=re.escape("`step` must be >= 1")):
+        with tm.external_error_raised(pa.ArrowInvalid):
             ser.list[1:None:0]
 
 
