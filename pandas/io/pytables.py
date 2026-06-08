@@ -1057,7 +1057,9 @@ class HDFStore:
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
-        >>> store.append("data", df, format="table")  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", data_columns=["A"]
+        ... )  # doctest: +SKIP
         >>> store.select_as_coordinates("data", "A>1")  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         """
