@@ -141,20 +141,35 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
  */
 static npy_int64 days_to_yearsdays(npy_int64 *days_) {
   const npy_int64 days_per_400years = (400 * 365 + 100 - 4 + 1);
-  /* Adjust so it's relative to the year 2000 (divisible by 400) */
-  npy_int64 days = (*days_) - (365 * 30 + 7);
+  const npy_int64 epoch_offset = (365 * 30) + 7;
+
+  npy_int64 days = *days_;
+  npy_int64 year_offset = 2000;
   npy_int64 year;
+
+  // Prevent underflow when adjusting to the year 2000 epoch
+  if (days < NPY_MIN_INT64 + epoch_offset) {
+    days += days_per_400years;
+    year_offset -= 400;
+  }
+
+  days -= epoch_offset;
 
   /* Break down the 400 year cycle to get the year and day within the year */
   if (days >= 0) {
     year = 400 * (days / days_per_400years);
     days = days % days_per_400years;
   } else {
-    year = 400 * ((days - (days_per_400years - 1)) / days_per_400years);
+
+    npy_int64 cycles = days / days_per_400years;
     days = days % days_per_400years;
+
     if (days < 0) {
+      cycles--;
       days += days_per_400years;
     }
+
+    year = 400 * cycles;
   }
 
   /* Work out the year/day within the 400 year cycle */
@@ -172,7 +187,7 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
   }
 
   *days_ = days;
-  return year + 2000;
+  return year + year_offset;
 }
 
 /*
