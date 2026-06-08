@@ -292,9 +292,11 @@ cdef class _NaT(datetime):
             # GH#44460
             dtype = np.dtype(dtype)
             if dtype.kind == "M":
-                return np.datetime64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                return np.datetime64("NaT", unit)
             elif dtype.kind == "m":
-                return np.timedelta64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                return np.timedelta64("NaT", unit)
             else:
                 raise ValueError(
                     "NaT.to_numpy dtype must be a datetime64 dtype, timedelta64 "
@@ -422,12 +424,74 @@ class NaTType(_NaT):
     nanosecond = property(fget=lambda self: np.nan)
 
     week = property(fget=lambda self: np.nan)
-    dayofyear = property(fget=lambda self: np.nan)
+
+    @property
+    def dayofyear(self):
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`day_of_year` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.dayofyear is deprecated and will be removed in a "
+            "future version. Use NaTType.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
     day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
-    daysinmonth = property(fget=lambda self: np.nan)
-    dayofweek = property(fget=lambda self: np.nan)
+
+    @property
+    def daysinmonth(self):
+        """
+        Return the number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`days_in_month` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.daysinmonth is deprecated and will be removed in a "
+            "future version. Use NaTType.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
+    @property
+    def dayofweek(self):
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`day_of_week` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.dayofweek is deprecated and will be removed in a "
+            "future version. Use NaTType.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
     day_of_week = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
@@ -1420,8 +1484,8 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the rounding resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1497,6 +1561,11 @@ timedelta}, default 'raise'
         >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.round(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.round()
@@ -1525,8 +1594,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the flooring resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1596,6 +1665,11 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.floor(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.floor()
@@ -1624,8 +1698,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the ceiling resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1693,6 +1767,11 @@ timedelta}, default 'raise'
         or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
         >>> ts.ceil(freq='1h30min')
+        Timestamp('2020-03-14 16:30:00')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.ceil(freq=pd.Timedelta('1h30min'))
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -1772,16 +1851,18 @@ timedelta}, default 'raise'
     tz_localize = _make_nat_func(
         "tz_localize",
         """
-        Localize the Timestamp to a timezone.
+        Attach or detach a time zone on a Timestamp.
 
-        Convert naive Timestamp to local time zone or remove
-        timezone from timezone-aware Timestamp.
+        This method does not shift the date/time values. It attaches a time
+        zone to a tz-naive Timestamp, or detaches the time zone from a
+        tz-aware Timestamp. In both cases the wall time is preserved.
 
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+            Time zone to attach to the tz-naive Timestamp; the wall time is
+            preserved. ``None`` detaches the time zone from a tz-aware
+            Timestamp, returning a tz-naive Timestamp with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.

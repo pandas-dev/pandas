@@ -124,26 +124,6 @@ _dtype_obj = np.dtype(object)
 NumpyArrayT = TypeVar("NumpyArrayT", bound=np.ndarray)
 
 
-def maybe_convert_platform(
-    values: list | tuple | range | np.ndarray | ExtensionArray,
-) -> ArrayLike:
-    """try to do platform conversion, allow ndarray or list here"""
-    arr: ArrayLike
-
-    if isinstance(values, (list, tuple, range)):
-        arr = construct_1d_object_array_from_listlike(values)
-    else:
-        # The caller is responsible for ensuring that we have np.ndarray
-        #  or ExtensionArray here.
-        arr = values
-
-    if arr.dtype == _dtype_obj:
-        arr = cast("np.ndarray", arr)
-        arr = lib.maybe_convert_objects(arr)
-
-    return arr
-
-
 def is_nested_object(obj: object) -> bool:
     """
     return a boolean if we have a nested object, e.g. a Series with 1 or
@@ -715,7 +695,9 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        if val is NaT or val.tz is None:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -728,7 +710,9 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            if val is NaT:
+            # error: Non-overlapping identity check (left operand type: "Timedelta",
+            # right operand type: "NaTType")
+            if val is NaT:  # type: ignore[comparison-overlap]
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8
@@ -863,13 +847,9 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
-    # error: Argument 1 to <set> has incompatible type "Type[generic]"; expected
-    # "Union[dtype[Any], ExtensionDtype, None]"
-    # error: Argument 2 to <set> has incompatible type "Type[generic]"; expected
-    # "Union[dtype[Any], ExtensionDtype, None]"
     non_string_dtypes = dtype_set - {
-        np.dtype("S").type,  # type: ignore[arg-type]
-        np.dtype("<U").type,  # type: ignore[arg-type]
+        np.dtype("S").type,
+        np.dtype("<U").type,
     }
     if non_string_dtypes != dtype_set:
         raise TypeError(
@@ -1639,7 +1619,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
 
         if dtype == "string":
             try:
-                arr._maybe_convert_setitem_value(element)  # type: ignore[union-attr]
+                arr._validate_setitem_value(element)  # type: ignore[union-attr]
                 return True
             except (ValueError, TypeError):
                 return False
@@ -1744,8 +1724,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                arr = element._values if isinstance(element, ABCSeries) else element
-                if arr._hasna:
+                arr = (
+                    element._values
+                    if isinstance(element, (ABCIndex, ABCSeries))
+                    else element
+                )
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
 
@@ -1780,7 +1764,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                if element._hasna:
+                arr = (
+                    element._values
+                    if isinstance(element, (ABCIndex, ABCSeries))
+                    else element
+                )
+                if arr._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
@@ -1820,7 +1809,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if tipo.kind == "b":
                 if not isinstance(tipo, np.dtype):
                     # i.e. we have a BooleanArray
-                    if element._hasna:
+                    arr = (
+                        element._values
+                        if isinstance(element, (ABCIndex, ABCSeries))
+                        else element
+                    )
+                    if arr._hasna:  # type: ignore[union-attr]
                         # i.e. there are pd.NA elements
                         raise LossySetitemError
                 return element

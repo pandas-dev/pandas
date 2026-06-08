@@ -3,7 +3,7 @@
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python>=0.19.0,<1",
-    "meson>=1.10.1,<2",
+    "meson>=1.2.3,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
     # Force numpy higher than 2.0, so that built wheels are compatible
@@ -16,9 +16,7 @@ build-backend = "mesonpy"
 
 [project]
 name = 'pandas'
-dynamic = [
-  'version'
-]
+dynamic = ['version']
 description = 'Powerful data structures for data analysis, time series, and statistics'
 readme = 'README.md'
 authors = [
@@ -104,7 +102,7 @@ plot = ['matplotlib>=3.9.3']
 output-formatting = ['jinja2>=3.1.5', 'tabulate>=0.9.0']
 clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.4.2']
 compression = ['zstandard>=0.23.0']
-timezone = ['pytz>=2024.2']
+timezone = ['pytz>=2020.1']
 all = ['adbc-driver-postgresql>=1.2.0',
        'adbc-driver-sqlite>=1.2.0',
        'beautifulsoup4>=4.12.3',
@@ -130,7 +128,7 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'pytest>=8.3.4',
        'pytest-xdist>=3.6.1',
        'python-calamine>=0.3.0',
-       'pytz>=2024.2',
+       'pytz>=2020.1',
        'pyxlsb>=1.0.10',
        'qtpy>=2.4.2',
        'scipy>=1.14.1',
@@ -155,55 +153,50 @@ tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
-setup = ['--vsenv'] # For Windows
+dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
-build-verbosity = 3
+build-verbosity = 1
+build-frontend = "pip"
+config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-enable = ["cpython-freethreading"]
 
 [tool.cibuildwheel.windows]
+config-settings = { setup-args = ["--vsenv"] }
 environment = {}
-before-build = "pip install delvewheel"
+before-build = "python -m pip install delvewheel"
+# powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
-  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
+  pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-manylinux_aarch64*"
-test-command = """
-  python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
-  """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
 
 [[tool.cibuildwheel.overrides]]
-# Don't strip wheels on macOS.
-# macOS doesn't support stripping wheels with linker
-# https://github.com/MacPython/numpy-wheels/pull/87#issuecomment-624878264
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
 build-verbosity = 1
+build-frontend = "build"
+# pytest-xdist cannot be used on Pyodide
+# OSError: [Errno 138] emscripten does not support processes
 test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
@@ -481,18 +474,6 @@ filterwarnings = [
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
 ]
 junit_family = "xunit2"
-markers = [
-  "single_cpu: tests that should run on a single cpu only",
-  "slow: mark a test as slow",
-  "network: mark a test as network",
-  "db: tests requiring a database (mysql or postgres)",
-  "clipboard: mark a pd.read_clipboard test",
-  "arm_slow: mark a test as slow for arm64 architecture",
-  # TODO: someone should investigate this ...
-  # these tests only fail in the wheel builder and don't fail in regular
-  # ARM CI
-  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
-]
 
 [tool.mypy]
 # Import discovery
@@ -546,20 +527,38 @@ show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = [
-  "pandas._config.config", # TODO
-  "pandas._libs.*",
-  "pandas._testing.*", # TODO
-  "pandas.compat.numpy.function", # TODO
-  "pandas.core._numba.executor", # TODO
+  "pandas._libs.arrays",
+  "pandas._libs.hashtable",
+  "pandas._libs.index",
+  "pandas._libs.internals",
+  "pandas._libs.lib",
+  "pandas._libs.missing",
+  "pandas._libs.ops_dispatch",
+  "pandas._libs.properties",
+  "pandas._libs.sparse",
+  "pandas._libs.testing",
+  "pandas._libs.tslibs.fields",
+  "pandas._libs.tslibs.nattype",
+  "pandas._libs.tslibs.np_datetime",
+  "pandas._libs.tslibs.offsets",
+  "pandas._libs.tslibs.parsing",
+  "pandas._libs.tslibs.period",
+  "pandas._libs.tslibs.timedeltas",
+  "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO
   "pandas.core.array_algos.take", # TODO
   "pandas.core.arrays.*", # TODO
-  "pandas.core.computation.*", # TODO
+  "pandas.core.computation.align", # TODO
+  "pandas.core.computation.engines", # TODO
+  "pandas.core.computation.eval", # TODO
+  "pandas.core.computation.expr", # TODO
+  "pandas.core.computation.expressions", # TODO
+  "pandas.core.computation.ops", # TODO
+  "pandas.core.computation.pytables", # TODO
+  "pandas.core.computation.scope", # TODO
   "pandas.core.dtypes.common", # TODO
   "pandas.core.dtypes.dtypes", # TODO
-  "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.generic", # TODO
   "pandas.core.groupby.grouper", # TODO
   "pandas.core.groupby.groupby", # TODO
@@ -567,7 +566,6 @@ module = [
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.accessors", # TODO
   "pandas.core.indexes.api", # TODO
-  "pandas.core.indexes.category", # TODO
   "pandas.core.indexes.datetimelike", # TODO
   "pandas.core.indexes.datetimes", # TODO
   "pandas.core.indexes.extension", # TODO
@@ -579,7 +577,6 @@ module = [
   "pandas.core.interchange.dataframe_protocol", # TODO
   "pandas.core.interchange.from_dataframe", # TODO
   "pandas.core.internals", # TODO
-  "pandas.core.internals.api", # TODO
   "pandas.core.internals.blocks", # TODO
   "pandas.core.internals.concat", # TODO
   "pandas.core.internals.construction", # TODO
@@ -594,7 +591,6 @@ module = [
   "pandas.core.window.ewm", # TODO
   "pandas.core.window.expanding", # TODO
   "pandas.core.window.numba_", # TODO
-  "pandas.core.window.online", # TODO
   "pandas.core.window.rolling", # TODO
   "pandas.core.accessor", # TODO
   "pandas.core.algorithms", # TODO
@@ -608,15 +604,11 @@ module = [
   "pandas.core.missing", # TODO
   "pandas.core.nanops", # TODO
   "pandas.core.resample", # TODO
-  "pandas.core.roperator", # TODO
-  "pandas.core.sample", # TODO
   "pandas.core.series", # TODO
-  "pandas.core.sorting", # TODO
   "pandas.io.clipboard", # TODO
   "pandas.io.excel._base", # TODO
   "pandas.io.excel._odfreader", # TODO
   "pandas.io.excel._openpyxl", # TODO
-  "pandas.io.excel._pyxlsb", # TODO
   "pandas.io.excel._xlrd", # TODO
   "pandas.io.excel._xlsxwriter", # TODO
   "pandas.io.formats.excel", # TODO
@@ -637,10 +629,6 @@ module = [
   "pandas.tests.*",
   "pandas.tseries.frequencies", # TODO
   "pandas.tseries.holiday", # TODO
-  "pandas.util._decorators", # TODO
-  "pandas.util._doctools", # TODO
-  "pandas.util._validators", # TODO
-  "pandas.util", # TODO
   "pandas.conftest",
   "pandas"
 ]

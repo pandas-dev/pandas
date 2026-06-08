@@ -123,7 +123,28 @@ class TestDatetimeConcat:
         # Non-monotonic index result
         result = concat([expected[50:], expected[:50]])
         expected = DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
-        expected.index._data.freq = None
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_datetimeindex_tz_convert_freq(self):
+        # GH#41585 - concat after tz_convert should not raise when
+        # the converted timestamps no longer conform to the original freq
+        dti1 = date_range(
+            start="2020-01-01", end="2021-01-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df1 = DataFrame({"full": [1] * len(dti1)}, index=dti1)
+
+        dti2 = date_range(
+            start="2020-01-01", end="2021-02-01", freq="MS", tz="CET", inclusive="left"
+        ).tz_convert("UTC")
+        df2 = DataFrame({"one_month_more": [1] * len(dti2)}, index=dti2)
+
+        result = concat([df1, df2], axis=1)
+        expected_index = dti2.copy()
+        expected_index.freq = result.index.freq
+        expected = DataFrame(
+            {"full": [1.0] * 12 + [np.nan], "one_month_more": [1] * 13},
+            index=expected_index,
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_concat_multiindex_datetime_object_index(self):
@@ -553,6 +574,30 @@ class TestPeriodConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
+
+    def test_concat_keys_mixed_freq_period_columns(self):
+        # GH#51489 concat with keys must not raise IncompatibleFrequency
+        # when the inputs have PeriodIndex columns with different freq
+        q_period = pd.period_range("2022-1-1", "2022-12-31", freq="Q")
+        y_period = pd.period_range("2019-1-1", "2023-1-1", freq="Y")
+
+        q_df = DataFrame([range(len(q_period))], columns=q_period)
+        y_df = DataFrame([range(len(y_period))], columns=y_period)
+
+        result = concat([q_df, y_df], keys=["Quarterly", "Yearly"], axis=1)
+
+        expected_inner = Index(list(q_period) + list(y_period), dtype=object)
+        expected_columns = MultiIndex.from_arrays(
+            [
+                ["Quarterly"] * len(q_period) + ["Yearly"] * len(y_period),
+                expected_inner,
+            ]
+        )
+        expected = DataFrame(
+            [list(range(len(q_period))) + list(range(len(y_period)))],
+            columns=expected_columns,
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_concat_timedelta64_block():

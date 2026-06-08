@@ -286,6 +286,25 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert node.filters.complib == lib
 
 
+def test_complib_object_dtype_compressed(temp_h5_path):
+    # GH#45286 object-dtype columns are stored in a VLArray; the compression
+    # filter used to be dropped on that path, so string-heavy frames written
+    # with format="fixed" were never compressed regardless of complib/complevel.
+    df = DataFrame({"a": np.array(["foo"] * 100, dtype=object)}).astype(object)
+    assert df["a"].dtype == object
+
+    df.to_hdf(temp_h5_path, key="df", complib="zlib", complevel=9)
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df.astype(result.dtypes))
+
+    # the VLArray holding the object column must carry the requested filter
+    with tables.open_file(temp_h5_path, mode="r") as h5table:
+        node = h5table.get_node("/df/block0_values")
+        assert isinstance(node, tables.VLArray)
+        assert node.filters.complevel == 9
+        assert node.filters.complib == "zlib"
+
+
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
@@ -452,7 +471,7 @@ def test_multiple_open_close(temp_h5_path):
         store.append("df2", df)
 
     with pytest.raises(ClosedFileError, match=msg):
-        store.put("df3", df)
+        store.put("df3", df, track_times=False)
 
     with pytest.raises(ClosedFileError, match=msg):
         store.get_storer("df2")

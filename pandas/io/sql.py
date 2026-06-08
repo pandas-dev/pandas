@@ -33,6 +33,7 @@ import warnings
 import numpy as np
 
 from pandas._config import using_string_dtype
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import (
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas import get_option
 from pandas.core.api import (
     DataFrame,
     Series,
@@ -570,6 +570,9 @@ def read_sql(
         for engine disposal and connection closure for the ADBC connection and
         SQLAlchemy connectable; str connections are closed automatically. See
         `here <https://docs.sqlalchemy.org/en/20/core/connections.html>`_.
+
+        .. versionadded:: 2.2.0
+            Support for ADBC drivers.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
@@ -680,9 +683,7 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
-    .. versionadded:: 2.2.0
-
-       pandas now supports reading via ADBC drivers
+    pandas supports reading via ADBC drivers:
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
     >>> with dbapi.connect("postgres:///db_name") as conn:  # doctest:+SKIP
@@ -1584,7 +1585,7 @@ class SQLAlchemyEngine(BaseEngine):
 def get_engine(engine: str) -> BaseEngine:
     """return our implementation"""
     if engine == "auto":
-        engine = get_option("io.sql.engine")
+        engine = config["io"]["sql"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -2426,7 +2427,7 @@ class ADBCDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
-            db_schema_filter=schema, table_name_filter=name
+            depth="tables", db_schema_filter=schema, table_name_filter=name
         ).read_all()
 
         for catalog_schema in meta["catalog_db_schemas"].to_pylist():

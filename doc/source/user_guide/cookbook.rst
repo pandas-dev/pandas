@@ -7,9 +7,6 @@ Cookbook
 ********
 
 This is a repository for *short and sweet* examples and links for useful pandas recipes.
-We encourage users to add to this documentation.
-
-Adding interesting links and/or inline examples to this section is a great *First Pull Request*.
 
 Simplified, condensed, new-user friendly, in-line examples have been inserted where possible to
 augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information,
@@ -1331,7 +1328,7 @@ Storing Attributes to a group node
 
    df = pd.DataFrame(np.random.randn(8, 3))
    store = pd.HDFStore("test.h5")
-   store.put("df", df)
+   store["df"] = df
 
    # you can store an arbitrary Python object via pickle
    store.get_storer("df").attrs.my_attribute = {"A": 10}

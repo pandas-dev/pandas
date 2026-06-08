@@ -251,6 +251,22 @@ def test_empty(frame_or_series, all_boolean_reductions):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("method,fill_value", [("any", False), ("all", True)])
+def test_numpy_bool_unobserved_categorical_group_returns_identity(method, fill_value):
+    # GH#65100
+    key = pd.Categorical(["A", "B"], categories=["A", "B", "C"])
+    ser = Series(np.array([True, False], dtype=bool))
+
+    result = getattr(ser.groupby(key, observed=False), method)()
+
+    expected = Series(
+        [True, False, fill_value],
+        index=pd.CategoricalIndex(["A", "B", "C"], categories=["A", "B", "C"]),
+        dtype=bool,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("how", ["idxmin", "idxmax"])
 def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
     # GH#57040
@@ -1634,3 +1650,64 @@ def test_mean_numeric_only_validates_bool():
 
     with pytest.raises(ValueError, match=msg):
         df.groupby(["A"]).mean(numeric_only=1)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+        "prod",
+    ],
+)
+def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is_na):
+    values = np.array([1.0, 2.0, 3.0, 4.0, np.nan], dtype="float64")
+    mask = np.array([False, False, False, False, False], dtype="bool")
+
+    ser = Series(pd.arrays.FloatingArray(values, mask))
+    df = DataFrame({"A": [1] * 5, "B": ser})
+
+    gb = df.groupby("A")["B"]
+    result = getattr(gb, method)(skipna=skipna)
+
+    if using_nan_is_na:
+        expected = Series(
+            [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+    else:
+        expected = Series(
+            [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "sum",
+        "mean",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+        "prod",
+    ],
+)
+def test_groupby_skipna_false_propagates_na_when_distinguish_nan_and_na(method):
+    # GH-65372: under future.distinguish_nan_and_na, a genuine NA with
+    # skipna=False must propagate to NA.
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = Series([1.0, 2.0, 3.0, 4.0, pd.NA], dtype="Float64")
+        df = DataFrame({"A": [1] * 5, "B": ser})
+        gb = df.groupby("A")["B"]
+        expected = Series(
+            [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
+        )
+        result = getattr(gb, method)(skipna=False)
+        tm.assert_series_equal(result, expected)

@@ -570,6 +570,10 @@ def read_json(
         expected. A local file could be:
         ``file://localhost/path/to/table.json``.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
@@ -1264,8 +1268,11 @@ class Parser:
                 filled = data.fillna(np.nan)
 
                 return filled, True
-
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type: "ExtensionDtype
+            # | str | dtype[Any] | type[object] | Mapping[Hashable, ExtensionDtype
+            # | str | dtype[Any] | type[str] | type[complex] | type[bool]
+            # | type[object]]", right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             elif not _should_convert_dates(
                 convert_dates, self.keep_default_dates, name

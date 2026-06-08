@@ -23,6 +23,7 @@ from io import (
     StringIO,
     TextIOBase,
     TextIOWrapper,
+    UnsupportedOperation,
 )
 import mmap
 import os
@@ -99,6 +100,7 @@ class IOArgs:
     mode: str
     compression: CompressionDict
     should_close: bool = False
+    close_handles: list[Any] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
@@ -447,9 +449,10 @@ def _get_filepath_or_buffer(
             pass
 
         try:
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
             if storage_options is None:
@@ -458,14 +461,16 @@ def _get_filepath_or_buffer(
                 # don't mutate user input.
                 storage_options = dict(storage_options)
                 storage_options["anon"] = True
-            file_obj = fsspec.open(
+            open_file = fsspec.open(
                 filepath_or_buffer, mode=fsspec_mode, **(storage_options or {})
-            ).open()
+            )
+            file_obj = open_file.open()
 
         return IOArgs(
             filepath_or_buffer=file_obj,
             encoding=encoding,
             compression=compression,
+            close_handles=[open_file],
             should_close=True,
             mode=fsspec_mode,
         )
@@ -483,8 +488,6 @@ def _get_filepath_or_buffer(
             mode=mode,
         )
 
-    # is_file_like requires (read | write) & __iter__ but __iter__ is only
-    # needed for read_csv(engine=python)
     if not (
         hasattr(filepath_or_buffer, "read") or hasattr(filepath_or_buffer, "write")
     ):
@@ -983,6 +986,7 @@ def get_handle(
     if ioargs.should_close:
         assert not isinstance(ioargs.filepath_or_buffer, str)
         handles.append(ioargs.filepath_or_buffer)
+        handles.extend(ioargs.close_handles)
 
     return IOHandles(
         # error: Argument "handle" to "IOHandles" has incompatible type
@@ -1205,6 +1209,14 @@ def _maybe_memory_map(
                 access=mmap.ACCESS_READ,  # type: ignore[arg-type]
             )
         )
+    except UnsupportedOperation as err:
+        # GH#45630 in-memory buffers like BytesIO/StringIO have a fileno
+        # method but raise UnsupportedOperation when it is called
+        raise ValueError(
+            "memory_map=True is only supported when reading from a file path "
+            "or a file-like object backed by a real file descriptor; "
+            "in-memory buffers (e.g. BytesIO, StringIO) are not supported."
+        ) from err
     finally:
         for handle in reversed(handles):
             # error: "BaseBuffer" has no attribute "close"

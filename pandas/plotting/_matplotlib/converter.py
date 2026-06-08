@@ -18,6 +18,8 @@ import matplotlib.dates as mdates
 import matplotlib.units as munits
 import numpy as np
 
+from pandas._config.config import _global_config as config
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timestamp,
@@ -39,7 +41,6 @@ from pandas.core.dtypes.common import (
 from pandas import (
     Index,
     Series,
-    get_option,
 )
 import pandas.core.common as com
 from pandas.core.indexes.datetimes import (
@@ -103,7 +104,7 @@ def pandas_converters() -> Generator[None]:
     --------
     register_pandas_matplotlib_converters : Decorator that applies this.
     """
-    value = get_option("plotting.matplotlib.register_converters")
+    value = config["plotting"]["matplotlib"]["register_converters"]
 
     if value:
         # register for True or "auto"
@@ -197,7 +198,7 @@ class TimeConverter(munits.ConversionInterface):
 # time formatter
 class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAccessIssue]
     def __init__(self, locs) -> None:
-        self.locs = locs
+        self.set_locs(locs)
 
     def __call__(self, x, pos: int | None = 0) -> str:
         """
@@ -1100,7 +1101,7 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
 
-        self.locs = locs
+        super().set_locs(locs)
 
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         if vmax < vmin:

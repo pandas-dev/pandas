@@ -379,7 +379,8 @@ cdef class IndexEngine:
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -548,28 +549,33 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # This is equivalent to the stdlib's bisect.bisect_left
 
     cdef:
-        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
-        object pval
-
-    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
-        return len(values)
+        Py_ssize_t mid, lo = 0, hi = len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = PySequence_GetItem(values, mid)
-        if val < pval:
-            hi = mid
-        elif val > pval:
+        if PySequence_GetItem(values, mid) < val:
             lo = mid + 1
         else:
-            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
-                mid -= 1
-            return mid
+            hi = mid
 
-    if val <= PySequence_GetItem(values, mid):
-        return mid
-    else:
-        return mid + 1
+    return lo
+
+
+cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
+    # GH#37800 Equivalent to bisect.bisect_right, companion to _bin_search.
+    # ndarray.searchsorted is not safe to use with array of tuples.
+
+    cdef:
+        Py_ssize_t mid, lo = 0, hi = len(values)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if val < PySequence_GetItem(values, mid):
+            hi = mid
+        else:
+            lo = mid + 1
+
+    return lo
 
 
 cdef class ObjectEngine(IndexEngine):
@@ -587,6 +593,29 @@ cdef class ObjectEngine(IndexEngine):
         except TypeError as err:
             raise KeyError(val) from err
         return loc
+
+    cdef _get_loc_duplicates(self, object val):
+        # GH#37800 override to use _bin_search/_bin_search_right instead of
+        #  ndarray.searchsorted, which treats tuples as sequences of keys.
+        cdef:
+            Py_ssize_t diff, left, right
+
+        if self.is_monotonic_increasing:
+            try:
+                left = _bin_search(self.values, val)
+                right = _bin_search_right(self.values, val)
+            except TypeError:
+                raise KeyError(val)
+
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+
+        return self._maybe_get_bool_indexer(val)
 
 
 cdef class StringEngine(IndexEngine):
@@ -1222,7 +1251,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))

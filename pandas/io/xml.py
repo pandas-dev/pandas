@@ -504,7 +504,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "undeclared namespace prefix."
             ) from err
 
-        return elems
+        return elems  # pyright: ignore[reportReturnType]
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -884,6 +884,10 @@ def read_xml(
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
         :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements
@@ -916,8 +920,7 @@ def read_xml(
     dtype : Type name or dict of column -> type, optional
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32,
         'c': 'Int64'}
-        Use `str` or `object` together with suitable `na_values` settings
-        to preserve and not interpret dtype.
+        Use ``str`` or ``object`` to preserve and not interpret dtype.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
