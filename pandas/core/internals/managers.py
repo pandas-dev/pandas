@@ -706,7 +706,6 @@ class BaseBlockManager(PandasObject):
                 return self.make_empty(axes)
             return self.make_empty()
 
-        # FIXME: optimization potential
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
@@ -1285,9 +1284,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-
-        # FIXME: refactor, clearly separate broadcasting & zip-like assignment
-        #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
@@ -2399,20 +2395,6 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_key(tup: tuple[int, ArrayLike]) -> Hashable:
-    dtype = tup[1].dtype
-
-    if isinstance(dtype, np.dtype):
-        # Only numpy dtypes get stacked into 2D blocks in _form_blocks,
-        # so only they need real grouping by dtype.
-        return dtype.name
-    else:
-        # Extension dtypes each get their own block regardless, so grouping
-        # doesn't matter. Use id() to avoid potentially expensive __hash__
-        # (e.g. CategoricalDtype hashes all categories).
-        return id(dtype)
-
-
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
     tuples = enumerate(arrays)
 
@@ -2422,14 +2404,17 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
 
-    # group by dtype using a dict faster than old itertools.groupby
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
-    for tup in tuples:
-        key = _grouping_key(tup)
+    for i, arr in tuples:
+        dtype = arr.dtype
+        # Extension dtypes each get their own block regardless, so use id()
+        # to avoid a potentially expensive __hash__ (e.g. CategoricalDtype
+        # hashes all categories).
+        key = dtype if isinstance(dtype, np.dtype) else id(dtype)
         try:
-            groups[key].append(tup)
+            groups[key].append((i, arr))
         except KeyError:
-            groups[key] = [tup]
+            groups[key] = [(i, arr)]
 
     nbs: list[Block] = []
     for tup_block in groups.values():

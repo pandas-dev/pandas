@@ -199,13 +199,10 @@ class TestJSONArray(base.ExtensionTests):
                 data_missing, limit_area, input_ilocs, expected_ilocs
             )
 
-    @unhashable
-    def test_value_counts(self, all_data, dropna):
+    def test_value_counts(self, all_data, dropna, request):
+        if len(all_data) == 10 or dropna:
+            request.applymarker(unhashable)
         super().test_value_counts(all_data, dropna)
-
-    @unhashable
-    def test_value_counts_with_normalize(self, data):
-        super().test_value_counts_with_normalize(data)
 
     @unhashable
     def test_sort_values_frame(self):
@@ -225,14 +222,6 @@ class TestJSONArray(base.ExtensionTests):
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
         super().test_where_series(data, na_value)
-
-    @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_is_monotonic_increasing(self, data_for_sorting):
-        super().test_is_monotonic_increasing(data_for_sorting)
-
-    @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_is_monotonic_decreasing(self, data_for_sorting):
-        super().test_is_monotonic_decreasing(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
@@ -457,6 +446,19 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
+
+    @pytest.mark.xfail(
+        raises=AssertionError,
+        reason="JSONArray does not support roundtrip via JSON",
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # JSONArray does not support roundtrip as during JSON serialization each element
+        # of the array is packed into another dictionary ``{"data": element}`` with
+        # element being a dictionary itself, and during deserialization these
+        # dictionaries are not unpacked again, so the JSONArray cannot be reconstructed
+        # with the simple deserialization in the test.
+        super().test_json_roundtrip(data)
 
 
 def custom_assert_series_equal(left, right, *args, **kwargs):
