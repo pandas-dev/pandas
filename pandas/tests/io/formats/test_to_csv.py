@@ -1,9 +1,9 @@
+import csv
 import io
 import os
 import sys
 from zipfile import ZipFile
 
-from _csv import Error
 import numpy as np
 import pytest
 
@@ -53,6 +53,14 @@ class TestToCSV:
         df.to_csv(temp_file)
         tm.assert_frame_equal(pd.read_csv(temp_file, index_col=0), df)
 
+    @pytest.mark.parametrize("encoding", ["utf-16", "utf-16-le", "utf-16-be"])
+    def test_to_csv_utf16_encoding(self, encoding, temp_file):
+        # GH#10755
+        df = DataFrame({"col": ["abc", "déf", "日本語"]})
+        df.to_csv(temp_file, encoding=encoding)
+        result = pd.read_csv(temp_file, index_col=0, encoding=encoding)
+        tm.assert_frame_equal(result, df)
+
     def test_to_csv_quotechar(self, temp_file):
         df = DataFrame({"col": [1, 2]})
         expected = """\
@@ -90,7 +98,7 @@ $1$,$2$
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected
 
-        with pytest.raises(Error, match="escapechar"):
+        with pytest.raises(csv.Error, match="escapechar"):
             df.to_csv(temp_file, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self, temp_file):
@@ -289,6 +297,38 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    def test_to_csv_period_columns(self):
+        # GH#55426 - exercise the column path for PeriodArray
+        df = DataFrame(
+            {
+                "a": pd.period_range("2020-01-01", periods=2, freq="D"),
+                "b": pd.period_range("2020-03-01", periods=2, freq="D"),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            "2020-01-01,2020-03-01",
+            "2020-01-02,2020-03-02",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
+    def test_to_csv_interval_columns(self):
+        # GH#55426 - exercise the column path for IntervalArray
+        df = DataFrame(
+            {
+                "a": pd.arrays.IntervalArray.from_breaks([0, 1, 2]),
+                "b": pd.arrays.IntervalArray.from_breaks([3, 4, 5]),
+            }
+        )
+        expected_rows = [
+            "a,b",
+            '"(0, 1]","(3, 4]"',
+            '"(1, 2]","(4, 5]"',
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(index=False) == expected
+
     def test_to_csv_date_format_in_categorical(self):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
@@ -322,6 +362,28 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(
             ["a,b", "1.1,c", "2.02,c", ",c", "6.000006,c"]
         )
+        assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish(self, using_nan_is_na):
+        # GH#61617, GH#65227 - to_csv should not crash when FloatingArray
+        # contains unmasked NaN (with distinguish_nan_and_na=True)
+        df = DataFrame({"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"})
+        result = df.to_csv(index=False)
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", ",c", ",c", "3.0,c"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str(["a,b", "nan,c", ",c", "3.0,c"])
+        assert result == expected
+
+    def test_to_csv_float_ea_nan_distinguish_series(self, using_nan_is_na):
+        # GH#65227 - Series.to_csv with FloatingArray containing both NaN and NA
+        ser = pd.Series((1, pd.NA, 0), index=["a", "b", "c"], dtype="Float64", name="x")
+        ser = ser / ser
+        result = ser.to_csv()
+        if using_nan_is_na:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,"])
+        else:
+            expected = tm.convert_rows_list_to_csv_str([",x", "a,1.0", "b,", "c,nan"])
         assert result == expected
 
     def test_to_csv_2d_float_ea(self):
@@ -423,6 +485,13 @@ $1$,$2$
         df.to_csv(temp_file, encoding="utf-8")
         with open(temp_file, encoding="utf-8") as f:
             assert f.read() == expected_utf8
+
+    def test_to_csv_roundtrip_with_newline_in_field(self, temp_file):
+        # GH#22497 - embedded newlines in field values should survive roundtrip
+        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df.to_csv(temp_file, index=False)
+        result = pd.read_csv(temp_file)
+        tm.assert_frame_equal(result, df)
 
     def test_to_csv_string_with_lf(self, temp_file):
         # GH 20353

@@ -398,19 +398,10 @@ def test_is_file_like():
     assert is_file(data)
 
     # No read / write attributes
-    # No iterator attributes
     m = MockFile()
     assert not is_file(m)
 
     MockFile.write = lambda self: 0
-
-    # Write attribute but not an iterator
-    m = MockFile()
-    assert not is_file(m)
-
-    # gh-16530: Valid iterator just means we have the
-    # __iter__ attribute for our purposes.
-    MockFile.__iter__ = lambda self: self
 
     # Valid write-only file
     m = MockFile()
@@ -423,7 +414,7 @@ def test_is_file_like():
     m = MockFile()
     assert is_file(m)
 
-    # Iterator but no read / write attributes
+    # Iterable but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
 
@@ -850,7 +841,9 @@ class TestInference:
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
-        exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[s]")
+        exp = np.array(
+            [np.timedelta64("NaT", "s"), np.timedelta64(1, "s")], dtype="m8[s]"
+        )
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
@@ -1339,17 +1332,21 @@ class TestTypeInference:
         "arr",
         [
             np.array(
-                [np.timedelta64("nat"), np.datetime64("2011-01-02")], dtype=object
+                [np.timedelta64("NaT", "ns"), np.datetime64("2011-01-02")], dtype=object
             ),
             np.array(
-                [np.datetime64("2011-01-02"), np.timedelta64("nat")], dtype=object
+                [np.datetime64("2011-01-02"), np.timedelta64("NaT", "ns")], dtype=object
             ),
             np.array([np.datetime64("2011-01-01"), Timestamp("2011-01-02")]),
             np.array([Timestamp("2011-01-02"), np.datetime64("2011-01-01")]),
             np.array([np.nan, Timestamp("2011-01-02"), 1.1]),
             np.array([np.nan, "2011-01-01", Timestamp("2011-01-02")], dtype=object),
-            np.array([np.datetime64("nat"), np.timedelta64(1, "D")], dtype=object),
-            np.array([np.timedelta64(1, "D"), np.datetime64("nat")], dtype=object),
+            np.array(
+                [np.datetime64("nat", "ns"), np.timedelta64(1, "D")], dtype=object
+            ),
+            np.array(
+                [np.timedelta64(1, "D"), np.datetime64("nat", "ns")], dtype=object
+            ),
         ],
     )
     def test_infer_datetimelike_dtype_mixed(self, arr):
@@ -1370,12 +1367,12 @@ class TestTypeInference:
     def test_infer_dtype_datetime(self, arr):
         assert lib.infer_dtype(np.array(arr), skipna=True) == "datetime"
 
-    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
+    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan, pd.NA])
     @pytest.mark.parametrize(
         "time_stamp", [Timestamp("2011-01-01"), datetime(2011, 1, 1)]
     )
     def test_infer_dtype_datetime_with_na(self, na_value, time_stamp):
-        # starts with nan
+        # GH#53023: pd.NA should be treated as a generic null
         arr = np.array([na_value, time_stamp])
         assert lib.infer_dtype(arr, skipna=True) == "datetime"
 
@@ -1393,12 +1390,12 @@ class TestTypeInference:
     def test_infer_dtype_timedelta(self, arr):
         assert lib.infer_dtype(arr, skipna=True) == "timedelta"
 
-    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan])
+    @pytest.mark.parametrize("na_value", [pd.NaT, np.nan, pd.NA])
     @pytest.mark.parametrize(
         "delta", [Timedelta("1 days"), np.timedelta64(1, "D"), timedelta(1)]
     )
     def test_infer_dtype_timedelta_with_na(self, na_value, delta):
-        # starts with nan
+        # GH#53023: pd.NA should be treated as a generic null
         arr = np.array([na_value, delta])
         assert lib.infer_dtype(arr, skipna=True) == "timedelta"
 
@@ -1441,12 +1438,12 @@ class TestTypeInference:
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
-            [Period("2011-01", freq="M"), np.datetime64("nat")], dtype=object
+            [Period("2011-01", freq="M"), np.datetime64("nat", "ns")], dtype=object
         )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
         arr = np.array(
-            [np.datetime64("nat"), Period("2011-01", freq="M")], dtype=object
+            [np.datetime64("nat", "ns"), Period("2011-01", freq="M")], dtype=object
         )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
@@ -1502,45 +1499,51 @@ class TestTypeInference:
         assert lib.infer_dtype(arr, skipna=False) == "datetime"
 
         # np.datetime64(nat)
-        arr = np.array([np.datetime64("nat")])
+        arr = np.array([np.datetime64("nat", "ns")])
         assert lib.infer_dtype(arr, skipna=False) == "datetime64"
 
         for n in [np.nan, pd.NaT, None]:
-            arr = np.array([n, np.datetime64("nat"), n])
+            arr = np.array([n, np.datetime64("nat", "ns"), n])
             assert lib.infer_dtype(arr, skipna=False) == "datetime64"
 
-            arr = np.array([pd.NaT, n, np.datetime64("nat"), n])
+            arr = np.array([pd.NaT, n, np.datetime64("nat", "ns"), n])
             assert lib.infer_dtype(arr, skipna=False) == "datetime64"
 
-        arr = np.array([np.timedelta64("nat")], dtype=object)
+        arr = np.array([np.timedelta64("NaT", "ns")], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "timedelta"
 
         for n in [np.nan, pd.NaT, None]:
-            arr = np.array([n, np.timedelta64("nat"), n])
+            arr = np.array([n, np.timedelta64("NaT", "ns"), n])
             assert lib.infer_dtype(arr, skipna=False) == "timedelta"
 
-            arr = np.array([pd.NaT, n, np.timedelta64("nat"), n])
+            arr = np.array([pd.NaT, n, np.timedelta64("NaT", "ns"), n])
             assert lib.infer_dtype(arr, skipna=False) == "timedelta"
 
         # datetime / timedelta mixed
-        arr = np.array([pd.NaT, np.datetime64("nat"), np.timedelta64("nat"), np.nan])
+        arr = np.array(
+            [pd.NaT, np.datetime64("nat", "ns"), np.timedelta64("NaT", "ns"), np.nan]
+        )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
-        arr = np.array([np.timedelta64("nat"), np.datetime64("nat")], dtype=object)
+        arr = np.array(
+            [np.timedelta64("NaT", "ns"), np.datetime64("nat", "ns")], dtype=object
+        )
         assert lib.infer_dtype(arr, skipna=False) == "mixed"
 
     def test_is_datetimelike_array_all_nan_nat_like(self):
-        arr = np.array([np.nan, pd.NaT, np.datetime64("nat")])
+        arr = np.array([np.nan, pd.NaT, np.datetime64("nat", "ns")])
         assert lib.is_datetime_array(arr)
         assert lib.is_datetime64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
 
-        arr = np.array([np.nan, pd.NaT, np.timedelta64("nat")])
+        arr = np.array([np.nan, pd.NaT, np.timedelta64("NaT", "ns")])
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
         assert lib.is_timedelta_or_timedelta64_array(arr)
 
-        arr = np.array([np.nan, pd.NaT, np.datetime64("nat"), np.timedelta64("nat")])
+        arr = np.array(
+            [np.nan, pd.NaT, np.datetime64("nat", "ns"), np.timedelta64("NaT", "ns")]
+        )
         assert not lib.is_datetime_array(arr)
         assert not lib.is_datetime64_array(arr)
         assert not lib.is_timedelta_or_timedelta64_array(arr)
@@ -1653,7 +1656,8 @@ class TestTypeInference:
             np.array(["foo", "bar", pd.NaT], dtype=object), skipna=True
         )
         assert not lib.is_string_array(
-            np.array(["foo", "bar", np.datetime64("NaT")], dtype=object), skipna=True
+            np.array(["foo", "bar", np.datetime64("NaT", "ns")], dtype=object),
+            skipna=True,
         )
         assert not lib.is_string_array(
             np.array(["foo", "bar", Decimal("NaN")], dtype=object), skipna=True
@@ -2018,7 +2022,7 @@ class TestIsScalar:
             "foobar",
             np.datetime64("2014-01-01"),
             np.timedelta64(1, "h"),
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ],
     )
     def test_is_scalar_numpy_zerodim_arrays(self, zerodim):
@@ -2152,4 +2156,19 @@ def test_find_result_type_int_int(right, result):
 )
 def test_find_result_type_floats(right, result):
     left_dtype = np.dtype("float16")
+    assert find_result_type(left_dtype, right) == result
+
+
+@pytest.mark.parametrize(
+    "right,result",
+    [
+        # GH#61671 - find_common_type picks highest resolution (ns)
+        (datetime(3000, 1, 1), np.dtype("datetime64[ns]")),
+        (datetime(2020, 1, 1), np.dtype("datetime64[ns]")),
+        # np.datetime64 with explicit ns resolution stays ns
+        (np.datetime64("2020-01-01", "ns"), np.dtype("datetime64[ns]")),
+    ],
+)
+def test_find_result_type_datetime(right, result):
+    left_dtype = np.dtype("datetime64[ns]")
     assert find_result_type(left_dtype, right) == result

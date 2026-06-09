@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     _testing as tm,
     concat,
@@ -36,7 +37,7 @@ def test_append(temp_hdfstore):
     temp_hdfstore.append("df1", df[10:])
     tm.assert_frame_equal(temp_hdfstore["df1"], df)
 
-    temp_hdfstore.put("df2", df[:10], format="table")
+    temp_hdfstore.put("df2", df[:10], format="table", track_times=False)
     temp_hdfstore.append("df2", df[10:])
     tm.assert_frame_equal(temp_hdfstore["df2"], df)
 
@@ -355,14 +356,18 @@ def test_append_with_strings(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("ss2"), df["B"])
 
     # min_itemsize in index without appending (GH 10381)
-    temp_hdfstore.put("ss3", df, format="table", min_itemsize={"index": 6})
+    temp_hdfstore.put(
+        "ss3", df, format="table", min_itemsize={"index": 6}, track_times=False
+    )
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")
     temp_hdfstore.append("ss3", df2)
     tm.assert_frame_equal(temp_hdfstore.select("ss3"), concat([df, df2]))
 
     # same as above, with a Series
-    temp_hdfstore.put("ss4", df["B"], format="table", min_itemsize={"index": 6})
+    temp_hdfstore.put(
+        "ss4", df["B"], format="table", min_itemsize={"index": 6}, track_times=False
+    )
     temp_hdfstore.append("ss4", df2["B"])
     tm.assert_series_equal(temp_hdfstore.select("ss4"), concat([df["B"], df2["B"]]))
 
@@ -424,6 +429,36 @@ def test_append_with_strings2(temp_hdfstore):
     )
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.append("df", df, min_itemsize={"foo": 20, "foobar": 20})
+
+
+def test_append_min_itemsize_multiindex_columns(temp_hdfstore):
+    # GH#12154 per-column min_itemsize is unsupported for MultiIndex columns
+    # (data_columns themselves are unsupported), but the prior errors were
+    # opaque ("not an axis or data_column" / "non-object label
+    # DataIndexableCol"). Ensure the user gets a clear message pointing at
+    # the workaround.
+    df = DataFrame(
+        [["xx", "yy", "zz"], ["aa", "bb", "cc"]],
+        columns=MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")]),
+    )
+
+    msg = (
+        r"cannot use min_itemsize keys \[1\] on axis \[1\] with a "
+        r"MultiIndex.*min_itemsize=\{'values': N\}"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, min_itemsize={1: 20})
+
+    msg = (
+        r"cannot use min_itemsize keys \[\(1, 'a'\)\] on axis \[1\] with a "
+        r"MultiIndex.*min_itemsize=\{'values': N\}"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df, min_itemsize={(1, "a"): 20})
+
+    # the 'values' key is the documented workaround and should still work
+    temp_hdfstore.append("df", df, min_itemsize={"values": 20})
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
 def test_append_with_empty_string(temp_hdfstore):
@@ -656,7 +691,7 @@ def test_append_misc_empty_frame(temp_hdfstore):
 
     # store
     df = DataFrame(columns=list("ABC"))
-    temp_hdfstore.put("df2", df)
+    temp_hdfstore.put("df2", df, track_times=False)
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
 
 
@@ -783,7 +818,7 @@ def test_append_with_timedelta(temp_hdfstore, unit):
     tm.assert_frame_equal(result, df.iloc[4:])
 
     # fixed
-    temp_hdfstore.put("df2", df)
+    temp_hdfstore.put("df2", df, track_times=False)
     result = temp_hdfstore.select("df2")
     tm.assert_frame_equal(result, df)
 
@@ -824,6 +859,48 @@ def test_append_to_multiple(temp_hdfstore):
     )
     expected = df[(df.A > 0) & (df.B > 0)]
     tm.assert_frame_equal(result, expected)
+
+
+def test_append_to_multiple_duplicate_index(temp_hdfstore):
+    # GH#13547 a DataFrame with duplicate index values round-trips without
+    # exploding into extra rows
+    index = MultiIndex.from_arrays(
+        [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
+        names=["a", "c"],
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=["d", "e"],
+        index=index,
+    )
+
+    temp_hdfstore.append_to_multiple({"idx": ["d"], "data": None}, df, selector="idx")
+    result = temp_hdfstore.select_as_multiple(["idx", "data"])
+    tm.assert_frame_equal(result, df)
+
+
+def test_append_to_multiple_dropna_duplicate_index(temp_hdfstore):
+    # GH#13547 dropna=True with duplicate index values used to explode into
+    # extra rows on read-back; now all original rows are preserved
+    index = MultiIndex.from_arrays(
+        [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
+        names=["a", "c"],
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=["d", "e"],
+        index=index,
+    )
+
+    msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        temp_hdfstore.append_to_multiple(
+            {"idx": ["d"], "data": None}, df, selector="idx", dropna=True
+        )
+    result = temp_hdfstore.select_as_multiple(["idx", "data"])
+    # rows may be grouped by label rather than kept in input order, but no
+    # rows are duplicated or dropped
+    tm.assert_frame_equal(result.sort_index(), df.sort_index())
 
 
 def test_append_to_multiple_dropna(temp_hdfstore):

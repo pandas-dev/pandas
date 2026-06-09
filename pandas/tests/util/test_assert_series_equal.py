@@ -131,12 +131,12 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
-            ).c,
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
-            ).c,
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
+            )["c"],
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
+            )["c"],
             "Series\\.index level \\[0\\] are different",
         ),
     ],
@@ -415,6 +415,31 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, x, check_exact=True)
     tm.assert_series_equal(x, y)
     tm.assert_series_equal(x, y, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            Series([pd.array([1, 2, 3])], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+        (
+            Series([[1, 2, 3]], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_series_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = "Series are different"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(right, left, check_exact=True)
 
 
 @pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])

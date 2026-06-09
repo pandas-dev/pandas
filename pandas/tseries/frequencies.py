@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
+
+from pandas._config import using_infer_freq_offset
 
 from pandas._libs import lib
 from pandas._libs.algos import unique_deltas
@@ -25,15 +28,18 @@ from pandas._libs.tslibs.fields import (
     month_position_check,
 )
 from pandas._libs.tslibs.offsets import (
+    BaseOffset,
     DateOffset,
     Day,
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_numeric_dtype
 from pandas.core.dtypes.dtypes import (
@@ -85,47 +91,12 @@ def get_period_alias(offset_str: str) -> str | None:
 # Period codes
 
 
-@set_module("pandas")
-def infer_freq(
+def infer_freq_str(
     index: DatetimeIndex | TimedeltaIndex | Series | DatetimeLikeArrayMixin,
 ) -> str | None:
     """
-    Infer the most likely frequency given the input index.
-
-    This method attempts to deduce the most probable frequency (e.g., 'D' for daily,
-    'H' for hourly) from a sequence of datetime-like objects. It is particularly useful
-    when the frequency of a time series is not explicitly set or known but can be
-    inferred from its values.
-
-    Parameters
-    ----------
-    index : DatetimeIndex, TimedeltaIndex, Series or array-like
-      If passed a Series will use the values of the series (NOT THE INDEX).
-
-    Returns
-    -------
-    str or None
-        None if no discernible frequency.
-
-    Raises
-    ------
-    TypeError
-        If the index is not datetime-like.
-    ValueError
-        If there are fewer than three values.
-
-    See Also
-    --------
-    date_range : Return a fixed frequency DatetimeIndex.
-    timedelta_range : Return a fixed frequency TimedeltaIndex with day as the default.
-    period_range : Return a fixed frequency PeriodIndex.
-    DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
-
-    Examples
-    --------
-    >>> idx = pd.date_range(start="2020/12/01", end="2020/12/30", periods=30)
-    >>> pd.infer_freq(idx)
-    'D'
+    Internal version of infer_freq that returns a string without
+    emitting a deprecation warning.
     """
     from pandas.core.api import DatetimeIndex
 
@@ -173,6 +144,73 @@ def infer_freq(
 
     inferer = _FrequencyInferer(index)
     return inferer.get_freq()
+
+
+@set_module("pandas")
+def infer_freq(
+    index: DatetimeIndex | TimedeltaIndex | Series | DatetimeLikeArrayMixin,
+) -> str | BaseOffset | None:
+    """
+    Infer the most likely frequency given the input index.
+
+    .. deprecated:: 3.1.0
+        A future version of pandas will return a :class:`BaseOffset` instead of
+        a string. Use
+        ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in
+        to the future behavior.
+
+    This method attempts to deduce the most probable frequency (e.g., 'D' for daily,
+    'H' for hourly) from a sequence of datetime-like objects. It is particularly useful
+    when the frequency of a time series is not explicitly set or known but can be
+    inferred from its values.
+
+    Parameters
+    ----------
+    index : DatetimeIndex, TimedeltaIndex, Series or array-like
+      If passed a Series will use the values of the series (NOT THE INDEX).
+
+    Returns
+    -------
+    str or None
+        None if no discernible frequency.
+
+    Raises
+    ------
+    TypeError
+        If the index is not datetime-like.
+    ValueError
+        If there are fewer than three values.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    timedelta_range : Return a fixed frequency TimedeltaIndex with day as the default.
+    period_range : Return a fixed frequency PeriodIndex.
+    DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
+
+    Examples
+    --------
+    >>> idx = pd.date_range(start="2020/12/01", end="2020/12/30", periods=30)
+    >>> pd.infer_freq(idx)  # doctest: +SKIP
+    'D'
+    """
+    result = infer_freq_str(index)
+    if result is not None:
+        opt = using_infer_freq_offset()
+        if opt is True:
+            return to_offset(result)
+        if opt is None:
+            warnings.warn(
+                "A future version of pandas will return a BaseOffset object "
+                "instead of a string from infer_freq. "
+                "Use pd.set_option('future.infer_freq_returns_offset', True) "
+                "to get the future behavior, or set to False to keep the old "
+                "behavior and silence this warning. To preserve the string "
+                "representation, use ``infer_freq(...).freqstr``.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+    return result
 
 
 class _FrequencyInferer:
@@ -472,15 +510,21 @@ def is_subperiod(source, target) -> bool:
     target = _maybe_coerce_freq(target)
 
     if _is_annual(target):
+        if _is_annual(source):
+            return get_rule_month(source) == get_rule_month(target)
         if _is_quarterly(source):
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
         return source in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_quarterly(target):
+        if _is_quarterly(source):
+            return _quarter_months_conform(
+                get_rule_month(source), get_rule_month(target)
+            )
         return source in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_monthly(target):
-        return source in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
+        return source in {target, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif _is_weekly(target):
         return source in {target, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif target == "B":
@@ -536,9 +580,13 @@ def is_superperiod(source, target) -> bool:
             return _quarter_months_conform(smonth, tmonth)
         return target in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_quarterly(source):
+        if _is_quarterly(target):
+            return _quarter_months_conform(
+                get_rule_month(source), get_rule_month(target)
+            )
         return target in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_monthly(source):
-        return target in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
+        return target in {source, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif _is_weekly(source):
         return target in {source, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif source == "B":

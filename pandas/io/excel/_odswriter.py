@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    cast,
     overload,
 )
 
@@ -125,7 +124,6 @@ class ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast("tuple[int, int]", freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):

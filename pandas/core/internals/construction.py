@@ -565,7 +565,7 @@ def _homogenize(
         if isinstance(val, (ABCSeries, Index)):
             if dtype is not None:
                 val = val.astype(dtype)
-            if isinstance(val, ABCSeries) and val.index is not index:
+            if isinstance(val, ABCSeries) and val.index._id is not index._id:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index)
@@ -792,6 +792,12 @@ def to_arrays(
                             arrays[i] = arr[:, 0]
 
                 return arrays, columns
+            elif data.ndim == 2:
+                # GH#22025 - empty 2D ndarray
+                arrays = [data[:, idx] for idx in range(data.shape[1])]
+                if columns is None:
+                    columns = default_index(data.shape[1])
+                return arrays, columns
         return [], ensure_index([])
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
@@ -799,6 +805,14 @@ def to_arrays(
         if columns is None:
             columns = Index(data.dtype.names)
         arrays = [data[k] for k in columns]
+        return arrays, columns
+
+    elif isinstance(data, np.ndarray) and data.ndim == 2:
+        # Plain 2D ndarray: slice columns directly instead of falling through
+        # to the "last ditch" path that converts each row to a tuple.
+        arrays = [data[:, idx] for idx in range(data.shape[1])]
+        if columns is None:
+            columns = default_index(data.shape[1])
         return arrays, columns
 
     if isinstance(data[0], (list, tuple)):
@@ -811,9 +825,15 @@ def to_arrays(
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
-        # (e.g. timedelta64, pyarrow, Int64, Categorical)
+        # (e.g. timedelta64, pyarrow, Int64, Categorical). Only take this
+        # path for non-ragged rows; ragged rows fall through to the
+        # object/pad path below so they are padded to max width with NaN.
         row_dtypes = {row.dtype for row in data if hasattr(row, "dtype")}
-        if len(row_dtypes) == 1 and all(hasattr(row, "dtype") for row in data):
+        if (
+            len(row_dtypes) == 1
+            and all(hasattr(row, "dtype") for row in data)
+            and len({len(row) for row in data}) == 1
+        ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
             arrays = [

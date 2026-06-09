@@ -40,7 +40,7 @@ def test_select_columns_in_where(temp_hdfstore):
         columns=["A", "B", "C"],
     )
 
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
     expected = df[["A"]]
 
     tm.assert_frame_equal(temp_hdfstore.select("df", columns=["A"]), expected)
@@ -49,8 +49,33 @@ def test_select_columns_in_where(temp_hdfstore):
 
     # With a Series
     s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
-    temp_hdfstore.put("s", s, format="table")
+    temp_hdfstore.put("s", s, format="table", track_times=False)
     tm.assert_series_equal(temp_hdfstore.select("s", where="columns=['A']"), s)
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 3}, {"iterator": True}])
+@pytest.mark.parametrize(
+    "where",
+    ["columns=['A']", "columns!=['A']", "A>0 & columns=['A', 'B']"],
+)
+def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwargs):
+    # GH#12953 a column selection in the `where` argument is a projection, not a
+    # row filter, so it cannot be applied per-chunk; raise a clear error
+    # pointing to the `columns` argument instead of a cryptic KeyError.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    msg = "is not supported with 'iterator' or 'chunksize'"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where=where, **iter_kwargs)
+
+    # a plain row filter must keep working
+    result = concat(list(temp_hdfstore.select("df", where="A>0", **iter_kwargs)))
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", where="A>0"))
 
 
 def test_select_with_dups(temp_hdfstore):
@@ -283,6 +308,27 @@ def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore):
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "where",
+    [
+        "(A % 3) == 0",
+        "A % 3 == 0",
+        "(A * 2) > 10",
+        "(A + B) < 25",
+        "A + 1",
+    ],
+)
+def test_select_arithmetic_where_not_supported(temp_hdfstore, where):
+    # GH#41100 arithmetic operators inside a where clause are not supported;
+    # raise an informative error instead of an opaque PyTables one
+    df = DataFrame({"A": np.arange(0, 10), "B": np.arange(10, 20)})
+    temp_hdfstore.append("df", df, data_columns=["A", "B"])
+
+    msg = "arithmetic operations are not supported"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where=[where])
+
+
 def test_select_with_many_inputs(temp_hdfstore):
     df = DataFrame(
         {
@@ -354,6 +400,27 @@ def test_select_iterator(temp_hdfstore):
     results = list(temp_hdfstore.select("df", chunksize=2))
     result = concat(results)
     tm.assert_frame_equal(result, expected)
+
+
+def test_select_iterator_no_where_skips_coordinates(temp_hdfstore):
+    # GH#15937 chunked iteration without a `where` filter should not
+    # materialize an np.arange(0, nrows) coordinate array, which can
+    # exhaust memory on very large tables.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df", df)
+
+    it = temp_hdfstore.select("df", chunksize=2)
+    it.get_result()
+    assert it.coordinates is None
+
+    where = "index >= '2000-01-01'"
+    it_where = temp_hdfstore.select("df", where=where, chunksize=2)
+    it_where.get_result()
+    assert it_where.coordinates is not None
 
 
 def test_select_iterator2(temp_h5_path):
@@ -601,7 +668,7 @@ def test_frame_select(temp_hdfstore):
         index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
-    temp_hdfstore.put("frame", df, format="table")
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
     date = df.index[len(df) // 2]
 
     crit1 = Term("index>=date")
@@ -646,7 +713,9 @@ def test_frame_select_complex(temp_hdfstore):
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
 
-    temp_hdfstore.put("df", df, format="table", data_columns=["string"])
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["string"], track_times=False
+    )
 
     # empty
     result = temp_hdfstore.select("df", 'index>df.index[3] & string="bar"')
@@ -759,7 +828,7 @@ def test_invalid_filtering(temp_hdfstore):
         index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
 
     msg = "unable to collapse Joint Filters"
     # not implemented
@@ -999,7 +1068,7 @@ def test_select_empty_where(temp_hdfstore, where):
     # GH26610
 
     df = DataFrame([1, 2, 3])
-    temp_hdfstore.put("df", df, "t")
+    temp_hdfstore.put("df", df, "t", track_times=False)
     result = read_hdf(temp_hdfstore, "df", where=where)
     tm.assert_frame_equal(result, df)
 

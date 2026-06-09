@@ -70,17 +70,17 @@ def test_frame_equal_shape_mismatch(df1, df2, frame_or_series):
     [
         # Index
         (
-            DataFrame.from_records({"a": [1, 2], "c": ["l1", "l2"]}, index=["a"]),
-            DataFrame.from_records({"a": [1.0, 2.0], "c": ["l1", "l2"]}, index=["a"]),
+            DataFrame({"a": [1, 2], "c": ["l1", "l2"]}).set_index("a"),
+            DataFrame({"a": [1.0, 2.0], "c": ["l1", "l2"]}).set_index("a"),
             "DataFrame\\.index are different",
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
             ),
             "DataFrame\\.index level \\[0\\] are different",
         ),
@@ -434,3 +434,28 @@ def test_assert_frame_equal_nested_df_na(na_value):
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
     tm.assert_frame_equal(df1, df2)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            DataFrame({"a": [pd.array([1, 2, 3])]}),
+            DataFrame({"a": [np.array([1, 2, 3])]}),
+        ),
+        (
+            DataFrame({"a": [[1, 2, 3]]}),
+            DataFrame({"a": [np.array([1, 2, 3])]}),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_frame_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="a"\) are different'
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(right, left, check_exact=True)
