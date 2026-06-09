@@ -6,6 +6,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     HDFStore,
+    Index,
     Series,
     _testing as tm,
     concat,
@@ -240,6 +241,39 @@ def test_categorical_index_numeric_categories(fmt, temp_h5_path):
     df.to_hdf(temp_h5_path, key="df", format=fmt)
     result = read_hdf(temp_h5_path, key="df")
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+@pytest.mark.parametrize(
+    "dtype, expected_dtype", [("Int64", "int64"), ("string", "str")]
+)
+def test_categorical_index_extension_categories(
+    fmt, dtype, expected_dtype, temp_h5_path
+):
+    # GH#33909, GH#16118 - extension-dtype categories. Matches the
+    # longstanding behavior for categorical columns: table format casts
+    # the categories to the numpy equivalent; fixed raises for numeric EAs.
+    values = [10, 20, 30] if dtype == "Int64" else ["a", "b", "c"]
+    categories = Index(values, dtype=dtype)
+    df = DataFrame(
+        {"x": [1, 2, 3]}, index=CategoricalIndex(categories, categories=categories)
+    )
+
+    if fmt == "fixed" and dtype == "Int64":
+        with pytest.raises(
+            NotImplementedError, match="Cannot store an Index with dtype Int64"
+        ):
+            df.to_hdf(temp_h5_path, key="df", format=fmt)
+        return
+
+    df.to_hdf(temp_h5_path, key="df", format=fmt)
+    result = read_hdf(temp_h5_path, key="df")
+    expected_categories = categories.astype(expected_dtype)
+    expected = DataFrame(
+        {"x": [1, 2, 3]},
+        index=CategoricalIndex(expected_categories, categories=expected_categories),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_categorical_columns_axis_fixed_format(temp_h5_path):
