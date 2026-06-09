@@ -531,6 +531,13 @@ def nanany(
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
+    # GH#65710: when skipna=False and NaN values are present (e.g. from nullable
+    # dtypes), return NaN instead of trying to convert NaN to bool.
+    if not skipna:
+        nans = np.isnan(values)
+        if nans.any():
+            return np.nan
+
     # For object type, any won't necessarily return
     # boolean values (numpy/numpy#4352)
     if values.dtype == object:
@@ -586,6 +593,13 @@ def nanall(
         raise TypeError("datetime64 type does not support operation 'all'")
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+
+    # GH#65710: when skipna=False and NaN values are present (e.g. from nullable
+    # dtypes), return NaN instead of trying to convert NaN to bool.
+    if not skipna:
+        nans = np.isnan(values)
+        if nans.any():
+            return np.nan
 
     # For object type, all won't necessarily return
     # boolean values (numpy/numpy#4352)
