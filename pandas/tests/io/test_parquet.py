@@ -1525,21 +1525,15 @@ class TestParquetFastParquet(Base):
             read_parquet(temp_file, dtype_backend="numpy")
 
 
-@td.skip_if_no("pyarrow", min_version="24.0")
-def test_to_parquet_uuid_supported(temp_file, request):
+@td.skip_if_no("pyarrow", min_version="24.0.0")
+@pytest.mark.xfail(
+    reason="Upstream PyArrow nightly/py314 fails to cast FIXED_LEN_BYTE_ARRAY to UUID - GH 61602"
+)
+def test_to_parquet_uuid_supported(temp_file):
     # GH 61602
     df = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
-
+    
     df.to_parquet(temp_file, engine="pyarrow")
-    result = read_parquet(temp_file, engine="pyarrow")
-
-    # If upstream PyArrow nightly/py314 returns raw bytes instead of UUIDs,
-    # we dynamically add the xfail marker to satisfy both Ruff and Pandas architecture.
-    if len(result) > 0 and isinstance(result.loc[0, "id"], bytes):
-        request.node.add_marker(
-            pytest.mark.xfail(
-            reason="PyArrow nightly bug: returns raw bytes instead of UUIDs"
-            )
-        )
-
+    
+    result = pd.read_parquet(temp_file, engine="pyarrow")
     tm.assert_frame_equal(result, df)
