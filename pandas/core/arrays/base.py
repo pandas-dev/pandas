@@ -69,6 +69,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     duplicated,
     factorize_array,
+    is_monotonic,
     isin,
     map_array,
     mode,
@@ -2761,26 +2762,12 @@ class ExtensionArray:
             return False, False
         try:
             values = self._values_for_argsort()
+            inc, dec, _ = is_monotonic(values)
         except TypeError:
+            # Either ``_values_for_argsort`` is not implemented or the dtype is
+            # not orderable by ``is_monotonic`` (e.g. complex).
             return False, False
-
-        timelike = False
-        if values.dtype.kind == "b":
-            values = values.view("uint8")
-        elif values.dtype.kind in "mM":
-            values = values.view("i8")
-            timelike = True
-        try:
-            inc, dec, _ = libalgos.is_monotonic(values, timelike=timelike)
-        except TypeError:
-            # ``is_monotonic`` only supports numeric and object dtypes; for
-            # other dtypes (e.g. complex, float16) fall back to ranks.
-            try:
-                ranks = self._rank()
-            except TypeError:
-                return False, False
-            inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
-        return bool(inc), bool(dec)
+        return inc, dec
 
     def _rank(
         self,

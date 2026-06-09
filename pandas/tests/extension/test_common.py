@@ -86,8 +86,8 @@ def test_monotonic_check_unsupported_argsort_dtype():
     # GH#65585
     # Test fallback in ExtensionArray._monotonic_check when is_monotonic can't be used
     arr = pd.array(np.array([1, 2, 3], dtype="float16"))
-    assert ExtensionArray._monotonic_check(arr) == (True, False)
-    assert ExtensionArray._monotonic_check(arr[::-1]) == (False, True)
+    assert arr._monotonic_check() == (True, False)
+    assert arr[::-1]._monotonic_check() == (False, True)
 
 
 class CapturingStringArray(pd.arrays.StringArray):
