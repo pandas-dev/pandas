@@ -28,10 +28,6 @@ from pandas.core.arrays import (
 )
 
 cimport cython
-from cpython.bytearray cimport (
-    PyByteArray_AsString,
-    PyByteArray_Resize,
-)
 from cpython.bytes cimport PyBytes_AsString
 from cpython.exc cimport (
     PyErr_Fetch,
@@ -1583,21 +1579,22 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     from pandas.core.arrays.string_arrow import ArrowStringArray
     cdef:
         int na_count = 0
-        Py_ssize_t i, lines, wlen
+        Py_ssize_t i, lines
         Py_ssize_t total_bytes = 0
-        Py_ssize_t alloc_bytes
+        int64_t wlen, seg
         coliter_t it
         const char *word = NULL
         ndarray[int32_t, ndim=1] offsets32
         ndarray[int64_t, ndim=1] offsets64
         ndarray[uint8_t, ndim=1] validity_arr
+        ndarray[uint8_t, ndim=1] data_arr
         int32_t *offsets32_ptr = NULL
         int64_t *offsets64_ptr = NULL
         uint8_t *validity_ptr = NULL
-        char *data_ptr
-        object data_ba
+        char *data_ptr = NULL
         bint large = target == "str_nan"
         bint track_validity = na_filter
+        bint overflow = False
 
     lines = line_end - line_start
     if large:
@@ -1615,49 +1612,63 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     else:
         validity_arr = None
 
-    alloc_bytes = 64 if lines == 0 else max(lines * 8, 64)
-    data_ba = bytearray(alloc_bytes)
-    data_ptr = PyByteArray_AsString(data_ba)
-
+    # Pass 1 (nogil): compute offsets / validity / na_count / total_bytes.  No
+    # Python-object resize happens in the loop, so the whole pass is GIL-free
+    # and parallelises across threads in the parallel-read path.
     coliter_setup(&it, parser, col, line_start)
+    with nogil:
+        for i in range(lines):
+            COLITER_NEXT(it, word)
 
-    for i in range(lines):
-        COLITER_NEXT(it, word)
+            if na_filter and kh_get_str_starts_item(na_hashset, word):
+                na_count += 1
+                if large:
+                    offsets64_ptr[i + 1] = <int64_t>total_bytes
+                else:
+                    offsets32_ptr[i + 1] = <int32_t>total_bytes
+                continue
 
-        if na_filter and kh_get_str_starts_item(na_hashset, word):
-            na_count += 1
+            wlen = strlen(word)
+
+            if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
+                overflow = True
+                break
+
+            total_bytes += wlen
             if large:
                 offsets64_ptr[i + 1] = <int64_t>total_bytes
             else:
                 offsets32_ptr[i + 1] = <int32_t>total_bytes
-            continue
 
-        wlen = strlen(word)
+            if track_validity:
+                validity_ptr[i >> 3] |= <uint8_t>(1 << (i & 7))
 
-        if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
-            raise OverflowError(
-                "String column exceeds 2GiB, which is the maximum supported "
-                "by pyarrow's 'string' type."
-            )
+    if overflow:
+        raise OverflowError(
+            "String column exceeds 2GiB, which is the maximum supported "
+            "by pyarrow's 'string' type."
+        )
 
-        while total_bytes + wlen > alloc_bytes:
-            alloc_bytes *= 2
-            PyByteArray_Resize(data_ba, alloc_bytes)
-            data_ptr = PyByteArray_AsString(data_ba)
+    # Allocate the data buffer exactly once now that the total size is known.
+    data_arr = np.empty(total_bytes, dtype=np.uint8)
+    if total_bytes:
+        data_ptr = <char *>data_arr.data
 
-        if wlen:
-            memcpy(data_ptr + total_bytes, word, <size_t>wlen)
-        total_bytes += wlen
-
-        if large:
-            offsets64_ptr[i + 1] = <int64_t>total_bytes
-        else:
-            offsets32_ptr[i + 1] = <int32_t>total_bytes
-
-        if track_validity:
-            validity_ptr[i >> 3] |= <uint8_t>(1 << (i & 7))
-
-    PyByteArray_Resize(data_ba, total_bytes)
+    # Pass 2 (nogil): copy each token's bytes into its slot.  Segment lengths
+    # come from the offsets computed in pass 1, so na / empty rows (seg == 0)
+    # are skipped without re-checking the na hashset.
+    coliter_setup(&it, parser, col, line_start)
+    with nogil:
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+            if large:
+                seg = offsets64_ptr[i + 1] - offsets64_ptr[i]
+                if seg:
+                    memcpy(data_ptr + offsets64_ptr[i], word, <size_t>seg)
+            else:
+                seg = offsets32_ptr[i + 1] - offsets32_ptr[i]
+                if seg:
+                    memcpy(data_ptr + offsets32_ptr[i], word, <size_t>seg)
 
     if large:
         offsets_buf = pa.py_buffer(offsets64)
@@ -1665,7 +1676,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     else:
         offsets_buf = pa.py_buffer(offsets32)
         pa_type = pa.string()
-    data_buf = pa.py_buffer(data_ba)
+    data_buf = pa.py_buffer(data_arr)
     if na_count > 0:
         validity_buf = pa.py_buffer(validity_arr)
         pa_arr = pa.Array.from_buffers(
