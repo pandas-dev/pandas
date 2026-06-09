@@ -4788,11 +4788,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
-
             .. deprecated:: 3.1.0
                 Passing ``**kwargs`` to GroupBy.cumprod is deprecated
                 and will be removed in a future version of pandas.
@@ -4884,11 +4879,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
-
             .. deprecated:: 3.1.0
                 Passing ``**kwargs`` to GroupBy.cumsum is deprecated
                 and will be removed in a future version of pandas.
@@ -4971,11 +4961,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             will be NA.
         **kwargs : dict, optional
             Additional keyword arguments to be passed to the function.
-
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
             .. deprecated:: 3.1.0
                 Passing ``**kwargs`` to GroupBy.cummin is deprecated
@@ -5067,11 +5052,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             will be NA.
         **kwargs : dict, optional
             Additional keyword arguments to be passed to the function.
-
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
             .. deprecated:: 3.1.0
                 Passing ``**kwargs`` to GroupBy.cummax is deprecated

@@ -1949,12 +1949,7 @@ class Resampler(BaseGroupBy, PandasObject):
         q : float or array-like, default 0.5 (50% quantile)
             Value between 0 <= q <= 1, the quantile(s) to compute.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

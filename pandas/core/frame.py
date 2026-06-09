@@ -16455,10 +16455,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16567,10 +16564,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16653,10 +16647,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16763,10 +16754,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16882,10 +16870,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17011,10 +16996,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17386,10 +17368,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs : dict
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17510,10 +17489,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17636,10 +17612,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to be passed to the function.
 
-            .. note::
-
-                Some kwargs may have no effect and are accepted only for
-                compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

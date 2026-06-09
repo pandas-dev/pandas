@@ -377,9 +377,9 @@ via ``object`` dtype:
 NumPy compatibility kwargs
 --------------------------
 
-Many pandas methods accept additional keyword arguments (often passed as ``**kwargs``) to ensure compatibility with NumPy's API. This allows pandas objects to be passed to NumPy functions seamlessly. However, in many cases, these additional keywords have no effect on the behavior of the pandas method itself.
+Many pandas methods accept additional keyword arguments (often passed as ``**kwargs``) to ensure compatibility with NumPy's API. When a pandas object is passed to a NumPy function (for example, ``np.sum(df)``), NumPy will often pass its own arguments (such as ``out`` or ``keepdims``) to the pandas method. To prevent errors, pandas accepts these keywords.
 
-For example, when using methods like :meth:`DataFrame.clip` or :meth:`DataFrame.sum`, the method signature includes ``**kwargs``. While you can pass additional arguments, they may be ignored by pandas if they are only meant for NumPy compatibility. This design choice prevents errors when NumPy attempts to pass its own arguments to the pandas object.
+While pandas historically ignored many of these additional arguments, the library is moving towards strictly validating them or deprecating them where validation is missing. If you pass an argument that pandas does not implement, it may raise an error or emit a deprecation warning. You should only rely on the arguments explicitly documented in the pandas method signature.
 
 Differences with NumPy
 ----------------------
