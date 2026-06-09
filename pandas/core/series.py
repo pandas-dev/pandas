@@ -4080,8 +4080,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if is_range_indexer(sorted_index, len(sorted_index)):
             if inplace:
-                return self._update_inplace(self)
-            return self.copy(deep=False)
+                self._update_inplace(self)
+                if ignore_index:
+                    self.index = default_index(len(sorted_index))
+                return None
+            result = self.copy(deep=False)
+            if ignore_index:
+                result.index = default_index(len(sorted_index))
+            return result
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index], copy=False
