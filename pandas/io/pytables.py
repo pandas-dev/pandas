@@ -3177,7 +3177,10 @@ class GenericFixed(Fixed):
             factory = index_class
             kwargs["copy"] = False
 
-        if "freq" in attrs:
+        if "freq" in attrs and attrs["freq"] is not None:
+            # GH#33186 old versions of pandas wrote a freq=None attr on every
+            # index, including non-datetimelike ones; only a non-None freq is
+            # meaningful (and only a TimedeltaIndex reaches here as plain Index).
             kwargs["freq"] = attrs["freq"]
             if index_class is Index:
                 # DTI/PI would be gotten by _alias_to_class
