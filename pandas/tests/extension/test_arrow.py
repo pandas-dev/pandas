@@ -4041,6 +4041,8 @@ def test_fillna_zero():
 @pytest.mark.parametrize("axis", [0, None, -1])
 def test_reduction_axis_valid(method, axis):
     # axis equivalent to 0 (the only axis of a 1-D array) or None is accepted
+    if method == "skew" and pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
     result = getattr(arr, method)(axis=axis)
     expected = getattr(arr, method)()

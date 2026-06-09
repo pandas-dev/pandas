@@ -2455,7 +2455,13 @@ class ArrowExtensionArray(
         return result
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         """
         Return a scalar result of performing the reduction operation.
@@ -2468,6 +2474,8 @@ class ArrowExtensionArray(
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        axis : int or None, default 0
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -2480,6 +2488,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        nv.validate_minmax_axis(axis, self.ndim)
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if isinstance(result, pa.Array):
             return self._from_pyarrow_array(result)
@@ -2522,8 +2531,10 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("sum", skipna=skipna, min_count=min_count, **kwargs)
+        nv.validate_sum((), kwargs)
+        return self._reduce(
+            "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
 
     def min(
         self,
@@ -2532,8 +2543,8 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("min", skipna=skipna, **kwargs)
+        nv.validate_min((), kwargs)
+        return self._reduce("min", skipna=skipna, axis=axis, **kwargs)
 
     def max(
         self,
@@ -2542,8 +2553,8 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("max", skipna=skipna, **kwargs)
+        nv.validate_max((), kwargs)
+        return self._reduce("max", skipna=skipna, axis=axis, **kwargs)
 
     def mean(
         self,
@@ -2552,8 +2563,8 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("mean", skipna=skipna, **kwargs)
+        nv.validate_mean((), kwargs)
+        return self._reduce("mean", skipna=skipna, axis=axis, **kwargs)
 
     def sem(
         self,
@@ -2562,8 +2573,8 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("sem", skipna=skipna, **kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
 
     def skew(
         self,
@@ -2572,8 +2583,8 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("skew", skipna=skipna, **kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
 
     def median(
         self,
@@ -2582,8 +2593,8 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("median", skipna=skipna, **kwargs)
+        nv.validate_median((), kwargs)
+        return self._reduce("median", skipna=skipna, axis=axis, **kwargs)
 
     def var(
         self,
@@ -2593,8 +2604,8 @@ class ArrowExtensionArray(
         ddof: int = 1,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("var", skipna=skipna, ddof=ddof, **kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        return self._reduce("var", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
 
     def std(
         self,
@@ -2604,8 +2615,8 @@ class ArrowExtensionArray(
         ddof: int = 1,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("std", skipna=skipna, ddof=ddof, **kwargs)
+        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        return self._reduce("std", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
 
     def prod(
         self,
@@ -2615,8 +2626,10 @@ class ArrowExtensionArray(
         axis: AxisInt | None = 0,
         **kwargs,
     ):
-        nv.validate_minmax_axis(axis, self.ndim)
-        return self._reduce("prod", skipna=skipna, min_count=min_count, **kwargs)
+        nv.validate_prod((), kwargs)
+        return self._reduce(
+            "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
 
     def _explode(self):
         """
