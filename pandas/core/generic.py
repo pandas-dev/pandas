@@ -157,6 +157,7 @@ if TYPE_CHECKING:
         Axes,
         Axis,
         AxisInt,
+        AxisLabels,
         CompressionOptions,
         DtypeArg,
         DtypeBackend,
@@ -677,25 +678,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def set_axis(
         self,
-        labels,
+        labels: AxisLabels | lib.NoDefault = lib.no_default,
         *,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        index: AxisLabels | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Self:
         """
         Assign desired index to given axis.
 
         Indexes for%(extended_summary_sub)s row labels can be changed by assigning
-        a list-like or Index.
+        a list-like, Index, or callable.
 
         Parameters
         ----------
-        labels : list-like, Index
-            The values for the new index.
+        labels : list-like, Index, or callable
+            The values for the new index. If callable, it is called with the
+            current axis (an :class:`Index`) and must return the new labels.
+            Cannot be used together with ``index``.
 
         axis : %(axes_single_arg)s, default 0
             The axis to update. The value 0 identifies the rows. For `Series`
-            this parameter is unused and defaults to 0.
+            this parameter is unused and defaults to 0. Cannot be used
+            together with ``index``.
+
+        index : list-like, Index, or callable, optional
+            Alternative to specifying ``labels`` with ``axis=0``. Cannot be
+            used together with ``labels`` or ``axis``.
 
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
@@ -720,7 +729,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         %(klass)s.rename_axis : Alter the name of the index%(see_also_sub)s.
         """
         self._check_copy_deprecation(copy)
-        return self._set_axis_nocheck(labels, axis, inplace=False)
+
+        if index is not lib.no_default:
+            if labels is not lib.no_default:
+                raise TypeError("Cannot specify both 'labels' and 'index'")
+            if axis is not lib.no_default:
+                raise TypeError("Cannot specify both 'axis' and 'index'")
+            labels = index
+            resolved_axis: Axis = 0
+        else:
+            if labels is lib.no_default:
+                raise TypeError(
+                    f"{type(self).__name__}.set_axis() missing 1 required positional "
+                    "argument: 'labels'"
+                )
+            resolved_axis = 0 if axis is lib.no_default else axis
+
+        if callable(labels):
+            labels = labels(self._get_axis(self._get_axis_number(resolved_axis)))
+
+        return self._set_axis_nocheck(labels, resolved_axis, inplace=False)
 
     @overload
     def _set_axis_nocheck(

@@ -166,6 +166,7 @@ if TYPE_CHECKING:
         ArrowStreamExportable,
         Axis,
         AxisInt,
+        AxisLabels,
         CorrelationMethod,
         DropKeep,
         Dtype,
@@ -5556,34 +5557,43 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def set_axis(
         self,
-        labels,
+        labels: AxisLabels | lib.NoDefault = lib.no_default,
         *,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        index: AxisLabels | lib.NoDefault = lib.no_default,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
         Assign desired index to given axis.
 
-        .. deprecated:: 3.0.0
-            This keyword is ignored and will be removed in pandas 4.0. Since
-            pandas 3.0, this method always returns a new object using a lazy
-            copy mechanism that defers copies until necessary
-            (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            for more details.
-
-        Indexes for row labels can be changed by assigning a list-like or Index.
+        Indexes for row labels can be changed by assigning a list-like, Index,
+        or callable.
 
         Parameters
         ----------
-        labels : list-like or Index
-            The values for the new index.
+        labels : list-like, Index, or callable
+            The values for the new index. If callable, it is called with the
+            current index (an :class:`Index`) and must return the new labels.
+            Cannot be used together with ``index``.
         axis : {0 or 'index'}, default 0
             The axis to update. The value 0 identifies the rows. For `Series`
-            this parameter is unused and defaults to 0.
+            this parameter is unused and defaults to 0. Cannot be used
+            together with ``index``.
+        index : list-like, Index, or callable, optional
+            Alternative to specifying ``labels`` with ``axis=0``. Cannot be
+            used together with ``labels`` or ``axis``.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -5607,9 +5617,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         b    2
         c    3
         dtype: int64
-        """
 
-        return super().set_axis(labels, axis=axis, copy=copy)
+        Use keyword syntax.
+
+        >>> s.set_axis(index=["a", "b", "c"])
+        a    1
+        b    2
+        c    3
+        dtype: int64
+
+        Use a callable.
+
+        >>> s.set_axis(lambda idx: idx + 10)
+        10    1
+        11    2
+        12    3
+        dtype: int64
+        """
+        return super().set_axis(labels, axis=axis, index=index, copy=copy)
 
     # error: Cannot determine type of 'reindex'
 
