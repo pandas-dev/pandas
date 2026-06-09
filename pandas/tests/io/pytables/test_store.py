@@ -867,6 +867,19 @@ def test_select_filter_corner(temp_hdfstore):
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
 
+def test_select_string_index_aligned(temp_hdfstore):
+    # GH#54396 string index -> byte-unaligned values block; the read-back
+    #  block must be realigned to avoid SIGBUS on strict-alignment platforms
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+    df.index = [f"{c:3d}" for c in df.index]
+
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
+    result = temp_hdfstore.select("frame")
+    tm.assert_frame_equal(result, df)
+    for blk in result._mgr.blocks:
+        assert blk.values.flags["ALIGNED"]
+
+
 def test_path_pathlib(temp_h5_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),

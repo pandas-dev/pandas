@@ -2838,6 +2838,10 @@ class DataCol(IndexCol):
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
+            if not values.flags["ALIGNED"]:
+                # GH#54396 copy to realign; unaligned buffers SIGBUS
+                #  on strict-alignment platforms (e.g. 32-bit ARM)
+                values = values.copy()
 
         assert self.typ is not None
         if self.dtype is None:
