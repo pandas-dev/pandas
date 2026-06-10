@@ -5,7 +5,6 @@ import zoneinfo
 import numpy as np
 import pytest
 
-from pandas._libs import lib
 from pandas._libs.tslibs import Day
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
@@ -1137,7 +1136,6 @@ def test_resample_anchored_intraday2(unit):
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index.freq = "QE"
-    expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
@@ -1147,7 +1145,6 @@ def test_resample_anchored_intraday2(unit):
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, unit="us") - Timedelta(1, unit="D")
     expected.index.freq = "QE"
-    expected.index._freq = lib.no_default
     expected.index = expected.index.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 

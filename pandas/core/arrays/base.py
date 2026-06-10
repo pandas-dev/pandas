@@ -44,8 +44,12 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_float_dtype,
     is_integer,
+    is_integer_dtype,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     pandas_dtype,
 )
@@ -65,6 +69,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     duplicated,
     factorize_array,
+    is_monotonic,
     isin,
     map_array,
     mode,
@@ -97,6 +102,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         ScalarIndexer,
         SequenceIndexer,
         Shape,
@@ -1095,7 +1102,7 @@ class ExtensionArray:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise ValueError("Encountered an NA value with skipna=False")
-        return nargminmax(self, "argmin")
+        return cast("int", nargminmax(self, "argmin"))
 
     def argmax(self, skipna: bool = True) -> int:
         """
@@ -1129,7 +1136,7 @@ class ExtensionArray:
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise ValueError("Encountered an NA value with skipna=False")
-        return nargminmax(self, "argmax")
+        return cast("int", nargminmax(self, "argmax"))
 
     def interpolate(
         self,
@@ -1673,7 +1680,6 @@ class ExtensionArray:
         """
         if type(self) != type(other):
             return False
-        other = cast("ExtensionArray", other)
         if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
@@ -2747,23 +2753,27 @@ class ExtensionArray:
         """
         Return (is_monotonic_increasing, is_monotonic_decreasing).
 
-        Default implementation using ranks. Subclasses should override
-        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
-        instead of this method.
+        Default implementation using ``_values_for_argsort``. Subclasses
+        should override ``_is_monotonic_increasing`` and
+        ``_is_monotonic_decreasing`` instead of this method.
         """
-        try:
-            ranks = self._rank()
-        except TypeError:
+        if self._hasna:
             return False, False
-        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
-        return bool(inc), bool(dec)
+        try:
+            values = self._values_for_argsort()
+            inc, dec, _ = is_monotonic(values)
+        except TypeError:
+            # Either ``_values_for_argsort`` is not implemented or the dtype is
+            # not orderable by ``is_monotonic`` (e.g. complex).
+            return False, False
+        return inc, dec
 
     def _rank(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):
@@ -2774,12 +2784,13 @@ class ExtensionArray:
             raise NotImplementedError
 
         return rank(
-            self,
+            self._values_for_argsort(),
             axis=axis,
             method=method,
             na_option=na_option,
             ascending=ascending,
             pct=pct,
+            mask=np.asarray(self.isna(), dtype="bool") if self._hasna else None,
         )
 
     @classmethod
@@ -3010,6 +3021,77 @@ class ExtensionArray:
 
         else:
             raise NotImplementedError
+
+    def _groupby_quantile(
+        self,
+        *,
+        qs: npt.NDArray[np.float64],
+        interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
+        ids: npt.NDArray[np.intp],
+        ngroups: int,
+        starts: npt.NDArray[np.int64],
+        ends: npt.NDArray[np.int64],
+    ) -> ArrayLike:
+        """
+        Dispatch GroupBy quantile operation.
+
+        Parameters
+        ----------
+        qs : np.ndarray[float64]
+            Quantile(s) to compute.
+        interpolation : {'linear', 'lower', 'higher', 'nearest', 'midpoint'}
+        ids : np.ndarray[np.intp]
+            Group labels.
+        ngroups : int
+        starts : np.ndarray[int64]
+        ends : np.ndarray[int64]
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        from pandas.core.arrays.string_ import StringDtype
+
+        if isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype):
+            raise TypeError(
+                f"dtype '{self.dtype}' does not support operation 'quantile'"
+            )
+        if is_bool_dtype(self.dtype):
+            raise TypeError("Cannot use quantile with bool dtype")
+
+        mask = np.asarray(isna(self))
+        nqs = len(qs)
+
+        if is_integer_dtype(self.dtype) or is_float_dtype(self.dtype):
+            vals = self.to_numpy(dtype=float, na_value=np.nan)
+        else:
+            vals = np.asarray(self)
+
+        inference: np.dtype | None = (
+            np.dtype(np.int64) if is_integer_dtype(self.dtype) else None
+        )
+
+        out = np.empty((ngroups, nqs), dtype=np.float64)
+        libgroupby.group_quantile(
+            out,
+            values=vals,
+            mask=mask,  # type: ignore[arg-type]
+            labels=ids,
+            qs=qs,
+            interpolation=interpolation,
+            starts=starts,
+            ends=ends,
+            result_mask=None,
+            is_datetimelike=False,
+        )
+        out = out.ravel("K")  # type: ignore[assignment]
+
+        if inference is not None and not (
+            is_integer_dtype(inference) and interpolation in {"linear", "midpoint"}
+        ):
+            out = out.astype(inference)
+
+        return out
 
     def _groupby_first_last(
         self,

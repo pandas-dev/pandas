@@ -82,7 +82,6 @@ class TestDatetimeIndex:
         array = index._data
 
         arr = array[[0, 3, 2, 4, 1]]
-        assert arr.freq is None
 
         result = index._shallow_copy(arr)
         assert result.freq is None

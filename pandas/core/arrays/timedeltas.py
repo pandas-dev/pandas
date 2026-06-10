@@ -176,7 +176,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _other_ops: list[str] = []
     _bool_ops: list[str] = []
     _field_ops: list[str] = ["days", "seconds", "microseconds", "nanoseconds"]
-    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit", "freq"]
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + ["unit"]
     _datetimelike_methods: list[str] = [
         "to_pytimedelta",
         "total_seconds",
@@ -221,8 +221,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Constructors
 
-    _freq: Tick | Day | None = None
-
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
@@ -245,9 +243,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
 
-        result = super()._simple_new(values=values, dtype=dtype)
-        result._freq = None
-        return result
+        return super()._simple_new(values=values, dtype=dtype)
 
     @classmethod
     def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
@@ -257,14 +253,12 @@ class TimedeltaArray(dtl.TimelikeOps):
             if lib.infer_dtype(data) == "integer":
                 unit = np.datetime_data(dtype)[0]
 
-        data, freq = sequence_to_td64ns(data, copy=copy, unit=unit)
+        data = sequence_to_td64ns(data, copy=copy, unit=unit)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
-        result = cls._simple_new(data, dtype=data.dtype)
-        result._freq = freq
-        return result
+        return cls._simple_new(data, dtype=data.dtype)
 
     @classmethod
     def _generate_range(
@@ -307,9 +301,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             index = index[:-1]
 
         td64values = index.view(f"m8[{unit}]")
-        result = cls._simple_new(td64values, dtype=td64values.dtype)
-        result._freq = freq
-        return result
+        return cls._simple_new(td64values, dtype=td64values.dtype)
 
     # ----------------------------------------------------------------
     # DatetimeLike Interface
@@ -321,7 +313,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit, round_ok=False).asm8
+            #  error: Incompatible return value type (got "timedelta64[timedelta |
+            # int | None] | datetime64[date | int | None]",
+            # expected "timedelta64[timedelta | int | None]")
+            return value.as_unit(self.unit, round_ok=False).asm8  # type: ignore[return-value]
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
@@ -810,8 +805,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         return ints_to_pytimedelta(self._ndarray)
 
-    days_docstring = textwrap.dedent(
-        """Number of days for each element.
+    days_docstring = textwrap.dedent("""Number of days for each element.
 
     This attribute returns the number of whole days in each timedelta value.
     It represents the days component of the duration, not the total duration
@@ -846,8 +840,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     TimedeltaIndex(['0 days', '10 days', '20 days'],
                     dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.days
-    Index([0, 10, 20], dtype='int64')"""
-    )
+    Index([0, 10, 20], dtype='int64')""")
     days = _field_accessor("days", "days", days_docstring)
 
     seconds_docstring = textwrap.dedent(
@@ -1049,7 +1042,7 @@ def sequence_to_td64ns(
     copy: bool = False,
     unit=None,
     errors: DateTimeErrorChoices = "raise",
-) -> tuple[np.ndarray, Tick | Day | None]:
+) -> np.ndarray:
     """
     Parameters
     ----------
@@ -1067,8 +1060,6 @@ def sequence_to_td64ns(
     -------
     converted : numpy.ndarray
         The sequence converted to a numpy array with dtype ``timedelta64[ns]``.
-    inferred_freq : Tick, Day, or None
-        The inferred frequency of the sequence.
 
     Raises
     ------
@@ -1082,16 +1073,12 @@ def sequence_to_td64ns(
     """
     assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
-    inferred_freq = None
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="TimedeltaArray"
     )
-
-    if isinstance(data, TimedeltaArray):
-        inferred_freq = data.freq
 
     # Convert whatever we have into timedelta64[ns] dtype
     if data.dtype == object or is_string_dtype(data.dtype):
@@ -1134,11 +1121,11 @@ def sequence_to_td64ns(
             )
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
-                result, _ = sequence_to_td64ns(
+                result = sequence_to_td64ns(
                     int_data, copy=False, unit=unit, errors=errors
                 )
                 result[mask] = iNaT
-                return result, inferred_freq
+                return result
 
         data = data.astype(np.float64, copy=False)
         try:
@@ -1168,7 +1155,7 @@ def sequence_to_td64ns(
     assert data.dtype.kind == "m"
     assert data.dtype != "m8"  # i.e. not unit-less
 
-    return data, inferred_freq
+    return data
 
 
 def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:

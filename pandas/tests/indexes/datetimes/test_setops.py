@@ -7,6 +7,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2_6
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -153,7 +154,7 @@ class TestDatetimeIndexSetOps:
     def test_union_freq_both_none(self, sort):
         # GH11086
         expected = bdate_range("20150101", periods=10)
-        expected._data._freq = None
+        expected._freq = None
 
         result = expected.union(expected, sort=sort)
         tm.assert_index_equal(result, expected)
@@ -527,7 +528,11 @@ class TestDatetimeIndexSetOps:
         # GH#21671
         rng = DatetimeIndex([Timestamp("2011-01-01"), pd.NaT])
         rng2 = DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
-        result = rng.union(rng2)
+        # numpy>=2.6 object-dtype sort compares the tz-naive and tz-aware
+        #  Timestamps directly, so safe_sort fails and union warns
+        warn = RuntimeWarning if np_version_gt2_6 else None
+        with tm.assert_produces_warning(warn, match="sort order is undefined"):
+            result = rng.union(rng2)
         expected = Index(
             [
                 Timestamp("2011-01-01"),

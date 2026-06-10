@@ -43,7 +43,8 @@ dependencies:
   - openpyxl>=3.1.5
   - odfpy>=1.4.1
   - psycopg2>=2.9.10
-  - pyarrow>=13.0.0
+  # TMP avoid pyarrow 24.0 due to typing issues (https://github.com/apache/arrow/issues/49831)
+  - pyarrow>=13.0.0,<24.0.0
   - pyiceberg>=0.8.1
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
@@ -77,7 +78,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - mypy=1.17.1  # pre-commit uses locally installed mypy
+  - mypy=2.1.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
 
@@ -96,9 +97,9 @@ dependencies:
   # static typing
   - scipy-stubs
   - types-python-dateutil
-  - types-PyMySQL
+  - types-pymysql
   - types-pytz
-  - types-PyYAML
+  - types-pyyaml
 
   # documentation (jupyter notebooks)
   - nbconvert>=7.11.0
