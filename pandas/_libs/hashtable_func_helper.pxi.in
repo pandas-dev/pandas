@@ -338,7 +338,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 @cython.boundscheck(False)
 cpdef value_count_string(ndarray[object] values, bint dropna, const uint8_t[:] mask=None):
     cdef:
-        Py_ssize_t i, count = 0, n = len(values)
+        Py_ssize_t i, count = 0, na_add = 0, n = len(values)
         Py_ssize_t na_counter = 0
         int ret = 0
         object val
@@ -347,26 +347,35 @@ cpdef value_count_string(ndarray[object] values, bint dropna, const uint8_t[:] m
         khiter_t k
         kh_str_t *table
         int64_t[::1] uindexer
-        bint uses_mask = mask is not None
+        int64_t[::1] result_counts
+
+    if mask is not None:
+        raise NotImplementedError("uses_mask not implemented with string dtype")
 
     result_keys = ObjectVector()
     table = kh_init_str()
     kh_resize_str(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
-    if uses_mask:
-        raise NotImplementedError("uses_mask not implemented with string dtype")
-
     vecs = <const char **>malloc(n * sizeof(char *))
-    if vecs is NULL:
+    if vecs is NULL and n != 0:
         kh_destroy_str(table)
         raise MemoryError()
 
     uindexer = np.empty(n, dtype=np.int64)
 
+    # keeps repr() fallback strings alive while vecs points into their buffers
+    stringified = []
     for i in range(n):
         val = values[i]
         if isinstance(val, str):
-            vecs[i] = PyUnicode_AsUTF8(<str>val)
+            try:
+                vecs[i] = PyUnicode_AsUTF8(<str>val)
+            except UnicodeEncodeError:
+                # lone surrogates cannot be UTF-8 encoded; fall back to
+                # repr like StringHashTable._unique
+                val = repr(val)
+                stringified.append(val)
+                vecs[i] = PyUnicode_AsUTF8(<str>val)
         else:
             vecs[i] = NULL
 
@@ -387,8 +396,9 @@ cpdef value_count_string(ndarray[object] values, bint dropna, const uint8_t[:] m
                 uindexer[count] = i
                 count += 1
 
-    cdef Py_ssize_t na_add = 1 if na_counter > 0 else 0
-    cdef int64_t[::1] result_counts = np.empty(count + na_add, dtype=np.int64)
+    if na_counter > 0:
+        na_add = 1
+    result_counts = np.empty(count + na_add, dtype=np.int64)
 
     for i in range(count):
         result_keys.append(values[uindexer[i]])
@@ -410,34 +420,44 @@ cpdef value_count_string(ndarray[object] values, bint dropna, const uint8_t[:] m
 cpdef duplicated_string(ndarray[object] values, object keep='first', const uint8_t[:] mask=None):
     cdef:
         int ret = 0
+        object val
         const char *v
         const char **vecs
         Py_ssize_t i, n = len(values), first_na = -1
         khiter_t k
-        kh_str_t *table = kh_init_str()
+        kh_str_t *table
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
         bint seen_na = False, uses_mask = mask is not None
         bint seen_multiple_na = False
 
+    if keep not in ('last', 'first', False):
+        raise ValueError('keep must be either "first", "last" or False')
+
+    table = kh_init_str()
     kh_resize_str(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
 
     vecs = <const char **>malloc(n * sizeof(char *))
-    if vecs is NULL:
+    if vecs is NULL and n != 0:
         kh_destroy_str(table)
         raise MemoryError()
 
+    # keeps repr() fallback strings alive while vecs points into their buffers
+    stringified = []
     for i in range(n):
+        val = values[i]
         if uses_mask and mask[i]:
             vecs[i] = NULL
-        elif isinstance(values[i], str):
-            vecs[i] = PyUnicode_AsUTF8(<str>values[i])
+        elif isinstance(val, str):
+            try:
+                vecs[i] = PyUnicode_AsUTF8(<str>val)
+            except UnicodeEncodeError:
+                # lone surrogates cannot be UTF-8 encoded; fall back to
+                # repr like StringHashTable._unique
+                val = repr(val)
+                stringified.append(val)
+                vecs[i] = PyUnicode_AsUTF8(<str>val)
         else:
             vecs[i] = NULL
-
-    if keep not in ('last', 'first', False):
-        free(vecs)
-        kh_destroy_str(table)
-        raise ValueError('keep must be either "first", "last" or False')
 
     if keep == "last":
         with nogil:

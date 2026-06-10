@@ -1115,8 +1115,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
-        mask = self.isna().astype(np.bool_, copy=False)
-        return htable.duplicated_string(self._ndarray, keep=keep, mask=mask)
+        # no mask needed; duplicated_string treats non-str entries as NA
+        return htable.duplicated_string(self._ndarray, keep=keep)
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes

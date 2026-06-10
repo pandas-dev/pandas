@@ -505,6 +505,50 @@ def test_value_counts_empty(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_value_counts_dropna_false_na_last(na_value):
+    # with python storage the NA entry is appended at the end,
+    #  regardless of where NAs appear in the data
+    dtype = pd.StringDtype(storage="python", na_value=na_value)
+    arr = pd.array(["x", None, "y", None, "x"], dtype=dtype)
+    result = arr.value_counts(dropna=False)
+    exp_dtype = "Int64" if na_value is pd.NA else "int64"
+    expected = pd.Series(
+        [2, 1, 2],
+        index=pd.Index(["x", "y", na_value], dtype=dtype),
+        dtype=exp_dtype,
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_value_counts_surrogates(na_value):
+    # lone surrogates cannot be UTF-8 encoded; should not raise and
+    #  distinct surrogates should not be conflated
+    dtype = pd.StringDtype(storage="python", na_value=na_value)
+    arr = pd.array(["\ud800", "\ud801", "\ud800", "a"], dtype=dtype)
+    result = arr.value_counts()
+    exp_dtype = "Int64" if na_value is pd.NA else "int64"
+    expected = pd.Series(
+        [2, 1, 1],
+        index=pd.Index(["\ud800", "\ud801", "a"], dtype=dtype),
+        dtype=exp_dtype,
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_duplicated_surrogates(na_value):
+    # lone surrogates cannot be UTF-8 encoded; should not raise
+    dtype = pd.StringDtype(storage="python", na_value=na_value)
+    arr = pd.array(["\ud800", "\ud801", "\ud800", "a"], dtype=dtype)
+    result = arr.duplicated()
+    expected = np.array([False, False, True, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_memory_usage(dtype):
     # GH 33963
 
