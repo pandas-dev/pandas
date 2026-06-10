@@ -861,6 +861,48 @@ def test_append_to_multiple(temp_hdfstore):
     tm.assert_frame_equal(result, expected)
 
 
+def test_append_to_multiple_duplicate_index(temp_hdfstore):
+    # GH#13547 a DataFrame with duplicate index values round-trips without
+    # exploding into extra rows
+    index = MultiIndex.from_arrays(
+        [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
+        names=["a", "c"],
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=["d", "e"],
+        index=index,
+    )
+
+    temp_hdfstore.append_to_multiple({"idx": ["d"], "data": None}, df, selector="idx")
+    result = temp_hdfstore.select_as_multiple(["idx", "data"])
+    tm.assert_frame_equal(result, df)
+
+
+def test_append_to_multiple_dropna_duplicate_index(temp_hdfstore):
+    # GH#13547 dropna=True with duplicate index values used to explode into
+    # extra rows on read-back; now all original rows are preserved
+    index = MultiIndex.from_arrays(
+        [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
+        names=["a", "c"],
+    )
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=["d", "e"],
+        index=index,
+    )
+
+    msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        temp_hdfstore.append_to_multiple(
+            {"idx": ["d"], "data": None}, df, selector="idx", dropna=True
+        )
+    result = temp_hdfstore.select_as_multiple(["idx", "data"])
+    # rows may be grouped by label rather than kept in input order, but no
+    # rows are duplicated or dropped
+    tm.assert_frame_equal(result.sort_index(), df.sort_index())
+
+
 def test_append_to_multiple_dropna(temp_hdfstore):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
