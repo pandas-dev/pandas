@@ -65,7 +65,7 @@ class TestGetItem:
             datetime(1970, 1, 1),
             Timestamp("1970-01-03").to_datetime64(),
             # non-matching NA values
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ],
     )
     def test_timestamp_invalid_key(self, key):
@@ -263,18 +263,16 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=NaT)
         expected = TimedeltaIndex(["2 days", "1 days", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):

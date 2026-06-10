@@ -777,6 +777,25 @@ class TestGetLoc:
         with pytest.raises(KeyError, match=re.escape(str(key))):
             mi.get_loc(key)
 
+    def test_get_loc_string_key_on_numeric_level(self):
+        # GH#60104 - string key on integer level should raise KeyError,
+        # not return wrong results due to numpy searchsorted cross-dtype bug
+        mi = MultiIndex.from_product([[2000, 2001], ["a", "b"], ["x", "y"]])
+        df = DataFrame({"value": range(8)}, index=mi)
+
+        with pytest.raises(KeyError, match="2000"):
+            df.loc[("2000",)]
+        with pytest.raises(KeyError, match="a"):
+            df.loc[("2000", "a")]
+        with pytest.raises(KeyError, match="GIBBERISH"):
+            df.loc[("2000", "GIBBERISH")]
+
+        # Valid lookups should still work
+        result = df.loc[(2000, "a")]
+        assert len(result) == 2
+        result = df.loc[(2000,)]
+        assert len(result) == 4
+
 
 class TestWhere:
     def test_where(self):

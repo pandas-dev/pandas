@@ -1588,6 +1588,11 @@ class Resampler(BaseGroupBy, PandasObject):
         core.resample.Resampler.var : Compute variance of groups, excluding missing
             values.
 
+        Notes
+        -----
+        To use the same divisor as ``numpy.std``, use ``ddof=0`` instead of
+        the default ``ddof=1``.
+
         Examples
         --------
 
@@ -2179,7 +2184,7 @@ class DatetimeIndexResampler(Resampler):
         # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
-            and to_offset(ax.inferred_freq) == self.freq
+            and to_offset(ax._inferred_freq_str) == self.freq
             and len(obj) == len(res_index)
             and obj.index.equals(res_index)
         ):
@@ -2669,9 +2674,9 @@ class TimeGrouper(Grouper):
         if self.closed == "right":
             labels = binner
             if self.label == "right":
-                labels = labels[1:]  # type: ignore[assignment]
+                labels = labels[1:]
         elif self.label == "right":
-            labels = labels[1:]  # type: ignore[assignment]
+            labels = labels[1:]
 
         if nat_count > 0:
             # shift bins by the number of NaT (they sort to the front of asi8)
@@ -2684,7 +2689,7 @@ class TimeGrouper(Grouper):
         # adjust the labels
         # GH4076
         if len(bins) < len(labels):
-            labels = labels[: len(bins)]  # type: ignore[assignment]
+            labels = labels[: len(bins)]
 
         return binner, bins, labels
 
@@ -2721,7 +2726,7 @@ class TimeGrouper(Grouper):
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
-                binner = binner[:-1]  # type: ignore[assignment]
+                binner = binner[:-1]
         else:
             bin_edges = binner.asi8
         return binner, bin_edges
@@ -3083,7 +3088,9 @@ def _adjust_dates_anchored(
         sub_freq_times = (origin_last._value - first._value) // freq_value
         if closed == "left":
             sub_freq_times += 1
-        first = origin_last - sub_freq_times * freq
+        #  error: Incompatible types in assignment (expression has type
+        # "Timestamp | NaTType", variable has type "Timestamp")
+        first = origin_last - sub_freq_times * freq  # type: ignore[assignment]
         origin_timestamp = first._value
     origin_timestamp += offset._value if offset else 0
 
