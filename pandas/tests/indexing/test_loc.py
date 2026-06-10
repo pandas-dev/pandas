@@ -2249,9 +2249,7 @@ class TestLocSetitemWithExpansion:
         df = orig.copy()
         if has_ref:
             view = df[:]
-        with tm.assert_produces_warning(
-            warn, match=mi_msg, raise_on_extra_warnings=False
-        ):
+        with tm.assert_produces_warning(warn, match=mi_msg):
             df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
@@ -2259,9 +2257,7 @@ class TestLocSetitemWithExpansion:
         ser = orig.copy()[0]
         if has_ref:
             view = ser[:]
-        with tm.assert_produces_warning(
-            warn, match=ser_mi_msg, raise_on_extra_warnings=False
-        ):
+        with tm.assert_produces_warning(warn, match=ser_mi_msg):
             ser.loc[key] = N
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
@@ -2271,9 +2267,7 @@ class TestLocSetitemWithExpansion:
         df = orig.copy()
         if has_ref:
             view = df[:]  # noqa: F841
-        with tm.assert_produces_warning(
-            warn, match=mi_msg, raise_on_extra_warnings=False
-        ):
+        with tm.assert_produces_warning(warn, match=mi_msg):
             df.loc[key, 1] = N
         expected = DataFrame(
             {0: [*list(arr), np.nan], 1: [np.nan] * N + [float(N)]},

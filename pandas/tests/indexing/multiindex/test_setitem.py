@@ -561,7 +561,7 @@ def test_loc_scalar_key_expansion_warns():
         [[1, 2], [3, 4]],
         index=MultiIndex.from_product([["a", "b"], ["c"]]),
     )
-    msg = "Setting a new row on a DataFrame with a MultiIndex using a scalar key"
+    msg = "Setting a new row on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         df.loc["all"] = [5, 6]
 
@@ -572,7 +572,7 @@ def test_loc_scalar_key_expansion_empty_warns():
         columns=[0, 1],
         index=MultiIndex.from_tuples([], names=["x", "y"]),
     )
-    msg = "Setting a new row on a DataFrame with a MultiIndex using a scalar key"
+    msg = "Setting a new row on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         df.loc["all"] = [5, 6]
 
@@ -584,6 +584,20 @@ def test_loc_tuple_key_expansion_no_warning():
     with tm.assert_produces_warning(None):
         df.loc[("d", "e", "f")] = [5, 6]
     assert isinstance(df.index, MultiIndex)
+
+
+def test_loc_tuple_key_expansion_two_levels_no_warning():
+    # GH#17024 - the recommended replacement for df.loc["x"] = values; with
+    #  a two-level MultiIndex the column slice is needed to avoid the tuple
+    #  being interpreted as (row_key, column_key)
+    df = DataFrame(
+        [[1, 2], [3, 4]],
+        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+    )
+    with tm.assert_produces_warning(None):
+        df.loc[("x", ""), :] = [5, 6]
+    assert isinstance(df.index, MultiIndex)
+    assert df.index[-1] == ("x", "")
 
 
 def test_loc_series_scalar_key_expansion_warns():

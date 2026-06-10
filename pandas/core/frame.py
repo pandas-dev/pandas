@@ -157,6 +157,7 @@ from pandas.core.indexes.multi import (
 from pandas.core.indexing import (
     check_bool_indexer,
     check_dict_or_set_indexers,
+    maybe_warn_multiindex_expansion,
 )
 from pandas.core.internals import BlockManager
 from pandas.core.internals.construction import (
@@ -4784,23 +4785,12 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        if (
-            key not in self.columns
-            and isinstance(self.columns, MultiIndex)
-            and not (isinstance(key, tuple) and len(key) == self.columns.nlevels)
-        ):
-            # GH#17024 scalar key on MultiIndex is ambiguous and
-            # currently flattens the MultiIndex. Deprecate in favor
-            # of requiring a full-length tuple key.
-            warnings.warn(
-                "Setting a new column on a DataFrame with a MultiIndex "
-                "using a key that is not a tuple with the appropriate "
-                "number of levels is deprecated and will raise in a "
-                "future version. Use a full-length tuple key instead, "
-                "or explicitly call "
-                "df.columns = df.columns.to_flat_index() before expanding.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
+        if isinstance(self.columns, MultiIndex) and key not in self.columns:
+            maybe_warn_multiindex_expansion(
+                self.columns,
+                key,
+                target="column on a DataFrame",
+                hint="Use a full-length tuple key instead.",
             )
 
         value, refs = self._sanitize_column(value)

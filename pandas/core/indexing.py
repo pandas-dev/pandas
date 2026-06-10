@@ -2507,22 +2507,12 @@ class _iLocIndexer(_LocationIndexer):
 
                     # reindex the axis
                     index = self.obj._get_axis(i)
-                    if isinstance(index, MultiIndex) and not (
-                        isinstance(key, tuple) and len(key) == index.nlevels
-                    ):
-                        # GH#17024
-                        warnings.warn(
-                            "Setting a new row on a DataFrame with a "
-                            "MultiIndex using a scalar key that is not "
-                            "a tuple is deprecated and will raise in a "
-                            "future version. Use a tuple key with the "
-                            "appropriate number of levels instead, or "
-                            "explicitly call "
-                            "df.index = df.index.to_flat_index() "
-                            "before expanding.",
-                            Pandas4Warning,
-                            stacklevel=find_stack_level(),
-                        )
+                    maybe_warn_multiindex_expansion(
+                        index,
+                        key,
+                        target="row on a DataFrame",
+                        hint="Use a full-length tuple key instead.",
+                    )
                     labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
@@ -2848,21 +2838,12 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            if isinstance(index, MultiIndex) and not (
-                isinstance(indexer, tuple) and len(indexer) == index.nlevels
-            ):
-                # GH#17024 scalar key on MultiIndex is ambiguous and
-                # currently flattens the MultiIndex. Deprecate in favor
-                # of requiring a full-length tuple key.
-                warnings.warn(
-                    "Setting a new value on a Series with a MultiIndex using "
-                    "a key that is not a tuple with the appropriate number of "
-                    "levels is deprecated and will raise in a future version. "
-                    "Use a full-length tuple key instead, or explicitly call "
-                    "ser.index = ser.index.to_flat_index() before expanding.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+            maybe_warn_multiindex_expansion(
+                index,
+                indexer,
+                target="value on a Series",
+                hint="Use a full-length tuple key instead.",
+            )
             new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
@@ -2907,21 +2888,13 @@ class _iLocIndexer(_LocationIndexer):
                 )._mgr
                 return
 
-            if isinstance(self.obj.index, MultiIndex) and not (
-                isinstance(indexer, tuple) and len(indexer) == self.obj.index.nlevels
-            ):
-                # GH#17024 scalar key on MultiIndex is ambiguous and
-                # currently flattens the MultiIndex. Deprecate in favor
-                # of requiring a full-length tuple key.
-                warnings.warn(
-                    "Setting a new row on a DataFrame with a MultiIndex using "
-                    "a scalar key that is not a tuple is deprecated and will "
-                    "raise in a future version. Use a tuple key with the "
-                    "appropriate number of levels instead, or explicitly call "
-                    "df.index = df.index.to_flat_index() before expanding.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+            maybe_warn_multiindex_expansion(
+                self.obj.index,
+                indexer,
+                target="row on a DataFrame",
+                hint="Use a full-length tuple key and an explicit column "
+                "indexer instead, e.g. df.loc[key, :] = values.",
+            )
 
             has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
@@ -3588,6 +3561,24 @@ def check_dict_or_set_indexers(key) -> None:
     ):
         raise TypeError(
             "Passing a dict as an indexer is not supported. Use a list instead."
+        )
+
+
+def maybe_warn_multiindex_expansion(index: Index, key, target: str, hint: str) -> None:
+    """
+    GH#17024 warn when expanding a MultiIndex axis with a key that is not a
+    full-length tuple.  Depending on the path, such keys currently either
+    flatten the MultiIndex to an Index of tuples or get padded with "".
+    """
+    if isinstance(index, MultiIndex) and not (
+        isinstance(key, tuple) and len(key) == index.nlevels
+    ):
+        warnings.warn(
+            f"Setting a new {target} with a MultiIndex using a key that is "
+            "not a full-length tuple is deprecated and will raise in a "
+            f"future version. {hint}",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
         )
 
 

@@ -275,6 +275,12 @@ class TestMultiIndexBasic:
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
 
+        # setting again, now an existing column, does not warn
+        with tm.assert_produces_warning(None):
+            df1["C"] = s1
+        tm.assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df3)
+
     def test_multiindex_assign_alignment_with_non_string_dtype(self):
         # GH 62518
         columns = MultiIndex.from_arrays(
