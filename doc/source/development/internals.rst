@@ -15,21 +15,22 @@ Indexing
 In pandas there are a few objects implemented which can serve as valid
 containers for the axis labels:
 
-* :class:`Index`: the generic "ordered set" object, an ndarray of object dtype
-  assuming nothing about its contents. The labels must be hashable (and
-  likely immutable) and unique. Populates a dict of label to location in
-  Cython to do ``O(1)`` lookups.
+* :class:`Index`: the generic "ordered set" object, holding axis labels of
+  any supported dtype (numpy numeric dtypes, ``object``, ``str``, or an
+  :class:`ExtensionArray` dtype). The labels must be hashable (and
+  likely immutable) but need not be unique. Populates a dict of label
+  to location in Cython to do ``O(1)`` lookups.
 * :class:`MultiIndex`: the standard hierarchical index object
-* :class:`DatetimeIndex`: An Index object with :class:`Timestamp` boxed elements (impl are the int64 values)
-* :class:`TimedeltaIndex`: An Index object with :class:`Timedelta` boxed elements (impl are the in64 values)
-* :class:`PeriodIndex`: An Index object with Period elements
+* :class:`DatetimeIndex`: An :class:`Index` object backed by a :class:`DatetimeArray`, exposing :class:`Timestamp` boxed elements
+* :class:`TimedeltaIndex`: An :class:`Index` object backed by a :class:`TimedeltaArray`, exposing :class:`Timedelta` boxed elements
+* :class:`PeriodIndex`: An :class:`Index` object backed by a :class:`PeriodArray`, exposing :class:`Period` boxed elements
 
 There are functions that make the creation of a regular index easy:
 
 * :func:`date_range`: fixed frequency date range generated from a time rule or
-  DateOffset. An ndarray of Python datetime objects
+  DateOffset. Returns a :class:`DatetimeIndex`.
 * :func:`period_range`: fixed frequency date range generated from a time rule or
-  DateOffset. An ndarray of :class:`Period` objects, representing timespans
+  DateOffset. Returns a :class:`PeriodIndex` of :class:`Period` objects, representing timespans.
 
 .. warning::
 
@@ -65,7 +66,7 @@ pandas extends NumPy's type system with custom types, like :class:`Categorical` 
 datetimes with a timezone, so we have multiple notions of "values". For 1-D
 containers (``Index`` classes and ``Series``) we have the following convention:
 
-* ``cls._values`` refers is the "best possible" array. This could be an
+* ``cls._values`` is the "best possible" array. This could be an
   ``ndarray`` or ``ExtensionArray``.
 
 So, for example, ``Series[category]._values`` is a ``Categorical``.
