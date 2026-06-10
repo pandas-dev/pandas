@@ -259,7 +259,37 @@ def test_join_dtypes_all_nan(any_numeric_ea_dtype):
 
 
 def test_join_multiindex_with_nan_level(join_type):
-    # GH#60908
+    # GH#60908 - NaN entries in the join level were dropped or misaligned
+    midx = MultiIndex.from_arrays(
+        [[np.nan, 81, 82], ["x", "y", "z"]], names=["foo", "bar"]
+    )
+    idx = Index([82, 81, 99], name="foo")
+    result, lidx, ridx = midx.join(idx, how=join_type, return_indexers=True)
+
+    if join_type in ("inner", "right"):
+        # the NaN entry matches nothing in the other index, so it is dropped
+        expected = MultiIndex.from_arrays(
+            [np.array([81, 82], dtype=np.int64), ["y", "z"]], names=["foo", "bar"]
+        )
+        expected_lidx = np.array([1, 2], dtype=np.intp)
+        expected_ridx = np.array([1, 0], dtype=np.intp)
+    else:
+        # the NaN entry is kept and matches nothing in the other index
+        expected = midx
+        expected_lidx = None if join_type == "left" else np.arange(3, dtype=np.intp)
+        expected_ridx = np.array([-1, 1, 0], dtype=np.intp)
+
+    tm.assert_index_equal(result, expected)
+    if expected_lidx is None:
+        assert lidx is None
+    else:
+        tm.assert_numpy_array_equal(lidx, expected_lidx)
+    tm.assert_numpy_array_equal(ridx, expected_ridx)
+
+
+def test_series_sub_multiindex_with_nan_level():
+    # GH#60908 - the all-NaN row raised ValueError during alignment; it must
+    #  align to NaN, not to another entry of the other index
     midx = MultiIndex.from_arrays(
         [
             [np.nan, 81, 81, 82, 82],
@@ -269,9 +299,9 @@ def test_join_multiindex_with_nan_level(join_type):
         names=["foo", "bar", "date"],
     )
     idx = Index([81, 82, 83], name="foo")
-    s1 = Series([np.nan, 25.0, 22.5, 20.8, 21.6], index=midx)
-    s2 = Series([28.3, 25.3, 22.2], index=idx)
-    result = s1.subtract(s2)
+    ser1 = Series([10.0, 25.0, 22.5, 20.8, 21.6], index=midx)
+    ser2 = Series([28.3, 25.3, 22.2], index=idx)
+    result = ser1.subtract(ser2)
     expected = Series(
         [np.nan, -3.3, -5.8, -4.5, -3.7],
         index=midx,

@@ -4951,11 +4951,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             # Map old codes to new codes via rev_indexer, preserving
             # -1 codes for NaN entries (GH#60908).
-            new_lev_codes = np.where(
-                old_codes == -1,
-                -1,
-                rev_indexer.take(np.maximum(old_codes, 0)),
-            )
+            new_lev_codes = algos.take_nd(rev_indexer, old_codes, fill_value=-1)
 
             new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
@@ -4966,16 +4962,16 @@ class Index(IndexOpsMixin, PandasObject):
             if keep_order:  # just drop missing values. o.w. keep order
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 left_indexer = cast("np.ndarray", left_indexer)
-                # Distinguish NaN entries (old_codes == -1) from entries
-                # whose level value is not present in the new level after
-                # the join (new_lev_codes == -1 but old_codes != -1).
-                # Only drop the latter; NaN entries should be preserved
-                # (GH#60908).
-                mask = (old_codes != -1) & (new_lev_codes == -1)
-                if mask.any():
-                    keep = ~mask
-                    new_codes = [lab[keep] for lab in new_codes]
-                    left_indexer = left_indexer[keep]
+                if how in ("inner", "right"):
+                    # NaN entries match nothing in right, so drop them along
+                    # with entries absent from new_level
+                    mask = new_lev_codes != -1
+                    if not mask.all():
+                        new_codes = [lab[mask] for lab in new_codes]
+                        left_indexer = left_indexer[mask]
+                # for how in ("left", "outer"), new_level contains all of
+                # old_level's values, so all rows are kept, including NaN
+                # entries whose codes stay -1 (GH#60908)
 
             elif level == 0:  # outer most level, take the fast route
                 max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
@@ -5010,7 +5006,11 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = right_lev_indexer.take(join_index.codes[level])
+            # fill_value=-1 so NaN entries map to "missing" instead of
+            # wrapping around to the last position (GH#60908)
+            right_indexer = algos.take_nd(
+                right_lev_indexer, join_index.codes[level], fill_value=-1
+            )
         else:
             right_indexer = join_index.codes[level]
 
