@@ -201,14 +201,13 @@ class CParserWrapper(ParserBase):
             self._reader.set_noconvert(col)
 
         # Mark parse_dates columns so the C parser can try to emit datetime64
-        # directly, skipping the Python-str ndarray round-trip. Restrict to the
-        # cases where the downstream path would go through array_strptime's
-        # ISO8601 fastpath: no format, "ISO8601", or a per-column ISO-like format.
-        # Skip implicit-index (leading) columns: their indexing relative to
-        # orig_names is ambiguous and those are handled via date_converter in
-        # the leading-cols branch of `read`.
-        leading_cols = self._reader.leading_cols
-        if isinstance(self.parse_dates, list):
+        # directly, skipping the Python-str ndarray round-trip. In low_memory
+        # mode the C parser keeps raw-byte receipts per chunk so a fallback in
+        # any chunk restores the whole column to the object-string path.
+        # Not with implicit-index files (leading_cols > 0): noconvert indices
+        # are not shifted by leading_cols, so the fastpath gate in
+        # _convert_tokens cannot line up with them.
+        if isinstance(self.parse_dates, list) and self._reader.leading_cols == 0:
             for colspec in self.parse_dates:
                 if isinstance(colspec, int):
                     if 0 <= colspec < len(self.orig_names):
@@ -220,29 +219,32 @@ class CParserWrapper(ParserBase):
                 col_idx = names_dict.get(name)
                 if col_idx is None:
                     continue
-                # Parser's physical column index is shifted by leading_cols.
-                parser_col_idx = col_idx + leading_cols
-                if self._parse_dates_fastpath_eligible(name):
-                    self._reader.set_datetime_convert(parser_col_idx)
+                require_consistent = self._parse_dates_fastpath_strictness(name)
+                if require_consistent is not None:
+                    self._reader.set_datetime_convert(col_idx, require_consistent)
 
-    def _parse_dates_fastpath_eligible(self, name: Hashable) -> bool:
+    def _parse_dates_fastpath_strictness(self, name: Hashable) -> bool | None:
         """
         Decide whether a parse_dates column is a candidate for the direct
-        char-buffer -> datetime64 fastpath. The Cython helper itself will
-        refuse non-ISO input and signal a fallback, so we only need to
-        exclude cases it can't safely own (e.g. dayfirst or a non-ISO
-        user-supplied format).
+        char-buffer -> datetime64 fastpath, returning None if not, otherwise
+        whether the fastpath must require a single consistent format.
+
+        With date_format=None, to_datetime infers one format from the first
+        value and rejects rows that deviate, so the fastpath must do the same;
+        with date_format="ISO8601" mixed ISO8601 layouts are allowed.
         """
         if self.dayfirst:
-            return False
+            return None
         date_format = self.date_format
         if isinstance(date_format, dict):
             date_format = date_format.get(name)
-        if date_format is None or date_format == "ISO8601":
+        if date_format is None:
             return True
+        if date_format == "ISO8601":
+            return False
         # If a specific format is supplied, let the existing path handle it.
         # A future extension could detect ISO-shaped formats here.
-        return False
+        return None
 
     def read(
         self,

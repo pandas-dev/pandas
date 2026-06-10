@@ -859,3 +859,120 @@ def test_from_csv_with_mixed_offsets(all_parsers):
         index=[0, 1],
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        "a\n2020-01-01\n2020-01-02\n",
+        "a\n2020-01-01 00:00:00\n2020-01-02 01:02:03\n",
+        "a\n2020-01-01 00:00:00.123\n2020-01-02 04:05:06.789\n",
+        "a\n2020-01-01 00:00:00.123456789\n2020-01-02 00:00:00.000000001\n",
+        "a\n2020-01-01T00:00:00Z\n2020-01-02T03:00:00Z\n",
+        "a\n2020-01-01T00:00:00+05:00\n2020-01-02T03:00:00+05:00\n",
+        "a\nNaT\n2020-01-02\n",
+        "a,b\n,1\n2020-01-02,2\n",
+        "a,b\n,1\n,2\n",
+        # mixed ISO layouts: to_datetime infers one format from the first
+        # value and rejects the rest, leaving strings
+        "a\n2020-01-01\n2020-01-02 10:00\n",
+        "a\n2020-01-01 00:00:00.123456789\n2020-01-02\n",
+        "a\n2020-01-01T00:00:00Z\n2020-01-02T00:00:00+00:00\n",
+        # non-ISO goes through the object path
+        "a\n01/02/2020\n01/03/2020\n",
+    ],
+)
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_matches_python_engine(data, low_memory):
+    # GH#65353 the C parser parses ISO8601 parse_dates columns directly to
+    # datetime64; results must match the slow path
+    result = read_csv(
+        StringIO(data), parse_dates=["a"], engine="c", low_memory=low_memory
+    )
+    expected = read_csv(StringIO(data), parse_dates=["a"], engine="python")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        "a\n2020-01-01\n2020-01-02 10:00\n",
+        # second value bumps the inferred resolution mid-column
+        "a\n2020-01-02\n2020-01-01 00:00:00.123456789\n",
+    ],
+)
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_iso8601_format_matches_python_engine(data, low_memory):
+    # GH#65353 with date_format="ISO8601", mixed ISO layouts parse per-row
+    kwargs = {"parse_dates": ["a"], "date_format": "ISO8601"}
+    result = read_csv(StringIO(data), engine="c", low_memory=low_memory, **kwargs)
+    expected = read_csv(StringIO(data), engine="python", **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("low_memory", [False, True])
+def test_parse_dates_c_fastpath_out_of_bounds_offset(low_memory):
+    # GH#65353 shifting to UTC here overflows datetime64[ns]; match the
+    # OverflowError from the slow path instead of silently wrapping
+    data = "a\n2262-04-11T20:00:00.000000000-11:00\n"
+    with pytest.raises(OverflowError):
+        read_csv(StringIO(data), parse_dates=["a"], low_memory=low_memory)
+
+
+def _multichunk_csv(date_strings):
+    # wide enough that 20k rows span several low_memory chunks
+    num_extra_cols = 63
+    tail = ",".join(["1"] * num_extra_cols)
+    header = ",".join(["a"] + [f"c{i}" for i in range(num_extra_cols)])
+    lines = [header] + [f"{val},{tail}" for val in date_strings]
+    return "\n".join(lines) + "\n"
+
+
+def test_parse_dates_low_memory_iso_then_non_iso_chunks():
+    # GH#65353 with low_memory, a non-ISO value in a later chunk must not
+    # leave earlier chunks datetime-parsed (and later re-stringified)
+    date_strings = [f"2020-01-{(i % 28) + 1:02d}" for i in range(19_999)]
+    date_strings.append("not-a-date")
+    data = _multichunk_csv(date_strings)
+
+    with tm.assert_produces_warning(None):
+        result = read_csv(StringIO(data), parse_dates=["a"], low_memory=True)["a"]
+    assert result.tolist() == date_strings
+
+
+def test_parse_dates_low_memory_iso_then_mismatched_layout_chunks():
+    # GH#65353 a later chunk whose layout deviates from the inferred format
+    # must also restore the whole column to the raw strings
+    date_strings = [f"2020-01-{(i % 28) + 1:02d}" for i in range(19_999)]
+    date_strings.append("2020-01-02 10:00")
+    data = _multichunk_csv(date_strings)
+
+    with tm.assert_produces_warning(None):
+        result = read_csv(StringIO(data), parse_dates=["a"], low_memory=True)["a"]
+    assert result.tolist() == date_strings
+
+
+def test_parse_dates_low_memory_multichunk_datetimes():
+    # GH#65353 an all-ISO column spanning several low_memory chunks parses
+    # identically to a non-chunked read
+    date_strings = [f"2020-01-{(i % 28) + 1:02d}" for i in range(20_000)]
+    data = _multichunk_csv(date_strings)
+
+    result = read_csv(StringIO(data), parse_dates=["a"], low_memory=True)["a"]
+    expected = read_csv(StringIO(data), parse_dates=["a"], low_memory=False)["a"]
+    tm.assert_series_equal(result, expected)
+    assert result.dtype == "M8[us]"
+
+
+def test_parse_dates_low_memory_iso8601_reso_bump_across_chunks():
+    # GH#65353 with date_format="ISO8601", a higher-resolution value in a
+    # later chunk upcasts the whole column losslessly
+    date_strings = [f"2020-01-{(i % 28) + 1:02d}" for i in range(19_999)]
+    date_strings.append("2020-01-02 00:00:00.123456789")
+    data = _multichunk_csv(date_strings)
+
+    kwargs = {"parse_dates": ["a"], "date_format": "ISO8601"}
+    result = read_csv(StringIO(data), low_memory=True, **kwargs)["a"]
+    expected = read_csv(StringIO(data), low_memory=False, **kwargs)["a"]
+    tm.assert_series_equal(result, expected)
+    assert result.dtype == "M8[ns]"
