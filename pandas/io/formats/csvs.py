@@ -314,9 +314,13 @@ class CSVFormatter:
 
         # GH#55481: pre-format datetimelike columns and index using the full
         # data so that _is_dates_only is determined once, giving consistent
-        # formatting across chunks.
-        formatted_cols = self._preformat_datetimelike_columns()
-        formatted_index = self._preformat_index()
+        # formatting across chunks. With a single chunk the per-chunk
+        # formatting already sees the full data, so skip the extra pass.
+        formatted_cols = None
+        formatted_index = None
+        if nrows > self.chunksize:
+            formatted_cols = self._preformat_datetimelike_columns()
+            formatted_index = self._preformat_index()
 
         for i in range(chunks):
             start_i = i * self.chunksize
@@ -339,7 +343,12 @@ class CSVFormatter:
             return None
 
         idx_values = self.data_index._values
-        if isinstance(idx_values, (DatetimeArray, TimedeltaArray)):
+        if (
+            isinstance(idx_values, (DatetimeArray, TimedeltaArray))
+            # if the full index is dates-only, so is every chunk of it,
+            #  so per-chunk formatting is already consistent
+            and not idx_values._is_dates_only
+        ):
             return self.data_index._get_values_for_csv(**self._number_format)
 
         return None
@@ -363,7 +372,12 @@ class CSVFormatter:
 
         formatted: dict[int, npt.NDArray[np.object_]] = {}
         for col_idx, arr in enumerate(self.obj._iter_column_arrays()):
-            if isinstance(arr, (DatetimeArray, TimedeltaArray)):
+            if (
+                isinstance(arr, (DatetimeArray, TimedeltaArray))
+                # if the full column is dates-only, so is every chunk of it,
+                #  so per-chunk formatting is already consistent
+                and not arr._is_dates_only
+            ):
                 formatted[col_idx] = arr._format_native_types(
                     na_rep=self.na_rep, date_format=self.date_format
                 )
