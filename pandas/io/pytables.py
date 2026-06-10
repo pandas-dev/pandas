@@ -2913,8 +2913,13 @@ class DataCol(IndexCol):
             else:
                 mask = isna(categories)
                 if mask.any():
+                    # A category can be NaN if the nan_rep string was itself
+                    # a genuine category on write. Drop NaN categories and
+                    # remap the codes. GH#21741
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum()._values
+                    codes = np.where(codes < 0, codes, remap[codes])
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered, validate=False
