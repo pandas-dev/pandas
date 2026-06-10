@@ -127,6 +127,7 @@ if TYPE_CHECKING:
         Scalar,
         ScalarIndexer,
         SequenceIndexer,
+        SortKind,
         npt,
     )
 
@@ -613,6 +614,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # ExtensionBlock.where
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
+
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        raise NotImplementedError("SparseArray does not support in-place sort")
 
     @classmethod
     def _from_sequence(

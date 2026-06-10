@@ -4159,6 +4159,15 @@ def test_fillna_zero():
     tm.assert_series_equal(result, expected)
 
 
+def test_sort_readonly():
+    arr = pd.array([3, 1, 2], dtype="int64[pyarrow]")
+    arr._readonly = True
+    with pytest.raises(ValueError, match="Cannot modify read-only array"):
+        arr.sort()
+    # the array must be left unchanged
+    tm.assert_extension_array_equal(arr, pd.array([3, 1, 2], dtype="int64[pyarrow]"))
+
+
 @pytest.mark.parametrize(
     "offset",
     [
