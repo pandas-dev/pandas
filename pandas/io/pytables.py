@@ -1265,9 +1265,9 @@ class HDFStore:
         Notes
         -----
         Writing an empty ``DataFrame`` or ``Series`` with ``format='table'``
-        or ``append=True`` is a no-op: no key is created in the HDFStore and a
+        or ``append=True`` is a no-op: the store is not modified and a
         ``UserWarning`` is emitted. Use ``format='fixed'`` to store an empty
-        object, or guard the call with ``if not value.empty``.
+        object.
 
         Examples
         --------
@@ -1465,9 +1465,8 @@ class HDFStore:
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
 
-        Appending an empty ``DataFrame`` or ``Series`` is a no-op: no key is
-        created in the HDFStore and a ``UserWarning`` is emitted. Guard the
-        call with ``if not value.empty`` to suppress the warning.
+        Appending an empty ``DataFrame`` or ``Series`` is a no-op: the store
+        is not modified and a ``UserWarning`` is emitted.
 
         Examples
         --------
@@ -2061,9 +2060,7 @@ class HDFStore:
         if getattr(value, "empty", None) and (format == "table" or append):
             warnings.warn(
                 "Writing an empty DataFrame or Series with format='table' "
-                "or append=True is a no-op; no key will be created in the "
-                "HDFStore. To store an empty object, use format='fixed', "
-                "or guard the call with `if not value.empty`. See GH#13016.",
+                "or append=True is a no-op; the HDFStore is not modified.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
