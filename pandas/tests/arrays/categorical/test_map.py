@@ -157,8 +157,8 @@ def test_map_defaultdict_na_action_ignore():
 
 
 def test_map_to_tuples(na_action):
-    # GH#51488 mapping categories to tuples used to raise NotImplementedError
-    # because the mapped categories formed a MultiIndex.
+    # mapping categories to tuples used to raise NotImplementedError because
+    # the mapped categories formed a MultiIndex.
     cat = Categorical(["a", "a", "b", "c"])
     mapper = {"a": ("x",), "b": ("y",), "c": ("z",)}
     result = cat.map(mapper, na_action=na_action)
@@ -167,7 +167,6 @@ def test_map_to_tuples(na_action):
 
 
 def test_map_to_tuples_with_na(na_action):
-    # GH#51488
     cat = Categorical(["a", "a", None, "b"])
     mapper = {"a": ("x",), "b": ("y",)}
     result = cat.map(mapper, na_action=na_action)
@@ -176,7 +175,6 @@ def test_map_to_tuples_with_na(na_action):
 
 
 def test_map_to_multi_element_tuples(na_action):
-    # GH#51488
     cat = Categorical(["a", "b"])
     mapper = {"a": ("x", 1), "b": ("y", 2)}
     result = cat.map(mapper, na_action=na_action)

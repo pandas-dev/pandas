@@ -1662,8 +1662,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
 
         if isinstance(new_categories, ABCMultiIndex):
-            # GH#51488 mapper returned tuples; a CategoricalDtype/Series cannot
-            # be constructed from a MultiIndex, so fall back to a flat
+            # mapper returned tuples; a CategoricalDtype/Categorical cannot be
+            # constructed from a MultiIndex, so fall back to a flat
             # object-dtype Index of tuples.
             new_categories = new_categories.to_flat_index()
 
