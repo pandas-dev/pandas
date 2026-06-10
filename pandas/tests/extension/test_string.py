@@ -290,11 +290,15 @@ class Test2DCompat(base.Dim2CompatTests):
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
 
 
-def test_searchsorted_with_na_raises(data_for_sorting, as_series):
-    # GH50447
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_searchsorted_with_na_raises(data_for_sorting, as_series, na_position):
+    # GH50447, GH65837
     b, c, a = data_for_sorting
     arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
-    arr[-1] = pd.NA
+    if na_position == "last":
+        arr[-1] = pd.NA
+    else:
+        arr[0] = pd.NA
 
     if as_series:
         arr = pd.Series(arr)
