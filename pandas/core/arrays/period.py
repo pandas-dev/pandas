@@ -296,7 +296,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
-            if not np.isnan(arrdata).all():
+            if not lib.all_nans(arrdata):
                 raise TypeError(
                     "PeriodArray does not allow floating point in construction"
                 )
@@ -366,16 +366,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
-    # "DatetimeLikeArrayMixin"; supertype defines the argument type as
-    # "Union[Union[Period, Any, Timedelta], NaTType]"
-    def _unbox_scalar(  # type: ignore[override]
+    def _unbox_scalar(
         self,
-        value: Period | NaTType,
+        # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
+        # "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin"; supertype
+        #  defines the argument type as "Period | Timestamp | Timedelta | NaTType"
+        value: Period | NaTType,  # type: ignore[override]
     ) -> np.int64:
         if value is NaT:
-            # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value._value)  # type: ignore[union-attr]
+            return np.int64(value._value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -385,10 +384,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    # error: Argument 1 of "_check_compatible_with" is incompatible with
-    # supertype "DatetimeLikeArrayMixin"; supertype defines the argument type
-    # as "Period | Timestamp | Timedelta | NaTType"
-    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
+    def _check_compatible_with(
+        self,
+        #  error: Argument 1 of "_check_compatible_with" is incompatible with
+        # supertype "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin";
+        # supertype defines the argument type as "Period | Timestamp | Timedelta
+        # | NaTType"
+        other: Period | NaTType | PeriodArray,  # type: ignore[override]
+    ) -> None:
         if other is NaT:
             return
         elif isinstance(other, Period):
@@ -405,9 +408,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def dtype(self) -> PeriodDtype:
         return self._dtype
 
-    # error: Cannot override writeable attribute with read-only property
     @property
-    def freq(self) -> BaseOffset:  # type: ignore[override]
+    def freq(self) -> BaseOffset:
         """
         Return the frequency object for this PeriodArray.
         """
@@ -898,7 +900,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Cast to DatetimeArray/Index.
 
         If possible, gives microsecond-unit DatetimeArray/Index. Otherwise
-        gives nanosecond unit.
+        gives nanosecond unit. On the ``Series.dt`` accessor, this is only
+        available for period-typed Series.
 
         Parameters
         ----------
@@ -979,6 +982,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         dta = DatetimeArray._from_sequence(new_data, dtype=new_data.dtype)
         assert dta.unit == unit
+        return dta
+
+    def _to_timestamp_freq(
+        self, dta: DatetimeArray, target_freq, how: str
+    ) -> BaseOffset | None:
+        """
+        Determine the freq to stamp on the DatetimeArray returned by
+        ``self.to_timestamp(target_freq, how)``.
+
+        Called by ``PeriodIndex.to_timestamp`` so the array-level
+        ``to_timestamp`` can return a bare DatetimeArray.
+        """
+        how = libperiod.validate_end_alias(how)
+        if how == "E":
+            # For the "end" case, to_timestamp routes through arithmetic that
+            # does not preserve freq; match that behavior here.
+            return None
 
         if self.freq.rule_code == "B":
             # See if we can retain BDay instead of Day in cases where
@@ -987,22 +1007,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             if len(diffs) == 1:
                 diff = diffs[0]
                 if diff == self.dtype._n:
-                    dta._freq = self.freq
+                    return self.freq
                 elif diff == 1:
-                    dta._freq = self.freq.base
+                    return self.freq.base
                 # TODO: other cases?
-            return dta
-        else:
-            dta = dta._with_freq("infer")
-            if freq is not None:
-                freq = to_offset(freq)
-                if (
-                    isinstance(dta.freq, Day)
-                    and not isinstance(freq, Day)
-                    and Timedelta(freq) == Timedelta(days=dta.freq.n)
-                ):
-                    dta._freq = freq
-            return dta
+            return None
+
+        result_freq = to_offset(dta._inferred_freq_str)
+        if target_freq is not None:
+            # match the normalization applied in to_timestamp
+            target_freq = Period._maybe_convert_freq(target_freq)
+            if (
+                isinstance(result_freq, Day)
+                and not isinstance(target_freq, Day)
+                and Timedelta(target_freq) == Timedelta(days=result_freq.n)
+            ):
+                result_freq = target_freq
+        return result_freq
 
     # --------------------------------------------------------------------
 
@@ -1539,11 +1560,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast("int", FreqGroup.FR_QTR.value)
+            base = FreqGroup.FR_QTR.value
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast("int", FreqGroup.FR_QTR.value):
+            if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr

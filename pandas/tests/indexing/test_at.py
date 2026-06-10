@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timezone,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -72,6 +73,13 @@ def test_at_multiindex_partial_date_string():
         name="col",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_at_incompatible_type_decimal():
+    # GH#22740 - .at should not silently discard incompatible type
+    df = DataFrame({"A": [1, 2, 3]})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df.at[0, "A"] = Decimal("1")
 
 
 def test_at_timezone():
@@ -186,6 +194,34 @@ class TestAtSetItemWithExpansion:
             ser.at[5] = 6
         expected = Series([1, 2, 6], index=[0, 1, 5])
         tm.assert_series_equal(ser, expected)
+
+    def test_at_setitem_expansion_deprecated_new_column(self):
+        # GH#48323 - new column (existing row) also expands
+        df = DataFrame({"a": [1, 2]})
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, "b"] = 99
+        assert "b" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_rows(self):
+        # GH#48323 - new column on a frame with MultiIndex rows
+        mi = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
+        df = DataFrame({"x": [1, 2, 3]}, index=mi)
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[("a", 1), "y"] = 99
+        assert "y" in df.columns
+
+    def test_at_setitem_expansion_deprecated_new_column_multiindex_cols(self):
+        # GH#48323 - new tuple column on a frame with MultiIndex columns
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_tuples([("a", 1), ("a", 2)]),
+        )
+        msg = "Setting a value on a DataFrame via .at with a key"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.at[0, ("b", 1)] = 99
+        assert ("b", 1) in df.columns
 
     def test_at_setitem_no_warning_existing_key(self):
         # GH#48323 - no warning for existing keys

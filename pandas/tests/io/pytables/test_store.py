@@ -172,6 +172,25 @@ def test_repr_get_storer(temp_hdfstore):
     str(s)
 
 
+@pytest.mark.parametrize(
+    "obj, expected",
+    [
+        (DataFrame(np.zeros((0, 1), dtype=np.int64)), [0, 1]),
+        (DataFrame(np.zeros((0, 3))), [0, 3]),
+        (
+            DataFrame({"a": Series(dtype=np.int64), "b": Series(dtype=np.float64)}),
+            [0, 2],
+        ),
+        (Series(dtype=np.int64), (0,)),
+    ],
+)
+def test_get_storer_shape_empty(temp_hdfstore, obj, expected):
+    # GH#37235 fixed-format storer reported a phantom length-1 axis for
+    # objects with no rows
+    temp_hdfstore.put("obj", obj, format="fixed", track_times=False)
+    assert temp_hdfstore.get_storer("obj").shape == expected
+
+
 def test_contains(temp_hdfstore):
     store = temp_hdfstore
     store["a"] = Series(
@@ -203,40 +222,6 @@ def test_contains(temp_hdfstore):
             index=Index([f"i-{i}" for i in range(30)]),
         )
     assert "node())" in store
-
-
-def test_versioning(temp_hdfstore):
-    store = temp_hdfstore
-    store["a"] = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-    )
-    store["b"] = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
-    )
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((20, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=20, freq="B"),
-    )
-    store.append("df1", df[:10])
-    store.append("df1", df[10:])
-    assert store.root.a._v_attrs.pandas_version == "0.15.2"
-    assert store.root.b._v_attrs.pandas_version == "0.15.2"
-    assert store.root.df1._v_attrs.pandas_version == "0.15.2"
-
-    # write a file and wipe its versioning
-    store.append("df2", df)
-
-    # this is an error because its table_type is appendable, but no
-    # version info
-    store.get_node("df2")._v_attrs.pandas_version = None
-
-    msg = "'NoneType' object has no attribute 'startswith'"
-
-    with pytest.raises(Exception, match=msg):
-        store.select("df2")
 
 
 @pytest.mark.parametrize(
@@ -576,6 +561,30 @@ def test_remove(temp_hdfstore):
     assert len(store) == 0
 
 
+@pytest.mark.parametrize("n_selectors", [3, 100])
+def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
+    # GH#17567 removing with a large "in" selector (more than numexpr can
+    #  handle, i.e. > _max_selectors=31) falls back to a post-read filter;
+    #  remove must apply that filter rather than dropping every row
+    store = temp_hdfstore
+    df = DataFrame(
+        {"A": np.arange(1000)},
+        index=date_range("2020-01-01", periods=1000, unit="ns"),
+    )
+    store.put("df", df, format="table", track_times=False)
+
+    selector = list(df.index[:n_selectors])
+    # the where clause matches exactly the selected rows
+    assert len(store.select("df", where="index in selector")) == n_selectors
+
+    removed = store.remove("df", where="index in selector")
+    assert removed == n_selectors
+
+    result = store.select("df")
+    expected = df[~df.index.isin(selector)]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_same_name_scoping(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 2)),
@@ -882,6 +891,19 @@ def test_select_filter_corner(temp_hdfstore):
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
 
 
+def test_select_string_index_aligned(temp_hdfstore):
+    # GH#54396 string index -> byte-unaligned values block; the read-back
+    #  block must be realigned to avoid SIGBUS on strict-alignment platforms
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+    df.index = [f"{c:3d}" for c in df.index]
+
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
+    result = temp_hdfstore.select("frame")
+    tm.assert_frame_equal(result, df)
+    for blk in result._mgr.blocks:
+        assert blk.values.flags["ALIGNED"]
+
+
 def test_path_pathlib(temp_h5_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -999,6 +1021,19 @@ def test_preserve_timedeltaindex_type(temp_hdfstore, unit):
 
     temp_hdfstore["df"] = df
     tm.assert_frame_equal(temp_hdfstore["df"], df)
+
+
+@pytest.mark.parametrize("freq", ["1s", None])
+def test_preserve_timedeltaindex_type_table_format(temp_h5_path, unit, freq):
+    # GH#21466 with format="table", a TimedeltaIndex used to round-trip as
+    #  PeriodIndex (when freq was set) or Int64Index (otherwise)
+    df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
+    df.index = timedelta_range(
+        start="0s", periods=10, freq=freq, name="example", unit=unit
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df)
 
 
 def test_columns_multiindex_modified(temp_h5_path):
