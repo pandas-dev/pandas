@@ -6,7 +6,6 @@ from cython cimport (
 from libc.math cimport (
     NAN,
     isfinite,
-    isnan,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -316,7 +315,11 @@ def group_cumprod(
         for i in range(N):
             lab = labels[i]
 
-            if lab < 0:
+            if uses_mask and lab < 0:
+                result_mask[i, :] = True
+                out[i, :] = 0
+                continue
+            elif lab < 0:
                 continue
             for j in range(K):
                 val = values[i, j]
@@ -1025,7 +1028,7 @@ def group_skew(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, uses_mask = mask is not None
         float64_t[:, ::1] mean, M2, M3
         float64_t val
 
@@ -1054,10 +1057,18 @@ def group_skew(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask and mask[i, j]:
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
 
-                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                if isna_entry:
+                    if not skipna:
+                        if result_mask is not None:
+                            result_mask[lab, j] = 1
+                        mean[lab, j] = NaN
+                        M2[lab, j] = NaN
+                        M3[lab, j] = NaN
                     continue
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
@@ -1066,7 +1077,7 @@ def group_skew(
         for i in range(ngroups):
             for j in range(K):
                 out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
-                if result_mask is not None and isnan(out[i, j]):
+                if result_mask is not None and nobs[i, j] < 3:
                     result_mask[i, j] = 1
 
 
@@ -1087,7 +1098,7 @@ def group_kurt(
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
-        bint uses_mask = mask is not None
+        bint isna_entry, uses_mask = mask is not None
         float64_t[:, ::1] mean, M2, M3, M4
         float64_t val
 
@@ -1117,10 +1128,19 @@ def group_kurt(
             for j in range(K):
                 val = values[i, j]
 
-                if uses_mask and mask[i, j]:
-                    val = NaN
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
 
-                if skipna and (isnan(val) or _treat_as_na(val, False)):
+                if isna_entry:
+                    if not skipna:
+                        if result_mask is not None:
+                            result_mask[lab, j] = 1
+                        mean[lab, j] = NaN
+                        M2[lab, j] = NaN
+                        M3[lab, j] = NaN
+                        M4[lab, j] = NaN
                     continue
 
                 moments_add_value(val, &nobs[lab, j], &mean[lab, j], &M2[lab, j],
@@ -1129,7 +1149,7 @@ def group_kurt(
         for i in range(ngroups):
             for j in range(K):
                 out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
-                if result_mask is not None and isnan(out[i, j]):
+                if result_mask is not None and nobs[i, j] < 4:
                     result_mask[i, j] = 1
 
 
@@ -2270,7 +2290,11 @@ cdef group_cummin_max(
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0:
+            if uses_mask and lab < 0:
+                result_mask[i, :] = True
+                out[i, :] = 0
+                continue
+            elif lab < 0:
                 continue
             for j in range(K):
 

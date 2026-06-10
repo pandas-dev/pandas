@@ -197,7 +197,7 @@ class TestDateRanges:
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
-        # GH#???
+        # GH#24124
         freq = Timedelta(1)
 
         with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):
@@ -1154,7 +1154,7 @@ class TestBusinessDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011")
         rng2 = bdate_range("12/2/2011", "12/5/2011")
-        assert rng2._data.freq == BDay()
+        assert rng2.freq == BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -1185,6 +1185,28 @@ class TestBusinessDateRange:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(start, periods=2, freq="B", unit="ns")
 
+    def test_bdate_range_end_weekend_periods(self):
+        # GH#64834
+        result = bdate_range(end="2026-03-21", periods=3)
+        expected = DatetimeIndex(["2026-03-18", "2026-03-19", "2026-03-20"])
+        tm.assert_index_equal(result, expected)
+
+        result = bdate_range(end="2026-03-22", periods=3)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("end", ["2026-03-20", "2026-03-21", "2026-03-22"])
+    def test_bdate_range_end_periods_multiple_n(self, end):
+        # GH#64648 (post-merge): with end+periods and freq="nB" (n>=2),
+        # the on-offset stride must be anchored at the end (last business
+        # day <= end), not at the start of the internal buffer.
+        result = bdate_range(end=end, periods=3, freq="2B")
+        expected = DatetimeIndex(["2026-03-16", "2026-03-18", "2026-03-20"])
+        tm.assert_index_equal(result, expected)
+
+        result = bdate_range(end=end, periods=3, freq="3B")
+        expected = DatetimeIndex(["2026-03-12", "2026-03-17", "2026-03-20"])
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDateRange:
     def test_constructor(self):
@@ -1212,7 +1234,7 @@ class TestCustomDateRange:
         # GH #456
         rng1 = bdate_range("12/5/2011", "12/5/2011", freq="C")
         rng2 = bdate_range("12/2/2011", "12/5/2011", freq="C")
-        assert rng2._data.freq == CDay()
+        assert rng2.freq == CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)

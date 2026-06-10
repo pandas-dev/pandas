@@ -1284,6 +1284,12 @@ cdef class TextReader:
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
             return result, na_count
+        elif dtype.kind == "c":
+            # GH#9379 numpy parses both "1+2j" and "(1+2j)" forms; the
+            # latter is what to_csv writes for complex columns.
+            result, na_count = self._string_convert(i, start, end, na_filter,
+                                                    na_hashset)
+            return np.asarray(result, dtype=dtype), na_count
         elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
@@ -2544,6 +2550,8 @@ def _compute_na_values():
     na_values = {
         np.float32: np.nan,
         np.float64: np.nan,
+        np.complex64: np.nan,
+        np.complex128: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,
         np.int16: int16info.min,

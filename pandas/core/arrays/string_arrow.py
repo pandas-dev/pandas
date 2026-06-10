@@ -162,10 +162,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _from_pyarrow_array(self, pa_array):
         """
-        Construct from the pyarrow array result of an operation, retaining
-        self.dtype.na_value.
+        Construct from a pyarrow Array/ChunkedArray result of an operation.
+
+        Avoids full __init__ overhead (type checking, pc.cast, ArrowDtype
+        construction, etc.).
         """
-        return type(self)(pa_array, dtype=self.dtype)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
+        if not pa.types.is_large_string(pa_array.type):
+            pa_array = pa_array.cast(pa.large_string())
+        obj = type(self).__new__(type(self))
+        if isinstance(pa_array, pa.Array):
+            pa_array = pa.chunked_array([pa_array])
+        obj._pa_array = pa_array
+        obj._dtype = self._dtype
+        return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         if len(values) == 0:
@@ -397,6 +407,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_removeprefix = ArrowStringArrayMixin._str_removeprefix
     _str_find = ArrowStringArrayMixin._str_find
     _str_get = ArrowStringArrayMixin._str_get
+    _str_getitem = ArrowStringArrayMixin._str_getitem
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase

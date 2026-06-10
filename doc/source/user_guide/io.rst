@@ -1281,6 +1281,16 @@ is whitespace).
    df = pd.read_fwf("bar.csv", header=None, index_col=0)
    df
 
+The number of rows used for inference is controlled by the ``infer_nrows``
+parameter. If a column contains values wider than anything appearing in the
+first ``infer_nrows`` rows, those values may be truncated. To infer column
+specifications from the entire file, pass ``infer_nrows=np.inf``:
+
+.. ipython:: python
+
+   df = pd.read_fwf("bar.csv", header=None, index_col=0, infer_nrows=np.inf)
+   df
+
 ``read_fwf`` supports the ``dtype`` parameter for specifying the types of
 parsed columns to be different from the inferred type.
 
@@ -1472,7 +1482,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-pandas currently supports three engines, the C engine, the python engine, and an experimental
+pandas currently supports three engines, the C engine, the python engine, and a
 pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
 on larger workloads and is equivalent in speed to the C engine on most other workloads.
 The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
@@ -3263,10 +3273,9 @@ Excel files
 -----------
 
 The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
-using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
-can be read using ``xlrd``. Binary Excel (``.xlsb``)
-files can be read using ``pyxlsb``. All formats can be read
-using :ref:`calamine<io.calamine>` engine.
+using the ``openpyxl`` Python module. Excel 2003 (``.xls``) and Binary Excel
+(``.xlsb``) files can be read using the :ref:`calamine<io.calamine>` engine,
+which also supports all other Excel formats.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3278,9 +3287,15 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
-   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used
+     if installed (deprecated), and ``calamine`` otherwise.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used
+     if installed (deprecated), and ``calamine`` otherwise.
    - Otherwise ``openpyxl`` will be used.
+
+   The ``xlrd`` and ``pyxlsb`` engines emit a deprecation warning and will be
+   removed in a future version. Pass ``engine="calamine"`` to opt in to the
+   replacement now.
 
 .. _io.excel_reader:
 
@@ -3296,9 +3311,9 @@ using internally.
 
 * For the engine openpyxl, pandas is using :func:`openpyxl.load_workbook` to read in (``.xlsx``) and (``.xlsm``) files.
 
-* For the engine xlrd, pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
+* For the engine xlrd (deprecated), pandas is using :func:`xlrd.open_workbook` to read in (``.xls``) files.
 
-* For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
+* For the engine pyxlsb (deprecated), pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
 
@@ -3363,20 +3378,6 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
     data = pd.read_excel(
         "path_to_file.xls", ["Sheet1", "Sheet2"], index_col=None, na_values=["NA"]
     )
-
-``ExcelFile`` can also be called with a ``xlrd.book.Book`` object
-as a parameter. This allows the user to control how the excel file is read.
-For example, sheets can be loaded on demand by calling ``xlrd.open_workbook()``
-with ``on_demand=True``.
-
-.. code-block:: python
-
-    import xlrd
-
-    xlrd_book = xlrd.open_workbook("path_to_file.xls", on_demand=True)
-    with pd.ExcelFile(xlrd_book) as xls:
-        df1 = pd.read_excel(xls, "Sheet1")
-        df2 = pd.read_excel(xls, "Sheet2")
 
 .. _io.excel.specifying_sheets:
 
@@ -3652,8 +3653,7 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 .. note::
 
     ``engine`` is optional but recommended.  Setting the engine determines
-    the version of workbook produced. Setting ``engine='xlrd'`` will produce an
-    Excel 2003-format workbook (xls).  Using either ``'openpyxl'`` or
+    the version of workbook produced. Using either ``'openpyxl'`` or
     ``'xlsxwriter'`` will produce an Excel 2007-format workbook (xlsx). If
     omitted, an Excel 2007-formatted workbook is produced.
 
@@ -3758,16 +3758,19 @@ Binary Excel (.xlsb) files
 --------------------------
 
 The :func:`~pandas.read_excel` method can also read binary Excel files
-using the ``pyxlsb`` module. The semantics and features for reading
-binary Excel files mostly match what can be done for `Excel files`_ using
-``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
-in files and will return floats instead (you can use :ref:`calamine<io.calamine>`
-if you need recognize datetime types).
+using the :ref:`calamine<io.calamine>` engine. The semantics and features
+for reading binary Excel files mostly match what can be done for
+`Excel files`_.
 
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xlsb", engine="pyxlsb")
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
+
+.. note::
+
+   The ``pyxlsb`` engine is also available for reading ``.xlsb`` files but is
+   deprecated; prefer ``engine="calamine"``.
 
 .. note::
 
@@ -3880,7 +3883,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   :func:`read_pickle` is only guaranteed backwards compatible back to a few minor release.
+   :func:`read_pickle` is only guaranteed backwards compatible with pickles created by the current or previous major version of pandas. For example, in pandas 3.x.y, the earliest supported pickle would be from 2.0.0.
 
 .. _io.pickle.compression:
 
@@ -4965,6 +4968,16 @@ object : ``strings``                                    ``np.nan``
 ======================================================  =========================
 
 ``unicode`` columns are not supported, and **WILL FAIL**.
+
+Several extension dtypes are not supported as DataFrame columns or Series
+values and will raise :class:`NotImplementedError` on write. In particular,
+:class:`IntervalDtype`, :class:`SparseDtype`, and the nullable
+integer/float/boolean dtypes (``Int8``, ``Float64``, ``boolean``, ...) cannot
+be stored. Convert such columns to a NumPy dtype (for example
+``df["col"] = df["col"].astype("float64")``) before writing. The same
+restriction applies to using these dtypes as the row :class:`Index`; a
+:class:`Series` or :class:`DataFrame` whose index is one of these dtypes
+likewise cannot be written.
 
 .. _io.hdf5-categorical:
 
@@ -6247,7 +6260,7 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
+    with pd.read_sas("sas_xport.xpt", chunksize=100000) as rdr:
         for chunk in rdr:
             do_something(chunk)
 
