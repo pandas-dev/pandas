@@ -30,6 +30,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
     is_bool,
+    is_bool_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -714,14 +715,21 @@ class MPLPlot(ABC):
             include_type.extend([object, CategoricalDtypeType, str])
 
         # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
+        def dtype_predicate(dtype, types) -> bool:
+            type_ = dtype.type
+            return issubclass(type_, tuple(types)) or (
+                np.number in types
+                and getattr(dtype, "_is_numeric", False)
+                and not is_bool_dtype(dtype)
+            )
+
         def predicate_for_plottability(blk_vals) -> bool:
             dtype = blk_vals.dtype
             if isinstance(dtype, ArrowDtype):
                 dtype = dtype.numpy_dtype
-            type_ = dtype.type
-            return issubclass(type_, tuple(include_type)) and not issubclass(
-                type_, tuple(exclude_type)
-            )
+            is_included = dtype_predicate(dtype, include_type)
+            is_excluded = dtype_predicate(dtype, exclude_type)
+            return is_included and not is_excluded
 
         mgr = data._mgr._get_data_subset(predicate_for_plottability)
         numeric_data = data._constructor_from_mgr(mgr, axes=mgr.axes)
