@@ -47,6 +47,8 @@ from pandas.core.groupby import (
     Grouper,
     NamedAgg,
 )
+
+NamedFunc = NamedAgg  # alias, see GH#58318
 from pandas.core.indexes.api import (
     CategoricalIndex,
     DatetimeIndex,
@@ -109,6 +111,7 @@ __all__ = [
     "MultiIndex",
     "NaT",
     "NamedAgg",
+    "NamedFunc",
     "Offset",
     "Period",
     "PeriodDtype",
