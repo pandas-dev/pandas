@@ -144,6 +144,28 @@ class TestDatetimeArray(base.ExtensionTests):
         else:
             return super().check_reduce(ser, op_name, skipna)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+    )
+    def test_values_for_json(self, data):
+        # GH 65127
+        # DatetimeArray relies on the default 'epoch' format for datetimes, leading to
+        # the filtered Pandas4Warning.
+        super().test_values_for_json(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+    )
+    @pytest.mark.xfail(
+        raises=AssertionError, reason="DatetimeArray does not support JSON roundtrip."
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # DatetimeArray fails on roundtrip. Also currently the json serialization relies
+        # on the default 'epoch' format for datetimes, leading to the filtered
+        # Pandas4Warning.
+        super().test_json_roundtrip(data)
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     pass
