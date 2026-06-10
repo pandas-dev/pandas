@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from pandas.errors import ParserWarning
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -161,6 +163,68 @@ class TestCanParallelizeCsv:
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(encoding=encoding))
+
+    @pytest.mark.parametrize("encoding", ["latin-1", "cp1252", "shift_jis"])
+    def test_rejects_non_utf8_encoding(self, tmp_path, monkeypatch, encoding):
+        # Chunk workers feed raw file bytes to the C tokenizer, which decodes
+        # words as UTF-8; only UTF-8-compatible encodings are byte-safe (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(encoding=encoding))
+        assert _can_parallelize_csv(path, self._kwds(encoding="utf-8"))
+        assert _can_parallelize_csv(path, self._kwds(encoding="UTF8"))
+
+    def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
+        # Multi-char/regex seps (other than r"\s+") and sep=None force the
+        # python engine inside TextFileReader (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(delimiter=";;"))
+        assert not _can_parallelize_csv(path, self._kwds(delimiter=None))
+        assert _can_parallelize_csv(path, self._kwds(delimiter=r"\s+"))
+
+    def test_rejects_comment(self, tmp_path, monkeypatch):
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(comment="#"))
+
+    def test_rejects_escapechar(self, tmp_path, monkeypatch):
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(escapechar="\\"))
+
+    def test_rejects_parse_dates(self, tmp_path, monkeypatch):
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(parse_dates=["a"]))
+        assert not _can_parallelize_csv(path, self._kwds(parse_dates=True))
+        assert _can_parallelize_csv(path, self._kwds(parse_dates=None))
+        assert _can_parallelize_csv(path, self._kwds(parse_dates=False))
+
+    def test_rejects_blank_line_in_preamble(self, tmp_path, monkeypatch):
+        # A blank line before the header shifts where pandas locates the
+        # header relative to the physical line count (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("\na,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds())
 
     def test_rejects_callable_skiprows(self, tmp_path):
         path = tmp_path / "data.csv"
@@ -309,7 +373,7 @@ class TestReadCsvParallel:
         """Call the internal helper directly so file-size guards don't apply."""
         result = _read_csv_parallel(str(path), kwds, n_workers)
         if result is None:
-            pytest.skip("File too small to split into multiple chunks")
+            pytest.skip("parallel read not applicable to this file")
         return result
 
     def _base_kwds(self, path, **overrides):
@@ -584,3 +648,103 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers.sys, "platform", "linux")
     read_csv(path)
     assert len(calls) == 1  # parallel by default elsewhere
+
+
+# ---------------------------------------------------------------------------
+# Regression tests: inputs the parallel path must hand back to serial
+# (all results must be identical to a serial read of the same bytes)
+# ---------------------------------------------------------------------------
+
+
+def _read_forced_parallel(path, monkeypatch, **kwargs):
+    """read_csv with the parallel path force-enabled on every platform."""
+    monkeypatch.setattr("pandas.io.parsers.readers._PARALLEL_READ_MIN_BYTES", 1)
+    with option_context("mode.max_threads", 4):
+        return read_csv(path, **kwargs)
+
+
+def test_parallel_latin1_matches_serial(tmp_path, monkeypatch):
+    # Non-UTF-8 encodings must take the serial path; the C tokenizer decodes
+    # raw chunk bytes as UTF-8 (GH#64347).
+    raw = b"col1,col2\n" + b"".join(
+        f"se\xf1or{i},{i}\n".encode("latin-1") for i in range(500)
+    )
+    path = tmp_path / "latin.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, encoding="latin-1")
+    expected = read_csv(io.BytesIO(raw), encoding="latin-1")
+    tm.assert_frame_equal(result, expected)
+    assert result.loc[0, "col1"] == "se\xf1or0"
+
+
+def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
+    # A full-line comment above the header shifts the preamble byte offset;
+    # the header row must not be ingested as data (GH#64347).
+    raw = b"# a comment\ncol1,col2\n" + b"".join(
+        f"{i},{i * 2}\n".encode() for i in range(500)
+    )
+    path = tmp_path / "comment.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, comment="#")
+    expected = read_csv(io.BytesIO(raw), comment="#")
+    tm.assert_frame_equal(result, expected)
+    assert result["col1"].dtype == np.int64
+
+
+def test_parallel_blank_line_before_header_matches_serial(tmp_path, monkeypatch):
+    # Same as the comment case, but triggered by a plain blank line (GH#64347).
+    raw = b"\ncol1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "blank.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch)
+    expected = read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
+    assert result["col1"].dtype == np.int64
+
+
+def test_parallel_single_long_line(tmp_path, monkeypatch):
+    # A data section with no interior newlines cannot be split; this must
+    # fall back to serial instead of raising (GH#64347).
+    raw = b"col1,col2\n" + b"a" * 5_000 + b",b"
+    path = tmp_path / "longline.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch)
+    expected = read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
+    # A numeric column whose only non-numeric row sits in one chunk parses as
+    # int64 in the clean chunks but object in the dirty one; serial gives
+    # strings for the whole column.  The parallel path must detect the
+    # disagreement and re-read serially (GH#64347).
+    clean = b"".join(f"{i},{i}\n".encode() for i in range(500))
+    raw = b"col1,col2\n" + clean + b"oops,999\n" + clean
+    path = tmp_path / "mixed.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch)
+    expected = read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
+    # serial semantics: the whole column stays as strings
+    assert result.loc[0, "col1"] == "0"
+
+
+def test_parallel_multichar_sep_matches_serial(tmp_path, monkeypatch):
+    # Multi-char seps force the python engine inside TextFileReader; the
+    # parallel path must step aside rather than hit the C-engine assert
+    # (GH#64347).
+    raw = b"col1;;col2\n" + b"".join(f"{i};;{i * 2}\n".encode() for i in range(500))
+    path = tmp_path / "multisep.csv"
+    path.write_bytes(raw)
+
+    warn_msg = "Falling back to the 'python' engine"
+    with tm.assert_produces_warning(ParserWarning, match=warn_msg):
+        result = _read_forced_parallel(path, monkeypatch, sep=";;")
+    with tm.assert_produces_warning(ParserWarning, match=warn_msg):
+        expected = read_csv(io.BytesIO(raw), sep=";;")
+    tm.assert_frame_equal(result, expected)

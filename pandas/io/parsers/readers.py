@@ -6,6 +6,7 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 
 from __future__ import annotations
 
+import codecs
 from collections import (
     abc,
     defaultdict,
@@ -39,7 +40,6 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
-    ParserError,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -321,7 +321,10 @@ def _read(
     # and type-conversion code in parsers.pyx runs truly in parallel.
     if not iterator and chunksize is None and nrows is None:
         _max = get_option("mode.max_threads")
-        if _max is not None:
+        if sys.platform == "emscripten":
+            # WASM cannot spawn threads, regardless of mode.max_threads.
+            _n_workers = 1
+        elif _max is not None:
             _n_workers = _max
         elif sys.platform == "win32":
             # Parallel CSV reading does not currently speed up on Windows: even
@@ -334,15 +337,17 @@ def _read(
         else:
             _n_workers = os.cpu_count() or 1
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
+            _filepath = stringify_path(filepath_or_buffer)
+            assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
             try:
-                _filepath = stringify_path(filepath_or_buffer)
-                assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
-                return _read_csv_parallel(_filepath, kwds, _n_workers)
-            except ParserError:
-                # A chunk boundary landed inside a quoted field containing an
-                # embedded newline.  Fall through to the serial path, which
-                # handles embedded newlines correctly.
-                pass
+                result = _read_csv_parallel(_filepath, kwds, _n_workers)
+            except Exception:
+                # e.g. a chunk boundary landed inside a quoted field containing
+                # an embedded newline.  The serial path below handles anything
+                # the parallel path cannot.
+                result = None
+            if result is not None:
+                return result
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
@@ -375,13 +380,23 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       name propagated to non-first chunks.
     * ``usecols`` is ``None`` - column selection changes the mapping between raw
       column positions and names in non-first chunks.
+    * The separator is a single character or ``r"\\s+"`` - anything else forces
+      the python engine inside ``TextFileReader``.
+    * The encoding is UTF-8-compatible - chunk workers feed raw file bytes to
+      the C tokenizer, which decodes words as UTF-8.
+    * ``comment`` is ``None`` and the preamble has no blank lines - full-line
+      comments and blank lines shift where pandas locates the header relative
+      to the physical line count used by :func:`_find_data_start_offset`.
+    * ``escapechar`` is ``None`` - an escaped literal newline would be split
+      mid-field.
+    * ``parse_dates`` is unset - datetime format inference is per-chunk and may
+      disagree with the serial whole-column inference.
     * The file is at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
 
-    .. warning::
-        The chunk splitter advances to the next raw ``\\n`` boundary.  CSV files
-        that contain newlines embedded inside quoted fields may produce a parse
-        error or silently incorrect data.  This is the same caveat that applies
-        to any newline-based chunking scheme.
+    Note that a chunk boundary landing on a newline embedded inside a quoted
+    field leaves that chunk's parser inside an open quote at EOF, which raises
+    ``ParserError`` in the worker and triggers the serial fallback in
+    :func:`_read` - it does not corrupt data silently.
     """
     # Must be a local file path, not a URL or file-like object.
     if is_file_like(filepath_or_buffer):
@@ -420,14 +435,40 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if lineterminator is not None and lineterminator != "\n":
         return False
 
-    # UTF-16 / UTF-32 are not byte-safe for splitting on raw \n: in UTF-16LE
-    # a '\n' code point is the byte pair 0x0A 0x00, and a chunk boundary
-    # landing on the high byte would silently misalign the data.
+    # Chunk workers feed raw file bytes to the C tokenizer, which decodes
+    # words as UTF-8.  The serial path instead transcodes through a
+    # TextIOWrapper, so anything that is not already valid UTF-8 (latin-1,
+    # cp1252, UTF-16/32, ...) must take the serial path.
     encoding = kwds.get("encoding")
     if encoding is not None:
-        norm = encoding.lower().replace("-", "_")
-        if norm.startswith(("utf_16", "utf_32", "utf16", "utf32")):
+        try:
+            codec_name = codecs.lookup(encoding).name
+        except LookupError:
             return False
+        if codec_name not in ("utf-8", "ascii", "utf-8-sig"):
+            return False
+
+    # Separators that force the python-engine fallback inside TextFileReader
+    # (sep=None sniffing, or multi-char/regex seps other than r"\s+") cannot
+    # use the C-engine buffer-loading fast path.
+    delimiter = kwds.get("delimiter", ",")
+    if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
+        return False
+
+    # Full-line comments before/inside the preamble shift the header location
+    # in ways _find_data_start_offset cannot see.
+    if kwds.get("comment") is not None:
+        return False
+
+    # An escaped literal newline (escapechar followed by "\n") would be split
+    # mid-field.
+    if kwds.get("escapechar") is not None:
+        return False
+
+    # Datetime format inference is per-chunk and may disagree with the serial
+    # whole-column inference.
+    if kwds.get("parse_dates"):
+        return False
 
     # Callable / list skiprows require tracking absolute line numbers.
     skiprows = kwds.get("skiprows")
@@ -468,6 +509,13 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     _skiprows = int(kwds.get("skiprows") or 0)
     data_start = _find_data_start_offset(filepath, _header, _skiprows)
     if file_size - data_start < _PARALLEL_READ_MIN_BYTES:
+        return False
+
+    # Blank lines in the preamble shift where pandas locates the header
+    # relative to the physical line count used by _find_data_start_offset.
+    with open(filepath, "rb") as fd:
+        preamble = fd.read(data_start)
+    if any(not line.rstrip(b"\r") for line in preamble.splitlines()):
         return False
 
     return True
@@ -540,7 +588,7 @@ def _read_csv_parallel(
     filepath: str,
     kwds: dict,
     n_workers: int,
-) -> DataFrame:
+) -> DataFrame | None:
     """
     Read a large CSV file in parallel using *n_workers* threads.
 
@@ -555,10 +603,13 @@ def _read_csv_parallel(
     The caller must ensure the file is eligible via :func:`_can_parallelize_csv`
     before calling this function.
 
-    .. warning::
-        Splitting is done at raw ``\\n`` boundaries.  CSV files with newlines
-        embedded inside quoted fields may produce a parse error or silently
-        wrong data.
+    Returns ``None`` when parallel reading turns out not to be applicable
+    after all (the data section cannot be split, the engine falls back to
+    python, or per-chunk dtype inference disagrees in a way that would not
+    match the serial result); the caller then reads serially.  Splitting is
+    done at raw ``\\n`` boundaries, so a boundary inside a quoted field raises
+    ``ParserError`` from the affected worker - the caller treats that as a
+    serial-fallback signal too.
     """
     # Resolve the effective header value (mirrors TextFileReader.__init__).
     header = kwds.get("header", "infer")
@@ -573,7 +624,9 @@ def _read_csv_parallel(
     # Split the data section into up to n_workers chunks.
     offsets = _find_chunk_byte_offsets(filepath, n_workers, data_start)
     n_chunks = len(offsets) - 1
-    assert n_chunks > 1, "_can_parallelize_csv should guarantee splittable data"
+    if n_chunks < 2:
+        # e.g. a data section with no interior newlines (one giant line)
+        return None
 
     # ------------------------------------------------------------------
     # Infer column names from the preamble + one data line (very fast).
@@ -591,16 +644,19 @@ def _read_csv_parallel(
 
     name_buf = io.BytesIO(preamble + first_line)
     name_reader = TextFileReader(name_buf, **base_kwds)
+    if not isinstance(name_reader._engine, CParserWrapper):
+        # TextFileReader fell back to the python engine for a reason the
+        # eligibility checks did not anticipate; load_buffer needs the C engine.
+        name_reader.close()
+        return None
     assert name_reader._engine.orig_names is not None
     col_names: list = list(name_reader._engine.orig_names)
     name_reader.close()
 
     # ------------------------------------------------------------------
-    # Dispatch all chunks in parallel.  Each worker reads its own byte
-    # slice from disk, then calls load_buffer() so tokenisation is fully
-    # GIL-free.  Reading inside the thread (rather than pre-loading
-    # everything here) caps peak RAM to one chunk per thread instead of
-    # the whole file.
+    # Dispatch all chunks in parallel.  Each worker gets a zero-copy
+    # memoryview slice of the mmapped file and calls load_buffer() so
+    # tokenisation is fully GIL-free.
     # ------------------------------------------------------------------
     chunk_kwds: dict = {
         **base_kwds,
@@ -634,8 +690,27 @@ def _read_csv_parallel(
             dfs = [fut.result() for fut in futures]
     finally:
         mv.release()
-        mm.close()
+        try:
+            mm.close()
+        except BufferError:
+            # A worker exception's traceback still holds a memoryview export;
+            # without this, BufferError would mask the real exception.  The
+            # mapping is unmapped once that traceback is garbage-collected.
+            pass
         fh.close()
+
+    # Per-chunk dtype inference can disagree with whole-file inference, e.g.
+    # a numeric column whose only non-numeric row sits in one chunk parses as
+    # int64 in the clean chunks but object in the dirty one, whereas serial
+    # gives object for the whole column.  Mixed signed-int/float chunks concat
+    # to the same float64 result serial would produce; anything else must be
+    # re-read serially.
+    for pos in range(dfs[0].shape[1]):
+        chunk_dtypes = {df.dtypes.iloc[pos] for df in dfs}
+        if len(chunk_dtypes) > 1 and not all(
+            dtype.kind in "if" for dtype in chunk_dtypes
+        ):
+            return None
 
     from pandas import concat
 
