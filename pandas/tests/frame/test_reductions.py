@@ -1314,6 +1314,14 @@ class TestDataFrameAnalytics:
     ):
         getattr(bool_frame_with_na, all_boolean_reductions)(axis=axis, bool_only=False)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_any_all_boolean_na_skipna_false(self, all_boolean_reductions, axis):
+        # GH 65710
+        df = DataFrame({"a": [False, pd.NA]}, dtype="boolean")
+        result = getattr(df, all_boolean_reductions)(axis=axis, skipna=False)
+        expected = Series([pd.NA], index=["a"] if axis == 0 else [0, 1], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
     def test_any_all_bool_frame(self, all_boolean_reductions, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type
         # so fill NaNs to compare with pandas behavior
