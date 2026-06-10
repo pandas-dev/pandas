@@ -85,7 +85,6 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> ArrayLike: ...
-def check_all_hashable(values: npt.NDArray[np.object_]) -> None: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],

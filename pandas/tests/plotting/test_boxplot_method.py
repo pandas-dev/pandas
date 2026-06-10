@@ -297,7 +297,7 @@ class TestDataFramePlots:
         plt.style.use(scheme)
         result = df.plot.box(return_type="dict")
         for k, v in expected.items():
-            assert result[k][0].get_color() == v
+            assert mpl.colors.same_color(result[k][0].get_color(), v)
 
     @pytest.mark.parametrize(
         "dict_colors, msg",
