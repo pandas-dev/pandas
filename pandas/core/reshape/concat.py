@@ -890,9 +890,11 @@ def _match_index_levels(objs: list[Series | DataFrame]) -> list[Series | DataFra
     index_names = [obj.index.names for obj in objs]
     first_names = index_names[0]
 
-    # detect same set of names but different order
-    if all(set(names) == set(first_names) for names in index_names) and any(
-        names != first_names for names in index_names
+    # detect same set of unique names but different order
+    if (
+        all(len(set(names)) == len(names) for names in index_names)
+        and all(sorted(names) == sorted(first_names) for names in index_names)
+        and any(names != first_names for names in index_names)
     ):
         # reorder indexes to match first
         new_objs = []
