@@ -384,6 +384,40 @@ class TestTimestampClassMethodConstructors:
         assert result == expected_stdlib
         assert isinstance(result, Timestamp)
 
+    @pytest.mark.parametrize(
+        "date_string",
+        [
+            "2023-11-05T08:30:00Z",
+            "2023-11-05T08:30:00+0000",
+            "2023-11-05T08:30:00+00:00",
+            "2024-08-02T00:00:00-04:00",
+        ],
+    )
+    def test_constructor_fromisoformat_preserves_tz(self, date_string):
+        # GH#56398 fromisoformat used to drop tz info due to args offset
+        #  in Timestamp.__new__ when the inherited datetime classmethod
+        #  called cls(year, month, day, ..., tzinfo).
+        result = Timestamp.fromisoformat(date_string)
+        expected_stdlib = datetime.fromisoformat(date_string)
+        assert isinstance(result, Timestamp)
+        assert result.tzinfo is not None
+        assert result == expected_stdlib
+        assert result == Timestamp(date_string)
+
+    def test_constructor_fromisoformat_naive(self):
+        # GH#56398 the tz-naive case should remain tz-naive
+        result = Timestamp.fromisoformat("2023-01-15T10:30:00")
+        assert isinstance(result, Timestamp)
+        assert result.tzinfo is None
+        assert result == Timestamp("2023-01-15T10:30:00")
+
+    def test_constructor_fromisoformat_roundtrip_isoformat(self):
+        # GH#56398 fromisoformat(ts.isoformat()) should round-trip
+        original = Timestamp.now("UTC")
+        result = Timestamp.fromisoformat(original.isoformat())
+        assert result == original
+        assert result.tzinfo is not None
+
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
 

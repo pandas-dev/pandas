@@ -180,6 +180,8 @@ if TYPE_CHECKING:
         OpenFileErrors,
         P,
         RandomState,
+        RankMethod,
+        RankNaOption,
         ReindexMethod,
         Renamer,
         Scalar,
@@ -575,7 +577,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series]:
+    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series | DataFrame]:
         """
         Return the special character free column resolvers of a DataFrame.
 
@@ -584,23 +586,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Used in :meth:`DataFrame.eval`.
         """
         from pandas.core.computation.parsing import clean_column_name
-        from pandas.core.series import Series
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        dtypes = self.dtypes
-        return {
-            clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtype
-            ).__finalize__(self)
-            for k, v, dtype in zip(
-                self.columns,
-                self._iter_column_arrays(),
-                dtypes,
-                strict=True,
-            )
-        }
+        return {clean_column_name(k): self[k] for k in self.columns}
 
     @final
     @property
@@ -1502,7 +1492,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __bool__(self) -> NoReturn:
         raise ValueError(
             f"The truth value of a {type(self).__name__} is ambiguous. "
-            "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
+            "Use a.empty, a.item(), a.any() or a.all()."
         )
 
     @final
@@ -1853,7 +1843,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # Handle dropping columns labels
             if labels_to_drop:
-                dropped.drop(labels_to_drop, axis=1, inplace=True)
+                dropped = dropped.drop(labels_to_drop, axis=1)
         else:
             # Handle dropping column levels
             if levels_to_drop:
@@ -1867,7 +1857,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # Handle dropping index labels
             if labels_to_drop:
-                dropped.drop(labels_to_drop, axis=0, inplace=True)
+                dropped = dropped.drop(labels_to_drop, axis=0)
 
         return dropped
 
@@ -2329,8 +2319,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         *,
-        orient: Literal["split", "records", "index", "table", "columns", "values"]
-        | None = None,
+        orient: (
+            Literal["split", "records", "index", "table", "columns", "values"] | None
+        ) = None,
         date_format: str | None = None,
         double_precision: int = 10,
         force_ascii: bool = True,
@@ -3661,18 +3652,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "sparse_index": sparsify,
             "sparse_columns": sparsify,
             "environment": "longtable" if longtable else None,
-            "multicol_align": multicolumn_format
-            if multicolumn
-            else f"naive-{multicolumn_format}",
+            "multicol_align": (
+                multicolumn_format if multicolumn else f"naive-{multicolumn_format}"
+            ),
             "multirow_align": "t" if multirow else "naive",
             "encoding": encoding,
             "caption": caption,
             "label": label,
             "position": position,
             "column_format": column_format,
-            "clines": "skip-last;data"
-            if (multirow and isinstance(self.index, MultiIndex))
-            else None,
+            "clines": (
+                "skip-last;data"
+                if (multirow and isinstance(self.index, MultiIndex))
+                else None
+            ),
             "bold_rows": bold_rows,
         }
 
@@ -4856,7 +4849,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Keywords must be strings
         # error: No overload variant of "_rename" of "NDFrame" matches
         # argument type "dict[Literal['index', 'columns'], Callable[[Any], str]]"
-        return self._rename(**mapper)  # type: ignore[call-overload, misc]
+        return self._rename(**mapper)  # type: ignore[call-overload]
 
     @final
     def add_suffix(self, suffix: str, axis: Axis | None = None) -> Self:
@@ -4927,7 +4920,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Keywords must be strings
         # error: No overload variant of "_rename" of "NDFrame" matches argument
         # type "dict[Literal['index', 'columns'], Callable[[Any], str]]"
-        return self._rename(**mapper)  # type: ignore[call-overload, misc]
+        return self._rename(**mapper)  # type: ignore[call-overload]
 
     @overload
     def sort_values(
@@ -5680,8 +5673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if len(items) == 0:
                 # Keep the dtype of labels when we are empty
                 items = items.astype(labels.dtype)
-            # error: Keywords must be strings
-            return self.reindex(**{name: items})  # type: ignore[misc]
+            return self.reindex(**{name: items})
         elif like:
 
             def f(x) -> bool:
@@ -7514,7 +7506,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether to interpret `to_replace` and/or `value` as regular
             expressions. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
-            `to_replace` must be ``None``.
+            `to_replace` must be ``None``. Patterns may be passed either as
+            strings or as compiled regex objects (``re.compile(...)``); use a
+            compiled object when you need to set flags such as ``re.IGNORECASE``,
+            since ``replace`` does not accept a separate ``flags`` argument.
 
         Returns
         -------
@@ -7676,6 +7671,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   new  new
         2  bait  xyz
 
+        To match case-insensitively (or apply any other ``re`` flag), pass a
+        compiled regex object. ``replace`` does not take a separate ``flags``
+        argument, so the flags must be baked into the compiled pattern:
+
+        >>> import re
+        >>> df = pd.DataFrame({"A": ["Foo", "FOO", "bar"], "B": ["foo", "Bar", "BAR"]})
+        >>> df.replace(re.compile(r"foo", flags=re.IGNORECASE), "new", regex=True)
+             A    B
+        0  new  new
+        1  new  Bar
+        2  bar  BAR
+
         Compare the behavior of ``s.replace({'a': None})`` and
         ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
@@ -7825,7 +7832,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
-                        col: (to_replace[col], value[col])  # pyright: ignore[reportOptionalSubscript]
+                        col: (
+                            to_replace[col],  # pyright: ignore[reportOptionalSubscript]
+                            value[col],
+                        )
                         for col in to_replace.keys()
                         if col in value.keys() and col in self
                     }
@@ -9489,9 +9499,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def rank(
         self,
         axis: Axis = 0,
-        method: Literal["average", "min", "max", "first", "dense"] = "average",
+        method: RankMethod = "average",
         numeric_only: bool = False,
-        na_option: Literal["keep", "top", "bottom"] = "keep",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ) -> Self:
@@ -10181,7 +10191,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
-            other = extract_array(other, extract_numpy=True)
+            other = extract_array(other, extract_numpy=True, extract_range=True)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
             if other.shape != self.shape:
@@ -10254,7 +10264,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
-        other : scalar, Series/DataFrame, or callable
+        other : scalar, array-like, Series/DataFrame, Index, or callable
             Entries where `cond` is False are replaced with
             corresponding value from `other`.
             If other is callable, it is computed on the Series/DataFrame and
@@ -10287,9 +10297,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The where method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``True`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
-        will be filled with False.
+        ``other`` is used. If the axis of ``cond`` does not align with
+        the caller Series/DataFrame, the values of ``cond`` on misaligned
+        index positions will be filled with False.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.
@@ -10455,9 +10465,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The mask method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``False`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
-        will be filled with True.
+        ``other`` is used. If the axis of ``cond`` does not align with
+        the caller Series/DataFrame, the values of ``cond`` on misaligned
+        index positions will be filled with True.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.
@@ -10737,7 +10747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freq = getattr(index, "freq", None)
 
             if freq is None:
-                freq = getattr(index, "inferred_freq", None)
+                freq = getattr(index, "_inferred_freq_str", None)
 
             if freq is None:
                 msg = "Freq was not set in the index hence cannot be inferred"
@@ -11066,8 +11076,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         tz : str or tzinfo or None
-            Time zone to localize. Passing ``None`` will remove the
-            time zone information and preserve local time.
+            Time zone to attach to the index; the wall time of each index
+            label is preserved. Passing ``None`` detaches the time zone from
+            a tz-aware index, returning a tz-naive index with the same wall
+            time.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to localize
         level : int, str, default None
@@ -11133,7 +11145,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Localize local times:
+        Attach a time zone to tz-naive timestamps:
 
         >>> s = pd.Series(
         ...     [1],
@@ -11143,7 +11155,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
-        Pass None to convert to tz-naive index and preserve local time:
+        Pass None to detach the time zone from tz-aware timestamps:
 
         >>> s = pd.Series([1], index=pd.DatetimeIndex(["2018-09-15 01:30:00+02:00"]))
         >>> s.tz_localize(None)
@@ -11261,252 +11273,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Numeric Methods
 
-    @final
     def describe(
         self,
         percentiles=None,
         include=None,
         exclude=None,
     ) -> Self:
-        """
-        Generate descriptive statistics.
-
-        Descriptive statistics include those that summarize the central
-        tendency, dispersion and shape of a
-        dataset's distribution, excluding ``NaN`` values.
-
-        Analyzes both numeric and object series, as well
-        as ``DataFrame`` column sets of mixed data types. The output
-        will vary depending on what is provided. Refer to the notes
-        below for more detail.
-
-        Parameters
-        ----------
-        percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should
-            fall between 0 and 1. The default, ``None``, will automatically
-            return the 25th, 50th, and 75th percentiles.
-        include : 'all', list-like of dtypes or None (default), optional
-            A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
-
-            - 'all' : All columns of the input will be included in the output.
-            - A list-like of dtypes : Limits the results to the
-              provided data types.
-              To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to object columns submit
-              the ``numpy.object`` data type. Strings
-              can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
-              select pandas categorical columns, use ``'category'``
-            - None (default) : The result will include all numeric columns.
-        exclude : list-like of dtypes or None (default), optional,
-            A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
-
-            - A list-like of dtypes : Excludes the provided data types
-              from the result. To exclude numeric types submit
-              ``numpy.number``. To exclude object columns submit the data
-              type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
-              exclude pandas categorical columns, use ``'category'``
-            - None (default) : The result will exclude nothing.
-
-        Returns
-        -------
-        Series or DataFrame
-            Summary statistics of the Series or Dataframe provided.
-
-        See Also
-        --------
-        DataFrame.count: Count number of non-NA/null observations.
-        DataFrame.max: Maximum of the values in the object.
-        DataFrame.min: Minimum of the values in the object.
-        DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the observations.
-        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
-            columns based on their dtype.
-
-        Notes
-        -----
-        For numeric data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
-        upper percentiles. By default the lower percentile is ``25`` and the
-        upper percentile is ``75``. The ``50`` percentile is the
-        same as the median.
-
-        For object data (e.g. strings), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
-        is the most common value. The ``freq`` is the most common value's
-        frequency.
-
-        If multiple object values have the highest count, then the
-        ``count`` and ``top`` results will be arbitrarily chosen from
-        among those with the highest count.
-
-        For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the DataFrame consists
-        only of object and categorical data without any numeric columns, the
-        default is to return an analysis of both the object and categorical
-        columns. If ``include='all'`` is provided as an option, the result
-        will include a union of attributes of each type.
-
-        The `include` and `exclude` parameters can be used to limit
-        which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
-
-        Examples
-        --------
-        Describing a numeric ``Series``.
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
-        dtype: float64
-
-        Describing a categorical ``Series``.
-
-        >>> s = pd.Series(["a", "a", "b", "c"])
-        >>> s.describe()
-        count     4
-        unique    3
-        top       a
-        freq      2
-        dtype: object
-
-        Describing a timestamp ``Series``.
-
-        >>> s = pd.Series(
-        ...     [
-        ...         np.datetime64("2000-01-01"),
-        ...         np.datetime64("2010-01-01"),
-        ...         np.datetime64("2010-01-01"),
-        ...     ]
-        ... )
-        >>> s.describe()
-        count                      3
-        mean     2006-09-01 08:00:00
-        min      2000-01-01 00:00:00
-        25%      2004-12-31 12:00:00
-        50%      2010-01-01 00:00:00
-        75%      2010-01-01 00:00:00
-        max      2010-01-01 00:00:00
-        dtype: object
-
-        Describing a ``DataFrame``. By default only numeric fields
-        are returned.
-
-        >>> df = pd.DataFrame(
-        ...     {
-        ...         "categorical": pd.Categorical(["d", "e", "f"]),
-        ...         "numeric": [1, 2, 3],
-        ...         "object": ["a", "b", "c"],
-        ...     }
-        ... )
-        >>> df.describe()
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
-
-        Describing all columns of a ``DataFrame`` regardless of data type.
-
-        >>> df.describe(include="all")  # doctest: +SKIP
-               categorical  numeric object
-        count            3      3.0      3
-        unique           3      NaN      3
-        top              f      NaN      a
-        freq             1      NaN      1
-        mean           NaN      2.0    NaN
-        std            NaN      1.0    NaN
-        min            NaN      1.0    NaN
-        25%            NaN      1.5    NaN
-        50%            NaN      2.0    NaN
-        75%            NaN      2.5    NaN
-        max            NaN      3.0    NaN
-
-        Describing a column from a ``DataFrame`` by accessing it as
-        an attribute.
-
-        >>> df.numeric.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
-        Name: numeric, dtype: float64
-
-        Including only numeric columns in a ``DataFrame`` description.
-
-        >>> df.describe(include=[np.number])
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
-
-        Including only string columns in a ``DataFrame`` description.
-
-        >>> df.describe(include=[object])  # doctest: +SKIP
-               object
-        count       3
-        unique      3
-        top         a
-        freq        1
-
-        Including only categorical columns from a ``DataFrame`` description.
-
-        >>> df.describe(include=["category"])
-               categorical
-        count            3
-        unique           3
-        top              d
-        freq             1
-
-        Excluding numeric columns from a ``DataFrame`` description.
-
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
-               categorical object
-        count            3      3
-        unique           3      3
-        top              f      a
-        freq             1      1
-
-        Excluding object columns from a ``DataFrame`` description.
-
-        >>> df.describe(exclude=[object])  # doctest: +SKIP
-               categorical  numeric
-        count            3      3.0
-        unique           3      NaN
-        top              f      NaN
-        freq             1      NaN
-        mean           NaN      2.0
-        std            NaN      1.0
-        min            NaN      1.0
-        25%            NaN      1.5
-        50%            NaN      2.0
-        75%            NaN      2.5
-        max            NaN      3.0
-        """
         return describe_ndframe(
             obj=self,
             include=include,
@@ -11660,7 +11432,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # We want to restore the original index
             rs = rs.loc[~rs.index.duplicated()]
             rs = rs.reindex_like(self)
-        return rs.__finalize__(self, method="pct_change")
+        return rs.__finalize__(self, method="pct_change")  # type: ignore[return-value]
 
     @final
     def _logical_func(
@@ -12103,6 +11875,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Provided integer column is ignored and excluded from result since
             an integer index is not used to calculate the rolling window.
+
+            When ``on`` is specified, the values of that column also become the
+            index of the :class:`Series` passed to :meth:`Rolling.apply` when
+            ``raw=False``, in place of the original :class:`DataFrame` index.
 
         closed : str, default None
             Determines the inclusivity of points in the window

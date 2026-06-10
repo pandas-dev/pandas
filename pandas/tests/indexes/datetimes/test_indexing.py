@@ -167,7 +167,7 @@ class TestWhere:
 
         # passing tz-naive ndarray to tzaware DTI
         result = dti.where(mask, i2.values)
-        expected = Index([pd.NaT.asm8, pd.NaT.asm8, *tail], dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         # passing tz-aware DTI to tznaive DTI
@@ -178,13 +178,12 @@ class TestWhere:
 
         pi = i2.tz_localize(None).to_period("D")
         result = dti.where(mask, pi)
-        expected = Index([pi[0], pi[1], *tail], dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         tda = i2.asi8.view("timedelta64[ns]")
         result = dti.where(mask, tda)
-        expected = Index([tda[0], tda[1], *tail], dtype=object)
-        assert isinstance(expected[0], np.timedelta64)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
