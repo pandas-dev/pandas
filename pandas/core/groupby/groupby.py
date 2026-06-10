@@ -1426,7 +1426,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
-        pin_name: bool = False,
     ) -> NDFrameT:
         """
         Apply function f in python space
@@ -1444,17 +1443,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
             and should not have group keys prepended.
-        pin_name : bool, default False
-            If True, always pin the group key to the name attribute of the
-            group. Used internally by plotting methods that require the
-            group key on the name attribute.
 
         Returns
         -------
         Series or DataFrame
             data after applying f
         """
-        values, mutated = self._grouper.apply_groupwise(f, data, pin_name=pin_name)
+        values, mutated = self._grouper.apply_groupwise(f, data)
         if not_indexed_same is None:
             not_indexed_same = mutated
 
