@@ -164,7 +164,7 @@ class TestTimedeltaConstructorUnitKeyword:
     def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         # array-likes
-        exp_unit = np_unit if np_unit not in ["W", "D", "m"] else "s"
+        exp_unit = "us" if np_unit != "ns" else "ns"
         expected = TimedeltaIndex(
             [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
             dtype=f"m8[{exp_unit}]",
@@ -174,7 +174,6 @@ class TestTimedeltaConstructorUnitKeyword:
         tm.assert_index_equal(result, expected)
 
         str_repr = [f"{x}{unit}" for x in np.arange(5)]
-        exp_unit = "us" if np_unit != "ns" else "ns"
         result = to_timedelta(wrapper(str_repr))
         tm.assert_index_equal(result, expected.as_unit(exp_unit))
         result = to_timedelta(wrapper(str_repr))

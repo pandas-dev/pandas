@@ -3320,12 +3320,7 @@ class TestOrigin:
         # GH 63419: after v3.0.0 default resolution is microseconds
         epoch_1960 = Timestamp(1960, 1, 1)
         units_from_epochs = np.arange(5, dtype=np.int64)
-        # result resolution is max of origin resolution and unit resolution
-        unit_reso = "s" if units == "D" else units
-        reso_order = ["s", "ms", "us", "ns"]
-        exp_unit = reso_order[
-            max(reso_order.index(origin_unit), reso_order.index(unit_reso))
-        ]
+        exp_unit = units if units == "ns" else "us"
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
             dtype=f"M8[{exp_unit}]",

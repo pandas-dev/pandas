@@ -1202,7 +1202,7 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = frame.to_json()
         result = read_json(StringIO(json)).apply(converter)
-        tm.assert_frame_equal(frame.astype("m8[ms]"), result)
+        tm.assert_frame_equal(frame.astype("m8[us]"), result)
 
     def test_timedelta2(self):
         frame = DataFrame(
