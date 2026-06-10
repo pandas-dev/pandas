@@ -431,6 +431,7 @@ Styler
 Other
 ^^^^^
 
+- :meth:`DataFrame.to_string` gained an ``ending_header`` keyword argument to repeat the column names as a footer below the last row (:issue:`32296`).
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 
 .. ***DO NOT USE THIS SECTION***
