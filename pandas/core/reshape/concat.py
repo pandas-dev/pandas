@@ -440,21 +440,25 @@ def concat(
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
 
-    # Ensure input objects with MultiIndex have consistent level order.
-    # Only reorder when all inputs share the same set of index level names.
-    # Inputs with missing or extra index levels are intentionally not coerced.
-    if axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
-        objs = _match_index_levels(objs)
-
     # Standardize axis parameter to int
     if sample.ndim == 1:
         from pandas import DataFrame
 
         bm_axis = DataFrame._get_axis_number(axis)
+    else:
+        bm_axis = sample._get_axis_number(axis)
+
+    # Ensure input objects with MultiIndex have consistent level order.
+    # Only reorder when all inputs share the same set of index level names.
+    # Inputs with missing or extra index levels are intentionally not coerced.
+    if bm_axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
+        objs = _match_index_levels(objs)
+
+    # Standardize axis parameter to int
+    if sample.ndim == 1:
         is_frame = False
         is_series = True
     else:
-        bm_axis = sample._get_axis_number(axis)
         is_frame = True
         is_series = False
 
