@@ -242,6 +242,12 @@ cdef extern from "pandas/parser/tokenizer.h":
     void COLITER_NEXT(coliter_t, const char *) nogil
     void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
 
+    # Linked directly from tokenizer.c, not exported via the pd_parser capsule
+    double precise_xstrtod_with_end(const char *p, char **q, char decimal,
+                                    char sci, char tsep, int skip_trailing,
+                                    int *error, int *maybe_int,
+                                    const char *end) nogil
+
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
@@ -286,10 +292,6 @@ cdef extern from "pandas/parser/pd_parser.h":
     double precise_xstrtod(const char *p, char **q, char decimal,
                            char sci, char tsep, int skip_trailing,
                            int *error, int *maybe_int) nogil
-    double precise_xstrtod_with_end(const char *p, char **q, char decimal,
-                                    char sci, char tsep, int skip_trailing,
-                                    int *error, int *maybe_int,
-                                    const char *end) nogil
 
     int to_boolean(const char *item, uint8_t *val) nogil
 
@@ -1520,17 +1522,10 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            # Token length from adjacent word_starts offsets (avoids strlen);
-            # token_idx == -1 means a missing field; the last token falls
-            # back to stream_len.
-            if token_idx < 0:
-                word_len = 0
-            elif <uint64_t>(token_idx + 1) < parser.words_len:
-                word_len = (parser.word_starts[token_idx + 1]
-                            - parser.word_starts[token_idx] - 1)
-            else:
-                word_len = (<int64_t>parser.stream_len
-                            - parser.word_starts[token_idx] - 1)
+            # Unlike strlen, _token_len counts past any embedded NUL, while
+            # the cache above is keyed on the NUL-terminated C string, so
+            # fields differing only after an embedded NUL share one value.
+            word_len = _token_len(parser, token_idx)
             pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
             table.vals[k] = <PyObject *>pyval

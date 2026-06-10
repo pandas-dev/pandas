@@ -160,17 +160,9 @@ typedef struct coliter_t {
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
-#define COLITER_NEXT(iter, word)                                               \
-  do {                                                                         \
-    const int64_t i = *iter.line_start++ + iter.col;                           \
-    word = i >= *iter.line_start ? "" : iter.words[i];                         \
-  } while (0)
-
-// Emits the resolved token index via idx_out so callers needing the token
-// length can compute it as word_starts[idx+1] - word_starts[idx] - 1
-// (using parser->stream_len for the last token where idx+1 == words_len).
-// Missing fields yield word = "" and idx_out = -1; callers must treat
-// those as length 0 rather than indexing into word_starts.
+// As COLITER_NEXT, but also emits the resolved token index via idx_out so
+// callers can derive the token length from adjacent word_starts entries.
+// Missing fields yield word = "" and idx_out = -1.
 #define COLITER_NEXT_WITH_IDX(iter, word, idx_out)                             \
   do {                                                                         \
     idx_out = *iter.line_start++ + iter.col;                                   \
@@ -180,6 +172,13 @@ void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
     } else {                                                                   \
       word = iter.words[idx_out];                                              \
     }                                                                          \
+  } while (0)
+
+#define COLITER_NEXT(iter, word)                                               \
+  do {                                                                         \
+    int64_t coliter_idx;                                                       \
+    COLITER_NEXT_WITH_IDX(iter, word, coliter_idx);                            \
+    (void)coliter_idx;                                                         \
   } while (0)
 
 parser_t *parser_new(void);
@@ -223,9 +222,8 @@ int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
-// As precise_xstrtod, but the caller may pass the known end of the token
-// (one past its last byte) to skip the internal end-of-token scan; pass NULL
-// to have it located as usual.
+// As precise_xstrtod, but takes the known end of the token (one past its
+// last byte) to skip the end-of-token scan; pass NULL to locate it as usual.
 double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
                                 char tsep, int skip_trailing, int *error,
                                 int *maybe_int, const char *end);

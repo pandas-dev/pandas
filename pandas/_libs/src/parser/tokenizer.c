@@ -1413,10 +1413,9 @@ double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL) unless the caller already
-    // knows it. read_csv threads in the tokenizer's word length, letting us
-    // skip this scan on the hot path; fast_float stops at the first
-    // non-numeric byte regardless, so a looser end bound is harmless.
+    // Find end of token (next whitespace or NUL) unless the caller passed
+    // it; fast_float stops at the first non-numeric byte regardless, so a
+    // looser end bound is harmless.
     if (end == NULL) {
       const char *scan = p;
       while (*scan && !isspace_ascii(*scan))
