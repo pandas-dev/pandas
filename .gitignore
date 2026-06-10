@@ -110,16 +110,6 @@ pandas/io/*.dat
 pandas/io/*.json
 scikits
 
-# Generated Sources #
-#####################
-!skts.c
-*.c
-*.cpp
-!pandas/_libs/src/**/*.c
-!pandas/_libs/src/**/*.cpp
-!pandas/_libs/src/**/*.h
-!pandas/_libs/include/**/*.h
-
 # Unit / Performance Testing #
 ##############################
 asv_bench/env/

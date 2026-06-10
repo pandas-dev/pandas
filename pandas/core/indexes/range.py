@@ -1364,7 +1364,7 @@ class RangeIndex(Index):
         return type(self)._simple_new(res, name=self._name)
 
     @unpack_zerodim_and_defer("__floordiv__")
-    def __floordiv__(self, other: object) -> Index:
+    def __floordiv__(self, other: object) -> Index:  # type: ignore[override]
         if is_integer(other) and other != 0:
             if len(self) == 0 or (self.start % other == 0 and self.step % other == 0):
                 start = self.start // other
@@ -1377,7 +1377,7 @@ class RangeIndex(Index):
                 new_range = range(start, start + 1, 1)
                 return self._simple_new(new_range, name=self._name)
 
-        return super().__floordiv__(other)  # type: ignore[no-untyped-call]
+        return super().__floordiv__(other)
 
     # --------------------------------------------------------------------
     # Reductions

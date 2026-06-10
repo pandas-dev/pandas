@@ -601,6 +601,24 @@ class TestSeriesDatetimeValues:
         expected = Series(["{2024}", "{2024}", "{2024}"])
         tm.assert_series_equal(result, expected)
 
+    def test_strftime_dt64_year_lt_1000(self):
+        # GH#58179, GH#64609 the directive-map fast path must zero-pad %Y to
+        #  a minimum of 4 digits for years < 1000, matching datetime.strftime
+        ser = Series(
+            np.array(
+                ["0005-06-15", "0099-01-01", "0999-12-31", "2024-03-02"],
+                dtype="M8[s]",
+            )
+        )
+        result = ser.dt.strftime("%Y")
+        expected = Series(["0005", "0099", "0999", "2024"])
+        tm.assert_series_equal(result, expected)
+
+        # composite format still routes through the directive-map fast path
+        result = ser.dt.strftime("%Y/%m/%d")
+        expected = Series(["0005/06/15", "0099/01/01", "0999/12/31", "2024/03/02"])
+        tm.assert_series_equal(result, expected)
+
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
         result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -629,6 +647,39 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.001",
                 "2013/01/01 00:00:00.002",
                 "2013/01/01 00:00:00.003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_capital_N(self):
+        # GH#65432 %N is the new directive for nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%N")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_lowercase_n_deprecated(self):
+        # GH#65432 %n collides with the POSIX newline directive; warn once
+        # per call regardless of array length, and still produce nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        msg = "The %n directive in Period.strftime is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%n")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
             ]
         )
         tm.assert_series_equal(result, expected)
