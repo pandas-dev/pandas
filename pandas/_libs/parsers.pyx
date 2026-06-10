@@ -1243,7 +1243,13 @@ cdef class TextReader:
         ):
             if self.dtype_backend == "pyarrow":
                 target = "arrow"
-            elif self.dtype_backend == "numpy" and using_string_dtype():
+            elif (
+                self.dtype_backend == "numpy"
+                and using_string_dtype()
+                # an ArrowStringArray result would be inconsistent with
+                # mode.string_storage="python"
+                and StringDtype(na_value=np.nan).storage == "pyarrow"
+            ):
                 target = "str_nan"
 
         if target:
@@ -1570,12 +1576,11 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
 
     For "str_nan" we use ``pa.large_string()`` (int64 offsets) to match
     StringDtype's pyarrow storage. For "arrow" we keep ``pa.string()`` (int32
-    offsets) to match the dtype_backend="pyarrow" convention — callers must
-    ensure the total byte size fits in 2GiB.
+    offsets) to match the dtype_backend="pyarrow" convention; raises
+    OverflowError if the column exceeds 2GiB.
     """
     import pyarrow as pa
 
-    from pandas.core.arrays.string_ import StringDtype
     from pandas.core.arrays.string_arrow import ArrowStringArray
     cdef:
         int na_count = 0
@@ -1688,6 +1693,14 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
             pa_type, lines, [None, offsets_buf, data_buf],
             null_count=0,
         )
+
+    # from_buffers does not validate UTF-8; fall back to the object path so
+    # malformed bytes raise UnicodeDecodeError as before.
+    try:
+        pa_arr.validate(full=True)
+    except pa.lib.ArrowInvalid:
+        return _string_box_utf8(parser, col, line_start, line_end,
+                                na_filter, na_hashset, b"strict")
 
     if target == "str_nan":
         return (
