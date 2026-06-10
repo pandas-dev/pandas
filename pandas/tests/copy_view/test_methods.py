@@ -1638,7 +1638,6 @@ def test_diff():
     result = ser.diff()
     assert result.index is not ser.index
 
-
 def test_column_series_index_setattr_does_not_mutate_parent():
     # GH#26119 replacing the index of a Series taken from a DataFrame column
     # must not change the DataFrame -- the symptom was that *re-accessing* the
@@ -1652,3 +1651,15 @@ def test_column_series_index_setattr_does_not_mutate_parent():
     tm.assert_index_equal(df.index, original)
     tm.assert_index_equal(df["a"].index, original)
     tm.assert_index_equal(df["b"].index, original)
+    
+def test_query_cow():
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    
+    df2 = df.query("a > 1")
+    
+    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
