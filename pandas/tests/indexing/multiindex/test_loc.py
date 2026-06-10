@@ -744,6 +744,22 @@ def test_getitem_str_slice():
     tm.assert_frame_equal(res, expected)
 
 
+def test_loc_all_scalar_key_duplicate_matches():
+    # GH#62926 an all-scalar nested-tuple key on a non-unique MultiIndex
+    # previously returned only the first matching row
+    mi = MultiIndex.from_tuples([(("a", "b"), 1), (("a", "b"), 1), (("c", "d"), 2)])
+    df = DataFrame({"col": [10, 20, 30]}, index=mi)
+
+    result = df.loc[(("a", "b"), 1), :]
+    expected = df.iloc[:2]
+    tm.assert_frame_equal(result, expected)
+
+    # a single match still reduces dimensionality
+    result = df.loc[(("c", "d"), 2), :]
+    expected = df.iloc[2]
+    tm.assert_series_equal(result, expected)
+
+
 def test_3levels_leading_period_index():
     # GH#24091
     pi = pd.PeriodIndex(

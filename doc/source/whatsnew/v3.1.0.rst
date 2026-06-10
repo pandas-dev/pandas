@@ -71,7 +71,7 @@ dropped, regardless of what other levels use (:issue:`10552`, :issue:`62926`).
 .. code-block:: python
 
     >>> df.loc[(1, slice(None)), :].index
-    Index(['a', 'b'], dtype='object', name='B')
+    Index(['a', 'b'], dtype='str', name='B')
 
 Code that previously called ``.droplevel()`` after such indexing operations
 may now need to be updated, as the level is already dropped.
@@ -286,6 +286,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` with a :class:`MultiIndex` where scalar-keyed levels were not dropped when other levels used slices or boolean masks (:issue:`10552`, :issue:`62926`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` with a non-unique :class:`MultiIndex` where an all-scalar tuple key matching multiple rows silently returned only the first match (:issue:`62926`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 -

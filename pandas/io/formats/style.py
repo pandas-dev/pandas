@@ -1961,7 +1961,7 @@ class Styler(StylerRenderer):
         **kwargs,
     ) -> Styler:
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
         if data.empty:
             result = DataFrame()
@@ -2282,7 +2282,7 @@ class Styler(StylerRenderer):
         func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         result = self.data.loc[subset].map(func)
         self._update_ctx(result)
         return self
@@ -3096,7 +3096,7 @@ class Styler(StylerRenderer):
                 subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             else:
                 subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
-            subset = non_reducing_slice(subset_)
+            subset = non_reducing_slice(subset_, self.data)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)
@@ -3974,7 +3974,7 @@ class Styler(StylerRenderer):
         .. figure:: ../../_static/style/hq_props.png
         """
         subset_ = slice(None) if subset is None else subset
-        subset_ = non_reducing_slice(subset_)
+        subset_ = non_reducing_slice(subset_, self.data)
         data = self.data.loc[subset_]
 
         # after quantile is found along axis, e.g. along rows,

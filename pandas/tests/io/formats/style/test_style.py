@@ -11,6 +11,7 @@ from pandas import (
     IndexSlice,
     MultiIndex,
     Series,
+    date_range,
     option_context,
 )
 import pandas._testing as tm
@@ -1455,6 +1456,25 @@ class TestStyler:
         # with lists to prevent level-dropping, so the result may have more
         # index/column levels than plain .loc. Compare values only.
         tm.assert_numpy_array_equal(result.values, expected.values)
+
+
+def test_subset_multiindex_partial_string():
+    # GH#62926 a partial date string in a MultiIndex subset tuple must stay
+    # scalar — wrapping it in a list would silently match fewer rows
+    dti = date_range("2016-01-01", periods=4, freq="12h")
+    mi = MultiIndex.from_product([dti, ["x", "y"]])
+    df = DataFrame(np.arange(16).reshape(8, 2), index=mi, columns=["c1", "c2"])
+
+    subset = (("2016-01-01", slice(None)), slice(None))
+    styler = df.style.map(lambda v: "color: red", subset=subset)
+    styler._compute()
+    assert len(styler.ctx) == 8  # 4 rows on 2016-01-01 x 2 columns
+
+    # an exact-match string is wrapped to keep its level
+    subset = (("2016-01-01 12:00:00", slice(None)), slice(None))
+    styler = df.style.map(lambda v: "color: red", subset=subset)
+    styler._compute()
+    assert len(styler.ctx) == 4  # 2 rows x 2 columns
 
 
 def test_hidden_index_names(mi_df):

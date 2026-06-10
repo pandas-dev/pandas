@@ -1223,7 +1223,7 @@ class StylerRenderer:
             return self  # clear the formatter / revert to default and avoid looping
 
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
 
         if not isinstance(formatter, dict):
@@ -2047,12 +2047,15 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
-def non_reducing_slice(slice_: Subset):
+def non_reducing_slice(slice_: Subset, obj: DataFrame | None = None):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
     Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
+
+    If `obj` is passed, it is used to recognize partial date strings in
+    MultiIndex tuple keys, which must stay scalar to keep matching.
     """
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
@@ -2076,7 +2079,20 @@ def non_reducing_slice(slice_: Subset):
         else:
             return isinstance(part, slice) or is_list_like(part)
 
-    def _wrap_mi_scalars(part):
+    def _is_partial_string(elem, axis_index, lev: int) -> bool:
+        if not isinstance(elem, str) or not isinstance(axis_index, MultiIndex):
+            return False
+        if lev >= axis_index.nlevels:
+            return False
+        level = axis_index.levels[lev]
+        if not level._supports_partial_string_indexing:
+            return False
+        try:
+            return not is_integer(level.get_loc(elem))
+        except KeyError:
+            return False
+
+    def _wrap_mi_scalars(part, axis_index):
         """
         For a MultiIndex tuple key that contains a mix of slices/lists and
         scalars, wrap the scalar elements in lists so that .loc doesn't
@@ -2085,8 +2101,12 @@ def non_reducing_slice(slice_: Subset):
         if not isinstance(part, tuple):
             return part
         new_parts = []
-        for elem in part:
+        for lev, elem in enumerate(part):
             if isinstance(elem, slice) or is_list_like(elem):
+                new_parts.append(elem)
+            elif _is_partial_string(elem, axis_index, lev):
+                # Partial date strings don't match through lists, and .loc
+                # keeps the level for a partial match, so leave them scalar.
                 new_parts.append(elem)
             else:
                 new_parts.append([elem])
@@ -2100,11 +2120,13 @@ def non_reducing_slice(slice_: Subset):
             # slice(a, b, c)
             slice_ = [slice_]  # to tuplize later
     else:
-        # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
-        # "__iter__" (not iterable) -> is specifically list_like in conditional
+        axes = obj.axes if obj is not None else []
+        # error: Argument 1 to "enumerate" has incompatible type
+        # "slice[Any, Any, Any] | Sequence[Any] | Index"; expected
+        # "Iterable[Any]" -> is specifically list_like in conditional
         slice_ = [
-            _wrap_mi_scalars(p) if pred(p) else [p]
-            for p in slice_  # type: ignore[union-attr]
+            _wrap_mi_scalars(p, axes[i] if i < len(axes) else None) if pred(p) else [p]
+            for i, p in enumerate(slice_)  # type: ignore[arg-type]
         ]
     return tuple(slice_)
 
