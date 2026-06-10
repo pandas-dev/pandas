@@ -173,7 +173,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if isinstance(pa_array, pa.Array):
             pa_array = pa.chunked_array([pa_array])
         return type(self)._simple_new(
-            pa.table({"0": pa_array}),
+            pa_array,
             ndim=1,
             dtype=self._dtype,  # type: ignore[arg-type]
         )
