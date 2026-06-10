@@ -9529,23 +9529,44 @@ class DataFrame(NDFrame, OpsMixin):
 
         other = ops.maybe_prepare_scalar_for_op(other, self.shape)
 
-        # GH#65805 capture original dtypes before alignment so columns that are
-        # exclusive to one frame don't silently upcast (e.g. UInt8 -> Float64)
-        # when reindex introduces an all-NA column with no dtype to inherit.
-        _orig_dtypes = None
-        # truediv always yields float, so don't restore integer dtypes for it
+        # GH#65805 An outer alignment introduces columns present in only one
+        # frame as all-NaN float64, dropping nullable ExtensionArray dtypes
+        # (unlike Series ops, which preserve the dtype when only the index is
+        # extended). Record the counterpart dtype of those EA-only columns so
+        # we can restore it after aligning; combined with fill_value this keeps
+        # the EA dtype in the result. truediv always yields float, so it is
+        # excluded.
+        _orig_dtypes: dict = {}
         if (
             fill_value is not None
             and isinstance(other, DataFrame)
             and op not in (operator.truediv, roperator.rtruediv)
         ):
-            _orig_dtypes = {}
-            for col, dt in self.dtypes.items():
-                if col not in other.columns:
-                    _orig_dtypes[col] = dt
-            for col, dt in other.dtypes.items():
-                if col not in self.columns:
-                    _orig_dtypes[col] = dt
+
+            def _ea_only(missing_cols, source_dtypes) -> dict:
+                # Under duplicate labels source_dtypes[col] is a Series, so
+                # restore only when the label maps to a single EA dtype.
+                restore = {}
+                for col in missing_cols:
+                    dtype = source_dtypes[col]
+                    if isinstance(dtype, ABCSeries):
+                        unique_dtypes = set(dtype)
+                        if len(unique_dtypes) == 1:
+                            dtype = unique_dtypes.pop()
+                        else:
+                            # duplicate label with differing dtypes: cannot
+                            # tell which to preserve, leave the float64 result
+                            continue
+                    if isinstance(dtype, ExtensionDtype):
+                        restore[col] = dtype
+                return restore
+
+            _orig_dtypes.update(
+                _ea_only(other.columns.difference(self.columns), other.dtypes)
+            )
+            _orig_dtypes.update(
+                _ea_only(self.columns.difference(other.columns), self.dtypes)
+            )
 
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
@@ -9565,31 +9586,24 @@ class DataFrame(NDFrame, OpsMixin):
 
         result = self._construct_result(new_data, other=other)
 
-        # GH#65805 restore the original extension dtype for columns that were
-        # exclusive to one frame and got upcast to float during alignment.
-        # Only do so when the cast back is lossless: a fractional fill_value
-        # (or op result) must not be silently truncated, so we round-trip and
-        # keep the restored dtype only if values are unchanged.
-        if _orig_dtypes:
-            from pandas.core.dtypes.common import is_extension_array_dtype
-
-            for col, dt in _orig_dtypes.items():
-                if not (
-                    col in result.columns
-                    and is_extension_array_dtype(dt)
-                    and result[col].dtype != dt
-                ):
-                    continue
-                original = result[col]
-                try:
-                    casted = original.astype(dt)
-                except (ValueError, TypeError):
-                    # values not castable to the target dtype at all
-                    continue
-                # verify lossless: round-trip back and compare, NA-aware
-                roundtrip = casted.astype(original.dtype)
-                if roundtrip.equals(original):
-                    result[col] = casted
+        # GH#65805 restore the recorded ExtensionArray dtype for the EA-only
+        # columns the alignment upcast to float. Only do so when the cast back
+        # is lossless: a fractional fill_value (or op result) must not be
+        # silently truncated, nor a negative value wrapped under an unsigned
+        # dtype, so we round-trip and keep the restored dtype only if the
+        # values are unchanged.
+        for col, dt in _orig_dtypes.items():
+            if col not in result.columns or result[col].dtype == dt:
+                continue
+            original = result[col]
+            try:
+                casted = original.astype(dt)
+            except (ValueError, TypeError):
+                # values not castable to the target dtype at all
+                continue
+            # verify lossless: round-trip back and compare, NA-aware
+            if casted.astype(original.dtype).equals(original):
+                result[col] = casted
 
         return result
 

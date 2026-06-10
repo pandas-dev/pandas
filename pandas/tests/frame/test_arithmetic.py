@@ -2447,3 +2447,22 @@ def test_flex_arith_fill_value_no_lossy_cast():
     # "b" is exclusive to right -> 2 + 0.5 = 2.5, cannot be UInt8 without loss
     assert result["b"].dtype == "Float64"
     assert result["b"].tolist() == [2.5, 2.5]
+
+
+def test_flex_arith_fill_value_duplicate_labels_differing_dtype():
+    # GH#65805 a column label that is duplicated with differing dtypes in the
+    # other frame cannot be unambiguously restored, so it stays float rather
+    # than guessing which dtype to inherit
+    left = DataFrame({"z": pd.array([9, 9], dtype="UInt8")})
+    right = DataFrame(
+        {
+            "_a": pd.array([1, 2], dtype="UInt8"),
+            "_b": pd.array([3, 4], dtype="UInt16"),
+        }
+    )
+    right.columns = ["x", "x"]
+    result = left.add(right, fill_value=0)
+    # "z" is exclusive to left and integer-valued -> restored to UInt8
+    assert result["z"].dtype == "UInt8"
+    # duplicate "x" labels with differing dtypes -> left as float
+    assert (result["x"].dtypes == "Float64").all()
