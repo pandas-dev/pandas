@@ -145,7 +145,7 @@ def astype_float_to_int_nansafe(
     """
     if not np.isfinite(values).all():
         raise IntCastingNaNError(
-            "Cannot convert non-finite values (NA or inf) to integer."
+            "Cannot convert non-finite values (NA or inf) to integer. "
             "Replace or remove non-finite values or cast to an integer type "
             "that supports these values (e.g. 'Int64')"
         )
