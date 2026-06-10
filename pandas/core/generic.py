@@ -6226,7 +6226,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self
 
     @final
-    @final
     def _pin_deprecated_group_name(self, key) -> None:
         """
         Pin the group key to the 'name' attribute and flag it so that user
@@ -6262,7 +6261,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             stacklevel=level,
         )
 
-    def __getattr__(self, name: str):
+    @final
+    def __getattr__(self, name: str) -> Any:
         """
         After regular attribute access, try looking up the name
         This allows simpler access to columns for interactive use.
