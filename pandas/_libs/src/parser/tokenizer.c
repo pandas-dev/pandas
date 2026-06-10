@@ -40,24 +40,29 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #  endif
 #endif
 
-// Portable count-trailing-zeros
-#ifdef _MSC_VER
-static __inline int _pandas_ctz(unsigned int mask) {
-  unsigned long index;
-  _BitScanForward(&index, mask);
-  return (int)index;
-}
+// Portable count-trailing-zeros, defined only for the architecture that
+// uses it: _pandas_ctzll for NEON (MSVC implies ARM64, where
+// _BitScanForward64 exists), _pandas_ctz for SSE2 (which includes 32-bit
+// MSVC, where _BitScanForward64 does not exist).
+#if defined(PANDAS_HAS_NEON)
+#  ifdef _MSC_VER
 static __inline int _pandas_ctzll(unsigned long long mask) {
   unsigned long index;
   _BitScanForward64(&index, mask);
   return (int)index;
 }
-#else
-#  if defined(PANDAS_HAS_SSE2)
-#    define _pandas_ctz(x) __builtin_ctz(x)
-#  endif
-#  if defined(PANDAS_HAS_NEON)
+#  else
 #    define _pandas_ctzll(x) __builtin_ctzll(x)
+#  endif
+#elif defined(PANDAS_HAS_SSE2)
+#  ifdef _MSC_VER
+static __inline int _pandas_ctz(unsigned int mask) {
+  unsigned long index;
+  _BitScanForward(&index, mask);
+  return (int)index;
+}
+#  else
+#    define _pandas_ctz(x) __builtin_ctz(x)
 #  endif
 #endif
 
@@ -777,9 +782,11 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const uint8x16_t vquote = (self->quoting != QUOTE_NONE)
                                 ? vdupq_n_u8((uint8_t)self->quotechar)
                                 : vterm;
+  // Fall back to vquote (not vterm) so the quoted-field scan is not
+  // broken by line terminators inside quoted fields.
   const uint8x16_t vescape = (self->escapechar != '\0')
                                  ? vdupq_n_u8((uint8_t)self->escapechar)
-                                 : vterm;
+                                 : vquote;
   const uint8x16_t vcomment = (self->commentchar != '\0')
                                   ? vdupq_n_u8((uint8_t)self->commentchar)
                                   : vterm;
@@ -791,9 +798,11 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const __m128i vquote = (self->quoting != QUOTE_NONE)
                              ? _mm_set1_epi8((char)self->quotechar)
                              : vterm;
+  // Fall back to vquote (not vterm) so the quoted-field scan is not
+  // broken by line terminators inside quoted fields.
   const __m128i vescape = (self->escapechar != '\0')
                               ? _mm_set1_epi8((char)self->escapechar)
-                              : vterm;
+                              : vquote;
   const __m128i vcomment = (self->commentchar != '\0')
                                ? _mm_set1_epi8((char)self->commentchar)
                                : vterm;

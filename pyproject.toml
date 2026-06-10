@@ -38,7 +38,6 @@ license-files = [
   "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
   "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
-  "LICENSES/XSIMD_LICENSE", # BSD-3-Clause
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
   "subprojects/fast_float-*/LICENSE-BOOST", # BSL
   "subprojects/fast_float-*/LICENSE-MIT", # MIT
