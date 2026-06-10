@@ -1160,7 +1160,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         >>> arr.searchsorted([4])
         array([3])
         """
-        if self._hasna:
+        ndarray = self._ndarray
+        if len(ndarray) and libmissing.checknull(ndarray[-1]):
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
