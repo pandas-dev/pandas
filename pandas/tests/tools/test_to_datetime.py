@@ -3191,8 +3191,7 @@ class TestDatetimeParsingWrappers:
         )
 
         depr_msg = "keyword in DatetimeIndex is deprecated"
-        warn = Pandas4Warning if dayfirst or yearfirst else None
-        with tm.assert_produces_warning(warn, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result4 = DatetimeIndex([date_str], dayfirst=dayfirst, yearfirst=yearfirst)[
                 0
             ]

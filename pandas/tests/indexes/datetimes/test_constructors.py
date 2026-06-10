@@ -1221,19 +1221,44 @@ class TestTimeSeries:
         expected2 = DatetimeIndex([yfirst])
         tm.assert_index_equal(result2, expected2)
 
-    @pytest.mark.parametrize(
-        "kwarg, val",
-        [
-            ("dayfirst", True),
-            ("yearfirst", True),
-            ("ambiguous", False),
-            ("ambiguous", True),
-            ("ambiguous", "infer"),
-            ("ambiguous", "NaT"),
-        ],
+
+@pytest.mark.parametrize(
+    "kwarg, val",
+    [
+        ("dayfirst", True),
+        ("dayfirst", False),
+        ("yearfirst", True),
+        ("yearfirst", False),
+        ("ambiguous", False),
+        ("ambiguous", True),
+        ("ambiguous", "infer"),
+        ("ambiguous", "NaT"),
+        ("ambiguous", "raise"),
+        ("ambiguous", np.array([True])),
+    ],
+)
+def test_dti_constructor_deprecated_keywords(kwarg, val):
+    # GH#55499 explicitly passing a keyword warns even with the default value
+    msg = f"The '{kwarg}' keyword in DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        DatetimeIndex(["2020-01-01"], **{kwarg: val})
+
+
+def test_dti_freq_validation_wall_time_dst():
+    # GH#55499 freq validation compares wall times, so wall-preserving freqs
+    #  spanning a DST transition validate without the ambiguous keyword
+    vals = DatetimeIndex(["2020-10-31 01:30", "2020-11-01 01:30"]).tz_localize(
+        "America/New_York", ambiguous=[False, False]
     )
-    def test_dti_constructor_deprecated_keywords(self, kwarg, val):
-        # GH#55499
-        msg = f"The '{kwarg}' keyword in DatetimeIndex is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            DatetimeIndex(["2020-01-01"], **{kwarg: val})
+
+    result = DatetimeIndex(vals, freq="D")
+    assert result.freq == "D"
+    tm.assert_numpy_array_equal(result.asi8, vals.asi8)
+
+    setter_result = vals.copy()
+    setter_result.freq = "D"
+    assert setter_result.freq == "D"
+
+    msg = "does not conform to passed frequency"
+    with pytest.raises(ValueError, match=msg):
+        DatetimeIndex(vals, freq="h")

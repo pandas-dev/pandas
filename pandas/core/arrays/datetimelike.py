@@ -1822,6 +1822,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
+        if getattr(index.dtype, "tz", None) is not None and not isinstance(freq, Tick):
+            # Non-tick offsets do wall-time arithmetic, so validate against
+            #  wall times; avoids raising on ambiguous/nonexistent times.
+            index = index.tz_localize(None)
+
         try:
             on_freq = cls._generate_range(
                 start=index[0],
