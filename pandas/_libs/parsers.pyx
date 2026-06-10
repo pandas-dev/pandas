@@ -1513,11 +1513,9 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            # Derive word length from adjacent word_starts entries; this keeps
-            # hit-heavy columns off any extra-cacheline read on the fast path,
-            # and avoids paying for a parallel word_lens array during parse.
-            # token_idx == -1 signals a missing field (word == ""), handled up
-            # front; for the last parsed token we fall through to stream_len.
+            # Token length from adjacent word_starts offsets (avoids strlen);
+            # token_idx == -1 means a missing field; the last token falls
+            # back to stream_len.
             if token_idx < 0:
                 word_len = 0
             elif <uint64_t>(token_idx + 1) < parser.words_len:
