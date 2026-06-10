@@ -19,10 +19,8 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
-    is_datetime64_any_dtype,
     is_object_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -276,7 +274,7 @@ def _coerce_to_na(values: ArrayLike, dtype: DtypeObj) -> ArrayLike:
 
     # numeric numpy dtypes
     if isinstance(dtype, np.dtype) and dtype.kind in "iufcb":
-        result = to_numeric(Series(flat), errors="coerce").to_numpy()
+        result = np.asarray(to_numeric(Series(flat), errors="coerce"))
         # If the target is an integer kind but NaNs are present, to_numeric
         # returns float64.
         if dtype.kind in "iu" and np.isnan(result).any():
@@ -287,14 +285,16 @@ def _coerce_to_na(values: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         except (ValueError, TypeError):
             return result.reshape(shape)  # float fallback
 
-    # datetime64
-    if is_datetime64_any_dtype(dtype):
-        result = to_datetime(Series(flat), errors="coerce").to_numpy().astype(dtype)
+    if lib.is_np_dtype(dtype, "M"):
+        result = to_datetime(Series(flat), errors="coerce")._values._ndarray.astype(
+            dtype
+        )
         return result.reshape(shape)
 
-    # timedelta64
-    if is_timedelta64_dtype(dtype):
-        result = to_timedelta(Series(flat), errors="coerce").to_numpy().astype(dtype)
+    if lib.is_np_dtype(dtype, "m"):
+        result = to_timedelta(Series(flat), errors="coerce")._values._ndarray.astype(
+            dtype
+        )
         return result.reshape(shape)
 
     # Determine the NA sentinel for the target dtype.
