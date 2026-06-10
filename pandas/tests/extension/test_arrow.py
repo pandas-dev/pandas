@@ -1568,9 +1568,10 @@ def test_astype_errors_ignore():
     tm.assert_frame_equal(result, expected)
 
 
-def test_astype_pyarrow_tznaive_to_tzaware():
+def test_astype_pyarrow_tznaive_to_tzaware(request):
     # GH#49281 tz-naive to tz-aware should use tz_localize semantics
     # (treat as wall times), not tz_localize("UTC").tz_convert(tz)
+    _require_timezone_database(request)
     ser = pd.Series(
         pd.date_range("2020-01-01", periods=3, freq="D"),
         dtype="timestamp[ns][pyarrow]",
