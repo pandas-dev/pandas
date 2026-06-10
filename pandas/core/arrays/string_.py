@@ -26,6 +26,7 @@ from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    PYPY,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -1099,7 +1100,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
-        if deep:
+        if deep and not PYPY:
+            # deep introspection relies on sys.getsizeof, which always
+            # raises TypeError on PyPy (GH#46176)
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
