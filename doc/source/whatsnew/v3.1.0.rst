@@ -14,6 +14,8 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+- :meth:`DataFrame.astype` and :meth:`Series.astype` now accept ``errors='coerce'``, which replaces unconvertible values with the appropriate NA sentinel (``NaN``, ``NaT``, or ``pd.NA``) instead of raising (:issue:`48781`)
+
 .. _whatsnew_310.enhancements.enhancement1:
 
 enhancement1

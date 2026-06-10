@@ -19,8 +19,10 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
+    is_datetime64_any_dtype,
     is_object_dtype,
     is_string_dtype,
+    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -37,7 +39,7 @@ if TYPE_CHECKING:
         ArrayLike,
         Dtype,
         DtypeObj,
-        IgnoreRaise,
+        IgnoreRaiseCoerce,
     )
 
     from pandas.core.arrays import ExtensionArray
@@ -193,7 +195,10 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
 
 def astype_array_safe(
-    values: ArrayLike, dtype: Dtype, copy: bool = False, errors: IgnoreRaise = "raise"
+    values: ArrayLike,
+    dtype: Dtype,
+    copy: bool = False,
+    errors: IgnoreRaiseCoerce = "raise",
 ) -> ArrayLike:
     """
     Cast array (ndarray or ExtensionArray) to the new dtype.
@@ -211,12 +216,14 @@ def astype_array_safe(
     errors : str, {'raise', 'ignore'}, default 'raise'
         - ``raise`` : allow exceptions to be raised
         - ``ignore`` : suppress exceptions. On error return original object
+        - ``coerce`` : on error, replace unconvertible values with the
+                       dtype's NA sentinel (NaN, NaT, or pd.NA)
 
     Returns
     -------
     ndarray or ExtensionArray
     """
-    errors_legal_values = ("raise", "ignore")
+    errors_legal_values = ("raise", "ignore", "coerce")
 
     if errors not in errors_legal_values:
         invalid_arg = (
@@ -244,10 +251,62 @@ def astype_array_safe(
         #  trying to convert to float
         if errors == "ignore":
             new_values = values
+        elif errors == "coerce":
+            return _coerce_to_na(values, dtype)
         else:
             raise
 
     return new_values
+
+
+def _coerce_to_na(values: ArrayLike, dtype: DtypeObj) -> ArrayLike:
+    """
+    Element-wise coerce: cast each value to ``dtype``; replace failures
+    with the dtype's NA sentinel.  Called only when a bulk astype has
+    already failed, so this is the intentional slow path.
+    """
+    from pandas.core.construction import array as pd_array
+    from pandas.core.series import Series
+    from pandas.core.tools.datetimes import to_datetime
+    from pandas.core.tools.numeric import to_numeric
+    from pandas.core.tools.timedeltas import to_timedelta
+
+    shape = values.shape
+    flat = values.ravel() if values.ndim == 2 else values
+
+    # numeric numpy dtypes
+    if isinstance(dtype, np.dtype) and dtype.kind in "iufcb":
+        result = to_numeric(Series(flat), errors="coerce").to_numpy()
+        # If the target is an integer kind but NaNs are present, to_numeric
+        # returns float64.
+        if dtype.kind in "iu" and np.isnan(result).any():
+            # Keep as float; caller should use a nullable Int dtype instead.
+            return result.reshape(shape)
+        try:
+            return result.astype(dtype).reshape(shape)
+        except (ValueError, TypeError):
+            return result.reshape(shape)  # float fallback
+
+    # datetime64
+    if is_datetime64_any_dtype(dtype):
+        result = to_datetime(Series(flat), errors="coerce").to_numpy().astype(dtype)
+        return result.reshape(shape)
+
+    # timedelta64
+    if is_timedelta64_dtype(dtype):
+        result = to_timedelta(Series(flat), errors="coerce").to_numpy().astype(dtype)
+        return result.reshape(shape)
+
+    # Determine the NA sentinel for the target dtype.
+    na_val = dtype.na_value if isinstance(dtype, ExtensionDtype) else np.nan
+    result_list = []
+    for val in flat:
+        try:
+            converted = pd_array([val], dtype=dtype)[0]
+        except (ValueError, TypeError):
+            converted = na_val
+        result_list.append(converted)
+    return pd_array(result_list, dtype=dtype)
 
 
 def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:

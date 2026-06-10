@@ -400,6 +400,7 @@ TakeIndexer: TypeAlias = Sequence[int] | Sequence[np.integer] | npt.NDArray[np.i
 
 # Shared by functions such as drop and astype
 IgnoreRaise: TypeAlias = Literal["ignore", "raise"]
+IgnoreRaiseCoerce: TypeAlias = Literal["ignore", "raise", "coerce"]
 
 # Windowing rank methods
 WindowingRankType: TypeAlias = Literal["average", "min", "max"]
