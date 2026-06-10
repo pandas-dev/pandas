@@ -44,6 +44,7 @@ from pandas._libs.tslibs.offsets import (
     MonthOffset,
     QuarterOffset,
     RelativeDeltaOffset,
+    SemiMonthBegin,
     SemiMonthOffset,
     Week,
     YearOffset,
@@ -706,8 +707,14 @@ def _base_freq_ordinal_diff(
         # timestamps are on the same phase.
         return (ts_left.toordinal() - ts_right.toordinal()) // 7
     elif isinstance(freq, SemiMonthOffset):
-        half_left = 1 if ts_left.day > freq.day_of_month else 0
-        half_right = 1 if ts_right.day > freq.day_of_month else 0
+        if isinstance(freq, SemiMonthBegin):
+            # anchor days are 1 and day_of_month (day_of_month >= 2)
+            half_left = 1 if ts_left.day >= freq.day_of_month else 0
+            half_right = 1 if ts_right.day >= freq.day_of_month else 0
+        else:
+            # SemiMonthEnd: anchor days are day_of_month and month-end
+            half_left = 1 if ts_left.day > freq.day_of_month else 0
+            half_right = 1 if ts_right.day > freq.day_of_month else 0
         return (ts_left.year * 24 + (ts_left.month - 1) * 2 + half_left) - (
             ts_right.year * 24 + (ts_right.month - 1) * 2 + half_right
         )
@@ -1199,17 +1206,24 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Note we are assuming away Ticks, as those go through _range_intersect.
         freq = self.freq
 
+        if freq.n < 0:
+            # Only reachable with len(self) == 1, where the monotonicity
+            #  check above is vacuous; `other` may be decreasing.
+            return False
+
         # Below here we need actual timestamp values; cache them once
         #  since __getitem__ is relatively expensive on DatetimeIndex.
         left_start = self[0]
         right_start = other[0]
 
         # GH#44025 For DatetimeIndex, both indices must share the same
-        #  time-of-day to guarantee alignment.  (TimedeltaIndex elements
-        #  are Timedelta, which have no time-of-day concept.)
+        #  wall-clock time-of-day to guarantee alignment, as non-Tick
+        #  offsets preserve wall time.  (TimedeltaIndex elements are
+        #  Timedelta, which have no time-of-day concept.)
         if isinstance(left_start, Timestamp):
-            if left_start - left_start.normalize() != (
-                right_start - right_start.normalize()
+            if (left_start.time(), left_start.nanosecond) != (
+                right_start.time(),
+                right_start.nanosecond,
             ):
                 return False
 
