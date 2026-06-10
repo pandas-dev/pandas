@@ -2342,21 +2342,30 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
                 unit = parse_timedelta_unit(unit)
-                if unit != "ns":
-                    # Return with the closest-to-supported unit by going through
-                    #  the timedelta64 path
-                    td = np.timedelta64(value, unit)
-                    return cls(td)
-                value = _numeric_to_td64ns(value, unit)
+                out_reso = (
+                    NPY_DATETIMEUNIT.NPY_FR_ns
+                    if unit == "ns"
+                    else NPY_DATETIMEUNIT.NPY_FR_us
+                )
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
 
         elif is_float_object(value):
-            int_item = int(value)
-            if value == int_item:
-                # round float -> treat like an int, try to preserve unit
-                return cls(int_item, unit=unit)
-
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
+
+            int_item = int(value)
+            if value == int_item:
+                # round float -> treat like an int
+                out_reso = (
+                    NPY_DATETIMEUNIT.NPY_FR_ns
+                    if unit == "ns"
+                    else NPY_DATETIMEUNIT.NPY_FR_us
+                )
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
+
+            # with fractional parts -> still default to nanoseconds
             value = _numeric_to_td64ns(value, unit)
 
         else:
