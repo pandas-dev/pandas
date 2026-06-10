@@ -1935,3 +1935,23 @@ def test_setitem_expansion_float64_holds_int_no_warning():
     with tm.assert_produces_warning(None):
         ser.loc[2] = 3
     assert ser.dtype == np.float64
+
+
+def test_setitem_expansion_complex_into_float_warns():
+    # GH#62369 complex is numeric but float64 cannot hold it losslessly,
+    #  so the dtype changes (with a warning) and the value is preserved
+    ser = Series([1.0, 2.0])
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = 1 + 2j
+    expected = Series([1.0, 2.0, 1 + 2j], dtype=np.complex128)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_expansion_float64_value_into_float32_warns():
+    # GH#62369 value does not fit in float32, so the dtype changes
+    #  (with a warning) and the value is preserved
+    ser = Series([1.0, 2.0], dtype=np.float32)
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = 1e300
+    expected = Series([1.0, 2.0, 1e300], dtype=np.float64)
+    tm.assert_series_equal(ser, expected)

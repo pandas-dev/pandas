@@ -1775,7 +1775,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
                 if isinstance(element, np.ndarray):
                     # e.g. TestDataFrameIndexingWhere::test_where_alignment
-                    casted = element.astype(dtype)
+                    with warnings.catch_warnings():
+                        # e.g. overflow RuntimeWarning from the cast
+                        warnings.filterwarnings("ignore")
+                        casted = element.astype(dtype)
                     if np.array_equal(casted, element, equal_nan=True):
                         return casted
                     raise LossySetitemError

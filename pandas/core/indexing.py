@@ -2922,7 +2922,6 @@ class _iLocIndexer(_LocationIndexer):
                 # GH#22717 handle casting compatibility that np.concatenate
                 #  does incorrectly
                 new_values = concat_compat([self.obj._values, new_values])
-
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
@@ -3642,12 +3641,19 @@ def infer_and_maybe_downcast(
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
 
+    # Note: warn_if_cast=False also disables the float/complex retention
+    #  below; the empty-DataFrame path relies on this so that placeholder
+    #  dtypes do not override the inferred dtype (GH#38521).
     if warn_if_cast and new_arr.dtype != dtype:
-        if is_np_dtype(dtype, "fc") and is_np_dtype(new_arr.dtype, "iufc"):
-            # _cast_pointwise_result may have inferred a narrower numeric
+        if (
+            is_np_dtype(dtype, "fc")
+            and is_np_dtype(new_arr.dtype, "iufc")
+            and can_hold_element(np.empty(0, dtype=dtype), new_arr)
+        ):
+            # _cast_pointwise_result may have inferred a different numeric
             # dtype (e.g. int64 from a float64 array with integer values).
-            # float/complex can hold int/float values losslessly, so retain
-            # the original dtype instead of warning.
+            # The original dtype can hold the new values losslessly, so
+            # retain it instead of warning.
             new_arr = new_arr.astype(dtype, copy=False)
         else:
             # PDEP6 exception: int/uint -> float when result contains NaN

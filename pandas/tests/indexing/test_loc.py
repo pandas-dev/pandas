@@ -3769,10 +3769,11 @@ def test_loc_setitem_expansion_incompatible_dtype_warns():
     assert df["b"].dtype == object
 
 
-def test_loc_setitem_expansion_empty_frame_no_warning():
+def test_loc_setitem_expansion_empty_frame_no_warning(using_infer_string):
     # GH#62369 placeholder dtypes of an empty frame are not meaningful,
     #  so no warning even though the dtype changes
     df = DataFrame({"a": Series([], dtype=np.float64)})
     with tm.assert_produces_warning(None):
         df.loc[0] = "x"
-    assert df["a"].dtype != np.float64
+    expected_dtype = "str" if using_infer_string else object
+    assert df["a"].dtype == expected_dtype
