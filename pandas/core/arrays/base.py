@@ -69,6 +69,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     duplicated,
     factorize_array,
+    is_monotonic,
     isin,
     map_array,
     mode,
@@ -101,6 +102,8 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
+        RankMethod,
+        RankNaOption,
         ScalarIndexer,
         SequenceIndexer,
         Shape,
@@ -1677,7 +1680,6 @@ class ExtensionArray:
         """
         if type(self) != type(other):
             return False
-        other = cast("ExtensionArray", other)
         if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
@@ -2751,23 +2753,27 @@ class ExtensionArray:
         """
         Return (is_monotonic_increasing, is_monotonic_decreasing).
 
-        Default implementation using ranks. Subclasses should override
-        ``_is_monotonic_increasing`` and ``_is_monotonic_decreasing``
-        instead of this method.
+        Default implementation using ``_values_for_argsort``. Subclasses
+        should override ``_is_monotonic_increasing`` and
+        ``_is_monotonic_decreasing`` instead of this method.
         """
-        try:
-            ranks = self._rank()
-        except TypeError:
+        if self._hasna:
             return False, False
-        inc, dec, _ = libalgos.is_monotonic(ranks, timelike=False)
-        return bool(inc), bool(dec)
+        try:
+            values = self._values_for_argsort()
+            inc, dec, _ = is_monotonic(values)
+        except TypeError:
+            # Either ``_values_for_argsort`` is not implemented or the dtype is
+            # not orderable by ``is_monotonic`` (e.g. complex).
+            return False, False
+        return inc, dec
 
     def _rank(
         self,
         *,
         axis: AxisInt = 0,
-        method: str = "average",
-        na_option: str = "keep",
+        method: RankMethod = "average",
+        na_option: RankNaOption = "keep",
         ascending: bool = True,
         pct: bool = False,
     ):

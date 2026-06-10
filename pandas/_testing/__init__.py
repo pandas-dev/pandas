@@ -8,6 +8,7 @@ from sys import byteorder
 import threading
 from typing import (
     TYPE_CHECKING,
+    Any,
     ContextManager,
 )
 
@@ -83,12 +84,18 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import (
+        Callable,
+        Iterable,
+        Sequence,
+    )
 
     from pandas._typing import (
         Dtype,
         NpDtype,
     )
+
+    from pandas.core.arrays import ExtensionArray
 
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
@@ -271,7 +278,7 @@ comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "
 # Comparators
 
 
-def box_expected(expected, box_cls, transpose: bool = True):
+def box_expected(expected: Any, box_cls: Any, transpose: bool = True) -> Any:
     """
     Helper function to wrap the expected output of a test in a given box_class.
 
@@ -312,7 +319,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
     return expected
 
 
-def to_array(obj):
+def to_array(obj: Any) -> ExtensionArray | np.ndarray:
     """
     Similar to pd.array, but does not cast numpy dtypes to nullable dtypes.
     """
@@ -329,7 +336,7 @@ class SubclassedSeries(Series):
     _metadata = ["testattr", "name"]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable:  # type: ignore[override]
         # For testing, those properties return a generic callable, and not
         # the actual class. In this case that is equivalent, but it is to
         # ensure we don't rely on the property returning a class
@@ -338,7 +345,7 @@ class SubclassedSeries(Series):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
     @property
-    def _constructor_expanddim(self):
+    def _constructor_expanddim(self) -> Callable:
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
 
@@ -346,12 +353,12 @@ class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Callable:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
     # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):  # type: ignore[override]
+    def _constructor_sliced(self) -> Callable:  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -394,7 +401,10 @@ def external_error_raised(expected_exception: type[Exception]) -> ContextManager
     return pytest.raises(expected_exception, match=None)
 
 
-def get_cython_table_params(ndframe, func_names_and_expected):
+def get_cython_table_params(
+    ndframe: DataFrame | Series,
+    func_names_and_expected: Iterable[Sequence[Any]],
+) -> list[tuple[DataFrame | Series, str, Any]]:
     """
     Combine frame, functions from com._cython_table
     keys and expected result.
@@ -446,27 +456,27 @@ def get_op_from_name(op_name: str) -> Callable:
 # Indexing test helpers
 
 
-def getitem(x):
+def getitem(x: Any) -> Any:
     return x
 
 
-def setitem(x):
+def setitem(x: Any) -> Any:
     return x
 
 
-def loc(x):
+def loc(x: Any) -> Any:
     return x.loc
 
 
-def iloc(x):
+def iloc(x: Any) -> Any:
     return x.iloc
 
 
-def at(x):
+def at(x: Any) -> Any:
     return x.at
 
 
-def iat(x):
+def iat(x: Any) -> Any:
     return x.iat
 
 
@@ -484,7 +494,7 @@ def get_finest_unit(left: str, right: str) -> str:
     return right
 
 
-def shares_memory(left, right) -> bool:
+def shares_memory(left: Any, right: Any) -> bool:
     """
     Pandas-compat for np.shares_memory.
     """
@@ -537,7 +547,12 @@ def shares_memory(left, right) -> bool:
     raise NotImplementedError(type(left), type(right))
 
 
-def run_multithreaded(closure, max_workers, arguments=None, pass_barrier=False):
+def run_multithreaded(
+    closure: Callable,
+    max_workers: int,
+    arguments: Iterable | None = None,
+    pass_barrier: bool = False,
+) -> None:
     with ThreadPoolExecutor(max_workers=max_workers) as tpe:
         if arguments is None:
             arguments = []
