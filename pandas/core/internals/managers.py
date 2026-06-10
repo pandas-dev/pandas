@@ -985,21 +985,11 @@ class BaseBlockManager(PandasObject):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
-                # GH#63288, GH#59529: when fill_value is None/np.nan,
-                # use the interleaved dtype of existing blocks to determine
-                # the actual dtype for the NA block.
-                if fill_value is None or fill_value is np.nan:
-                    na_block_dtype = interleaved_dtype(
-                        [blk.dtype for blk in self.blocks]
-                    )
-                else:
-                    na_block_dtype, _ = infer_dtype_from_scalar(fill_value)
+                na_dtype = na_fill = None
+                if not use_na_proxy:
+                    na_dtype, na_fill = self._na_block_dtype_and_fill(fill_value)
 
-                if (
-                    na_block_dtype is not None
-                    and is_1d_only_ea_dtype(na_block_dtype)
-                    and len(mgr_locs) > 1
-                ):
+                if is_1d_only_ea_dtype(na_dtype) and len(mgr_locs) > 1:
                     # Handle 1D-only extension dtypes by creating separate blocks
                     # (GH#63993)
                     placements = [BlockPlacement(col_idx) for col_idx in mgr_locs]
@@ -1009,8 +999,9 @@ class BaseBlockManager(PandasObject):
                 for placement in placements:
                     yield self._make_na_block(
                         placement=placement,
-                        fill_value=fill_value,
+                        fill_value=na_fill,
                         use_na_proxy=use_na_proxy,
+                        dtype=na_dtype,
                     )
             else:
                 blk = self.blocks[blkno]
@@ -1050,47 +1041,47 @@ class BaseBlockManager(PandasObject):
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
                         yield nb
 
+    def _na_block_dtype_and_fill(self, fill_value) -> tuple[DtypeObj, Any]:
+        """
+        Resolve the dtype and fill value for an all-NA block introduced
+        by reindexing.
+        """
+        if fill_value is None or fill_value is np.nan:
+            # GH#45857, GH#59529, GH#63288: preserve the common dtype of the
+            #  existing blocks when it can hold its own NA value, rather than
+            #  defaulting to np.nan which gives float64.
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+            if isinstance(dtype, CategoricalDtype):
+                # A new all-NA column should not inherit existing categories
+                dtype = None
+            if isinstance(dtype, ExtensionDtype) or (
+                dtype is not None and dtype.kind in "fmM"
+            ):
+                return dtype, na_value_for_dtype(dtype, compat=False)
+            fill_value = np.nan
+
+        return infer_dtype_from_scalar(fill_value)
+
     def _make_na_block(
-        self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
+        self,
+        placement: BlockPlacement,
+        fill_value=None,
+        use_na_proxy: bool = False,
+        dtype: DtypeObj | None = None,
     ) -> Block:
         # Note: we only get here with self.ndim == 2
 
+        shape = (len(placement), self.shape[1])
+
         if use_na_proxy:
             assert fill_value is None
-            shape = (len(placement), self.shape[1])
             vals = np.empty(shape, dtype=np.void)
             nb = NumpyBlock(vals, placement, ndim=2)
             return nb
 
-        shape = (len(placement), self.shape[1])
+        if dtype is None:
+            dtype, fill_value = self._na_block_dtype_and_fill(fill_value)
 
-        if fill_value is None or fill_value is np.nan:
-            # GH#45857, GH#63288, GH#59529: determine the appropriate NA
-            # value based on the existing block dtypes, rather than defaulting
-            # to np.nan which gives float64.
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            if dtype is not None:
-                if isinstance(dtype, ExtensionDtype):
-                    # For extension dtypes (ArrowDtype, nullable ints, etc.),
-                    # create the array directly since infer_dtype_from_scalar
-                    # won't preserve extension dtypes.
-                    fill_value = na_value_for_dtype(dtype, compat=False)
-                    block_values = make_na_array(dtype, shape, fill_value)
-                    return new_block_2d(block_values, placement=placement)
-                elif np.issubdtype(dtype.type, np.floating):
-                    # GH#45857: avoid float32 → float64 upcasting
-                    fill_value = dtype.type(np.nan)
-                elif lib.is_np_dtype(dtype, "mM"):
-                    # GH#59529: datetime64/timedelta64 should use NaT
-                    fill_value = na_value_for_dtype(dtype, compat=False)
-                    block_values = make_na_array(dtype, shape, fill_value)
-                    return new_block_2d(block_values, placement=placement)
-                else:
-                    fill_value = np.nan
-            else:
-                fill_value = np.nan
-
-        dtype, fill_value = infer_dtype_from_scalar(fill_value)
         block_values = make_na_array(dtype, shape, fill_value)
         return new_block_2d(block_values, placement=placement)
 

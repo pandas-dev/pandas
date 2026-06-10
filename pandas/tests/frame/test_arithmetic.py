@@ -1136,9 +1136,7 @@ class TestFrameArithmetic:
     def test_frame_with_frame_reindex_pyarrow_columns(self):
         # GH#63288 non-overlapping pyarrow columns should produce pd.NA,
         #  not NaN with float64 dtype
-        pa = import_optional_dependency("pyarrow", errors="ignore")
-        if pa is None:
-            pytest.skip("pyarrow not installed")
+        pytest.importorskip("pyarrow")
 
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
         df1 = df.iloc[:, :2].astype("int64[pyarrow]")

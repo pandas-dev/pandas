@@ -282,7 +282,7 @@ Numeric
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
-- Fixed bug where :class:`DataFrame` arithmetic with non-overlapping columns produced ``float64``/``NaN`` instead of preserving the original dtype with the appropriate NA value (e.g. ``NaT`` for datetime/timedelta, ``pd.NA`` for pyarrow/nullable dtypes) (:issue:`59529`, :issue:`63288`)
+- Fixed bug where :class:`DataFrame` arithmetic, :meth:`DataFrame.reindex`, and :meth:`DataFrame.align` cast newly-introduced all-NA columns to ``float64``/``NaN`` instead of preserving the existing dtype with its NA value (e.g. ``NaT`` for datetime/timedelta, ``pd.NA`` for pyarrow/nullable dtypes); the dtype is preserved when all existing columns share it (:issue:`59529`, :issue:`63288`)
 
 Conversion
 ^^^^^^^^^^
