@@ -202,9 +202,10 @@ static PyObject *get_values(PyObject *obj) {
     if (values == NULL) {
       // Clear so we can subsequently try another method
       PyErr_Clear();
-    } else if (PyObject_HasAttrString(values, "__array__")) {
-      // We may have gotten a Categorical or Sparse array so call np.array
-      PyObject *array_values = PyObject_CallMethod(values, "__array__", NULL);
+    } else if (PyObject_HasAttrString(values, "_values_for_json")) {
+      // We have gotten an ExtensionArray
+      PyObject *array_values =
+          PyObject_CallMethod(values, "_values_for_json", NULL);
       Py_DECREF(values);
       values = array_values;
     } else if (!PyArray_CheckExact(values)) {

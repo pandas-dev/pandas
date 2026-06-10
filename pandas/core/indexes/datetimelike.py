@@ -310,13 +310,24 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return False
         elif not isinstance(other, type(self)):
             if other.dtype == object:
+                # Use the cached inferred_type as a cheap pre-filter
+                inferred = other.inferred_type
+                compatible: tuple[str, ...]
+                if self.dtype.kind == "M":
+                    compatible = ("datetime", "datetime64", "date")
+                elif self.dtype.kind == "m":
+                    compatible = ("timedelta", "timedelta64")
+                else:
+                    compatible = ("period",)
+                if inferred not in compatible:
+                    return False
                 converted = lib.maybe_convert_objects(
                     np.asarray(other), convert_non_numeric=True
                 )
                 converted = ensure_wrapped_if_datetimelike(converted)
                 if isinstance(converted, type(self._data)):
                     other = type(self)._simple_new(converted)
-                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                elif self.dtype.kind == "M" and inferred == "date":
                     # GH#65056
                     warnings.warn(
                         "Inferring datetime64 from data containing "

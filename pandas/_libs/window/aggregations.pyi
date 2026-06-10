@@ -42,6 +42,21 @@ def roll_kurt(
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
 ) -> np.ndarray: ...  # np.ndarray[float]
+def roll_cov(
+    x: np.ndarray,  # const float64_t[:]
+    y: np.ndarray,  # const float64_t[:]
+    start: np.ndarray,  # np.ndarray[np.int64]
+    end: np.ndarray,  # np.ndarray[np.int64]
+    minp: int,  # int64_t
+    ddof: int = ...,
+) -> np.ndarray: ...  # np.ndarray[float]
+def roll_corr(
+    x: np.ndarray,  # const float64_t[:]
+    y: np.ndarray,  # const float64_t[:]
+    start: np.ndarray,  # np.ndarray[np.int64]
+    end: np.ndarray,  # np.ndarray[np.int64]
+    minp: int,  # int64_t
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_median_c(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
