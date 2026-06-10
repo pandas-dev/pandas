@@ -299,7 +299,6 @@ class TestDatetimeArrayComparisons:
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
         arr = dti._data
-        assert arr.freq == dti.freq
         assert arr.tz == dti.tz
 
         right = dti
@@ -478,11 +477,6 @@ class TestDatetimeArray:
         ts = pd.Timestamp("2000", tz="US/Eastern")
         arr[0] = ts
         assert arr[0] == ts.tz_convert("US/Central")
-
-    def test_setitem_clears_freq(self):
-        a = pd.date_range("2000", periods=2, freq="D", tz="US/Central")._data
-        a[0] = pd.Timestamp("2000", tz="US/Central")
-        assert a.freq is None
 
     @pytest.mark.parametrize(
         "obj",

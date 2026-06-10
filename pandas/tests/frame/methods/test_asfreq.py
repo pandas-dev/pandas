@@ -128,7 +128,9 @@ class TestAsFreq:
 
         # testing the settings before calling .asfreq() and .resample()
         assert obj.index.freq is None
-        assert obj.index.inferred_freq == "D"
+        msg = "A future version of pandas will return a BaseOffset"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert obj.index.inferred_freq == "D"
 
         # does .asfreq() set .freq correctly?
         assert obj.asfreq("D").index.freq == "D"

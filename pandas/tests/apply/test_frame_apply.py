@@ -155,6 +155,53 @@ def test_apply_axis1_with_ea():
     tm.assert_frame_equal(result, expected)
 
 
+def test_apply_axis1_ea_preserves_dtype():
+    # GH#61747 - row dtype should match the interleaved dtype, not object
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="Int64"),
+            "b": pd.array([4, 5, 6], dtype="Int64"),
+        }
+    )
+    result = df.apply(lambda row: row.dtype, axis=1)
+    expected = Series([pd.Int64Dtype()] * 3)
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_axis1_arrow_heterogeneous_dtypes():
+    # GH#65097 - columns of differing pyarrow types must not raise; each row
+    # is built as the upcast common dtype rather than the first column's type
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="int64[pyarrow]"),
+            "b": pd.array([1.5, 2.5, 3.5], dtype="float64[pyarrow]"),
+        }
+    )
+    row_dtypes = df.apply(lambda row: row.dtype, axis=1)
+    tm.assert_series_equal(row_dtypes, Series([pd.ArrowDtype(pa.float64())] * 3))
+
+    result = df.apply(lambda x: x.sum(), axis=1)
+    expected = Series([2.5, 4.5, 6.5])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_axis1_masked_heterogeneous_dtypes():
+    # GH#65097 - Int64 + Float64 columns build each row as the upcast Float64
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="Int64"),
+            "b": pd.array([1.5, 2.5, 3.5], dtype="Float64"),
+        }
+    )
+    row_dtypes = df.apply(lambda row: row.dtype, axis=1)
+    tm.assert_series_equal(row_dtypes, Series([pd.Float64Dtype()] * 3))
+
+    result = df.apply(lambda x: x.sum(), axis=1)
+    expected = Series([2.5, 4.5, 6.5])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [(1, None), (1, CategoricalDtype([1])), (Timestamp("2013-01-01", tz="UTC"), None)],
@@ -1311,6 +1358,45 @@ def test_agg_multiple_mixed():
     # GH40420: the result of .agg should have an index that is sorted
     # according to the arguments provided to agg.
     expected = expected[["C", "B", "A"]].reindex(["sum", "min"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_numeric_only_column_order():
+    # GH#65218
+    mdf = DataFrame(
+        {
+            "A": [1, 2, 3],
+            "C": ["foo", "bar", "baz"],
+            "B": [1.0, 2.0, 3.0],
+        }
+    )
+    expected = DataFrame(
+        {"A": [6.0, 2.0], "B": [6.0, 2.0]},
+        index=["sum", "mean"],
+    )
+    result = mdf.agg(["sum", "mean"], numeric_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_numeric_only_all_non_numeric():
+    # GH#65218
+    mdf = DataFrame({"C": ["foo", "bar", "baz"], "D": ["a", "b", "c"]})
+    expected = DataFrame(index=["sum", "mean"], columns=mdf.columns[:0])
+    result = mdf.agg(["sum", "mean"], numeric_only=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_multiple_mixed_bool_only():
+    # GH#65218
+    mdf = DataFrame(
+        {
+            "A": [True, False, True],
+            "B": [1, 2, 3],
+            "C": ["foo", "bar", "baz"],
+        }
+    )
+    expected = DataFrame({"A": [True, False]}, index=["any", "all"])
+    result = mdf.agg(["any", "all"], bool_only=True)
     tm.assert_frame_equal(result, expected)
 
 

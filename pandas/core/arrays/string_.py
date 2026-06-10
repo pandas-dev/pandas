@@ -9,6 +9,7 @@ from typing import (
     Literal,
     Self,
     cast,
+    overload,
 )
 import warnings
 
@@ -597,7 +598,13 @@ class BaseStringArray(ExtensionArray):
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
-    def view(self, dtype: Dtype | None = None) -> Self:
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         if dtype is not None:
             raise TypeError("Cannot change data-type for string array.")
         return super().view()
@@ -770,7 +777,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(
+                result, copy=copy, convert_na_value=False, skipna=False
+            )
             result[na_values] = na_value
 
         else:

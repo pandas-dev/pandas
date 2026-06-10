@@ -355,6 +355,39 @@ def test_nullable_int_not_cast_as_float(method, dtype, val):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("cumprod", [2, pd.NA, 8]),
+        ("cummin", [2, pd.NA, 2]),
+        ("cummax", [2, pd.NA, 4]),
+    ],
+)
+def test_nullable_int_dtype_preserved_with_na_group_key(method, expected_values):
+    # GH#65550
+    df = DataFrame({"key": ["a", None, "a"], "val": Series([2, 3, 4], dtype="Int64")})
+    gb = df.groupby("key")["val"]
+
+    result = getattr(gb, method)()
+    expected = Series(expected_values, dtype="Int64", name="val")
+    tm.assert_series_equal(result, expected)
+
+
+def test_cumprod_nullable_int_no_precision_loss_with_na_group_key():
+    # GH#65550
+    df = DataFrame(
+        {
+            "key": ["a", pd.NA],
+            "val": pd.array([9007199254740993, 0], dtype="Int64"),
+        }
+    )
+    gb = df.groupby("key")["val"]
+
+    result = gb.cumprod()
+    expected = Series([9007199254740993, pd.NA], dtype="Int64", name="val")
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_api2(as_index):
     # this takes the fast apply path
 
