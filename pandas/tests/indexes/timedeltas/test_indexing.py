@@ -338,30 +338,30 @@ class TestStringSliceResolution:
     """Tests for GH#33603 - string resolution for TimedeltaIndex slicing."""
 
     def test_string_slice_reso_seconds_not_minutes(self):
-        # GH#33603 - "720s" should have second resolution, not minute
-        # even though 720s = 12 minutes exactly
+        # GH#33603 - "720s" should have second resolution, not minute,
+        #  even though 720s = 12 minutes exactly
         tdi = timedelta_range("710s", "721s", freq="s")
         df = DataFrame({"dummy": np.arange(len(tdi))}, index=tdi)
 
         result = df["710s":"720s"]
-        expected = df[Timedelta("710s") : Timedelta("720s") + Timedelta("999999us")]
+        expected = df[(df.index >= Timedelta("710s")) & (df.index < Timedelta("721s"))]
         tm.assert_frame_equal(result, expected)
 
     def test_string_slice_reso_value_not_elevated(self):
-        # GH#33603 - "60s" should have second resolution, not minute
-        # "3600s" should have second resolution, not hour
+        # GH#33603 - "60s" should have second resolution, not minute;
+        #  "3600s" should have second resolution, not hour
         tdi = timedelta_range("0s", "7200s", freq="100ms")
         ser = Series(np.arange(len(tdi)), index=tdi)
 
-        result_60 = ser["59s":"60s"]
-        expected_60 = ser[Timedelta("59s") : Timedelta("60s") + Timedelta("999999us")]
-        tm.assert_series_equal(result_60, expected_60)
+        result = ser["59s":"60s"]
+        expected = ser[(ser.index >= Timedelta("59s")) & (ser.index < Timedelta("61s"))]
+        tm.assert_series_equal(result, expected)
 
-        result_3600 = ser["3599s":"3600s"]
-        expected_3600 = ser[
-            Timedelta("3599s") : Timedelta("3600s") + Timedelta("999999us")
+        result = ser["3599s":"3600s"]
+        expected = ser[
+            (ser.index >= Timedelta("3599s")) & (ser.index < Timedelta("3601s"))
         ]
-        tm.assert_series_equal(result_3600, expected_3600)
+        tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_day_with_zero_hours(self):
         # GH#33603 - "2D 0 hours" should have hour resolution, not day
@@ -369,65 +369,59 @@ class TestStringSliceResolution:
             np.arange(100),
             index=timedelta_range("1 days", periods=100, freq="h"),
         )
-        str_count = len(ser[:"2D 0 hours"])
-        td_count = (ser.index <= Timedelta("2D 0 hours")).sum()
-        # With hour resolution, the upper bound is 2D 0h 59min 59.999999s,
-        # so str_count should equal td_count (both include only up to 2D 0h)
-        assert str_count == td_count
+        result = ser[:"2D 0 hours"]
+        expected = ser[ser.index < Timedelta("2D 1h")]
+        tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_120s_not_minutes(self):
-        # GH#33603 - "120s" should have second resolution, not minute
-        # even though 120s = 2 minutes exactly
+        # GH#33603 - "120s" should have second resolution, not minute,
+        #  even though 120s = 2 minutes exactly
         tdi = timedelta_range("115s", "125s", freq="100ms")
         ser = Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"120s"]
-        expected = ser.loc[: Timedelta("120s") + Timedelta("999999us")]
+        expected = ser[ser.index < Timedelta("121s")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_units_out_of_order(self):
+        # GH#33603 - the finest unit in the string determines the resolution,
+        #  regardless of the order the units appear in
+        tdi = timedelta_range("115s", "200s", freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"120s 0 days"]
+        expected = ser[ser.index < Timedelta("121s")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_2000ms_not_seconds(self):
-        # GH#33603 - "2000ms" should have ms resolution, not second
-        # even though 2000ms = 2s exactly
+        # GH#33603 - "2000ms" should have millisecond resolution, not second,
+        #  even though 2000ms = 2s exactly
         tdi = timedelta_range("1900ms", "2100ms", freq="100us")
         ser = Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"2000ms"]
-        assert result.index[-1] <= Timedelta("2000ms") + Timedelta("999us")
-        assert result.index[-1] >= Timedelta("2000ms")
+        expected = ser[ser.index < Timedelta("2001ms")]
+        tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_hh_mm_ss_exact_hour(self):
-        # GH#33603 - "1:00:00" should have second resolution, not hour
-        # even though it is exactly 1 hour
+        # GH#33603 - "1:00:00" should have second resolution, not hour,
+        #  even though it is exactly 1 hour
         tdi = timedelta_range("0:59:55", periods=200, freq="100ms")
         ser = Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"1:00:00"]
-        assert result.index[-1] <= Timedelta("1:00:00.999999")
-        assert result.index[-1] >= Timedelta("1:00:00")
+        expected = ser[ser.index < Timedelta("1:00:01")]
+        tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_hh_mm_ss_exact_minute(self):
-        # GH#33603 - "1:01:00" should have second resolution, not minute
-        # even though the seconds component is zero
+        # GH#33603 - "1:01:00" should have second resolution, not minute,
+        #  even though the seconds component is zero
         tdi = timedelta_range("1:00:55", periods=200, freq="100ms")
         ser = Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"1:01:00"]
-        assert result.index[-1] <= Timedelta("1:01:00.999999")
-        assert result.index[-1] >= Timedelta("1:01:00")
-
-    def test_parsed_string_to_bounds_uses_reso(self):
-        # Verify _parsed_string_to_bounds uses the reso parameter
-        tdi = timedelta_range("0s", "1000s", freq="100ms")
-
-        parsed, reso = tdi._parse_with_reso("720s")
-        lower, upper = tdi._parsed_string_to_bounds(reso, parsed)
-        assert lower == Timedelta("720s")
-        assert upper == Timedelta("720s") + Timedelta("999999us")
-
-        parsed_60, reso_60 = tdi._parse_with_reso("60s")
-        lower_60, upper_60 = tdi._parsed_string_to_bounds(reso_60, parsed_60)
-        assert lower_60 == Timedelta("60s")
-        assert upper_60 == Timedelta("60s") + Timedelta("999999us")
+        expected = ser[ser.index < Timedelta("1:01:01")]
+        tm.assert_series_equal(result, expected)
 
 
 class TestContains:

@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.timedeltas import parse_timedelta_unit
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -171,15 +172,15 @@ def _get_timedelta_string_reso(label: str) -> Resolution:
     # TODO(4.0): Remove once deprecated unit aliases in parse_timedelta_unit
     #  are enforced (e.g. "S" -> "s", "H" -> "h").
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
+        warnings.simplefilter("ignore", Pandas4Warning)
         for unit_str in units:
             try:
                 canonical = parse_timedelta_unit(unit_str)
             except ValueError:
                 continue
-        reso = _td_abbrev_to_reso(canonical)
-        if reso < finest:
-            finest = reso
+            reso = _td_abbrev_to_reso(canonical)
+            if reso < finest:
+                finest = reso
 
     return finest
 
