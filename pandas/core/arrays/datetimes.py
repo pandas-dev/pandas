@@ -1191,13 +1191,16 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
-        dt64_values = new_values.view(self._ndarray.dtype)
-
-        dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
+        dta = self._normalize_naive()
         if self.tz is not None:
             dta = dta.tz_localize(self.tz)
         return dta
+
+    def _normalize_naive(self) -> Self:
+        """Normalize times to midnight, ignoring the timezone."""
+        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
+        dt64_values = new_values.view(self._ndarray.dtype)
+        return type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
 
     def to_period(self, freq=None) -> PeriodArray:
         """
@@ -1261,7 +1264,7 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.inferred_freq
+            freq = self._inferred_freq_str
 
             if freq is None:
                 raise ValueError(
@@ -3175,7 +3178,9 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     start = Timestamp(start)  # type: ignore[arg-type]
-    if start is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if start is not NaT:  # type: ignore[comparison-overlap]
         start = start.as_unit(unit)
     else:
         start = None
@@ -3183,7 +3188,9 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
-    if end is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if end is not NaT:  # type: ignore[comparison-overlap]
         end = end.as_unit(unit)
     else:
         end = None

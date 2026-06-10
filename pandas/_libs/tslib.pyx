@@ -115,7 +115,9 @@ def _test_parse_iso8601(ts: str):
 
 
 _STRFTIME_FORMAT_MAP = {
-    "%Y": "{0}",
+    # %Y is zero-padded to a minimum of 4 digits to match datetime.strftime
+    #  (and Timestamp.strftime) for years < 1000; see GH#58179.
+    "%Y": "{0:04d}",
     "%m": "{1:02d}",
     "%d": "{2:02d}",
     "%H": "{3:02d}",
