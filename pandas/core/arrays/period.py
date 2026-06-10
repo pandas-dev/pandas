@@ -1562,14 +1562,14 @@ def _range_from_fields(
         length = len(years)
         ones = np.ones(length, dtype=np.int64)
         zeros = np.zeros(length, dtype=np.int64)
-        ordinals, _ = libperiod.period_ordinals_from_fields(
+        ordinals = libperiod.period_ordinals_from_fields(
             years, months, ones, zeros, zeros, zeros, base
         )
     else:
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        ordinals, _ = libperiod.period_ordinals_from_fields(
+        ordinals = libperiod.period_ordinals_from_fields(
             arrays[0].astype(np.int64, copy=False),
             arrays[1].astype(np.int64, copy=False),
             arrays[2].astype(np.int64, copy=False),

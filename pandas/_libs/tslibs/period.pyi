@@ -39,8 +39,7 @@ def period_ordinals_from_fields(
     minutes: npt.NDArray[np.int64],
     seconds: npt.NDArray[np.int64],
     freq: int,
-    validate: bool = ...,
-) -> tuple[npt.NDArray[np.int64], int]: ...
+) -> npt.NDArray[np.int64]: ...
 def from_calendar_ordinals(
     values: npt.NDArray[np.int64],  # const int64_t[:]
     dtype: PeriodDtypeBase,

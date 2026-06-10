@@ -1525,7 +1525,6 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-@cython.cdivision(False)
 def period_ordinals_from_fields(
     const int64_t[:] years,
     const int64_t[:] months,
@@ -1534,7 +1533,6 @@ def period_ordinals_from_fields(
     const int64_t[:] minutes,
     const int64_t[:] seconds,
     int freq,
-    bint validate=False,
 ):
     """
     Vectorized version of period_ordinal: convert arrays of date/time fields
@@ -1544,36 +1542,19 @@ def period_ordinals_from_fields(
     ----------
     years, months, days, hours, minutes, seconds : int64 arrays
     freq : int
-    validate : bool, default False
-        If True, check each date for validity (month 1-12, day 1-N).
-        Invalid entries get NPY_NAT.
 
     Returns
     -------
-    (ndarray[int64], int)
-        The ordinals array, and the index of the first invalid entry
-        (-1 if all entries are valid or validate is False).
+    ndarray[int64]
     """
     cdef:
         Py_ssize_t i, n = len(years)
         int64_t[::1] result = np.empty(n, dtype="i8")
         npy_datetimestruct dts
-        int64_t month, day
-        Py_ssize_t first_invalid = -1
 
     memset(&dts, 0, sizeof(npy_datetimestruct))
 
     for i in range(n):
-        if validate:
-            month = months[i]
-            day = days[i]
-            if month < 1 or month > 12 or day < 1 or \
-                    day > get_days_in_month(<int>years[i], month):
-                result[i] = NPY_NAT
-                if first_invalid == -1:
-                    first_invalid = i
-                continue
-
         dts.year = years[i]
         dts.month = months[i]
         dts.day = days[i]
@@ -1582,7 +1563,7 @@ def period_ordinals_from_fields(
         dts.sec = seconds[i]
         result[i] = get_period_ordinal(&dts, freq)
 
-    return result.base, first_invalid
+    return result.base
 
 
 @cython.wraparound(False)
