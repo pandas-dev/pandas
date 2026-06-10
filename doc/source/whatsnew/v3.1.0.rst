@@ -301,6 +301,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`DataFrame.loc` where setting a scalar column with a :class:`DataFrame` value failed to align indices properly (:issue:`58482`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` replacing the index name with the key's name when indexing with an :class:`Index` (:issue:`17110`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row on a :class:`DataFrame` with no columns and the label is not in the index (:issue:`17895`)
 - Bug in :meth:`DataFrame.loc` returning incorrect dtype when the column key is a ``slice`` (:issue:`63071`)
