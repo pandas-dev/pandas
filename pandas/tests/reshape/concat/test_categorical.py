@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import numpy as np
+import pytest
 
 from pandas.errors import Pandas4Warning
 
@@ -340,8 +341,36 @@ class TestConcatUnionCategories:
         # Ordered categoricals with different categories should raise
         s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
         s2 = Series(Categorical(["b", "c"], categories=["b", "c"], ordered=True))
-        with tm.external_error_raised(TypeError):
+        msg = "to union ordered Categoricals, all categories must be the same"
+        with pytest.raises(TypeError, match=msg):
             pd.concat([s1, s2], ignore_index=True, union_categories=True)
+
+    def test_mixed_ordered_unordered_raises(self):
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+        s2 = Series(Categorical(["a", "b"], categories=["a", "b"]))
+        msg = "Categorical.ordered must be the same"
+        with pytest.raises(TypeError, match=msg):
+            pd.concat([s1, s2], ignore_index=True, union_categories=True)
+
+    def test_incompatible_category_dtypes_raises(self):
+        # With union_categories=True, categoricals whose categories have
+        # different dtypes raise instead of falling back to object
+        s1 = Series(Categorical(["a", "b"]))
+        s2 = Series(Categorical([1, 2]))
+        msg = "dtype of categories must be the same"
+        with pytest.raises(TypeError, match=msg):
+            pd.concat([s1, s2], ignore_index=True, union_categories=True)
+
+    def test_dataframe_column_missing_from_one_frame(self):
+        # Column present in only one frame still keeps categorical dtype,
+        # with NaN for the missing rows
+        df1 = DataFrame({"x": Categorical(["a", "b"]), "y": [1, 2]})
+        df2 = DataFrame({"y": [3]})
+        result = pd.concat([df1, df2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", np.nan], categories=["a", "b"]), name="x"
+        )
+        tm.assert_series_equal(result["x"], expected)
 
     def test_integer_categories(self):
         s1 = Series(Categorical([1, 2], categories=[1, 2]))

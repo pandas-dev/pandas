@@ -80,8 +80,10 @@ def concat_compat(
     -------
     a single array, preserving the combined dtypes
     """
-    if union_categories and all(
-        isinstance(x.dtype, CategoricalDtype) for x in to_concat
+    if (
+        union_categories
+        and len(to_concat)
+        and all(isinstance(x.dtype, CategoricalDtype) for x in to_concat)
     ):
         eas = cast("Sequence[ExtensionArray]", to_concat)
         return eas[0]._concat_same_type(eas)
