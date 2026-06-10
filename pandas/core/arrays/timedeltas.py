@@ -449,12 +449,13 @@ class TimedeltaArray(dtl.TimelikeOps):
             i8 = np.where(self_mask, 0, i8)
         f_result = i8 * other
         nan_mask = np.isnan(f_result)
-        finite = f_result[~nan_mask]
+        non_nan = f_result[~nan_mask]
         # Compare against 2**63 rather than i8max: i8max (2**63 - 1) is not
         #  exactly representable in float64 and rounds up to 2**63, so a product
         #  that lands exactly on 2**63 (e.g. (2**62) * 2.0) would otherwise slip
-        #  past the check and silently saturate on the i8 cast below.
-        if finite.size and np.max(np.abs(finite), initial=0.0) >= 2.0**63:
+        #  past the check and silently saturate on the i8 cast below. Also
+        #  catches +/-inf products.
+        if non_nan.size and np.max(np.abs(non_nan), initial=0.0) >= 2.0**63:
             raise OverflowError("Overflow in timedelta multiplication")
         # NaN-to-int cast is platform-dependent; substitute 0 then re-mask as NaT
         if nan_mask.any():
@@ -476,9 +477,9 @@ class TimedeltaArray(dtl.TimelikeOps):
                 )
             if lib.is_integer(other):
                 # GH#43178: detect int64 overflow rather than silently wrapping.
-                #  A multiplier above int64.max (e.g. a large np.uint64) would
-                #  wrap to a negative value in the i8 cast below.
-                if other > lib.i8max:
+                #  A multiplier outside int64 bounds (e.g. a large np.uint64)
+                #  would wrap in the i8 cast below.
+                if other > lib.i8max or other < -lib.i8max - 1:
                     raise OverflowError("Overflow in int64 multiplication")
                 i8_result = mul_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
                 result = i8_result.view(self._ndarray.dtype)

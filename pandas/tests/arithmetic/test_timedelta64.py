@@ -1573,6 +1573,18 @@ class TestTimedeltaArraylikeMulDivOps:
             tdi * np.array([2**63 + 5, 2**63 + 5], dtype="u8")
         with pytest.raises(OverflowError, match=msg):
             tdi * (2**63 + 5)
+        with pytest.raises(OverflowError, match=msg):
+            tdi * (-(2**63) - 5)
+
+    def test_td64arr_mul_int_min_boundary(self, box_with_array):
+        # GH#43178: a product landing exactly on int64.min would be
+        #  misinterpreted as iNaT; it must raise, not silently return NaT
+        tdi = TimedeltaIndex([Timedelta(-(2**62), "ns"), Timedelta(-(2**62), "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OverflowError, match=msg):
+            tdi * 2
 
     def test_td64arr_mul_float_overflow(self, box_with_array):
         # GH#43178: float multiplication on timedelta64[ns] used to silently
@@ -1600,6 +1612,28 @@ class TestTimedeltaArraylikeMulDivOps:
         msg = "Overflow in timedelta multiplication"
         with pytest.raises(OverflowError, match=msg):
             tdi * 2.0
+
+    def test_td64arr_mul_inf_raises(self, box_with_array):
+        # GH#43178: multiplying by inf raises (matching scalar Timedelta)
+        #  instead of returning NaT as numpy does
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(1, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta multiplication"
+        with pytest.raises(OverflowError, match=msg):
+            tdi * np.inf
+        with pytest.raises(OverflowError, match=msg):
+            tdi * -np.inf
+
+    def test_td64arr_mul_nan_returns_nat(self, box_with_array):
+        # GH#43178: nan multiplier still gives NaT through the new float path
+        tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(2, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex([NaT, NaT], dtype="m8[ns]")
+        expected = tm.box_expected(expected, box_with_array)
+
+        tm.assert_equal(tdi * np.nan, expected)
 
     def test_td64arr_mul_preserves_nat(self, box_with_array):
         # GH#43178: NaT is preserved (not corrupted) through the overflow-safe
