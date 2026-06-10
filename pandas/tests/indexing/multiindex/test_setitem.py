@@ -508,6 +508,24 @@ class TestMultiIndexSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_series_flat_index_of_tuples(self):
+        # GH#22493: a flat Index of tuples equal to the target MultiIndex
+        # must still take the exact-match fast path, not level alignment
+        idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        flat = pd.Index(list(idx), tupleize_cols=False)
+        df.loc[:, "c1"] = Series([-9, -8, -7, -6], index=flat)
+        expected = DataFrame(
+            [[-9, 1], [-8, 3], [-7, 5], [-6, 7]],
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_full_slice_flat_value_broadcasts(self):
         # GH#22493 - a flat-indexed value assigned across the full MultiIndex
         # (not a partial key) aligns on the innermost level and broadcasts

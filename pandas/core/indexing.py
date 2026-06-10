@@ -3047,22 +3047,18 @@ class _iLocIndexer(_LocationIndexer):
                     new_ix = ax[idx]
                     if not is_list_like_indexer(new_ix):
                         new_ix = Index([new_ix])
-                    # GH#22493: align a flat-indexed value against the
-                    # innermost level of a MultiIndexed target.  Fires for a
-                    # partial key (e.g. df.loc['a1'] = val) and, more broadly,
-                    # for any flat-indexed value assigned to a MultiIndexed
-                    # target (list keys, boolean masks, df.loc[:]), aligning
-                    # on / broadcasting across the innermost level rather than
-                    # reindexing the flat index against the full MultiIndex.
-                    elif isinstance(new_ix, MultiIndex) and not isinstance(
-                        ser.index, MultiIndex
-                    ):
-                        # value is flat, so keep only the innermost level
-                        new_ix = new_ix.droplevel(list(range(new_ix.nlevels - 1)))
-                    else:
+                    elif not isinstance(new_ix, MultiIndex):
+                        # Index(MultiIndex) would flatten to an Index of tuples
                         new_ix = Index(new_ix)
                     if not len(new_ix) or ser.index.equals(new_ix):
                         return ser._values
+
+                    # GH#22493: flat-indexed value assigned to a MultiIndexed
+                    # target; align against the innermost level
+                    if isinstance(new_ix, MultiIndex) and not isinstance(
+                        ser.index, MultiIndex
+                    ):
+                        new_ix = new_ix.droplevel(list(range(new_ix.nlevels - 1)))
 
                     return ser.reindex(new_ix)._values
 
