@@ -242,10 +242,12 @@ def assert_index_equal(
         Whether to check the ``freq`` attribute on a DatetimeIndex or
         TimedeltaIndex.
 
+        .. versionadded:: 3.1.0
+
         .. deprecated:: 3.1.0
-            The default value of True will be enforced in a future version.
-            Pass ``check_freq=True`` or ``check_freq=False`` explicitly to
-            silence this warning.
+            Currently a ``freq`` mismatch only warns; in a future version
+            ``check_freq=True`` will be the default and mismatches will
+            raise. Pass ``check_freq`` explicitly to silence the warning.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -429,21 +431,21 @@ def assert_index_equal(
             cast("IntervalArray", right._values),
         )
 
-    if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
-        right = cast("DatetimeIndex | TimedeltaIndex", right)
+    if isinstance(left, (DatetimeIndex, TimedeltaIndex)) and isinstance(
+        right, (DatetimeIndex, TimedeltaIndex)
+    ):
         if check_freq is lib.no_default:
             if left.freq != right.freq:
                 warnings.warn(
-                    f"The default value of True for the `check_freq` parameter is "
-                    f"deprecated and will be enforced in a future version. The "
-                    f"frequencies {left.freq!r} and {right.freq!r} do not match. "
-                    f"Pass check_freq=True or check_freq=False explicitly to "
-                    f"silence this warning",
+                    "assert_index_equal will check the 'freq' attribute by "
+                    f"default in a future version; these freqs {left.freq!r} "
+                    f"and {right.freq!r} do not match. Pass check_freq=True "
+                    "or check_freq=False to silence this warning",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
         elif check_freq:
-            assert left.freq == right.freq, (left.freq, right.freq)
+            assert_attr_equal("freq", left, right, obj=obj)
 
     if check_categorical:
         if isinstance(left.dtype, CategoricalDtype) or isinstance(
@@ -548,8 +550,8 @@ def assert_categorical_equal(
     right: Categorical,
     check_dtype: bool = True,
     check_category_order: bool = True,
-    check_freq: bool | lib.NoDefault = lib.no_default,
     obj: str = "Categorical",
+    check_freq: bool | lib.NoDefault = lib.no_default,
 ) -> None:
     """
     Test that Categoricals are equivalent.
@@ -568,6 +570,11 @@ def assert_categorical_equal(
     obj : str, default 'Categorical'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    check_freq : bool, default True
+        Whether to check the ``freq`` attribute of DatetimeIndex or
+        TimedeltaIndex categories.
+
+        .. versionadded:: 3.1.0
     """
     _check_isinstance(left, right, Categorical)
 
@@ -1327,7 +1334,11 @@ def assert_frame_equal(
         Note: index labels must match their respective rows
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
-        Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
+        Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex
+        index or columns.
+
+        .. versionchanged:: 3.1.0
+            Previously only the index was checked, now the columns are as well.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5

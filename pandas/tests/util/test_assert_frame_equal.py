@@ -434,3 +434,14 @@ def test_assert_frame_equal_nested_df_na(na_value):
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
     tm.assert_frame_equal(df1, df2)
+
+
+def test_assert_frame_equal_check_freq_columns():
+    # GH#51920 check_freq=True now also applies to datetimelike columns
+    cols = pd.date_range("2016-01-01", periods=2)
+    df1 = DataFrame([[1, 2]], columns=cols)
+    df2 = DataFrame([[1, 2]], columns=cols._with_freq(None))
+    msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2)
+    tm.assert_frame_equal(df1, df2, check_freq=False)
