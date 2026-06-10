@@ -445,3 +445,28 @@ def test_assert_frame_equal_check_freq_columns():
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2)
     tm.assert_frame_equal(df1, df2, check_freq=False)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            DataFrame({"a": [pd.array([1, 2, 3])]}),
+            DataFrame({"a": [np.array([1, 2, 3])]}),
+        ),
+        (
+            DataFrame({"a": [[1, 2, 3]]}),
+            DataFrame({"a": [np.array([1, 2, 3])]}),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_frame_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = r'DataFrame.iloc\[:, 0\] \(column name="a"\) are different'
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(right, left, check_exact=True)

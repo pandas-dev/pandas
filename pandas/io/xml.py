@@ -504,7 +504,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "undeclared namespace prefix."
             ) from err
 
-        return elems
+        return elems  # pyright: ignore[reportReturnType]
 
     def _validate_names(self) -> None:
         children: list[Any]

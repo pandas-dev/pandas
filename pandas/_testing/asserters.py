@@ -1017,6 +1017,14 @@ def assert_series_equal(
             check_exact for comparing the Indexes defaults to True by
             checking if an Index is of integer dtypes.
 
+            When ``check_exact=True``, the comparison of object-dtype values
+            containing nested :class:`numpy.ndarray` objects takes the type of
+            the nested object into account. In particular, a nested
+            ``numpy.ndarray`` is not considered equivalent to a Python
+            ``list``, Python ``tuple``, or a pandas
+            :class:`~pandas.api.extensions.ExtensionArray` merely because the
+            contained values are the same.
+
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
 
@@ -1322,6 +1330,17 @@ def assert_frame_equal(
 
             Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
+
+        .. versionchanged:: 3.0.0
+
+            When ``check_exact=True``, the comparison of object-dtype values
+            containing nested :class:`numpy.ndarray` objects takes the type of
+            the nested object into account. In particular, a nested
+            ``numpy.ndarray`` is not considered equivalent to a Python
+            ``list``, Python ``tuple``, or a pandas
+            :class:`~pandas.api.extensions.ExtensionArray` merely because the
+            contained values are the same.
+
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
 

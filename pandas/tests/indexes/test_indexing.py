@@ -368,3 +368,27 @@ def test_get_indexer_non_unique_nans_in_object_dtype_target(nulls_fixture):
     result_idx, result_missing = idx.get_indexer_non_unique(target)
     tm.assert_numpy_array_equal(result_idx, np.array([0, -1], dtype=np.intp))
     tm.assert_numpy_array_equal(result_missing, np.array([1], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "dtype, target_values",
+    [
+        ("Int64", [1, 2]),
+        ("Float64", [1.0, 2.0]),
+        ("boolean", [True, False]),
+        ("int64", [1, 2]),
+        ("float64", [1.0, 2.0]),
+        ("object", ["a", "b"]),
+    ],
+)
+def test_get_indexer_non_unique_empty_index(dtype, target_values):
+    # GH#64674 (masked) / GH#54746 (non-masked): an empty index reindexed
+    # against a non-empty target raised ZeroDivisionError in the binary-search
+    # heuristic.  An empty index matches nothing, so every target is missing.
+    index = Index([], dtype=dtype)
+    target = Index(target_values, dtype=dtype)
+
+    result_idx, result_missing = index.get_indexer_non_unique(target)
+
+    tm.assert_numpy_array_equal(result_idx, np.array([-1, -1], dtype=np.intp))
+    tm.assert_numpy_array_equal(result_missing, np.array([0, 1], dtype=np.intp))
