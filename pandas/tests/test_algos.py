@@ -1224,6 +1224,22 @@ class TestIsin:
         expected = Series([False])
         tm.assert_series_equal(result, expected)
 
+    def test_isin_uint64_vs_complex_no_precision_loss(self):
+        # GH#46485: complex128 components are float64, so casting a uint64
+        # with magnitude > 2**53 to complex128 is just as lossy as float64.
+        ser = Series([2**63 + 3], dtype=np.uint64)
+        result = ser.isin([complex(2**63)])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
+    def test_isin_complex_vs_int64_no_precision_loss(self):
+        # GH#46485: the symmetric case -- a complex caller against int64
+        # targets whose magnitude exceeds 2**53.
+        ser = Series([complex(2**53)], dtype="complex128")
+        result = ser.isin([2**53 + 1])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
     def test_isin_float_vs_small_int_keeps_numeric_path(self, monkeypatch):
         # GH#46485: int targets that fit exactly in float64 (|x| <= 2**53) are
         # safe to compare numerically, so they must not fall back to the slower

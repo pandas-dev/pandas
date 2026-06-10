@@ -586,8 +586,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                 common = np_find_common_type(values_dtype, comps_dtype)
                 if common.kind not in "iufcb":
                     needs_object = True
-                elif common.kind != "f":
-                    # integer/complex/bool common type -> no lossy float cast
+                elif common.kind not in "fc":
+                    # integer/bool common type -> no lossy float cast
+                    # (complex128 components are float64, so "c" is as lossy
+                    # as "f")
                     needs_object = False
                 elif comps_dtype.kind in "iu" and comps_dtype.itemsize == 8:
                     # comps is the (potentially large) caller and a 64-bit

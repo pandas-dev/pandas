@@ -337,6 +337,9 @@ class IsInIndexes:
     def time_isin_range_index(self):
         self.series.isin(self.range_idx)
 
+    def time_isin_index(self):
+        self.series.isin(self.index)
+
 
 class IsInWithSet:
     # GH#25507: cover both regimes that decide whether the set-membership
@@ -358,6 +361,3 @@ class IsInWithSet:
 
     def time_isin(self, dtype, regime):
         self.series.isin(self.values)
-
-    def time_isin_index(self):
-        self.series.isin(self.index)
