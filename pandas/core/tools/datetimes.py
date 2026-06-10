@@ -541,7 +541,7 @@ def _to_datetime_with_unit(arg, input_unit, name, utc: bool, errors: str) -> Ind
                 if mask.any():
                     if errors == "raise":
                         raise OutOfBoundsDatetime(
-                            f"cannot convert input with unit '{input_unit}'"
+                            f"cannot convert input with input_unit '{input_unit}'"
                         )
 
                     arg = arg.astype(object)
@@ -646,7 +646,7 @@ def _adjust_to_origin(arg, origin, input_unit, errors: DateTimeErrorChoices = "r
         original = arg
         j0 = Timestamp(0).to_julian_date()
         if input_unit != "D":
-            raise ValueError("unit must be 'D' for origin='julian'")
+            raise ValueError("input_unit must be 'D' for origin='julian'")
         try:
             arg = arg - j0
         except TypeError as err:
@@ -668,7 +668,7 @@ def _adjust_to_origin(arg, origin, input_unit, errors: DateTimeErrorChoices = "r
         ):
             raise ValueError(
                 f"'{arg}' is not compatible with origin='{origin}'; "
-                "it must be numeric with a input_unit specified"
+                "it must be numeric with an input_unit specified"
             )
 
         # we are going to offset back to unix / epoch time
@@ -926,10 +926,20 @@ def to_datetime(
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
     input_unit : str, default 'ns'
-        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
-        integer or float number. This will be based off the origin.
-        Example, with ``input_unit='ms'`` and ``origin='unix'``, this would
-        calculate the number of milliseconds to the unix epoch start.
+        The unit of the numeric arg (Y, M, W, D, h, m, s, ms, us, ns, ps,
+        fs, as). Specifies the unit of the input values when `arg` is numeric
+        (int or float), interpreted relative to ``origin``.
+        For example, with ``input_unit='ms'`` and ``origin='unix'``, the input
+        values are treated as millisecond offsets from the Unix epoch
+        (1970-01-01).
+
+        This does not truncate or round datetime-like inputs to the given unit.
+        To change the resolution of the result, use :meth:`Series.dt.as_unit`.
+        To truncate datetime values, use :meth:`Series.dt.floor` or
+        :meth:`Series.dt.normalize`.
+
+        Only applicable to numeric input; has no effect on datetime-like input
+        or when ``format`` is specified.
 
     Returns
     -------
@@ -1137,7 +1147,7 @@ def to_datetime(
         if input_unit is not None:
             raise ValueError("Specify only 'input_unit', not 'unit'")
         warnings.warn(
-            "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+            "The 'unit' argument is deprecated. Use the 'input_unit' keyword instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )

@@ -1189,7 +1189,7 @@ cdef class _Timedelta(timedelta):
     >>> pd.Timedelta.min
     -106752 days +00:12:43.145224193
 
-    >>> pd.Timedelta(1, unit="s").min
+    >>> pd.Timedelta(1, input_unit="s").min
     -106751991167301 days +08:29:53
     """
 
@@ -1215,7 +1215,7 @@ cdef class _Timedelta(timedelta):
     >>> pd.Timedelta.max
     106751 days 23:47:16.854775807
 
-    >>> pd.Timedelta(1, unit="s").max
+    >>> pd.Timedelta(1, input_unit="s").max
     106751991167300 days 15:30:07
     """
 
@@ -1241,7 +1241,7 @@ cdef class _Timedelta(timedelta):
     >>> pd.Timedelta.resolution
     0 days 00:00:00.000000001
 
-    >>> pd.Timedelta(1, unit="s").resolution
+    >>> pd.Timedelta(1, input_unit="s").resolution
     0 days 00:00:01
     """
 
@@ -2177,7 +2177,8 @@ class Timedelta(_Timedelta):
                 raise ValueError("Specify only 'input_unit', not 'unit'")
             from pandas.errors import Pandas4Warning
             warnings.warn(
-                "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+                "The 'unit' argument is deprecated. "
+                "Use the 'input_unit' keyword instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )

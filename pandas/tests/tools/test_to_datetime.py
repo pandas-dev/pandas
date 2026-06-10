@@ -559,7 +559,7 @@ class TestToDatetime:
         assert to_datetime(None) is NaT
 
     def test_to_datetime_unit_deprecated(self):
-        msg = "The 'unit' keyword is deprecated"
+        msg = "The 'unit' argument is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             to_datetime([1], unit="s")
 
@@ -2081,7 +2081,7 @@ class TestToDatetimeUnit:
         uint64_max = np.iinfo(np.uint64).max
         arr = np.array([uint64_max], dtype=np.uint64)
 
-        msg = "cannot convert input with unit 'ns'"
+        msg = "cannot convert input with input_unit 'ns'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(arr, input_unit="ns", errors="raise")
         # scalar via to_datetime
@@ -3309,14 +3309,14 @@ class TestOrigin:
     def test_invalid_unit(self, units, julian_dates):
         # checking for invalid combination of origin='julian' and unit != D
         if units != "D":
-            msg = "unit must be 'D' for origin='julian'"
+            msg = "input_unit must be 'D' for origin='julian'"
             with pytest.raises(ValueError, match=msg):
                 to_datetime(julian_dates, input_unit=units, origin="julian")
 
     @pytest.mark.parametrize("unit", ["ns", "D"])
     def test_invalid_origin(self, unit):
         # need to have a numeric specified
-        msg = "it must be numeric with a input_unit specified"
+        msg = "it must be numeric with an input_unit specified"
         with pytest.raises(ValueError, match=msg):
             to_datetime("2005-01-01", origin="1960-01-01", input_unit=unit)
 

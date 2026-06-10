@@ -908,7 +908,7 @@ class ArrowExtensionArray(
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
-                    "The 'unit' keyword is deprecated",
+                    "The 'unit' argument is deprecated",
                     Pandas4Warning,
                 )
                 scalar = value.as_py()
@@ -948,7 +948,7 @@ class ArrowExtensionArray(
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore",
-                        "The 'unit' keyword is deprecated",
+                        "The 'unit' argument is deprecated",
                         Pandas4Warning,
                     )
                     py_values = chunk.to_pylist()
@@ -2686,7 +2686,7 @@ class ArrowExtensionArray(
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore",
-                        "The 'unit' keyword is deprecated",
+                        "The 'unit' argument is deprecated",
                         Pandas4Warning,
                     )
                     item = pa_result.as_py()
@@ -2704,7 +2704,7 @@ class ArrowExtensionArray(
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
-                    "The 'unit' keyword is deprecated",
+                    "The 'unit' argument is deprecated",
                     Pandas4Warning,
                 )
                 result = pa_result.as_py()
@@ -2908,7 +2908,7 @@ class ArrowExtensionArray(
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore",
-                        "The 'unit' keyword is deprecated",
+                        "The 'unit' argument is deprecated",
                         Pandas4Warning,
                     )
                     value = value.as_py()
@@ -3261,7 +3261,7 @@ class ArrowExtensionArray(
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore",
-                        "The 'unit' keyword is deprecated",
+                        "The 'unit' argument is deprecated",
                         Pandas4Warning,
                     )
                     value = value.as_py()
@@ -3316,7 +3316,7 @@ class ArrowExtensionArray(
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
-                    "The 'unit' keyword is deprecated",
+                    "The 'unit' argument is deprecated",
                     Pandas4Warning,
                 )
                 replacements = replacements.as_py()
@@ -3775,7 +3775,7 @@ class ArrowExtensionArray(
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
-                "The 'unit' keyword is deprecated",
+                "The 'unit' argument is deprecated",
                 Pandas4Warning,
             )
             data = self._pa_array.to_pylist()
@@ -4113,7 +4113,7 @@ class ArrowExtensionArray(
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
-                "The 'unit' keyword is deprecated",
+                "The 'unit' argument is deprecated",
                 Pandas4Warning,
             )
             data = self._pa_array.to_pylist()
