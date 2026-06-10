@@ -445,25 +445,21 @@ def concat(
         from pandas import DataFrame
 
         bm_axis = DataFrame._get_axis_number(axis)
+        is_frame = False
+        is_series = True
     else:
         bm_axis = sample._get_axis_number(axis)
+        is_frame = True
+        is_series = False
+
+        # Need to flip BlockManager axis in the DataFrame special case
+        bm_axis = sample._get_block_manager_axis(bm_axis)
 
     # Ensure input objects with MultiIndex have consistent level order.
     # Only reorder when all inputs share the same set of index level names.
     # Inputs with missing or extra index levels are intentionally not coerced.
     if bm_axis == 0 and all(isinstance(obj.index, MultiIndex) for obj in objs):
         objs = _match_index_levels(objs)
-
-    # Standardize axis parameter to int
-    if sample.ndim == 1:
-        is_frame = False
-        is_series = True
-    else:
-        is_frame = True
-        is_series = False
-
-        # Need to flip BlockManager axis in the DataFrame special case
-        bm_axis = sample._get_block_manager_axis(bm_axis)
 
     # if we have mixed ndims, then convert to highest ndim
     # creating column numbers as needed
