@@ -99,11 +99,13 @@ Binary installers for the latest released version are available at the [Python
 Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://anaconda.org/conda-forge/pandas).
 
 ```sh
+
 # conda
 conda install -c conda-forge pandas
 ```
 
 ```sh
+
 # or PyPI
 pip install pandas
 ```
