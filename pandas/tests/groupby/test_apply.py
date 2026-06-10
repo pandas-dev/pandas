@@ -190,6 +190,45 @@ def test_group_apply_once_per_group(df, group_names):
         assert names == group_names
 
 
+def test_apply_series_name_is_group_key():
+    # GH#41090 - on a Series group, the deprecated pinned name must still be
+    #  the group key (not the column name), with a warning
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("a")["b"].apply(
+            lambda x: x.sum() if x.name == 1 else -x.sum()
+        )
+    expected = Series([7, -5], index=Index([1, 2], name="a"), name="b")
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_no_name_access_no_warning():
+    # GH#41090 - UDFs that do not use the pinned name should not warn, even
+    #  though pandas internally propagates the name attribute
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    with tm.assert_produces_warning(None):
+        df.groupby("a").apply(lambda g: g["b"].sum())
+        df.groupby("a")["b"].apply(lambda x: x * 2)
+        df.groupby("a")["b"].transform(lambda x: x * 2)
+        df.groupby("a").filter(lambda g: len(g) > 1)
+
+
+def test_apply_setting_name_unpins_group_key():
+    # GH#41090 - a name explicitly set inside the UDF is not the pinned group
+    #  key, so reading it back should not warn
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+
+    def func(x):
+        x.name = "foo"
+        return x.name
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("a")["b"].apply(func)
+    expected = Series(["foo", "foo"], index=Index([1, 2], name="a"), name="b")
+    tm.assert_series_equal(result, expected)
+
+
 def test_group_apply_once_per_group2(capsys):
     # GH: 31111
     # groupby-apply need to execute len(set(group_by_columns)) times

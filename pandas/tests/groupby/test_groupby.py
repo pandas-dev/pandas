@@ -1450,19 +1450,22 @@ def test_set_group_name(df, grouper):
 
     grouped = df.groupby(grouper, group_keys=False)
 
-    # GH#41090 - DataFrame groups trigger deprecation for name pinning
+    # GH#41090 - accessing the group key via the pinned name attribute warns;
+    #  aggregate paths do not pin, so the UDF sees the column name there
     msg = "Pinning the group key"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         grouped.apply(f)
     grouped.aggregate(freduce)
     grouped.aggregate({"C": freduce, "D": freduce})
-    grouped.transform(f)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        grouped.transform(f)
 
-    # Series groups - .name already exists (column name), no deprecation warning
-    grouped["C"].apply(f)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        grouped["C"].apply(f)
     grouped["C"].aggregate(freduce)
     grouped["C"].aggregate([freduce, freducex])
-    grouped["C"].transform(f)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        grouped["C"].transform(f)
 
 
 def test_group_name_available_in_inference_pass():

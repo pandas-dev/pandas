@@ -169,14 +169,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+        return self._groupby._python_apply_plot(f)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            return self._groupby._python_apply_plot(f)
 
         return attr
 
@@ -880,11 +880,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            # Plotting methods rely on the group name for labels/legends,
-            # so always pin the name (GH#41090).
-            return self._python_apply_general(
-                curried, self._selected_obj, pin_name=True
-            )
+            return self._python_apply_plot(curried)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1411,7 +1407,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
-        pin_name: bool = False,
     ) -> NDFrameT:
         """
         Apply function f in python space
@@ -1429,17 +1424,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         is_transform : bool, default False
             Indicator for whether the function is actually a transform
             and should not have group keys prepended.
-        pin_name : bool, default False
-            If True, always pin the group key to the name attribute of the
-            group. Used internally by plotting methods that require the
-            group key on the name attribute.
 
         Returns
         -------
         Series or DataFrame
             data after applying f
         """
-        values, mutated = self._grouper.apply_groupwise(f, data, pin_name=pin_name)
+        values, mutated = self._grouper.apply_groupwise(f, data)
         if not_indexed_same is None:
             not_indexed_same = mutated
 
@@ -1449,6 +1440,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             not_indexed_same,
             is_transform,
         )
+
+    @final
+    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+        """
+        Apply a plotting function f group-wise.
+
+        Each Series group gets its group key as the name, which plotting
+        methods use for legend labels. This does not rely on the deprecated
+        pinning of the group key to the name attribute (GH#41090).
+        """
+        data = self._selected_obj
+        values = []
+        for key, group in self._grouper.get_iterator(data):
+            if group.ndim == 1:
+                group.name = key
+            values.append(f(group))
+        # plotting functions return matplotlib objects, never something
+        #  indexed like the group, so this is always not_indexed_same
+        return self._wrap_applied_output(data, values, not_indexed_same=True)
 
     @final
     def _agg_general(

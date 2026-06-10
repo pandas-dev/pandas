@@ -786,24 +786,9 @@ class SeriesGroupBy(GroupBy[Series]):
         for name, group in self._grouper.get_iterator(
             self._obj_with_exclusions,
         ):
-            try:
-                res = func(group, *args, **kwargs)
-            except Exception:
-                # GH#41090 - try again with group name pinned
-                object.__setattr__(group, "name", name)
-                try:
-                    res = func(group, *args, **kwargs)
-                except Exception:
-                    raise
-                warnings.warn(
-                    "Pinning the group key to the 'name' attribute of "
-                    "the group passed to a user-defined function in "
-                    "groupby operations (e.g., .apply(), .transform(), "
-                    ".filter()) is deprecated and will not be done in a "
-                    "future version of pandas.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(name)
+            res = func(group, *args, **kwargs)
 
             results.append(klass(res, index=group.index))
 
@@ -2559,31 +2544,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except StopIteration:
             pass
         else:
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(name)
             try:
                 path, res = self._choose_path(fast_path, slow_path, group)
             except ValueError as err:
                 # e.g. test_transform_with_non_scalar_group
                 msg = "transform must return a scalar value for each group"
                 raise ValueError(msg) from err
-            except Exception:
-                # GH#41090 - try again with group name pinned
-                object.__setattr__(group, "name", name)
-                try:
-                    path, res = self._choose_path(fast_path, slow_path, group)
-                except ValueError as err:
-                    msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg) from err
-                except Exception:
-                    raise
-                warnings.warn(
-                    "Pinning the group key to the 'name' attribute of "
-                    "the group passed to a user-defined function in "
-                    "groupby operations (e.g., .apply(), .transform(), "
-                    ".filter()) is deprecated and will not be done in a "
-                    "future version of pandas.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
             if group.size > 0:
                 res = _wrap_transform_general_frame(self.obj, group, res)
                 applied.append(res)
@@ -2592,24 +2560,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for name, group in gen:
             if group.size == 0:
                 continue
-            try:
-                res = path(group)
-            except Exception:
-                # GH#41090 - try again with group name pinned
-                object.__setattr__(group, "name", name)
-                try:
-                    res = path(group)
-                except Exception:
-                    raise
-                warnings.warn(
-                    "Pinning the group key to the 'name' attribute of "
-                    "the group passed to a user-defined function in "
-                    "groupby operations (e.g., .apply(), .transform(), "
-                    ".filter()) is deprecated and will not be done in a "
-                    "future version of pandas.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+            group._pin_deprecated_group_name(name)
+            res = path(group)
 
             res = _wrap_transform_general_frame(self.obj, group, res)
             applied.append(res)
@@ -2879,24 +2831,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self._grouper.get_iterator(obj)
 
         for name, group in gen:
-            try:
-                res = func(group, *args, **kwargs)
-            except Exception:
-                # GH#41090 - try again with group name pinned
-                object.__setattr__(group, "name", name)
-                try:
-                    res = func(group, *args, **kwargs)
-                except Exception:
-                    raise
-                warnings.warn(
-                    "Pinning the group key to the 'name' attribute of "
-                    "the group passed to a user-defined function in "
-                    "groupby operations (e.g., .apply(), .transform(), "
-                    ".filter()) is deprecated and will not be done in a "
-                    "future version of pandas.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(name)
+            res = func(group, *args, **kwargs)
 
             try:
                 res = res.squeeze()

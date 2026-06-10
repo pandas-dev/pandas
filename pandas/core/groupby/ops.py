@@ -1027,10 +1027,7 @@ class BaseGrouper:
 
     @final
     def apply_groupwise(
-        self,
-        f: Callable,
-        data: DataFrame | Series,
-        pin_name: bool = False,
+        self, f: Callable, data: DataFrame | Series
     ) -> tuple[list, bool]:
         mutated = False
         splitter = self._get_splitter(data)
@@ -1041,35 +1038,12 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter, strict=True)
 
         for key, group in zipped:
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(key)
+
             # group might be modified
             group_axes = group.axes
-            if pin_name:
-                # Internal code paths (e.g. plotting) that need the group key
-                # on the name attribute.
-                object.__setattr__(group, "name", key)
-                res = f(group)
-            else:
-                try:
-                    res = f(group)
-                except Exception:
-                    # GH#41090 - try again with group name pinned
-                    object.__setattr__(group, "name", key)
-                    try:
-                        res = f(group)
-                    except Exception:
-                        raise
-                    warnings.warn(
-                        "Pinning the group key to the 'name' attribute of "
-                        "the group passed to a user-defined function in "
-                        "groupby operations (e.g., .apply(), .transform(), "
-                        ".filter()) is deprecated and will not be done in a "
-                        "future version of pandas. When you need the key "
-                        "inside the function, iterate over the groupby object "
-                        "directly and combine the results, e.g. "
-                        "'pd.concat({key: func(group, key) for key, group in gb})'.",
-                        Pandas4Warning,
-                        stacklevel=find_stack_level(),
-                    )
+            res = f(group)
             if not mutated and not _is_indexed_like(res, group_axes):
                 mutated = True
             result_values.append(res)
