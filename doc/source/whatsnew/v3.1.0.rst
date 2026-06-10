@@ -382,6 +382,7 @@ Timezones
 - Bug in :meth:`Series.dt.tz_localize` and :meth:`Series.dt.tz_convert` (and their :class:`DatetimeIndex` counterparts) returning incorrect results for non-nanosecond resolutions (e.g. ``"s"``, ``"ms"``, ``"us"``) on timestamps before roughly 1677 (:issue:`66252`)
 - Bug in :meth:`Timestamp.isoformat`, ``str(Timestamp)``, and the rendering of :class:`Series` and :class:`DatetimeIndex` (including ``repr``, ``astype(str)``, and :meth:`DataFrame.to_csv`) splicing the fractional seconds into the middle of the UTC offset for timestamps in a timezone whose offset is not a whole number of minutes, such as any zone in its pre-standardization era (e.g. ``Asia/Tokyo`` before 1888) (:issue:`66547`)
 - Bug in :meth:`Timestamp.to_julian_date` and :meth:`DatetimeIndex.to_julian_date` returning the Julian date of the local wall clock for timezone-aware inputs instead of the underlying UTC instant (:issue:`54763`)
+- Bug in setting ``freq`` on timezone-aware :class:`DatetimeIndex` data spanning a DST transition incorrectly raising ``ValueError`` for frequencies that preserve wall time (e.g. ``"D"``) (:issue:`55499`)
 
 Numeric
 ^^^^^^^
