@@ -6,6 +6,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    Index,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
@@ -814,6 +815,31 @@ class TestDataFrameSortIndex:
         )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_level_on_range_index(self):
+        # GH#64383: sort_index with level= on a RangeIndex raised AssertionError
+        df = DataFrame({"a": [1, 2, 3]})
+        df.index.names = ["foo"]
+        result = df.sort_index(level="foo")
+        tm.assert_frame_equal(result, df)
+
+    def test_sort_index_level_monotonic_no_copy(self):
+        # GH#64883: sort_index(level=...) on a monotonic non-MultiIndex
+        # should short-circuit and not copy data blocks
+        df = DataFrame({"a": np.arange(5, dtype=np.float64)}, index=Index(range(5)))
+        df.index.name = "foo"
+        result = df.sort_index(level="foo")
+        tm.assert_frame_equal(result, df)
+        assert np.shares_memory(result["a"].values, df["a"].values)
+
+        # descending on a decreasing index also short-circuits
+        df2 = DataFrame(
+            {"a": np.arange(5, dtype=np.float64)},
+            index=Index([5, 4, 3, 2, 1], name="foo"),
+        )
+        result2 = df2.sort_index(level="foo", ascending=False)
+        tm.assert_frame_equal(result2, df2)
+        assert np.shares_memory(result2["a"].values, df2["a"].values)
 
 
 class TestDataFrameSortIndexKey:

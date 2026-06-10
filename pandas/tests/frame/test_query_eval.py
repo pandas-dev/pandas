@@ -233,6 +233,25 @@ class TestDataFrameEval:
         expected = Series([1.5 + 0.5j])
         tm.assert_series_equal(result, expected)
 
+    def test_query_period_dtype(self, engine, parser):
+        # GH#35247
+        df = DataFrame(
+            {
+                "year": pd.period_range("2018", periods=5, freq="Y"),
+                "val": range(5),
+            }
+        )
+        result = df.query("year > '2020'", engine=engine, parser=parser)
+        expected = df[df["year"] > "2020"]
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_interval_dtype(self, engine, parser):
+        # GH#35247
+        idx = pd.IntervalIndex.from_breaks(range(6))
+        df = DataFrame({"a": idx, "b": idx})
+        result = df.query("a == b", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df)
+
 
 class TestDataFrameQueryWithMultiIndex:
     def test_query_with_named_multiindex(self, parser, engine):
@@ -1606,4 +1625,84 @@ class TestDataFrameQueryBacktickQuoting:
         df = DataFrame({"a": pd.to_datetime([None, None], utc=True)}, dtype=object)
         result = df.query("a > @now")
         expected = DataFrame({"a": []}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
+
+class TestDataFrameQueryInWithColumnRefs:
+    # GH#65357 - df.query('col in (col1, col2)') with column references.
+
+    @pytest.fixture(autouse=True)
+    def skip_if_no_pandas_parser(self, parser):
+        if parser != "pandas":
+            pytest.skip(f"cannot evaluate with parser={parser}")
+
+    def test_in_column_refs_numeric_first_row(self, engine, parser):
+        df = DataFrame({"a": [1, 2, 3], "b": [1, 4, 9], "c": [1, 8, 27]})
+        result = df.query("b in (a, c)", engine=engine, parser=parser)
+        expected = df[(df["b"] == df["a"]) | (df["b"] == df["c"])]
+        tm.assert_frame_equal(result, expected)
+
+    def test_in_column_refs_numeric_all_rows(self, engine, parser):
+        df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [10, 20, 30]})
+        result = df.query("b in (a, c)", engine=engine, parser=parser)
+        expected = df
+        tm.assert_frame_equal(result, expected)
+
+    def test_in_column_refs_numeric_no_match(self, engine, parser):
+        df = DataFrame({"a": [1, 2, 3], "b": [5, 6, 7], "c": [10, 20, 30]})
+        result = df.query("b in (a, c)", engine=engine, parser=parser)
+        expected = df.iloc[:0]
+        tm.assert_frame_equal(result, expected)
+
+    def test_in_column_refs_string(self, engine, parser):
+        df = DataFrame(
+            {"a": ["a", "a", "b"], "b": ["a", "b", "c"], "c": ["b", "b", "c"]}
+        )
+        result = df.query("b in (a, c)", engine=engine, parser=parser)
+        expected = df[(df["b"] == df["a"]) | (df["b"] == df["c"])]
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_in_column_refs_string_pyarrow(self, engine, parser):
+        df = DataFrame(
+            {"a": ["a", "a", "b"], "b": ["a", "b", "c"], "c": ["b", "b", "c"]},
+            dtype="string[pyarrow]"
+        )
+
+        warning = RuntimeWarning if engine == "numexpr" else None
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
+            result = df.query("b in (a, c)", engine=engine, parser=parser)
+
+        expected = df[(df["b"] == df["a"]) | (df["b"] == df["c"])]
+        tm.assert_frame_equal(result, expected)
+
+    def test_not_in_column_refs_numeric(self, engine, parser):
+        df = DataFrame({"a": [1, 2, 3], "b": [1, 4, 9], "c": [1, 8, 27]})
+        result = df.query("b not in (a, c)", engine=engine, parser=parser)
+        expected = df[(df["b"] != df["a"]) & (df["b"] != df["c"])]
+        tm.assert_frame_equal(result, expected)
+
+    def test_not_in_column_refs_string(self, engine, parser):
+        df = DataFrame(
+            {"a": ["x", "y", "z"], "b": ["a", "y", "z"], "c": ["b", "b", "c"]}
+        )
+        result = df.query("b not in (a, c)", engine=engine, parser=parser)
+        expected = df[(df["b"] != df["a"]) & (df["b"] != df["c"])]
+        tm.assert_frame_equal(result, expected)
+
+    def test_in_column_ref_and_literal(self, engine, parser):
+        df = DataFrame({"a": [1, 2, 3], "b": [1, 99, 5]})
+        result = df.query("b in (a, 99)", engine=engine, parser=parser)
+        expected = df[(df["b"] == df["a"]) | (df["b"] == 99)]
+        tm.assert_frame_equal(result, expected)
+
+    def test_in_pure_literals(self, engine, parser):
+        df = DataFrame({"a": [1, 2, 3, 4]})
+        result = df.query("a in (2, 3)", engine=engine, parser=parser)
+        expected = df[df["a"].isin([2, 3])]
         tm.assert_frame_equal(result, expected)

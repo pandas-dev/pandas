@@ -8,7 +8,6 @@ import pytest
 
 from pandas.compat.pyarrow import (
     pa_version_under18p0,
-    pa_version_under19p0,
 )
 
 import pandas as pd
@@ -239,26 +238,12 @@ class TestFeather:
         with pytest.raises(ValueError, match=msg):
             read_feather(temp_file, dtype_backend="numpy")
 
-    def test_string_inference(self, temp_file, using_infer_string):
+    def test_string_inference(self, temp_file):
         # GH#54431
         df = pd.DataFrame(data={"a": ["x", "y"]})
         df.to_feather(temp_file)
-        with pd.option_context("future.infer_string", True):
-            result = read_feather(temp_file)
-        dtype = pd.StringDtype(na_value=np.nan)
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]}, dtype=pd.StringDtype(na_value=np.nan)
-        )
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]},
-            dtype=dtype,
-            columns=pd.Index(
-                ["a"],
-                dtype=object
-                if pa_version_under19p0 and not using_infer_string
-                else dtype,
-            ),
-        )
+        result = read_feather(temp_file)
+        expected = df
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
@@ -270,12 +255,9 @@ class TestFeather:
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
         feather.write_feather(table, temp_file)
 
-        with pd.option_context("future.infer_string", True):
-            result = read_feather(temp_file)
+        result = read_feather(temp_file)
 
-            expected = pd.DataFrame(
-                data={"a": [None, "b", "c"]}, dtype=pd.StringDtype(na_value=np.nan)
-            )
+        expected = pd.DataFrame({"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
     def test_out_of_bounds_datetime_to_feather(self, temp_file):

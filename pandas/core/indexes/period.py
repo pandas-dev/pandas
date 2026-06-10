@@ -23,7 +23,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
-    cache_readonly,
     set_module,
 )
 
@@ -73,7 +72,15 @@ def _new_PeriodIndex(cls, **d):
 
 
 @inherit_names(
-    ["strftime", "start_time", "end_time", *PeriodArray._field_ops],
+    [
+        "strftime",
+        "start_time",
+        "end_time",
+        *PeriodArray._field_ops,
+        "dayofweek",
+        "dayofyear",
+        "daysinmonth",
+    ],
     PeriodArray,
     wrap=True,
 )
@@ -170,11 +177,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
-
-    @cache_readonly
-    def _resolution_obj(self) -> Resolution:
-        # for compat with DatetimeIndex
-        return self.dtype._resolution_obj
 
     # --------------------------------------------------------------------
     # methods that dispatch to array and wrap result in Index
@@ -282,8 +284,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq=None)
         """
-        arr = self._data.to_timestamp(freq, how)
-        return DatetimeIndex._simple_new(arr, name=self.name)
+        parr = self._data
+        arr = parr.to_timestamp(freq, how)
+        result = DatetimeIndex._simple_new(arr, name=self.name)
+        result._freq = parr._to_timestamp_freq(arr, target_freq=freq, how=how)
+        return result
 
     @property
     def hour(self) -> Index:
@@ -311,6 +316,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         The minute of the period.
 
+        Returns the minute component for each period in the index.
+
         See Also
         --------
         PeriodIndex.hour : The hour of the period.
@@ -331,6 +338,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def second(self) -> Index:
         """
         The second of the period.
+
+        Returns the second component for each period in the index.
 
         See Also
         --------
@@ -400,6 +409,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
+        Each field (year, quarter, month, day, hour, minute, second) can be
+        specified as a scalar or array-like. The frequency is inferred from
+        the fields provided or can be given explicitly.
+
         Parameters
         ----------
         year : int, array, or Series, default None
@@ -451,6 +464,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     def from_ordinals(cls, ordinals, *, freq, name=None) -> Self:
         """
         Construct a PeriodIndex from ordinals.
+
+        Ordinals are integer offsets from the proleptic Gregorian epoch,
+        interpreted according to the given frequency.
 
         Parameters
         ----------
@@ -548,8 +564,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Returns True if this PeriodIndex is range-like in that all Periods
-        between start and end are present, in order.
+        Return True if the index contains all periods from start to end
+        (inclusive) with no gaps.
+
+        Requires monotonic increasing order. Duplicate periods are allowed.
         """
         if len(self) == 0:
             return True

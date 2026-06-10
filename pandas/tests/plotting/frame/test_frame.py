@@ -665,11 +665,11 @@ class TestDataFramePlots:
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data()[0][0]
         assert xmax >= lines[0].get_data()[0][-1]
-        assert ymin == 0
+        assert ymin == 0, f"ymin={ymin!r} ymax={ymax!r}"
 
         ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
         ymin, ymax = ax.get_ylim()
-        assert ymax == 0
+        assert ymax == 0, f"ymin={ymin!r} ymax={ymax!r}"
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
@@ -681,6 +681,24 @@ class TestDataFramePlots:
 
         assert get_y_axis(ax1).joined(ax1, ax2)
         assert get_y_axis(ax2).joined(ax1, ax2)
+
+    def test_area_lim_unaffected_by_unrelated_sharey(self):
+        # Unrelated sharey'd axes elsewhere in the process must not defeat
+        # the ymin=0 baseline pin for an all-positive area plot.
+        unrelated_fig, unrelated_axes = mpl.pyplot.subplots(1, 2, sharey=True)
+
+        df = DataFrame(
+            np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
+        )
+        _fig, ax = mpl.pyplot.subplots()
+        df.plot.area(ax=ax, stacked=True)
+        ymin, _ymax = ax.get_ylim()
+        assert ymin == 0
+
+        # keep the sharey'd axes alive until after the assertion so the
+        # class-level Grouper still contains them at check time
+        assert unrelated_fig is not None
+        assert unrelated_axes is not None
 
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
@@ -1519,6 +1537,15 @@ class TestDataFramePlots:
         with pytest.raises(TypeError, match=msg):
             df.plot(kind=kind)
 
+    @pytest.mark.parametrize("kind", ["hist", "box"])
+    def test_plot_hist_box_non_unique_columns_raises(self, kind):
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df.columns = ["a", "a"]
+
+        msg = "plotting requires unique column names"
+        with pytest.raises(ValueError, match=msg):
+            getattr(df.plot, kind)()
+
     @pytest.mark.parametrize(
         "kind", [*list(plotting.PlotAccessor._common_kinds), "area"]
     )
@@ -1633,7 +1660,6 @@ class TestDataFramePlots:
     @pytest.mark.parametrize(
         "kwargs, expected",
         [
-            ({}, "BuGn"),  # default cmap
             ({"colormap": "cubehelix"}, "cubehelix"),
             ({"cmap": "YlGn"}, "YlGn"),
         ],
@@ -1648,6 +1674,19 @@ class TestDataFramePlots:
         )
         ax = df.plot.hexbin(x="A", y="B", **kwargs)
         assert ax.collections[0].cmap.name == expected
+
+    def test_hexbin_cmap_default_follows_rcparams(self):
+        # GH#31871 hexbin should respect rcParams["image.cmap"] when no
+        # colormap is specified by the user
+        df = DataFrame(
+            {
+                "A": np.random.default_rng(2).uniform(size=20),
+                "B": np.random.default_rng(2).uniform(size=20),
+            }
+        )
+        with mpl.rc_context({"image.cmap": "plasma"}):
+            ax = df.plot.hexbin(x="A", y="B")
+        assert ax.collections[0].cmap.name == "plasma"
 
     def test_pie_df_err(self):
         df = DataFrame(
@@ -1879,6 +1918,9 @@ class TestDataFramePlots:
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in dot:RuntimeWarning"
+    )
     def test_errorbar_with_partial_columns_dti(self):
         df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
         df_err = DataFrame(
@@ -1899,6 +1941,9 @@ class TestDataFramePlots:
         ax = _check_plot_works(df.plot, yerr=err)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in dot:RuntimeWarning"
+    )
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_timeseries(self, kind):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
@@ -2614,7 +2659,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_no_warning(self):
         # GH 55138
-        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        # TODO(4.0): this can be removed once Period[B] deprecation is enforced
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),

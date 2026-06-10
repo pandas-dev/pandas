@@ -183,7 +183,12 @@ class TestCategoricalConcat:
 
         result = pd.concat([df1, df2])
         expected = DataFrame(
-            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
+            {
+                "x": Series(
+                    [datetime(2021, 1, 1), datetime(2021, 1, 2)],
+                    index=[0, 1],
+                )
+            }
         )
 
         tm.assert_equal(result, expected)

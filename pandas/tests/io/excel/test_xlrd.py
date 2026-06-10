@@ -3,6 +3,8 @@ import io
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -10,6 +12,10 @@ from pandas.io.excel import ExcelFile
 from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
+)
 
 
 @pytest.fixture
@@ -69,3 +75,10 @@ def test_read_old_xls_files(file_header):
     # GH 41226
     f = io.BytesIO(file_header)
     assert inspect_excel_format(f) == "xls"
+
+
+def test_xlrd_engine_deprecated(datapath):
+    # GH#56542
+    path = datapath("io", "data", "excel", "test1.xls")
+    with tm.assert_produces_warning(Pandas4Warning, match="xlrd engine is deprecated"):
+        pd.read_excel(path, engine="xlrd")

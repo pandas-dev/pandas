@@ -35,7 +35,7 @@ class TestSeriesQuantile:
         assert q == pd.to_timedelta("24:00:00")
 
         # GH7661
-        result = Series([np.timedelta64("NaT")]).sum()
+        result = Series([np.timedelta64("NaT", "ns")]).sum()
         assert result == pd.Timedelta(0)
 
         msg = "percentiles should all be in the interval \\[0, 1\\]"

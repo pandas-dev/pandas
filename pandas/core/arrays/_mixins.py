@@ -238,7 +238,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         Parameters
         ----------
@@ -332,10 +332,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
         """
-        # NB: shift is always along axis=0
-        axis = 0
+        # NB: shift is always along axis=self.ndim-1
         fill_value = self._validate_scalar(fill_value)
-        new_values = shift(self._ndarray, periods, axis, fill_value)
+        new_values = shift(self._ndarray, periods, fill_value)
 
         return self._from_backing_data(new_values)
 
@@ -345,7 +344,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
+        try:
+            self._ndarray[key] = value
+        except TypeError as err:
+            if self._ndarray.dtype.kind == "c":
+                # GH#54761 numpy raises TypeError for cases like setting a
+                # 1d sequence into a complex scalar position ("only 0-dimensional
+                # arrays can be converted to Python scalars"); normalize to
+                # ValueError for consistency with other numeric dtypes.
+                raise ValueError(*err.args) from err
+            raise
 
     def _validate_setitem_value(self, value):
         return value
@@ -579,8 +587,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if dropna:
-            # error: Unsupported operand type for ~ ("ExtensionArray")
-            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+            # error: Invalid index type
+            values = self[~self.isna()]._ndarray  # type: ignore[index]
         else:
             values = self._ndarray
 
