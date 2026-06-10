@@ -49,10 +49,25 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_310.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_310.notable_bug_fixes.read_csv_categorical:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:func:`read_csv` with ``dtype="category"`` infers numeric categories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` with ``dtype="category"`` and the ``c`` or ``python`` engine
+produced string categories for numeric columns, while the ``pyarrow`` engine
+inferred numeric categories. All engines now infer numeric categories
+(:issue:`56044`).
+
+.. ipython:: python
+
+    from io import StringIO
+
+    data = "a\n1\n1\n2"
+    pd.read_csv(StringIO(data), dtype="category")["a"].dtype
+
+Columns whose values do not all parse as numeric, and columns read with
+non-default ``thousands`` or ``decimal`` options, retain string categories.
 
 .. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
 
@@ -334,7 +349,6 @@ MultiIndex
 I/O
 ^^^
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
-- Bug in :func:`read_csv` where ``dtype="category"`` produced string categories for numeric columns with the ``c`` and ``python`` engines, instead of inferring proper types as the ``pyarrow`` engine does (:issue:`56044`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)

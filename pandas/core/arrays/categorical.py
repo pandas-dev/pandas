@@ -651,7 +651,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_inferred_categories(
-        cls, inferred_categories, inferred_codes, dtype, true_values=None
+        cls,
+        inferred_categories,
+        inferred_codes,
+        dtype,
+        true_values=None,
+        convert_numeric: bool = True,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
@@ -668,6 +673,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         true_values : list, optional
             If none are provided, the default ones are
             "True", "TRUE", and "true."
+        convert_numeric : bool, default True
+            Whether to convert string categories to numeric when `dtype` does
+            not provide categories. Callers pass False when the strings may
+            not round-trip through ``to_numeric`` (e.g. read_csv with
+            non-default ``thousands``/``decimal``).
 
         Returns
         -------
@@ -685,16 +695,24 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
 
-        if not known_categories and cats.dtype.kind == "O":
-            # GH#56044 - Infer proper types for categories (e.g., "1" -> 1,
-            # "3.4" -> 3.4) when categories are not explicitly provided.
-            # This ensures consistent behavior across all CSV parser engines.
+        if not known_categories and convert_numeric and cats.dtype.kind == "O":
+            # GH#56044 - Infer numeric categories (e.g. "1" -> 1, "3.4" -> 3.4)
+            # when categories are not explicitly provided, matching the
+            # pyarrow engine's behavior for numeric columns.
             try:
-                converted = to_numeric(cats, errors="raise")
+                converted = Index(to_numeric(cats, errors="raise"), copy=False)
             except (ValueError, TypeError):
                 pass
             else:
-                cats = Index(converted, copy=False)
+                if not converted.is_unique:
+                    # e.g. "1" and "1.0" both convert to 1.0; merge the
+                    #  duplicated categories and recode
+                    unique_cats = converted.unique()
+                    inferred_codes = recode_for_categories(
+                        inferred_codes, converted, unique_cats, copy=False
+                    )
+                    converted = unique_cats
+                cats = converted
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.

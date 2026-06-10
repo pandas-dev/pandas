@@ -26,6 +26,8 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
 
 @pytest.mark.parametrize(
     "dtype",
@@ -108,6 +110,60 @@ def test_categorical_dtype_missing(all_parsers):
         }
     )
     actual = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_numeric_duplicates(all_parsers):
+    # GH#56044 distinct strings that convert to the same number should be
+    #  merged into a single category
+    parser = all_parsers
+    data = "a\n1\n1.0\n2"
+    expected = DataFrame({"a": Categorical([1.0, 1.0, 2.0])})
+    actual = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+@xfail_pyarrow  # ValueError: The 'thousands' option is not supported
+def test_categorical_dtype_thousands(all_parsers):
+    # GH#56044 numeric inference is unaware of the thousands option,
+    #  so categories stay strings rather than mis-parsing "1.000" as 1.0
+    parser = all_parsers
+    data = "a\n1.000\n2.000"
+    expected = DataFrame({"a": Categorical(["1.000", "2.000"])})
+    actual = parser.read_csv(StringIO(data), dtype="category", thousands=".")
+    tm.assert_frame_equal(actual, expected)
+
+
+@xfail_pyarrow  # pyarrow parses with decimal_point and infers numeric
+def test_categorical_dtype_decimal(all_parsers):
+    # GH#56044 numeric inference is unaware of the decimal option,
+    #  so categories stay strings rather than mis-parsing "1,5"
+    parser = all_parsers
+    data = "a;b\n1;1,5\n2;2,5"
+    expected = DataFrame(
+        {"a": Categorical(["1", "2"]), "b": Categorical(["1,5", "2,5"])}
+    )
+    actual = parser.read_csv(StringIO(data), dtype="category", sep=";", decimal=",")
+    tm.assert_frame_equal(actual, expected)
+
+
+@xfail_pyarrow  # pyarrow casts to float64, losing precision
+def test_categorical_dtype_large_integers(all_parsers):
+    # GH#56044 integers too large for int64/uint64 give object categories
+    parser = all_parsers
+    data = "a\n99999999999999999999999999\n1"
+    expected = DataFrame({"a": Categorical([99999999999999999999999999, 1])})
+    actual = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
+    # GH#56136 explicitly-requested IntegerDtype categories are preserved
+    parser = all_parsers
+    cat_dtype = CategoricalDtype(pd.array([1, 2], dtype="Int64"))
+    data = "a\n1\n2\n1"
+    expected = DataFrame({"a": Categorical.from_codes([0, 1, 0], dtype=cat_dtype)})
+    actual = parser.read_csv(StringIO(data), dtype={"a": cat_dtype})
     tm.assert_frame_equal(actual, expected)
 
 

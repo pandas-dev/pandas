@@ -503,8 +503,17 @@ class PythonParser(ParserBase):
         """
         if isinstance(cast_type, CategoricalDtype):
             cats = Index(values, copy=False).unique().dropna()
+            # to_numeric inference is unaware of the thousands/decimal
+            #  options, so keep string categories when those are set
+            convert_numeric = (
+                self.thousands is None and self.decimal == parser_defaults["decimal"]
+            )
             values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type, true_values=self.true_values
+                cats,
+                cats.get_indexer(values),
+                cast_type,
+                true_values=self.true_values,
+                convert_numeric=convert_numeric,
             )
 
         # use the EA's implementation of casting
