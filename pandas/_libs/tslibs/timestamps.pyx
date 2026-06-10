@@ -2829,7 +2829,8 @@ class Timestamp(_Timestamp):
                 raise ValueError("Specify only 'input_unit', not 'unit'")
             from pandas.errors import Pandas4Warning
             warnings.warn(
-                "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+                "The 'unit' argument is deprecated. "
+                "Use the 'input_unit' keyword instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )

@@ -39,6 +39,22 @@ class TestTimedeltaConstructorKeywordBased:
 
 
 class TestTimedeltaConstructorUnitKeyword:
+    def test_unit_keyword_deprecated(self):
+        # GH#62097
+        msg = "The 'unit' argument is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = Timedelta(1, unit="s")
+        assert result == Timedelta(1, input_unit="s")
+
+        # the second positional argument binds to the deprecated 'unit'
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = Timedelta(1, "s")
+        assert result == Timedelta(1, input_unit="s")
+
+        msg2 = "Specify only 'input_unit', not 'unit'"
+        with pytest.raises(ValueError, match=msg2):
+            Timedelta(1, unit="s", input_unit="s")
+
     def test_result_unit(self):
         # For supported units, we get result.unit == unit
         for unit in ["s", "ms", "us", "ns"]:

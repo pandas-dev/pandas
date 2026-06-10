@@ -58,7 +58,7 @@ class TestTimedeltas:
         assert to_timedelta(None) is pd.NaT
 
     def test_to_timedelta_unit_deprecated(self):
-        msg = "The 'unit' keyword is deprecated"
+        msg = "The 'unit' argument is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             to_timedelta([1], unit="s")
 

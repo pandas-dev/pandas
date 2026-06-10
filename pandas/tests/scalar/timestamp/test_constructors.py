@@ -34,6 +34,17 @@ import pandas._testing as tm
 
 
 class TestTimestampConstructorUnitKeyword:
+    def test_unit_keyword_deprecated(self):
+        # GH#62097
+        msg = "The 'unit' argument is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = Timestamp(1, unit="s")
+        assert result == Timestamp(1, input_unit="s")
+
+        msg2 = "Specify only 'input_unit', not 'unit'"
+        with pytest.raises(ValueError, match=msg2):
+            Timestamp(1, unit="s", input_unit="s")
+
     @pytest.mark.parametrize("typ", [int, float])
     def test_constructor_int_float_with_YM_unit(self, typ):
         # GH#47266 avoid the conversions in cast_from_unit

@@ -192,7 +192,7 @@ def to_timedelta(
         if input_unit is not None:
             raise ValueError("Specify only 'input_unit', not 'unit'")
         warnings.warn(
-            "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+            "The 'unit' argument is deprecated. Use the 'input_unit' keyword instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
