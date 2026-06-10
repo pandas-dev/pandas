@@ -275,6 +275,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
+- Fixed bug in :meth:`DataFrame.add` and other flexible arithmetic methods where columns exclusive to one operand were upcast to ``Float64`` instead of preserving their nullable integer dtype when ``fill_value`` was given (:issue:`65805`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 - Fixed bug in :meth:`Series.mean` and :meth:`Series.sum` (and their :class:`DataFrame` counterparts) overflowing for ``float16`` dtypes instead of upcasting to ``float64`` (:issue:`43929`)
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)

@@ -9528,6 +9528,25 @@ class DataFrame(NDFrame, OpsMixin):
             return self._arith_method_with_reindex(other, op)
 
         other = ops.maybe_prepare_scalar_for_op(other, self.shape)
+
+        # GH#65805 capture original dtypes before alignment so columns that are
+        # exclusive to one frame don't silently upcast (e.g. UInt8 -> Float64)
+        # when reindex introduces an all-NA column with no dtype to inherit.
+        _orig_dtypes = None
+        # truediv always yields float, so don't restore integer dtypes for it
+        if (
+            fill_value is not None
+            and isinstance(other, DataFrame)
+            and op not in (operator.truediv, roperator.rtruediv)
+        ):
+            _orig_dtypes = {}
+            for col, dt in self.dtypes.items():
+                if col not in other.columns:
+                    _orig_dtypes[col] = dt
+            for col, dt in other.dtypes.items():
+                if col not in self.columns:
+                    _orig_dtypes[col] = dt
+
         self, other = self._align_for_op(other, axis, flex=True, level=level)
 
         with np.errstate(all="ignore"):
@@ -9544,7 +9563,35 @@ class DataFrame(NDFrame, OpsMixin):
 
                 new_data = self._dispatch_frame_op(other, op)
 
-        return self._construct_result(new_data, other=other)
+        result = self._construct_result(new_data, other=other)
+
+        # GH#65805 restore the original extension dtype for columns that were
+        # exclusive to one frame and got upcast to float during alignment.
+        # Only do so when the cast back is lossless: a fractional fill_value
+        # (or op result) must not be silently truncated, so we round-trip and
+        # keep the restored dtype only if values are unchanged.
+        if _orig_dtypes:
+            from pandas.core.dtypes.common import is_extension_array_dtype
+
+            for col, dt in _orig_dtypes.items():
+                if not (
+                    col in result.columns
+                    and is_extension_array_dtype(dt)
+                    and result[col].dtype != dt
+                ):
+                    continue
+                original = result[col]
+                try:
+                    casted = original.astype(dt)
+                except (ValueError, TypeError):
+                    # values not castable to the target dtype at all
+                    continue
+                # verify lossless: round-trip back and compare, NA-aware
+                roundtrip = casted.astype(original.dtype)
+                if roundtrip.equals(original):
+                    result[col] = casted
+
+        return result
 
     def _construct_result(self, result, other) -> DataFrame:
         """

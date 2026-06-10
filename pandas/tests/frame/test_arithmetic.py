@@ -2391,3 +2391,59 @@ def test_sum_mixed_empty(any_string_dtype):
     )
     result = empty_df.sum()
     tm.assert_series_equal(result, expected)
+
+
+def test_flex_arith_fill_value_preserves_nullable_dtype():
+    # GH#65805 columns exclusive to one frame should keep their nullable
+    # integer dtype instead of being upcast to Float64 during alignment
+    left = DataFrame(
+        {
+            "a": pd.array([1, 2], dtype="UInt8"),
+            "b": pd.array([3, 4], dtype="UInt8"),
+        }
+    )
+    right = DataFrame(
+        {
+            "b": pd.array([5, 6], dtype="UInt8"),
+            "c": pd.array([7, 8], dtype="UInt8"),
+        }
+    )
+    result = left.add(right, fill_value=0)
+    expected = DataFrame(
+        {
+            "a": pd.array([1, 2], dtype="UInt8"),
+            "b": pd.array([8, 10], dtype="UInt8"),
+            "c": pd.array([7, 8], dtype="UInt8"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_flex_arith_fill_value_truediv_stays_float():
+    # GH#65805 truediv always produces float, exclusive columns must not be
+    # restored to the original integer dtype
+    left = DataFrame({"a": pd.array([1, 2], dtype="UInt8")})
+    right = DataFrame(
+        {
+            "a": pd.array([1, 2], dtype="UInt8"),
+            "b": pd.array([4, 8], dtype="UInt8"),
+        }
+    )
+    result = left.truediv(right, fill_value=1)
+    assert result["b"].dtype == "Float64"
+
+
+def test_flex_arith_fill_value_no_lossy_cast():
+    # GH#65805 a fractional fill_value must not be silently truncated when
+    # restoring the original integer dtype
+    left = DataFrame({"a": pd.array([7, 8], dtype="UInt8")})
+    right = DataFrame(
+        {
+            "a": pd.array([1, 1], dtype="UInt8"),
+            "b": pd.array([2, 2], dtype="UInt8"),
+        }
+    )
+    result = left.add(right, fill_value=0.5)
+    # "b" is exclusive to right -> 2 + 0.5 = 2.5, cannot be UInt8 without loss
+    assert result["b"].dtype == "Float64"
+    assert result["b"].tolist() == [2.5, 2.5]
