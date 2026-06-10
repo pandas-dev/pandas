@@ -1523,6 +1523,8 @@ class TestParquetFastParquet(Base):
         df.to_parquet(temp_file)
         with pytest.raises(ValueError, match=msg):
             read_parquet(temp_file, dtype_backend="numpy")
+
+
 @td.skip_if_no("pyarrow", min_version="24.0.0")
 @pytest.mark.xfail(
     reason=(
@@ -1533,9 +1535,9 @@ class TestParquetFastParquet(Base):
 def test_to_parquet_uuid_supported(temp_file):
     # GH 61602
     df = pd.DataFrame({"id": [uuid.uuid4(), uuid.uuid4()]})
-    
+
     df.to_parquet(temp_file, engine="pyarrow")
-    
+
     # Use read_parquet directly to fix the namespace error
     result = read_parquet(temp_file, engine="pyarrow")
     tm.assert_frame_equal(result, df)
