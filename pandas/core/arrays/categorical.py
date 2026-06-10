@@ -1652,6 +1652,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 except KeyError:
                     na_val = np.nan
 
+        # A MultiIndex (i.e. mapper returned tuples) can't back a
+        # CategoricalDtype, so it must take the slow path below regardless
+        # of uniqueness/na checks.
         if (
             not isinstance(new_categories, ABCMultiIndex)
             and new_categories.is_unique
