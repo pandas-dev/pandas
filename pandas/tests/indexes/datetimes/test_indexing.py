@@ -167,7 +167,7 @@ class TestWhere:
 
         # passing tz-naive ndarray to tzaware DTI
         result = dti.where(mask, i2.values)
-        expected = Index([pd.NaT.asm8, pd.NaT.asm8, *tail], dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         # passing tz-aware DTI to tznaive DTI
@@ -178,13 +178,12 @@ class TestWhere:
 
         pi = i2.tz_localize(None).to_period("D")
         result = dti.where(mask, pi)
-        expected = Index([pi[0], pi[1], *tail], dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         tda = i2.asi8.view("timedelta64[ns]")
         result = dti.where(mask, tda)
-        expected = Index([tda[0], tda[1], *tail], dtype=object)
-        assert isinstance(expected[0], np.timedelta64)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
@@ -341,18 +340,16 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
         expected = DatetimeIndex(["2011-02-01", "2011-01-01", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = DatetimeIndex(["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx")
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -373,22 +370,20 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
         expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "NaT"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
-        result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
+        result = idx.take(np.array([1, 0, -1]), allow_fill=False)
         expected = DatetimeIndex(
             ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx", tz="US/Eastern"
         )
         tm.assert_index_equal(result, expected)
 
-        msg = (
-            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
-        )
+        msg = "When allow_fill=True, all indices must be >= -1"
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
         with pytest.raises(ValueError, match=msg):
@@ -476,7 +471,7 @@ class TestGetLoc:
 
         assert index.get_loc(pd.NA) == 1
 
-        assert index.get_loc(np.datetime64("NaT")) == 1
+        assert index.get_loc(np.datetime64("NaT", "ns")) == 1
 
         with pytest.raises(KeyError, match="NaT"):
             index.get_loc(np.timedelta64("NaT", "ns"))

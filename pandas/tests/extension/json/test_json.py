@@ -140,6 +140,16 @@ class TestJSONArray(base.ExtensionTests):
         return super().test_unstack(data, index)
 
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_scalar(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_scalar(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_readonly(self, data_missing):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+        super().test_fillna_readonly(data_missing)
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
         super().test_fillna_series()
@@ -212,14 +222,6 @@ class TestJSONArray(base.ExtensionTests):
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
         super().test_where_series(data, na_value)
-
-    @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_is_monotonic_increasing(self, data_for_sorting):
-        super().test_is_monotonic_increasing(data_for_sorting)
-
-    @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_is_monotonic_decreasing(self, data_for_sorting):
-        super().test_is_monotonic_decreasing(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
@@ -444,6 +446,19 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
+
+    @pytest.mark.xfail(
+        raises=AssertionError,
+        reason="JSONArray does not support roundtrip via JSON",
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # JSONArray does not support roundtrip as during JSON serialization each element
+        # of the array is packed into another dictionary ``{"data": element}`` with
+        # element being a dictionary itself, and during deserialization these
+        # dictionaries are not unpacked again, so the JSONArray cannot be reconstructed
+        # with the simple deserialization in the test.
+        super().test_json_roundtrip(data)
 
 
 def custom_assert_series_equal(left, right, *args, **kwargs):

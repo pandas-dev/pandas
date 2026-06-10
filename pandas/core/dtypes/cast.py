@@ -695,7 +695,9 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        if val is NaT or val.tz is None:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -708,7 +710,9 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            if val is NaT:
+            # error: Non-overlapping identity check (left operand type: "Timedelta",
+            # right operand type: "NaTType")
+            if val is NaT:  # type: ignore[comparison-overlap]
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8
@@ -843,13 +847,9 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
     Change string like dtypes to object for
     ``DataFrame.select_dtypes()``.
     """
-    # error: Argument 1 to <set> has incompatible type "Type[generic]"; expected
-    # "Union[dtype[Any], ExtensionDtype, None]"
-    # error: Argument 2 to <set> has incompatible type "Type[generic]"; expected
-    # "Union[dtype[Any], ExtensionDtype, None]"
     non_string_dtypes = dtype_set - {
-        np.dtype("S").type,  # type: ignore[arg-type]
-        np.dtype("<U").type,  # type: ignore[arg-type]
+        np.dtype("S").type,
+        np.dtype("<U").type,
     }
     if non_string_dtypes != dtype_set:
         raise TypeError(
@@ -1619,7 +1619,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
 
         if dtype == "string":
             try:
-                arr._maybe_convert_setitem_value(element)  # type: ignore[union-attr]
+                arr._validate_setitem_value(element)  # type: ignore[union-attr]
                 return True
             except (ValueError, TypeError):
                 return False

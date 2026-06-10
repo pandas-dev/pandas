@@ -211,16 +211,7 @@ class TestStata:
             parsed_115 = self.read_dta(path2)
         with tm.assert_produces_warning(UserWarning, match=msg):
             parsed_117 = self.read_dta(path3)
-            # FIXME: don't leave commented-out
-            # 113 is buggy due to limits of date format support in Stata
-            # parsed_113 = self.read_dta(
-            # datapath("io", "data", "stata", "stata2_113.dta")
-            # )
 
-        # FIXME: don't leave commented-out
-        # buggy test because of the NaT comparison on certain platforms
-        # Format 113 test fails since it does not support tc and tC formats
-        # tm.assert_frame_equal(parsed_113, expected)
         tm.assert_frame_equal(parsed_114, expected)
         tm.assert_frame_equal(parsed_115, expected)
         tm.assert_frame_equal(parsed_117, expected)
@@ -2654,3 +2645,13 @@ def test_stata_v117_prefix_with_unsupported_version_raises_version_error():
         match=r"either not a valid Stata dataset.*\(detected:\s*999\)",
     ):
         read_stata(buf)
+
+
+def test_read_stata_far_future_dates(datapath):
+    # GH#36096 day-format column with values ~20.5M (year ~58330) used to
+    # raise OverflowError via dateutil; non-nano datetime64[s] handles it.
+    path = datapath("io", "data", "stata", "stata-date-overflow-36096.dta")
+    result = read_stata(path)
+    assert result.shape == (10, 1)
+    assert result["tiempo_gen"].dtype == np.dtype("M8[s]")
+    assert result["tiempo_gen"].min().year == 58330

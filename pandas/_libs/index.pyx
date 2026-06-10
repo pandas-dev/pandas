@@ -379,7 +379,8 @@ cdef class IndexEngine:
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -436,6 +437,11 @@ cdef class IndexEngine:
 
         n = len(values)
         n_t = len(targets)
+        if n == 0:
+            # GH#54746 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
@@ -1250,7 +1256,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -1309,6 +1316,11 @@ cdef class MaskedIndexEngine(IndexEngine):
 
         n = len(values)
         n_t = len(target_vals)
+        if n == 0:
+            # GH#64674 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
