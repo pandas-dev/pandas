@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         F,
+        P,
         T,
     )
     from pandas.errors import PandasChangeWarning
@@ -29,12 +30,12 @@ if TYPE_CHECKING:
 def deprecate(
     klass: type[Warning],
     name: str,
-    alternative: Callable[..., Any],
+    alternative: Callable[P, T],
     version: str,
     alt_name: str | None = None,
     stacklevel: int = 2,
     msg: str | None = None,
-) -> Callable[[F], F]:
+) -> Callable[P, T]:
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -65,7 +66,7 @@ def deprecate(
     warning_msg = msg or f"{name} is deprecated, use {alt_name} instead."
 
     @wraps(alternative)
-    def wrapper(*args, **kwargs) -> Callable[..., Any]:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
 
@@ -96,9 +97,7 @@ def deprecate(
 
         {dedent(doc_string)}"""
         )
-    # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
-    # Callable[...,Any]]", expected "Callable[[F], F]")
-    return wrapper  # type: ignore[return-value]
+    return wrapper
 
 
 def deprecate_kwarg(
@@ -107,7 +106,7 @@ def deprecate_kwarg(
     new_arg_name: str | None,
     mapping: Mapping[Any, Any] | Callable[[Any], Any] | None = None,
     stacklevel: int = 2,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to deprecate a keyword argument of a function.
 
@@ -174,9 +173,9 @@ def deprecate_kwarg(
             "mapping from old to new argument values must be dict or callable!"
         )
 
-    def _deprecate_kwarg(func: F) -> F:
+    def _deprecate_kwarg(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable[..., Any]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             __tracebackhide__ = True
 
             old_arg_value = kwargs.pop(old_arg_name, None)
@@ -219,7 +218,7 @@ def deprecate_kwarg(
                 kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
-        return cast("F", wrapper)
+        return wrapper
 
     return _deprecate_kwarg
 
@@ -274,7 +273,7 @@ def deprecate_nonkeyword_arguments(
     klass: type[PandasChangeWarning],
     allowed_args: list[str] | None = None,
     name: str | None = None,
-) -> Callable[[F], F]:
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
 
@@ -294,7 +293,7 @@ def deprecate_nonkeyword_arguments(
         is used.
     """
 
-    def decorate(func):
+    def decorate(func: Callable[P, T]) -> Callable[P, T]:
         old_sig = inspect.signature(func)
 
         if allowed_args is not None:
@@ -326,7 +325,7 @@ def deprecate_nonkeyword_arguments(
         )
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if len(args) > num_allow_args:
                 warnings.warn(
                     msg.format(arguments=_format_argument_list(allow_args)),
@@ -335,8 +334,7 @@ def deprecate_nonkeyword_arguments(
                 )
             return func(*args, **kwargs)
 
-        # error: "Callable[[VarArg(Any), KwArg(Any)], Any]" has no
-        # attribute "__signature__"
+        # error: "Callable[P, T]" has no attribute "__signature__"
         wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
 
@@ -376,7 +374,7 @@ class Substitution:
         "%s %s wrote the Raven"
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: object, **kwargs: object) -> None:
         from pandas.errors import Pandas4Warning
 
         warnings.warn(
@@ -387,13 +385,13 @@ class Substitution:
         if args and kwargs:
             raise AssertionError("Only positional or keyword args are allowed")
 
-        self.params = args or kwargs
+        self.params: tuple[object, ...] | dict[str, object] = args or kwargs
 
     def __call__(self, func: F) -> F:
         func.__doc__ = func.__doc__ and func.__doc__ % self.params
         return func
 
-    def update(self, *args, **kwargs) -> None:
+    def update(self, *args: object, **kwargs: object) -> None:
         """
         Update self.params with supplied args.
         """
@@ -463,7 +461,7 @@ __all__ = [
 ]
 
 
-def set_module(module) -> Callable[[F], F]:
+def set_module(module: str | None) -> Callable[[F], F]:
     """Private decorator for overriding __module__ on a function or class.
 
     Example usage::

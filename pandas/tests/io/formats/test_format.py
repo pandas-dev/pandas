@@ -1286,10 +1286,6 @@ class TestDataFrameFormatting:
         ):
             assert not has_non_verbose_info_repr(df)
 
-        # FIXME: don't leave commented-out
-        # test verbose overrides
-        # set_option('display.max_info_columns', 4)  # exceeded
-
     def test_pprint_pathological_object(self):
         """
         If the test fails, it at least won't hang.

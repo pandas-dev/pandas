@@ -1083,9 +1083,21 @@ class Block(PandasObject, libinternals.Block):
             New blocks of unstacked values.
         """
         new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
+        new_values = new_values.T
+
+        # get_new_values can return a view of self.values on the identity-indexer
+        #  fast path (see _Unstacker._make_sorted_values); every other path copies
+        #  via take_nd.  Gate on that, then the O(1) may_share_memory, so CoW
+        #  tracks the reference.  GH#65107
+        if unstacker._indexer_is_identity and np.may_share_memory(
+            new_values, self.values
+        ):
+            refs = self.refs
+        else:
+            refs = None
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values.T, placement=bp)]
+        blocks = [new_block_2d(new_values, placement=bp, refs=refs)]
         return blocks
 
     # ---------------------------------------------------------------------
@@ -1297,7 +1309,14 @@ class Block(PandasObject, libinternals.Block):
         else:
             other = casted
             alt = setitem_datetimelike_compat(values, icond.sum(), other)
-            if alt is not other:
+            if isinstance(other, tuple) and values.dtype == _dtype_obj:
+                # GH#37681 np.where/np.putmask unpack tuples, so wrap in an
+                #  object array to ensure the tuple is treated as a scalar.
+                fill_arr = np.empty(1, dtype=object)
+                fill_arr[0] = other
+                result = values.copy()
+                np.putmask(result, icond, fill_arr)
+            elif alt is not other:
                 if is_list_like(other) and len(other) < len(values):
                     # call np.where with other to get the appropriate ValueError
                     np.where(~icond, values, other)
@@ -2412,7 +2431,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
 
 
 def extract_pandas_array(
-    values: ArrayLike, dtype: DtypeObj | None, ndim: int
+    values: ArrayLike, dtype: DtypeObj | None, ndim: int | None
 ) -> tuple[ArrayLike, DtypeObj | None]:
     """
     Ensure that we don't allow NumpyExtensionArray / NumpyEADtype in internals.
