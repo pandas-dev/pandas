@@ -18,8 +18,25 @@ pip = ">=26"
 # Required dependencies
 python-dateutil = ">=2.8.2"
 
+[feature.mingw-compiler]
+platforms = ["win-64"]
+dependencies = { gcc = "*", gxx = "*" }
+activation = { env = { CC = "gcc", CXX = "g++" } }
+
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
+
+# latest version (currently 2.4) is included in "numpy" feature above, in addition
+# test the 3 minor versions before -> test latest 4 versions of numpy spread
+# across the 4 tested Python versions
+[feature.numpy21.dependencies]
+numpy = "2.1.*"
+
+[feature.numpy22.dependencies]
+numpy = "2.2.*"
+
+[feature.numpy23.dependencies]
+numpy = "2.3.*"
 
 [feature.numpy-nightly.pypi-dependencies]
 numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -58,8 +75,18 @@ pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.9"
 qtpy = ">=2.4.2"
 
+# test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
 pyarrow = ">=13.0.0"
+
+[feature.pyarrow21.dependencies]
+pyarrow = "21.*"
+
+[feature.pyarrow22.dependencies]
+pyarrow = "22.*"
+
+[feature.pyarrow23.dependencies]
+pyarrow = "23.*"
 
 [feature.pyarrow-nightly.pypi-dependencies]
 pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
@@ -146,10 +173,26 @@ pytest = "*"
 pyyaml = "*"
 requests = "*"
 
+[feature.doctests.dependencies]
+pytest-cython = ">=0.4.0"
+natsort = "*" # DataFrame.sort_values doctest
+tokenize-rt = "*" # scripts/check_for_inconsistent_pandas_namespace.py
+pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
+
+[feature.typing.dependencies]
+pre-commit = ">=4.2.0"
+ipython = "*"
+mypy = "==2.1.0"
+scipy-stubs = "*"
+types-python-dateutil = "*"
+types-PyMySQL = "*"
+types-pytz = "*"
+types-PyYAML = "*"
+
 [environments]
-py311 = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py312 = { features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-py313 = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
+py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
+py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
+py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies"] }
 py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
@@ -158,7 +201,11 @@ numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
+doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests" ] }
+# https://github.com/apache/arrow/issues/49831 for "pyarrow23" in typing
+typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing" ] }
 docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website" ]}
+mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
 
 
 [tasks]
@@ -195,6 +242,45 @@ cmd = [
   "--cov-report=xml",
   "--cov-append",
   "{{ pytest_target }}",
+]
+
+[tasks.ci-doctests]
+# Avoids NumPy scalar reprs in docstrings.
+env = { PANDAS_FUTURE_PYTHON_SCALARS = "1" }
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "--doctest-modules",
+  "--doctest-cython",
+  "--ignore=pandas/tests",
+  "pandas",
+]
+
+[tasks.ci-check-import]
+cmd = [
+  "python",
+  "-W",
+  "error",
+  "ci/import_pandas_check.py",
+]
+
+[tasks.ci-typing]
+cmd = [
+  "pre-commit",
+  "run",
+  "--verbose",
+  "--hook-stage",
+  "manual",
+  "--all-files",
+]
+
+[tasks.ci-scripts-tests]
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "scripts",
 ]
 
 [tasks.ci-asv]
