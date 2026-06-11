@@ -85,7 +85,6 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_nat_parse(all_parsers, temp_file):
     # see gh-3062
     parser = all_parsers

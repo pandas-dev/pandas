@@ -169,7 +169,6 @@ def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame.columns are different
 def test_no_unnamed_index(all_parsers):
     parser = all_parsers
     data = """ id c0 c1 c2

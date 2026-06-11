@@ -31,12 +31,15 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(
-    all_parsers, dtype, check_orig, using_infer_string, temp_file
+    all_parsers, dtype, check_orig, using_infer_string, temp_file, request
 ):
     # see gh-3795, gh-6607
     parser = all_parsers
+    if parser.engine == "pyarrow" and dtype is object:
+        # dtype=object is also applied to the index column
+        mark = pytest.mark.xfail(reason="object index instead of str")
+        request.applymarker(mark)
 
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)).round(4),
@@ -350,7 +353,6 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
@@ -365,7 +367,6 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
     parser = all_parsers
@@ -422,7 +423,6 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -436,7 +436,6 @@ def test_dtypes_defaultdict(all_parsers, default):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     # GH#41574
     data = """a,b,a,b,b.1
@@ -450,7 +449,6 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_invalid(all_parsers):
     # GH#41574
     data = """a,b

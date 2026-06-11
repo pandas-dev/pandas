@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 import warnings
 
@@ -169,6 +170,55 @@ class ArrowParserWrapper(ParserBase):
 
         return convert_options
 
+    def _dedup_column_names(self, raw_names: list[str]) -> list[str]:
+        """
+        Match other engines' header handling: empty names become
+        "Unnamed: {i}" and duplicated names are mangled with ".{count}",
+        mirroring the algorithm in pandas._libs.parsers.TextReader.
+
+        Sets ``self.unnamed_cols`` as a side effect.
+        """
+        names = []
+        unnamed_col_indices = []
+        for i, name in enumerate(raw_names):
+            if name == "":
+                name = f"Unnamed: {i}"
+                unnamed_col_indices.append(i)
+            names.append(name)
+
+        # Ensure that regular columns are used before unnamed ones
+        # to keep given names and mangle unnamed columns
+        col_loop_order = [
+            i for i in range(len(names)) if i not in unnamed_col_indices
+        ] + unnamed_col_indices
+        counts: dict[str, int] = {}
+
+        for i in col_loop_order:
+            col = old_col = names[i]
+            cur_count = counts.get(col, 0)
+
+            if cur_count > 0:
+                while cur_count > 0:
+                    counts[old_col] = cur_count + 1
+                    col = f"{old_col}.{cur_count}"
+                    if col in names:
+                        cur_count += 1
+                    else:
+                        cur_count = counts.get(col, 0)
+
+                if (
+                    isinstance(self.dtype, dict)
+                    and self.dtype.get(old_col) is not None
+                    and self.dtype.get(col) is None
+                ):
+                    self.dtype[col] = self.dtype[old_col]
+
+            names[i] = col
+            counts[col] = cur_count + 1
+
+        self.unnamed_cols = {names[i] for i in unnamed_col_indices}
+        return names
+
     def _adjust_column_names(self, table: pa.Table) -> bool:
         num_cols = len(table.columns)
         multi_index_named = True
@@ -196,7 +246,8 @@ class ArrowParserWrapper(ParserBase):
                     raise ValueError(f"Index {item} invalid")
 
                 # Process dtype for index_col and drop from dtypes
-                if self.dtype is not None:
+                # (non-dict dtype is applied to the whole frame later)
+                if isinstance(self.dtype, dict):
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
@@ -210,6 +261,13 @@ class ArrowParserWrapper(ParserBase):
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
+            elif self.unnamed_cols:
+                # match other engines: empty header fields used as index
+                # produce an unnamed index level
+                frame.index.names = [
+                    None if name in self.unnamed_cols else name
+                    for name in frame.index.names
+                ]
 
         return frame
 
@@ -306,7 +364,16 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
+        if self.header is not None and self.names is None:
+            new_names = self._dedup_column_names(table.column_names)
+            if new_names != table.column_names:
+                table = table.rename_columns(new_names)
+
         multi_index_named = self._adjust_column_names(table)
+
+        if isinstance(self.dtype, defaultdict):
+            columns = self.names if self.header is None else table.column_names
+            self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
