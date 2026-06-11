@@ -2883,11 +2883,28 @@ class ArrowExtensionArray(
             and limit_direction == "forward"
         ):
             values = self._pa_array.combine_chunks()
-            na_value = pa.array([None], type=values.type)
-            y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
-            prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
-            interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
-            return self._from_pyarrow_array(pc.coalesce(self._pa_array, interps))
+            # The PyArrow-native fast path uses pairwise_diff(period=2),
+            # which only handles isolated single NAs correctly.  When
+            # consecutive NAs are present the computation silently
+            # produces wrong results (GH#65345).  Fall through to the
+            # generic masked-array path for those cases.
+            if len(values) > 1:
+                nulls = pc.is_null(values)
+                consecutive_nulls = pc.and_kleene(nulls[:-1], nulls[1:])
+                if not pc.any(consecutive_nulls).as_py():
+                    na_value = pa.array([None], type=values.type)
+                    y_diff_2 = pc.fill_null_backward(
+                        pc.pairwise_diff_checked(values, period=2)
+                    )
+                    prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
+                    interps = pc.add_checked(
+                        prev_values, pc.divide_checked(y_diff_2, 2)
+                    )
+                    return self._from_pyarrow_array(
+                        pc.coalesce(self._pa_array, interps)
+                    )
+            # Fall through to generic path for consecutive NAs
+            # or single-element arrays.
 
         mask = self.isna()
         if self.dtype.kind == "f":
@@ -2910,7 +2927,23 @@ class ArrowExtensionArray(
             mask=mask,
             **kwargs,
         )
-        return self._from_pyarrow_array(self._box_pa_array(pa.array(data, mask=mask)))
+        pa_arr = pa.array(data, mask=mask)
+        result = self._from_pyarrow_array(self._box_pa_array(pa_arr))
+        # The generic masked-array path works in float64, so integer input
+        # comes back as double[pyarrow].  Cast back to the original dtype
+        # when the interpolation is complete (no remaining NAs and no limit
+        # truncation) so the caller gets the same type it started with
+        # (GH#65345).  If values were skipped because of `limit` or
+        # `limit_area`, keep the float result to avoid truncating
+        # fractional interpolated values.
+        if (
+            self.dtype.kind in "iu"
+            and limit is None
+            and limit_area is None
+            and not result.isna().any()
+        ):
+            result = result.astype(self.dtype)
+        return result
 
     @classmethod
     def _if_else(

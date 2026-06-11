@@ -4228,3 +4228,12 @@ def test_date32_pyarrow_dateoffset_with_nulls(dtype):
     result = ser + pd.offsets.MonthEnd()
     assert result[0] == date(2022, 12, 31)
     assert pd.isna(result[1])  # handles NA, NaT, None uniformly
+
+
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_interpolate_linear_consecutive_na(dtype):
+    # GH#65345
+    ser = pd.Series([1, None, None, 4], dtype=dtype)
+    result = ser.interpolate()
+    expected = pd.Series([1, 2, 3, 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)
