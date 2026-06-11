@@ -2835,10 +2835,7 @@ class _iLocIndexer(_LocationIndexer):
             # if it's worth supporting that.
             value = self._align_series(indexer, Series(value))
         elif isinstance(value, ABCDataFrame) and name != "iloc":
-            if (
-                self.ndim == len(indexer) == 2
-                and is_integer(indexer[info_axis])
-            ):
+            if self.ndim == len(indexer) == 2 and is_integer(indexer[info_axis]):
                 col = item_labels[indexer[info_axis]]
                 if col in value.columns:
                     value = self._align_series(indexer, value[col])

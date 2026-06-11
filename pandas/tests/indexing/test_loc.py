@@ -3757,12 +3757,14 @@ def test_loc_setitem_extension_array_into_object_series():
     tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_scalar_column_dataframe_alignment(self):
-        # GH 47000 (roughly, or similar issue regarding loc with dataframe to scalar column)
-        df = DataFrame([[1, 2], [3, 4]], index=['x', 'y'], columns=['A', 'B'])
-        item = DataFrame([100], columns=['A'], index=['v'])
-        
-        # Setting a single block dataframe's column with a dataframe should align indices
-        df.loc[:, 'A'] = item
-        
-        expected = DataFrame([[np.nan, 2], [np.nan, 4]], index=['x', 'y'], columns=['A', 'B'])
+        # GH 58482
+        df = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["A", "B"])
+        item = DataFrame([100], columns=["A"], index=["v"])
+
+        # Setting a single block dataframe's column with a dataframe should align
+        df.loc[:, "A"] = item
+
+        expected = DataFrame(
+            [[np.nan, 2], [np.nan, 4]], index=["x", "y"], columns=["A", "B"]
+        )
         tm.assert_frame_equal(df, expected)
