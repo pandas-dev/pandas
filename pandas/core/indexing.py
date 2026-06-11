@@ -2834,22 +2834,8 @@ class _iLocIndexer(_LocationIndexer):
 
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
-        if isinstance(indexer, tuple):
-            # if we are setting on the info axis ONLY
-            # set using those methods to avoid block-splitting
-            # logic here
-            if (
-                self.ndim == len(indexer) == 2
-                and is_integer(indexer[1])
-                and com.is_null_slice(indexer[0])
-            ):
-                col = item_labels[indexer[info_axis]]
-                if len(item_labels.get_indexer_for([col])) == 1:
-                    # e.g. test_loc_setitem_empty_append_expands_rows
-                    loc = item_labels.get_loc(col)
-                    self._setitem_single_column(loc, value, indexer[0])
-                    return
 
+        if isinstance(indexer, tuple):
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
         if isinstance(value, ABCDataFrame) and name != "iloc":
@@ -2865,6 +2851,22 @@ class _iLocIndexer(_LocationIndexer):
                     value = np.nan
             else:
                 value = self._align_frame(indexer, value)._values
+
+        if isinstance(indexer, tuple):
+            # if we are setting on the info axis ONLY
+            # set using those methods to avoid block-splitting
+            # logic here
+            if (
+                self.ndim == len(indexer) == 2
+                and is_integer(indexer[1])
+                and com.is_null_slice(indexer[0])
+            ):
+                col = item_labels[indexer[info_axis]]
+                if len(item_labels.get_indexer_for([col])) == 1:
+                    # e.g. test_loc_setitem_empty_append_expands_rows
+                    loc = item_labels.get_loc(col)
+                    self._setitem_single_column(loc, value, indexer[0])
+                    return
 
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)

@@ -3752,9 +3752,11 @@ def test_loc_setitem_extension_array_into_object_series():
     expected = Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
 
+
+class TestLocSetitemDataFrameAlignment:
     def test_loc_setitem_scalar_column_dataframe_alignment(self):
         # GH 58482
-        df = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["A", "B"])
+        df = DataFrame([[1.0, 2], [3.0, 4]], index=["x", "y"], columns=["A", "B"])
         item = DataFrame([100], columns=["A"], index=["v"])
 
         # Setting a single block dataframe's column with a dataframe should align
