@@ -3401,6 +3401,22 @@ class ArrowExtensionArray(
             )
         )
 
+    @property
+    def _duration_unit(self) -> str:
+        """
+        Return the time unit for a duration-typed array.
+
+        Raises ``AttributeError`` for non-duration dtypes so the duration
+        component accessors (``_dt_days``, ``_dt_seconds``, etc.) are rejected
+        for e.g. ``timestamp[pyarrow]`` instead of silently treating the
+        underlying int64 as a duration. The ``dt`` dispatcher turns this into
+        the usual "dt.<name> is not supported for <dtype>" error.
+        """
+        pa_type = self._pa_array.type
+        if not pa.types.is_duration(pa_type):
+            raise AttributeError(f"'{self.dtype}' does not have duration components")
+        return pa_type.unit
+
     @cache_readonly
     def _dt_day_remainder(self) -> pa.ChunkedArray:
         """
@@ -3411,7 +3427,7 @@ class ArrowExtensionArray(
 
         This is cached because it's used by all sub-day component accessors.
         """
-        unit = self._pa_array.type.unit
+        unit = self._duration_unit
         divisor = _DURATION_DIVISORS["day"][unit]
         arr = self._pa_array.cast(pa.int64())
         days = floor_div_int64(arr, divisor)
@@ -3424,7 +3440,7 @@ class ArrowExtensionArray(
 
         The remainder is always non-negative, so we can use integer division.
         """
-        unit = self._pa_array.type.unit
+        unit = self._duration_unit
         divisors = _DURATION_DIVISORS[component]
         # For units coarser than this component, the result is always 0
         if unit not in divisors:
@@ -3436,7 +3452,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_days(self) -> Self:
-        unit = self._pa_array.type.unit
+        unit = self._duration_unit
         arr = self._pa_array.cast(pa.int64())
         result = floor_div_int64(arr, _DURATION_DIVISORS["day"][unit])
         return self._from_pyarrow_array(result.cast(pa.int32()))
@@ -3455,7 +3471,7 @@ class ArrowExtensionArray(
         # Every duration unit (s/ms/us/ns) is at least as fine as seconds, so the
         # remainder always has enough resolution and no zero-result shortcut is
         # needed here.
-        unit = self._pa_array.type.unit
+        unit = self._duration_unit
         # Convert remainder to seconds (no modulo - we want total sub-day seconds)
         result = pc.divide(self._dt_day_remainder, _DURATION_DIVISORS["second"][unit])
         return self._from_pyarrow_array(result.cast(pa.int32()))
@@ -3467,7 +3483,7 @@ class ArrowExtensionArray(
     @property
     def _dt_microseconds(self) -> Self:
         # Total microseconds in sub-second portion (0-999999), per Python timedelta
-        unit = self._pa_array.type.unit
+        unit = self._duration_unit
         divisors = _DURATION_DIVISORS
         if unit not in divisors["microsecond"]:
             # Unit is coarser than microseconds, result is always 0

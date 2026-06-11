@@ -3161,11 +3161,12 @@ def test_dt_timedelta_components_negative_and_nulls():
     ser_arrow = pd.Series(values, dtype=ArrowDtype(pa.duration("ns")))
     ser_numpy = pd.Series(values)
 
-    # .dt.days
-    expected_days = pd.Series(ser_numpy.dt.days.values, dtype="Int32[pyarrow]").where(
-        ser_arrow.notna(), pd.NA
-    )
-    tm.assert_series_equal(ser_arrow.dt.days, expected_days)
+    # The direct .dt.<component> accessors should match the NumPy-backed result
+    for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
+        expected = pd.Series(
+            getattr(ser_numpy.dt, attr).values, dtype="Int32[pyarrow]"
+        ).where(ser_arrow.notna(), pd.NA)
+        tm.assert_series_equal(getattr(ser_arrow.dt, attr), expected)
 
     # .dt.components
     result = ser_arrow.dt.components
@@ -3233,6 +3234,18 @@ def test_dt_timedelta_components_all_null():
     result = ser.dt.components
     for col in result.columns:
         assert result[col].isna().all()
+
+
+@pytest.mark.parametrize("attr", ["days", "seconds", "microseconds", "nanoseconds"])
+def test_dt_duration_components_reject_timestamp(attr):
+    # GH 63470: the duration component accessors must not silently treat a
+    # timestamp's underlying int64 as a duration; they should raise like the
+    # NumPy-backed datetime accessors do.
+    ser = pd.Series(
+        pd.to_datetime(["2020-01-01 01:02:03"]), dtype="timestamp[ns][pyarrow]"
+    )
+    with pytest.raises(NotImplementedError, match=f"dt.{attr} is not supported"):
+        getattr(ser.dt, attr)
 
 
 def test_dt_to_pytimedelta():
