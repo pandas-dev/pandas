@@ -45,6 +45,7 @@ from pandas._libs import (
 from pandas._libs.algos import rank_1d
 import pandas._libs.groupby as libgroupby
 from pandas._libs.missing import NA
+from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -5716,13 +5717,29 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#23918: shift(freq=...) moves the index, not the values.
             #  When groups are recombined, shifted indices from one group can
             #  align with another group during division. Use a MultiIndex
-            #  keyed by (group_code, index_value) to make lookups group-aware.
-            codes = self._grouper.codes_info
-            target_index = filled.index.shift(-periods, freq)
-            mi = MultiIndex.from_arrays([codes, filled.index])
-            target_mi = MultiIndex.from_arrays([codes, target_index])
-            denominator = filled.copy()
-            denominator.index = mi
+            #  keyed by (group_id, index_value) to make lookups group-aware.
+            ids = self._grouper.ids
+            mi = MultiIndex.from_arrays([ids, filled.index])
+            target_index = None
+            # freq="infer" must be inferred per-group, and duplicate index
+            #  values within a group make the reindex below ambiguous; in
+            #  those cases fall back to per-group pct_change.
+            if mi.is_unique and not (isinstance(freq, str) and freq == "infer"):
+                try:
+                    # use NDFrame.shift for index-type handling (PeriodIndex)
+                    target_index = filled.shift(-periods, freq=freq).index
+                except (OverflowError, OutOfBoundsDatetime):
+                    # target labels not representable; the per-group shift
+                    #  moves the index the other direction and may still work
+                    pass
+            if target_index is None:
+                return self._python_apply_general(
+                    lambda group: group.pct_change(periods=periods, freq=freq),
+                    self._selected_obj,
+                    is_transform=True,
+                )
+            target_mi = MultiIndex.from_arrays([ids, target_index])
+            denominator = filled.set_axis(mi)
             denominator = denominator.reindex(target_mi)
             denominator.index = filled.index
             return (filled / denominator) - 1

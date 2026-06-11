@@ -943,6 +943,154 @@ def test_pct_change_with_freq(frame_or_series, periods):
     tm.assert_equal(result, expected)
 
 
+def test_pct_change_with_freq_duplicate_index(frame_or_series):
+    # GH#23918: duplicate index values within a group; resolved the same
+    #  way Series.pct_change does (first occurrence wins)
+    idx = pd.to_datetime(
+        ["2020-01-01", "2020-01-02", "2020-01-02", "2020-01-01", "2020-01-02"]
+    )
+    vals = [1.0, 3.0, 4.0, 5.0, 10.0]
+    groups = list("aaabb")
+
+    if frame_or_series is Series:
+        obj = Series(vals, index=idx)
+    else:
+        obj = DataFrame({"vals": vals}, index=idx)
+    gb = obj.groupby(groups)
+
+    result = gb.pct_change(freq="D")
+
+    exp_vals = [np.nan, 2.0, 2.0, np.nan, 1.0]
+    if frame_or_series is Series:
+        expected = Series(exp_vals, index=idx)
+    else:
+        expected = DataFrame({"vals": exp_vals}, index=idx)
+
+    tm.assert_equal(result, expected)
+
+
+def test_pct_change_with_freq_dates_shared_across_groups(frame_or_series):
+    # GH#23918: the same dates appear in multiple groups; denominator
+    #  lookups must not cross groups
+    idx = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03"] * 2)
+    vals = [1.0, 2.0, 4.0, 3.0, 9.0, 27.0]
+    groups = list("aaabbb")
+
+    if frame_or_series is Series:
+        obj = Series(vals, index=idx)
+    else:
+        obj = DataFrame({"vals": vals}, index=idx)
+
+    result = obj.groupby(groups).pct_change(freq="D")
+
+    exp_vals = [np.nan, 1.0, 1.0, np.nan, 2.0, 2.0]
+    if frame_or_series is Series:
+        expected = Series(exp_vals, index=idx)
+    else:
+        expected = DataFrame({"vals": exp_vals}, index=idx)
+
+    tm.assert_equal(result, expected)
+
+
+def test_pct_change_with_freq_period_index(frame_or_series):
+    # GH#23918
+    idx = pd.period_range("2020-01", periods=6, freq="M")
+    vals = [2.0, 4.0, 1.0, 3.0, 6.0, 12.0]
+    groups = list("aaabbb")
+
+    if frame_or_series is Series:
+        obj = Series(vals, index=idx)
+    else:
+        obj = DataFrame({"vals": vals}, index=idx)
+
+    result = obj.groupby(groups).pct_change(freq="M")
+
+    exp_vals = [np.nan, 1.0, -0.75, np.nan, 1.0, 1.0]
+    if frame_or_series is Series:
+        expected = Series(exp_vals, index=idx)
+    else:
+        expected = DataFrame({"vals": exp_vals}, index=idx)
+
+    tm.assert_equal(result, expected)
+
+
+def test_pct_change_with_freq_infer(frame_or_series):
+    # GH#23918: freq="infer" is inferred per group
+    # group a is every 2 days, group b is daily
+    idx = pd.to_datetime(
+        [
+            "2020-01-01",
+            "2020-01-03",
+            "2020-01-05",
+            "2020-01-02",
+            "2020-01-03",
+            "2020-01-04",
+        ]
+    )
+    vals = [1.0, 2.0, 4.0, 1.0, 3.0, 9.0]
+    groups = list("aaabbb")
+
+    if frame_or_series is Series:
+        obj = Series(vals, index=idx)
+    else:
+        obj = DataFrame({"vals": vals}, index=idx)
+
+    result = obj.groupby(groups).pct_change(freq="infer")
+
+    exp_vals = [np.nan, 1.0, 1.0, np.nan, 2.0, 2.0]
+    if frame_or_series is Series:
+        expected = Series(exp_vals, index=idx)
+    else:
+        expected = DataFrame({"vals": exp_vals}, index=idx)
+
+    tm.assert_equal(result, expected)
+
+
+def test_pct_change_with_freq_grouper_unsorted(frame_or_series):
+    # GH#23918: Grouper(freq=...) sorts the index internally; the group
+    #  ids must stay aligned with the filled values
+    idx = pd.to_datetime(["2020-01-08", "2020-01-01", "2020-01-09", "2020-01-02"])
+    vals = [1.0, 2.0, 4.0, 8.0]
+
+    if frame_or_series is Series:
+        obj = Series(vals, index=idx)
+    else:
+        obj = DataFrame({"vals": vals}, index=idx)
+
+    result = obj.groupby(pd.Grouper(freq="W")).pct_change(freq="D")
+
+    exp_vals = [np.nan, 3.0, np.nan, 3.0]
+    if frame_or_series is Series:
+        expected = Series(exp_vals, index=idx.sort_values())
+    else:
+        expected = DataFrame({"vals": exp_vals}, index=idx.sort_values())
+
+    tm.assert_equal(result, expected)
+
+
+def test_pct_change_with_freq_null_group_key(frame_or_series):
+    # GH#23918: rows with null group keys are kept as NaN, consistent
+    #  with freq=None
+    idx = date_range("2020-01-01", periods=4, freq="D")
+    vals = [1.0, 2.0, 4.0, 8.0]
+    groups = ["a", "a", np.nan, np.nan]
+
+    if frame_or_series is Series:
+        obj = Series(vals, index=idx)
+    else:
+        obj = DataFrame({"vals": vals}, index=idx)
+
+    result = obj.groupby(groups).pct_change(freq="D")
+
+    exp_vals = [np.nan, 1.0, np.nan, np.nan]
+    if frame_or_series is Series:
+        expected = Series(exp_vals, index=idx)
+    else:
+        expected = DataFrame({"vals": exp_vals}, index=idx)
+
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, expected_status",
     [
