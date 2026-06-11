@@ -372,7 +372,12 @@ class ArrowParserWrapper(ParserBase):
         multi_index_named = self._adjust_column_names(table)
 
         if isinstance(self.dtype, defaultdict):
-            columns = self.names if self.header is None else table.column_names
+            if self.header is None:
+                # set by _adjust_column_names above
+                assert self.names is not None
+                columns = list(self.names)
+            else:
+                columns = table.column_names
             self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():

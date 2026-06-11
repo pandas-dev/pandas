@@ -37,9 +37,14 @@ def test_dtype_all_columns(
     # see gh-3795, gh-6607
     parser = all_parsers
     if parser.engine == "pyarrow" and dtype is object:
-        # dtype=object is also applied to the index column
-        mark = pytest.mark.xfail(reason="object index instead of str")
-        request.applymarker(mark)
+        if not check_orig:
+            # parsed values are not converted to strings
+            mark = pytest.mark.xfail(reason="float values instead of str")
+            request.applymarker(mark)
+        elif using_infer_string:
+            # dtype=object is also applied to the index column
+            mark = pytest.mark.xfail(reason="object index instead of str")
+            request.applymarker(mark)
 
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)).round(4),
