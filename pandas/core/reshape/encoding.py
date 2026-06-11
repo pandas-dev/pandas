@@ -161,8 +161,6 @@ def get_dummies(
 
     def _is_encodable(arr) -> bool:
         dtype = arr.dtype
-        if is_object_dtype(dtype):
-            return True
         if isinstance(dtype, (StringDtype, CategoricalDtype)):
             return True
         if isinstance(dtype, ArrowDtype):
@@ -172,9 +170,12 @@ def get_dummies(
             return (
                 pa.types.is_string(pa_type)
                 or pa.types.is_large_string(pa_type)
+                or pa.types.is_string_view(pa_type)
                 or pa.types.is_dictionary(pa_type)
             )
-        return False
+        # is_object_dtype last: it raises for ArrowDtypes whose `.type` is
+        # not implemented (e.g. string_view)
+        return is_object_dtype(dtype)
 
     if isinstance(data, DataFrame):
         # determine columns being encoded

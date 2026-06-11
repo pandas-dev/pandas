@@ -263,6 +263,19 @@ class TestDataFrameColor:
         ax = df.plot.scatter("dataX", "dataY", c="color")
         assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == color_count
 
+    def test_scatter_with_c_column_arrow_string(self):
+        # GH#59888: Arrow-backed string columns stay available for c=
+        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "x": [1, 2, 3],
+                "y": [4, 5, 6],
+                "c": pd.array(["r", "g", "b"], dtype=pd.ArrowDtype(pa.string())),
+            }
+        )
+        ax = df.plot.scatter(x="x", y="y", c="c")
+        assert len(np.unique(ax.collections[0].get_facecolor(), axis=0)) == 3
+
     def test_scatter_colors(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
         with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):

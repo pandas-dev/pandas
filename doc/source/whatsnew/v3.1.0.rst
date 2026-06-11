@@ -245,6 +245,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :class:`DatetimeIndex` addition with a :class:`DateOffset` that has only timedelta components (e.g. ``DateOffset(hours=-2)``) raising ``ValueError`` near DST transitions, while scalar :class:`Timestamp` addition worked correctly (:issue:`28610`)
+- Bug in :meth:`DataFrame.describe` where tz-aware datetime columns were excluded from the default (``include=None``) output while tz-naive datetime columns were included (:issue:`59888`)
 -
 
 Numeric

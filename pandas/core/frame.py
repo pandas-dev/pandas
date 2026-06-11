@@ -104,6 +104,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -296,6 +297,24 @@ _SELECT_DTYPES_KIND_CHAR: dict[str, str] = {
     "timedelta": "m",
     "timedelta64": "m",
 }
+
+
+def _select_dtypes_arrow_kind_match(dtype: ArrowDtype, req: type) -> bool:
+    # An EA class request names a kind, and Arrow string/dictionary columns
+    # belong to the string/categorical kinds, so e.g. select_dtypes("string")
+    # selects ArrowDtype(pa.string()) columns.
+    import pyarrow as pa
+
+    pa_type = dtype.pyarrow_dtype
+    if req is StringDtype:
+        return (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_string_view(pa_type)
+        )
+    if req is CategoricalDtype:
+        return pa.types.is_dictionary(pa_type)
+    return False
 
 
 # -----------------------------------------------------------------------
@@ -5529,6 +5548,9 @@ class DataFrame(NDFrame, OpsMixin):
                     # class -> "any dtype of this class"
                     if isinstance(dtype, req):
                         return True
+                    if isinstance(dtype, ArrowDtype):
+                        if _select_dtypes_arrow_kind_match(dtype, req):
+                            return True
                 # instance -> exact-dtype match
                 elif dtype == req:
                     return True

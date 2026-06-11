@@ -459,3 +459,18 @@ class TestDataFrameDescribe:
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+def test_describe_default_includes_tz_aware():
+    # GH#59888: the default include=None selection picks up tz-aware datetime
+    # columns the same as tz-naive ones
+    df = DataFrame(
+        {
+            "num": [1, 2, 3],
+            "naive": date_range("2020-01-01", periods=3),
+            "tz": date_range("2020-01-01", periods=3, tz="US/Eastern"),
+            "text": ["x", "y", "z"],
+        }
+    )
+    result = df.describe()
+    assert list(result.columns) == ["num", "naive", "tz"]

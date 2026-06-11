@@ -713,3 +713,44 @@ def test_select_dtypes_include_exclude_overlap_raises():
     # kind-string overlap
     with pytest.raises(ValueError, match="include and exclude overlap"):
         df.select_dtypes(include="int64", exclude="int64")
+
+
+@pytest.mark.parametrize("spec", ["string", pd.StringDtype])
+def test_select_dtypes_string_spec_matches_arrow_strings(spec):
+    # GH#59888: "string"/StringDtype name the string kind and also match
+    # Arrow-backed string columns
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "default": pd.array(["x", "y"], dtype="str"),
+            "nullable": pd.array(["x", "y"], dtype="string"),
+            "arrow": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
+            "large": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.large_string())),
+            "view": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string_view())),
+            "num": [1, 2],
+        }
+    )
+    # compare columns, not frames: assert_frame_equal raises for string_view
+    # columns (ArrowDtype.type is not implemented for string_view)
+    result = df.select_dtypes(include=spec)
+    assert list(result.columns) == ["default", "nullable", "arrow", "large", "view"]
+    result = df.select_dtypes(exclude=spec)
+    assert list(result.columns) == ["num"]
+
+
+def test_select_dtypes_category_matches_arrow_dictionary():
+    # GH#59888: "category"/CategoricalDtype also match Arrow dictionary columns
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "cat": pd.Categorical(["a", "b"]),
+            "arrow": pd.array(
+                ["a", "b"],
+                dtype=pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+            ),
+            "num": [1, 2],
+        }
+    )
+    expected = df[["cat", "arrow"]]
+    tm.assert_frame_equal(df.select_dtypes(include="category"), expected)
+    tm.assert_frame_equal(df.select_dtypes(include=pd.CategoricalDtype), expected)
