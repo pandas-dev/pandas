@@ -429,7 +429,10 @@ class PythonParser(ParserBase):
             if c in parse_date_cols:
                 # GH#26203 Do not convert columns which get converted to dates
                 # but replace nans to ensure to_datetime works
-                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)  # pyright: ignore[reportArgumentType]
+                mask = algorithms.isin(
+                    values,
+                    set(col_na_values) | col_na_fvalues,  # pyright: ignore[reportArgumentType]
+                )
                 np.putmask(values, mask, np.nan)
                 result[c] = values
                 continue
@@ -1558,5 +1561,4 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
     if skipfooter < 0:
         raise ValueError("skipfooter cannot be negative")
 
-    # Incompatible return value type (got "Union[int, integer[Any]]", expected "int")
-    return skipfooter  # type: ignore[return-value]
+    return skipfooter  # pyright: ignore[reportReturnType]

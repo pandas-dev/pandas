@@ -2427,7 +2427,7 @@ class ADBCDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
-            db_schema_filter=schema, table_name_filter=name
+            depth="tables", db_schema_filter=schema, table_name_filter=name
         ).read_all()
 
         for catalog_schema in meta["catalog_db_schemas"].to_pylist():

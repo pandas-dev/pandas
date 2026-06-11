@@ -5223,7 +5223,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     f"Periods must be integer, but {period} is {type(period)}."
                 )
-            period = cast("int", period)
             if freq is not None:
                 f = lambda x: x.shift(
                     period,
