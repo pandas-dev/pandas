@@ -7298,6 +7298,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_name = ops.get_op_result_name(self, other)
 
         if isinstance(other, Series):
+            if isinstance(self.index, MultiIndex) and isinstance(
+                other.index, MultiIndex
+            ):
+                self_names = set(self.index.names)
+                other_names = set(other.index.names)
+                if not (self_names <= other_names or other_names <= self_names):
+                    # GH#25891
+                    warnings.warn(
+                        "The silent alignment on arithmetic operations between "
+                        "'Series' with incomparable MultiIndexes is deprecated "
+                        "and will be removed in a future version. Please align "
+                        "MultiIndexes manually.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+
+        if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
             other, (list, tuple, ExtensionArray)
