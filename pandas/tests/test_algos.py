@@ -1240,6 +1240,16 @@ class TestIsin:
         expected = Series([False])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["float32", "complex128"])
+    def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
+        # GH#46485: a mixed int/float targets list is cast to float64 by
+        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
+        # can see it; we must still object-cast and compare exactly.
+        ser = Series([2**53], dtype="int64").astype(dtype)
+        result = ser.isin([2**53 + 1, 1.5])
+        expected = Series([False])
+        tm.assert_series_equal(result, expected)
+
     def test_isin_float_vs_small_int_keeps_numeric_path(self, monkeypatch):
         # GH#46485: int targets that fit exactly in float64 (|x| <= 2**53) are
         # safe to compare numerically, so they must not fall back to the slower

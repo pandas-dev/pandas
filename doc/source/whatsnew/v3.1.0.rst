@@ -225,7 +225,7 @@ Performance improvements
   or boolean dtype (:issue:`25507`).
 - Performance improvement in :meth:`Series.isin` and :meth:`DataFrame.isin`
   when checking a numeric :class:`Series` or :class:`Index` against a
-  list-like of numbers of a different numeric dtype (:issue:`46485`).
+  list-like of integers of a different numeric dtype (:issue:`46485`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:

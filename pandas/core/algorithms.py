@@ -553,6 +553,20 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             # skipping the O(len(values)) materialization of the set, so it
             # must not fire for the common large-comps/small-set case.
             and comps_arr.size < len(values)
+            # A 64-bit comp with magnitude >= 2**53 can match a float in the
+            # set lossily under the materialized path below (via a float64
+            # cast) but never under exact Python equality, so the result would
+            # depend on which path is taken. Only use this path when comps
+            # values are strictly inside float64's exact-int range, where the
+            # two agree.
+            and (
+                comps_arr.dtype.itemsize < 8
+                or comps_arr.size == 0
+                or (
+                    -_FLOAT64_INT_EXACT_MAX < int(comps_arr.min())
+                    and int(comps_arr.max()) < _FLOAT64_INT_EXACT_MAX
+                )
+            )
         ):
             return np.fromiter(
                 (item in values for item in comps_arr.tolist()),
@@ -609,7 +623,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                         or int(values_arr.max()) > _FLOAT64_INT_EXACT_MAX
                     )
                 else:
-                    needs_object = False
+                    # float/complex values_dtype means _ensure_arraylike may
+                    # already have rounded large ints in a mixed int/float
+                    # list, so exactness cannot be checked from the array;
+                    # recover it from orig_values via the object cast. Smaller
+                    # ints/bools cast to float64 exactly.
+                    needs_object = values_dtype.kind in "fc"
             if needs_object:
                 values = construct_1d_object_array_from_listlike(orig_values)
 

@@ -299,3 +299,17 @@ def test_isin_empty_set():
     result = ser.isin(set())
     expected = Series([False, False, False])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("n_comps", [1, 2])
+@pytest.mark.parametrize("magnitude", [2**53, 2**53 + 1])
+@pytest.mark.parametrize("values", [{2.0**53, 0.5}, {2**53 + 1, 0.5}])
+def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
+    # GH#25507: comps at or beyond float64's exact-int range can match
+    # lossily under the materialized path (which casts through float64) but
+    # not under exact set membership; the result must not depend on the
+    # comps size.
+    ser = Series([magnitude] * n_comps, dtype="int64")
+    result = ser.isin(values)
+    expected = ser.isin(list(values))
+    tm.assert_series_equal(result, expected)
