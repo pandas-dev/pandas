@@ -15405,8 +15405,7 @@ class DataFrame(NDFrame, OpsMixin):
                 regardless of the callable's behavior.
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
