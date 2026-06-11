@@ -16294,7 +16294,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.min``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
@@ -16401,7 +16402,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.max``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
@@ -16482,7 +16484,8 @@ class DataFrame(NDFrame, OpsMixin):
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.sum``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
@@ -16587,7 +16590,8 @@ class DataFrame(NDFrame, OpsMixin):
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.prod``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
@@ -16679,7 +16683,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any:
         """
-        Return the mean of the values over the requested axis.
+        Return the mean of the values.
 
         This computes the arithmetic mean of the values in each column
         (or row when ``axis=1``), skipping missing values by default.
@@ -16701,7 +16705,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.mean``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
@@ -16710,11 +16715,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
-        Series.sum : Return the sum.
-        Series.min : Return the minimum.
-        Series.max : Return the maximum.
-        Series.idxmin : Return the index of the minimum.
-        Series.idxmax : Return the index of the maximum.
         DataFrame.sum : Return the sum over the requested axis.
         DataFrame.min : Return the minimum over the requested axis.
         DataFrame.max : Return the maximum over the requested axis.
@@ -16825,7 +16825,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.median``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
@@ -17195,7 +17196,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
         **kwargs : dict
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments are accepted for compatibility with ``numpy.std``. 
+            These arguments are only accepted when they use their default values.
 
         Returns
         -------
