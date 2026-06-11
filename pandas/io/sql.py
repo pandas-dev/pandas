@@ -109,6 +109,16 @@ def _process_parse_dates_argument(parse_dates):
     return parse_dates
 
 
+def _stringify_numeric_column(col):
+    # GH#55663 cast to strings up front so to_datetime doesn't need to
+    # infer what to do with numeric data given a format.
+    notna_mask = col.notna()
+    col = col.astype("object")
+    if notna_mask.any():
+        col[notna_mask] = col[notna_mask].astype("int64").astype(str)
+    return col
+
+
 def _handle_date_column(
     col, utc: bool = False, format: str | dict[str, Any] | None = None
 ):
@@ -117,6 +127,8 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
+        if format.get("format") is not None and col.dtype.kind in "iuf":
+            col = _stringify_numeric_column(col)
         return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
@@ -133,13 +145,8 @@ def _handle_date_column(
             # GH11216
             return to_datetime(col, utc=True)
         else:
-            if hasattr(col, "dtype") and col.dtype.kind in "iuf":
-                # GH#55663 cast to strings up front so to_datetime doesn't
-                # need to infer what to do with numeric data given a format.
-                notna_mask = col.notna()
-                col = col.astype("object")
-                if notna_mask.any():
-                    col[notna_mask] = col[notna_mask].astype("int64").astype(str)
+            if format is not None and col.dtype.kind in "iuf":
+                col = _stringify_numeric_column(col)
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 
