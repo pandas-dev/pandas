@@ -8990,7 +8990,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments are accepted for compatibility with ``numpy.min``. 
+            Additional keyword arguments are accepted for compatibility with ``numpy.min``.
             These arguments are only accepted when they use their default values.
 
         Returns
@@ -9062,7 +9062,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments are accepted for compatibility with ``numpy.max``. 
+            Additional keyword arguments are accepted for compatibility with ``numpy.max``.
             These arguments are only accepted when they use their default values.
 
         Returns
@@ -9141,7 +9141,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments are accepted for compatibility with ``numpy.sum``. 
+            Additional keyword arguments are accepted for compatibility with ``numpy.sum``.
             These arguments are only accepted when they use their default values.
 
         Returns
@@ -9241,7 +9241,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments are accepted for compatibility with ``numpy.prod``. 
+            Additional keyword arguments are accepted for compatibility with ``numpy.prod``.
             These arguments are only accepted when they use their default values.
 
         Returns
@@ -9308,21 +9308,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        axis : {index (0)}
-            Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to 0.
-
-            For DataFrames, specifying ``axis=None`` will apply the aggregation
-            across both axes.
-
-            .. versionadded:: 2.0.0
+        axis : {'index' or (0)}
+            Unused. Parameter needed for compatibility with DataFrame.
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments are accepted for compatibility with ``numpy.mean``. 
+            Additional keyword arguments are accepted for compatibility with ``numpy.mean``.
             These arguments are only accepted when they use their default values.
 
         Returns
@@ -9382,7 +9376,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments are accepted for compatibility with ``numpy.median``. 
+            Additional keyword arguments are accepted for compatibility with ``numpy.median``.
             These arguments are only accepted when they use their default values.
 
         Returns
