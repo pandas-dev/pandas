@@ -1873,8 +1873,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if there are NA's present.
         axis : int, optional, default 0
         **kwargs : any, default None
-            Additional keywords have no effect but might be accepted for compatibility with NumPy.
-            See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -1967,8 +1967,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if there are NA's present.
         axis : int, optional, default 0
         **kwargs : any, default None
-            Additional keywords have no effect but might be accepted for compatibility with NumPy.
-            See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
