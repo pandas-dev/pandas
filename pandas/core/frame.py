@@ -3987,7 +3987,7 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         *args : tuple, optional
-            Accepted for compatibility with NumPy.
+            Accepted for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
@@ -16168,7 +16168,7 @@ class DataFrame(NDFrame, OpsMixin):
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16327,7 +16327,7 @@ class DataFrame(NDFrame, OpsMixin):
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17705,7 +17705,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17814,7 +17814,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17923,7 +17923,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -18032,7 +18032,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
