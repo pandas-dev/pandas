@@ -291,7 +291,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` (and their :class:`GroupBy` counterparts) returning ``0.0`` and ``-3.0`` respectively for degenerate windows or groups; these now return ``NaN`` (:issue:`62864`)
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for low-variance windows (:issue:`62946`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
-- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where using a ``Day`` frequency (e.g. ``"7D"``) produced different bin edges than the equivalent ``Hour`` frequency (e.g. ``"168h"``), and where ``origin`` and ``offset`` were ignored for ``Day`` frequencies (:issue:`44996`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` with a timezone-naive index where using a ``Day`` frequency (e.g. ``"7D"``) produced different bin edges than the equivalent ``Hour`` frequency (e.g. ``"168h"``), and where ``origin`` and ``offset`` were ignored (:issue:`44996`, :issue:`62200`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` where same-frequency resampling with monthly, quarterly, or annual frequencies bypassed aggregation, returning the original values instead of the aggregation result (:issue:`18553`)
 
 Reshaping

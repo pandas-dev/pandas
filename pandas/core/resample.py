@@ -2459,11 +2459,9 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        # GH#44996: for tz-naive Day freq, origin/offset take effect
-        # (Day is routed through the Tick path in _get_timestamp_range_edges).
-        _index_tz = getattr(getattr(obj, "index", None), "tz", None)
-        _day_tz_naive = isinstance(freq, Day) and _index_tz is None
-        if not isinstance(freq, Tick) and not _day_tz_naive:
+        # GH#44996: the Day check is deferred to _get_resampler, where the
+        # binning axis is known.
+        if not isinstance(freq, (Tick, Day)):
             if offset is not None:
                 warnings.warn(
                     "The 'offset' keyword does not take effect when resampling "
@@ -2560,6 +2558,30 @@ class TimeGrouper(Grouper):
 
         """
         _, ax, _ = self._set_grouper(obj, gpr_index=None)
+
+        # GH#44996: with a Day freq, origin/offset take effect only on a
+        # tz-naive DatetimeIndex (where Day is equivalent to 24h), except
+        # that offset also takes effect in _get_time_delta_bins.
+        if isinstance(self.freq, Day) and not (
+            isinstance(ax, DatetimeIndex) and ax.tz is None
+        ):
+            if self.offset is not None and not isinstance(ax, TimedeltaIndex):
+                warnings.warn(
+                    "The 'offset' keyword does not take effect when resampling "
+                    "with a Day 'freq' unless the index is a timezone-naive "
+                    "DatetimeIndex",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if self.origin != "start_day":
+                warnings.warn(
+                    "The 'origin' keyword does not take effect when resampling "
+                    "with a Day 'freq' unless the index is a timezone-naive "
+                    "DatetimeIndex",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2972,12 +2994,6 @@ def _get_timestamp_range_edges(
             offset=offset,
             unit=unit,
         )
-
-        if index_tz is not None and first.tz is None:
-            # GH#58380: use nonexistent="shift_forward" to handle DST
-            # transitions where the computed bin edge is nonexistent.
-            first = first.tz_localize(index_tz, nonexistent="shift_forward")
-            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()

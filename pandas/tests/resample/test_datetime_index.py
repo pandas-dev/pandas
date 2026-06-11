@@ -2234,6 +2234,63 @@ def test_resample_day_origin_offset():
     expected = ser.resample("168h", origin=origin).sum()
     tm.assert_series_equal(result, expected, check_freq=False)
 
+    # a tz-mismatched origin now raises, like the equivalent Hour freq
+    msg = "The origin must have the same timezone as the index."
+    with pytest.raises(ValueError, match=msg):
+        ser.resample("7D", origin=Timestamp("2021-01-04", tz="UTC")).sum()
+
+
+def test_resample_day_origin_tz_aware_index_warns():
+    # GH#44996: origin only takes effect with Day freq on a tz-naive
+    # DatetimeIndex; tz-aware indexes keep the prior behavior and warn
+    index = date_range("2021-01-01", periods=10, freq="D", tz="US/Eastern")
+    df = DataFrame({"a": range(10)}, index=index)
+    origin = Timestamp("2021-01-04", tz="US/Eastern")
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = df.resample("7D").sum()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.resample("7D", origin=origin).sum()
+    tm.assert_frame_equal(result, expected)
+
+    # the same applies when the TimeGrouper is built without an obj
+    # (pd.Grouper) or checks a column instead of the index (on=...)
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.groupby(Grouper(freq="7D", origin=origin)).sum()
+    tm.assert_frame_equal(result, expected)
+
+    df_on = df.reset_index(names="ts")
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df_on.resample("7D", on="ts", origin=origin).sum()
+    tm.assert_frame_equal(result, expected.rename_axis("ts"))
+
+
+def test_resample_day_origin_on_tz_naive_column():
+    # GH#44996: origin takes effect (without warning) when resampling on a
+    # tz-naive datetime column, even if the index is tz-aware
+    df = DataFrame(
+        {"ts": date_range("2021-01-01", periods=10, freq="D"), "a": range(10)},
+        index=date_range("2021-01-01", periods=10, freq="D", tz="US/Eastern"),
+    )
+    origin = Timestamp("2021-01-04")
+    with tm.assert_produces_warning(None):
+        result = df.resample("7D", on="ts", origin=origin).sum()
+    expected = df.resample("168h", on="ts", origin=origin).sum()
+    tm.assert_frame_equal(result, expected, check_freq=False)
+
+
+def test_resample_day_origin_period_index_warns():
+    # GH#44996: origin still does not take effect with Day freq on a
+    # PeriodIndex (the Period grid ignores it), so the warning is kept
+    pi = period_range("2021-01-01", periods=14, freq="D")
+    ser = Series(range(14), index=pi)
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = ser.resample("7D").sum()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ser.resample("7D", origin=Timestamp("2021-01-04")).sum()
+    tm.assert_series_equal(result, expected)
+
 
 def test_resample_D_closed_right_no_extra_bin():
     # GH#62200: resample("D", closed="right") should not produce an extra
