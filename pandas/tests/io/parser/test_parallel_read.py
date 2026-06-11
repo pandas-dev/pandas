@@ -43,8 +43,8 @@ from pandas.io.parsers.readers import (
 # ---------------------------------------------------------------------------
 
 
-def _make_large_csv(path: Path, n_rows: int = 200_000) -> None:
-    """Write a CSV large enough to trigger the parallel path."""
+def _make_large_csv(path: Path, n_rows: int = 10_000) -> None:
+    """Write a CSV with enough rows to split into multiple parallel chunks."""
     rng = np.random.default_rng(42)
     df = DataFrame(
         {
@@ -572,7 +572,6 @@ def test_embedded_newline_falls_back_to_serial(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.slow
 def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     """
     read_csv() transparently uses the parallel path for large local files.
@@ -593,7 +592,6 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.slow
 def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     """
     For a file that exceeds the threshold, the parallel result equals the
@@ -602,7 +600,7 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     import pandas.io.parsers.readers as _readers
 
     path = tmp_path / "big.csv"
-    _make_large_csv(path, n_rows=500_000)
+    _make_large_csv(path)
     # Lower the threshold so any file triggers the parallel path.
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
 

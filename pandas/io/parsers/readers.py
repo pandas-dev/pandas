@@ -12,6 +12,7 @@ from collections import (
     defaultdict,
 )
 from concurrent.futures import ThreadPoolExecutor
+import contextlib
 import csv
 import io
 import mmap
@@ -666,10 +667,10 @@ def _read_csv_parallel(
     }
 
     # mmap the file once and pass zero-copy memoryview slices to each thread
-    # instead of having each thread open/seek/read its own copy.
-    fh = open(filepath, "rb")
-    mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
-    mv = memoryview(mm)
+    # instead of having each thread open/seek/read its own copy.  mmap dups
+    # the file descriptor, so the file object can be closed right away.
+    with open(filepath, "rb") as fh:
+        mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
 
     def _process_chunk(start: int, end: int) -> DataFrame:
         data = mv[start:end]
@@ -682,22 +683,22 @@ def _read_csv_parallel(
             reader.close()
 
     try:
-        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+        with (
+            memoryview(mm) as mv,
+            ThreadPoolExecutor(max_workers=n_workers) as pool,
+        ):
             futures = [
                 pool.submit(_process_chunk, offsets[i], offsets[i + 1])
                 for i in range(n_chunks)
             ]
             dfs = [fut.result() for fut in futures]
     finally:
-        mv.release()
-        try:
+        # suppress: a worker exception's traceback still holds a memoryview
+        # export, in which case close() raises BufferError and would mask the
+        # real exception.  The mapping is unmapped once that traceback is
+        # garbage-collected.
+        with contextlib.suppress(BufferError):
             mm.close()
-        except BufferError:
-            # A worker exception's traceback still holds a memoryview export;
-            # without this, BufferError would mask the real exception.  The
-            # mapping is unmapped once that traceback is garbage-collected.
-            pass
-        fh.close()
 
     # Per-chunk dtype inference can disagree with whole-file inference, e.g.
     # a numeric column whose only non-numeric row sits in one chunk parses as
@@ -1193,6 +1194,12 @@ def read_csv(
     DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
     read_table : Read general delimited file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Notes
+    -----
+    Sufficiently large local uncompressed files read with the C engine may be
+    parsed by multiple threads in parallel.  Use the ``mode.max_threads``
+    option to cap or disable this; see :ref:`io.csv.parallel` for details.
 
     Examples
     --------
