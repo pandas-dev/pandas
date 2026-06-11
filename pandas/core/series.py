@@ -9308,7 +9308,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        axis : {'index' or (0)}
+        axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
 
         skipna : bool, default True
