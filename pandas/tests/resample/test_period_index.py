@@ -320,6 +320,50 @@ class TestPeriodIndex:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_resample_superperiod_count(self):
+        # GH#42763 upsampling should aggregate, not pass values through
+        ser = Series([5, 6], index=period_range("2000", periods=2, freq="Y"))
+        result = ser.resample("Q").count()
+        expected = Series(
+            [1, 0, 0, 0, 1, 0, 0, 0],
+            index=period_range("2000Q1", periods=8, freq="Q-DEC"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_superperiod_sum(self):
+        # GH#42763 empty bins get the aggregation's identity value (0 for
+        # sum) and the dtype is preserved, consistent with DatetimeIndex
+        ser = Series([5, 6], index=period_range("2000", periods=2, freq="Y"))
+        result = ser.resample("Q").sum()
+        expected = Series(
+            [5, 0, 0, 0, 6, 0, 0, 0],
+            index=period_range("2000Q1", periods=8, freq="Q-DEC"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_superperiod_convention_end(self):
+        # GH#42763 upsampling with convention="end" returned all-NaN
+        ser = Series([2, 3], index=period_range("1/10/2000", periods=2, freq="D"))
+        result = ser.resample("12h", convention="end").count()
+        expected = Series(
+            [1, 0, 1],
+            index=period_range("2000-01-10 12:00", periods=3, freq="12h"),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("freq", ["D", "M", "Q"])
+    def test_resample_empty_dtype_incompatible_op(self, freq):
+        # Resampling an empty Series should not attempt the aggregation,
+        # so dtype-incompatible methods do not raise
+        ser = Series(
+            [], index=PeriodIndex([], freq="M", name="a"), dtype="datetime64[ns]"
+        )
+        result = ser.resample(freq).sum()
+        expected = Series(
+            [], index=PeriodIndex([], freq=freq, name="a"), dtype="datetime64[ns]"
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_resample_incompat_freq(self):
         msg = (
             "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>, "

@@ -2274,6 +2274,12 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 "as they are not sub or super periods"
             )
 
+        if not len(ax):
+            # reset to the new freq
+            obj = self._obj_with_exclusions.copy()
+            obj.index = obj.index.asfreq(self.freq)
+            return obj
+
         return self._groupby_and_aggregate(how, **kwargs)
 
     def _upsample(self, method, limit: int | None = None, fill_value=None):
