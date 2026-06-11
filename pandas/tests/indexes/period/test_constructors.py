@@ -262,6 +262,14 @@ class TestPeriodIndex:
         expected = PeriodIndex([], dtype="period[M]")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("field", ["year", "month"])
+    def test_constructor_field_arrays_outside_int32(self, field):
+        # Fields outside int32 range must raise instead of wrapping silently
+        fields = {"year": [2000, 2000], "month": [3, 3]}
+        fields[field] = [fields[field][0], 2**32 + 3]
+        with pytest.raises(OverflowError, match="value too large"):
+            PeriodIndex.from_fields(**fields, freq="M")
+
     def test_period_range_fractional_period(self):
         msg = "periods must be an integer, got 10.5"
         with pytest.raises(TypeError, match=msg):

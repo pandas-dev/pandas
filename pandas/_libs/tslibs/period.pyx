@@ -27,6 +27,7 @@ from cpython.datetime cimport (
     datetime,
     import_datetime,
 )
+from libc.stdint cimport INT32_MAX
 from libc.stdlib cimport (
     free,
     malloc,
@@ -1599,6 +1600,18 @@ def period_ordinals_from_fields(
     memset(&dts, 0, sizeof(npy_datetimestruct))
 
     for i in range(n):
+        # month/day/hour/min/sec land in int32 npy_datetimestruct fields,
+        #  so values outside int32 range would silently wrap; period_ordinal
+        #  raises OverflowError for these (C int args), so match that.
+        if (
+            not (INT32_MIN <= years[i] <= INT32_MAX)
+            or not (INT32_MIN <= months[i] <= INT32_MAX)
+            or not (INT32_MIN <= days[i] <= INT32_MAX)
+            or not (INT32_MIN <= hours[i] <= INT32_MAX)
+            or not (INT32_MIN <= minutes[i] <= INT32_MAX)
+            or not (INT32_MIN <= seconds[i] <= INT32_MAX)
+        ):
+            raise OverflowError("value too large to convert to int")
         dts.year = years[i]
         dts.month = months[i]
         dts.day = days[i]

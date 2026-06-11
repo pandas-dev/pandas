@@ -2433,6 +2433,36 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
         tm.assert_series_equal(result, expected)
 
+    def test_dataframe_hour_outside_int32(self):
+        # hour values outside int32 range must not wrap silently
+        df = DataFrame(
+            {"year": [2000, 2000], "month": [1, 1], "day": [1, 1], "hour": [1, 2**32]}
+        )
+        msg = "cannot assemble the datetimes: invalid or out-of-bounds date"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+        result = to_datetime(df, errors="coerce")
+        expected = Series(
+            [Timestamp("2000-01-01 01:00:00"), NaT], dtype="datetime64[us]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("col,base_val", [("year", 2000.0), ("hour", 0.0)])
+    def test_dataframe_infinite_float(self, col, base_val):
+        # +/-inf cannot be cast to int64; previously produced garbage values
+        df = DataFrame({"year": [2000.0, 2000.0], "month": [1, 1], "day": [1, 1]})
+        df[col] = [base_val, np.inf]
+        msg = f"cannot assemble the datetimes: column '{col}' contains out-of-bounds"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(None):
+                to_datetime(df)
+
+        with tm.assert_produces_warning(None):
+            result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
 
 class TestToDatetimeMisc:
     def test_to_datetime_barely_out_of_bounds(self):

@@ -4,6 +4,10 @@ import numpy as np
 
 cimport numpy as cnp
 from libc.math cimport log10
+from libc.stdint cimport (
+    INT32_MAX,
+    INT32_MIN,
+)
 from libc.string cimport memset
 from numpy cimport (
     PyDatetimeScalarObject,
@@ -327,7 +331,8 @@ def datetime_from_fields(
     """
     Construct datetime64[us] values from arrays of date/time fields.
 
-    Entries with an invalid month/day or out-of-bounds datetime get NPY_NAT.
+    Entries with an invalid month/day, an hour/minute/second outside int32
+    range, or an out-of-bounds datetime get NPY_NAT.
 
     Parameters
     ----------
@@ -343,7 +348,7 @@ def datetime_from_fields(
         Py_ssize_t i, n = len(years)
         int64_t[::1] result = np.empty(n, dtype="i8")
         npy_datetimestruct dts
-        int64_t month, day
+        int64_t month, day, hour, minute, second
         Py_ssize_t first_invalid = -1
 
     memset(&dts, 0, sizeof(npy_datetimestruct))
@@ -351,13 +356,21 @@ def datetime_from_fields(
     for i in range(n):
         month = months[i]
         day = days[i]
+        hour = hours[i]
+        minute = minutes[i]
+        second = seconds[i]
         # The cast to C int can wrap for |year| > 2**31, but any such year
         #  raises OverflowError below regardless of the leap-year check.
+        # hour/min/sec land in int32 npy_datetimestruct fields, so values
+        #  outside int32 range would silently wrap; treat them as invalid.
         if (
             month < 1
             or month > 12
             or day < 1
             or day > get_days_in_month(<int>years[i], month)
+            or not (INT32_MIN <= hour <= INT32_MAX)
+            or not (INT32_MIN <= minute <= INT32_MAX)
+            or not (INT32_MIN <= second <= INT32_MAX)
         ):
             result[i] = NPY_NAT
             if first_invalid == -1:
@@ -367,9 +380,9 @@ def datetime_from_fields(
         dts.year = years[i]
         dts.month = month
         dts.day = day
-        dts.hour = hours[i]
-        dts.min = minutes[i]
-        dts.sec = seconds[i]
+        dts.hour = hour
+        dts.min = minute
+        dts.sec = second
         try:
             result[i] = npy_datetimestruct_to_datetime(NPY_FR_us, &dts)
         except OverflowError:

@@ -1309,7 +1309,14 @@ def _assemble_from_unit_mappings(
                     f"cannot assemble the datetimes: column {col_name!r} "
                     f"contains fractional values"
                 )
-        bad = isnan | fractional
+        # +/-inf and values beyond int64 range cannot be cast meaningfully
+        out_of_range = (arr >= 2**63) | (arr < -(2**63))
+        if out_of_range.any() and errors == "raise":
+            raise ValueError(
+                f"cannot assemble the datetimes: column {col_name!r} "
+                f"contains out-of-bounds values"
+            )
+        bad = isnan | fractional | out_of_range
         if bad.any():
             nan_mask[bad] = True
             arr = np.where(bad, default, arr)
@@ -1338,6 +1345,15 @@ def _assemble_from_unit_mappings(
             f"{year_arr[first_invalid]}-{month_arr[first_invalid]:02d}"
             f"-{day_arr[first_invalid]:02d}"
         )
+        if (
+            hour_arr[first_invalid]
+            or minute_arr[first_invalid]
+            or second_arr[first_invalid]
+        ):
+            bad_val += (
+                f" {hour_arr[first_invalid]:02d}:{minute_arr[first_invalid]:02d}"
+                f":{second_arr[first_invalid]:02d}"
+            )
         raise ValueError(
             f'cannot assemble the datetimes: invalid or out-of-bounds date "{bad_val}"'
         )
