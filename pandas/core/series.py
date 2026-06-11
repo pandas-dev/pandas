@@ -2649,7 +2649,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
-            accepted for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -2709,7 +2710,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
-            accepted for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -2769,7 +2771,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             it specifies the number of positions to the left of the decimal point.
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
-            accepted for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

@@ -3987,7 +3987,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         *args : tuple, optional
-            Accepted for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
