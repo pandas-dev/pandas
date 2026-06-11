@@ -577,7 +577,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series]:
+    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series | DataFrame]:
         """
         Return the special character free column resolvers of a DataFrame.
 
@@ -586,23 +586,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Used in :meth:`DataFrame.eval`.
         """
         from pandas.core.computation.parsing import clean_column_name
-        from pandas.core.series import Series
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        dtypes = self.dtypes
-        return {
-            clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtype
-            ).__finalize__(self)
-            for k, v, dtype in zip(
-                self.columns,
-                self._iter_column_arrays(),
-                dtypes,
-                strict=True,
-            )
-        }
+        return {clean_column_name(k): self[k] for k in self.columns}
 
     @final
     @property
@@ -2331,8 +2319,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         *,
-        orient: Literal["split", "records", "index", "table", "columns", "values"]
-        | None = None,
+        orient: (
+            Literal["split", "records", "index", "table", "columns", "values"] | None
+        ) = None,
         date_format: str | None = None,
         double_precision: int = 10,
         force_ascii: bool = True,
@@ -3663,18 +3652,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "sparse_index": sparsify,
             "sparse_columns": sparsify,
             "environment": "longtable" if longtable else None,
-            "multicol_align": multicolumn_format
-            if multicolumn
-            else f"naive-{multicolumn_format}",
+            "multicol_align": (
+                multicolumn_format if multicolumn else f"naive-{multicolumn_format}"
+            ),
             "multirow_align": "t" if multirow else "naive",
             "encoding": encoding,
             "caption": caption,
             "label": label,
             "position": position,
             "column_format": column_format,
-            "clines": "skip-last;data"
-            if (multirow and isinstance(self.index, MultiIndex))
-            else None,
+            "clines": (
+                "skip-last;data"
+                if (multirow and isinstance(self.index, MultiIndex))
+                else None
+            ),
             "bold_rows": bold_rows,
         }
 
@@ -4858,7 +4849,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Keywords must be strings
         # error: No overload variant of "_rename" of "NDFrame" matches
         # argument type "dict[Literal['index', 'columns'], Callable[[Any], str]]"
-        return self._rename(**mapper)  # type: ignore[call-overload, misc]
+        return self._rename(**mapper)  # type: ignore[call-overload]
 
     @final
     def add_suffix(self, suffix: str, axis: Axis | None = None) -> Self:
@@ -4929,7 +4920,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Keywords must be strings
         # error: No overload variant of "_rename" of "NDFrame" matches argument
         # type "dict[Literal['index', 'columns'], Callable[[Any], str]]"
-        return self._rename(**mapper)  # type: ignore[call-overload, misc]
+        return self._rename(**mapper)  # type: ignore[call-overload]
 
     @overload
     def sort_values(
@@ -5682,8 +5673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if len(items) == 0:
                 # Keep the dtype of labels when we are empty
                 items = items.astype(labels.dtype)
-            # error: Keywords must be strings
-            return self.reindex(**{name: items})  # type: ignore[misc]
+            return self.reindex(**{name: items})
         elif like:
 
             def f(x) -> bool:
@@ -7842,7 +7832,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
-                        col: (to_replace[col], value[col])  # pyright: ignore[reportOptionalSubscript]
+                        col: (
+                            to_replace[col],  # pyright: ignore[reportOptionalSubscript]
+                            value[col],
+                        )
                         for col in to_replace.keys()
                         if col in value.keys() and col in self
                     }

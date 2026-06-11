@@ -2236,7 +2236,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if any(exclude):
             arr_exclude = (x for x in exclude if x in arr_columns)
-            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}  # pyright: ignore[reportUnhashable]
+            to_remove = {
+                arr_columns.get_loc(col)
+                for col in arr_exclude  # pyright: ignore[reportUnhashable]
+            }
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -2382,9 +2385,13 @@ class DataFrame(NDFrame, OpsMixin):
             # columns, whichever is applicable.
             if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
-                    dtype_mapping = dtype_mapping[name]  # pyright: ignore[reportOptionalSubscript]
+                    dtype_mapping = dtype_mapping[  # pyright: ignore[reportOptionalSubscript]
+                        name
+                    ]
                 elif index_int in dtype_mapping:
-                    dtype_mapping = dtype_mapping[index_int]  # pyright: ignore[reportOptionalSubscript]
+                    dtype_mapping = dtype_mapping[  # pyright: ignore[reportOptionalSubscript]
+                        index_int
+                    ]
                 else:
                     dtype_mapping = None
 
@@ -2821,8 +2828,9 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
-        engine: Literal["auto", "pyarrow", "fastparquet"]
-        | lib.NoDefault = lib.no_default,
+        engine: (
+            Literal["auto", "pyarrow", "fastparquet"] | lib.NoDefault
+        ) = lib.no_default,
         compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -6696,7 +6704,6 @@ class DataFrame(NDFrame, OpsMixin):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                period = cast("int", period)
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
