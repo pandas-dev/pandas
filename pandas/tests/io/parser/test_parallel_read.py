@@ -12,6 +12,7 @@ We test correctness (parallel == serial) rather than performance.
 
 from __future__ import annotations
 
+import csv
 import io
 import os
 from typing import TYPE_CHECKING
@@ -31,6 +32,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import (
     _can_parallelize_csv,
     _find_chunk_byte_offsets,
@@ -205,6 +207,17 @@ class TestCanParallelizeCsv:
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(escapechar="\\"))
 
+    def test_rejects_dialect(self, tmp_path, monkeypatch):
+        # dialect is merged into the kwds inside TextFileReader, i.e. after
+        # this check runs; a dialect-specified escapechar would otherwise
+        # bypass the escapechar check above (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert not _can_parallelize_csv(path, self._kwds(dialect="excel"))
+
     def test_rejects_parse_dates(self, tmp_path, monkeypatch):
         import pandas.io.parsers.readers as _readers
 
@@ -215,6 +228,28 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(parse_dates=True))
         assert _can_parallelize_csv(path, self._kwds(parse_dates=None))
         assert _can_parallelize_csv(path, self._kwds(parse_dates=False))
+
+    def test_rejects_storage_options(self, tmp_path):
+        # storage_options raises for local paths in the serial path; the
+        # parallel path strips it and would mask that error (GH#64347).
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        assert not _can_parallelize_csv(
+            path, self._kwds(storage_options={"anon": True})
+        )
+
+    def test_rejects_on_bad_lines_warn(self, tmp_path, monkeypatch):
+        # "warn" includes line numbers in its warnings; chunk workers would
+        # report chunk-relative (i.e. wrong) ones (GH#64347).
+        import pandas.io.parsers.readers as _readers
+
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        method = ParserBase.BadLineHandleMethod
+        assert not _can_parallelize_csv(path, self._kwds(on_bad_lines=method.BLHM_WARN))
+        assert _can_parallelize_csv(path, self._kwds(on_bad_lines=method.BLHM_ERROR))
+        assert _can_parallelize_csv(path, self._kwds(on_bad_lines=method.BLHM_SKIP))
 
     def test_rejects_blank_line_in_preamble(self, tmp_path, monkeypatch):
         # A blank line before the header shifts where pandas locates the
@@ -504,6 +539,26 @@ class TestReadCsvParallel:
         expected = self._serial_read(path, skiprows=3)
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
+    def test_implicit_index_returns_none(self, tmp_path):
+        # Data rows have one more field than the header (implicit index).
+        # concat(ignore_index=True) would silently drop the index, so the
+        # helper must bail out up front (GH#64347).
+        path = tmp_path / "implicit.csv"
+        lines = "a,b\n" + "".join(f"idx{i},{i},{i * 2}\n" for i in range(5_000))
+        path.write_text(lines, encoding="utf-8")
+        kwds = self._base_kwds(path)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
+    def test_quoted_newline_in_header_returns_none(self, tmp_path):
+        # A quoted embedded newline in the header makes the physical line
+        # count disagree with the logical row count, so data_start would land
+        # mid-header and chunk 0 would inject a garbage row (GH#64347).
+        path = tmp_path / "hdr.csv"
+        lines = '"col\n1",col2\n' + "".join(f"x{i},y{i}\n" for i in range(5_000))
+        path.write_text(lines, encoding="utf-8")
+        kwds = self._base_kwds(path)
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
     def test_dtype_specified(self, tmp_path):
         path = tmp_path / "data.csv"
         n = 5_000
@@ -730,6 +785,94 @@ def test_parallel_mixed_dtype_column_matches_serial(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # serial semantics: the whole column stays as strings
     assert result.loc[0, "col1"] == "0"
+
+
+def test_parallel_quoted_newline_in_header_matches_serial(tmp_path, monkeypatch):
+    # A quoted embedded newline in the header shifts data_start mid-header;
+    # without a guard, chunk 0 starts inside the header and silently injects
+    # a garbage row (GH#64347).  All-string data so the per-column dtype
+    # consistency check cannot catch it.
+    raw = b'"col\n1",col2\n' + b"".join(f"x{i},y{i}\n".encode() for i in range(500))
+    path = tmp_path / "hdr.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch)
+    expected = read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
+    assert len(result) == 500
+
+
+def test_parallel_storage_options_raises(tmp_path, monkeypatch):
+    # storage_options with a local path raises ValueError in the serial path;
+    # the parallel path strips it and must not mask that error (GH#64347).
+    raw = b"a,b\n" + b"".join(f"{i},{i}\n".encode() for i in range(500))
+    path = tmp_path / "so.csv"
+    path.write_bytes(raw)
+
+    msg = "storage_options passed with file object or non-fsspec file path"
+    with pytest.raises(ValueError, match=msg):
+        _read_forced_parallel(path, monkeypatch, storage_options={"anon": True})
+
+
+def test_parallel_on_bad_lines_warn_line_numbers(tmp_path, monkeypatch):
+    # on_bad_lines="warn" must report absolute line numbers; chunk workers
+    # would report chunk-relative ones, so the serial path is used (GH#64347).
+    raw = (
+        b"a,b\n"
+        + b"".join(f"{i},{i}\n".encode() for i in range(300))
+        + b"1,2,3,4\n"
+        + b"".join(f"{i},{i}\n".encode() for i in range(300, 600))
+    )
+    path = tmp_path / "bad.csv"
+    path.write_bytes(raw)
+
+    with tm.assert_produces_warning(ParserWarning, match="line 302"):
+        result = _read_forced_parallel(path, monkeypatch, on_bad_lines="warn")
+    with tm.assert_produces_warning(ParserWarning, match="line 302"):
+        expected = read_csv(io.BytesIO(raw), on_bad_lines="warn")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parallel_implicit_index_matches_serial(tmp_path, monkeypatch):
+    # Data rows with one more field than the header get an implicit index;
+    # the parallel path must hand back to serial rather than drop it via
+    # concat(ignore_index=True) (GH#64347).
+    raw = b"col1,col2\n" + b"".join(
+        f"idx{i},{i},{i * 2}\n".encode() for i in range(500)
+    )
+    path = tmp_path / "implicit.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch)
+    expected = read_csv(io.BytesIO(raw))
+    tm.assert_frame_equal(result, expected)
+    assert list(result.index[:2]) == ["idx0", "idx1"]
+
+
+def test_parallel_dialect_escapechar_matches_serial(tmp_path, monkeypatch):
+    # dialect is merged into the kwds only inside TextFileReader, after the
+    # eligibility check runs; a dialect-specified escapechar must still force
+    # the serial path - an escaped newline split across chunks would
+    # otherwise corrupt data (GH#64347).
+    class EscDialect(csv.Dialect):
+        delimiter = ","
+        quotechar = '"'
+        doublequote = True
+        skipinitialspace = False
+        lineterminator = "\r\n"
+        quoting = csv.QUOTE_NONE
+        escapechar = "\\"
+
+    raw = b"col1,col2\n" + b"".join(
+        f"text\\\nmore{i},{i}\n".encode() for i in range(500)
+    )
+    path = tmp_path / "dialect.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, dialect=EscDialect)
+    expected = read_csv(io.BytesIO(raw), dialect=EscDialect)
+    tm.assert_frame_equal(result, expected)
+    assert result.loc[0, "col1"] == "text\nmore0"
 
 
 def test_parallel_multichar_sep_matches_serial(tmp_path, monkeypatch):

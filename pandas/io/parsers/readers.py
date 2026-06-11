@@ -388,10 +388,14 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     * ``comment`` is ``None`` and the preamble has no blank lines - full-line
       comments and blank lines shift where pandas locates the header relative
       to the physical line count used by :func:`_find_data_start_offset`.
-    * ``escapechar`` is ``None`` - an escaped literal newline would be split
-      mid-field.
+    * ``escapechar`` is ``None`` and ``dialect`` is not used - an escaped
+      literal newline would be split mid-field.
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
+    * ``storage_options`` is ``None`` - it raises for local paths in the serial
+      path, and that error must not be masked.
+    * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
+      chunk-relative (i.e. wrong) line numbers.
     * The file is at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
 
     Note that a chunk boundary landing on a newline embedded inside a quoted
@@ -406,6 +410,11 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if not isinstance(filepath, str):
         return False
     if "://" in filepath:
+        return False
+
+    # storage_options on a local path raises ValueError in get_handle; the
+    # parallel path strips it and would mask that error.
+    if kwds.get("storage_options") is not None:
         return False
 
     # Uncompressed files only (splitting is only meaningful for raw bytes).
@@ -466,9 +475,20 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if kwds.get("escapechar") is not None:
         return False
 
+    # dialect is merged into the kwds inside TextFileReader, i.e. after this
+    # function runs, so a dialect-specified escapechar would bypass the check
+    # above.  Be conservative and take the serial path.
+    if kwds.get("dialect") is not None:
+        return False
+
     # Datetime format inference is per-chunk and may disagree with the serial
     # whole-column inference.
     if kwds.get("parse_dates"):
+        return False
+
+    # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
+    # would report chunk-relative (i.e. wrong) ones.
+    if kwds.get("on_bad_lines") == ParserBase.BadLineHandleMethod.BLHM_WARN:
         return False
 
     # Callable / list skiprows require tracking absolute line numbers.
@@ -650,9 +670,21 @@ def _read_csv_parallel(
         # eligibility checks did not anticipate; load_buffer needs the C engine.
         name_reader.close()
         return None
+    if name_reader._engine._reader.leading_cols:
+        # Data rows have more fields than the header (implicit index).  The
+        # chunk workers would fail on the extra field; bail out up front.
+        name_reader.close()
+        return None
     assert name_reader._engine.orig_names is not None
     col_names: list = list(name_reader._engine.orig_names)
+    # name_buf holds the preamble plus exactly one data line.  Parsing it must
+    # yield exactly one row; anything else means the preamble's physical line
+    # count disagrees with its logical row count (e.g. a quoted embedded
+    # newline in the header), so data_start is wrong.
+    n_first_rows = len(name_reader.read())
     name_reader.close()
+    if n_first_rows != 1:
+        return None
 
     # ------------------------------------------------------------------
     # Dispatch all chunks in parallel.  Each worker gets a zero-copy
