@@ -1599,22 +1599,21 @@ def test_diff():
     ser = Series([1, 2, 3])
     result = ser.diff()
     assert result.index is not ser.index
-
-
 def test_query_cow():
-    # Verify query() does not strip CoW tracking metadata
+    # Verify query() handles CoW tracking correctly
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
-    # query returns a new DataFrame (shallow copy under CoW)
+    # query evaluates a boolean mask (a > 1). 
     df2 = df.query("a > 1")
 
-    # It should share memory initially
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-
-    # Mutating the result should trigger CoW and NOT affect the parent
-    df2.iloc[0, 0] = 0
+    # NumPy boolean indexing forces a new memory allocation.
+    # Therefore, we assert that they DO NOT share memory.
     assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    
+    # Ensure mutating the new dataframe doesn't corrupt the original
+    df2.iloc[0, 0] = 99
+    import pandas.testing as tm
     tm.assert_frame_equal(df, df_orig)
 
 
@@ -1622,13 +1621,28 @@ def test_where_cow():
     # Verify where() does not strip CoW tracking metadata
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
-
+    
     # where returns a new DataFrame
     df2 = df.where(df > 1)
-
+    
     # It should share memory initially for the untouched columns
     assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-
+    
+    # Mutating the result should trigger CoW for that specific block
+    df2.iloc[0, 1] = 0
+    assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    tm.assert_frame_equal(df, df_orig)
+def test_where_cow():
+    # Verify where() does not strip CoW tracking metadata
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    
+    # where returns a new DataFrame
+    df2 = df.where(df > 1)
+    
+    # It should share memory initially for the untouched columns
+    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    
     # Mutating the result should trigger CoW for that specific block
     df2.iloc[0, 1] = 0
     assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
