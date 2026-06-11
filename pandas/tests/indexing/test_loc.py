@@ -1514,13 +1514,9 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        if idxer == "var":
-            with pytest.raises(TypeError, match="Invalid value"):
-                result.loc[:, idxer] = expected
-        else:
-            # See https://github.com/pandas-dev/pandas/issues/56223
-            result.loc[:, idxer] = expected
-            tm.assert_frame_equal(result, expected)
+        # See https://github.com/pandas-dev/pandas/issues/56223
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
