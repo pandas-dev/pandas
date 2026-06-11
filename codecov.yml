@@ -1,0 +1,12 @@
+codecov:
+  branch: main
+  notify:
+    after_n_builds: 10
+comment: false
+
+coverage:
+  status:
+    project: off
+    patch: off
+
+github_checks: false

@@ -1,0 +1,207 @@
+html {
+  scroll-padding-top: 5rem;
+}
+body {
+    padding-top: 5em;
+    color: #444;
+}
+h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #130654;
+    margin: 2.4rem 0 2.4rem;
+}
+h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #130654;
+    margin: 2.4rem 0 1.2rem;
+}
+h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: black;
+}
+h3 a {
+    color: black;
+    text-decoration: underline dotted !important;
+}
+h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: black;
+}
+h4 a {
+    color: black;
+    text-decoration: underline dotted !important;
+}
+a {
+    color: #130654;
+}
+code {
+    white-space: pre;
+}
+ol ol, ol ul, ul ol, ul ul {
+    margin-bottom: 1rem;
+}
+.blue {
+    color: #150458;
+}
+.pink {
+    color: #e70488;
+}
+.follow-us-button {
+    font-size: 2.4rem !important;
+    color: #0d6efd !important;
+}
+.follow-us-button:hover {
+    color: #0b5ed7 !important;
+}
+.fab {
+    font-size: 1.2rem;
+    color: #666;
+}
+.fab:hover {
+    color: #130654;
+}
+a.navbar-brand img {
+    height: 3rem;
+}
+a:link:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: none;
+}
+a:visited:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: none;
+}
+a:hover:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: underline;
+}
+a:active:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: underline;
+}
+div.card {
+    margin: 0 0 .2em .2em !important;
+}
+@media (min-width: 576px) {
+    .card-group.maintainers div.card {
+        min-width: 10rem;
+        max-width: 10rem;
+    }
+}
+div.card .card-title {
+    font-weight: 500;
+    color: #130654;
+}
+.book {
+    padding: 0 20%;
+}
+.bg-dark {
+    background-color: #130654 !important;
+}
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, .9);
+}
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: white;
+}
+table.logo td {
+    text-align: center;
+}
+table.logo img {
+    height: 4rem;
+}
+blockquote {
+    background: #f9f9f9;
+    border-left: 5px solid #ccc;
+    padding-left:15px;
+    color: #787878;
+    font-size: 18px;
+ }
+.toc {
+    background: #f9f9f9;
+    padding: 1em;
+    border: 0.1em solid darkgrey;
+    border-radius: 0.4em;
+    display: inline-block;
+    margin: 1em 0;
+}
+.toc .toctitle {
+    font-weight: bold;
+    padding-bottom: 1em;
+}
+a.headerlink {
+    opacity: 0;
+}
+h2:hover a.headerlink, h3:hover a.headerlink {
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+
+@media (min-width: 992px) {
+  .container-main {
+    max-width: 960px;
+  }
+}
+
+
+/** Copied from the pydata-sphinx-theme **/
+ div.admonition, .admonition {
+	 margin: 1.5625em auto;
+	 padding: 0 0.6rem 0.8rem;
+	 overflow: hidden;
+     box-shadow: 0 .2rem .5rem rgba(0,0,0,0.1),0 0 .0625rem rgba(0,0,0,0.1) !important;
+	/* break-inside has replaced page-break-inside and is widely usable since 2019 */
+	 page-break-inside: avoid;
+	 break-inside: avoid;
+	 border-left: 0.2rem solid;
+	 border-color: #276be9;
+	 border-radius: 0.25rem;
+	 background-color: #fff;
+	/** * Special-case for a `sidebar` class that makes the admonition float to * the right like the {
+		sidebar
+	}
+	 directive. */
+}
+ div.admonition *:last-child, .admonition *:last-child {
+	 margin-bottom: 0;
+}
+ div.admonition p.admonition-title ~ *, .admonition p.admonition-title ~ * {
+	 margin-left: 1.4rem;
+	 margin-right: 1.4rem;
+}
+ div.admonition > ol, .admonition > ol, div.admonition > ul, .admonition > ul {
+	 margin-left: 1em;
+}
+ div.admonition > .admonition-title, .admonition > .admonition-title {
+	 margin: 0 -0.6rem;
+	 padding: 0.4rem 0.6rem 0.4rem 2rem;
+	 /* font-weight: var(--pst-admonition-font-weight-heading); */
+	 position: relative;
+	 background-color: #dce7fc;
+	 z-index: 1;
+}
+ div.admonition > .admonition-title::after, .admonition > .admonition-title::after {
+	 position: absolute;
+	 left: 0.5rem;
+	 width: 1rem;
+	 height: 1rem;
+	 /* color: var(--pst-color-info); */
+	 /* font: var(--fa-font-solid); */
+	 line-height: inherit;
+	 /* content: "\f05a"; */
+	 opacity: 1;
+}
+ div.admonition > .admonition-title + *, .admonition > .admonition-title + * {
+	 margin-top: 0.4em;
+}
+
+ div.admonition.note, .admonition.note {
+	 border-color: #276be9;
+}
+ div.admonition.note > .admonition-title, .admonition.note > .admonition-title {
+	 background-color: #dce7fc;
+}
+ div.admonition.note > .admonition-title::after, .admonition.note > .admonition-title::after {
+	 color: #276be9;
+	 /* content: "\f05a"; */
+}

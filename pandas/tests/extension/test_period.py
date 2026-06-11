@@ -1,0 +1,132 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pytest
+
+from pandas._libs import (
+    Period,
+    iNaT,
+)
+
+from pandas.core.dtypes.dtypes import PeriodDtype
+
+import pandas._testing as tm
+from pandas.core.arrays import PeriodArray
+from pandas.tests.extension import base
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+
+@pytest.fixture(params=["D", "2D"])
+def dtype(request):
+    return PeriodDtype(freq=request.param)
+
+
+@pytest.fixture
+def data(dtype):
+    return PeriodArray(np.arange(1970, 1980), dtype=dtype)
+
+
+@pytest.fixture
+def data_for_sorting(dtype):
+    return PeriodArray([2018, 2019, 2017], dtype=dtype)
+
+
+@pytest.fixture
+def data_missing(dtype):
+    return PeriodArray([iNaT, 2017], dtype=dtype)
+
+
+@pytest.fixture
+def data_missing_for_sorting(dtype):
+    return PeriodArray([2018, iNaT, 2017], dtype=dtype)
+
+
+@pytest.fixture
+def data_for_grouping(dtype):
+    B = 2018
+    NA = iNaT
+    A = 2017
+    C = 2019
+    return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=dtype)
+
+
+class TestPeriodArray(base.ExtensionTests):
+    def _get_expected_exception(self, op_name, obj, other):
+        if op_name in ("__sub__", "__rsub__"):
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
+
+    def _supports_accumulation(self, ser, op_name: str) -> bool:
+        return op_name in ["cummin", "cummax"]
+
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["count", "min", "max", "median"]
+
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        if op_name == "median":
+            res_op = getattr(ser, op_name)
+
+            alt = ser.astype("int64")
+
+            exp_op = getattr(alt, op_name)
+            result = res_op(skipna=skipna)
+            expected = exp_op(skipna=skipna)
+            expected = Period._from_ordinal(
+                int(expected),
+                dtype=ser.dtype,  # type: ignore[arg-type]
+            )
+            tm.assert_almost_equal(result, expected)
+
+        else:
+            return super().check_reduce(ser, op_name, skipna)
+
+    @pytest.mark.parametrize("periods", [1, -2])
+    # NOTE: RuntimeWarning on Windows(non-ARM) platforms (in CI)
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test_diff(self, request, data, periods):
+        super().test_diff(data, periods)
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        tm.assert_extension_array_equal(result, data)
+
+    @pytest.mark.xfail(
+        raises=OverflowError, reason="PeriodArray cannot be serialized to JSON"
+    )
+    def test_values_for_json(self, data):
+        # GH 65127
+        # PeriodArray currently cannot be serialized to JSON
+        super().test_values_for_json(data)
+
+    @pytest.mark.xfail(
+        raises=OverflowError, reason="PeriodArray cannot be serialized to JSON"
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # PeriodArray currently cannot be serialized to JSON
+        super().test_json_roundtrip(data)
+
+
+class Test2DCompat(base.NDArrayBacked2DTests):
+    pass

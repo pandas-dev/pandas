@@ -1,0 +1,56 @@
+.. _whatsnew_141:
+
+What's new in 1.4.1 (February 12, 2022)
+---------------------------------------
+
+These are the changes in pandas 1.4.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)
+- Regression in :func:`.assert_frame_equal` not respecting ``check_flags=False`` (:issue:`45554`)
+- Regression in :meth:`DataFrame.loc` raising ``ValueError`` when indexing (getting values) on a :class:`MultiIndex` with one level (:issue:`45779`)
+- Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)
+- Regression in :func:`api.types.is_bool_dtype` raising an ``AttributeError`` when evaluating a categorical :class:`Series` (:issue:`45615`)
+- Regression in :meth:`DataFrame.iat` setting values leading to not propagating correctly in subsequent lookups (:issue:`45684`)
+- Regression when setting values with :meth:`DataFrame.loc` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)
+- Regression in :meth:`~Index.join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)
+- Regression when setting values with :meth:`Series.loc` raising with all ``False`` indexer and :class:`Series` on the right hand side (:issue:`45778`)
+- Regression in :func:`read_sql` with a DBAPI2 connection that is not an instance of ``sqlite3.Connection`` incorrectly requiring SQLAlchemy be installed (:issue:`45660`)
+- Regression in :class:`DateOffset` when constructing with an integer argument with no keywords (e.g. ``pd.DateOffset(n)``) would behave like ``datetime.timedelta(days=0)`` (:issue:`45643`, :issue:`45890`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed segfault in :meth:`DataFrame.to_json` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)
+- Stopped emitting unnecessary ``FutureWarning`` in :meth:`DataFrame.sort_values` with sparse columns (:issue:`45618`)
+- Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)
+- Fixed builtin highlighters in :class:`.Styler` to be responsive to ``NA`` with nullable dtypes (:issue:`45804`)
+- Bug in :meth:`~Rolling.apply` with ``axis=1`` raising an erroneous ``ValueError`` (:issue:`45912`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.other:
+
+Other
+~~~~~
+- Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_141.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.0..v1.4.1

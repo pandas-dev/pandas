@@ -1,0 +1,64 @@
+graft doc
+prune doc/build
+
+graft LICENSES
+
+graft pandas
+
+global-exclude *.bz2
+global-exclude *.csv
+global-exclude *.data
+global-exclude *.dta
+global-exclude *.feather
+global-exclude *.tar
+global-exclude *.gz
+global-exclude *.h5
+global-exclude *.html
+global-exclude *.json
+global-exclude *.jsonl
+global-exclude *.kml
+global-exclude *.msgpack
+global-exclude *.pdf
+global-exclude *.parquet
+global-exclude *.pickle
+global-exclude *.pkl
+global-exclude *.png
+global-exclude *.pptx
+global-exclude *.ods
+global-exclude *.odt
+global-exclude *.orc
+global-exclude *.sas7bdat
+global-exclude *.sav
+global-exclude *.so
+global-exclude *.txt
+global-exclude *.xls
+global-exclude *.xlsb
+global-exclude *.xlsm
+global-exclude *.xlsx
+global-exclude *.xpt
+global-exclude *.cpt
+global-exclude *.xml
+global-exclude *.xsl
+global-exclude *.xz
+global-exclude *.zip
+global-exclude *.zst
+global-exclude *~
+global-exclude .DS_Store
+global-exclude .git*
+global-exclude \#*
+
+global-exclude *.c
+global-exclude *.cpp
+global-exclude *.h
+
+global-exclude *.py[ocd]
+global-exclude *.pxi
+
+# GH 39321
+# csv_dir_path fixture checks the existence of the directory
+# exclude the whole directory to avoid running related tests in sdist
+prune pandas/tests/io/parser/data
+
+# Selectively re-add *.cxx files that were excluded above
+graft pandas/_libs/src
+graft pandas/_libs/include

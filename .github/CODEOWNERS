@@ -1,0 +1,19 @@
+# github
+.github/                          @mroeschke
+
+# ci
+ci/                               @mroeschke
+
+# docs
+doc/cheatsheet                    @Dr-Irv
+doc/source/development            @noatamir
+doc/source/getting_started        @afeld
+doc/source/user_guide             @afeld
+
+# pandas
+pandas/_typing.py                 @Dr-Irv
+pandas/core/groupby/*             @rhshadrach
+pandas/io/excel/*                 @rhshadrach
+pandas/io/formats/style.py        @attack68
+pandas/io/formats/style_render.py @attack68
+pandas/io/formats/templates       @attack68

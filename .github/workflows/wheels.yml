@@ -1,0 +1,219 @@
+# Workflow to build wheels for upload to PyPI.
+# Inspired by numpy's cibuildwheel config https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
+#
+# In an attempt to save CI resources, wheel builds do
+# not run on each push but only weekly and for releases.
+# Wheel builds can be triggered from the Actions page
+# (if you have the permissions) on a commit to main.
+#
+# Alternatively, you can add labels to the pull request in order to trigger wheel
+# builds.
+# The label(s) that trigger builds are:
+# - Build
+name: Wheel builder
+
+on:
+  release:
+    types: [published]
+  schedule:
+  # 3:27 UTC every day
+  - cron: "27 3 * * *"
+  push:
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+    paths-ignore:
+      - "doc/**"
+      - "web/**"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -euxo pipefail {0}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build_sdist:
+    name: Build sdist
+    permissions:
+      contents: read
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
+      (github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'Build')) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout pandas
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.14'
+          pip-install: build
+
+      - name: Build sdist
+        run: python -m build --sdist
+
+      - name: Check sdist
+        run: ls -l --human-readable ./dist
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sdist
+          path: ./dist/*
+
+  build_wheels:
+    needs: build_sdist
+    permissions:
+      contents: read
+    name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
+      (github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'Build')) ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
+    runs-on: ${{ matrix.buildplat[0] }}
+    strategy:
+      fail-fast: false
+      matrix:
+        buildplat:
+          - [ubuntu-24.04, manylinux_x86_64]
+          - [ubuntu-24.04, musllinux_x86_64]
+          - [ubuntu-24.04-arm, manylinux_aarch64]
+          - [ubuntu-24.04-arm, musllinux_aarch64]
+          - [macos-15-intel, macosx_x86_64]
+          - [macos-15, macosx_arm64]
+          - [windows-2025, win_amd64]
+          - [windows-11-arm, win_arm64]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
+        include:
+          - buildplat: [ubuntu-24.04, pyodide_wasm32]
+            python: ["cp312", "3.12"]
+        exclude:
+          # BackendUnavailable: Cannot import 'mesonpy'
+          - buildplat: [windows-11-arm, win_arm64]
+            python: ["cp313t", "3.13"]
+
+    steps:
+      - name: Checkout pandas
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up MSVC environment for Windows ARM64
+        if: matrix.buildplat[1] == 'win_arm64'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        with:
+          arch: arm64
+
+      - name: Download sdist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sdist
+          path: ./dist
+
+      - name: Save sdist name to environment variable
+        run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
+        with:
+          package-dir: ./dist/${{ env.sdist_name }}
+        env:
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          CIBW_PLATFORM: ${{ (matrix.buildplat[1] == 'pyodide_wasm32' && 'pyodide') || 'auto' }}
+
+      - name: Set up Python for validation
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.14'
+          # cryptography pin due to https://github.com/pyca/cryptography/pull/14216
+          pip-install: wheel cryptography==46.0.3
+
+      - name: Validate wheel RECORD
+        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+          path: ./wheelhouse/*.whl
+
+  upload_nightly:
+    # trigger an upload to https://anaconda.org/scientific-python-nightly-wheels/pandas
+    # for cron jobs or "Run workflow" (restricted to main branch).
+    name: Upload nightly packages to Anaconda
+    permissions:
+      contents: read
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      (github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
+    needs:
+      - build_sdist
+      - build_wheels
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Upload wheels & sdist
+        uses: scientific-python/upload-nightly-action@e76cfec8a4611fd02808a801b0ff5a7d7c1b2d99 # 0.6.4
+        with:
+          artifacts_path: dist
+          anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
+
+  publish:
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      github.event_name == 'release' &&
+      startsWith(github.ref, 'refs/tags/v')
+
+    needs:
+      - build_sdist
+      - build_wheels
+
+    runs-on: ubuntu-24.04
+
+    environment:
+      name: pypi
+    permissions:
+      id-token: write         # OIDC for Trusted Publishing
+      contents: read
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: dist          # everything lands in ./dist/**
+
+      # TODO: This step can be probably be achieved by actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      # by specifying merge-multiple: true, and a glob pattern
+      - name: Collect files
+        run: |
+          mkdir -p upload
+          # skip any wheel that contains 'pyodide'
+          find dist -name '*pyodide*.whl' -prune -o \
+                    -name '*.whl'   -exec mv {} upload/ \;
+          find dist -name '*.tar.gz' -exec mv {} upload/ \;
+
+      - name: Publish to **PyPI** (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
+        with:
+          packages-dir: upload
+          skip-existing: true

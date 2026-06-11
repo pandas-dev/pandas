@@ -1,0 +1,22 @@
+name: Comment Commands
+on:
+  issue_comment:
+    types: created
+
+permissions: {}
+
+jobs:
+  preview_docs:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    if: github.event.issue.pull_request && github.event.comment.body == '/preview'
+    concurrency:
+      group: ${{ github.actor }}-preview-docs
+    steps:
+      - uses: pandas-dev/github-doc-previewer@7a1ea7e96d1a24578ec35eedd4256a7d80c3fef8 # v0.3.2
+        with:
+          previewer-server: "https://pandas.pydata.org/preview"
+          artifact-job: "Doc Build and Upload"

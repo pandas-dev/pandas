@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1047" height="768" viewBox="0 0 1047 768">
+<rect x="28" y="28" width="991" height="712" fill="none" rx="16" ry="16"/>
+<text x="523.5" y="120" text-anchor="middle" font-family="monospace" font-size="96" font-weight="normal" fill="#000000">DataFrame</text>
+<rect x="354.5" y="237.0" width="168" height="78" fill="#aaaaaa"/>
+<rect x="524.5" y="237.0" width="168" height="78" fill="#aaaaaa"/>
+<rect x="694.5" y="237.0" width="168" height="78" fill="#aaaaaa"/>
+<rect x="184.5" y="317.0" width="168" height="88" fill="#aaaaaa"/>
+<rect x="184.5" y="407.0" width="168" height="88" fill="#aaaaaa"/>
+<rect x="184.5" y="497.0" width="168" height="88" fill="#aaaaaa"/>
+<rect x="184.5" y="587.0" width="168" height="88" fill="#aaaaaa"/>
+<rect x="354.5" y="317.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="524.5" y="317.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="694.5" y="317.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="354.5" y="407.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="524.5" y="407.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="694.5" y="407.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="354.5" y="497.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="524.5" y="497.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="694.5" y="497.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="354.5" y="587.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="524.5" y="587.0" width="168" height="88" fill="#d8d8d880"/>
+<rect x="694.5" y="587.0" width="168" height="88" fill="#d8d8d880"/>
+<line x1="353.5" y1="236.0" x2="353.5" y2="676.0" stroke="#none" stroke-width="6"/>
+<line x1="523.5" y1="236.0" x2="523.5" y2="676.0" stroke="#none" stroke-width="6"/>
+<line x1="693.5" y1="236.0" x2="693.5" y2="676.0" stroke="#none" stroke-width="6"/>
+<line x1="863.5" y1="236.0" x2="863.5" y2="676.0" stroke="#none" stroke-width="6"/>
+<line x1="183.5" y1="236.0" x2="863.5" y2="236.0" stroke="#none" stroke-width="6"/>
+<line x1="183.5" y1="316.0" x2="863.5" y2="316.0" stroke="#none" stroke-width="6"/>
+<line x1="183.5" y1="406.0" x2="863.5" y2="406.0" stroke="#none" stroke-width="6"/>
+<line x1="183.5" y1="496.0" x2="863.5" y2="496.0" stroke="#none" stroke-width="6"/>
+<line x1="183.5" y1="586.0" x2="863.5" y2="586.0" stroke="#none" stroke-width="6"/>
+<rect x="183.5" y="236.0" width="680" height="440" fill="none" stroke="#none" stroke-width="6"/>
+<text x="438.5" y="286.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">Name</text>
+<text x="608.5" y="286.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">Age</text>
+<text x="778.5" y="286.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">Sex</text>
+<text x="268.5" y="371.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">0</text>
+<text x="268.5" y="461.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">1</text>
+<text x="268.5" y="551.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">2</text>
+<text x="268.5" y="641.0" text-anchor="middle" font-family="monospace" font-size="28" font-weight="normal" fill="#000000">3</text>
+<rect x="693.5" y="236.0" width="170" height="440" fill="none" stroke="#000080" stroke-width="2.0"/>
+<text x="778.5" y="721.0" text-anchor="middle" font-family="monospace" font-size="40" font-weight="normal" fill="#000080">column</text>
+<rect x="183.5" y="406.0" width="680" height="90" fill="none" stroke="#800000" stroke-width="2.0"/>
+<text x="938.5" y="461.0" text-anchor="middle" font-family="monospace" font-size="40" font-weight="normal" fill="#800000">row</text>
+<rect x="183.5" y="316.0" width="170" height="360" fill="none" stroke="#3b3b3b" stroke-width="4"/>
+<text x="268.5" y="721.0" text-anchor="middle" font-family="monospace" font-size="40" font-weight="normal" fill="#000000">index</text>
+<rect x="353.5" y="236.0" width="510" height="80" fill="none" stroke="#3b3b3b" stroke-width="4"/>
+<text x="933.5" y="296.0" text-anchor="middle" font-family="monospace" font-size="40" font-weight="normal" fill="#000000">label</text>
+</svg>

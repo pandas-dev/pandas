@@ -1,0 +1,51 @@
+.. _whatsnew_132:
+
+What's new in 1.3.2 (August 15, 2021)
+-------------------------------------
+
+These are the changes in pandas 1.3.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_132.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Performance regression in :meth:`DataFrame.isin` and :meth:`Series.isin` for nullable data types (:issue:`42714`)
+- Regression in updating values of :class:`Series` using boolean index, created by using :meth:`DataFrame.pop` (:issue:`42530`)
+- Regression in :meth:`DataFrame.from_records` with empty records (:issue:`42456`)
+- Fixed regression in :meth:`DataFrame.shift` where ``TypeError`` occurred when shifting DataFrame created by concatenation of slices and fills with values (:issue:`42719`)
+- Regression in :meth:`DataFrame.agg` when the ``func`` argument returned lists and ``axis=1`` (:issue:`42727`)
+- Regression in :meth:`DataFrame.drop` does nothing if :class:`MultiIndex` has duplicates and indexer is a tuple or list of tuples (:issue:`42771`)
+- Fixed regression where :func:`read_csv` raised a ``ValueError`` when parameters ``names`` and ``prefix`` were both set to ``None`` (:issue:`42387`)
+- Fixed regression in comparisons between :class:`Timestamp` object and ``datetime64`` objects outside the implementation bounds for nanosecond ``datetime64`` (:issue:`42794`)
+- Fixed regression in :meth:`.Styler.highlight_min` and :meth:`.Styler.highlight_max` where ``pandas.NA`` was not successfully ignored (:issue:`42650`)
+- Fixed regression in :func:`concat` where ``copy=False`` was not honored in ``axis=1`` Series concatenation (:issue:`42501`)
+- Regression in :meth:`Series.nlargest` and :meth:`Series.nsmallest` with nullable integer or float dtype (:issue:`42816`)
+- Fixed regression in :meth:`Series.quantile` with :class:`Int64Dtype` (:issue:`42626`)
+- Fixed regression in :meth:`Series.groupby` and :meth:`DataFrame.groupby` where supplying the ``by`` argument with a Series named with a tuple would incorrectly raise (:issue:`42731`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_132.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :func:`read_excel` modifies the dtypes dictionary when reading a file with duplicate columns (:issue:`42462`)
+- 1D slices over extension types turn into N-dimensional slices over ExtensionArrays (:issue:`42430`)
+- Fixed bug in :meth:`Series.rolling` and :meth:`DataFrame.rolling` not calculating window bounds correctly for the first row when ``center=True`` and ``window`` is an offset that covers all the rows (:issue:`42753`)
+- :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
+- :meth:`.Styler.set_sticky` has amended CSS to control the column/index names and ensure the correct sticky positions (:issue:`42537`)
+- Bug in de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_132.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.1..v1.3.2
