@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -66,7 +66,7 @@ def set_use_bottleneck(v: bool = True) -> None:
         _USE_BOTTLENECK = v
 
 
-set_use_bottleneck(_global_config["compute"]["use_bottleneck"])
+set_use_bottleneck(config["compute"]["use_bottleneck"])
 
 
 class disallow:
@@ -1525,14 +1525,6 @@ def check_below_min_count(
         if non_nulls < min_count:
             return True
     return False
-
-
-def _zero_out_fperr(arg, tol: float | np.ndarray):
-    # #18044 reference this behavior to fix rolling skew/kurt issue
-    if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < tol, 0, arg)
-    else:
-        return arg.dtype.type(0) if np.abs(arg) < tol else arg
 
 
 @disallow("M8", "m8")

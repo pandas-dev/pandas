@@ -97,6 +97,9 @@ def data_for_compare(request):
 
 
 class TestSparseArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
@@ -237,21 +240,6 @@ class TestSparseArray(base.ExtensionTests):
     def test_fillna_no_op_returns_copy(self, data, request):
         super().test_fillna_no_op_returns_copy(data)
 
-    def test_fillna_readonly(self, data_missing):
-        # copy keyword is ignored by SparseArray.fillna
-        # -> copy=True vs False doesn't make a difference
-        data = data_missing.copy()
-        data._readonly = True
-
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is ignored -> so same result as above
-        result = data.fillna(data_missing[1], copy=False)
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
         # this one looks doable.
@@ -341,6 +329,22 @@ class TestSparseArray(base.ExtensionTests):
     def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
         with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
+
+    def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_for_sorting.sort()
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_for_sorting.sort(ascending=False)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_missing_for_sorting.sort(na_position=na_position)
 
     def test_shift_0_periods(self, data):
         # GH#33856 shifting with periods=0 should return a copy, not same obj

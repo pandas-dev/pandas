@@ -26,6 +26,22 @@ def test_setop_mismatched_category_order(method):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["union", "intersection"])
+def test_setop_matching_category_order(method):
+    # GH#55335 - when categories match, the libjoin fastpath should be used
+    # and produce correct results. Monotonic + unique indexes hit the fastpath.
+    cats = ["a", "b", "c", "d"]
+    idx1 = CategoricalIndex(["a", "b", "c"], categories=cats)
+    idx2 = CategoricalIndex(["b", "c", "d"], categories=cats)
+
+    result = getattr(idx1, method)(idx2)
+    if method == "union":
+        expected = CategoricalIndex(["a", "b", "c", "d"], categories=cats)
+    else:
+        expected = CategoricalIndex(["b", "c"], categories=cats)
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("na_value", [None, np.nan])
 def test_difference_with_na(na_value):
     # GH 57318

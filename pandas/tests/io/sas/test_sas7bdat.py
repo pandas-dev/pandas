@@ -333,14 +333,14 @@ def test_null_date(datapath):
             "datecol": np.array(
                 [
                     datetime(9999, 12, 31),
-                    np.datetime64("NaT"),
+                    np.datetime64("NaT", "ns"),
                 ],
                 dtype="M8[s]",
             ),
             "datetimecol": np.array(
                 [
                     datetime(9999, 12, 31, 23, 59, 59, 999000),
-                    np.datetime64("NaT"),
+                    np.datetime64("NaT", "ns"),
                 ],
                 dtype="M8[ms]",
             ),

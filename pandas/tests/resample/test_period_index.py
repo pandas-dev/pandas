@@ -526,10 +526,6 @@ class TestPeriodIndex:
         expected = ts.asfreq("Q-MAR", how=how)
         expected = expected.reindex(result.index, method="ffill")
 
-        # FIXME: don't leave commented-out
-        # .to_timestamp('D')
-        # expected = expected.resample('Q-MAR').ffill()
-
         tm.assert_series_equal(result, expected)
 
     def test_resample_fill_missing(self):

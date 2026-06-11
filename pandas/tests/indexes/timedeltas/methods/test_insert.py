@@ -86,14 +86,14 @@ class TestTimedeltaIndexInsert:
     def test_insert_invalid_na(self):
         idx = TimedeltaIndex(["4day", "1day", "2day"], name="idx")
 
-        item = np.datetime64("NaT")
+        item = np.datetime64("NaT", "ns")
         result = idx.insert(0, item)
 
         expected = Index([item, *list(idx)], dtype=object, name="idx")
         tm.assert_index_equal(result, expected)
 
         # Also works if we pass a different dt64nat object
-        item2 = np.datetime64("NaT")
+        item2 = np.datetime64("NaT", "ns")
         result = idx.insert(0, item2)
         tm.assert_index_equal(result, expected)
 

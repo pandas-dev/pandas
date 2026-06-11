@@ -369,6 +369,8 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=result.dtype, copy=copy
                 )
+            # We know result is an ExtensionArray here, but mypy doesn't
+            assert isinstance(result, ExtensionArray)
             if result is data and copy:
                 return result.copy()
             return result
