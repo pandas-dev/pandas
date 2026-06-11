@@ -423,6 +423,39 @@ class TestStringSliceResolution:
         expected = ser[ser.index < Timedelta("1:01:01")]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "index_unit, label",
+        [("s", "2000ms"), ("ms", "2000us"), ("us", "2000ns")],
+    )
+    def test_string_slice_non_nano_finer_reso(self, index_unit, label):
+        # GH#33603 - a string in a finer unit than the index must not
+        #  invert the bounds; e.g. "2000ms" == 2s should match on a m8[s] index
+        tdi = timedelta_range("0s", periods=5, freq="s", unit=index_unit)
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:label]
+        expected = ser[ser.index <= Timedelta(label)]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_non_nano_finer_reso_non_monotonic(self):
+        # GH#33603 - inverted bounds raised a bogus "non-monotonic index"
+        #  KeyError even though 2000ms == 2s is present in the index
+        tdi = TimedeltaIndex(["5s", "2s", "7s"], dtype="m8[s]")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"2000ms"]
+        expected = ser.iloc[:2]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_non_nano_unrepresentable(self):
+        # GH#33603 - a string not representable in the index unit
+        #  matches nothing
+        tdi = timedelta_range("0s", periods=5, freq="s", unit="s")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc["1500ms":"1500ms"]
+        tm.assert_series_equal(result, ser.iloc[:0])
+
 
 class TestContains:
     def test_contains_nonunique(self):
