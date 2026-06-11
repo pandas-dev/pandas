@@ -428,18 +428,12 @@ def eval(
             # get IndexError if you try to do this assignment on np.ndarray.
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
-<<<<<<< Updated upstream
-            # Prevent CoW alias corruption
-            if inplace and isinstance(ret, (NDFrame, np.ndarray)):
-                ret = ret.copy()
-=======
-            
             # Prevent CoW alias corruption for raw numpy arrays
-            import numpy as np
             if inplace and isinstance(ret, np.ndarray) and isinstance(target, NDFrame):
-                if any(np.shares_memory(ret, col.values) for col in target._iter_column_arrays()):
+                # Safely check memory sharing for both DataFrames and Series
+                arrays_to_check = target._iter_column_arrays() if target.ndim == 2 else [target]
+                if any(np.shares_memory(ret, getattr(col, "values", col)) for col in arrays_to_check):
                     ret = ret.copy()
->>>>>>> Stashed changes
 
             try:
                 if inplace and isinstance(target, NDFrame):
