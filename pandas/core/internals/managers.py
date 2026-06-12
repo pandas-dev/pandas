@@ -573,6 +573,10 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
+                    # Block.delete in _iset_split_block requires sorted unique
+                    # locs; inverse maps the requested column order onto the
+                    # new block (GH#65446)
+                    blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
                     self._iset_split_block(  # type: ignore[attr-defined]
@@ -583,10 +587,12 @@ class BaseBlockManager(PandasObject):
                     # first block equals values we are setting to -> set to all columns
                     if lib.is_integer(indexer[1]):
                         col_indexer = 0
-                    elif len(blk_loc) > 1:
+                    elif len(inverse) > 1 and np.array_equal(
+                        inverse, np.arange(len(blk_loc))
+                    ):
                         col_indexer = slice(None)  # type: ignore[assignment]
                     else:
-                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
+                        col_indexer = inverse  # type: ignore[assignment]
                     indexer[1] = col_indexer
 
                     row_indexer = indexer[0]

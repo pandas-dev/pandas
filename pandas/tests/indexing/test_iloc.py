@@ -561,6 +561,36 @@ class TestiLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_unordered_column_indexer_referenced_block(self):
+        # GH#65446 assignment was silently lost when the block was referenced
+        #  by another object and the column indexer was not sorted
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[:, [1, 0]] = DataFrame({"A": [10, 20], "B": [30, 40]})
+        df._mgr._verify_integrity()
+        expected = DataFrame({"A": [30, 40], "B": [10, 20]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_duplicate_column_indexer_referenced_block(self):
+        # GH#65446
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[:, [0, 0]] = np.array([[10, 30], [20, 40]])
+        df._mgr._verify_integrity()
+        expected = DataFrame({"A": [30, 40], "B": [3, 4]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_frame_swap_columns(self):
+        # GH#65446 positional swap when the RHS shares data with the target
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df.iloc[:, [1, 0]] = df[["A", "B"]]
+        expected = DataFrame({"A": [3, 4], "B": [1, 2]})
+        tm.assert_frame_equal(df, expected)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
