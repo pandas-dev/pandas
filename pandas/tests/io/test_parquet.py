@@ -15,9 +15,11 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -42,8 +44,12 @@ try:
     import fastparquet
 
     _HAVE_FASTPARQUET = True
+    _fp_version_lt_2025 = Version(fastparquet.__version__) < Version("2025.12.0")
+    _fp_version_lt_2026_5 = Version(fastparquet.__version__) < Version("2026.5.0")
 except ImportError:
     _HAVE_FASTPARQUET = False
+    _fp_version_lt_2025 = False
+    _fp_version_lt_2026_5 = False
 
 
 pytestmark = [
@@ -51,6 +57,10 @@ pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
+    pytest.mark.filterwarnings(
+        "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:engine='auto' is deprecated:DeprecationWarning"),
 ]
 
 
@@ -59,17 +69,10 @@ pytestmark = [
     params=[
         pytest.param(
             "fastparquet",
-            marks=[
-                pytest.mark.skipif(
-                    not _HAVE_FASTPARQUET,
-                    reason="fastparquet is not installed",
-                ),
-                pytest.mark.xfail(
-                    using_string_dtype(),
-                    reason="TODO(infer_string) fastparquet",
-                    strict=False,
-                ),
-            ],
+            marks=pytest.mark.skipif(
+                not _HAVE_FASTPARQUET,
+                reason="fastparquet is not installed",
+            ),
         ),
         pytest.param(
             "pyarrow",
@@ -91,13 +94,9 @@ def pa():
 
 
 @pytest.fixture
-def fp(request):
+def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    if using_string_dtype():
-        request.applymarker(
-            pytest.mark.xfail(reason="TODO(infer_string) fastparquet", strict=False)
-        )
     return "fastparquet"
 
 
@@ -218,8 +217,8 @@ def check_round_trip(
             if "string_with_nan" in expected:
                 expected.loc[1, "string_with_nan"] = None
             tm.assert_frame_equal(
-                expected,
                 actual,
+                expected,
                 check_names=check_names,
                 check_like=check_like,
                 check_dtype=check_dtype,
@@ -254,6 +253,26 @@ def test_invalid_engine(df_compat, temp_file):
         check_round_trip(df_compat, temp_file, "foo", "bar")
 
 
+def test_engine_auto_deprecation(df_compat, pa, temp_file):
+    # GH#64597
+    msg = "engine='auto' is deprecated"
+    path = temp_file
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match=msg,
+        raise_on_extra_warnings=False,
+        check_stacklevel=False,
+    ):
+        df_compat.to_parquet(path, engine="auto")
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match=msg,
+        raise_on_extra_warnings=False,
+        check_stacklevel=False,
+    ):
+        read_parquet(path, engine="auto")
+
+
 def test_options_py(df_compat, pa, using_infer_string, temp_file):
     # use the set option
     if using_infer_string and not pa_version_under19p0:
@@ -263,11 +282,13 @@ def test_options_py(df_compat, pa, using_infer_string, temp_file):
         check_round_trip(df_compat, temp_file)
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_options_fp(df_compat, fp, temp_file):
     # use the set option
-
+    msg = "The 'fastparquet' engine is deprecated"
     with pd.option_context("io.parquet.engine", "fastparquet"):
-        check_round_trip(df_compat, temp_file)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            check_round_trip(df_compat, temp_file)
 
 
 def test_options_auto(df_compat, fp, pa, temp_file):
@@ -278,23 +299,30 @@ def test_options_auto(df_compat, fp, pa, temp_file):
 
 
 def test_options_get_engine(fp, pa):
+    msg = "The 'fastparquet' engine is deprecated"
+
     assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-    assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
     with pd.option_context("io.parquet.engine", "pyarrow"):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
     with pd.option_context("io.parquet.engine", "fastparquet"):
-        assert isinstance(get_engine("auto"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("auto"), FastParquetImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
     with pd.option_context("io.parquet.engine", "auto"):
         assert isinstance(get_engine("auto"), PyArrowImpl)
         assert isinstance(get_engine("pyarrow"), PyArrowImpl)
-        assert isinstance(get_engine("fastparquet"), FastParquetImpl)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert isinstance(get_engine("fastparquet"), FastParquetImpl)
 
 
 def test_get_engine_auto_error_message():
@@ -335,29 +363,45 @@ def test_get_engine_auto_error_message():
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
         else:
-            match = "Use pip or conda to install the fastparquet package"
+            match = (
+                "Use pip, conda, or your preferred package management tool "
+                "to install the fastparquet package"
+            )
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
 
 
+@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string) fastparquet")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
+    msg = "The 'fastparquet' engine is deprecated"
 
     df = df_cross_compat
     df.to_parquet(temp_file, engine=pa, compression=None)
 
-    result = read_parquet(temp_file, engine=fp)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = read_parquet(temp_file, engine=fp)
     tm.assert_frame_equal(result, df)
 
-    result = read_parquet(temp_file, engine=fp, columns=["a", "d"])
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = read_parquet(temp_file, engine=fp, columns=["a", "d"])
     tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+@pytest.mark.xfail(
+    using_string_dtype()
+    and _HAVE_PYARROW
+    and not _fp_version_lt_2025
+    and _fp_version_lt_2026_5,
+    reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+)
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
+    msg = "The 'fastparquet' engine is deprecated"
     df = df_cross_compat
 
-    df.to_parquet(temp_file, engine=fp, compression=None)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.to_parquet(temp_file, engine=fp, compression=None)
 
     result = read_parquet(temp_file, engine=pa)
     tm.assert_frame_equal(result, df)
@@ -390,7 +434,11 @@ class TestBasic(Base):
             msg = "to_parquet only supports IO with DataFrames"
             self.check_error_on_write(obj, engine, ValueError, msg, temp_file)
 
-    def test_columns_dtypes(self, engine, temp_file):
+    def test_columns_dtypes(self, engine, request, temp_file):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
         # unicode
@@ -404,7 +452,11 @@ class TestBasic(Base):
             df, temp_file, engine, write_kwargs={"compression": compression}
         )
 
-    def test_read_columns(self, engine, temp_file):
+    def test_read_columns(self, engine, request, temp_file):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         # GH18154
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -417,7 +469,11 @@ class TestBasic(Base):
             read_kwargs={"columns": ["string"]},
         )
 
-    def test_read_filters(self, engine, tmp_path):
+    def test_read_filters(self, engine, request, tmp_path):
+        if engine == "fastparquet" and using_string_dtype() and _fp_version_lt_2025:
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet < 2025.12.0")
+            )
         df = pd.DataFrame(
             {
                 "int": list(range(4)),
@@ -491,7 +547,11 @@ class TestBasic(Base):
                 expected=df[["A", "B"]],
             )
 
-    def test_write_ignoring_index(self, engine, temp_file):
+    def test_write_ignoring_index(self, engine, request, temp_file):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
         df = pd.DataFrame({"a": [1, 2, 3], "b": ["q", "r", "s"]})
@@ -695,7 +755,13 @@ class TestBasic(Base):
 
     @pytest.mark.network
     @pytest.mark.single_cpu
-    def test_parquet_read_from_url(self, httpserver, datapath, df_compat, engine):
+    def test_parquet_read_from_url(
+        self, request, httpserver, datapath, df_compat, engine
+    ):
+        if engine == "fastparquet" and using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         if engine != "auto":
             pytest.importorskip(engine)
         with open(datapath("io", "data", "parquet", "simple.parquet"), mode="rb") as f:
@@ -1010,31 +1076,7 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, pa, timezone_aware_date_list, temp_file):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
-
-        # see gh-36004
-        # compare time(zone) values only, skip their class:
-        # pyarrow always creates fixed offset timezones using pytz.FixedOffset()
-        # even if it was datetime.timezone() originally
-        #
-        # technically they are the same:
-        # they both implement datetime.tzinfo
-        # they both wrap datetime.timedelta()
-        # this use-case sets the resolution to 1 minute
-
-        expected = df[:]
-        if timezone_aware_date_list.tzinfo != datetime.UTC:
-            # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
-            # https://github.com/pandas-dev/pandas/issues/37286
-            try:
-                import pytz
-            except ImportError:
-                pass
-            else:
-                offset = df.index.tz.utcoffset(timezone_aware_date_list)
-                tz = pytz.FixedOffset(offset.total_seconds() / 60)
-                expected.index = expected.index.tz_convert(tz)
-                expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
-        check_round_trip(df, temp_file, pa, check_dtype=False, expected=expected)
+        check_round_trip(df, temp_file, pa, check_dtype=False)
 
     def test_filter_row_groups(self, pa, temp_file):
         # https://github.com/pandas-dev/pandas/issues/26551
@@ -1131,20 +1173,10 @@ class TestParquetPyArrow(Base):
         # GH#54431
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(temp_file, engine=pa)
-        with pd.option_context("future.infer_string", True):
-            result = read_parquet(temp_file, engine=pa)
-        dtype = pd.StringDtype(na_value=np.nan)
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]},
-            dtype=dtype,
-            index=pd.Index(["a", "b"], dtype=dtype),
-            columns=pd.Index(
-                ["a"],
-                dtype=(
-                    object if pa_version_under19p0 and not using_infer_string else dtype
-                ),
-            ),
-        )
+        result = read_parquet(temp_file, engine=pa)
+        expected = df.copy()
+        if pa_version_under19p0 and not using_infer_string:
+            expected.columns = expected.columns.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_roundtrip_decimal(self, temp_file, pa):
@@ -1167,14 +1199,8 @@ class TestParquetPyArrow(Base):
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
         pq.write_table(table, temp_file)
-
-        with pd.option_context("future.infer_string", True):
-            result = read_parquet(temp_file)
-        expected = pd.DataFrame(
-            data={"a": [None, "b", "c"]},
-            dtype=pd.StringDtype(na_value=np.nan),
-            columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
-        )
+        result = read_parquet(temp_file)
+        expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
     # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)
@@ -1205,6 +1231,15 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        pa_version_under18p0, reason="pyarrow < 18 writes unit-less datetime64 metadata"
+    )
+    def test_datetime64_column_index_roundtrip(self, pa, temp_file):
+        # GH#55118
+        df = pd.DataFrame([1, 2, 3])
+        df.columns = df.columns.astype("datetime64[us]")
+        check_round_trip(df, temp_file, pa)
+
     def test_maps_as_pydicts(self, pa, temp_file):
         pyarrow = pytest.importorskip("pyarrow", "13.0.0")
 
@@ -1223,6 +1258,10 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request, temp_file):
+        if using_string_dtype():
+            request.applymarker(
+                pytest.mark.xfail(reason="TODO(infer_string) fastparquet")
+            )
         pytz = pytest.importorskip("pytz")
 
         tz = pytz.timezone("US/Eastern")
@@ -1283,6 +1322,13 @@ class TestParquetFastParquet(Base):
         msg = "Can't infer object conversion type"
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
         check_round_trip(df, temp_file, fp)
@@ -1294,6 +1340,10 @@ class TestParquetFastParquet(Base):
         result = read_parquet(temp_file, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
+    @pytest.mark.xfail(
+        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
+        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+    )
     @pytest.mark.single_cpu
     def test_s3_roundtrip(self, df_compat, s3_bucket_public, s3so, fp, temp_file):
         # GH #19134
@@ -1306,6 +1356,13 @@ class TestParquetFastParquet(Base):
             write_kwargs={"compression": None, "storage_options": s3so},
         )
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]
@@ -1322,6 +1379,13 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 2
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
         partition_cols = "bool"
@@ -1338,6 +1402,13 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 1
 
+    @pytest.mark.xfail(
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
+    )
     def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
         partition_cols = ["bool", "int"]

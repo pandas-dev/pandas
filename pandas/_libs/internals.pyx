@@ -22,22 +22,13 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
+from cpython.ref cimport Py_DECREF
+from cpython.weakref cimport PyWeakref_GetRef
+
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,
 )
-
-include "free_threading_config.pxi"
-
-IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-    from cpython.ref cimport Py_DECREF
-    from cpython.weakref cimport PyWeakref_GetRef
-ELSE:
-    from cpython.weakref cimport PyWeakref_GetObject
-
-
-cdef extern from "Python.h":
-    PyObject* Py_None
 
 
 @cython.final
@@ -252,7 +243,7 @@ cdef class BlockPlacement:
                 return self
 
             if start >= loc and stop >= loc:
-                # We are entirely above, we can efficiently increment out slice
+                # We are entirely above, we can efficiently increment our slice
                 nv = slice(start + 1, stop + 1, step)
                 return BlockPlacement(nv)
 
@@ -733,6 +724,7 @@ cdef class BlockManager:
         public tuple blocks
         public list axes
         public bint _known_consolidated, _is_consolidated
+        public object _interleaved_dtype
         ndarray __blknos, __blklocs
 
     def __cinit__(
@@ -753,9 +745,10 @@ cdef class BlockManager:
         self.blocks = blocks
         self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
 
-        # Populate known_consolidate, blknos, and blklocs lazily
+        # Populate known_consolidated, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
+        self._interleaved_dtype = None
         self._blknos = None
         self._blklocs = None
 
@@ -888,6 +881,7 @@ cdef class BlockManager:
     def _post_setstate(self) -> None:
         self._is_consolidated = False
         self._known_consolidated = False
+        self._interleaved_dtype = None
         self._rebuild_blknos_and_blklocs()
 
     # -------------------------------------------------------------------
@@ -954,26 +948,19 @@ cdef class BlockValuesRefs:
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
-        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-            cdef PyObject* pobj
-            cdef bint status
+        cdef PyObject* pobj
+        cdef bint status
 
         if force or len(self.referenced_blocks) > self.clear_counter:
-            IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-                new_referenced_blocks = []
-                for ref in self.referenced_blocks:
-                    status = PyWeakref_GetRef(ref, &pobj)
-                    if status == -1:
-                        return
-                    elif status == 1:
-                        new_referenced_blocks.append(ref)
-                        Py_DECREF(<object>pobj)
-                self.referenced_blocks = new_referenced_blocks
-            ELSE:
-                self.referenced_blocks = [
-                    ref for ref in self.referenced_blocks
-                    if PyWeakref_GetObject(ref) != Py_None
-                ]
+            new_referenced_blocks = []
+            for ref in self.referenced_blocks:
+                status = PyWeakref_GetRef(ref, &pobj)
+                if status == -1:
+                    return
+                elif status == 1:
+                    new_referenced_blocks.append(ref)
+                    Py_DECREF(<object>pobj)
+            self.referenced_blocks = new_referenced_blocks
 
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
@@ -993,10 +980,7 @@ cdef class BlockValuesRefs:
         blk : Block
             The block that the new references should point to.
         """
-        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-            with cython.critical_section(self):
-                self._add_reference_maybe_locked(blk)
-        ELSE:
+        with cython.critical_section(self):
             self._add_reference_maybe_locked(blk)
 
     def _add_index_reference_maybe_locked(self, index: object) -> None:
@@ -1011,10 +995,7 @@ cdef class BlockValuesRefs:
         index : Index
             The index that the new reference should point to.
         """
-        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-            with cython.critical_section(self):
-                self._add_index_reference_maybe_locked(index)
-        ELSE:
+        with cython.critical_section(self):
             self._add_index_reference_maybe_locked(index)
 
     def _has_reference_maybe_locked(self) -> bool:
@@ -1032,8 +1013,5 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-            with cython.critical_section(self):
-                return self._has_reference_maybe_locked()
-        ELSE:
+        with cython.critical_section(self):
             return self._has_reference_maybe_locked()

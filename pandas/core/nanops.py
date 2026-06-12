@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -19,9 +19,11 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+import pandas._libs.algos as libalgos
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
+    ensure_float64,
     is_complex,
     is_float,
     is_float_dtype,
@@ -64,7 +66,7 @@ def set_use_bottleneck(v: bool = True) -> None:
         _USE_BOTTLENECK = v
 
 
-set_use_bottleneck(get_option("compute.use_bottleneck"))
+set_use_bottleneck(config["compute"]["use_bottleneck"])
 
 
 class disallow:
@@ -138,7 +140,7 @@ class bottleneck_switch:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
                     kwds.pop("mask", None)
-                    result = bn_func(values, axis=axis, **kwds)
+                    result = bn_func(values, axis=axis, **kwds)  # pyright: ignore[reportOptionalCall]
 
                     # prefer to treat inf/-inf as NA, but must compute the func
                     # twice :(
@@ -155,7 +157,7 @@ class bottleneck_switch:
 
 
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
-    # Bottleneck chokes on datetime64, PeriodDtype (or and EA)
+    # Bottleneck chokes on datetime64, PeriodDtype (or an EA)
     if dtype != object and not needs_i8_conversion(dtype):
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision
@@ -369,7 +371,8 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
             if result == fill_value or np.isnan(result):
-                result = np.timedelta64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             elif np.fabs(result) > lib.i8max:
                 # raise if we have a timedelta64[ns] which is too large
@@ -632,7 +635,8 @@ def nansum(
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
     if dtype.kind == "f":
-        dtype_sum = dtype
+        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
     elif dtype.kind == "m":
         dtype_sum = np.dtype(np.float64)
 
@@ -706,7 +710,8 @@ def nanmean(
     elif dtype.kind in "iu":
         dtype_sum = np.dtype(np.float64)
     elif dtype.kind == "f":
-        dtype_sum = dtype
+        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
         dtype_count = dtype
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
@@ -998,6 +1003,13 @@ def nanvar(
         values = values.astype("f8")
         if mask is not None:
             values[mask] = np.nan
+    elif dtype.kind == "c":
+        # https://en.wikipedia.org/wiki/Complex_random_variable#Variance_and_pseudo-variance
+        # The variance is equal to the sum of
+        # the variances of the real and imaginary part of the complex random variable.
+        return nanvar(
+            values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
+        ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     if values.dtype.kind == "f":
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
@@ -1017,11 +1029,8 @@ def nanvar(
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    if values.dtype.kind == "c":
-        # Need to use absolute value for complex numbers.
-        sqr = _ensure_numeric(abs(avg - values) ** 2)
-    else:
-        sqr = _ensure_numeric((avg - values) ** 2)
+
+    sqr = _ensure_numeric((avg - values) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d
@@ -1075,13 +1084,17 @@ def nansem(
     nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     mask = _maybe_get_mask(values, skipna, mask)
-    if values.dtype.kind != "f":
+    # Convert to bottleneck return a float
+    if values.dtype.kind not in "fc":
         values = values.astype("f8")
 
     if not skipna and mask is not None and mask.any():
         return np.nan
 
-    count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    dtype_count = np.dtype(np.float64)
+    if values.dtype.kind == "f":
+        dtype_count = values.dtype
+    count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
     return np.sqrt(var) / np.sqrt(count)
@@ -1217,7 +1230,7 @@ def nanskew(
     axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> np.ndarray | float:
     """
     Compute the sample skewness.
 
@@ -1243,57 +1256,25 @@ def nanskew(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
-    >>> nanops.nanskew(s.values)
-    np.float64(1.7320508075688787)
+    >>> round(nanops.nanskew(s.values), 6)
+    np.float64(1.732051)
     """
-    mask = _maybe_get_mask(values, skipna, mask)
-    if values.dtype.kind != "f":
-        values = values.astype("f8")
-        count = _get_counts(values.shape, mask, axis)
-    else:
-        count = _get_counts(values.shape, mask, axis, dtype=values.dtype)
-
-    if skipna and mask is not None:
-        values = values.copy()
-        np.putmask(values, mask, 0)
-    elif not skipna and mask is not None and mask.any():
-        return np.nan
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        mean = values.sum(axis, dtype=np.float64) / count
-    if axis is not None:
-        mean = np.expand_dims(mean, axis)
-
-    adjusted = values - mean
-    if skipna and mask is not None:
-        np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted**2
-    adjusted3 = adjusted2 * adjusted
-    m2 = adjusted2.sum(axis, dtype=np.float64)
-    m3 = adjusted3.sum(axis, dtype=np.float64)
-
-    # floating point error. See comment in [nankurt]
-    max_abs = np.abs(values).max(axis, initial=0.0)
-    eps = np.finfo(m2.dtype).eps
-    constant_tolerance2 = ((eps * max_abs) ** 2) * count
-    constant_tolerance3 = ((eps * max_abs) ** 3) * count
-    m2 = _zero_out_fperr(m2, constant_tolerance2)
-    m3 = _zero_out_fperr(m3, constant_tolerance3)
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2**1.5)
-
     dtype = values.dtype
+    values = ensure_float64(values)
+
+    result: npt.NDArray[np.floating] | np.floating
+    if axis is None or (values.ndim == 1 and axis == 0):
+        result_float = libalgos.scalar_skew(
+            values.ravel("K"), skipna, mask.ravel("K") if mask is not None else None
+        )
+        result = np.float64(result_float)
+    elif axis in {0, 1}:
+        result = libalgos.axis_skew(values, axis, skipna, mask)
+    else:
+        raise ValueError("axis must be 0, 1 or None")
+
     if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
-
-    if isinstance(result, np.ndarray):
-        result = np.where(m2 == 0, 0, result)
-        result[count < 3] = np.nan
-    else:
-        result = dtype.type(0) if m2 == 0 else result
-        if count < 3:
-            return np.nan
 
     return result
 
@@ -1306,7 +1287,7 @@ def nankurt(
     axis: AxisInt | None = None,
     skipna: bool = True,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> np.ndarray | float:
     """
     Compute the sample excess kurtosis
 
@@ -1332,87 +1313,25 @@ def nankurt(
     --------
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
-    >>> nanops.nankurt(s.values)
-    np.float64(-1.2892561983471076)
+    >>> round(nanops.nankurt(s.values), 6)
+    np.float64(-1.289256)
     """
-    mask = _maybe_get_mask(values, skipna, mask)
-    if values.dtype.kind != "f":
-        values = values.astype("f8")
-        count = _get_counts(values.shape, mask, axis)
-    else:
-        count = _get_counts(values.shape, mask, axis, dtype=values.dtype)
-
-    if skipna and mask is not None:
-        values = values.copy()
-        np.putmask(values, mask, 0)
-    elif not skipna and mask is not None and mask.any():
-        return np.nan
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        mean = values.sum(axis, dtype=np.float64) / count
-    if axis is not None:
-        mean = np.expand_dims(mean, axis)
-
-    adjusted = values - mean
-    if skipna and mask is not None:
-        np.putmask(adjusted, mask, 0)
-    adjusted2 = adjusted**2
-    adjusted4 = adjusted2**2
-    m2 = adjusted2.sum(axis, dtype=np.float64)
-    m4 = adjusted4.sum(axis, dtype=np.float64)
-
-    # Several floating point errors may occur during the summation due to rounding.
-    # This computation is similar to the one in Scipy
-    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
-    # With a few modifications, like using the maximum value instead of the averages
-    # and some adaptations because they use the average and we use the sum for `m2`.
-    # We need to estimate an upper bound to the error to consider the data constant.
-    # Let's call:
-    # x: true value in data
-    # y: floating point representation
-    # e: relative approximation error
-    # n: number of observations in array
-    #
-    # We have that:
-    # |x - y|/|x| <= e (See https://en.wikipedia.org/wiki/Machine_epsilon)
-    # (|x - y|/|x|)² <= e²
-    # Σ (|x - y|/|x|)² <= ne²
-    #
-    # Let's say that the fperr upper bound for m2 is constrained by the summation.
-    # |m2 - y|/|m2| <= ne²
-    # |m2 - y| <= n|m2|e²
-    #
-    # We will use max (x²) to estimate |m2|
-    max_abs = np.abs(values).max(axis, initial=0.0)
-    eps = np.finfo(m2.dtype).eps
-    constant_tolerance2 = ((eps * max_abs) ** 2) * count
-    constant_tolerance4 = ((eps * max_abs) ** 4) * count
-    m2 = _zero_out_fperr(m2, constant_tolerance2)
-    m4 = _zero_out_fperr(m4, constant_tolerance4)
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
-        numerator = count * (count + 1) * (count - 1) * m4
-        denominator = (count - 2) * (count - 3) * m2**2
-
-    if not isinstance(denominator, np.ndarray):
-        # if ``denom`` is a scalar, check these corner cases first before
-        # doing division
-        if count < 4:
-            return np.nan
-        if denominator == 0:
-            return values.dtype.type(0)
-
-    with np.errstate(invalid="ignore", divide="ignore"):
-        result = numerator / denominator - adj
-
     dtype = values.dtype
+    values = ensure_float64(values)
+
+    result: npt.NDArray[np.floating] | np.floating
+    if axis is None or (values.ndim == 1 and axis == 0):
+        result_float = libalgos.scalar_kurt(
+            values.ravel("K"), skipna, mask.ravel("K") if mask is not None else None
+        )
+        result = np.float64(result_float)
+    elif axis in {0, 1}:
+        result = libalgos.axis_kurt(values, axis, skipna, mask)
+    else:
+        raise ValueError("axis must be 0, 1 or None")
+
     if dtype.kind == "f":
         result = result.astype(dtype, copy=False)
-
-    if isinstance(result, np.ndarray):
-        result = np.where(denominator == 0, 0, result)
-        result[count < 4] = np.nan
 
     return result
 
@@ -1608,14 +1527,6 @@ def check_below_min_count(
     return False
 
 
-def _zero_out_fperr(arg, tol: float | np.ndarray):
-    # #18044 reference this behavior to fix rolling skew/kurt issue
-    if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < tol, 0, arg)
-    else:
-        return arg.dtype.type(0) if np.abs(arg) < tol else arg
-
-
 @disallow("M8", "m8")
 def nancorr(
     a: np.ndarray,
@@ -1654,14 +1565,14 @@ def get_corr_func(
     if method == "kendall":
         from scipy.stats import kendalltau
 
-        def func(a, b):
+        def func(a, b):  # pyright: ignore[reportRedeclaration]
             return kendalltau(a, b)[0]
 
         return func
     elif method == "spearman":
         from scipy.stats import spearmanr
 
-        def func(a, b):
+        def func(a, b):  # pyright: ignore[reportRedeclaration]
             return spearmanr(a, b)[0]
 
         return func

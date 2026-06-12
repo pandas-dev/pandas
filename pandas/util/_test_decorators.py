@@ -76,7 +76,7 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
 
     The mark can be used as either a decorator for a test class or to be
     applied to parameters in pytest.mark.parametrize calls or parametrized
-    fixtures. Use pytest.importorskip if an imported moduled is later needed
+    fixtures. Use pytest.importorskip if an imported module is later needed
     or for test functions.
 
     If the import and version check are unsuccessful, then the test function
@@ -125,7 +125,7 @@ skip_if_thread_unsafe_warnings = pytest.mark.skipif(
 )
 
 
-def parametrize_fixture_doc(*args) -> Callable[[F], F]:
+def parametrize_fixture_doc(*args: str) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
     this function will wrap the decorated function with a pytest
@@ -145,8 +145,9 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
         ``parametrize_fixture_doc`` mark
     """
 
-    def documented_fixture(fixture):
-        fixture.__doc__ = fixture.__doc__.format(*args)
+    def documented_fixture(fixture: F) -> F:
+        if fixture.__doc__:
+            fixture.__doc__ = fixture.__doc__.format(*args)
         return fixture
 
     return documented_fixture

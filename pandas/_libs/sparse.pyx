@@ -334,7 +334,7 @@ cdef class BlockIndex(SparseIndex):
         Check:
         - Locations are in ascending order
         - No overlapping blocks
-        - Blocks to not start after end of index, nor extend beyond end
+        - Blocks do not start after end of index, nor extend beyond end
         """
         cdef:
             Py_ssize_t i

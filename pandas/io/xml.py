@@ -419,7 +419,7 @@ class _XMLFrameParser:
         Raises
         ------
         ValueError
-            * If value is not a list and less then length of nodes.
+            * If value is not a list and less than length of nodes.
         """
         raise AbstractMethodError(self)
 
@@ -504,7 +504,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 "undeclared namespace prefix."
             ) from err
 
-        return elems
+        return elems  # pyright: ignore[reportReturnType]
 
     def _validate_names(self) -> None:
         children: list[Any]
@@ -872,6 +872,10 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
+    This function parses an XML document from a file path, URL, or string buffer,
+    and returns the content as a DataFrame. Nodes are selected using an XPath
+    expression, and their child elements and attributes are mapped to columns.
+
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
@@ -879,6 +883,10 @@ def read_xml(
         object implementing a ``read()`` function. The string can be a path.
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
 
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
@@ -912,8 +920,7 @@ def read_xml(
     dtype : Type name or dict of column -> type, optional
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32,
         'c': 'Int64'}
-        Use `str` or `object` together with suitable `na_values` settings
-        to preserve and not interpret dtype.
+        Use ``str`` or ``object`` to preserve and not interpret dtype.
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
@@ -955,7 +962,7 @@ def read_xml(
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
         and unlike ``xpath``, descendants do not need to relate to each other but can
-        exist any where in document under the repeating element. This memory-
+        exist anywhere in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{"row_element": ["child_elem", "attr", "grandchild_elem"]}``.
 

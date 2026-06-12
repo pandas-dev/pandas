@@ -71,8 +71,9 @@ cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
 cdef extern from "pandas/parser/tokenizer.h":
-    double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
-                   int skip_trailing, int *error, int *maybe_int)
+    double precise_xstrtod(const char *p, char **q, char decimal, char sci,
+                           char tsep, int skip_trailing, int *error,
+                           int *maybe_int)
 
 
 # ----------------------------------------------------------------------
@@ -319,6 +320,14 @@ cdef datetime parse_datetime_string(
     except ValueError:
         pass
 
+    if date_string.lstrip().startswith("-"):
+        # GH#55954 a leading "-" indicates a BC year and is only handled by
+        # the iso8601 fast path. Falling through to dateutil would silently
+        # strip the sign and produce a positive year.
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {date_string}"
+        )
+
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
                         ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
@@ -426,6 +435,14 @@ def parse_datetime_string_with_reso(
             reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
 
+    if date_string.lstrip().startswith("-"):
+        # GH#55954 a leading "-" indicates a BC year and is only handled by
+        # the iso8601 fast path. Falling through to dateutil would silently
+        # strip the sign and produce a positive year.
+        raise DateParseError(
+            f"Unknown datetime string format, unable to parse: {date_string}"
+        )
+
     parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
                             dayfirst=dayfirst, yearfirst=yearfirst,
                             ignoretz=False, out_bestunit=&out_bestunit, nanos=NULL)
@@ -465,14 +482,16 @@ cpdef bint _does_string_look_like_datetime(str py_string):
         elif py_string in _not_datelike_strings:
             return False
         else:
-            # xstrtod with such parameters copies behavior of python `float`
-            # cast; for example, " 35.e-1 " is valid string for this cast so,
-            # for correctly xstrtod call necessary to pass these params:
-            # b'.' - a dot is used as separator, b'e' - an exponential form of
-            # a float number can be used, b'\0' - not to use a thousand
-            # separator, 1 - skip extra spaces before and after,
-            converted_date = xstrtod(buf, &endptr,
-                                     b".", b"e", b"\0", 1, &error, NULL)
+            # precise_xstrtod with such parameters copies behavior of
+            # python `float` cast; for example, " 35.e-1 " is valid string
+            # for this cast so, for correctly calling it necessary to pass
+            # these params: b'.' - a dot is used as separator, b'e' - an
+            # exponential form of a float number can be used, b'\0' - not
+            # to use a thousand separator, 1 - skip extra spaces before and
+            # after,
+            converted_date = precise_xstrtod(buf, &endptr,
+                                             b".", b"e", b"\0", 1,
+                                             &error, NULL)
             # if there were no errors and the whole line was parsed, then ...
             if error == 0 and endptr == buf + length:
                 return converted_date >= 1000

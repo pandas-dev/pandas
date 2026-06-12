@@ -160,8 +160,8 @@ class TestIsNA:
         arr = np.array(
             [
                 NaT,
-                np.datetime64("NaT"),
-                np.timedelta64("NaT"),
+                np.datetime64("NaT", "ns"),
+                np.timedelta64("NaT", "ns"),
                 np.datetime64("NaT", "s"),
             ]
         )
@@ -766,8 +766,8 @@ na_vals = (
         np.float32("NaN"),
         np.complex64(np.nan),
         np.complex128(np.nan),
-        np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
     ]
     + [np.datetime64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
     + [np.timedelta64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]

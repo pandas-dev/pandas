@@ -4,6 +4,7 @@ from datetime import (
     timezone,
 )
 import zoneinfo
+from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -160,6 +161,9 @@ cpdef inline tzinfo maybe_get_tz(object tz):
     elif is_integer_object(tz):
         tz = timezone(timedelta(seconds=tz))
     elif isinstance(tz, tzinfo):
+        if treat_tz_as_pytz(tz) and pytz is None:
+            # call again for raising proper error
+            import_optional_dependency("pytz")
         pass
     elif tz is None:
         pass
@@ -208,6 +212,8 @@ cdef object tz_cache_key(tzinfo tz):
                              "of passing a timezone object. See "
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
+    elif is_zoneinfo(tz):
+        return "zoneinfo/" + tz.key
     else:
         return None
 
@@ -236,7 +242,11 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
-        return 0
+        tz_py = _ZoneInfo(tz.key)
+        if tz_py._fixed_offset:
+            return 1
+        else:
+            return 0
     # This also implicitly accepts datetime.timezone objects which are
     # considered fixed
     return 1
@@ -276,6 +286,99 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 
 # ----------------------------------------------------------------------
 # Daylight Savings
+
+
+cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
+    """
+    Get transition times and UTC offsets for a ZoneInfo timezone.
+
+    Uses zoneinfo's Python fallback implementation to get transition data,
+    including future transitions generated from POSIX TZ rules.
+
+    Parameters
+    ----------
+    tz : ZoneInfo
+
+    Returns
+    -------
+    trans : ndarray[int64_t]
+        Nanosecond UTC times of DST transitions.
+    deltas : ndarray[int64_t]
+        Nanosecond UTC offsets corresponding to DST transitions.
+    is_fixed : bint
+        True if this is a fixed-offset timezone with no transitions.
+    """
+    cdef:
+        int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
+        list trans_utc, deltas_seconds, future_trans
+        int year, last_year, std_offset, dst_offset
+
+    tz_py = _ZoneInfo(tz.key)
+
+    if tz_py._fixed_offset:
+        fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
+        trans = np.array([NPY_NAT + 1], dtype=np.int64)
+        deltas = np.array([fixed_offset_seconds], dtype="i8") * 1_000_000_000
+        return trans, deltas, True
+
+    trans_utc = list(tz_py._trans_utc)
+    deltas_seconds = [int(info.utcoff.total_seconds()) for info in tz_py._ttinfos]
+
+    has_future_dst = (
+        hasattr(tz_py, "_tz_after")
+        and tz_py._tz_after is not None
+        and hasattr(tz_py._tz_after, "transitions")
+    )
+    if has_future_dst:
+        # ZoneInfo's _trans_utc only contains historical data (typically up to
+        # the late 1990s for many timezones). POSIX TZ rules stored in _tz_after
+        # are required to generate transitions for current and future dates.
+        # Without this block, DST-observing timezones like Europe/Amsterdam
+        # would return incorrect offsets for any date after ~1996.
+        tz_after = tz_py._tz_after
+        std_offset = int(tz_after.std.utcoff.total_seconds())
+        dst_offset = int(tz_after.dst.utcoff.total_seconds())
+
+        if trans_utc:
+            last_hist_ts = trans_utc[-1]
+            try:
+                last_year = datetime.fromtimestamp(last_hist_ts, timezone.utc).year
+            except (OSError, OverflowError, ValueError):
+                last_year = 1970
+        else:
+            last_hist_ts = 0
+            last_year = 1970
+
+        future_trans = []
+        for year in range(last_year, 2100):
+            try:
+                year_trans = tz_after.transitions(year)
+                if not year_trans:
+                    break
+                start_local, end_local = year_trans
+                start_utc = start_local - std_offset
+                end_utc = end_local - dst_offset
+                if start_utc > last_hist_ts:
+                    future_trans.append((start_utc, dst_offset))
+                if end_utc > last_hist_ts:
+                    future_trans.append((end_utc, std_offset))
+            except Exception:
+                break
+
+        future_trans.sort()
+
+        for t, d in future_trans:
+            trans_utc.append(t)
+            deltas_seconds.append(d)
+
+    trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
+    trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
+
+    first_offset_seconds = int(tz_py._tti_before.utcoff.total_seconds())
+    deltas = np.array(deltas_seconds, dtype="i8") * 1_000_000_000
+    deltas = np.hstack([[first_offset_seconds * 1_000_000_000], deltas])
+
+    return trans, deltas, False
 
 
 cdef object get_dst_info(tzinfo tz):
@@ -340,6 +443,11 @@ cdef object get_dst_info(tzinfo tz):
                 # (under the just-deleted code that returned empty arrays)
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
+
+        elif is_zoneinfo(tz):
+            trans, deltas, is_fixed = _get_zoneinfo_trans_and_deltas(tz)
+            typ = "fixed" if is_fixed else "zoneinfo"
+
         else:
             # static tzinfo, we can get here with pytz.StaticTZInfo
             #  which are not caught by treat_tz_as_pytz
@@ -406,7 +514,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
 
 def tz_standardize(tz: tzinfo) -> tzinfo:
     """
-    If the passed tz is a pytz timezone object, "normalize" it to the a
+    If the passed tz is a pytz timezone object, "normalize" it to a
     consistent version
 
     Parameters
@@ -435,6 +543,6 @@ def tz_standardize(tz: tzinfo) -> tzinfo:
     >>> tz_standardize(tz)
     <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
     """
-    if treat_tz_as_pytz(tz):
+    if treat_tz_as_pytz(tz) and pytz is not None:
         return pytz.timezone(str(tz))
     return tz

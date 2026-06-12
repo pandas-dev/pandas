@@ -274,7 +274,7 @@ class KdePlot(HistPlot):
     ):
         from scipy.stats import gaussian_kde
 
-        y = remove_na_arraylike(y)
+        y = remove_na_arraylike(y)  # pyright: ignore[reportAssignmentType]
         gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
         # gaussian_kde.evaluate(None) raises TypeError, so pyright requires this check

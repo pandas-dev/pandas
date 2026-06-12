@@ -6,6 +6,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -13,6 +14,8 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -94,6 +97,15 @@ def take_nd(
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
     elif lib.is_np_dtype(arr.dtype, "mM"):
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+        if dtype != arr.dtype:
+            # GH#53910
+            warnings.warn(
+                "reindexing with a fill_value that cannot be held by the "
+                "original dtype is deprecated. Explicitly cast to a common "
+                f"dtype (in this case {dtype}) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if arr.dtype != dtype:
             # EA.take is strict about returning a new object of the same type
             # so for that case cast upfront
@@ -189,6 +201,10 @@ def take_2d_multi(
     indexer = row_idx, col_idx
     mask_info = None
 
+    if lib.is_float(fill_value) and fill_value.is_integer():
+        # Avoid warning if possible
+        fill_value = int(fill_value)
+
     # check for promotion based on types only (do this first because
     # it's faster than computing a mask)
     dtype, fill_value = maybe_promote(arr.dtype, fill_value)
@@ -206,6 +222,20 @@ def take_2d_multi(
             # to crash when trying to cast it to dtype)
             dtype, fill_value = arr.dtype, arr.dtype.type()
 
+        if dtype != arr.dtype and not (
+            arr.dtype.kind in "iub"
+            and lib.is_float(fill_value)
+            and np.isnan(fill_value)
+        ):
+            # GH#53910
+            warnings.warn(
+                "reindexing with a fill_value that cannot be held by the "
+                "original dtype is deprecated. Explicitly cast to a common "
+                f"dtype (in this case {dtype}) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
     out_shape = len(row_idx), len(col_idx)
@@ -216,6 +246,12 @@ def take_2d_multi(
         func = _take_2d_multi_dict.get((out.dtype.name, out.dtype.name), None)
         if func is not None:
             func = _convert_wrapper(func, out.dtype)
+
+    # datetime64/timedelta64 of any resolution use int64 storage
+    if func is None and arr.dtype.kind in "mM" and arr.dtype == out.dtype:
+        func = _view_wrapper(
+            libalgos.take_2d_multi_int64_int64, np.int64, np.int64, fill_wrap=np.int64
+        )
 
     if mask_info is not None:
         _, (row_needs, col_needs) = mask_info
@@ -269,6 +305,18 @@ def _get_take_nd_function_cached(
         func = _convert_wrapper(func, out_dtype)
         return func
 
+    # datetime64/timedelta64 of any resolution use int64 storage;
+    # the dispatch dicts only have entries for ns resolution, so handle
+    # other resolutions here.
+    if arr_dtype.kind in "mM" and arr_dtype == out_dtype:
+        if ndim == 1:
+            base_func = libalgos.take_1d_int64_int64
+        elif axis == 0:
+            base_func = libalgos.take_2d_axis0_int64_int64
+        else:
+            base_func = libalgos.take_2d_axis1_int64_int64
+        return _view_wrapper(base_func, np.int64, np.int64, fill_wrap=np.int64)
+
     return None
 
 
@@ -312,13 +360,7 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
         if out_dtype is not None:
             out = out.view(out_dtype)
         if fill_wrap is not None:
-            # FIXME: if we get here with dt64/td64 we need to be sure we have
-            #  matching resos
-            if fill_value.dtype.kind == "m":
-                fill_value = fill_value.astype("m8[ns]")
-            else:
-                fill_value = fill_value.astype("M8[ns]")
-            fill_value = fill_wrap(fill_value)
+            fill_value = fill_value.view("i8")
 
         f(arr, indexer, out, fill_value=fill_value, allow_fill=allow_fill)
 
@@ -546,8 +588,23 @@ def _take_preprocess_indexer_and_fill_value(
     else:
         # check for promotion based on types only (do this first because
         # it's faster than computing a mask)
+        if lib.is_float(fill_value) and fill_value.is_integer():
+            # Avoid warning if possible
+            fill_value = int(fill_value)
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
         if dtype != arr.dtype:
+            if not (
+                (lib.is_float(fill_value) and np.isnan(fill_value))
+                or (arr.dtype.kind == "U" and isinstance(fill_value, str))
+            ):
+                # GH#53910
+                warnings.warn(
+                    "reindexing with a fill_value that cannot be held by the "
+                    "original dtype is deprecated. Explicitly cast to a common "
+                    f"dtype (in this case {dtype}) instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             # check if promotion is actually required based on indexer
             if mask is not None:
                 needs_masking = True

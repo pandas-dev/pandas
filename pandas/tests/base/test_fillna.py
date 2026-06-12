@@ -6,6 +6,7 @@ test here to confirm these works as the same
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import MultiIndex
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
@@ -59,3 +60,11 @@ def test_fillna_null(null_obj, index_or_series_obj):
 
     # check shallow_copied
     assert obj is not result
+
+
+def test_fillna_with_tuple_on_object_index():
+    # GH#37681 np.putmask should not unpack tuple fill values
+    idx = pd.Index([(0, 1), (1, 2), None], tupleize_cols=False)
+    result = idx.fillna((9, 9))
+    expected = pd.Index([(0, 1), (1, 2), (9, 9)], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)

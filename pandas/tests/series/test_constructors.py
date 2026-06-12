@@ -1221,7 +1221,8 @@ class TestSeriesConstructors:
         # construction from interval & array of intervals
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
-        assert result.dtype == "interval[int64, right]"
+        expected_subtype = np.dtype(np.intp)
+        assert result.dtype == f"interval[{expected_subtype}, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
@@ -1496,22 +1497,22 @@ class TestSeriesConstructors:
         td = Series([timedelta(days=1), np.nan], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
-        td = Series([np.timedelta64(300000000), NaT], dtype="m8[ns]")
+        td = Series([np.timedelta64(300000000, "ns"), NaT], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
         # improved inference
         # GH5689
-        td = Series([np.timedelta64(300000000), NaT])
+        td = Series([np.timedelta64(300000000, "ns"), NaT])
         assert td.dtype == "timedelta64[ns]"
 
         # because iNaT is int, not coerced to timedelta
-        td = Series([np.timedelta64(300000000), iNaT])
+        td = Series([np.timedelta64(300000000, "ns"), iNaT])
         assert td.dtype == "object"
 
-        td = Series([np.timedelta64(300000000), np.nan])
+        td = Series([np.timedelta64(300000000, "ns"), np.nan])
         assert td.dtype == "timedelta64[ns]"
 
-        td = Series([NaT, np.timedelta64(300000000)])
+        td = Series([NaT, np.timedelta64(300000000, "ns")])
         assert td.dtype == "timedelta64[ns]"
 
         td = Series([np.timedelta64(1, "s")])
@@ -2068,8 +2069,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
         expected = Series(["a", 1], dtype="object")
-        with pd.option_context("future.infer_string", True):
-            ser = Series(["a", 1])
+        ser = Series(["a", 1])
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
@@ -2268,3 +2268,12 @@ def test_dict_keys_rangeindex():
     result = Series({0: 1, 1: 2})
     expected = Series([1, 2], index=RangeIndex(2))
     tm.assert_series_equal(result, expected, check_index_type=True)
+
+
+def test_constructor_from_series_with_incompatible_dtype_raises():
+    # GH#59060
+    # Series(series_with_mixed_types, dtype=int) should raise consistently
+    # whether creating directly or from an existing Series
+    ser = Series([1, 2, "x", 4, 5])
+    with pytest.raises(ValueError, match="invalid literal"):
+        Series(ser, dtype=int)

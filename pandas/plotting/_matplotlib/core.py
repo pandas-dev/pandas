@@ -191,6 +191,8 @@ class MPLPlot(ABC):
         # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
         if isinstance(data, ABCDataFrame):
+            if self._kind in ("hist", "box") and not data.columns.is_unique:
+                raise ValueError("plotting requires unique column names")
             if column:
                 self.columns = com.maybe_make_list(column)
             elif self.by is None:
@@ -426,7 +428,7 @@ class MPLPlot(ABC):
                     "When subplots is an iterable, each entry "
                     "should be a list/tuple of column names."
                 )
-            idx_locs = columns.get_indexer_for(group)
+            idx_locs = columns.get_indexer_for(group)  # type: ignore[arg-type]
             if (idx_locs == -1).any():
                 bad_labels = np.extract(idx_locs == -1, group)
                 raise ValueError(
@@ -442,7 +444,7 @@ class MPLPlot(ABC):
             seen_columns = seen_columns.union(unique_columns)
             out.append(tuple(idx_locs))
 
-        unseen_columns = columns.difference(seen_columns)
+        unseen_columns = columns.difference(seen_columns)  # type: ignore[arg-type]
         for column in unseen_columns:
             idx_loc = columns.get_loc(column)
             out.append((idx_loc,))
@@ -474,7 +476,7 @@ class MPLPlot(ABC):
 
         if self.style is not None:
             if isinstance(self.style, dict):
-                styles = [self.style[col] for col in self.columns if col in self.style]
+                styles = [self.style[col] for col in self.columns if col in self.style]  # type: ignore[union-attr]  # pyright: ignore[reportOptionalIterable]
             elif is_list_like(self.style):
                 styles = self.style
             else:
@@ -508,7 +510,7 @@ class MPLPlot(ABC):
         elif self.by is not None and self._kind == "hist":
             return len(self._grouped)
         elif self.by is not None and self._kind == "box":
-            return len(self.columns)
+            return len(self.columns)  # type: ignore[arg-type]
         else:
             return data.shape[1]
 
@@ -681,7 +683,7 @@ class MPLPlot(ABC):
             else:
                 data = data.to_frame(name=label)
         elif self._kind in ("hist", "box"):
-            cols = self.columns if self.by is None else self.columns + self.by
+            cols = self.columns if self.by is None else self.columns + self.by  # type: ignore[operator]
             data = data.loc[:, cols]
         return data
 
@@ -1402,7 +1404,7 @@ class ScatterPlot(PlanePlot):
         create_colors = not self._are_valid_colors(c_values)
         if create_colors:
             color_mapping = self._get_color_mapping(c_values)
-            c_values = [color_mapping[s] for s in c_values]
+            c_values = [color_mapping[s] for s in c_values]  # pyright: ignore[reportOptionalIterable]
 
             # build legend for labeling custom colors
             ax.legend(
@@ -1544,8 +1546,7 @@ class HexBinPlot(PlanePlot):
         x, y, data, C = self.x, self.y, self.data, self.C
         ax = self.axes[0]
         # pandas uses colormap, matplotlib uses cmap.
-        cmap = self.colormap or "BuGn"
-        cmap = mpl.colormaps.get_cmap(cmap)
+        cmap = mpl.colormaps.get_cmap(self.colormap) if self.colormap else None
         cb = self.colorbar
 
         if C is None:
@@ -1858,7 +1859,7 @@ class AreaPlot(LinePlot):
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
 
-        is_shared_y = len(list(ax.get_shared_y_axes())) > 0
+        is_shared_y = len(ax.get_shared_y_axes().get_siblings(ax)) > 1
         # do not override the default axis behaviour in case of shared y axes
         if self.ylim is None and not is_shared_y:
             if (data >= 0).all().all():
@@ -2167,10 +2168,9 @@ class PiePlot(MPLPlot):
 
     def __init__(self, data: Series | DataFrame, kind=None, **kwargs) -> None:
         data = data.fillna(value=0)
-        lt_zero = data < 0
-        if isinstance(data, ABCDataFrame) and lt_zero.any().any():
+        if isinstance(data, ABCDataFrame) and (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
-        elif isinstance(data, ABCSeries) and lt_zero.any():
+        elif isinstance(data, ABCSeries) and (data < 0).any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
 

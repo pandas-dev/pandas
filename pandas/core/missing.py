@@ -64,6 +64,11 @@ def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     """
     Validate the size of the values passed to ExtensionArray.fillna.
     """
+    if isinstance(value, dict):
+        raise TypeError(
+            "ExtensionArray.fillna does not support filling with a dict. "
+            "Use Series.fillna instead."
+        )
     if is_array_like(value):
         if len(value) != length:
             raise ValueError(
@@ -608,15 +613,15 @@ def _interpolate_scipy_wrapper(
         terp = interpolate.interp1d(
             x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
         )
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     elif method == "spline":
         # GH #10633, #24014
-        if isna(order) or (order <= 0):
+        if isna(order) or (order <= 0):  # pyright: ignore[reportOptionalOperand]
             raise ValueError(
                 f"order needs to be specified and greater than 0; got order: {order}"
             )
         terp = interpolate.UnivariateSpline(x, y, k=order, **kwargs)
-        new_y = terp(new_x)
+        new_y = terp(new_x)  # pyright: ignore[reportOptionalCall]
     else:
         # GH 7295: need to be able to write for some reason
         # in some circumstances: check all three
@@ -665,7 +670,7 @@ def _from_derivatives(
         list of derivatives to extract. This number includes the function
         value as 0th derivative.
      extrapolate : bool, optional
-        Whether to extrapolate to ouf-of-bounds points based on first and last
+        Whether to extrapolate to out-of-bounds points based on first and last
         intervals, or to return NaNs. Default: True.
 
     See Also

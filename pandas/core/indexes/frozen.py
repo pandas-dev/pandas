@@ -10,9 +10,15 @@ These are used for:
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
+    Any,
     NoReturn,
     Self,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from typing import SupportsIndex
 
 from pandas.util._decorators import set_module
 
@@ -32,25 +38,25 @@ class FrozenList(PandasObject, list):
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
-    def union(self, other) -> FrozenList:
+    def union(self, other: list | tuple) -> FrozenList:
         """
         Returns a FrozenList with other concatenated to the end of self.
 
         Parameters
         ----------
-        other : array-like
-            The array-like whose elements we are concatenating.
+        other : list or tuple
+            The list or tuple whose elements we are concatenating.
 
         Returns
         -------
         FrozenList
-            The collection difference between self and other.
+            The concatenation of self and other.
         """
         if isinstance(other, tuple):
             other = list(other)
         return type(self)(super().__add__(other))
 
-    def difference(self, other) -> FrozenList:
+    def difference(self, other: Iterable) -> FrozenList:
         """
         Returns a FrozenList with elements from other removed from self.
 
@@ -70,14 +76,14 @@ class FrozenList(PandasObject, list):
 
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
 
-    __add__ = __iadd__ = union  # pyright: ignore[reportAssignmentType]
+    __add__ = __iadd__ = union  # type: ignore[assignment]  # pyright: ignore[reportAssignmentType]
 
-    def __getitem__(self, n):
+    def __getitem__(self, n: int | slice) -> Any:  # type: ignore[override]
         if isinstance(n, slice):
             return type(self)(super().__getitem__(n))
         return super().__getitem__(n)
 
-    def __radd__(self, other) -> Self:
+    def __radd__(self, other: list | tuple) -> Self:
         if isinstance(other, tuple):
             other = list(other)
         return type(self)(other + list(self))
@@ -89,19 +95,19 @@ class FrozenList(PandasObject, list):
 
     __req__ = __eq__
 
-    def __mul__(self, other) -> Self:
+    def __mul__(self, other: SupportsIndex) -> Self:
         return type(self)(super().__mul__(other))
 
     __imul__ = __mul__
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type[FrozenList], tuple[list[Any]]]:
         return type(self), (list(self),)
 
     # error: Signature of "__hash__" incompatible with supertype "list"
     def __hash__(self) -> int:  # type: ignore[override]
         return hash(tuple(self))
 
-    def _disabled(self, *args, **kwargs) -> NoReturn:
+    def _disabled(self, *args: Any, **kwargs: Any) -> NoReturn:
         """
         This method will not function because object is immutable.
         """

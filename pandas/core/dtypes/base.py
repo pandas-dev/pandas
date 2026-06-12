@@ -54,6 +54,20 @@ class ExtensionDtype:
     `ExtensionArray`, users can create rich data types that integrate cleanly
     with pandas operations, such as grouping, joining, or aggregation.
 
+    Attributes
+    ----------
+    kind
+    na_value
+    name
+    names
+    type
+
+    Methods
+    -------
+    construct_array_type
+    construct_from_string
+    is_dtype
+
     See Also
     --------
     extensions.register_extension_dtype: Register an ExtensionType

@@ -329,6 +329,49 @@ However, R ``NA`` semantics are now available by using masked NumPy types such a
 or PyArrow types (:class:`ArrowDtype`).
 
 
+Integer overflow
+----------------
+
+pandas uses NumPy's fixed-width integer types (``int64`` by default) rather than
+Python's arbitrary-precision integers. This means integer arithmetic can silently
+overflow without raising an error:
+
+.. ipython:: python
+
+   series = pd.Series([406, 372, 496, 41, 63, 118, 311, 271, 431, 95, 57, 52])
+   series.dtype
+
+The product of these integers exceeds the range of ``int64``, so the result wraps
+around silently:
+
+.. ipython:: python
+
+   series.prod()
+
+Compare this to pure Python, which uses arbitrary-precision integers and gives the
+correct result:
+
+.. ipython:: python
+
+   python_product = 1
+   for val in [406, 372, 496, 41, 63, 118, 311, 271, 431, 95, 57, 52]:
+       python_product *= val
+   python_product
+
+This behavior comes from NumPy and affects all integer arithmetic operations
+(addition, subtraction, multiplication, etc.), not just :meth:`~Series.prod`. See the
+`NumPy documentation on overflow errors <https://numpy.org/doc/stable/user/basics.types.html#overflow-errors>`__
+for more details.
+
+If your computation may exceed ``int64`` range, you can convert to ``float64`` first
+(at the cost of precision for very large values) or use Python's built-in integers
+via ``object`` dtype:
+
+.. ipython:: python
+
+   series.astype("float64").prod()
+   series.astype("object").prod()
+
 Differences with NumPy
 ----------------------
 For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by
