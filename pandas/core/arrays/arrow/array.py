@@ -320,6 +320,22 @@ def to_pyarrow_type(
     return None
 
 
+def _as_py(scalar: pa.Scalar):
+    """
+    scalar.as_py(), avoiding the deprecated Timestamp/Timedelta ``unit=``
+    keyword that pyarrow passes for ns-precision temporal scalars (GH#62097).
+    """
+    pa_type = scalar.type
+    if getattr(pa_type, "unit", None) == "ns" and scalar.is_valid:
+        if pa.types.is_timestamp(pa_type):
+            return Timestamp(scalar.value, tz=pa_type.tz)
+        elif pa.types.is_duration(pa_type):
+            return Timedelta(scalar.value)
+        elif pa.types.is_time(pa_type):
+            return Timestamp(scalar.value).time()
+    return scalar.as_py()
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -905,13 +921,7 @@ class ArrowExtensionArray(
             return result
         else:
             pa_type = self._pa_array.type
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "The 'unit' argument is deprecated",
-                    Pandas4Warning,
-                )
-                scalar = value.as_py()
+            scalar = _as_py(value)
             if scalar is None:
                 return self._dtype.na_value
             elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
@@ -932,39 +942,16 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         box_timestamp = pa.types.is_timestamp(pa_type) and pa_type.unit != "ns"
         box_timedelta = pa.types.is_duration(pa_type) and pa_type.unit != "ns"
-        is_ns_temporal = (
-            pa.types.is_timestamp(pa_type)
-            or pa.types.is_duration(pa_type)
-            or pa.types.is_time(pa_type)
-        ) and pa_type.unit == "ns"
-
-        if is_ns_temporal:
-            # pyarrow's as_py() for ns-precision temporal scalars constructs
-            # pandas Timestamp/Timedelta with the deprecated `unit=` form.
-            # Materialize each chunk inside catch_warnings (no yield spans the
-            # context — a paused/GC'd generator restoring stale filter state
-            # would otherwise wipe warning filters set by callers).
-            for chunk in self._pa_array.chunks:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "The 'unit' argument is deprecated",
-                        Pandas4Warning,
-                    )
-                    py_values = chunk.to_pylist()
-                for val in py_values:
-                    yield na_value if val is None else val
-        else:
-            for value in self._pa_array:
-                val = value.as_py()
-                if val is None:
-                    yield na_value
-                elif box_timestamp:
-                    yield Timestamp(val).as_unit(pa_type.unit)
-                elif box_timedelta:
-                    yield Timedelta(val).as_unit(pa_type.unit)
-                else:
-                    yield val
+        for value in self._pa_array:
+            val = _as_py(value)
+            if val is None:
+                yield na_value
+            elif box_timestamp:
+                yield Timestamp(val).as_unit(pa_type.unit)
+            elif box_timedelta:
+                yield Timedelta(val).as_unit(pa_type.unit)
+            else:
+                yield val
 
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
@@ -2683,14 +2670,7 @@ class ArrowExtensionArray(
 
         if keepdims:
             if isinstance(pa_result, pa.Scalar):
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "The 'unit' argument is deprecated",
-                        Pandas4Warning,
-                    )
-                    item = pa_result.as_py()
-                result = pa.array([item], type=pa_result.type)
+                result = pa.array([_as_py(pa_result)], type=pa_result.type)
             else:
                 result = pa.array(
                     [pa_result],
@@ -2701,13 +2681,7 @@ class ArrowExtensionArray(
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
         elif isinstance(pa_result, pa.Scalar):
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "The 'unit' argument is deprecated",
-                    Pandas4Warning,
-                )
-                result = pa_result.as_py()
+            result = _as_py(pa_result)
             pa_type = pa_result.type
             if pa.types.is_duration(pa_type) and pa_type.unit != "ns":
                 return Timedelta(result).as_unit(pa_type.unit)
@@ -2905,13 +2879,7 @@ class ArrowExtensionArray(
                     f"index {key} is out of bounds for axis 0 with size {n}"
                 )
             if isinstance(value, pa.Scalar):
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "The 'unit' argument is deprecated",
-                        Pandas4Warning,
-                    )
-                    value = value.as_py()
+                value = _as_py(value)
             elif is_list_like(value):
                 raise ValueError("Length of indexer and values mismatch")
             chunks = [
@@ -3258,13 +3226,7 @@ class ArrowExtensionArray(
                 pa_type = value.type
             elif isinstance(value, pa.Scalar):
                 pa_type = value.type
-                with warnings.catch_warnings():
-                    warnings.filterwarnings(
-                        "ignore",
-                        "The 'unit' argument is deprecated",
-                        Pandas4Warning,
-                    )
-                    value = value.as_py()
+                value = _as_py(value)
             else:
                 pa_type = None
             return np.array(value, dtype=object), pa_type
@@ -3313,13 +3275,7 @@ class ArrowExtensionArray(
         if isinstance(replacements, pa.Array):
             replacements = np.array(replacements, dtype=object)
         elif isinstance(replacements, pa.Scalar):
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "The 'unit' argument is deprecated",
-                    Pandas4Warning,
-                )
-                replacements = replacements.as_py()
+            replacements = _as_py(replacements)
 
         result = np.array(values, dtype=object)
         result[mask] = replacements
@@ -3772,15 +3728,13 @@ class ArrowExtensionArray(
         }
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The 'unit' argument is deprecated",
-                Pandas4Warning,
-            )
-            data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
-            data = [None if ts is None else ts.to_pytimedelta() for ts in data]
+            data = [
+                None if td is None else td.to_pytimedelta()
+                for td in map(_as_py, self._pa_array)
+            ]
+        else:
+            data = self._pa_array.to_pylist()
         return np.array(data, dtype=object)
 
     def _dt_total_seconds(self) -> Self:
@@ -4110,15 +4064,13 @@ class ArrowExtensionArray(
                 f"to_pydatetime cannot be called with {self.dtype.pyarrow_dtype} type. "
                 "Convert to pyarrow timestamp type."
             )
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The 'unit' argument is deprecated",
-                Pandas4Warning,
-            )
-            data = self._pa_array.to_pylist()
         if self._dtype.pyarrow_dtype.unit == "ns":
-            data = [None if ts is None else ts.to_pydatetime(warn=False) for ts in data]
+            data = [
+                None if ts is None else ts.to_pydatetime(warn=False)
+                for ts in map(_as_py, self._pa_array)
+            ]
+        else:
+            data = self._pa_array.to_pylist()
         return Series(data, dtype=object)
 
     def _dt_tz_localize(
