@@ -272,7 +272,7 @@ class TestPandasContainer:
 
     def test_to_json_period_series(self):
         # GH#55490
-        ser = pd.Series(pd.period_range(start=2021, freq="Y", periods=3))
+        ser = Series(pd.period_range(start=2021, freq="Y", periods=3))
         result = ser.to_json()
         assert result == '{"0":"2021","1":"2022","2":"2023"}'
 
