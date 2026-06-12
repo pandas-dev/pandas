@@ -186,10 +186,7 @@ static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
     std::optional<std::span<const uint8_t>> mask, double mean, int max_moment) {
   assert(!mask.has_value() || mask->size() == values.size());
 
-  double m1{};
-  double m2{};
-  double m3{};
-  double m4{};
+  CentralDiffs<double> acc{};
   for (std::size_t i = 0; i < values.size(); i++) {
     const auto isna = mask ? ((*mask)[i] != 0) : std::isnan(values[i]);
 
@@ -200,17 +197,17 @@ static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
     const auto diff = values[i] - mean;
     const auto diff2 = diff * diff;
 
-    m1 += diff;
-    m2 += diff2;
+    acc.m1 += diff;
+    acc.m2 += diff2;
     if (max_moment >= 3) {
-      m3 += diff2 * diff;
+      acc.m3 += diff2 * diff;
     }
     if (max_moment >= 4) {
-      m4 += diff2 * diff2;
+      acc.m4 += diff2 * diff2;
     }
   }
 
-  return {.m1 = m1, .m2 = m2, .m3 = m3, .m4 = m4};
+  return acc;
 }
 
 template <class Arch>
