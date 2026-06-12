@@ -1615,7 +1615,7 @@ class Block(PandasObject, libinternals.Block):
         blocks for every connected segment of the initial block that is not deleted.
         The new blocks point to the initial array.
 
-        Assumes `loc` is sorted when list-like.
+        Assumes `loc` is strictly increasing when list-like.
         """
         if not is_list_like(loc):
             loc = [loc]
