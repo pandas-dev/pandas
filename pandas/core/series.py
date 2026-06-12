@@ -7361,6 +7361,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series == other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -7424,6 +7430,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``series != other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -7489,6 +7501,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``series <= other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -7556,6 +7574,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``series < other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -7625,6 +7649,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series >= other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -7693,6 +7723,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series > other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -7760,6 +7796,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series + other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : Series or scalar value
@@ -7821,6 +7863,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``other + series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -7885,6 +7933,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``series - other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -7951,6 +8005,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``other - series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -8021,6 +8081,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``series * other``, but with support to substitute
         a fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -8093,6 +8159,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``other * series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -8157,6 +8229,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``series / other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -8223,6 +8301,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``other / series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -8291,6 +8375,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series // other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -8356,6 +8446,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``other // series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -8420,6 +8516,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series % other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : Series or scalar value
@@ -8482,6 +8584,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``other % series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -8548,6 +8656,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``series ** other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -8613,6 +8727,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Equivalent to ``other ** series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : object
@@ -8677,6 +8797,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``divmod(series, other)``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -8748,6 +8874,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Equivalent to ``other divmod series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
