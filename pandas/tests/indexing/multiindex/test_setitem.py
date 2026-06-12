@@ -620,3 +620,13 @@ def test_loc_setitem_partial_column_key_3d():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_column_key_alignment():
+    # GH#40186 - assignment aligns by column name, not position
+    cols = MultiIndex.from_product([[1], ["a", "b"]])
+    df = DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=cols)
+    rhs = df.loc[:, 1][["b", "a"]]
+    df.loc[:, 1] = rhs
+    expected = DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=cols)
+    tm.assert_frame_equal(df, expected)
