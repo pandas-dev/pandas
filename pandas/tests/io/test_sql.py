@@ -1027,17 +1027,17 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
         if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-            msg = "is_sparse is deprecated"
+            msg = "module 'pandas.core.dtypes.common' has no attribute 'is_sparse'"
+            ctx = pytest.raises(AttributeError, match=msg)
         else:
-            exp_warning = None
-            msg = ""
+            ctx = tm.assert_produces_warning(None)
     else:
-        exp_warning = UserWarning
-        msg = "the 'timedelta'"
+        ctx = tm.assert_produces_warning(
+            UserWarning, match="the 'timedelta'", check_stacklevel=False
+        )
 
     conn = request.getfixturevalue(conn)
-    with tm.assert_produces_warning(exp_warning, match=msg, check_stacklevel=False):
+    with ctx:
         df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
 
 

@@ -179,7 +179,6 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_period_dtype", "is_period_dtype is deprecated"),
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
-        ("is_sparse", "is_sparse is deprecated"),
         ("CategoricalDtype._from_values_or_dtype", "Constructing a Categorical"),
         ("DataFrame.__dataframe__", "The DataFrame Interchange Protocol"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
