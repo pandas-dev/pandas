@@ -201,10 +201,11 @@ def assert_index_equal(
     check_exact: bool = True,
     check_categorical: bool = True,
     check_order: bool = True,
-    check_freq: bool | lib.NoDefault = lib.no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     obj: str | None = None,
+    *,
+    check_freq: bool | lib.NoDefault = lib.no_default,
 ) -> None:
     """
     Check that left and right Index are equal.
@@ -238,6 +239,13 @@ def assert_index_equal(
         Whether to compare the order of index entries as well as their values.
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
+    rtol : float, default 1e-5
+        Relative tolerance. Only used when check_exact is False.
+    atol : float, default 1e-8
+        Absolute tolerance. Only used when check_exact is False.
+    obj : str, default 'Index' or 'MultiIndex'
+        Specify object name being compared, internally used to show appropriate
+        assertion message.
     check_freq : bool, default True
         Whether to check the ``freq`` attribute on a DatetimeIndex or
         TimedeltaIndex.
@@ -248,13 +256,6 @@ def assert_index_equal(
             Currently a ``freq`` mismatch only warns; in a future version
             ``check_freq=True`` will be the default and mismatches will
             raise. Pass ``check_freq`` explicitly to silence the warning.
-    rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
-    atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
-    obj : str, default 'Index' or 'MultiIndex'
-        Specify object name being compared, internally used to show appropriate
-        assertion message.
 
     See Also
     --------
@@ -551,6 +552,7 @@ def assert_categorical_equal(
     check_dtype: bool = True,
     check_category_order: bool = True,
     obj: str = "Categorical",
+    *,
     check_freq: bool | lib.NoDefault = lib.no_default,
 ) -> None:
     """
