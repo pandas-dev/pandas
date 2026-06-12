@@ -1114,9 +1114,30 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
-        values, mask = _get_values(
-            values, skipna, fill_value_typ=fill_value_typ, mask=mask
-        )
+        if dtype == object and skipna:
+            # GH#65500: the +/-inf fill in _get_values is not comparable
+            # with arbitrary objects (e.g. Timestamps, strings), raising
+            # TypeError in the reduction.  Instead fill NA entries with a
+            # valid value from the same reduction slice, which leaves the
+            # min/max unchanged.
+            mask = _maybe_get_mask(values, skipna, mask)
+            if mask is not None and mask.any():
+                if mask.all():
+                    values = np.full(values.shape, np.nan, dtype=object)
+                else:
+                    if values.ndim == 1 or axis is None:
+                        fill = np.empty(1, dtype=object)
+                        # wrap in an array so that e.g. tuple fill values
+                        # are not broadcast by np.where
+                        fill[0] = values[~mask][0]
+                    else:
+                        indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
+                        fill = np.take_along_axis(values, indexer, axis=axis)
+                    values = np.where(mask, fill, values)
+        else:
+            values, mask = _get_values(
+                values, skipna, fill_value_typ=fill_value_typ, mask=mask
+            )
         result = getattr(values, meth)(axis)
         result = _maybe_null_out(
             result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"
