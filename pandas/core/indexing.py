@@ -3023,7 +3023,12 @@ class _iLocIndexer(_LocationIndexer):
             # we have a frame, with multiple indexers on both axes; and a
             # series, so need to broadcast (see GH5206)
             if all(is_sequence(_) or isinstance(_, slice) for _ in indexer):
-                ser_values = ser.reindex(obj.axes[0][indexer[0]])._values
+                new_ix = obj.axes[0][indexer[0]]
+                if self.ndim == 1 or len(indexer) > 1:
+                    # GH#22493; with a row-only frame indexer the result
+                    # broadcasts row-wise, so level alignment would be wrong
+                    new_ix = _maybe_align_innermost_level(new_ix, ser.index)
+                ser_values = ser.reindex(new_ix)._values
 
                 # single indexer
                 if len(indexer) > 1 and not multiindex_indexer:
@@ -3053,13 +3058,8 @@ class _iLocIndexer(_LocationIndexer):
                     if not len(new_ix) or ser.index.equals(new_ix):
                         return ser._values
 
-                    # GH#22493: flat-indexed value assigned to a MultiIndexed
-                    # target; align against the innermost level
-                    if isinstance(new_ix, MultiIndex) and not isinstance(
-                        ser.index, MultiIndex
-                    ):
-                        new_ix = new_ix.droplevel(list(range(new_ix.nlevels - 1)))
-
+                    # GH#22493
+                    new_ix = _maybe_align_innermost_level(new_ix, ser.index)
                     return ser.reindex(new_ix)._values
 
                 # 2 dims
@@ -3135,18 +3135,8 @@ class _iLocIndexer(_LocationIndexer):
                         "specifying the join levels"
                     )
 
-                # GH#22493: align a flat-indexed value against the innermost
-                # level of a MultiIndexed target.  Fires for a partial key
-                # (e.g. df.loc['a1'] = val) and, more broadly, for any
-                # flat-indexed value assigned to a MultiIndexed target (list
-                # keys, boolean masks, df.loc[:]), aligning on / broadcasting
-                # across the innermost level rather than reindexing the flat
-                # index against the full MultiIndex (which yields all-NaN).
-                if isinstance(ax, MultiIndex) and not isinstance(df.index, MultiIndex):
-                    # value is flat, so keep only the innermost level
-                    remaining = ax.droplevel(list(range(ax.nlevels - 1)))
-                    return df.reindex(index=remaining)
-
+                # GH#22493
+                ax = _maybe_align_innermost_level(ax, df.index)
                 val = df.reindex(index=ax)
             return val
 
@@ -3552,6 +3542,22 @@ def is_nested_tuple(tup, labels) -> bool:
             return isinstance(labels, MultiIndex)
 
     return False
+
+
+def _maybe_align_innermost_level(target_ix: Index, value_index: Index) -> Index:
+    """
+    GH#22493: when a flat-indexed value is assigned to MultiIndexed rows and
+    no value label matches a full MultiIndex key (so direct reindexing would
+    fill all-NaN), return the innermost level of `target_ix` to align
+    against instead.
+    """
+    if (
+        isinstance(target_ix, MultiIndex)
+        and not isinstance(value_index, MultiIndex)
+        and (value_index.get_indexer_for(target_ix) == -1).all()
+    ):
+        return target_ix.droplevel(list(range(target_ix.nlevels - 1)))
+    return target_ix
 
 
 def is_label_like(key) -> bool:

@@ -337,7 +337,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-- Bug in :meth:`DataFrame.loc` setitem with a partial :class:`MultiIndex` key and a :class:`DataFrame` or :class:`Series` value whose index matched only the remaining levels raised ``TypeError`` or produced ``NaN`` instead of aligning properly (:issue:`22493`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with a partial :class:`MultiIndex` key and a :class:`DataFrame` or :class:`Series` value whose flat index matched the innermost level filling with ``NaN`` instead of aligning on that level (:issue:`22493`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`MultiIndex.get_loc` where looking up a tuple key containing a scalar inside an :class:`IntervalIndex` level with overlapping intervals raised ``KeyError`` or returned incorrect results (:issue:`27456`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)

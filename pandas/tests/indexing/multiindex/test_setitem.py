@@ -491,6 +491,30 @@ class TestMultiIndexSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_partial_multiindex_with_series_list_cols(self):
+        # GH#22493 - Series value broadcast across a list of columns
+        idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        df.loc[("a1",), ["c1", "c2"]] = Series({"b1": -2, "b2": -3})
+        expected = DataFrame(
+            [[-2, -2], [-3, -3], [4, 5], [6, 7]],
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_multiindex_series_target(self):
+        # GH#22493 - Series (not DataFrame) target with MultiIndex
+        idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
+        ser = Series(np.arange(4, dtype=np.float64), index=idx)
+        ser.loc["a1"] = Series({"b1": -1.0, "b2": -2.0})
+        expected = Series([-1.0, -2.0, 2.0, 3.0], index=idx)
+        tm.assert_series_equal(ser, expected)
+
     def test_loc_setitem_partial_multiindex_reordered(self):
         # GH#22493 - value index in different order should align by label
         idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
@@ -521,6 +545,46 @@ class TestMultiIndexSetItem:
         df.loc[:, "c1"] = Series([-9, -8, -7, -6], index=flat)
         expected = DataFrame(
             [[-9, 1], [-8, 3], [-7, 5], [-6, 7]],
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_series_flat_index_of_tuples_reordered(self):
+        # GH#22493: a reordered flat Index of tuples matching the target
+        # MultiIndex keys must align directly, not on the innermost level
+        idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        flat = pd.Index(list(idx)[::-1], tupleize_cols=False)
+        df.loc[:, "c1"] = Series([-6, -7, -8, -9], index=flat)
+        expected = DataFrame(
+            [[-9, 1], [-8, 3], [-7, 5], [-6, 7]],
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_frame_flat_index_of_tuples_reordered(self):
+        # GH#22493: same as above but through the DataFrame-value path
+        idx = MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]])
+        df = DataFrame(
+            np.arange(8, dtype=np.int64).reshape(4, 2),
+            index=idx,
+            columns=["c1", "c2"],
+        )
+        flat = pd.Index(list(idx)[::-1], tupleize_cols=False)
+        rhs = DataFrame(
+            [[-6, -16], [-7, -17], [-8, -18], [-9, -19]],
+            index=flat,
+            columns=["c1", "c2"],
+        )
+        df.loc[:] = rhs
+        expected = DataFrame(
+            [[-9, -19], [-8, -18], [-7, -17], [-6, -16]],
             index=idx,
             columns=["c1", "c2"],
         )
