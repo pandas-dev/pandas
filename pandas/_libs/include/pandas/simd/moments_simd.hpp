@@ -11,6 +11,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include "pandas/moments.h"
 #include "xsimd/xsimd.hpp" // IWYU pragma: keep
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -49,22 +50,25 @@ compute_moments_with_correction(MeanAcc<double, std::size_t> total_acc,
   const double correction_term2 = correction_term * correction_term;
   const double term1 = central_diffs.m1 * correction_term;
 
-  const double mean = trial_mean + correction_term;
-  const double m2 = central_diffs.m2 - term1;
-  double m3 = 0.0;
-  double m4 = 0.0;
+  Moments result{};
+
+  result.n = total_acc.count;
+  result.mean = trial_mean + correction_term;
+  result.m2 = central_diffs.m2 - term1;
+  result.m2 = std::max(result.m2, 0.0);
 
   if (max_moment >= 3) {
-    m3 = central_diffs.m3 - (3.0 * central_diffs.m2 * correction_term) +
-         (2.0 * correction_term * term1);
+    result.m3 = central_diffs.m3 - (3.0 * central_diffs.m2 * correction_term) +
+                (2.0 * correction_term * term1);
   }
   if (max_moment >= 4) {
-    m4 = central_diffs.m4 - (4.0 * central_diffs.m3 * correction_term) +
-         (6.0 * central_diffs.m2 * correction_term2) -
-         (3.0 * term1 * correction_term2);
+    result.m4 = central_diffs.m4 - (4.0 * central_diffs.m3 * correction_term) +
+                (6.0 * central_diffs.m2 * correction_term2) -
+                (3.0 * term1 * correction_term2);
+    result.m4 = std::max(result.m4, 0.0);
   }
 
-  return {.mean = mean, .m2 = m2, .m3 = m3, .m4 = m4, .n = total_acc.count};
+  return result;
 }
 
 static inline std::optional<detail::MeanAcc<double, std::size_t>>
