@@ -12,6 +12,7 @@ from pandas.errors import EmptyDataError
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io.sas import sas7bdat
 from pandas.io.sas.sas7bdat import SAS7BDATReader
 
 
@@ -146,6 +147,97 @@ def test_sas_string_strict_decode_errors(datapath, encoding):
     fname = datapath("io", "sas", "data", "test16.sas7bdat")
     with pytest.raises(UnicodeDecodeError):
         pd.read_sas(fname, encoding=encoding)
+
+
+@pytest.mark.parametrize("infer_string", [True, False])
+def test_sas_invalid_utf8_raises_unicode_decode_error(datapath, tmp_path, infer_string):
+    # GH#47339 the fast string path must raise UnicodeDecodeError (not e.g.
+    # pyarrow's ArrowInvalid) on bytes invalid for the declared utf-8 encoding
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    raw = bytearray(Path(fname).read_bytes())
+    pos = raw.find(b"pear")  # known string-cell value in test1
+    raw[pos] = 0xFF  # a lone 0xFF byte is never valid utf-8
+    bad_fname = tmp_path / "bad_utf8.sas7bdat"
+    bad_fname.write_bytes(bytes(raw))
+    with pd.option_context("future.infer_string", infer_string):
+        with pytest.raises(UnicodeDecodeError):
+            pd.read_sas(bad_fname, encoding="utf-8")
+
+
+def test_sas_invalid_utf8_across_cell_boundary(datapath, tmp_path):
+    # GH#47339 cells that are individually invalid utf-8 can concatenate into
+    # valid utf-8 in the column buffer; the error must still be a
+    # UnicodeDecodeError, not pyarrow's ArrowInvalid
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname)) as rdr:
+        row_length = rdr.row_length
+    raw = bytearray(Path(fname).read_bytes())
+    pos = raw.find(b"pear")  # known string-cell value in test1
+    raw[pos + 3] = 0xC3  # cell now ends with a truncated 2-byte sequence
+    raw[pos + row_length] = 0xA9  # next row's cell starts with the continuation
+    bad_fname = tmp_path / "bad_utf8_boundary.sas7bdat"
+    bad_fname.write_bytes(bytes(raw))
+    with pytest.raises(UnicodeDecodeError):
+        pd.read_sas(bad_fname, encoding="utf-8")
+
+
+def test_sas_string_storage_python(datapath):
+    # GH#47339 the fast path must honor mode.string_storage
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    expected = pd.read_sas(fname, encoding="utf-8")
+    with pd.option_context("mode.string_storage", "python"):
+        df = pd.read_sas(fname, encoding="utf-8")
+    assert isinstance(df["Column2"].array, pd.arrays.StringArray)
+    tm.assert_frame_equal(df, expected, check_dtype=False, check_column_type=False)
+
+
+def test_sas_truncated_file_raises(datapath, tmp_path):
+    # GH#47339 a file whose data pages end before the header's row_count must
+    # raise rather than silently return partial data
+    fname = datapath("io", "sas", "data", "cars.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname)) as rdr:
+        keep = rdr.header_length + 2 * rdr._page_length
+    raw = Path(fname).read_bytes()
+    assert len(raw) > keep
+    bad_fname = tmp_path / "truncated.sas7bdat"
+    bad_fname.write_bytes(raw[:keep])
+    with pytest.raises(ValueError, match="truncated"):
+        pd.read_sas(bad_fname, encoding="utf-8")
+
+
+def test_sas_duplicate_column_names(datapath):
+    # GH#47339 the dict-based DataFrame construction used to fill every
+    # duplicate-named column with the last such column's data
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    expected = pd.read_sas(fname, encoding="latin-1")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
+        idx2 = rdr.column_names.index("Column2")
+        idx6 = rdr.column_names.index("Column6")
+        rdr.column_names[idx6] = "Column2"
+        df = rdr.read()
+    tm.assert_series_equal(df.iloc[:, idx2], expected["Column2"], check_names=False)
+    tm.assert_series_equal(df.iloc[:, idx6], expected["Column6"], check_names=False)
+
+
+def test_sas_duplicate_column_names_with_missing_columns(datapath):
+    # GH#47099-style corrupt metadata (more names than parsed columns) combined
+    # with a duplicate name must NaN-fill, not raise on duplicate labels
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    with contextlib.closing(SAS7BDATReader(fname, encoding="latin-1")) as rdr:
+        rdr.column_names.append(rdr.column_names[0])
+        df = rdr.read()
+    assert df.shape[1] == 101
+    assert df.iloc[:, -1].isna().all()
+
+
+def test_sas_compressed_string_buffer_cap(datapath, monkeypatch):
+    # GH#47339 compressed files whose worst-case string buffer exceeds the cap
+    # fall back to the object path and must give identical results
+    fname = datapath("io", "sas", "data", "test2.sas7bdat")
+    expected = pd.read_sas(fname, encoding="utf-8")
+    monkeypatch.setattr(sas7bdat, "_MAX_STRING_PARSE_BUFFER", 1)
+    result = pd.read_sas(fname, encoding="utf-8")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_productsales(datapath):

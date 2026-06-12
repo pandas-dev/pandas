@@ -389,7 +389,7 @@ cdef class Parser:
             self.str_offsets = parser._str_offsets
             self.str_valid = parser._str_valid
             self.str_col_starts = parser._str_col_starts
-            # None unless str_encoding_mode == 1 (single-byte table).
+            # None unless str_encoding_mode == 2 (single-byte table).
             self.str_byte_table = parser._str_byte_table
             self.str_byte_len = parser._str_byte_len
             self.str_table_encoding = parser._str_table_encoding
@@ -669,45 +669,52 @@ cdef class Parser:
                 if use_pa:
                     write_pos = str_offsets[js, current_row]
                     col_start = str_col_starts[js]
-                    if lngt == 0 and self.blank_missing:
-                        str_valid[js, current_row] = 0
-                    elif enc_mode == 0:
-                        # utf-8: copy bytes verbatim (validated after the
-                        # large_string array is built).
-                        for k in range(lngt):
-                            str_values[col_start + write_pos + k] = (
-                                buf_get(source, start + k)
+                    if lngt > 0 or not self.blank_missing:
+                        # Cells start null (zeros-init); mark every cell the
+                        # parser actually writes as valid.
+                        str_valid[js, current_row] = 1
+                        if enc_mode == 0:
+                            # utf-8: copy bytes verbatim (validated after the
+                            # large_string array is built).
+                            memcpy(
+                                &str_values[col_start + write_pos],
+                                &source.data[start],
+                                lngt,
                             )
-                        write_pos += lngt
-                    elif enc_mode == 1:
-                        # latin-1 -> utf-8: 1 byte expands to 1 or 2 bytes
-                        for k in range(lngt):
-                            bval = buf_get(source, start + k)
-                            if bval < 0x80:
-                                str_values[col_start + write_pos] = bval
-                                write_pos += 1
-                            else:
-                                str_values[col_start + write_pos] = (
-                                    0xC0 | (bval >> 6)
-                                )
-                                str_values[col_start + write_pos + 1] = (
-                                    0x80 | (bval & 0x3F)
-                                )
-                                write_pos += 2
-                    else:
-                        # other single-byte encoding -> utf-8 via lookup table
-                        for k in range(lngt):
-                            bval = buf_get(source, start + k)
-                            blen = str_byte_len[bval]
-                            if blen == 0xFF:
-                                # byte undefined in this encoding; raise the
-                                # same error a strict per-cell decode would.
-                                bytes([bval]).decode(self.str_table_encoding)
-                            for bi in range(blen):
-                                str_values[col_start + write_pos + bi] = (
-                                    str_byte_table[bval, bi]
-                                )
-                            write_pos += blen
+                            write_pos += lngt
+                        elif enc_mode == 1:
+                            # latin-1 -> utf-8: 1 byte expands to 1 or 2 bytes
+                            for k in range(lngt):
+                                bval = buf_get(source, start + k)
+                                if bval < 0x80:
+                                    str_values[col_start + write_pos] = bval
+                                    write_pos += 1
+                                else:
+                                    str_values[col_start + write_pos] = (
+                                        0xC0 | (bval >> 6)
+                                    )
+                                    str_values[col_start + write_pos + 1] = (
+                                        0x80 | (bval & 0x3F)
+                                    )
+                                    write_pos += 2
+                        else:
+                            # other single-byte encoding -> utf-8 via lookup
+                            # table
+                            for k in range(lngt):
+                                bval = buf_get(source, start + k)
+                                blen = str_byte_len[bval]
+                                if blen == 0xFF:
+                                    # byte undefined in this encoding; raise
+                                    # the error a strict per-cell decode would.
+                                    buf_as_bytes(source, start, lngt).decode(
+                                        self.str_table_encoding
+                                    )
+                                    raise AssertionError("decode should raise")
+                                for bi in range(blen):
+                                    str_values[col_start + write_pos + bi] = (
+                                        str_byte_table[bval, bi]
+                                    )
+                                write_pos += blen
                     str_offsets[js, current_row + 1] = write_pos
                 else:
                     if lngt == 0 and self.blank_missing:
