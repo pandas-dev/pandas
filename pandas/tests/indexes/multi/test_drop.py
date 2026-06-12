@@ -9,7 +9,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_drop(idx):
     dropped = idx.drop([("foo", "two"), ("qux", "one")])
 

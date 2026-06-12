@@ -8,6 +8,7 @@ from pandas import (
     MultiIndex,
     Series,
 )
+import pandas._testing as tm
 
 
 class TestIsLexsorted:
@@ -54,17 +55,56 @@ class TestLexsortDepth:
         )
         assert index._lexsort_depth == 0
 
-    def test_lexsort_depth_unsorted_levels(self):
+    def test_value_lexsort_depth_unsorted_levels(self):
         # GH#44380 sorted codes with unsorted levels should not
-        # report a high lexsort depth
+        # report a high value lexsort depth
         index = MultiIndex(
             levels=[["a", "c", "b"], [1, 2]],
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
         # Codes are sorted [0,0,1,1,2,2] but levels ["a","c","b"] are not,
         # so the actual values (a,a,c,c,b,b) are NOT sorted
-        assert index._lexsort_depth == 0
-        assert not index._is_lexsorted()
+        assert index._lexsort_depth == 2
+        assert index._value_lexsort_depth == 0
+
+    def test_value_lexsort_depth_unused_level_entries(self):
+        # GH#44380 unsorted entries that do not appear in the codes do not
+        # affect the ordering of the values
+        index = MultiIndex(
+            levels=[["a", "c", "b"], [1, 2]],
+            codes=[[0, 0, 2, 2], [0, 1, 0, 1]],
+        )
+        # values are (a,1),(a,2),(b,1),(b,2); the unused "c" entry is
+        # irrelevant
+        assert index.is_monotonic_increasing
+        assert index._value_lexsort_depth == 2
+
+        ser = Series(np.arange(4), index=index)
+        result = ser.loc["a":"b"]
+        tm.assert_series_equal(result, ser)
+
+    def test_unsorted_levels_xs_slice_raises(self):
+        # GH#44380 slices routed through get_loc_level (e.g. DataFrame.xs)
+        # are gated like get_locs
+        index = MultiIndex(
+            levels=[["a", "c", "b"], [1, 2]],
+            codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        )
+        df = DataFrame({"x": np.arange(6)}, index=index)
+        with pytest.raises(UnsortedIndexError, match="lexsort depth"):
+            df.xs(slice("a", "c"))
+        with pytest.raises(UnsortedIndexError, match="lexsort depth"):
+            index.get_loc_level(slice("a", "c"))
+
+    def test_unsorted_levels_get_loc_uses_codes(self):
+        # GH#44380 exact-label get_loc only needs grouped codes, not sorted
+        # values, so it should return a slice without a PerformanceWarning
+        index = MultiIndex(
+            levels=[["a", "c", "b"], [1, 2]],
+            codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
+        )
+        with tm.assert_produces_warning(None):
+            assert index.get_loc("c") == slice(2, 4)
 
     def test_unsorted_levels_slice_raises(self):
         # GH#44380 slicing on a MultiIndex with unsorted levels and

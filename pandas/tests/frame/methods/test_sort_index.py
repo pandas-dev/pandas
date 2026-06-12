@@ -24,9 +24,7 @@ class TestDataFrameSortIndex:
                 levels=[["a", "b"], ["bb", "aa"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
             ),
         )
-        # GH#44380 codes are sorted but level 1 ["bb", "aa"] is not monotonic,
-        # so the index is not truly lexsorted
-        assert not df.index._is_lexsorted()
+        assert df.index._is_lexsorted()
         assert not df.index.is_monotonic_increasing
 
         # sort it

@@ -554,11 +554,9 @@ def test_getitem(idx):
 
 
 def test_getitem_group_select(idx):
-    # GH#44380 sort_values + _sort_levels_monotonic for truly sorted
-    # entries and levels
-    sorted_idx = idx.sort_values()._sort_levels_monotonic()
-    assert sorted_idx.get_loc("baz") == slice(1, 2)
-    assert sorted_idx.get_loc("foo") == slice(2, 4)
+    sorted_idx, _ = idx.sortlevel(0)
+    assert sorted_idx.get_loc("baz") == slice(3, 4)
+    assert sorted_idx.get_loc("foo") == slice(0, 2)
 
 
 @pytest.mark.parametrize("box", [list, Index])
@@ -742,18 +740,13 @@ class TestGetLoc:
 
     def test_get_loc_duplicates2(self):
         # TODO: de-duplicate with test_get_loc_duplicates above?
-        # GH#44380 levels must be sorted for _lexsort_depth to be accurate
         index = MultiIndex(
-            levels=[["B", "C", "D"], [0, 26, 27, 37, 57, 67, 75, 82]],
-            codes=[[2, 2, 2, 0, 1, 1, 1, 1, 1, 1], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
+            levels=[["D", "B", "C"], [0, 26, 27, 37, 57, 67, 75, 82]],
+            codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
             names=["tag", "day"],
         )
 
-        result = index.get_loc("D")
-        expected = np.array(
-            [True, True, True, False, False, False, False, False, False, False]
-        )
-        tm.assert_numpy_array_equal(result, expected)
+        assert index.get_loc("D") == slice(0, 3)
 
     def test_get_loc_past_lexsort_depth(self, performance_warning):
         # GH#30053

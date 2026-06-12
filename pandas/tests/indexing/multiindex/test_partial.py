@@ -37,7 +37,6 @@ class TestMultiIndexPartial:
     def test_series_slice_partial(self):
         pass
 
-    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_xs_partial(
         self,
         multiindex_dataframe_random_data,
@@ -56,11 +55,10 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(result, expected)
 
         # ex from #1796
-        # GH#44380 levels must be sorted for _lexsort_depth to be accurate
         index = MultiIndex(
-            levels=[["bar", "foo"], ["one", "two"], [-1, 1]],
+            levels=[["foo", "bar"], ["one", "two"], [-1, 1]],
             codes=[
-                [1, 1, 1, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 1, 1, 1],
                 [0, 0, 1, 1, 0, 0, 1, 1],
                 [0, 1, 0, 1, 0, 1, 0, 1],
             ],

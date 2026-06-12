@@ -2274,12 +2274,30 @@ class MultiIndex(Index):
         """
         if self.sortorder is not None:
             return self.sortorder
-        depth = _lexsort_depth(self.codes, self.nlevels)
-        # GH#44380 codes-based lexsort depth is only valid for levels that
-        # are monotonically sorted; unsorted levels mean sorted codes don't
-        # imply sorted values.
+        return _lexsort_depth(self.codes, self.nlevels)
+
+    @cache_readonly
+    def _value_lexsort_depth(self) -> int:
+        """
+        The number of leading levels for which the index *values* are
+        lexsorted: ``self._lexsort_depth`` capped at the first level whose
+        used values are not monotonic.
+
+        GH#44380 sorted codes only imply sorted values if the level values
+        appearing in the codes are themselves monotonic, so range slicing
+        (unlike exact-label lookup) must use this instead of the codes-based
+        ``_lexsort_depth``.
+        """
+        depth = self._lexsort_depth
         for k in range(depth):
-            if not self.levels[k].is_monotonic_increasing:
+            level = self.levels[k]
+            if level.is_monotonic_increasing:
+                continue
+            # Level entries that never appear in the codes cannot affect
+            #  the ordering of the values, so only check the used entries.
+            used = np.unique(self.codes[k])
+            used = used[used >= 0]
+            if not level.take(used).is_monotonic_increasing:
                 return k
         return depth
 
@@ -3382,6 +3400,13 @@ class MultiIndex(Index):
         """
         if not isinstance(label, tuple):
             label = (label,)
+        if len(label) > self._value_lexsort_depth:
+            # GH#44380 slice bounds depend on the values being sorted, not
+            #  just the codes
+            raise UnsortedIndexError(
+                f"Key length ({len(label)}) was greater than MultiIndex "
+                f"lexsort depth ({self._value_lexsort_depth})"
+            )
         result = self._partial_tup_index(label, side=side)
         result = maybe_unbox_numpy_scalar(result)
         return result
@@ -3614,7 +3639,15 @@ class MultiIndex(Index):
             stop = len(self)
         else:
             try:
-                start, stop = self.slice_locs(lead_key, lead_key)
+                # Call _partial_tup_index directly instead of slice_locs:
+                #  exact-label lookup only needs the codes to be grouped,
+                #  not the values to be sorted (GH#44380)
+                start = maybe_unbox_numpy_scalar(
+                    self._partial_tup_index(lead_key, side="left")
+                )
+                stop = maybe_unbox_numpy_scalar(
+                    self._partial_tup_index(lead_key, side="right")
+                )
             except TypeError as err:
                 # e.g. test_groupby_example key = ((0, 0, 1, 2), "new_col")
                 #  when self has 5 integer levels
@@ -3842,6 +3875,18 @@ class MultiIndex(Index):
                 ilevels = [i for i in range(len(key)) if key[i] != slice(None, None)]
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
         else:
+            if (
+                isinstance(key, slice)
+                and not com.is_null_slice(key)
+                and level >= self._value_lexsort_depth
+            ):
+                # GH#44380 same gate as get_locs: selecting a range requires
+                #  the values to be sorted through this level
+                raise UnsortedIndexError(
+                    "MultiIndex slicing requires the index to be lexsorted: "
+                    f"slicing on level {level}, lexsort depth "
+                    f"{self._value_lexsort_depth}"
+                )
             indexer = self._get_level_indexer(key, level=level)
             if (
                 isinstance(key, str)
@@ -4013,10 +4058,10 @@ class MultiIndex(Index):
 
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
-        if true_slices and true_slices[-1] >= self._lexsort_depth:
+        if true_slices and true_slices[-1] >= self._value_lexsort_depth:
             raise UnsortedIndexError(
                 "MultiIndex slicing requires the index to be lexsorted: slicing "
-                f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
+                f"on levels {true_slices}, lexsort depth {self._value_lexsort_depth}"
             )
 
         if any(x is Ellipsis for x in seq):
