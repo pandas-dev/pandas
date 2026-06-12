@@ -10550,18 +10550,18 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Addition of dataframe and other, element-wise (binary operator `add`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``dataframe + other``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `radd`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -10673,18 +10673,18 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Addition of dataframe and other, element-wise (binary operator `radd`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other + dataframe``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `add`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -10796,17 +10796,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Subtraction of dataframe and other, element-wise (binary operator `sub`).
 
-        Equivalent to ``dataframe - other``, but with support to substitute a
-        fill_value for missing data in one of the inputs. With reverse version, `rsub`.
-
-        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
-        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
         .. deprecated:: 3.1.0
 
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
+
+        Equivalent to ``dataframe - other``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version, `rsub`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
         Parameters
         ----------
@@ -10920,17 +10920,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Subtraction of dataframe and other, element-wise (binary operator `rsub`).
 
-        Equivalent to ``other - dataframe``, but with support to substitute a
-        fill_value for missing data in one of the inputs. With reverse version, `sub`.
-
-        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
-        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
         .. deprecated:: 3.1.0
 
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
+
+        Equivalent to ``other - dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version, `sub`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
         Parameters
         ----------
@@ -11043,18 +11043,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Multiplication of dataframe and other, \
         element-wise (binary operator `mul`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``dataframe * other``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `rmul`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11169,18 +11169,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Multiplication of dataframe and other, \
         element-wise (binary operator `rmul`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other * dataframe``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `mul`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11275,18 +11275,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Floating division of dataframe and other, \
         element-wise (binary operator `truediv`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``dataframe / other``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `rtruediv`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11398,19 +11398,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Floating division of dataframe and other, \
         element-wise (binary operator `rtruediv`).
 
-        Equivalent to ``other / dataframe``, but with support to substitute a
-        fill_value for missing data in one of the inputs. With reverse version,
-        `truediv`.
-
-        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
-        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
         .. deprecated:: 3.1.0
 
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
 
+        Equivalent to ``other / dataframe``, but with support to substitute a
+        fill_value for missing data in one of the inputs. With reverse version,
+        `truediv`.
+
+        Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
+        to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11499,18 +11498,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Integer division of dataframe and other, \
         element-wise (binary operator `floordiv`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``dataframe // other``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `rfloordiv`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11598,18 +11597,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Integer division of dataframe and other, \
         element-wise (binary operator `rfloordiv`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other // dataframe``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `floordiv`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11696,18 +11695,18 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Get Modulo of dataframe and other, element-wise (binary operator `mod`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``dataframe % other``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `rmod`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11796,18 +11795,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Modulo of dataframe and other, \
         element-wise (binary operator `rmod`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other % dataframe``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `mod`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11895,18 +11894,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Exponential power of dataframe and other, \
         element-wise (binary operator `pow`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``dataframe ** other``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `rpow`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11994,18 +11993,18 @@ class DataFrame(NDFrame, OpsMixin):
         Get Exponential power of dataframe and other, \
         element-wise (binary operator `rpow`).
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other ** dataframe``, but with support to substitute a
         fill_value for missing data in one of the inputs. With reverse version,
         `pow`.
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
-
-        .. deprecated:: 3.1.0
-
-            The silent alignment on arithmetic operations between 'DataFrame'
-            with incomparable MultiIndexes is deprecated and will be removed
-            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
