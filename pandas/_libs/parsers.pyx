@@ -1606,6 +1606,11 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         bint large = target == "str_nan"
         bint track_validity = na_filter
         bint overflow = False
+        bint saw_non_ascii = False
+        uint64_t ascii_acc = 0
+        uint64_t HIGH_BITS = 0x8080808080808080
+        const uint64_t *data_words = NULL
+        Py_ssize_t nwords, block_start, block_end, jw
 
     lines = line_end - line_start
     if large:
@@ -1618,7 +1623,10 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         offsets32_ptr[0] = 0
 
     if track_validity:
-        validity_arr = np.zeros((lines + 7) // 8, dtype=np.uint8)
+        # Start all-valid and clear bits on NA rows, so the common no-NA case
+        # does no per-token bitmap work.  Padding bits in the last byte stay
+        # set, which Arrow permits (their value is unspecified).
+        validity_arr = np.full((lines + 7) // 8, 255, dtype=np.uint8)
         validity_ptr = <uint8_t *>validity_arr.data
     else:
         validity_arr = None
@@ -1633,6 +1641,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
 
             if na_filter and kh_get_str_starts_item(na_hashset, word):
                 na_count += 1
+                validity_ptr[i >> 3] &= <uint8_t>(~(1 << (i & 7)))
                 if large:
                     offsets64_ptr[i + 1] = <int64_t>total_bytes
                 else:
@@ -1650,9 +1659,6 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 offsets64_ptr[i + 1] = <int64_t>total_bytes
             else:
                 offsets32_ptr[i + 1] = <int32_t>total_bytes
-
-            if track_validity:
-                validity_ptr[i >> 3] |= <uint8_t>(1 << (i & 7))
 
     if overflow:
         raise OverflowError(
@@ -1681,6 +1687,27 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
                 if seg:
                     memcpy(data_ptr + offsets32_ptr[i], word, <size_t>seg)
 
+        # ASCII probe: a clear high bit across the data buffer means the
+        # column is pure ASCII, which is valid UTF-8 by construction, so
+        # validate(full=True) below can be skipped.  Scan in 32KiB blocks so
+        # multibyte data bails out after the first block.
+        nwords = total_bytes >> 3
+        data_words = <const uint64_t *>data_ptr
+        block_start = 0
+        while block_start < nwords and not saw_non_ascii:
+            block_end = block_start + 4096
+            if block_end > nwords:
+                block_end = nwords
+            for jw in range(block_start, block_end):
+                ascii_acc |= data_words[jw]
+            if ascii_acc & HIGH_BITS:
+                saw_non_ascii = True
+            block_start = block_end
+        if not saw_non_ascii:
+            for jw in range(nwords << 3, total_bytes):
+                ascii_acc |= <uint8_t>data_ptr[jw]
+            saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
+
     if large:
         offsets_buf = pa.py_buffer(offsets64)
         pa_type = pa.large_string()
@@ -1701,12 +1728,14 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
         )
 
     # from_buffers does not validate UTF-8; fall back to the object path so
-    # malformed bytes raise UnicodeDecodeError as before.
-    try:
-        pa_arr.validate(full=True)
-    except pa.lib.ArrowInvalid:
-        return _string_box_utf8(parser, col, line_start, line_end,
-                                na_filter, na_hashset, b"strict")
+    # malformed bytes raise UnicodeDecodeError as before.  Pure-ASCII columns
+    # (the common case) are valid UTF-8 by construction and skip this.
+    if saw_non_ascii:
+        try:
+            pa_arr.validate(full=True)
+        except pa.lib.ArrowInvalid:
+            return _string_box_utf8(parser, col, line_start, line_end,
+                                    na_filter, na_hashset, b"strict")
 
     if target == "str_nan":
         return (
