@@ -89,6 +89,7 @@ from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
+    droplevel_result,
     ensure_index,
     get_unanimous_names,
 )
@@ -3827,36 +3828,11 @@ class MultiIndex(Index):
                     f"{self.nlevels} levels: at least one level must be left."
                 )
 
+            new_levels = [self.levels[i] for i in kept]
             new_codes = [self.codes[i][indexer] for i in kept]
             new_names = [self.names[i] for i in kept]
 
-            if len(kept) == 1:
-                lev = self.levels[kept[0]]
-                codes = new_codes[0]
-
-                if len(lev) == 0:
-                    if len(codes) == 0:
-                        result = lev[:0]
-                    else:
-                        res_values = algos.take(lev._values, codes, allow_fill=True)
-                        result = lev._constructor._simple_new(
-                            res_values, name=new_names[0]
-                        )
-                else:
-                    mask = codes == -1
-                    result = lev.take(codes)
-                    if mask.any():
-                        result = result.putmask(mask, np.nan)
-                    result._name = new_names[0]
-                return result
-            else:
-                new_levels = [self.levels[i] for i in kept]
-                return MultiIndex(
-                    levels=new_levels,
-                    codes=new_codes,
-                    names=new_names,
-                    verify_integrity=False,
-                )
+            return droplevel_result(new_levels, new_codes, new_names)
 
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
