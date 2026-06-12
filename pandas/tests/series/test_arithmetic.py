@@ -1138,3 +1138,26 @@ def test_arithmetic_with_incomparable_multiindex_deprecated(
 
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         op(s1, s2)
+
+
+@pytest.mark.parametrize("opname", ["add", "sub", "mul", "floordiv", "truediv", "pow"])
+def test_flex_method_with_incomparable_multiindex_deprecated(opname):
+    # GH#25891
+    index1 = pd.MultiIndex.from_product([[], []], names=["T", "N"])
+    s1 = Series(index=index1)
+    s1["T.1A", "N.0"] = 0.5
+    s1["T.1B", "N.0"] = 0.5
+
+    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    s2 = Series(index=index2)
+    s2["N.0", "M.0"] = 0.5
+
+    op = getattr(Series, opname)
+
+    msg = (
+        "The silent alignment on arithmetic operations between "
+        "'Series' with incomparable MultiIndexes"
+    )
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        op(s1, s2)
