@@ -50,10 +50,12 @@ std::optional<MeanAcc<double, std::size_t>> accumulate_mean<xsimd::common>(
 template <>
 CentralDiffs<double> accumulate_central_diffs<xsimd::common>(
     const std::span<const double> values,
-    const std::optional<std::span<const uint8_t>> mask, const double mean) {
+    const std::optional<std::span<const uint8_t>> mask, double mean,
+    int max_moment) {
   constexpr std::size_t leaf_size = 128;
   if (values.size() <= leaf_size) {
-    return accumulate_central_diffs_scalar_direct(values, mask, mean);
+    return accumulate_central_diffs_scalar_direct(values, mask, mean,
+                                                  max_moment);
   }
 
   const std::size_t mid = values.size() / 2;
@@ -64,10 +66,10 @@ CentralDiffs<double> accumulate_central_diffs<xsimd::common>(
       mask.has_value() ? std::make_optional(mask->last(values.size() - mid))
                        : std::nullopt;
 
-  const auto left = accumulate_central_diffs<xsimd::common>(values.first(mid),
-                                                            left_mask, mean);
+  const auto left = accumulate_central_diffs<xsimd::common>(
+      values.first(mid), left_mask, mean, max_moment);
   const auto right = accumulate_central_diffs<xsimd::common>(
-      values.last(values.size() - mid), right_mask, mean);
+      values.last(values.size() - mid), right_mask, mean, max_moment);
 
   return {.m1 = left.m1 + right.m1,
           .m2 = left.m2 + right.m2,

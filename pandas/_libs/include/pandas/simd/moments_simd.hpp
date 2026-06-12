@@ -41,7 +41,8 @@ template <typename T> struct CentralDiffs {
 /// https://doi.org/10.1007/s00180-015-0637-z
 static inline Moments
 compute_moments_with_correction(MeanAcc<double, std::size_t> total_acc,
-                                CentralDiffs<double> central_diffs) {
+                                CentralDiffs<double> central_diffs,
+                                int max_moment) {
   const auto count_double = static_cast<double>(total_acc.count);
   const double trial_mean = total_acc.sum / count_double;
   const double correction_term = central_diffs.m1 / count_double;
@@ -50,13 +51,18 @@ compute_moments_with_correction(MeanAcc<double, std::size_t> total_acc,
 
   const double mean = trial_mean + correction_term;
   const double m2 = central_diffs.m2 - term1;
-  const double m3 = central_diffs.m3 -
-                    (3.0 * central_diffs.m2 * correction_term) +
-                    (2.0 * correction_term * term1);
-  const double m4 = central_diffs.m4 -
-                    (4.0 * central_diffs.m3 * correction_term) +
-                    (6.0 * central_diffs.m2 * correction_term2) -
-                    (3.0 * term1 * correction_term2);
+  double m3 = 0.0;
+  double m4 = 0.0;
+
+  if (max_moment >= 3) {
+    m3 = central_diffs.m3 - (3.0 * central_diffs.m2 * correction_term) +
+         (2.0 * correction_term * term1);
+  }
+  if (max_moment >= 4) {
+    m4 = central_diffs.m4 - (4.0 * central_diffs.m3 * correction_term) +
+         (6.0 * central_diffs.m2 * correction_term2) -
+         (3.0 * term1 * correction_term2);
+  }
 
   return {.mean = mean, .m2 = m2, .m3 = m3, .m4 = m4, .n = total_acc.count};
 }
@@ -173,7 +179,7 @@ accumulate_mean_direct(std::span<const double> values,
 
 static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
     std::span<const double> values,
-    std::optional<std::span<const uint8_t>> mask, double mean) {
+    std::optional<std::span<const uint8_t>> mask, double mean, int max_moment) {
   assert(!mask.has_value() || mask->size() == values.size());
 
   double m1{};
@@ -192,8 +198,12 @@ static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
 
     m1 += diff;
     m2 += diff2;
-    m3 += diff2 * diff;
-    m4 += diff2 * diff2;
+    if (max_moment >= 3) {
+      m3 += diff2 * diff;
+    }
+    if (max_moment >= 4) {
+      m4 += diff2 * diff2;
+    }
   }
 
   return {.m1 = m1, .m2 = m2, .m3 = m3, .m4 = m4};
@@ -202,7 +212,8 @@ static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
 template <class Arch>
 CentralDiffs<xsimd::batch<double, Arch>>
 accumulate_central_diffs_direct(std::span<const double> values,
-                                const xsimd::batch<double, Arch> &mean_vector) {
+                                const xsimd::batch<double, Arch> &mean_vector,
+                                int max_moment) {
   using batch_type = xsimd::batch<double, Arch>;
   constexpr std::size_t step = batch_type::size;
 
@@ -216,17 +227,20 @@ accumulate_central_diffs_direct(std::span<const double> values,
 
     acc.m1 += diff;
     acc.m2 += diff2;
-    acc.m3 += diff2 * diff;
-    acc.m4 += diff2 * diff2;
+    if (max_moment >= 3) {
+      acc.m3 += diff2 * diff;
+    }
+    if (max_moment >= 4) {
+      acc.m4 += diff2 * diff2;
+    }
   }
   return acc;
 }
 
 template <class Arch>
-CentralDiffs<xsimd::batch<double, Arch>>
-accumulate_central_diffs_direct(std::span<const double> values,
-                                std::span<const uint8_t> mask,
-                                const xsimd::batch<double, Arch> &mean_vector) {
+CentralDiffs<xsimd::batch<double, Arch>> accumulate_central_diffs_direct(
+    std::span<const double> values, std::span<const uint8_t> mask,
+    const xsimd::batch<double, Arch> &mean_vector, int max_moment) {
   using value_batch_type = xsimd::batch<double, Arch>;
   using mask_batch_type = xsimd::batch<uint8_t, Arch>;
   constexpr std::size_t mask_step = mask_batch_type::size;
@@ -252,8 +266,12 @@ accumulate_central_diffs_direct(std::span<const double> values,
 
       acc.m1 += diff;
       acc.m2 += diff2;
-      acc.m3 += diff2 * diff;
-      acc.m4 += diff2 * diff2;
+      if (max_moment >= 3) {
+        acc.m3 += diff2 * diff;
+      }
+      if (max_moment >= 4) {
+        acc.m4 += diff2 * diff2;
+      }
     }
   }
   return acc;
@@ -310,10 +328,11 @@ accumulate_mean_pairwise(std::span<const double> values,
 }
 
 template <class Arch>
-CentralDiffs<xsimd::batch<double, Arch>> accumulate_central_diffs_pairwise(
-    std::span<const double> values,
-    std::optional<std::span<const uint8_t>> mask,
-    const xsimd::batch<double, Arch> &mean_vector) {
+CentralDiffs<xsimd::batch<double, Arch>>
+accumulate_central_diffs_pairwise(std::span<const double> values,
+                                  std::optional<std::span<const uint8_t>> mask,
+                                  const xsimd::batch<double, Arch> &mean_vector,
+                                  int max_moment) {
   assert(!mask || mask->size() == values.size());
 
   using value_batch_type = xsimd::batch<double, Arch>;
@@ -325,9 +344,11 @@ CentralDiffs<xsimd::batch<double, Arch>> accumulate_central_diffs_pairwise(
 
   if (values.size() <= leaf_size) {
     if (mask) {
-      return accumulate_central_diffs_direct<Arch>(values, *mask, mean_vector);
+      return accumulate_central_diffs_direct<Arch>(values, *mask, mean_vector,
+                                                   max_moment);
     }
-    return accumulate_central_diffs_direct<Arch>(values, mean_vector);
+    return accumulate_central_diffs_direct<Arch>(values, mean_vector,
+                                                 max_moment);
   }
 
   const std::size_t mid = (values.size() / 2 / step) * step;
@@ -335,18 +356,18 @@ CentralDiffs<xsimd::batch<double, Arch>> accumulate_central_diffs_pairwise(
   const auto left_mask =
       mask ? std::make_optional(mask->first(mid)) : std::nullopt;
   const auto left = accumulate_central_diffs_pairwise<Arch>(
-      values.first(mid), left_mask, mean_vector);
+      values.first(mid), left_mask, mean_vector, max_moment);
 
   const auto right_mask =
       mask ? std::make_optional(mask->last(mask->size() - mid)) : std::nullopt;
   const auto right = accumulate_central_diffs_pairwise<Arch>(
-      values.last(values.size() - mid), right_mask, mean_vector);
+      values.last(values.size() - mid), right_mask, mean_vector, max_moment);
 
   return {
       .m1 = left.m1 + right.m1,
       .m2 = left.m2 + right.m2,
-      .m3 = left.m3 + right.m3,
-      .m4 = left.m4 + right.m4,
+      .m3 = max_moment >= 3 ? left.m3 + right.m3 : value_batch_type{},
+      .m4 = max_moment >= 4 ? left.m4 + right.m4 : value_batch_type{},
   };
 }
 
@@ -390,7 +411,7 @@ template <class Arch>
 CentralDiffs<double>
 accumulate_central_diffs(std::span<const double> values,
                          std::optional<std::span<const uint8_t>> mask,
-                         double mean) {
+                         double mean, int max_moment) {
   using value_batch_type = xsimd::batch<double, Arch>;
   using mask_batch_type = xsimd::batch<uint8_t, Arch>;
 
@@ -402,7 +423,7 @@ accumulate_central_diffs(std::span<const double> values,
   const auto vec_mask =
       mask ? std::make_optional(mask->first(vec_size)) : std::nullopt;
   const auto vec_acc = accumulate_central_diffs_pairwise<Arch>(
-      values.first(vec_size), vec_mask, mean_vector);
+      values.first(vec_size), vec_mask, mean_vector, max_moment);
 
   const std::size_t tail_size = values.size() - vec_size;
   const auto tail_mask = mask.has_value()
@@ -410,19 +431,21 @@ accumulate_central_diffs(std::span<const double> values,
                              : std::nullopt;
 
   const auto tail_acc = accumulate_central_diffs_scalar_direct(
-      values.last(tail_size), tail_mask, mean);
+      values.last(tail_size), tail_mask, mean, max_moment);
 
-  return {.m1 = xsimd::reduce_add(vec_acc.m1) + tail_acc.m1,
-          .m2 = xsimd::reduce_add(vec_acc.m2) + tail_acc.m2,
-          .m3 = xsimd::reduce_add(vec_acc.m3) + tail_acc.m3,
-          .m4 = xsimd::reduce_add(vec_acc.m4) + tail_acc.m4};
+  return {
+      .m1 = xsimd::reduce_add(vec_acc.m1) + tail_acc.m1,
+      .m2 = xsimd::reduce_add(vec_acc.m2) + tail_acc.m2,
+      .m3 = max_moment >= 3 ? xsimd::reduce_add(vec_acc.m3) + tail_acc.m3 : 0.0,
+      .m4 = max_moment >= 4 ? xsimd::reduce_add(vec_acc.m4) + tail_acc.m4 : 0.0,
+  };
 }
 
 template <class Arch>
 Moments
 accumulate_moments_simd_impl(std::span<const double> values,
                              std::optional<std::span<const uint8_t>> mask,
-                             bool skipna) {
+                             bool skipna, int max_moment) {
   const auto total_acc = accumulate_mean<Arch>(values, mask, skipna);
 
   if (!total_acc.has_value()) {
@@ -437,9 +460,9 @@ accumulate_moments_simd_impl(std::span<const double> values,
   double trial_mean = total_acc->sum / count_double;
 
   const auto central_diffs =
-      accumulate_central_diffs<Arch>(values, mask, trial_mean);
+      accumulate_central_diffs<Arch>(values, mask, trial_mean, max_moment);
 
-  return compute_moments_with_correction(*total_acc, central_diffs);
+  return compute_moments_with_correction(*total_acc, central_diffs, max_moment);
 }
 
 } // namespace detail
@@ -454,8 +477,9 @@ struct accumulate_moments_simd {
 template <class Arch>
 Moments accumulate_moments_simd::operator()(
     Arch /*arch*/, std::span<const double> values, bool skipna,
-    std::optional<std::span<const uint8_t>> mask, int /*max_moment*/) noexcept {
-  return detail::accumulate_moments_simd_impl<Arch>(values, mask, skipna);
+    std::optional<std::span<const uint8_t>> mask, int max_moment) noexcept {
+  return detail::accumulate_moments_simd_impl<Arch>(values, mask, skipna,
+                                                    max_moment);
 }
 
 } // namespace pandas::moments
