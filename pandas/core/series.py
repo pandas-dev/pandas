@@ -7359,7 +7359,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Equal to of series and other, element-wise (binary operator `eq`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7429,7 +7428,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Not equal to of series and other, element-wise (binary operator `ne`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7500,7 +7498,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `le`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7573,7 +7570,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Less than of series and other, element-wise (binary operator `lt`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7647,7 +7643,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `ge`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7721,7 +7716,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Greater than of series and other, element-wise (binary operator `gt`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7794,7 +7788,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Addition of series and other, element-wise (binary operator `add`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7862,7 +7855,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Addition of series and other, element-wise (binary operator `radd`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -7932,7 +7924,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Subtraction of series and other, element-wise (binary operator `sub`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8004,7 +7995,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Subtraction of series and other, element-wise (binary operator `rsub`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8080,7 +8070,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Multiplication of series and other, element-wise (binary operator `mul`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8157,7 +8146,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `rmul`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8228,7 +8216,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `truediv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8300,7 +8287,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `rtruediv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8373,7 +8359,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `floordiv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8444,7 +8429,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `rfloordiv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8514,7 +8498,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Modulo of series and other, element-wise (binary operator `mod`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8583,7 +8566,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `rmod`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8654,7 +8636,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `pow`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8725,7 +8706,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `rpow`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8796,7 +8776,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `divmod`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -8873,7 +8852,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         element-wise (binary operator `rdivmod`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'Series'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.

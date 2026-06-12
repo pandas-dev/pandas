@@ -10551,7 +10551,6 @@ class DataFrame(NDFrame, OpsMixin):
         Get Addition of dataframe and other, element-wise (binary operator `add`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -10674,7 +10673,6 @@ class DataFrame(NDFrame, OpsMixin):
         Get Addition of dataframe and other, element-wise (binary operator `radd`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -10797,7 +10795,6 @@ class DataFrame(NDFrame, OpsMixin):
         Get Subtraction of dataframe and other, element-wise (binary operator `sub`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -10921,7 +10918,6 @@ class DataFrame(NDFrame, OpsMixin):
         Get Subtraction of dataframe and other, element-wise (binary operator `rsub`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11044,7 +11040,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `mul`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11170,7 +11165,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `rmul`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11276,7 +11270,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `truediv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11399,7 +11392,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `rtruediv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11499,7 +11491,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `floordiv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11598,7 +11589,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `rfloordiv`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11696,7 +11686,6 @@ class DataFrame(NDFrame, OpsMixin):
         Get Modulo of dataframe and other, element-wise (binary operator `mod`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11796,7 +11785,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `rmod`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11895,7 +11883,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `pow`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
@@ -11994,7 +11981,6 @@ class DataFrame(NDFrame, OpsMixin):
         element-wise (binary operator `rpow`).
 
         .. deprecated:: 3.1.0
-
             The silent alignment on arithmetic operations between 'DataFrame'
             with incomparable MultiIndexes is deprecated and will be removed
             in a future version. Please align MultiIndexes manually.
