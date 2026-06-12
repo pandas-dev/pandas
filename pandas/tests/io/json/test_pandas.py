@@ -256,6 +256,26 @@ class TestPandasContainer:
         expected.index.name = None  # index names aren't preserved in JSON
         assert_json_roundtrip_equal(result, expected, orient)
 
+    def test_roundtrip_period_column(self, orient):
+        # GH#55490 a Period column used to raise OverflowError on to_json
+        df = DataFrame({"a": pd.period_range("2020-01", periods=3, freq="M")})
+        data = StringIO(df.to_json(orient=orient))
+        result = read_json(data, orient=orient, convert_axes=False)
+
+        # Periods are written as ISO-8601 strings and so don't round-trip to the
+        # original dtype without an explicit ``dtype`` (matching other EAs).
+        expected = DataFrame({"a": ["2020-01", "2020-02", "2020-03"]})
+        if orient in ("index", "columns"):
+            # these orients stringify the (RangeIndex) index, unrelated to GH#55490
+            result.index = result.index.astype("int64")
+        assert_json_roundtrip_equal(result, expected, orient)
+
+    def test_to_json_period_series(self):
+        # GH#55490
+        ser = pd.Series(pd.period_range(start=2021, freq="Y", periods=3))
+        result = ser.to_json()
+        assert result == '{"0":"2021","1":"2022","2":"2023"}'
+
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_empty(self, orient, convert_axes):
         empty_frame = DataFrame()

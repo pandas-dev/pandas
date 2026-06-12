@@ -417,6 +417,14 @@ class TestTableOrient:
 
         assert result == expected
 
+    @pytest.mark.parametrize("freq", ["D", "M", "Y", "Q-JAN"])
+    def test_to_json_period_column_roundtrip(self, freq):
+        # GH#55490 a Period column used to raise OverflowError on to_json
+        df = DataFrame({"a": pd.period_range("2020", freq=freq, periods=3)})
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
     def test_to_json_categorical_index(self):
         data = pd.Series(1, pd.CategoricalIndex(["a", "b"]))
         result = data.to_json(orient="table", date_format="iso")
