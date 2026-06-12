@@ -10557,6 +10557,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -10674,6 +10680,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -10789,6 +10801,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -10908,6 +10926,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11025,6 +11049,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11146,6 +11176,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11245,6 +11281,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11363,6 +11405,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11458,6 +11506,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11551,6 +11605,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11642,6 +11702,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
@@ -11737,6 +11803,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11830,6 +11902,12 @@ class DataFrame(NDFrame, OpsMixin):
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
@@ -11922,6 +12000,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
+        .. deprecated:: 3.1.0
+
+            The silent alignment on arithmetic operations between 'DataFrame'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Parameters
         ----------
