@@ -11402,6 +11402,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`)
         to arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
+
         Parameters
         ----------
         other : scalar, sequence, Series, dict or DataFrame
