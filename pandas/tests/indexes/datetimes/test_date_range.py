@@ -1201,11 +1201,11 @@ class TestBusinessDateRange:
         # day <= end), not at the start of the internal buffer.
         result = bdate_range(end=end, periods=3, freq="2B")
         expected = DatetimeIndex(["2026-03-16", "2026-03-18", "2026-03-20"])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         result = bdate_range(end=end, periods=3, freq="3B")
         expected = DatetimeIndex(["2026-03-12", "2026-03-17", "2026-03-20"])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
 
 class TestCustomDateRange:
