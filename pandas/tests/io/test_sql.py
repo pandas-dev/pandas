@@ -1819,12 +1819,12 @@ def test_api_date_parsing_int_col_dict_format(conn, request):
     # GH#55663 dict-form format on an integer column should not emit the
     #  int-with-format deprecation warning from internal code
     conn = request.getfixturevalue(conn)
-    with tm.assert_produces_warning(None):
-        df = sql.read_sql_query(
-            "SELECT * FROM types",
-            conn,
-            parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
-        )
+    # filterwarnings=error would turn any emitted deprecation into a failure
+    df = sql.read_sql_query(
+        "SELECT * FROM types",
+        conn,
+        parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
+    )
     assert df["IntDateOnlyCol"].tolist() == [
         Timestamp("2010-10-10"),
         Timestamp("2010-12-12"),

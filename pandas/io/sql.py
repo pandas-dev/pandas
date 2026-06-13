@@ -67,7 +67,10 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.datetimes import (
+    stringify_numeric_column,
+    to_datetime,
+)
 
 from pandas.io._util import arrow_table_to_pandas
 
@@ -109,16 +112,6 @@ def _process_parse_dates_argument(parse_dates):
     return parse_dates
 
 
-def _stringify_numeric_column(col):
-    # GH#55663 cast to strings up front so to_datetime doesn't need to
-    # infer what to do with numeric data given a format.
-    notna_mask = col.notna()
-    col = col.astype("object")
-    if notna_mask.any():
-        col[notna_mask] = col[notna_mask].astype("int64").astype(str)
-    return col
-
-
 def _handle_date_column(
     col, utc: bool = False, format: str | dict[str, Any] | None = None
 ):
@@ -128,7 +121,7 @@ def _handle_date_column(
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
         if format.get("format") is not None and col.dtype.kind in "iuf":
-            col = _stringify_numeric_column(col)
+            col = stringify_numeric_column(col)
         return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
@@ -146,7 +139,7 @@ def _handle_date_column(
             return to_datetime(col, utc=True)
         else:
             if format is not None and col.dtype.kind in "iuf":
-                col = _stringify_numeric_column(col)
+                col = stringify_numeric_column(col)
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 

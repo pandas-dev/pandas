@@ -1241,6 +1241,26 @@ _unit_map = {
 }
 
 
+def stringify_numeric_column(values: Series) -> Series:
+    """
+    Cast a numeric column to object-dtype strings so that to_datetime with a
+    ``format`` doesn't have to infer how to interpret numeric input. GH#55663
+
+    Values that can't be represented as int64 (very large floats or +/-inf)
+    are set to NA so they coerce to NaT, rather than overflowing the int64
+    cast into a meaningless sentinel.
+    """
+    result = values.astype("object")
+    notna_mask = values.notna()
+    if is_float_dtype(values.dtype):
+        iinfo = np.iinfo(np.int64)
+        notna_mask &= values.between(iinfo.min, iinfo.max)
+    result[~notna_mask] = np.nan
+    if notna_mask.any():
+        result[notna_mask] = values[notna_mask].astype("int64").astype(str)
+    return result
+
+
 def _assemble_from_unit_mappings(
     arg, errors: DateTimeErrorChoices, utc: bool
 ) -> Series:
@@ -1324,10 +1344,7 @@ def _assemble_from_unit_mappings(
     )
     # GH#55663 cast to strings up front so to_datetime doesn't need to
     # infer what to do with numeric data when a format is given.
-    str_values = values.astype("object")
-    notna_mask = values.notna()
-    if notna_mask.any():
-        str_values[notna_mask] = values[notna_mask].astype("int64").astype(str)
+    str_values = stringify_numeric_column(values)
     try:
         values = to_datetime(str_values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
