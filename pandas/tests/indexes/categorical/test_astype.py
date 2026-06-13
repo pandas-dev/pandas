@@ -98,9 +98,9 @@ class TestAstype:
         # GH 57925
         from pandas import Series
 
-        a = Series([b"fdhijklm", b"fdhijklm", b"fdaijklm"], dtype=object)
-        b = a.astype("category")
+        ser = Series([b"fdhijklm", b"fdhijklm", b"fdaijklm"], dtype=object)
+        cat_ser = ser.astype("category")
 
-        result = b.cat.categories.astype(bytes)
+        result = cat_ser.cat.categories.astype(bytes)
         expected = Index([b"fdaijklm", b"fdhijklm"], dtype=bytes)
         tm.assert_index_equal(result, expected)
