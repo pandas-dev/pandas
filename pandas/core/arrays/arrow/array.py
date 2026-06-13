@@ -1408,6 +1408,24 @@ class ArrowExtensionArray(
         np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        # This override replaces self._pa_array directly, bypassing __setitem__,
+        # so enforce the read-only guard here to stay consistent with it and
+        # with the base ExtensionArray.sort.
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        sorted_array = self.take(sort_indices)
+        self._pa_array = sorted_array._pa_array
+
     def _argmin_max(self, skipna: bool, method: str) -> int:
         if self._pa_array.length() in (0, self._pa_array.null_count) or (
             self._hasna and not skipna
