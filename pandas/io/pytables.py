@@ -1103,7 +1103,7 @@ class HDFStore:
         Returns
         -------
         Series
-            A ``Series`` of the column's values, indexed by row number.
+            A ``Series`` of the column's values.
 
         Raises
         ------
@@ -2315,9 +2315,9 @@ class HDFStore:
             if not s.is_table or (s.is_table and format == "fixed" and s.is_exists):
                 raise ValueError(
                     f"Can only append to Tables; the write for key {key!r} "
-                    "resolved to the 'fixed' format. Use format='table' "
-                    "(removing any existing fixed-format object at this key "
-                    "first)."
+                    "uses the 'fixed' format. Pass format='table'; if a "
+                    "'fixed'-format object already exists at this key, remove "
+                    "or overwrite it first."
                 )
             if not s.is_exists:
                 s.set_object_info()
