@@ -479,6 +479,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # GH#43178: detect int64 overflow rather than silently wrapping.
                 #  A multiplier outside int64 bounds (e.g. a large np.uint64)
                 #  would wrap in the i8 cast below.
+                # TODO(numpy>=2.5): numpy raises natively for the int64-multiplier
+                #  case (numpy GH-31378); drop mul_overflowsafe and the integer
+                #  branches here once the numpy floor is >= 2.5. The float path is
+                #  not covered by that change and stays regardless.
                 if other > lib.i8max or other < -lib.i8max - 1:
                     raise OverflowError("Overflow in int64 multiplication")
                 i8_result = mul_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))

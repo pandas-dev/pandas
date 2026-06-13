@@ -812,6 +812,10 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
     `right` may either be zero-dim or of the same shape as `left`.
+
+    TODO(numpy>=2.5): numpy raises OverflowError natively for datetime64/
+    timedelta64 add and subtract (numpy GH-31378); remove this once the numpy
+    floor is >= 2.5.
     """
     cdef:
         Py_ssize_t N = left.size
@@ -853,6 +857,9 @@ cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right):
 
     `right` may either be zero-dim or broadcastable to `left`'s shape.
     NaT values in `left` are propagated.
+
+    TODO(numpy>=2.5): numpy raises OverflowError natively here (numpy GH-31378);
+    remove this once the numpy floor is >= 2.5.
     """
     cdef:
         Py_ssize_t N = left.size
