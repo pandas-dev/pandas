@@ -3769,11 +3769,21 @@ def test_loc_setitem_expansion_incompatible_dtype_warns():
     assert df["b"].dtype == object
 
 
-def test_loc_setitem_expansion_empty_frame_no_warning(using_infer_string):
-    # GH#62369 placeholder dtypes of an empty frame are not meaningful,
-    #  so no warning even though the dtype changes
+def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
+    # GH#62369 an explicitly-typed empty column is a meaningful dtype, so a
+    #  zero-row frame warns on an incompatible expansion just like a Series
     df = DataFrame({"a": Series([], dtype=np.float64)})
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
         df.loc[0] = "x"
     expected_dtype = "str" if using_infer_string else object
     assert df["a"].dtype == expected_dtype
+
+
+def test_loc_setitem_expansion_placeholder_column_no_warning():
+    # GH#62369 a column materialized during indexer preprocessing carries a
+    #  np.void NA-proxy placeholder dtype, which is not meaningful to retain,
+    #  so creating it via expansion does not warn
+    df = DataFrame()
+    with tm.assert_produces_warning(None):
+        df.loc[0, "a"] = 5
+    assert df["a"].dtype == np.float64

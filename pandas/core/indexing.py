@@ -964,11 +964,13 @@ class _LocationIndexer(NDFrameIndexerBase):
         iloc._setitem_with_indexer(indexer, value, self.name)
 
         if self.obj.shape[0] != orig_nrows:
-            # For empty DataFrames, suppress the deprecation warning —
-            # the placeholder dtypes aren't meaningful to preserve.
-            warn = self.obj.ndim == 1 or orig_nrows > 0
+            # A zero-row DataFrame's column dtypes are placeholders, so don't
+            #  force them back onto the inferred result (GH#38521).  We still
+            #  warn on a genuinely incompatible change, matching the Series
+            #  path, which has no such placeholder notion.
+            retain = self.obj.ndim == 1 or orig_nrows > 0
             self._post_expansion_casting(
-                orig_dtype_info, orig_columns, warn_if_cast=warn
+                orig_dtype_info, orig_columns, retain_orig_dtype=retain
             )
 
     def _post_expansion_casting(
@@ -976,7 +978,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         orig_dtype_info: DtypeObj | npt.NDArray[np.object_],
         orig_columns: Index | None,
         *,
-        warn_if_cast: bool = True,
+        retain_orig_dtype: bool = True,
     ) -> None:
         # setitem-with-expansion added new rows.  Try to retain
         #  original dtypes
@@ -985,7 +987,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             if orig_dtype_info != self.obj.dtype:
                 orig_arr = pd_array([], dtype=orig_dtype_info)
                 new_arr = infer_and_maybe_downcast(
-                    orig_arr, self.obj._values, warn_if_cast=warn_if_cast
+                    orig_arr, self.obj._values, retain_orig_dtype=retain_orig_dtype
                 )
                 new_ser = self.obj._constructor(
                     new_arr, index=self.obj.index, name=self.obj.name
@@ -1008,7 +1010,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                     new_arr = infer_and_maybe_downcast(
                         orig_arr,
                         self.obj.iloc[:, idx]._values,
-                        warn_if_cast=warn_if_cast,
+                        retain_orig_dtype=retain_orig_dtype,
                     )
                     self.obj.isetitem(idx, new_arr)
 
@@ -1025,7 +1027,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                         new_arr = infer_and_maybe_downcast(
                             orig_arr,
                             self.obj[col]._values,
-                            warn_if_cast=warn_if_cast,
+                            retain_orig_dtype=retain_orig_dtype,
                         )
                         self.obj[col] = new_arr
             else:
@@ -2915,7 +2917,7 @@ class _iLocIndexer(_LocationIndexer):
                     value = na_value_for_dtype(self.obj.dtype, compat=False)
 
             new_values = infer_and_maybe_downcast(
-                self.obj.array, [value], warn_if_cast=False
+                self.obj.array, [value], retain_orig_dtype=False, warn_if_cast=False
             )
 
             if len(self.obj._values):
@@ -3607,6 +3609,7 @@ def infer_and_maybe_downcast(
     orig: ExtensionArray,
     new_arr,
     *,
+    retain_orig_dtype: bool = True,
     warn_if_cast: bool = True,
 ) -> ArrayLike:
     new_arr = orig._cast_pointwise_result(new_arr)
@@ -3641,10 +3644,11 @@ def infer_and_maybe_downcast(
             if (converted.astype(new_arr.dtype) == new_arr).all():
                 new_arr = converted
 
-    # Note: warn_if_cast=False also disables the float/complex retention
-    #  below; the empty-DataFrame path relies on this so that placeholder
-    #  dtypes do not override the inferred dtype (GH#38521).
-    if warn_if_cast and new_arr.dtype != dtype:
+    # retain_orig_dtype and warn_if_cast are independent: the empty-DataFrame
+    #  path passes retain_orig_dtype=False so a placeholder dtype does not
+    #  override the inferred dtype (GH#38521), while still warning on a
+    #  genuinely incompatible change.
+    if new_arr.dtype != dtype:
         if (
             is_np_dtype(dtype, "fc")
             and is_np_dtype(new_arr.dtype, "iufc")
@@ -3654,8 +3658,9 @@ def infer_and_maybe_downcast(
             # dtype (e.g. int64 from a float64 array with integer values).
             # The original dtype can hold the new values losslessly, so
             # retain it instead of warning.
-            new_arr = new_arr.astype(dtype, copy=False)
-        else:
+            if retain_orig_dtype:
+                new_arr = new_arr.astype(dtype, copy=False)
+        elif warn_if_cast:
             # PDEP6 exception: int/uint -> float when result contains NaN
             pdep6_allowed = (
                 is_np_dtype(dtype, "iu")

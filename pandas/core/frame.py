@@ -14625,7 +14625,10 @@ class DataFrame(NDFrame, OpsMixin):
                     # argument so it can dispatch to _cast_pointwise_result.
                     arr = NumpyExtensionArray(arr)
                 casted = infer_and_maybe_downcast(
-                    arr, row_df._mgr.iget_values(i), warn_if_cast=False
+                    arr,
+                    row_df._mgr.iget_values(i),
+                    retain_orig_dtype=False,
+                    warn_if_cast=False,
                 )
                 row_df.isetitem(i, casted)
 
