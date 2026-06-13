@@ -267,8 +267,7 @@ class TestBase:
         tm.assert_index_equal(index, result)
 
         if isinstance(index, PeriodIndex):
-            # ._values is a PeriodArray, thus copied
-            result = index_type.from_ordinals(ordinals=index.asi8, **init_kwargs)
+            result = index_type(index._values, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
