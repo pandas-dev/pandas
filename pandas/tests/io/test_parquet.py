@@ -18,10 +18,10 @@ from pandas.compat.pyarrow import (
     pa_version_under18p0,
     pa_version_under19p0,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.errors import Pandas4Warning
 from pandas.util.version import Version
 
 from pandas.io.parquet import (
