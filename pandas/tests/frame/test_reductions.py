@@ -1961,6 +1961,10 @@ class TestDataFrameReductions:
             # may raise on one path (e.g. axis=1 with datetime64 + any)
             # but succeed on the other (transpose coerces to object first).
             return
+        if method == "all" and not skipna:
+            # GH#57171: DataFrame.all(axis=1) forces skipna=True for EA dtypes.
+            # We skip comparison with df.T.all() which correctly uses skipna=False.
+            return
         # Compare values, treating NaN and pd.NA as equivalent.
         # check_dtype=False because the transpose path may coerce to
         # object (e.g. mixed int64+bool) where axis=1 preserves
@@ -2542,3 +2546,16 @@ def test_numeric_only_validates_bool():
     df_num.mean(numeric_only=False)
     df_num.sum(numeric_only=True)
     df_num.std(numeric_only=True)
+
+def test_any_all_skipna_false_nullable():
+    # GH 65710
+    s = pd.Series([False, None], dtype="boolean")
+    df = s.to_frame("a")
+    
+    result = df.any(skipna=False)
+    expected = pd.Series([pd.NA], index=["a"], dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+    result = df.all(skipna=False)
+    expected = pd.Series([False], index=["a"], dtype="boolean")
+    tm.assert_series_equal(result, expected)
