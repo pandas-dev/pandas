@@ -2269,6 +2269,16 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("20150204 00:00:00"), NaT])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_dataframe_float_out_of_int64_range(self, errors, cache):
+        # GH#55663 a float too large to represent as int64 (e.g. an absurd
+        #  year) coerces to NaT instead of overflowing the int64 cast into a
+        #  meaningless sentinel; filterwarnings=error guards the no-warning path
+        df2 = DataFrame({"year": [10**16, np.nan], "month": [1, 1], "day": [1, 1]})
+        result = to_datetime(df2, errors=errors, cache=cache)
+        expected = Series([NaT, NaT], dtype="datetime64[s]")
+        tm.assert_series_equal(result, expected)
+
     def test_dataframe_extra_keys_raises(self, df, cache):
         # extra columns
         msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
