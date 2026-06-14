@@ -182,6 +182,22 @@ def melt(
             "the DataFrame columns."
         )
     id_vars = ensure_list_vars(id_vars, "id_vars", frame.columns)
+
+    # GH#65654: validate var_name doesn't collide with id_vars or value_name
+    if var_name is not None:
+        if is_list_like(var_name):
+            var_name_list = list(var_name)
+        else:
+            var_name_list = [var_name]
+        for name in var_name_list:
+            if name in id_vars:
+                raise ValueError(
+                    f"var_name ({name}) cannot match an element in id_vars."
+                )
+            if name == value_name:
+                raise ValueError(
+                    f"var_name ({name}) cannot match value_name ({value_name})."
+                )
     value_vars_was_not_none = value_vars is not None
     value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
 
