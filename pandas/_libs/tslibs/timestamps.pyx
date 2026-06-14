@@ -3715,11 +3715,32 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
+        cdef:
+            npy_datetimestruct dts
+            int64_t year
+            int month, day, hour, minute, second, microsecond
+
         from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 
-        year = self._year
-        month = self.month
-        day = self.day
+        if self.tzinfo is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
+            year = dts.year
+            month = dts.month
+            day = dts.day
+            hour = dts.hour
+            minute = dts.min
+            second = dts.sec
+            microsecond = dts.us
+        else:
+            year = self._year
+            month = self.month
+            day = self.day
+            hour = self.hour
+            minute = self.minute
+            second = self.second
+            microsecond = self.microsecond
+
         if month <= 2:
             year -= 1
             month += 12
@@ -3731,10 +3752,10 @@ default 'raise'
             np.floor(year / 100) +
             np.floor(year / 400) +
             1721118.5 +
-            (self.hour +
-             self.minute / 60.0 +
-             self.second / 3600.0 +
-             self.microsecond / 3600.0 / 1e+6 +
+            (hour +
+             minute / 60.0 +
+             second / 3600.0 +
+             microsecond / 3600.0 / 1e+6 +
              self._nanosecond / 3600.0 / 1e+9
              ) / 24.0
         )
