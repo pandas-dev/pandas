@@ -195,6 +195,15 @@ class TestDecimalArray(base.ExtensionTests):
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
         super().test_unary_ufunc_dunder_equivalence(data, ufunc)
 
+    @pytest.mark.xfail(
+        raises=AssertionError, reason="DecimalArray does not support roundtrip"
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # DecimalArray does not support roundtrip as Decimal cannot be created from
+        # dictionary created in JSON serialization
+        super().test_json_roundtrip(data)
+
 
 def test_take_na_value_other_decimal():
     arr = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
