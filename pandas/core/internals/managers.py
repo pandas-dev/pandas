@@ -587,8 +587,8 @@ class BaseBlockManager(PandasObject):
                     # first block equals values we are setting to -> set to all columns
                     if lib.is_integer(indexer[1]):
                         col_indexer = 0
-                    elif len(inverse) > 1 and np.array_equal(
-                        inverse, np.arange(len(blk_loc))
+                    elif len(inverse) > 1 and lib.is_range_indexer(
+                        inverse, len(blk_loc)
                     ):
                         col_indexer = slice(None)  # type: ignore[assignment]
                     else:
@@ -596,7 +596,14 @@ class BaseBlockManager(PandasObject):
                     indexer[1] = col_indexer
 
                     row_indexer = indexer[0]
-                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                    if isinstance(col_indexer, np.ndarray):
+                        if (
+                            isinstance(row_indexer, np.ndarray)
+                            and row_indexer.ndim == 1
+                        ):
+                            # GH#65446: Make the row indexer 2d to take a cross product
+                            row_indexer = row_indexer[:, None]
+                    elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
                         # numpy cannot handle a 2d indexer in combo with a slice
                         row_indexer = np.squeeze(row_indexer, axis=1)
                     if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:

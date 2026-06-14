@@ -591,6 +591,18 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"A": [3, 4], "B": [1, 2]})
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_unordered_row_and_column_indexer_referenced_block(self):
+        # GH#65446 a list row indexer combined with an unsorted column indexer
+        #  must set the full cross product
+        df = DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[[1, 0], [1, 0]] = np.array([[10, 20], [30, 40]])
+        df._mgr._verify_integrity()
+        expected = DataFrame({"A": [40, 20], "B": [30, 10]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
