@@ -2321,7 +2321,7 @@ class ArrowExtensionArray(
         data_to_reduce = self._pa_array
 
         if name == "count":
-            return super().count()
+            return self.count()
 
         elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
