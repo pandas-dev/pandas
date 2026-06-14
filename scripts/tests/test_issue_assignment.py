@@ -428,12 +428,21 @@ def ago(days: int) -> datetime:
     return datetime.now(timezone.utc) - timedelta(days=days)
 
 
-CHANGES = [review("CHANGES_REQUESTED", 5)]  # a member changes-requested review
+def changes(days_ago: int) -> list[core.Review]:
+    # A member changes-requested review, dated relative to real now (the sweep's
+    # clock anchors on this time, so it must line up with the ``ago``-based fixtures).
+    return [
+        {
+            "state": "CHANGES_REQUESTED",
+            "submitted_at": ago(days_ago),
+            "author_association": "MEMBER",
+        }
+    ]
 
 
 class TestRunPrStaleSweep:
     def test_marks_stale_when_author_inactive(self) -> None:
-        client = FakeClient([pr(1, reviews=CHANGES, last_commit_at=ago(20))])
+        client = FakeClient([pr(1, reviews=changes(30), last_commit_at=ago(20))])
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.added == [(1, (STALE,))]
         assert client.comments == [(1, messages.pr_marked_stale())]
@@ -441,18 +450,27 @@ class TestRunPrStaleSweep:
 
     def test_active_author_clears_stale(self) -> None:
         client = FakeClient(
-            [pr(2, reviews=CHANGES, last_commit_at=ago(2), labels=[STALE])]
+            [pr(2, reviews=changes(30), last_commit_at=ago(2), labels=[STALE])]
         )
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.removed == [(2, STALE)]
         assert client.added == []
 
+    def test_recent_changes_request_floors_clock(self) -> None:
+        # Author pushed 30d ago, then review took a while and changes were
+        # requested only 2d ago. The clock runs from the review, not the push,
+        # so the PR is NOT stale — review latency never penalizes the author.
+        client = FakeClient([pr(3, reviews=changes(2), last_commit_at=ago(30))])
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.closed == []
+
     def test_linked_issue_comment_prevents_stale(self) -> None:
         # PR untouched 20d, but the author commented on a linked issue 2d ago.
         client = FakeClient(
-            [pr(3, reviews=CHANGES, last_commit_at=ago(20))],
-            linked={3: [{"number": 30, "assignees": ["alice"]}]},
-            activity={30: activity([{"author": "alice", "created_at": ago(2)}])},
+            [pr(4, reviews=changes(30), last_commit_at=ago(20))],
+            linked={4: [{"number": 40, "assignees": ["alice"]}]},
+            activity={40: activity([{"author": "alice", "created_at": ago(2)}])},
         )
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.added == []
@@ -460,20 +478,20 @@ class TestRunPrStaleSweep:
 
     def test_linked_issue_comment_clears_existing_stale(self) -> None:
         client = FakeClient(
-            [pr(4, reviews=CHANGES, last_commit_at=ago(20), labels=[STALE])],
-            linked={4: [{"number": 40, "assignees": ["alice"]}]},
-            activity={40: activity([{"author": "alice", "created_at": ago(2)}])},
+            [pr(5, reviews=changes(30), last_commit_at=ago(20), labels=[STALE])],
+            linked={5: [{"number": 50, "assignees": ["alice"]}]},
+            activity={50: activity([{"author": "alice", "created_at": ago(2)}])},
         )
         unassign_inactive.run_pr_stale_sweep(client)
-        assert client.removed == [(4, STALE)]
+        assert client.removed == [(5, STALE)]
 
     def test_exempt_author_never_stale(self) -> None:
         client = FakeClient(
             [
                 pr(
-                    5,
+                    6,
                     author_association="MEMBER",
-                    reviews=CHANGES,
+                    reviews=changes(30),
                     last_commit_at=ago(99),
                 )
             ]
@@ -484,27 +502,27 @@ class TestRunPrStaleSweep:
 
     def test_awaiting_review_not_swept(self) -> None:
         # No changes requested -> maintainers' court -> never stale, even if old.
-        client = FakeClient([pr(6, last_commit_at=ago(99))])
+        client = FakeClient([pr(7, last_commit_at=ago(99))])
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.added == []
         assert client.closed == []
 
     def test_closes_and_unassigns_after_window(self) -> None:
         client = FakeClient(
-            [pr(7, reviews=CHANGES, last_commit_at=ago(22), labels=[STALE])],
-            linked={7: [{"number": 70, "assignees": ["alice", "bob"]}]},
+            [pr(8, reviews=changes(30), last_commit_at=ago(22), labels=[STALE])],
+            linked={8: [{"number": 80, "assignees": ["alice", "bob"]}]},
         )
         unassign_inactive.run_pr_stale_sweep(client)
-        assert client.closed == [7]
-        assert client.unassigned == [(70, ("alice",))]
+        assert client.closed == [8]
+        assert client.unassigned == [(80, ("alice",))]
         assert client.comments == [
-            (7, messages.pr_closed_stale()),
-            (70, messages.issue_freed_stale_pr()),
+            (8, messages.pr_closed_stale()),
+            (80, messages.issue_freed_stale_pr()),
         ]
 
     def test_stale_within_close_window_waits(self) -> None:
         client = FakeClient(
-            [pr(8, reviews=CHANGES, last_commit_at=ago(18), labels=[STALE])]
+            [pr(9, reviews=changes(30), last_commit_at=ago(18), labels=[STALE])]
         )
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.closed == []

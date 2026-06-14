@@ -125,6 +125,11 @@ When you've addressed the feedback and want another look, **re-request a review*
 ``Awaiting Review`` and stops the staleness timer; pushing commits alone does not
 return it to the review queue.
 
+.. note::
+
+   Label changes and unassignment run on a once-a-day job, so they may take up
+   to a day to appear. Your activity counts from when you make it.
+
 These rules cover external contributions — pull requests from pandas maintainers
 are exempt from the staleness lifecycle.
 

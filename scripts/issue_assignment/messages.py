@@ -76,7 +76,9 @@ def pr_marked_stale() -> str:
         f"it back into the review queue. Otherwise it'll be closed in "
         f"**{PR_CLOSE_DAYS} days** to keep the queue manageable — you can always "
         f"reopen it later to continue. See the [contributing guide]({DOCS_URL}) "
-        f"for how the pull request lifecycle works."
+        f"for how the pull request lifecycle works.\n\n"
+        f"_Note: labels update via a once-a-day job, so `Stale` may take up to a "
+        f"day to clear._"
     )
 
 

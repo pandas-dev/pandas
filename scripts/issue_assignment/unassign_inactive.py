@@ -59,31 +59,39 @@ def run_sweep(client: GitHubClient) -> None:
             client.comment(number, messages.issue_unassigned_inactive(assignees))
 
 
-def _last_author_action_at(
-    client: GitHubClient, now: datetime, pr: core.OpenPRState
+def _stale_clock_anchor(
+    client: GitHubClient,
+    now: datetime,
+    pr: core.OpenPRState,
+    changes_requested_at: datetime | None,
 ) -> datetime | None:
-    """Newest action by the PR author: commit, PR comment, or linked-issue comment.
+    """When the PR's stale clock started: the later of ``changes_requested_at``
+    (the ball entering the contributor's court) and the author's last action
+    (commit, PR comment, or linked-issue comment).
 
-    Linked issues are only consulted when the PR's own activity can't already
-    show the author active inside ``PR_STALE_DAYS`` — that read can't change the
-    outcome, so it's skipped to save requests.
+    Flooring at ``changes_requested_at`` is what keeps a long review wait from
+    eating into the stale window — the author gets a full ``PR_STALE_DAYS`` from
+    the review, never from whenever they last happened to act before it. Linked
+    issues are only read when nothing already shows the author active inside
+    ``PR_STALE_DAYS`` — that read can't change the outcome, so it's skipped.
     """
     author = pr["author"]
     candidates = [
+        changes_requested_at,
         pr["last_commit_at"],
         core.latest_assignee_comment_at(pr["comments"], [author] if author else []),
     ]
-    last = max((t for t in candidates if t is not None), default=None)
-    if last is not None and now - last < timedelta(days=core.PR_STALE_DAYS):
-        return last
+    anchor = max((t for t in candidates if t is not None), default=None)
+    if anchor is not None and now - anchor < timedelta(days=core.PR_STALE_DAYS):
+        return anchor
     for issue in client.linked_issues_for_pr(pr["number"]):
         comment_at = core.latest_assignee_comment_at(
             client.issue_activity(issue["number"])["comments"],
             [author] if author else [],
         )
-        if comment_at is not None and (last is None or comment_at > last):
-            last = comment_at
-    return last
+        if comment_at is not None and (anchor is None or comment_at > anchor):
+            anchor = comment_at
+    return anchor
 
 
 def run_pr_stale_sweep(client: GitHubClient) -> None:
@@ -91,18 +99,23 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
     now = datetime.now(timezone.utc)
     for pr in client.iter_open_pull_requests_review_state():
         contributors = {pr["author"]} - {None}
+        changes_requested_at = core.latest_changes_requested_at(pr["reviews"])
         subject = core.pr_subject_to_stale(
             core.is_exempt(pr["author_association"], False),
             pr["is_draft"],
-            core.latest_changes_requested_at(pr["reviews"]),
+            changes_requested_at,
             core.latest_rereview_request_at(pr["review_requests"], contributors),
         )
-        last_action = _last_author_action_at(client, now, pr) if subject else None
+        anchor = (
+            _stale_clock_anchor(client, now, pr, changes_requested_at)
+            if subject
+            else None
+        )
         action = core.pr_stale_action(
             now,
             subject,
             core.STALE_LABEL in pr["labels"],
-            last_action,
+            anchor,
             core.PR_STALE_DAYS,
             core.PR_CLOSE_DAYS,
         )
