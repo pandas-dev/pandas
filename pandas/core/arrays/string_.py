@@ -1065,22 +1065,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return np.nan
         return super()._wrap_reduction_result(axis, result)
 
-    def any(self, axis=None, skipna: bool = True, **kwargs) -> bool:
+    def any(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> bool:
         nv.validate_any((), kwargs)
         return self._reduce("any", axis=axis, skipna=skipna, **kwargs)
 
-    def all(self, axis=None, skipna: bool = True, **kwargs) -> bool:
+    def all(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> bool:
         nv.validate_all((), kwargs)
         return self._reduce("all", axis=axis, skipna=skipna, **kwargs)
 
-    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
