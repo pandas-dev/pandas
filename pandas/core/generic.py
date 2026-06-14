@@ -1506,7 +1506,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         numpy.invert : Compute bitwise inversion element-wise.
-        Series.apply : Apply a function along an axis of the Series.
 
         Examples
         --------
