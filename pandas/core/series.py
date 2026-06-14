@@ -4079,14 +4079,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
-            if inplace:
-                self._update_inplace(self)
-                if ignore_index:
-                    self.index = default_index(len(sorted_index))
-                return None
-            result = self.copy(deep=False)
+            result = self if inplace else self.copy(deep=False)
             if ignore_index:
                 result.index = default_index(len(sorted_index))
+            if inplace:
+                return None
             return result
 
         result = self._constructor(
