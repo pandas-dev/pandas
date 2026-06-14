@@ -119,29 +119,25 @@ adds co-assignees; the gate checks "author is *among* assignees."
 
 ## Component 3 — `Awaiting Review` label (Python, `scripts/`)
 
-- **`awaiting_contributor`** ≝ changes were requested and the contributor hasn't
-  **re-requested review** since (newest contributor-initiated
-  `ReviewRequestedEvent` is older than the latest `CHANGES_REQUESTED`). No
-  changes-requested, or re-requested-after → *not* awaiting_contributor. A mere
+- **`awaiting_contributor`** ≝ changes were requested **by an owner/member**
+  (`CHANGES_REQUESTED` reviews from outside `{OWNER, MEMBER}` don't count) and the
+  contributor hasn't **re-requested review** since (newest contributor-initiated
+  `ReviewRequestedEvent` is older than the latest counting `CHANGES_REQUESTED`).
+  No changes-requested, or re-requested-after → *not* awaiting_contributor. A mere
   push is **not** enough — WIP commits aren't a readiness signal; the contributor
   must explicitly re-request review to put the ball back in the maintainers'
-  court. While in the contributor's court the PR is subject to stale, but a push
-  or comment resets the 14-day clock (`actions/stale` keys on `updated_at`), so
-  an active contributor is never closed — only one who's gone quiet *and* hasn't
-  re-requested. Re-review requests are scoped to the contributor (PR author): a
+  court. Re-review requests are scoped to the contributor (PR author): a
   maintainer wrangling reviewers doesn't count.
-- **Apply** `Awaiting Review` to an open, non-draft PR that is **not**
-  `awaiting_contributor`; **remove** it when the PR becomes draft or
-  `awaiting_contributor`. The daily batch only scans *open* PRs, so a closed PR
-  keeps whatever label it last had — harmless, since closed PRs aren't subject to
-  stale.
+- **`Awaiting Review` is informational** — it flags PRs in the maintainers'
+  court. The matching *state* (not the label) is what the stale engine
+  (Component 5) reads, so the label can lag without affecting staleness.
+  **Apply** to an open, non-draft, non-exempt-author PR that is **not**
+  `awaiting_contributor` and not `Needs Issue Assignment`; **remove** otherwise.
+  Exempt authors (owner/member/collaborator) and gated PRs are skipped entirely.
 - **Trigger:** a **daily reconciliation** over all open PRs, folded into the
-  scheduled maintenance job (Component 4) so it shares a single runner boot
-  rather than firing on every push. The batched GraphQL read also returns
-  current labels, so PRs already in the right state cost no write. Up to ~24h of
-  label lag is harmless against the 14-day stale window.
-- Wired into `stale-pr.yml` `exempt-pr-labels` → an awaiting-review PR **never
-  goes Stale**.
+  scheduled maintenance job (Component 4/5) so it shares a single runner boot.
+  The batched GraphQL read also returns current labels, so PRs already in the
+  right state cost no write.
 
 ---
 
@@ -152,9 +148,13 @@ adds co-assignees; the gate checks "author is *among* assignees."
   **or** an assignee commented within 14 days (assignee-scoped — third-party
   chatter doesn't count).
 - **Issue is freed when:**
-  1. A `Stale`-labeled PR by the assignee is **closed** → free immediately (on the
-     close event). `Stale`-at-close is a reliable proxy for "contributor's court,
-     abandoned," because awaiting-review PRs are exempt from Stale.
+  1. A `Stale`-labeled PR by the assignee is **closed** → free immediately.
+     `Stale`-at-close is a reliable proxy for "contributor's court, abandoned,"
+     because awaiting-review PRs are never marked Stale. The **engine's own
+     auto-close** (Component 5) frees issues inline; a **human** closing a Stale
+     PR is handled on the `pull_request_target [closed]` event. (A `GITHUB_TOKEN`
+     close doesn't re-trigger that event, hence the split.) Exempt authors are
+     skipped on the event too.
   2. Assignee has **no open PR** and no comment within 14 days → scheduled job
      unassigns + comments "freed up — comment `/take` to reclaim."
   3. `/untake`.
@@ -164,15 +164,30 @@ adds co-assignees; the gate checks "author is *among* assignees."
 
 ---
 
-## Component 5 — `stale-pr.yml` changes
+## Component 5 — PR stale engine (Python, `scripts/`)
 
-- `days-before-pr-stale: 14` (down from 30) → applies `Stale`.
-- `days-before-close: 7` → auto-close 7 days after `Stale` (was `-1`/never).
-- **`remove-stale-when-updated: true`** (was `false`) — mandatory, so a push
-  clears `Stale` and an active contributor can't be auto-closed mid-fix.
-- `exempt-pr-labels`: replace the **dead `Needs Review`** with **`Awaiting
-  Review`**; keep `Blocked`, `Needs Discussion`. (`Needs Issue Assignment` is
-  *not* exempt — gated PRs may go stale.)
+`actions/stale` is **removed**: it keys only on a PR's `updated_at` and is blind
+to author association, *who* caused activity, and linked-issue comments — none of
+which it can be made aware of. The PR stale lifecycle is owned by
+`run_pr_stale_sweep` in the daily maintenance job instead.
+
+- **Tunables:** `PR_STALE_DAYS = 14`, `PR_CLOSE_DAYS = 7`.
+- **Subject to stale** (`pr_subject_to_stale`) ≝ non-exempt author **and**
+  non-draft **and** `awaiting_contributor`. Exempt authors (owner/member/
+  collaborator) and PRs in the maintainers' court are never marked.
+- **The clock is the author's own activity only** — `last_author_action_at` =
+  newest of {last commit, author PR comment, author linked-issue comment}.
+  A maintainer's comment does **not** reset it. Linked-issue comments are counted
+  **up front** (preventive), so the engine never posts a spurious Stale comment
+  it has to retract; the per-issue read is skipped when PR-side activity already
+  shows the author active.
+- **Decision** (`pr_stale_action`, pure): not subject / author active within
+  `PR_STALE_DAYS` → clear `Stale` if present; inactive + no label → **mark**
+  `Stale` + comment; inactive + already `Stale` and past `PR_STALE_DAYS +
+  PR_CLOSE_DAYS` → **close** (comment + unassign + close). Close requires the
+  label to have survived the full window, so the warning always precedes it.
+- **No `actions/stale`, so no `exempt-pr-labels` wiring** — exemption is computed
+  from author association and review state directly.
 
 ---
 
@@ -203,8 +218,8 @@ adds co-assignees; the gate checks "author is *among* assignees."
 |---|---|
 | `.github/workflows/comment-commands.yml` | edit — add `/take`, `/untake` |
 | `.github/workflows/pr-issue-gate.yml` | new |
-| `.github/workflows/unassign-inactive.yml` | new — daily sweep + `Awaiting Review` reconcile + PR-close unassign |
-| `.github/workflows/stale-pr.yml` | edit — thresholds, `remove-stale-when-updated`, exempt-label swap |
+| `.github/workflows/unassign-inactive.yml` | new — daily sweep + PR stale engine + `Awaiting Review` reconcile + PR-close unassign |
+| `.github/workflows/stale-pr.yml` | **delete** — replaced by the in-house PR stale engine |
 | `scripts/issue_assignment/…` | new — Python logic |
 | `scripts/tests/test_issue_assignment.py` | new — unit tests |
 | `doc/source/development/contributing.rst` | edit — document new flow |
@@ -222,12 +237,10 @@ Needs-Triage/Discussion blocking, and the 14-day auto-unassign.
 ## Rollout sequencing (warm-up, not phases)
 
 1. Ship everything with gate `CLOSE_ENABLED = false` (warn-only).
-2. Swap `exempt-pr-labels` to `Awaiting Review` **before** enabling stale
-   auto-close (else nothing protects awaiting-review PRs).
-3. Let `Awaiting Review` labeling run and prove correct, **then** flip stale
-   auto-close on.
-4. Then flip gate `CLOSE_ENABLED = true`.
-5. Migration: warn-only (+ optional "PRs opened after cutoff") spares in-flight
+2. Let the `Awaiting Review` reconcile and the PR stale engine run and prove
+   correct (watch which PRs mark `Stale`) before relying on the auto-close.
+3. Then flip gate `CLOSE_ENABLED = true`.
+4. Migration: warn-only (+ optional "PRs opened after cutoff") spares in-flight
    PRs and old-style intent-commenters from retroactive closes.
 
 ---

@@ -1,14 +1,17 @@
 """Contributor-facing comment text for the Python automation jobs.
 
-Single source of truth for the messages posted by the gate and unassign jobs.
-The ``/take`` and ``/untake`` replies live inline in
-``.github/workflows/comment-commands.yml``; the stale/close PR messages live in
-``.github/workflows/stale-pr.yml``.
+Single source of truth for the messages posted by the gate, unassign, and PR
+stale jobs. The ``/take`` and ``/untake`` replies live inline in
+``.github/workflows/comment-commands.yml``.
 """
 
 from __future__ import annotations
 
-from scripts.issue_assignment.core import STALE_ASSIGNEE_DAYS
+from scripts.issue_assignment.core import (
+    PR_CLOSE_DAYS,
+    PR_STALE_DAYS,
+    STALE_ASSIGNEE_DAYS,
+)
 
 DOCS_URL = (
     "https://pandas.pydata.org/docs/development/contributing.html"
@@ -60,6 +63,30 @@ def issue_unassigned_inactive(assignees: list[str]) -> str:
         f"up! {mentions} — you're welcome to comment `/take` to pick it back up "
         f"anytime, and it's now open for anyone else to claim too. See the "
         f"[contributing guide]({DOCS_URL}) for how this works."
+    )
+
+
+def pr_marked_stale() -> str:
+    return (
+        f"This pull request has had no activity from its author for "
+        f"**{PR_STALE_DAYS} days**, so I've marked it **stale**. If you're still "
+        f"on it, just push a commit or leave a comment — here or on the linked "
+        f"issue — and the label clears itself. If you've already addressed the "
+        f"feedback, **re-request a review** (the ↻ next to the reviewer) to move "
+        f"it back into the review queue. Otherwise it'll be closed in "
+        f"**{PR_CLOSE_DAYS} days** to keep the queue manageable — you can always "
+        f"reopen it later to continue. See the [contributing guide]({DOCS_URL}) "
+        f"for how the pull request lifecycle works."
+    )
+
+
+def pr_closed_stale() -> str:
+    return (
+        f"Closing this pull request after **{PR_CLOSE_DAYS} days** stale with no "
+        f"activity from its author. Thank you for the work you put into it! "
+        f"**Nothing is lost** — you can reopen this PR anytime to continue. If "
+        f"the linked issue has since been claimed by someone else, just leave a "
+        f"comment there to coordinate. See the [contributing guide]({DOCS_URL})."
     )
 
 

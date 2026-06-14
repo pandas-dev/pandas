@@ -106,16 +106,27 @@ it yourself — nothing is lost).
 Review and staleness
 --------------------
 
-While your pull request is waiting on review, it is labeled ``Awaiting Review``
+While your pull request is waiting on review it is labeled ``Awaiting Review``
 and will **not** be marked stale — you keep your assignment for as long as review
 takes.
 
-If a maintainer requests changes and there is then no activity from you for **14
-days**, your pull request is marked ``Stale``; pushing an update or commenting
-clears the label. If it stays stale for another **7 days**, it is automatically
-closed. You can reopen a closed pull request yourself at any time to continue.
-When a stale pull request is closed, its linked issue is automatically unassigned
-and becomes available again.
+Once a maintainer requests changes, the ball is in your court and a **14-day**
+timer starts. Only *your* activity resets it: pushing a commit, or commenting on
+the pull request **or its linked issue** (a comment from someone else does not).
+If there is no activity from you for 14 days, the pull request is marked
+``Stale``; your next push or comment clears the label and resets the timer. If it
+stays stale for another **7 days**, it is automatically closed — you can reopen
+it yourself at any time to continue, and nothing is lost. When a stale pull
+request is closed, its linked issue is automatically unassigned and becomes
+available again.
+
+When you've addressed the feedback and want another look, **re-request a review**
+(the ↻ button next to the reviewer). That moves the pull request back to
+``Awaiting Review`` and stops the staleness timer; pushing commits alone does not
+return it to the review queue.
+
+These rules cover external contributions — pull requests from pandas maintainers
+are exempt from the staleness lifecycle.
 
 Inactive assignments
 --------------------

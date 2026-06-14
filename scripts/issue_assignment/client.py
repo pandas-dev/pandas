@@ -67,10 +67,13 @@ query($owner: String!, $name: String!, $cursor: String) {
         number
         isDraft
         author { login }
-        reviews(last: 20) { nodes { state submittedAt } }
+        authorAssociation
+        reviews(last: 20) { nodes { state submittedAt authorAssociation } }
         timelineItems(last: 30, itemTypes: [REVIEW_REQUESTED_EVENT]) {
           nodes { ... on ReviewRequestedEvent { createdAt actor { login } } }
         }
+        commits(last: 1) { nodes { commit { committedDate } } }
+        comments(last: 30) { nodes { author { login } createdAt } }
         labels(first: 50) { nodes { name } }
       }
     }
@@ -132,19 +135,25 @@ class GitHubClient:
         ]
 
     def iter_open_pull_requests_review_state(self) -> Iterator[OpenPRState]:
-        """Yield review state for every open PR, paginating in batches of 50.
+        """Yield lifecycle state for every open PR, paginating in batches of 50.
 
-        Each item has ``number``, ``is_draft``, ``author``, ``reviews``,
-        ``review_requests``, and current ``labels`` — enough for the daily
-        ``Awaiting Review`` reconciliation to decide without any per-PR
-        follow-up requests.
+        Each item carries enough for the daily ``Awaiting Review`` reconcile and
+        the PR stale engine to decide without per-PR follow-up requests: author +
+        association, reviews (with association), re-review requests, the latest
+        commit time, the author's PR comments, and current labels. Linked-issue
+        comments are fetched separately, only for PRs the PR-side activity can't
+        already rule active.
         """
         cursor: str | None = None
         while True:
             connection = self._graphql(_OPEN_PRS_QUERY, cursor=cursor)["pullRequests"]
             for node in connection["nodes"]:
                 reviews: list[Review] = [
-                    {"state": r["state"], "submitted_at": parse_dt(r["submittedAt"])}
+                    {
+                        "state": r["state"],
+                        "submitted_at": parse_dt(r["submittedAt"]),
+                        "author_association": r["authorAssociation"],
+                    }
                     for r in node["reviews"]["nodes"]
                 ]
                 review_requests: list[ReviewRequest] = [
@@ -154,12 +163,28 @@ class GitHubClient:
                     }
                     for r in node["timelineItems"]["nodes"]
                 ]
+                comments: list[Comment] = [
+                    {
+                        "author": (c.get("author") or {}).get("login"),
+                        "created_at": parse_dt(c["createdAt"]),
+                    }
+                    for c in node["comments"]["nodes"]
+                ]
+                commit_nodes = node["commits"]["nodes"]
+                last_commit_at = (
+                    parse_dt(commit_nodes[0]["commit"]["committedDate"])
+                    if commit_nodes
+                    else None
+                )
                 yield {
                     "number": node["number"],
                     "is_draft": node["isDraft"],
                     "author": (node.get("author") or {}).get("login"),
+                    "author_association": node.get("authorAssociation"),
                     "reviews": reviews,
                     "review_requests": review_requests,
+                    "last_commit_at": last_commit_at,
+                    "comments": comments,
                     "labels": [label["name"] for label in node["labels"]["nodes"]],
                 }
             page = connection["pageInfo"]

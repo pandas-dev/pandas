@@ -20,7 +20,7 @@ jobs:
         with:
           sparse-checkout: scripts
           persist-credentials: false
-      - name: Unassign inactive or freed issues
+      - name: Unassign inactive issues, free closed PRs, and sweep stale PRs
         run: python3 -m scripts.issue_assignment.unassign_inactive
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

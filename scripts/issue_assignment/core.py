@@ -15,8 +15,11 @@ from datetime import (
 from typing import TypedDict
 
 STALE_ASSIGNEE_DAYS = 14
+PR_STALE_DAYS = 14
+PR_CLOSE_DAYS = 7
 
 EXEMPT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
+REVIEW_BLOCKING_ASSOCIATIONS = {"OWNER", "MEMBER"}
 BLOCKING_LABELS = ("Needs Triage", "Needs Discussion")
 
 GATE_LABEL = "Needs Issue Assignment"
@@ -32,6 +35,7 @@ class LinkedIssue(TypedDict):
 class Review(TypedDict):
     state: str | None
     submitted_at: datetime | None
+    author_association: str | None
 
 
 class ReviewRequest(TypedDict):
@@ -54,8 +58,11 @@ class OpenPRState(TypedDict):
     number: int
     is_draft: bool
     author: str | None
+    author_association: str | None
     reviews: list[Review]
     review_requests: list[ReviewRequest]
+    last_commit_at: datetime | None
+    comments: list[Comment]
     labels: list[str]
 
 
@@ -74,11 +81,16 @@ def is_exempt(author_association: str | None, author_is_bot: bool) -> bool:
 
 
 def latest_changes_requested_at(reviews: list[Review]) -> datetime | None:
-    """Newest ``CHANGES_REQUESTED`` review time, or ``None``."""
+    """Newest ``CHANGES_REQUESTED`` review from a maintainer, or ``None``.
+
+    Only an ``OWNER``/``MEMBER`` review moves the ball into the contributor's
+    court; a drive-by "request changes" from an outside account doesn't count.
+    """
     times = [
         submitted
         for r in reviews
         if r.get("state") == "CHANGES_REQUESTED"
+        and (r.get("author_association") or "") in REVIEW_BLOCKING_ASSOCIATIONS
         and (submitted := r["submitted_at"]) is not None
     ]
     return max(times) if times else None
@@ -179,6 +191,11 @@ def gate_decision(
     }
 
 
+def _within(now: datetime, ts: datetime | None, days: int) -> bool:
+    """True when ``ts`` is set and less than ``days`` before ``now``."""
+    return ts is not None and now - ts < timedelta(days=days)
+
+
 def issue_is_active(
     now: datetime,
     has_open_linked_pr_by_assignee: bool,
@@ -193,6 +210,46 @@ def issue_is_active(
     """
     if has_open_linked_pr_by_assignee:
         return True
-    if last_assignee_comment_at is None:
+    return _within(now, last_assignee_comment_at, stale_days)
+
+
+def pr_subject_to_stale(
+    is_exempt_author: bool,
+    is_draft: bool,
+    changes_requested_at: datetime | None,
+    rereview_requested_at: datetime | None,
+) -> bool:
+    """Whether a PR is in the contributor's court and may go stale.
+
+    Exempt authors (owners/members/collaborators) and drafts are never subject;
+    otherwise the PR is subject only while ``awaiting_contributor`` (a maintainer
+    requested changes and the author hasn't re-requested review since).
+    """
+    if is_exempt_author or is_draft:
         return False
-    return now - last_assignee_comment_at < timedelta(days=stale_days)
+    return awaiting_contributor(changes_requested_at, rereview_requested_at)
+
+
+def pr_stale_action(
+    now: datetime,
+    subject_to_stale: bool,
+    currently_stale: bool,
+    last_author_action_at: datetime | None,
+    stale_days: int,
+    close_days: int,
+) -> str:
+    """Decide the stale action for an open PR.
+
+    Returns ``"none"``, ``"mark_stale"``, ``"clear_stale"``, or ``"close"``. The
+    clock is driven purely by the **author's own** activity
+    (``last_author_action_at`` — commit, PR or linked-issue comment, re-review).
+    A close requires the PR to have carried ``Stale`` through the whole
+    ``stale_days + close_days`` window, so the warning always precedes the close.
+    """
+    if not subject_to_stale or _within(now, last_author_action_at, stale_days):
+        return "clear_stale" if currently_stale else "none"
+    if not currently_stale:
+        return "mark_stale"
+    if _within(now, last_author_action_at, stale_days + close_days):
+        return "none"
+    return "close"
