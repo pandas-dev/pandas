@@ -26,6 +26,7 @@ from pandas._config import is_nan_na
 from pandas._libs import lib
 from pandas._libs.missing import is_pdna_or_none
 from pandas._libs.tslibs import (
+    BaseOffset,
     Timedelta,
     Timestamp,
     timezones,
@@ -1154,6 +1155,22 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if isinstance(other, BaseOffset) and pa.types.is_date(self._pa_array.type):
+            # Cast date32/date64 → timestamp, apply offset via DatetimeArray, cast back
+            ts_array = type(self)(self._pa_array.cast(pa.timestamp("us")))
+            dt_array = ts_array._to_datetimearray()
+
+            shifted = op(dt_array, other)
+            check = shifted[~shifted.isna()] if shifted._hasna else shifted
+            if not check.is_normalized:
+                raise TypeError(
+                    f"DateOffset {other} is intra-day and cannot be "
+                    f"applied to date32/date64 arrays"
+                )
+            result_pa = pa.array(shifted._ndarray, from_pandas=True).cast(
+                self._pa_array.type
+            )
+            return self._from_pyarrow_array(result_pa)
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
@@ -1391,6 +1408,24 @@ class ArrowExtensionArray(
         np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        # This override replaces self._pa_array directly, bypassing __setitem__,
+        # so enforce the read-only guard here to stay consistent with it and
+        # with the base ExtensionArray.sort.
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        sorted_array = self.take(sort_indices)
+        self._pa_array = sorted_array._pa_array
+
     def _argmin_max(self, skipna: bool, method: str) -> int:
         if self._pa_array.length() in (0, self._pa_array.null_count) or (
             self._hasna and not skipna
@@ -1424,6 +1459,22 @@ class ArrowExtensionArray(
         type(self)
         """
         return self._from_pyarrow_array(self._pa_array)
+
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+        # Override since the ExtensionArray.view create a new pa_array.
+        if dtype is not None:
+            return super().view(dtype)
+        result = type(self).__new__(type(self))
+        result._pa_array = self._pa_array
+        result._dtype = self._dtype
+        result._readonly = self._readonly
+        return result
 
     def count(self) -> int:
         return len(self) - self._pa_array.null_count

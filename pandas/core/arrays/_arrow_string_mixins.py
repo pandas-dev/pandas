@@ -204,6 +204,12 @@ class ArrowStringArrayMixin:
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
 
+    def _str_getitem(self, key: slice | int) -> Self:
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
+
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
     ) -> Self:
