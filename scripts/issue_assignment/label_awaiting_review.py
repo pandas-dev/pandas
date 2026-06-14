@@ -38,8 +38,12 @@ def reconcile_all(client: SupportsLabelReconcile) -> None:
     label = core.AWAITING_REVIEW_LABEL
     for pr in client.iter_open_pull_requests_review_state():
         changes_requested_at = core.latest_changes_requested_at(pr["reviews"])
+        contributors = {pr["author"]} - {None}
+        rereview_requested_at = core.latest_rereview_request_at(
+            pr["review_requests"], contributors
+        )
         want = core.should_label_awaiting_review(
-            True, pr["is_draft"], changes_requested_at, pr["last_commit_at"]
+            True, pr["is_draft"], changes_requested_at, rereview_requested_at
         )
         has = label in pr["labels"]
         if want and not has:

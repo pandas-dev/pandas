@@ -119,9 +119,17 @@ adds co-assignees; the gate checks "author is *among* assignees."
 
 ## Component 3 — `Awaiting Review` label (Python, `scripts/`)
 
-- **`awaiting_contributor`** ≝ latest `CHANGES_REQUESTED` review is newer than the
-  latest commit (author hasn't pushed since changes were requested). No
-  changes-requested, or pushed-after → *not* awaiting_contributor.
+- **`awaiting_contributor`** ≝ changes were requested and the contributor hasn't
+  **re-requested review** since (newest contributor-initiated
+  `ReviewRequestedEvent` is older than the latest `CHANGES_REQUESTED`). No
+  changes-requested, or re-requested-after → *not* awaiting_contributor. A mere
+  push is **not** enough — WIP commits aren't a readiness signal; the contributor
+  must explicitly re-request review to put the ball back in the maintainers'
+  court. While in the contributor's court the PR is subject to stale, but a push
+  or comment resets the 14-day clock (`actions/stale` keys on `updated_at`), so
+  an active contributor is never closed — only one who's gone quiet *and* hasn't
+  re-requested. Re-review requests are scoped to the contributor (PR author): a
+  maintainer wrangling reviewers doesn't count.
 - **Apply** `Awaiting Review` to an open, non-draft PR that is **not**
   `awaiting_contributor`; **remove** it when the PR becomes draft or
   `awaiting_contributor`. The daily batch only scans *open* PRs, so a closed PR

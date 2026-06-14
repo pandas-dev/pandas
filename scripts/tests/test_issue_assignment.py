@@ -43,13 +43,15 @@ class TestAwaitingContributor:
     def test_no_changes_requested(self) -> None:
         assert core.awaiting_contributor(None, dt(1)) is False
 
-    def test_changes_requested_no_commits(self) -> None:
+    def test_changes_requested_no_rereview(self) -> None:
         assert core.awaiting_contributor(dt(2), None) is True
 
-    def test_pushed_after_changes_requested(self) -> None:
+    def test_rereview_requested_after_changes(self) -> None:
+        # re-review (dt(2), newer) postdates changes-requested (dt(5)) -> ball moves
         assert core.awaiting_contributor(dt(5), dt(2)) is False
 
-    def test_changes_requested_after_last_push(self) -> None:
+    def test_rereview_predates_latest_changes(self) -> None:
+        # changes requested again (dt(2)) after the last re-review (dt(5))
         assert core.awaiting_contributor(dt(2), dt(5)) is True
 
 
@@ -81,6 +83,18 @@ class TestLatestSelectors:
         reviews: list[core.Review] = [{"state": "APPROVED", "submitted_at": dt(1)}]
         assert core.latest_changes_requested_at(reviews) is None
 
+    def test_latest_rereview_request_at(self) -> None:
+        requests: list[core.ReviewRequest] = [
+            {"actor": "alice", "requested_at": dt(8)},
+            {"actor": "maintainer", "requested_at": dt(1)},
+            {"actor": "alice", "requested_at": dt(4)},
+        ]
+        assert core.latest_rereview_request_at(requests, {"alice"}) == dt(4)
+
+    def test_latest_rereview_request_none_for_other_actor(self) -> None:
+        requests: list[core.ReviewRequest] = [{"actor": "bob", "requested_at": dt(1)}]
+        assert core.latest_rereview_request_at(requests, {"alice"}) is None
+
     def test_latest_assignee_comment_at(self) -> None:
         comments: list[core.Comment] = [
             {"author": "alice", "created_at": dt(10)},
@@ -95,35 +109,41 @@ class TestLatestSelectors:
 
 
 class TestGateDecision:
-    def test_exempt_author_skipped(self) -> None:
+    def test_exempt_author_not_in_scope(self) -> None:
         out = core.gate_decision("maint", "MEMBER", False, [])
-        assert out["action"] == "skip" and out["reason"] == "exempt"
+        assert out["outcome"] == "not_in_scope" and out["reason"] == "exempt"
 
-    def test_no_linked_issue_skipped(self) -> None:
+    def test_no_linked_issue_not_in_scope(self) -> None:
         out = core.gate_decision("newbie", "NONE", False, [])
-        assert out["action"] == "skip" and out["reason"] == "no_linked_issue"
+        assert out["outcome"] == "not_in_scope" and out["reason"] == "no_linked_issue"
 
-    def test_author_is_assignee_passes(self) -> None:
+    def test_author_is_assignee_valid(self) -> None:
         linked: list[core.LinkedIssue] = [{"number": 5, "assignees": ["newbie"]}]
-        assert core.gate_decision("newbie", "NONE", False, linked)["action"] == "pass"
+        out = core.gate_decision("newbie", "NONE", False, linked)
+        assert out["outcome"] == "valid_assignment"
 
-    def test_author_assignee_on_one_of_several_passes(self) -> None:
+    def test_author_assignee_on_one_of_several_valid(self) -> None:
         linked: list[core.LinkedIssue] = [
             {"number": 5, "assignees": ["someone"]},
             {"number": 6, "assignees": ["newbie"]},
         ]
-        assert core.gate_decision("newbie", "NONE", False, linked)["action"] == "pass"
+        out = core.gate_decision("newbie", "NONE", False, linked)
+        assert out["outcome"] == "valid_assignment"
 
-    def test_unassigned_issue_flagged(self) -> None:
+    def test_unassigned_issue_invalid(self) -> None:
         linked: list[core.LinkedIssue] = [{"number": 7, "assignees": []}]
         out = core.gate_decision("newbie", "NONE", False, linked)
-        assert out == {"action": "flag", "variant": "unassigned", "issue": 7}
+        assert out == {
+            "outcome": "invalid_assignment",
+            "variant": "unassigned",
+            "issue": 7,
+        }
 
-    def test_assigned_to_other_flagged(self) -> None:
+    def test_assigned_to_other_invalid(self) -> None:
         linked: list[core.LinkedIssue] = [{"number": 8, "assignees": ["someone"]}]
         out = core.gate_decision("newbie", "NONE", False, linked)
         assert out == {
-            "action": "flag",
+            "outcome": "invalid_assignment",
             "variant": "assigned_other",
             "issue": 8,
             "assignee": "someone",
@@ -175,17 +195,23 @@ def pr(
     number: int,
     *,
     draft: bool = False,
+    author: str | None = "alice",
     reviews: list[core.Review] | None = None,
-    last_commit_at: datetime | None = None,
+    review_requests: list[core.ReviewRequest] | None = None,
     labels: list[str] | None = None,
 ) -> core.OpenPRState:
     return {
         "number": number,
         "is_draft": draft,
+        "author": author,
         "reviews": reviews if reviews is not None else [],
-        "last_commit_at": last_commit_at,
+        "review_requests": review_requests if review_requests is not None else [],
         "labels": labels if labels is not None else [],
     }
+
+
+def rereq(actor: str, days_ago: int) -> core.ReviewRequest:
+    return {"actor": actor, "requested_at": dt(days_ago)}
 
 
 AWAITING = core.AWAITING_REVIEW_LABEL
@@ -193,7 +219,7 @@ AWAITING = core.AWAITING_REVIEW_LABEL
 
 class TestReconcileAll:
     def test_adds_when_wanted_and_absent(self) -> None:
-        client = FakeClient([pr(1, last_commit_at=dt(1))])
+        client = FakeClient([pr(1)])
         label_awaiting_review.reconcile_all(client)
         assert client.added == [(1, (AWAITING,))]
         assert client.removed == []
@@ -207,7 +233,7 @@ class TestReconcileAll:
     def test_noop_when_already_correct(self) -> None:
         client = FakeClient(
             [
-                pr(3, last_commit_at=dt(1), labels=[AWAITING]),
+                pr(3, labels=[AWAITING]),
                 pr(4, draft=True),
             ]
         )
@@ -220,8 +246,7 @@ class TestReconcileAll:
             [
                 pr(
                     5,
-                    reviews=[{"state": "CHANGES_REQUESTED", "submitted_at": dt(1)}],
-                    last_commit_at=dt(3),
+                    reviews=[{"state": "CHANGES_REQUESTED", "submitted_at": dt(3)}],
                     labels=[AWAITING],
                 )
             ]
@@ -229,3 +254,42 @@ class TestReconcileAll:
         label_awaiting_review.reconcile_all(client)
         assert client.removed == [(5, AWAITING)]
         assert client.added == []
+
+    def test_push_alone_does_not_label(self) -> None:
+        # A commit after changes-requested is no longer enough; without a
+        # re-review request the PR stays in the contributor's court.
+        client = FakeClient(
+            [pr(6, reviews=[{"state": "CHANGES_REQUESTED", "submitted_at": dt(3)}])]
+        )
+        label_awaiting_review.reconcile_all(client)
+        assert client.added == []
+        assert client.removed == []
+
+    def test_rereview_request_relabels(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    7,
+                    reviews=[{"state": "CHANGES_REQUESTED", "submitted_at": dt(3)}],
+                    review_requests=[rereq("alice", 1)],
+                )
+            ]
+        )
+        label_awaiting_review.reconcile_all(client)
+        assert client.added == [(7, (AWAITING,))]
+
+    def test_rereview_request_by_non_contributor_ignored(self) -> None:
+        # A maintainer wrangling reviewers isn't the contributor signalling ready.
+        client = FakeClient(
+            [
+                pr(
+                    8,
+                    author="alice",
+                    reviews=[{"state": "CHANGES_REQUESTED", "submitted_at": dt(3)}],
+                    review_requests=[rereq("maintainer", 1)],
+                )
+            ]
+        )
+        label_awaiting_review.reconcile_all(client)
+        assert client.added == []
+        assert client.removed == []

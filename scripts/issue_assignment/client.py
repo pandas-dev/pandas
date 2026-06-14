@@ -25,6 +25,7 @@ if TYPE_CHECKING:
         LinkedIssue,
         OpenPRState,
         Review,
+        ReviewRequest,
     )
 
 _LINKED_ISSUES_QUERY = """
@@ -65,8 +66,11 @@ query($owner: String!, $name: String!, $cursor: String) {
       nodes {
         number
         isDraft
+        author { login }
         reviews(last: 20) { nodes { state submittedAt } }
-        commits(last: 1) { nodes { commit { committedDate } } }
+        timelineItems(last: 30, itemTypes: [REVIEW_REQUESTED_EVENT]) {
+          nodes { ... on ReviewRequestedEvent { createdAt actor { login } } }
+        }
         labels(first: 50) { nodes { name } }
       }
     }
@@ -130,9 +134,10 @@ class GitHubClient:
     def iter_open_pull_requests_review_state(self) -> Iterator[OpenPRState]:
         """Yield review state for every open PR, paginating in batches of 50.
 
-        Each item has ``number``, ``is_draft``, ``reviews``, ``last_commit_at``,
-        and current ``labels`` — enough for the daily ``Awaiting Review``
-        reconciliation to decide without any per-PR follow-up requests.
+        Each item has ``number``, ``is_draft``, ``author``, ``reviews``,
+        ``review_requests``, and current ``labels`` — enough for the daily
+        ``Awaiting Review`` reconciliation to decide without any per-PR
+        follow-up requests.
         """
         cursor: str | None = None
         while True:
@@ -142,17 +147,19 @@ class GitHubClient:
                     {"state": r["state"], "submitted_at": parse_dt(r["submittedAt"])}
                     for r in node["reviews"]["nodes"]
                 ]
-                commit_nodes = node["commits"]["nodes"]
-                last_commit_at = (
-                    parse_dt(commit_nodes[0]["commit"]["committedDate"])
-                    if commit_nodes
-                    else None
-                )
+                review_requests: list[ReviewRequest] = [
+                    {
+                        "actor": (r.get("actor") or {}).get("login"),
+                        "requested_at": parse_dt(r.get("createdAt")),
+                    }
+                    for r in node["timelineItems"]["nodes"]
+                ]
                 yield {
                     "number": node["number"],
                     "is_draft": node["isDraft"],
+                    "author": (node.get("author") or {}).get("login"),
                     "reviews": reviews,
-                    "last_commit_at": last_commit_at,
+                    "review_requests": review_requests,
                     "labels": [label["name"] for label in node["labels"]["nodes"]],
                 }
             page = connection["pageInfo"]

@@ -32,9 +32,9 @@ def main() -> None:
         author, pr.get("author_association"), author_is_bot, linked_issues
     )
 
-    if decision["action"] == "skip":
+    if decision["outcome"] == "not_in_scope":
         return
-    if decision["action"] == "pass":
+    if decision["outcome"] == "valid_assignment":
         client.remove_label(number, core.GATE_LABEL)
         return
 

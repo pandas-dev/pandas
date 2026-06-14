@@ -34,6 +34,11 @@ class Review(TypedDict):
     submitted_at: datetime | None
 
 
+class ReviewRequest(TypedDict):
+    actor: str | None
+    requested_at: datetime | None
+
+
 class Comment(TypedDict):
     author: str | None
     created_at: datetime | None
@@ -48,16 +53,18 @@ class IssueActivity(TypedDict):
 class OpenPRState(TypedDict):
     number: int
     is_draft: bool
+    author: str | None
     reviews: list[Review]
-    last_commit_at: datetime | None
+    review_requests: list[ReviewRequest]
     labels: list[str]
 
 
 class GateDecision(TypedDict, total=False):
-    action: str  # "skip" | "pass" | "flag"; always present
-    reason: str  # "exempt" | "no_linked_issue" (skip only)
-    variant: str  # "unassigned" | "assigned_other" (flag only)
-    issue: int  # flag only
+    # always present:
+    outcome: str  # "not_in_scope" | "valid_assignment" | "invalid_assignment"
+    reason: str  # "exempt" | "no_linked_issue" (not_in_scope only)
+    variant: str  # "unassigned" | "assigned_other" (invalid_assignment only)
+    issue: int  # invalid_assignment only
     assignee: str  # assigned_other only
 
 
@@ -77,6 +84,23 @@ def latest_changes_requested_at(reviews: list[Review]) -> datetime | None:
     return max(times) if times else None
 
 
+def latest_rereview_request_at(
+    review_requests: list[ReviewRequest], contributors: set[str]
+) -> datetime | None:
+    """Newest review (re-)request initiated by one of ``contributors``, or ``None``.
+
+    Scoped to the contributor's own action: a maintainer wrangling reviewers
+    doesn't count as the contributor signalling "ready for another look."
+    """
+    times = [
+        requested
+        for r in review_requests
+        if r.get("actor") in contributors
+        and (requested := r["requested_at"]) is not None
+    ]
+    return max(times) if times else None
+
+
 def latest_assignee_comment_at(
     comments: list[Comment], assignees: list[str]
 ) -> datetime | None:
@@ -91,26 +115,31 @@ def latest_assignee_comment_at(
 
 
 def awaiting_contributor(
-    changes_requested_at: datetime | None, last_commit_at: datetime | None
+    changes_requested_at: datetime | None, rereview_requested_at: datetime | None
 ) -> bool:
-    """True when changes were requested and the author hasn't pushed since."""
+    """True when changes were requested and no re-review has been asked for since.
+
+    A mere push doesn't move the ball back — WIP commits aren't a claim of
+    readiness. The contributor has to explicitly re-request review (newer than
+    the changes-requested review) to put the PR back in the maintainers' court.
+    """
     if changes_requested_at is None:
         return False
-    if last_commit_at is None:
+    if rereview_requested_at is None:
         return True
-    return changes_requested_at > last_commit_at
+    return changes_requested_at > rereview_requested_at
 
 
 def should_label_awaiting_review(
     is_open: bool,
     is_draft: bool,
     changes_requested_at: datetime | None,
-    last_commit_at: datetime | None,
+    rereview_requested_at: datetime | None,
 ) -> bool:
     """An open, non-draft PR with the ball in the maintainers' court."""
     if not is_open or is_draft:
         return False
-    return not awaiting_contributor(changes_requested_at, last_commit_at)
+    return not awaiting_contributor(changes_requested_at, rereview_requested_at)
 
 
 def gate_decision(
@@ -121,27 +150,29 @@ def gate_decision(
 ) -> GateDecision:
     """Decide what the assignment gate should do for a pull request.
 
-    Returns a dict with an ``action`` of ``skip``, ``pass``, or ``flag``; a
-    ``flag`` also carries a ``variant`` (``unassigned`` / ``assigned_other``),
-    the ``issue`` number to reference, and (for ``assigned_other``) the
-    ``assignee`` holding it.
+    Returns a dict whose ``outcome`` is one of ``not_in_scope`` (gate doesn't
+    apply), ``valid_assignment`` (author is an assignee — clear the flag), or
+    ``invalid_assignment`` (author isn't validly assigned — flag it). An
+    ``invalid_assignment`` also carries a ``variant`` (``unassigned`` /
+    ``assigned_other``), the ``issue`` number to reference, and (for
+    ``assigned_other``) the ``assignee`` holding it.
     """
     if is_exempt(author_association, author_is_bot):
-        return {"action": "skip", "reason": "exempt"}
+        return {"outcome": "not_in_scope", "reason": "exempt"}
     if not linked_issues:
-        return {"action": "skip", "reason": "no_linked_issue"}
+        return {"outcome": "not_in_scope", "reason": "no_linked_issue"}
     if any(author in issue["assignees"] for issue in linked_issues):
-        return {"action": "pass"}
+        return {"outcome": "valid_assignment"}
     unassigned = [issue for issue in linked_issues if not issue["assignees"]]
     if unassigned:
         return {
-            "action": "flag",
+            "outcome": "invalid_assignment",
             "variant": "unassigned",
             "issue": unassigned[0]["number"],
         }
     issue = linked_issues[0]
     return {
-        "action": "flag",
+        "outcome": "invalid_assignment",
         "variant": "assigned_other",
         "issue": issue["number"],
         "assignee": issue["assignees"][0],
