@@ -422,6 +422,27 @@ class TestMelt:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_melt_var_name_collision(self):
+        # GH#65654: var_name collision with id_vars should raise
+        df = DataFrame({"id": [1, 2], "a": [10, 20], "b": [100, 200]})
+        msg = "var_name (id) cannot match an element in id_vars"
+        with pytest.raises(ValueError, match=msg):
+            df.melt(id_vars="id", var_name="id")
+
+    def test_melt_var_name_collision_value_name(self):
+        # GH#65654: var_name collision with value_name should raise
+        df = DataFrame({"a": [1, 2], "b": [10, 20]})
+        msg = r"var_name \(val\) cannot match value_name \(val\)"
+        with pytest.raises(ValueError, match=msg):
+            df.melt(var_name="val", value_name="val")
+
+    def test_melt_var_name_collision_list(self):
+        # GH#65654: list-like var_name collision with id_vars should raise
+        df = DataFrame({("A", "D"): [1, 2], ("B", "E"): [10, 20]})
+        msg = "var_name (A) cannot match an element in id_vars"
+        with pytest.raises(ValueError, match=msg):
+            df.melt(id_vars=[("A", "D")], var_name=["A", "B"])
+
     @pytest.mark.parametrize("dtype", ["Int8", "Int64"])
     def test_melt_ea_dtype(self, dtype):
         # GH#41570
