@@ -1119,20 +1119,28 @@ def _nanminmax(meth, fill_value_typ):
             # with arbitrary objects (e.g. Timestamps, strings), raising
             # TypeError in the reduction.  Instead fill NA entries with a
             # valid value from the same reduction slice, which leaves the
-            # min/max unchanged.
+            # min/max unchanged.  Slices that are entirely NA have no such
+            # value and are filled with +/-inf (the legacy fill); their
+            # result is discarded by _maybe_null_out below, but reducing NA
+            # would emit a spurious RuntimeWarning on some numpy builds.
             mask = _maybe_get_mask(values, skipna, mask)
             if mask is not None and mask.any():
+                fill_value = _get_fill_value(dtype, fill_value_typ=fill_value_typ)
                 if mask.all():
-                    values = np.full(values.shape, np.nan, dtype=object)
+                    values = np.full(values.shape, fill_value, dtype=object)
+                elif values.ndim == 1 or axis is None:
+                    fill = np.empty(1, dtype=object)
+                    # wrap in an array so that e.g. tuple fill values
+                    # are not broadcast by np.where
+                    fill[0] = values[~mask][0]
+                    values = np.where(mask, fill, values)
                 else:
-                    if values.ndim == 1 or axis is None:
-                        fill = np.empty(1, dtype=object)
-                        # wrap in an array so that e.g. tuple fill values
-                        # are not broadcast by np.where
-                        fill[0] = values[~mask][0]
-                    else:
-                        indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
-                        fill = np.take_along_axis(values, indexer, axis=axis)
+                    indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
+                    fill = np.take_along_axis(values, indexer, axis=axis)
+                    # argmax selects an NA entry for entirely-NA slices; fill
+                    # those with +/-inf instead so the reduction does not warn
+                    all_na = np.expand_dims(mask.all(axis=axis), axis)
+                    fill = np.where(all_na, fill_value, fill)
                     values = np.where(mask, fill, values)
         else:
             values, mask = _get_values(
