@@ -8,6 +8,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -644,6 +646,42 @@ def test_masked_array_no_float_detour(dtype):
     ma_arr = ma.array([2**53 + 1, 2, 3], mask=[False, True, False], dtype=np.int64)
     result = pd.array(ma_arr, dtype=dtype)
     expected = pd.array([2**53 + 1, pd.NA, 3], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "np_dtype, dtype",
+    [
+        ("float32", "Float64"),
+        ("int64", "Float64"),
+        ("int64", "Int32"),
+        ("float64", "Int64"),
+        ("bool", "boolean"),
+        ("float64", "string"),
+        ("datetime64[ns]", "datetime64[us]"),
+        ("timedelta64[ns]", "timedelta64[us]"),
+        pytest.param("int64", "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("float64", "float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("bool", "bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("float64", "string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param(
+            "datetime64[ns]",
+            "timestamp[ns][pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        pytest.param(
+            "timedelta64[ns]",
+            "duration[ns][pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_masked_array_explicit_dtype(np_dtype, dtype):
+    # GH#63879 - an explicitly passed dtype takes precedence over the dtype
+    # inferred from the masked array, and masked values become NA
+    ma_arr = ma.array([1, 2, 3], mask=[False, True, False], dtype=np_dtype)
+    result = pd.array(ma_arr, dtype=dtype)
+    expected = pd.array(ma_arr).astype(dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
