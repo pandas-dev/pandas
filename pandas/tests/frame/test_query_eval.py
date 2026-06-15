@@ -1683,7 +1683,7 @@ class TestDataFrameQueryInWithColumnRefs:
     def test_in_column_refs_string_pyarrow(self, engine, parser):
         df = DataFrame(
             {"a": ["a", "a", "b"], "b": ["a", "b", "c"], "c": ["b", "b", "c"]},
-            dtype="string[pyarrow]"
+            dtype="string[pyarrow]",
         )
 
         warning = RuntimeWarning if engine == "numexpr" else None

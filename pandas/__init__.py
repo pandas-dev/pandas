@@ -5,8 +5,11 @@ __docformat__ = "restructuredtext"
 # PEP 810: defer I/O backends, test helpers and the eval/resample/interchange/
 # api re-export stacks until used (no-op < 3.15)
 __lazy_modules__ = (
-    "pandas.io.api", "pandas.io.json._normalize", "pandas.testing",
-    "pandas.core.computation.api", "pandas.api",
+    "pandas.io.api",
+    "pandas.io.json._normalize",
+    "pandas.testing",
+    "pandas.core.computation.api",
+    "pandas.api",
 )
 
 # Let users know if they're missing any of our hard dependencies
@@ -141,8 +144,8 @@ from pandas.core.reshape.api import (
 )
 
 from pandas import arrays, errors, io, plotting, tseries
-import pandas.api as api
-import pandas.testing as testing
+import pandas.api as api  # noqa: PLR0402  (keeps the import lazy under PEP 810)
+import pandas.testing as testing  # noqa: PLR0402  (keeps the import lazy under PEP 810)
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
