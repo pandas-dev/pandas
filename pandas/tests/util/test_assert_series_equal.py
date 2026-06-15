@@ -366,6 +366,16 @@ def test_assert_series_equal_ignore_extension_dtype_mismatch_cross_class():
     tm.assert_series_equal(left, right, check_dtype=False)
 
 
+@pytest.mark.parametrize("dtype", ["Int32", "Float64", "boolean"])
+def test_assert_series_equal_masked_na_ignore_dtype(dtype):
+    # GH#61473 pd.NA must not be coerced to nan when comparing a masked
+    # array against an object array holding the same pd.NA
+    left = Series([pd.NA], dtype=dtype)
+    right = Series([pd.NA], dtype="object")
+    tm.assert_series_equal(left, right, check_dtype=False)
+    tm.assert_series_equal(right, left, check_dtype=False)
+
+
 def test_allows_duplicate_labels():
     left = Series([1])
     right = Series([1]).set_flags(allows_duplicate_labels=False)
