@@ -2,6 +2,13 @@ from __future__ import annotations
 
 __docformat__ = "restructuredtext"
 
+# PEP 810: defer I/O backends, test helpers and the eval/resample/interchange/
+# api re-export stacks until used (no-op < 3.15)
+__lazy_modules__ = (
+    "pandas.io.api", "pandas.io.json._normalize", "pandas.testing",
+    "pandas.core.computation.api", "pandas.api",
+)
+
 # Let users know if they're missing any of our hard dependencies
 # except tzdata (see https://github.com/pandas-dev/pandas/issues/63264)
 _hard_dependencies = ("numpy", "dateutil")
@@ -133,8 +140,9 @@ from pandas.core.reshape.api import (
     qcut,
 )
 
-from pandas import api, arrays, errors, io, plotting, tseries
-from pandas import testing
+from pandas import arrays, errors, io, plotting, tseries
+import pandas.api as api
+import pandas.testing as testing
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
