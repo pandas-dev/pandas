@@ -1614,6 +1614,8 @@ class Block(PandasObject, libinternals.Block):
         We split the block to avoid copying the underlying data. We create new
         blocks for every connected segment of the initial block that is not deleted.
         The new blocks point to the initial array.
+
+        Assumes `loc` is strictly increasing when list-like.
         """
         if not is_list_like(loc):
             loc = [loc]
