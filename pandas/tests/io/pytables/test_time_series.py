@@ -97,6 +97,10 @@ def test_read_hdf_freq_bytes_attr(temp_file):
 
     with tables.open_file(temp_file, "a") as f:
         f.root.data.axis1._v_attrs.freq = old_freq_bytes
+        # pytables returns this as np.bytes_ on read-back; the guard's
+        #  isinstance(..., bytes) check covers it because np.bytes_ subclasses
+        #  bytes. Pin that assumption so a future pytables change is caught here.
+        assert isinstance(f.root.data.axis1._v_attrs["freq"], np.bytes_)
 
     with tm.assert_produces_warning(
         UserWarning, match="Could not decode freq attribute"
