@@ -74,6 +74,9 @@ def concatenate_managers(
     axes : list of Index
     concat_axis : int
     copy : bool
+    union_categories : bool, default False
+        If True, union the categories of categorical blocks being concatenated
+        rather than falling back to a non-categorical dtype.
 
     Returns
     -------
