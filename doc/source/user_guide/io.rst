@@ -4072,8 +4072,8 @@ similar to how ``read_csv`` and ``to_csv`` work.
    queried; calling ``to_hdf`` with ``append=True`` against an existing
    ``fixed``-format object raises ``ValueError``. Pass ``format="table"`` (or
    set ``pd.set_option("io.hdf.default_format", "table")``) when you intend to
-   append later. Each append must use exactly the same set of columns as the
-   existing table.
+   append later. Each append must use exactly the same columns, in the same
+   order, as the existing table.
 
 .. ipython:: python
    :suppress:
@@ -4460,10 +4460,10 @@ space. These are in terms of the total number of rows in a table.
 .. note::
 
    ``start`` and ``stop`` are applied to the table **before** the ``where``
-   filter, not after. ``select(..., where="val == 1", stop=1)`` reads only
+   filter, not after. ``select(..., where="A > 0", stop=1)`` reads only
    the first row from the table and *then* applies ``where`` to that row, so
    it returns an empty result if the first row does not match. This differs
-   from the SQL idiom ``SELECT * FROM df WHERE val = 1 LIMIT 1``.
+   from the SQL idiom ``SELECT * FROM df WHERE A > 0 LIMIT 1``.
 
 .. note::
 

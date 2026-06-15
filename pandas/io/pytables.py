@@ -846,7 +846,7 @@ class HDFStore:
         Parameters
         ----------
         fsync : bool, default False
-          Call ``os.fsync()`` on the file handle to force writing to disk.
+            Call ``os.fsync()`` on the file handle to force writing to disk.
 
         See Also
         --------
@@ -1184,8 +1184,10 @@ class HDFStore:
 
         Returns
         -------
-        DataFrame
-            Concatenated result from the selected tables.
+        DataFrame or TableIterator
+            Concatenated result from the selected tables. A ``TableIterator``
+            is returned instead when ``iterator=True`` or ``chunksize`` is
+            given.
 
         Raises
         ------
@@ -1801,10 +1803,10 @@ class HDFStore:
         Create a pytables index on the table.
 
         Indexes are automatically created on indexable axes and
-        ``data_columns`` during ``append``/``put``. This method lets you
-        add or rebuild indexes after the fact, which is **highly
-        encouraged** because it greatly speeds up ``select`` calls that
-        filter on the indexed dimension.
+        ``data_columns`` during ``append``/``put`` when ``index=True``
+        (the default). This method lets you add or rebuild indexes after
+        the fact, which is **highly encouraged** because it greatly speeds
+        up ``select`` calls that filter on the indexed dimension.
 
         Parameters
         ----------
