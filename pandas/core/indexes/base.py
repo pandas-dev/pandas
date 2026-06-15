@@ -5693,7 +5693,7 @@ class Index(IndexOpsMixin, PandasObject):
         https://github.com/pandas-dev/pandas/issues/19764
         """
         if (
-            is_object_dtype(self.dtype)
+            self.dtype == object
             or is_string_dtype(self.dtype)
             or isinstance(self.dtype, CategoricalDtype)
         ):
