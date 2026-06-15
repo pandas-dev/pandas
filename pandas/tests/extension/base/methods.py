@@ -1,9 +1,11 @@
 import inspect
+from io import StringIO
 import operator
 
 import numpy as np
 import pytest
 
+from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
 
 from pandas.core.dtypes.common import (
@@ -291,6 +293,35 @@ class BaseMethodsTests:
             {"A": [1, 1, 2], "B": data_for_sorting.take([2, 0, 1])}, index=[2, 0, 1]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_for_sorting.copy()
+        result = arr.sort()
+        assert result is None
+        expected = data_for_sorting.take([2, 0, 1])
+        tm.assert_extension_array_equal(arr, expected)
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_for_sorting.copy()
+        arr.sort(ascending=False)
+        if pd.Series(data_for_sorting).nunique() == 2:
+            expected = data_for_sorting.take([0, 1, 2])
+        else:
+            expected = data_for_sorting.take([1, 0, 2])
+        tm.assert_extension_array_equal(arr, expected)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_missing_for_sorting.copy()
+        arr.sort(na_position=na_position)
+        if na_position == "last":
+            expected = data_missing_for_sorting.take([2, 0, 1])
+        else:
+            expected = data_missing_for_sorting.take([1, 2, 0])
+        tm.assert_extension_array_equal(arr, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_rank(self, data_for_sorting, ascending):
@@ -831,3 +862,27 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
+
+    def test_values_for_json(self, data):
+        # GH 65047
+        values: np.ndarray = data._values_for_json()
+
+        # Check that the result is a numpy array
+        assert isinstance(values, np.ndarray)
+
+        # Check that the result is JSON-serializable
+        assert isinstance(ujson_dumps(values), str)
+
+        # Check that Series.to_json uses _values_for_json
+        ser = pd.Series(data)
+        result: str = ser.to_json()
+        expected: str = pd.Series(values).to_json()
+        assert result == expected
+
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # Test roundtrip through JSON
+        ser = pd.Series(data)
+        result: str = ser.to_json()
+        ser_new = pd.read_json(StringIO(result), typ="series", dtype=data.dtype)
+        tm.assert_series_equal(ser_new, ser)
