@@ -123,6 +123,45 @@ def test_categorical_dtype_numeric_duplicates(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        "a\nTrue\nFalse\nTrue",
+        "a\ntrue\nfalse\ntrue",
+        "a\nTRUE\nFALSE\nTRUE",
+    ],
+)
+def test_categorical_dtype_infers_boolean(all_parsers, data):
+    # GH#56044 boolean-looking columns infer bool categories across all
+    #  engines, matching non-categorical parsing
+    parser = all_parsers
+    expected = DataFrame({"a": Categorical([True, False, True])})
+    actual = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_boolean_duplicates(all_parsers):
+    # GH#56044 distinct strings that convert to the same bool should be
+    #  merged into a single category
+    parser = all_parsers
+    data = "a\nTrue\nTRUE\ntrue\nFalse"
+    expected = DataFrame({"a": Categorical([True, True, True, False])})
+    actual = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_boolean_custom_values(all_parsers):
+    # GH#56044 true_values/false_values are honored when inferring bool
+    #  categories
+    parser = all_parsers
+    data = "a\nyes\nno\nyes"
+    expected = DataFrame({"a": Categorical([True, False, True])})
+    actual = parser.read_csv(
+        StringIO(data), dtype="category", true_values=["yes"], false_values=["no"]
+    )
+    tm.assert_frame_equal(actual, expected)
+
+
 @xfail_pyarrow  # ValueError: The 'thousands' option is not supported
 def test_categorical_dtype_thousands(all_parsers):
     # GH#56044 numeric inference is unaware of the thousands option,
