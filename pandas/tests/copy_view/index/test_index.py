@@ -155,8 +155,8 @@ def test_index_where_noop():
     assert result._references.has_reference()
 
     expected = idx.copy(deep=True)
-    ser = Series(result)
-    ser.iloc[0] = 100
+    result = Series(result)
+    result.iloc[0] = 100
     tm.assert_index_equal(idx, expected)
 
 
