@@ -692,10 +692,16 @@ def test_append_misc_empty_frame(temp_hdfstore):
         temp_hdfstore.append("df", df_empty)
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-    # store
+    # store with fixed format stores the empty frame without warning
     df = DataFrame(columns=list("ABC"))
     temp_hdfstore.put("df2", df, track_times=False)
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
+
+    # put with format="table" is a no-op and warns, like append
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.put("df3", df_empty, format="table", track_times=False)
+    with pytest.raises(KeyError, match="'No object named df3 in the file'"):
+        temp_hdfstore.select("df3")
 
 
 def test_append_raise(temp_hdfstore):

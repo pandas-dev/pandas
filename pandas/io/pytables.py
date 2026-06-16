@@ -2069,7 +2069,7 @@ class HDFStore:
         track_times: bool = True,
     ) -> None:
         # we don't want to store a table node at all if our object is 0-len
-        # as there are not dtypes
+        # as there are no dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
             warnings.warn(
                 "Writing an empty DataFrame or Series with format='table' "
