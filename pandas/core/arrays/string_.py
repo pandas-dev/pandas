@@ -1160,6 +1160,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         >>> arr.searchsorted([4])
         array([3])
         """
+
+        # GH#65837: avoid O(n) scan; NA confined to array ends in sorted data
         ndarray = self._ndarray
         if len(ndarray) and (
             libmissing.checknull(ndarray[0]) or libmissing.checknull(ndarray[-1])
