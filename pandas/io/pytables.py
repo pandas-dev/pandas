@@ -5714,8 +5714,9 @@ def _get_data_and_dtype_name(data: ArrayLike):
 
 def _or_of_ands_columns(condition) -> set[str]:
     """
-    Look for an OR whose operands are themselves multi-column ANDs, e.g.
-    ``(A & B) | (C & D)``, in a pruned PyTables condition tree.
+    Look for an OR with at least one multi-column AND operand, e.g.
+    ``(A & B) | (C & D)`` or ``(A & B) | C``, in a pruned PyTables condition
+    tree.
 
     This is the query shape that can trigger an upstream PyTables bug where
     index-accelerated reads silently drop matching rows (GH#50598). Return the
@@ -5804,8 +5805,9 @@ class Selection:
 
     def _warn_if_unreliable_or(self) -> None:
         """
-        Warn for ``(A & B) | (C & D)`` queries over indexed columns that can
-        return incorrect results due to an upstream PyTables bug (GH#50598).
+        Warn for nested-OR queries with AND-ed operands over indexed columns
+        (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
+        an upstream PyTables bug (GH#50598).
         """
         table = getattr(self.table, "table", None)
         if table is None or table.chunkshape is None:
@@ -5821,11 +5823,11 @@ class Selection:
         ):
             return
         warnings.warn(
-            "Reading with a nested 'where' of the form '(A & B) | (C & D)' over "
-            "indexed columns can return incorrect results due to an upstream "
-            "PyTables bug (GH#50598). To get correct results, write the table "
-            "with 'index=False', or run each OR branch as a separate query and "
-            "concatenate the results.",
+            "Reading with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can return incorrect "
+            "results due to an upstream PyTables bug (GH#50598). To get correct "
+            "results, write the table with 'index=False', or run each OR branch "
+            "as a separate query and concatenate the results.",
             UserWarning,
             stacklevel=find_stack_level(),
         )

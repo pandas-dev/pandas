@@ -1108,20 +1108,22 @@ def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit)
 
 def _multichunk_indexed_frame(n=200):
     # wide "pad" column forces the table to span more than one chunk (row group),
-    # a precondition for the PyTables bug in GH#50598
+    # a precondition for the PyTables bug in GH#50598. PyTables picks chunkshape
+    # heuristically, so pad generously to keep rows-per-chunk well below n across
+    # PyTables versions/platforms (the same string object is reused, so it's cheap)
     return DataFrame(
         {
             "a": np.arange(n) % 5,
             "b": np.arange(n) % 7,
-            "pad": ["x" * 2000] * n,
+            "pad": ["x" * 20000] * n,
         }
     )
 
 
 def test_select_nested_or_query_warns(temp_hdfstore):
-    # GH#50598 nested '(A & B) | (C & D)' queries over indexed columns on a
-    # multi-chunk table can return incorrect results due to an upstream PyTables
-    # bug, so warn the user.
+    # GH#50598 nested queries that OR together AND-ed conditions over indexed
+    # columns on a multi-chunk table can return incorrect results due to an
+    # upstream PyTables bug, so warn the user.
     n = 200
     df = _multichunk_indexed_frame(n)
     temp_hdfstore.put(
@@ -1130,8 +1132,13 @@ def test_select_nested_or_query_warns(temp_hdfstore):
     # sanity check: the table really does span more than one chunk
     assert temp_hdfstore.get_storer("df").table.chunkshape[0] < n
 
-    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
-        temp_hdfstore.select("df", where="(a >= 0 & b <= 3) | (a <= 4 & b >= 2)")
+    # both the symmetric and asymmetric shapes can hit the bug, so both warn
+    for where in [
+        "(a >= 0 & b <= 3) | (a <= 4 & b >= 2)",  # (A & B) | (C & D)
+        "(a >= 0 & b <= 3) | b >= 2",  # (A & B) | C
+    ]:
+        with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+            temp_hdfstore.select("df", where=where)
 
     # query shapes not affected by the bug must NOT warn
     for where in [
