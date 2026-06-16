@@ -513,6 +513,7 @@ class PythonParser(ParserBase):
                 cats.get_indexer(values),
                 cast_type,
                 true_values=self.true_values,
+                false_values=self.false_values,
                 convert_numeric=convert_numeric,
             )
 
