@@ -96,11 +96,9 @@ class TestAstype:
 
     def test_astype_bytes(self):
         # GH 57925
-        from pandas import Series
+        idx = Index([b"fdhijklm", b"fdhijklm", b"fdaijklm"], dtype=object)
+        cat_idx = idx.astype("category")
 
-        ser = Series([b"fdhijklm", b"fdhijklm", b"fdaijklm"], dtype=object)
-        cat_ser = ser.astype("category")
-
-        result = cat_ser.cat.categories.astype(bytes)
+        result = cat_idx.categories.astype(bytes)
         expected = Index([b"fdaijklm", b"fdhijklm"], dtype=bytes)
         tm.assert_index_equal(result, expected)
