@@ -3224,6 +3224,16 @@ def test_dt_timedelta_components_different_units(unit):
     for col in result.columns:
         assert pd.isna(result[col].iloc[1])
 
+    # GH 63470: the direct .dt.<component> accessors must match the NumPy-backed
+    # result at every unit. In particular .dt.microseconds on a coarser unit
+    # (e.g. "ms") must scale up the sub-second portion rather than returning 0.
+    ser_numpy = pd.Series([td.as_unit(unit), None])
+    for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
+        expected = pd.Series(
+            getattr(ser_numpy.dt, attr).values, dtype="Int32[pyarrow]"
+        ).where(ser_arrow.notna(), pd.NA)
+        tm.assert_series_equal(getattr(ser_arrow.dt, attr), expected)
+
 
 def test_dt_timedelta_components_all_null():
     # Test all-null array hits the min_scalar.is_valid fast path

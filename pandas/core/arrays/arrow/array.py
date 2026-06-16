@@ -3483,15 +3483,20 @@ class ArrowExtensionArray(
     @property
     def _dt_microseconds(self) -> Self:
         # Total microseconds in sub-second portion (0-999999), per Python timedelta
+        # semantics. For units coarser than microseconds (e.g. "ms") the sub-second
+        # portion must be scaled *up* to microseconds rather than returning 0.
         unit = self._duration_unit
         divisors = _DURATION_DIVISORS
-        if unit not in divisors["microsecond"]:
-            # Unit is coarser than microseconds, result is always 0
-            return self._dt_zero_or_null_int32()
-        # Get sub-second portion: remainder % (divisor for 1 second)
+        # Sub-second portion, expressed in the storage unit (always non-negative)
         sub_second = mod_int(self._dt_day_remainder, divisors["second"][unit])
-        # Convert to microseconds
-        result = pc.divide(sub_second, divisors["microsecond"][unit])
+        units_per_second = divisors["second"][unit]
+        micros_per_second = divisors["second"]["us"]
+        if units_per_second >= micros_per_second:
+            # Unit at least as fine as microseconds: divide down (e.g. ns -> us)
+            result = pc.divide(sub_second, units_per_second // micros_per_second)
+        else:
+            # Unit coarser than microseconds: scale up (e.g. ms -> us)
+            result = pc.multiply(sub_second, micros_per_second // units_per_second)
         return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
