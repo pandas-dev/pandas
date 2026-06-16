@@ -152,7 +152,15 @@ def generate_daily_offset_range(
     i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
 
     if abs_n > 1:
-        i8values = i8values[::abs_n]
+        # When trimming from the end (end+periods case), the buffer starts
+        # at an arbitrary date (end - buffer_days), so a forward [::abs_n]
+        # stride would anchor there. Reverse first so the stride is anchored
+        # on the last on-offset date <= end, e.g. freq="2B" yields
+        # ..., last-4, last-2, last business day (GH#64648).
+        if trim_from_end:
+            i8values = i8values[::-1][::abs_n][::-1]
+        else:
+            i8values = i8values[::abs_n]
 
     if trim_to is not None:
         if trim_from_end:
