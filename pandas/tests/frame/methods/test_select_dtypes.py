@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under16p0
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -720,20 +721,23 @@ def test_select_dtypes_string_spec_matches_arrow_strings(spec):
     # GH#59888: "string"/StringDtype name the string kind and also match
     # Arrow-backed string columns
     pa = pytest.importorskip("pyarrow")
-    df = DataFrame(
-        {
-            "default": pd.array(["x", "y"], dtype="str"),
-            "nullable": pd.array(["x", "y"], dtype="string"),
-            "arrow": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
-            "large": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.large_string())),
-            "view": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string_view())),
-            "num": [1, 2],
-        }
-    )
+    data = {
+        "default": pd.array(["x", "y"], dtype="str"),
+        "nullable": pd.array(["x", "y"], dtype="string"),
+        "arrow": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
+        "large": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.large_string())),
+        "num": [1, 2],
+    }
+    string_cols = ["default", "nullable", "arrow", "large"]
+    if not pa_version_under16p0:
+        # pa.string_view requires pyarrow>=16
+        data["view"] = pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string_view()))
+        string_cols.append("view")
+    df = DataFrame(data)
     # compare columns, not frames: assert_frame_equal raises for string_view
     # columns (ArrowDtype.type is not implemented for string_view)
     result = df.select_dtypes(include=spec)
-    assert list(result.columns) == ["default", "nullable", "arrow", "large", "view"]
+    assert list(result.columns) == string_cols
     result = df.select_dtypes(exclude=spec)
     assert list(result.columns) == ["num"]
 
