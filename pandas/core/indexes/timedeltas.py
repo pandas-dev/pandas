@@ -169,6 +169,8 @@ def _get_timedelta_string_reso(label: str) -> Resolution:
 
     finest = Resolution.RESO_DAY
 
+    # parse_timedelta_unit re-parses tokens Timedelta(label) already handled,
+    #  so any deprecation warning has already reached the user; suppress the dup.
     # TODO(4.0): Remove once deprecated unit aliases in parse_timedelta_unit
     #  are enforced (e.g. "S" -> "s", "H" -> "h").
     with warnings.catch_warnings():
