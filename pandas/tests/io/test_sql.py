@@ -2648,6 +2648,16 @@ def test_sqlite_type_mapping(sqlite_buildin):
             assert col.split()[1] == "TIMESTAMP"
 
 
+def test_sqlite_dtype_not_string_raises(sqlite_buildin):
+    # GH61385 to_sql with non-string dtype on a raw sqlite3 connection
+    # should raise a clear, actionable ValueError
+    conn = sqlite_buildin
+    df = DataFrame({"A": [1.0, 2.0], "B": [3.0, 4.0]})
+    msg = "When using a DB-API connection"
+    with pytest.raises(ValueError, match=msg):
+        df.to_sql(name="test_dtype_not_string", con=conn, dtype={"A": float})
+
+
 # -----------------------------------------------------------------------------
 # -- Database flavor specific tests
 
