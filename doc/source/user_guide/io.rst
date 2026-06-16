@@ -1281,6 +1281,16 @@ is whitespace).
    df = pd.read_fwf("bar.csv", header=None, index_col=0)
    df
 
+The number of rows used for inference is controlled by the ``infer_nrows``
+parameter. If a column contains values wider than anything appearing in the
+first ``infer_nrows`` rows, those values may be truncated. To infer column
+specifications from the entire file, pass ``infer_nrows=np.inf``:
+
+.. ipython:: python
+
+   df = pd.read_fwf("bar.csv", header=None, index_col=0, infer_nrows=np.inf)
+   df
+
 ``read_fwf`` supports the ``dtype`` parameter for specifying the types of
 parsed columns to be different from the inferred type.
 
@@ -4985,6 +4995,16 @@ object : ``strings``                                    ``np.nan``
 ======================================================  =========================
 
 ``unicode`` columns are not supported, and **WILL FAIL**.
+
+Several extension dtypes are not supported as DataFrame columns or Series
+values and will raise :class:`NotImplementedError` on write. In particular,
+:class:`IntervalDtype`, :class:`SparseDtype`, and the nullable
+integer/float/boolean dtypes (``Int8``, ``Float64``, ``boolean``, ...) cannot
+be stored. Convert such columns to a NumPy dtype (for example
+``df["col"] = df["col"].astype("float64")``) before writing. The same
+restriction applies to using these dtypes as the row :class:`Index`; a
+:class:`Series` or :class:`DataFrame` whose index is one of these dtypes
+likewise cannot be written.
 
 .. _io.hdf5-categorical:
 

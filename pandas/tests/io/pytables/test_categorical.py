@@ -173,6 +173,22 @@ def test_categorical_nan_only_columns(temp_h5_path):
     tm.assert_frame_equal(result, expected)
 
 
+def test_categorical_nan_rep_collision(temp_h5_path):
+    # GH#21741 - a category equal to the default nan_rep ("nan") used to
+    # raise a broadcasting ValueError on read. It should instead be read
+    # back as NaN, with the surviving codes renumbered correctly.
+    df = DataFrame(
+        {"A": Series(["aaa", "nan", "bbb", "aaa", "zzz", "bbb"]).astype("category")}
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, key="df")
+
+    expected = DataFrame(
+        {"A": Series(["aaa", np.nan, "bbb", "aaa", "zzz", "bbb"]).astype("category")}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("where, expected", [["q", []], ["a", ["a"]]])
 def test_convert_value(temp_h5_path, where: str, expected):
     # GH39420
@@ -201,4 +217,24 @@ def test_categorical_select_non_sorted_categories(temp_h5_path):
         result = store.select("df", "col1='a'")
 
     expected = df[df["col1"] == "a"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "where, mask",
+    [
+        ('col == "z"', lambda col: col == "z"),
+        ('col in ["z", "y"]', lambda col: col.isin(["z", "y"])),
+        ('col in ["a", "z"]', lambda col: col.isin(["a", "z"])),
+        ('col != "z"', lambda col: col != "z"),
+    ],
+)
+def test_categorical_where_non_category_with_nan(temp_h5_path, where, mask):
+    # GH#22977 - querying for a value that is not one of the categories must
+    # not match NaN rows (whose code is also -1)
+    df = DataFrame({"col": Categorical(["a", "b", np.nan, "a"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    result = read_hdf(temp_h5_path, "df", where=where)
+    expected = df[mask(df["col"])]
     tm.assert_frame_equal(result, expected)

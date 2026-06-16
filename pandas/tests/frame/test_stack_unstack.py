@@ -870,7 +870,7 @@ class TestDataFrameReshape:
             right = sorted(map(cast, right))
             assert left == right
 
-    @pytest.mark.parametrize("idx", itertools.permutations(["1st", "2nd", "3rd"]))
+    @pytest.mark.parametrize("idx", list(itertools.permutations(["1st", "2nd", "3rd"])))
     @pytest.mark.parametrize("lev", list(range(3)))
     @pytest.mark.parametrize("col", ["4th", "5th"])
     def test_unstack_nan_index_repeats(self, idx, lev, col):
@@ -2321,9 +2321,11 @@ class TestStackUnstackMultiLevel:
     )
     @pytest.mark.parametrize(
         "levels",
-        itertools.chain.from_iterable(
-            itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
-            for width in [2, 3]
+        list(
+            itertools.chain.from_iterable(
+                itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
+                for width in [2, 3]
+            )
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))
