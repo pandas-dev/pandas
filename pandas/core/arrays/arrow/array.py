@@ -36,6 +36,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under21p0,
 )
+from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     set_module,
@@ -2354,7 +2355,10 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
-        if name in ["any", "all"] and (
+        if name == "count":
+            return self.count()
+
+        elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
@@ -2417,6 +2421,8 @@ class ArrowExtensionArray(
                     [0, len(data)], data.combine_chunks()
                 )[0]
                 return pc.binary_join(data_list, "")
+        elif name in ["argmin", "argmax"]:
+            return super()._reduce(name, skipna=skipna, **kwargs)
 
         else:
             pyarrow_name = {
@@ -2430,15 +2436,20 @@ class ArrowExtensionArray(
             # "Callable[[Any, Any, KwArg(Any)], Any]")
             pyarrow_meth = getattr(pc, pyarrow_name, None)  # type: ignore[assignment]
             if pyarrow_meth is None:
-                # Let ExtensionArray._reduce raise the TypeError
-                return super()._reduce(name, skipna=skipna, **kwargs)
+                raise TypeError(
+                    f"'{type(self).__name__}' with dtype {self.dtype} "
+                    f"does not support operation '{name}'"
+                )
 
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
-        if name in ["any", "all"] and "min_count" not in kwargs:
+        if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
         elif name == "median":
             # GH 52679: Use quantile instead of approximate_median
             kwargs["q"] = 0.5
+        elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
+            # pyarrow defaults to ddof=0, pandas behavior is ddof=1
+            kwargs["ddof"] = 1
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -2479,7 +2490,13 @@ class ArrowExtensionArray(
         return result
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         """
         Return a scalar result of performing the reduction operation.
@@ -2492,6 +2509,8 @@ class ArrowExtensionArray(
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        axis : int or None, default 0
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -2504,6 +2523,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        nv.validate_minmax_axis(axis, self.ndim)
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if isinstance(result, pa.Array):
             return self._from_pyarrow_array(result)
@@ -2537,6 +2557,114 @@ class ArrowExtensionArray(
             return result
         else:
             return pa_result
+
+    def sum(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_sum((), kwargs)
+        return self._reduce(
+            "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
+
+    def min(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_min((), kwargs)
+        return self._reduce("min", skipna=skipna, axis=axis, **kwargs)
+
+    def max(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_max((), kwargs)
+        return self._reduce("max", skipna=skipna, axis=axis, **kwargs)
+
+    def mean(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_mean((), kwargs)
+        return self._reduce("mean", skipna=skipna, axis=axis, **kwargs)
+
+    def sem(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+
+    def skew(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+
+    def median(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_median((), kwargs)
+        return self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+
+    def var(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        return self._reduce("var", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+
+    def std(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        return self._reduce("std", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+
+    def prod(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_prod((), kwargs)
+        return self._reduce(
+            "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
 
     def _explode(self):
         """
