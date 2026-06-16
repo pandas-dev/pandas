@@ -703,6 +703,35 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     assert len(calls) == 1  # parallel by default elsewhere
 
 
+def test_parallel_default_thread_cap(tmp_path, monkeypatch):
+    """The default worker count is capped at 4, regardless of core count."""
+    import pandas.io.parsers.readers as _readers
+
+    path = tmp_path / "big.csv"
+    _make_large_csv(path)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_readers.sys, "platform", "linux")
+    # More cores than the cap: the default should clamp down to 4.
+    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
+
+    workers = []
+
+    def stub(_path, _kwds, n_workers):
+        workers.append(n_workers)
+        return DataFrame()
+
+    monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
+
+    read_csv(path)
+    assert workers == [4]
+
+    # An explicit mode.max_threads still overrides the cap.
+    workers.clear()
+    with option_context("mode.max_threads", 8):
+        read_csv(path)
+    assert workers == [8]
+
+
 # ---------------------------------------------------------------------------
 # Regression tests: inputs the parallel path must hand back to serial
 # (all results must be identical to a serial read of the same bytes)

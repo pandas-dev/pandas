@@ -1535,10 +1535,10 @@ Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
 The number of threads is controlled with the ``mode.max_threads`` option,
-which defaults to the number of CPU cores. On Windows the default is ``1``
-(serial), as parallel reading currently does not improve performance there.
-Set the option to ``1`` to disable parallel reading, e.g. when pandas runs
-inside an application that already parallelizes work:
+which defaults to the number of CPU cores, capped at ``4``. On Windows the
+default is ``1`` (serial), as parallel reading currently does not improve
+performance there. Set the option to ``1`` to disable parallel reading, e.g.
+when pandas runs inside an application that already parallelizes work:
 
 .. code-block:: python
 

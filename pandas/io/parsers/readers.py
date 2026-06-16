@@ -336,7 +336,11 @@ def _read(
             # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
             _n_workers = 1
         else:
-            _n_workers = os.cpu_count() or 1
+            # Cap the default at 4 threads: parallel CSV reading sees
+            # diminishing returns beyond a handful of workers, and a lower
+            # default avoids oversubscribing the machine.  Users who want more
+            # can opt in explicitly via mode.max_threads.
+            _n_workers = min(os.cpu_count() or 1, 4)
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             _filepath = stringify_path(filepath_or_buffer)
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
@@ -365,8 +369,8 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     Return True when a ``read_csv`` call is eligible for parallel execution.
 
     Parallel reading works by splitting the file's data section into
-    ``os.cpu_count()`` byte-range chunks at newline boundaries and processing
-    them concurrently with threads.  The following conditions must all hold:
+    byte-range chunks at newline boundaries and processing them concurrently
+    with threads.  The following conditions must all hold:
 
     * *filepath_or_buffer* is a local file path (not a URL or file object).
     * The file is not compressed.
