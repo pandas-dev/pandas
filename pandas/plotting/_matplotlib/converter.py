@@ -98,8 +98,6 @@ def plottable_types() -> list[type]:
 def get_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
     """Return a list of (type, converter) pairs for the matplotlib units registry."""
     pairs = [
-        (Timestamp, DatetimeConverter),
-        (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
         (pydt.time, TimeConverter),
