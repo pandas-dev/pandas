@@ -2236,7 +2236,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if any(exclude):
             arr_exclude = (x for x in exclude if x in arr_columns)
-            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}  # pyright: ignore[reportUnhashable]
+            to_remove = {
+                arr_columns.get_loc(col)
+                for col in arr_exclude  # pyright: ignore[reportUnhashable]
+            }
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -2382,9 +2385,13 @@ class DataFrame(NDFrame, OpsMixin):
             # columns, whichever is applicable.
             if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
-                    dtype_mapping = dtype_mapping[name]  # pyright: ignore[reportOptionalSubscript]
+                    dtype_mapping = dtype_mapping[  # pyright: ignore[reportOptionalSubscript]
+                        name
+                    ]
                 elif index_int in dtype_mapping:
-                    dtype_mapping = dtype_mapping[index_int]  # pyright: ignore[reportOptionalSubscript]
+                    dtype_mapping = dtype_mapping[  # pyright: ignore[reportOptionalSubscript]
+                        index_int
+                    ]
                 else:
                     dtype_mapping = None
 
@@ -2821,8 +2828,9 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
-        engine: Literal["auto", "pyarrow", "fastparquet"]
-        | lib.NoDefault = lib.no_default,
+        engine: (
+            Literal["auto", "pyarrow", "fastparquet"] | lib.NoDefault
+        ) = lib.no_default,
         compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -2843,8 +2851,17 @@ class DataFrame(NDFrame, OpsMixin):
         path : str, path object, file-like object, or None, default None
             String, path object (implementing ``os.PathLike[str]``), or file-like
             object implementing a binary ``write()`` function. If None, the result is
-            returned as bytes. If a string or path, it will be used as Root Directory
-            path when writing a partitioned dataset.
+            returned as bytes. If a string or path, it will be used as the root
+            directory path when writing a partitioned dataset.
+
+            The string could be a URL. Valid URL schemes include http, ftp, s3,
+            gs, and file. For file URLs, a host is expected. A local file could be:
+            ``file://localhost/path/to/table.parquet``. A remote example could be:
+            ``s3://bucket/path/to/table.parquet``.
+
+            Certain URL schemes may require additional packages. For example, S3
+            URLs require the ``s3fs`` library. See
+            :ref:`install.optional_dependencies` for a full list.
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -3000,11 +3017,20 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         path : str, file-like object or None, default None
-            If a string, it will be used as Root Directory path
+            If a string, it will be used as the root directory path
             when writing a partitioned dataset. By file-like object,
             we refer to objects with a write() method, such as a file handle
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
+
+            The string could be a URL. Valid URL schemes include http, ftp, s3,
+            gs, and file. For file URLs, a host is expected. A local file could be:
+            ``file://localhost/path/to/table.orc``. A remote example could be:
+            ``s3://bucket/path/to/table.orc``.
+
+            Certain URL schemes may require additional packages. For example, S3
+            URLs require the ``s3fs`` library. See
+            :ref:`install.optional_dependencies` for a full list.
         engine : {'pyarrow'}, default 'pyarrow'
             ORC library to use.
         index : bool, optional
@@ -5558,13 +5584,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        **kwargs : callable or Series
+        **kwargs : callable, Series, scalar, array-like, or dict
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
-            If the values are not callable, (e.g. a Series, scalar, or array),
-            they are simply assigned.
+            If the values are not callable (e.g. a Series, scalar, array,
+            or dict), they are simply assigned. See the Notes section for
+            details on alignment and broadcasting.
 
         Returns
         -------
@@ -5626,6 +5653,14 @@ class DataFrame(NDFrame, OpsMixin):
                   temp_c  temp_f  temp_k
         Portland    17.0    62.6  290.15
         Berkeley    25.0    77.0  298.15
+
+        A dict value is aligned to the DataFrame's index by its keys, and
+        index labels not present in the dict are filled with NaN:
+
+        >>> df.assign(temp_k={"Portland": 290.15, "Berkeley": 298.15, "Seattle": 285.0})
+                  temp_c  temp_k
+        Portland    17.0  290.15
+        Berkeley    25.0  298.15
         """
         data = self.copy(deep=False)
 
@@ -6033,7 +6068,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: IndexLabel | ListLike = ...,
         columns: IndexLabel | ListLike = ...,
         level: Level = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
         errors: IgnoreRaise = ...,
     ) -> DataFrame | None: ...
 
@@ -6045,7 +6080,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: IndexLabel | ListLike = None,
         columns: IndexLabel | ListLike = None,
         level: Level | None = None,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         errors: IgnoreRaise = "raise",
     ) -> DataFrame | None:
         """
@@ -6076,6 +6111,14 @@ class DataFrame(NDFrame, OpsMixin):
         inplace : bool, default False
             If False, return a copy. Otherwise, do operation
             in place and return None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -6195,6 +6238,19 @@ class DataFrame(NDFrame, OpsMixin):
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.drop is deprecated "
+                "and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().drop(
             labels=labels,
             axis=axis,
@@ -6391,7 +6447,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "The inplace keyword in DataFrame.rename is "
                 "deprecated and will be removed in a future version. "
-                "See `PDEP-8 for more details:"
+                "See PDEP-8 for more details:"
                 "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
@@ -6648,7 +6704,6 @@ class DataFrame(NDFrame, OpsMixin):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                period = cast("int", period)
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
@@ -14164,7 +14219,7 @@ class DataFrame(NDFrame, OpsMixin):
                 returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
-            These only act when ``axis=1`` (columns):
+            How to interpret list-like results from `func`:
 
             * 'expand' : list-like results will be turned into columns.
             * 'reduce' : returns a Series if possible rather than expanding
@@ -15221,6 +15276,135 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
+    def describe(
+        self,
+        percentiles=None,
+        include=None,
+        exclude=None,
+    ) -> DataFrame:
+        """
+        Generate descriptive statistics.
+
+        Summarize the central tendency, dispersion, and shape of each
+        analyzed column's distribution, excluding ``NaN`` values. By
+        default only numeric columns are analyzed; pass ``include`` to
+        also analyze non-numeric columns (or ``exclude`` to omit columns
+        by dtype).
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            Which column dtypes to include. Options:
+
+            - ``'all'`` : Include all columns, including non-numeric ones.
+            - list-like of dtypes : Limit the result to columns of the
+              given dtypes, in the style of
+              :meth:`DataFrame.select_dtypes` (e.g. ``include=[np.number]``
+              or ``include=["category"]``).
+            - ``None`` (default) : Include only numeric columns, falling
+              back to object and categorical columns if there are no
+              numeric columns.
+        exclude : list-like of dtypes or None (default), optional
+            Column dtypes to omit from the result, in the style of
+            :meth:`DataFrame.select_dtypes`. ``None`` (default) excludes
+            nothing.
+
+        Returns
+        -------
+        DataFrame
+            Summary statistics of the DataFrame's columns.
+
+        See Also
+        --------
+        Series.describe : Generate descriptive statistics of a Series.
+        DataFrame.count : Count of non-NA observations per column.
+        DataFrame.max : Maximum of the values in each column.
+        DataFrame.min : Minimum of the values in each column.
+        DataFrame.mean : Mean of the values.
+        DataFrame.std : Standard deviation of the observations.
+        DataFrame.select_dtypes : Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
+        Notes
+        -----
+        For numeric columns, the result's index includes ``count``,
+        ``mean``, ``std``, ``min``, ``max``, and the requested
+        percentiles. By default the lower percentile is ``25`` and the
+        upper is ``75``; the ``50`` percentile is the same as the median.
+
+        For object columns, the result's index includes ``count``,
+        ``unique``, ``top``, and ``freq``. The ``top`` is the most common
+        value and ``freq`` is its count. If multiple values tie for the
+        highest count, ``top`` is chosen arbitrarily from among them.
+
+        With ``include='all'``, the result's index is the union of the
+        per-dtype indices, with ``NaN`` for statistics that do not apply
+        to a given column's dtype.
+
+        Examples
+        --------
+        By default, only numeric columns are analyzed.
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "categorical": pd.Categorical(["d", "e", "f"]),
+        ...         "numeric": [1, 2, 3],
+        ...         "object": ["a", "b", "c"],
+        ...     }
+        ... )
+        >>> df.describe()
+               numeric
+        count      3.0
+        mean       2.0
+        std        1.0
+        min        1.0
+        25%        1.5
+        50%        2.0
+        75%        2.5
+        max        3.0
+
+        All columns regardless of dtype.
+
+        >>> df.describe(include="all")  # doctest: +SKIP
+               categorical  numeric object
+        count            3      3.0      3
+        unique           3      NaN      3
+        top              f      NaN      a
+        freq             1      NaN      1
+        mean           NaN      2.0    NaN
+        std            NaN      1.0    NaN
+        min            NaN      1.0    NaN
+        25%            NaN      1.5    NaN
+        50%            NaN      2.0    NaN
+        75%            NaN      2.5    NaN
+        max            NaN      3.0    NaN
+
+        Restrict the result to a specific dtype.
+
+        >>> df.describe(include=["category"])
+               categorical
+        count            3
+        unique           3
+        top              d
+        freq             1
+
+        Exclude a specific dtype.
+
+        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+               categorical object
+        count            3      3
+        unique           3      3
+        top              f      a
+        freq             1      1
+        """
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
+
     def corr(
         self,
         method: CorrelationMethod = "pearson",
@@ -15975,8 +16159,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be False, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -16132,8 +16318,10 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be True, as for an empty row/column.
-            If skipna is False, then NA are treated as True, because these are not
-            equal to zero.
+            If skipna is False, NA values are treated as True for NumPy-backed
+            dtypes (since they are not equal to zero). For nullable dtypes such
+            as ``boolean``, NA values propagate following
+            :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -16247,7 +16435,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16354,7 +16542,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16430,7 +16618,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16534,7 +16722,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16654,7 +16842,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16778,7 +16966,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -16903,7 +17091,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
+            Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             .. warning::
@@ -17023,7 +17212,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
+            Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             .. warning::
@@ -17142,7 +17332,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
+            Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
             .. warning::
@@ -17264,7 +17455,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -17385,7 +17576,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        axis : {index (0), columns (1)}
+        axis : {index (0), columns (1)}, default 0
             Axis for the function to be applied on.
             For `Series` this parameter is unused and defaults to 0.
 
@@ -18851,7 +19042,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self):
+    def _to_dict_of_blocks(self) -> dict[str, DataFrame]:
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -18872,6 +19063,15 @@ class DataFrame(NDFrame, OpsMixin):
         .. warning::
 
            We recommend using :meth:`DataFrame.to_numpy` instead.
+           ``.values`` offers no way to control the output ``dtype``, copy
+           semantics, or the value used to fill missing entries, while
+           :meth:`DataFrame.to_numpy` exposes those as the ``dtype``,
+           ``copy``, and ``na_value`` arguments. The mutability of the
+           result also depends on the DataFrame's internal block layout:
+           when the DataFrame is backed by a single block the result is a
+           read-only view (writes raise); when there are multiple blocks
+           the result is a writable copy whose mutations do not propagate
+           back to the DataFrame.
 
         Only the values in the DataFrame will be returned, the axes labels
         will be removed.
@@ -18950,6 +19150,21 @@ class DataFrame(NDFrame, OpsMixin):
         array([['parrot', 24.0, 'second'],
                ['lion', 80.5, 1],
                ['monkey', nan, None]], dtype=object)
+
+        ``DataFrame.to_numpy`` produces the same array by default, but lets
+        you choose how missing values are represented and request a
+        guaranteed copy:
+
+        >>> df3 = pd.DataFrame({"a": [1, 2], "b": [3.0, np.nan]})
+        >>> df3.values
+        array([[ 1.,  3.],
+               [ 2., nan]])
+        >>> df3.to_numpy(na_value=-1)
+        array([[ 1.,  3.],
+               [ 2., -1.]])
+        >>> df3.to_numpy(dtype="float32", copy=True)
+        array([[ 1.,  3.],
+               [ 2., nan]], dtype=float32)
         """
         return self._mgr.as_array()
 

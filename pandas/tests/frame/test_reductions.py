@@ -24,6 +24,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    SparseDtype,
     Timestamp,
     date_range,
     isna,
@@ -861,6 +862,23 @@ class TestDataFrameAnalytics:
         result = df.sum(axis=1, skipna=skipna, min_count=min_count)
         value = "" if skipna and min_count == 0 else pd.NA
         expected = Series([value], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "min_count, expected",
+        [
+            (1, [7.0, 3.0, np.nan]),
+            (2, [7.0, np.nan, np.nan]),
+            (3, [np.nan, np.nan, np.nan]),
+        ],
+    )
+    def test_axis_1_sum_min_count_sparse(self, min_count, expected):
+        # https://github.com/pandas-dev/pandas/issues/55123
+        df = DataFrame({"A": [2.0, 3.0, np.nan], "B": [5.0, np.nan, np.nan]}).astype(
+            SparseDtype("float64")
+        )
+        result = df.sum(axis=1, skipna=True, min_count=min_count)
+        expected = Series(expected, dtype="float64")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])

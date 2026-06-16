@@ -752,6 +752,14 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot     30
         Name: Max Speed, dtype: int64
         """
+
+        if isinstance(func, list):
+            raise NotImplementedError(
+                "Passing a list to SeriesGroupBy.transform is not yet supported "
+                "and is intended to be implemented in a future release. "
+                "See https://github.com/pandas-dev/pandas/issues/58318."
+            )
+
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
@@ -951,105 +959,50 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
         """
-        Generate descriptive statistics.
+        Generate descriptive statistics for each group.
 
-        Descriptive statistics include those that summarize the central
-        tendency, dispersion and shape of a
-        dataset's distribution, excluding ``NaN`` values.
-
-        Analyzes both numeric and object series, as well
-        as ``DataFrame`` column sets of mixed data types. The output
-        will vary depending on what is provided. Refer to the notes
-        below for more detail.
+        Within each group, summarize the central tendency, dispersion,
+        and shape of the Series's distribution, excluding ``NaN`` values.
+        The per-group statistics depend on the Series's dtype; see Notes.
 
         Parameters
         ----------
         percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should
-            fall between 0 and 1. The default, ``None``, will automatically
-            return the 25th, 50th, and 75th percentiles.
-        include : 'all', list-like of dtypes or None (default), optional
-            A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
-
-            - 'all' : All columns of the input will be included in the output.
-            - A list-like of dtypes : Limits the results to the
-              provided data types.
-              To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to object columns submit
-              the ``numpy.object`` data type. Strings
-              can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
-              select pandas categorical columns, use ``'category'``
-            - None (default) : The result will include all numeric columns.
-        exclude : list-like of dtypes or None (default), optional,
-            A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
-
-            - A list-like of dtypes : Excludes the provided data types
-              from the result. To exclude numeric types submit
-              ``numpy.number``. To exclude object columns submit the data
-              type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
-              exclude pandas categorical columns, use ``'category'``
-            - None (default) : The result will exclude nothing.
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : None
+            Has no effect on a Series groupby. Deprecated and will be
+            removed in a future version.
+        exclude : None
+            Has no effect on a Series groupby. Deprecated and will be
+            removed in a future version.
 
         Returns
         -------
-        Series or DataFrame
-            Summary statistics of the Series or Dataframe provided.
+        DataFrame
+            One row per group; columns are the per-group statistics.
 
         See Also
         --------
-        DataFrame.count: Count number of non-NA/null observations.
-        DataFrame.max: Maximum of the values in the object.
-        DataFrame.min: Minimum of the values in the object.
-        DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the observations.
-        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
-            columns based on their dtype.
+        Series.describe : Generate descriptive statistics of a Series.
+        DataFrameGroupBy.describe : Generate descriptive statistics for
+            each group of a DataFrame.
 
         Notes
         -----
-        For numeric data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
-        upper percentiles. By default the lower percentile is ``25`` and the
-        upper percentile is ``75``. The ``50`` percentile is the
-        same as the median.
+        For numeric Series, the per-group columns are ``count``, ``mean``,
+        ``std``, ``min``, ``max``, and the requested percentiles. By
+        default the lower percentile is ``25`` and the upper is ``75``;
+        the ``50`` percentile is the same as the median.
 
-        For object data (e.g. strings), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
-        is the most common value. The ``freq`` is the most common value's
-        frequency.
-
-        If multiple object values have the highest count, then the
-        ``count`` and ``top`` results will be arbitrarily chosen from
-        among those with the highest count.
-
-        For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the DataFrame consists
-        only of object and categorical data without any numeric columns, the
-        default is to return an analysis of both the object and categorical
-        columns. If ``include='all'`` is provided as an option, the result
-        will include a union of attributes of each type.
-
-        The `include` and `exclude` parameters can be used to limit
-        which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
+        For object Series (e.g. strings), the per-group columns are
+        ``count``, ``unique``, ``top``, and ``freq``. The ``top`` is the
+        most common value within the group and ``freq`` is its count.
 
         Examples
         --------
-        Describing a numeric ``Series``.
-
         >>> s = pd.Series([1, 2, 3, 4])
-
-        >>> s
-        0    1
-        1    2
-        2    3
-        3    4
-        dtype: int64
-
         >>> s.groupby([1, 1, 2, 2]).describe()
            count  mean       std  min   25%  50%   75%  max
         1    2.0   1.5  0.707107  1.0  1.25  1.5  1.75  2.0
@@ -2571,7 +2524,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
-    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+    def transform(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         """
         Call function producing a same-indexed DataFrame on each group.
 
@@ -2580,7 +2533,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        func : function, str
+        func : function, str, list, or dict
             Function to apply to each group.
             See the Notes section below for requirements.
 
@@ -2589,8 +2542,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             - String
             - Python function
             - Numba JIT function with ``engine='numba'`` specified.
+            - List of strings/functions: applied to every non-key column,
+              returning a MultiIndex-column DataFrame ``(column, func)``.
+            - Dict ``{column: func}`` or ``{name: NamedFunc(column, func)}``:
+              applied per-column as specified.
 
-            Only passing a single function is supported with this engine.
+            .. versionchanged:: 3.1.0
+                    Added support for list-like, dict, and :class:`NamedFunc` arguments.
+
+            Only passing a single function is supported with the numba engine.
             If the ``'numba'`` engine is chosen, the function must be
             a user defined function with ``values`` and ``index`` as the
             first and second arguments respectively in the function signature.
@@ -2599,6 +2559,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             If a string is chosen, then it needs to be the name
             of the groupby method you want to use.
+
         *args
             Positional arguments to pass to func.
         engine : str, default None
@@ -2609,7 +2570,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
-            * For ``'numba'`` engine, the engine can accept  ``nogil``
+            * For ``'numba'`` engine, the engine can accept ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nogil': False, 'parallel': False}`` and will be
@@ -2617,6 +2578,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         **kwargs
             Keyword arguments to be passed into func.
+            When ``func=None``, ``**kwargs`` should be pairs of
+            ``output_name=NamedFunc(column, func)``.
 
         Returns
         -------
@@ -2718,9 +2681,177 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  5  9
         4  5  8
         5  5  9
+
+        List-like arguments
+
+        >>> df2 = pd.DataFrame({"col": list("aab"), "val": range(3), "other": range(3)})
+        >>> df2.groupby("col").transform(["sum", "min"])
+           val       other
+           sum min   sum min
+        0    1   0     1   0
+        1    1   0     1   0
+        2    2   2     2   2
+
+        Dictionary arguments
+
+        >>> df2.groupby("col").transform({"val": "sum", "other": "min"})
+           val  other
+        0    1      0
+        1    1      0
+        2    2      2
+
+        Named aggregation
+
+        >>> df2.groupby("col").transform(
+        ...     val_sum=pd.NamedAgg(column="val", aggfunc="sum"),
+        ...     other_min=pd.NamedAgg(column="other", aggfunc="min"),
+        ... )
+           val_sum  other_min
+        0        1          0
+        1        1          0
+        2        2          2
         """
-        return self._transform(
-            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+        # GH#58318 - extended to accept list, dict, and NamedAgg kwargs.
+
+        if func is None:
+            # Named-aggregation style:
+            #   .transform(val_sum=NamedAgg(column="val", aggfunc="sum"), ...)
+            return self._transform_multiple_funcs(
+                kwargs, *args, engine=engine, engine_kwargs=engine_kwargs
+            )
+        elif is_dict_like(func):
+            # e.g. .transform({"val": "sum"}) or {"name": NamedAgg(...)}
+            # Dict-of-lists is not yet supported.
+            for val in func.values():
+                if is_list_like(val):
+                    raise NotImplementedError(
+                        "Passing a dict of lists to DataFrameGroupBy.transform is "
+                        "not yet supported and is intended to be implemented in a "
+                        "future release. "
+                        "See https://github.com/pandas-dev/pandas/issues/58318"
+                    )
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        elif is_list_like(func):
+            # e.g. .transform(["sum", "min"])
+            func = maybe_mangle_lambdas(func)
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+        else:
+            return self._transform(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
+            )
+
+    def _transform_multiple_funcs(
+        self,
+        func: list | dict,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> DataFrame:
+        """
+        Handle list-like and dict dispatch for DataFrameGroupBy.transform.
+
+        Parameters
+        ----------
+        func : list or dict
+            - list of str/callable: applied to every non-key column, producing
+              a MultiIndex-column DataFrame (column, func_name).
+            - dict mapping output_name -> str/callable or NamedAgg.
+        """
+        from pandas.core.reshape.concat import concat
+
+        if is_dict_like(func):
+            # Also includes NamedAgg / NamedFunc
+            func = cast("dict", func)
+            results: list[Series] = []
+            for name, agg in func.items():
+                if isinstance(agg, NamedAgg):
+                    column_name = agg.column
+                    agg_func = agg.aggfunc
+                elif isinstance(agg, tuple) and len(agg) == 2:
+                    # plain tuple (column, func) — same semantics as NamedAgg
+                    column_name = agg[0]
+                    agg_func = agg[1]
+                else:
+                    # plain {"col": "sum"} — column IS the key
+                    column_name = name
+                    agg_func = agg
+                result = self._transform_single_column(
+                    column_name,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                result.name = name
+                results.append(result)
+            return concat(results, axis=1)
+
+        # list path
+        # Apply every func to every non-key column.
+        assert is_list_like(func)
+        results_list: list[Series] = []
+        col_order: list[tuple] = []
+        for column in self._obj_with_exclusions.columns:
+            for agg_func in func:
+                col_result = self._transform_single_column(
+                    column,
+                    agg_func,
+                    *args,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                    **kwargs,
+                )
+                col_result.name = (column, agg_func)
+                results_list.append(col_result)
+                col_order.append((column, agg_func))
+
+        # Use ignore_index=True then assign MultiIndex — avoids redundant work.
+        output = concat(results_list, ignore_index=True, axis=1)
+        arrays = [list(x) for x in zip(*col_order, strict=False)]
+        output.columns = MultiIndex.from_arrays(arrays)
+        return output
+
+    def _transform_single_column(
+        self,
+        column_name: Hashable,
+        agg_func: Callable | str,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict | None = None,
+        **kwargs,
+    ) -> Series:
+        """
+        Apply a single transform function to one column via SeriesGroupBy.
+
+        Parameters
+        ----------
+        column_name : Hashable
+            Column label to select from the grouped DataFrame.
+        agg_func : callable or str
+            Transform function to apply to the selected column.
+        *args
+            Positional arguments to pass to ``agg_func``.
+        engine : str, default None
+            Passed through to ``SeriesGroupBy.transform``.
+        engine_kwargs : dict, default None
+            Passed through to ``SeriesGroupBy.transform``.
+        **kwargs
+            Keyword arguments to pass to ``agg_func``.
+
+        Returns
+        -------
+        Series
+            Transformed Series with the same index as the original DataFrame.
+        """
+        data = self._gotitem(column_name, ndim=1)
+        return data.transform(
+            agg_func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
 
     def _define_paths(self, func, *args, **kwargs):
@@ -3163,6 +3294,83 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._idxmax_idxmin("idxmin", numeric_only=numeric_only, skipna=skipna)
 
     boxplot = boxplot_frame_groupby
+
+    def describe(
+        self,
+        percentiles=None,
+        include=None,
+        exclude=None,
+    ) -> DataFrame:
+        """
+        Generate descriptive statistics for each group.
+
+        Within each group, summarize the central tendency, dispersion,
+        and shape of each analyzed column's distribution, excluding
+        ``NaN`` values. By default only numeric columns are analyzed;
+        pass ``include`` to also analyze non-numeric columns (or
+        ``exclude`` to omit columns by dtype).
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should fall
+            between 0 and 1. The default, ``None``, returns the 25th,
+            50th, and 75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            Which column dtypes to include. Options:
+
+            - ``'all'`` : Include all columns, including non-numeric ones.
+            - list-like of dtypes : Limit the result to columns of the
+              given dtypes, in the style of
+              :meth:`DataFrame.select_dtypes` (e.g. ``include=[np.number]``
+              or ``include=["category"]``).
+            - ``None`` (default) : Include only numeric columns, falling
+              back to object and categorical columns if there are no
+              numeric columns.
+        exclude : list-like of dtypes or None (default), optional
+            Column dtypes to omit from the result, in the style of
+            :meth:`DataFrame.select_dtypes`. ``None`` (default) excludes
+            nothing.
+
+        Returns
+        -------
+        DataFrame
+            One row per group. The columns form a MultiIndex whose
+            outer level is the analyzed column and whose inner level is
+            the statistic name.
+
+        See Also
+        --------
+        DataFrame.describe : Generate descriptive statistics of a DataFrame.
+        SeriesGroupBy.describe : Generate descriptive statistics for each
+            group of a Series.
+        DataFrame.select_dtypes : Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
+        Notes
+        -----
+        For numeric columns, the per-group statistics are ``count``,
+        ``mean``, ``std``, ``min``, ``max``, and the requested
+        percentiles. By default the lower percentile is ``25`` and the
+        upper is ``75``; the ``50`` percentile is the same as the median.
+
+        For object columns, the per-group statistics are ``count``,
+        ``unique``, ``top``, and ``freq``. The ``top`` is the most common
+        value within the group and ``freq`` is its count.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"group": ["a", "a", "b", "b"], "value": [1, 2, 3, 4]})
+        >>> df.groupby("group").describe()
+              value
+              count mean       std  min   25%  50%   75%  max
+        group
+        a       2.0  1.5  0.707107  1.0  1.25  1.5  1.75  2.0
+        b       2.0  3.5  0.707107  3.0  3.25  3.5  3.75  4.0
+        """
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
 
     def value_counts(
         self,
