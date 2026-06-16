@@ -437,14 +437,22 @@ def test_assert_frame_equal_nested_df_na(na_value):
 
 
 def test_assert_frame_equal_check_freq_columns():
-    # GH#51920 check_freq=True now also applies to datetimelike columns
+    # GH#51920 a freq mismatch on datetimelike columns is being introduced via
+    #  a deprecation: it warns by default, raises only with check_freq=True
     cols = pd.date_range("2016-01-01", periods=2)
     df1 = DataFrame([[1, 2]], columns=cols)
     df2 = DataFrame([[1, 2]], columns=cols._with_freq(None))
-    msg = 'Attribute "freq" are different'
-    with pytest.raises(AssertionError, match=msg):
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
         tm.assert_frame_equal(df1, df2)
-    tm.assert_frame_equal(df1, df2, check_freq=False)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(df1, df2, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(df1, df2, check_freq=False)
 
 
 @pytest.mark.parametrize(

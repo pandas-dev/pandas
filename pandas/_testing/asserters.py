@@ -1133,11 +1133,6 @@ def assert_series_equal(
     if check_like:
         left = left.reindex_like(right)
 
-    if check_freq and isinstance(left.index, (DatetimeIndex, TimedeltaIndex)):
-        lidx = left.index
-        ridx = cast("DatetimeIndex | TimedeltaIndex", right.index)
-        assert lidx.freq == ridx.freq, (lidx.freq, ridx.freq)
-
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
         # is False. We'll still raise if only one is a `Categorical`,
@@ -1285,7 +1280,7 @@ def assert_frame_equal(
     check_datetimelike_compat: bool = False,
     check_categorical: bool = True,
     check_like: bool = False,
-    check_freq: bool = True,
+    check_freq: bool | lib.NoDefault = lib.no_default,
     check_flags: bool = True,
     rtol: float | lib.NoDefault = lib.no_default,
     atol: float | lib.NoDefault = lib.no_default,
@@ -1358,8 +1353,11 @@ def assert_frame_equal(
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex
         index or columns.
 
-        .. versionchanged:: 3.1.0
-            Previously only the index was checked, now the columns are as well.
+        .. deprecated:: 3.1.0
+            The ``freq`` attribute of :class:`DatetimeIndex`/:class:`TimedeltaIndex`
+            columns is not yet checked by default; a mismatch currently only warns
+            and will raise in a future version. Pass ``check_freq`` explicitly to
+            silence the warning.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
@@ -1407,6 +1405,10 @@ def assert_frame_equal(
     _rtol = rtol if rtol is not lib.no_default else 1.0e-5
     _atol = atol if atol is not lib.no_default else 1.0e-8
     _check_exact = check_exact if check_exact is not lib.no_default else False
+    # The index freq has long been checked by default, so preserve that hard
+    # check; the columns freq check is new and goes through the deprecation
+    # warning in assert_index_equal (passing check_freq unresolved). GH#51920
+    _check_freq = True if check_freq is lib.no_default else check_freq
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
@@ -1433,7 +1435,7 @@ def assert_frame_equal(
         check_exact=_check_exact,
         check_categorical=check_categorical,
         check_order=not check_like,
-        check_freq=check_freq,
+        check_freq=_check_freq,
         rtol=_rtol,
         atol=_atol,
         obj=f"{obj}.index",
@@ -1495,7 +1497,7 @@ def assert_frame_equal(
                     check_names=check_names,
                     check_datetimelike_compat=check_datetimelike_compat,
                     check_categorical=check_categorical,
-                    check_freq=check_freq,
+                    check_freq=_check_freq,
                     obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
                     rtol=rtol,
                     atol=atol,
