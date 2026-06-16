@@ -226,8 +226,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        # Note: Don't use macOS latest since macos 14 appears to be arm64 only
-        os: [macos-13, macos-14, windows-latest]
+        os: [macos-15-intel, macos-15, windows-latest]
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
