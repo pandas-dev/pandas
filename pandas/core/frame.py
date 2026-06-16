@@ -549,11 +549,17 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype,
                     copy,
                 )
-            elif isinstance(data, (ABCSeries, ABCIndex)) and data.name is not None:
-                # i.e. Series/Index with non-None name
+            elif isinstance(data, Index):
+                # GH#65889: always copy Index data to avoid mutating the original
+                mgr = ndarray_to_mgr(
+                    data,
+                    index,
+                    columns,
+                    dtype=dtype,
+                    copy=True,
+                )
+            elif isinstance(data, ABCSeries) and data.name is not None:
                 mgr = dict_to_mgr(
-                    # error: Item "ndarray" of "Union[ndarray, Series, Index]" has no
-                    # attribute "name"
                     {data.name: data},
                     index,
                     columns,
