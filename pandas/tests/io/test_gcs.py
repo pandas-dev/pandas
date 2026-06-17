@@ -1,11 +1,24 @@
 from io import BytesIO
 import os
 import pathlib
+import sys
 import tarfile
 import zipfile
 
 import numpy as np
 import pytest
+
+if sys.platform == "win32" and sys.version_info < (3, 10):
+    # Importing gcsfs pulls in aiohttp, whose import-time call to
+    # ssl.create_default_context() iterates the Windows trust store. Python
+    # 3.9's ssl module raises ssl.SSLError when a cert in the store has
+    # malformed ASN.1 data (Python 3.10+ silently skips bad certs). This
+    # happens during pytest collection (via the @td.skip_if_installed("gcsfs")
+    # decorator below), so the whole file fails to collect.
+    pytest.skip(
+        "gcsfs/aiohttp import triggers ssl.SSLError on Windows + Python 3.9",
+        allow_module_level=True,
+    )
 
 from pandas.compat.pyarrow import pa_version_under17p0
 
