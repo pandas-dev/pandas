@@ -226,7 +226,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        os: [macos-15-intel, macos-15, windows-latest]
+        os: [macos-15-intel, macos-15, windows-2022]
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
