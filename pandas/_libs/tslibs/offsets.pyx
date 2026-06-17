@@ -1927,6 +1927,15 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
         self.__dict__.update(state)
 
+    def __reduce__(self):
+        # GH#45790: BaseOffset.__reduce__ can't be used here because
+        #  RelativeDeltaOffset has kwargs not captured by _attributes.
+        #  We need our own __reduce__ (rather than relying on __getstate__/
+        #  __setstate__) so that pickle protocol 0 also works — pytables
+        #  hardcodes protocol 0 when storing object attrs, which routes
+        #  through copyreg._reduce_ex and breaks for RelativeDeltaOffset.
+        return type(self), (), self.__getstate__()
+
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         other_nanos = 0
