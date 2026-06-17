@@ -5,8 +5,6 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -452,8 +450,11 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
-@td.skip_copy_on_write_not_yet_implemented
+@pytest.mark.xfail(
+    pd.get_option("mode.copy_on_write") is True,
+    reason="Not yet implemented/adapted for Copy-on-Write mode",
+    strict=False,
+)
 def test_np_fix():
     # np.fix is not a ufunc but is composed of several ufunc calls under the hood
     # with `out` and `where` keywords
