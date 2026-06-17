@@ -226,8 +226,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        # Note: Don't use macOS latest since macos 14 appears to be arm64 only
-        os: [macos-13, macos-14, windows-latest]
+        os: [macos-15-intel, macos-15, windows-latest]
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -288,7 +287,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython==3.0.10 python-dateutil "pytz<2024.2" pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir versioneer[toml] cython==3.0.10 python-dateutil "pytz<2024.2" "pytest>=7.3.2,<9.1" pytest-xdist>=2.2.0 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
@@ -326,7 +325,7 @@ jobs:
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil "pytz<2024.2" pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil "pytz<2024.2" "pytest>=7.3.2,<9.1" pytest-xdist>=2.2.0 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
           python -m pip list --no-cache-dir
 
@@ -368,8 +367,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Separate out macOS 13 and 14, since macOS 14 is arm64 only
-        os: [ubuntu-22.04, macOS-13, macOS-14, windows-latest]
+        os: [ubuntu-22.04, macos-15-intel, macos-15, windows-latest]
 
     timeout-minutes: 90
 
@@ -400,7 +398,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
-          python -m pip install python-dateutil "pytz<2024.2" tzdata cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov
+          python -m pip install python-dateutil "pytz<2024.2" tzdata cython hypothesis>=6.46.1 "pytest>=7.3.2,<9.1" pytest-xdist>=2.2.0 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
           python -m pip list
 

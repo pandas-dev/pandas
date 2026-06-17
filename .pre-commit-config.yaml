@@ -99,6 +99,12 @@ repos:
     rev: v3.15.0
     hooks:
     -   id: pyupgrade
+        # pre-commit.ci runs hooks under Python 3.14, where pyupgrade v3.15.0
+        # crashes (tokenize.cookie_re became a bytes pattern). Pin to 3.13 to
+        # avoid this; bumping pyupgrade is not an option here because newer
+        # versions rewrite to single-arg Generator[...] which the pinned
+        # mypy 1.8.0 cannot parse.
+        language_version: python3.13
         args: [--py39-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0

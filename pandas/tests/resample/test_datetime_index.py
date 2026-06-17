@@ -8,6 +8,7 @@ import pytz
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
 from pandas.compat import is_platform_windows
+from pandas.compat.pyarrow import pa_version_under22p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2209,7 +2210,7 @@ def test_resample_b_55282(unit):
         pytest.param(
             "UTC",
             marks=pytest.mark.xfail(
-                condition=is_platform_windows(),
+                condition=is_platform_windows() and pa_version_under22p0,
                 reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
             ),
         ),

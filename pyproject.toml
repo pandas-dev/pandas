@@ -596,6 +596,14 @@ show_column_numbers = false
 show_error_codes = true
 
 [[tool.mypy.overrides]]
+# pyarrow ships py.typed, but its dynamically generated pyarrow.compute
+# functions are not statically declared, so the pinned mypy 1.8.0 reports
+# them as missing attributes. Treat pyarrow as untyped, as it was before it
+# shipped inline type information.
+module = ["pyarrow.*"]
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
 module = [
   "pandas._config.config", # TODO
   "pandas._libs.*",

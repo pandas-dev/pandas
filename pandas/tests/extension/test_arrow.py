@@ -35,13 +35,13 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
     PY312,
-    is_ci_environment,
     is_platform_windows,
     pa_version_under11p0,
     pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under20p0,
     pa_version_under21p0,
+    pa_version_under22p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -70,7 +70,7 @@ from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 def _require_timezone_database(request):
-    if is_platform_windows() and is_ci_environment():
+    if is_platform_windows() and pa_version_under22p0:
         mark = pytest.mark.xfail(
             raises=pa.ArrowInvalid,
             reason=(
