@@ -242,7 +242,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
                 for i, col in enumerate(["year", "week", "day"])
             }
         )
-        return iso_calendar_df
+        return iso_calendar_df.set_index(self._parent.index)
 
     @property
     def components(self) -> DataFrame:

@@ -244,6 +244,7 @@ Datetimelike
 - Bug in :class:`ArrowExtensionArray` where adding a :class:`DateOffset` to a ``date32[pyarrow]`` or ``date64[pyarrow]`` Series raised an ``ArrowTypeError`` (:issue:`57168`)
 - Bug in :class:`DatetimeIndex` constructor raising ``ValueError`` when passing equivalent but not equal frequencies (e.g. ``QS-FEB`` vs ``QS-MAY``) (:issue:`61086`)
 - Bug in :class:`DatetimeIndex` raising ``AttributeError`` when comparing against Arrow date types (date32, date64) (:issue:`62051`)
+- Bug in :meth:`Series.dt.isocalendar` not preserving the :class:`Series` index for PyArrow-backed date data (:issue:`65894`)
 - Bug in :class:`Timestamp` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Timestamp` constructor where strings with a negative year of fewer than 4 digits (e.g. ``"-111-01-01"``) silently dropped the leading ``"-"`` and were parsed as a positive year; BC dates with 1-4 digit years now parse correctly, matching :class:`numpy.datetime64` (:issue:`55954`)
 - Bug in :class:`Timestamp` constructor, :class:`Timedelta` constructor, :func:`to_datetime`, and :func:`to_timedelta` with non-round ``float`` input and ``unit`` failing to raise when the value is just outside the representable bounds (:issue:`57366`)
