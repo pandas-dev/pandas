@@ -1,7 +1,7 @@
 .. _whatsnew_303:
 
-What's new in 3.0.3 (April XX, 2026)
----------------------------------------
+What's new in 3.0.3 (May 11, 2026)
+----------------------------------
 
 These are the changes in pandas 3.0.3. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -9,18 +9,46 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_303.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+- Starting with pandas 3.0.0, time zones are represented by default using the
+  standard library's :mod:`zoneinfo` module (or ``datetime.timezone`` for fixed
+  offsets) instead of using ``pytz`` (:ref:`release note  <whatsnew_300.api_breaking.pytz>`).
+
+  The IO methods using ``pyarrow`` under the hood such as :func:`read_parquet`,
+  :func:`read_feather` and :func:`read_orc` (or :func:`read_csv` when specifying
+  the engine) were still returning timezone using ``pytz``. Those have now been
+  updated to consistently use default ``zoneinfo`` time zones as well (:issue:`65134`).
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_303.regressions:
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed a regression in :func:`pandas.bdate_range` where specifying ``end`` on a weekend with ``periods`` returned fewer dates than expected (:issue:`64834`)
+- Fixed a regression in :func:`to_timedelta` ignoring the ``unit`` argument for round float values when mixed with non-round floats in a list (:issue:`65150`)
+- Fixed a regression in :meth:`Series.rank` with custom extension dtypes (:issue:`64976`)
+- Fixed a regression in :meth:`Timedelta.round`, :meth:`Timedelta.floor`, and :meth:`Timedelta.ceil` raising ``ZeroDivisionError`` for sub-second ``freq`` (:issue:`64828`)
 - Fixed reading of Parquet files with timezone-aware timestamps or localizing of a timeseries with a ``pytz`` timezone when an older version of ``pytz`` was installed (:issue:`64978`)
+- Fixed a regression in :func:`read_csv` with ``engine="c"`` where ``thousands=","``
+  could incorrectly parse non-numeric values like ``"1 ,"`` as integers
+  instead of strings (:issue:`64655`)
+- Fixed a performance regression when working with timezone-aware timeseries data using a default ``zoneinfo`` time zone, i.e. slowdown when accessing components or localizing a naive timeseries (:issue:`64363`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
+- Fixed :class:`ArrowDtype` string arithmetic for addition between ``string`` and ``large_string`` typed arrays (:issue:`65220`)
+- Fixed a bug in adding missing values (e.g. :attr:`NA`) to a pyarrow-backed string array or Series
+  raising an error instead of propagating the missing value (:issue:`64968`)
+- Fixed a bug in :meth:`Series.rank` with period dtype and missing values, always sorting missing values at the top, regardless of the ``na_option`` value (:issue:`64976`)
+- Fixed a bug in reading files with a chained URL scheme (e.g. ``tar://``) with the latest version of ``fsspec`` (:issue:`65462`).
+- Fixed a hang in :meth:`Series.str.replace` for PyArrow-backed string data when replacing an empty pattern; behavior now matches Python's ``str.replace`` (:issue:`64941`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_303.contributors:
@@ -28,4 +56,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v3.0.2..v3.0.3|HEAD
+.. contributors:: v3.0.2..v3.0.3
