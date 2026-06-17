@@ -271,6 +271,20 @@ def test_put_mixed_type(temp_hdfstore, performance_warning, using_infer_string):
     tm.assert_frame_equal(expected, df)
 
 
+def test_put_mixed_object_block_warns_only_non_string_columns(temp_hdfstore):
+    # GH#28460 when several object columns are consolidated into one block,
+    #  the PerformanceWarning must name only the columns that are not plain
+    #  strings; a string-only column would not warn on its own.
+    df = DataFrame(
+        {"string": ["a", "b"], "number": [1.0, 2.0], "mix": ["a", 2.0]}
+    ).astype({"string": object, "mix": object})
+
+    with tm.assert_produces_warning(
+        pd.errors.PerformanceWarning, match=r"items->Index\(\['mix'\]"
+    ):
+        temp_hdfstore.put("df", df, track_times=False)
+
+
 def test_put_str_frame(temp_hdfstore, performance_warning, string_dtype_arguments):
     # https://github.com/pandas-dev/pandas/pull/60663
     dtype = pd.StringDtype(*string_dtype_arguments)
