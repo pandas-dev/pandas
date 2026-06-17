@@ -53,6 +53,31 @@ def test_select_columns_in_where(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("s", where="columns=['A']"), s)
 
 
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 3}, {"iterator": True}])
+@pytest.mark.parametrize(
+    "where",
+    ["columns=['A']", "columns!=['A']", "A>0 & columns=['A', 'B']"],
+)
+def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwargs):
+    # GH#12953 a column selection in the `where` argument is a projection, not a
+    # row filter, so it cannot be applied per-chunk; raise a clear error
+    # pointing to the `columns` argument instead of a cryptic KeyError.
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD")),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    msg = "is not supported with 'iterator' or 'chunksize'"
+    with pytest.raises(NotImplementedError, match=msg):
+        temp_hdfstore.select("df", where=where, **iter_kwargs)
+
+    # a plain row filter must keep working
+    result = concat(list(temp_hdfstore.select("df", where="A>0", **iter_kwargs)))
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", where="A>0"))
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = DataFrame(

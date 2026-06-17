@@ -2245,6 +2245,13 @@ class TableIterator:
                 raise TypeError("can only use an iterator or chunksize on a table")
 
             if self.where is not None:
+                if self.s._where_selects_columns(self.where):
+                    raise NotImplementedError(
+                        "selecting columns through the 'where' expression "
+                        "(e.g. \"columns=['A']\") is not supported with "
+                        "'iterator' or 'chunksize'; use the 'columns' argument "
+                        "instead"
+                    )
                 self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
@@ -2831,6 +2838,10 @@ class DataCol(IndexCol):
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
+            if not values.flags["ALIGNED"]:
+                # GH#54396 copy to realign; unaligned buffers SIGBUS
+                #  on strict-alignment platforms (e.g. 32-bit ARM)
+                values = values.copy()
 
         assert self.typ is not None
         if self.dtype is None:
@@ -2902,8 +2913,13 @@ class DataCol(IndexCol):
             else:
                 mask = isna(categories)
                 if mask.any():
+                    # A category can be NaN if the nan_rep string was itself
+                    # a genuine category on write. Drop NaN categories and
+                    # remap the codes. GH#21741
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum()._values
+                    codes = np.where(codes < 0, codes, remap[codes])
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered, validate=False
@@ -3166,7 +3182,10 @@ class GenericFixed(Fixed):
             factory = index_class
             kwargs["copy"] = False
 
-        if "freq" in attrs:
+        if "freq" in attrs and attrs["freq"] is not None:
+            # GH#33186 old versions of pandas wrote a freq=None attr on every
+            # index, including non-datetimelike ones; only a non-None freq is
+            # meaningful (and only a TimedeltaIndex reaches here as plain Index).
             kwargs["freq"] = attrs["freq"]
             if index_class is Index:
                 # DTI/PI would be gotten by _alias_to_class
@@ -3487,7 +3506,7 @@ class GenericFixed(Fixed):
                     warnings.warn(ws, PerformanceWarning, stacklevel=find_stack_level())
 
                 vlarr = self._handle.create_vlarray(
-                    self.group, key, _tables().ObjectAtom()
+                    self.group, key, _tables().ObjectAtom(), filters=self._filters
                 )
                 vlarr.append(value)
 
@@ -4664,14 +4683,32 @@ class Table(Fixed):
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         coords = selection.select_coords()
-        if selection.filter is not None:
-            for field, op, filt in selection.filter.format():
-                data = self.read_column(
-                    field, start=coords.min(), stop=coords.max() + 1
-                )
-                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
         return Index(coords, copy=False)
+
+    def _where_selects_columns(self, where) -> bool:
+        """
+        Whether ``where`` contains a column selection such as "columns=['A']".
+
+        Such a selection is a column projection rather than a row filter, which
+        cannot be applied via row coordinates and so is unsupported when
+        iterating (GH#12953); callers raise a clear error instead of returning
+        the wrong columns.
+        """
+        if not self.non_index_axes:
+            return False
+
+        selection = Selection(self, where=where)
+        if selection.filter is None:
+            return False
+
+        # a data-column row filter has a field matching a readable column; a
+        # column selection's field is the column-axis name (e.g. "columns")
+        data_column_names = {a.name for a in self.axes}
+        return any(
+            field not in data_column_names
+            for field, _op, _filt in selection.filter.format()
+        )
 
     def read_column(
         self,
@@ -5817,4 +5854,14 @@ class Selection:
         elif self.coordinates is not None:
             return self.coordinates
 
-        return np.arange(start, stop)
+        coords = np.arange(start, stop)
+        if self.filter is not None and len(coords):
+            # e.g. an "index in [...]" clause with more selectors than numexpr
+            #  can handle is realized as a post-read filter rather than a
+            #  numexpr condition (GH#17567)
+            for field, op, filt in self.filter.format():
+                data = self.table.read_column(
+                    field, start=coords.min(), stop=coords.max() + 1
+                )
+                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
+        return coords
