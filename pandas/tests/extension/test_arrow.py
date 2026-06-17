@@ -3375,6 +3375,23 @@ def test_dt_day_remainder_cache_not_pickled(tmp_path):
     tm.assert_extension_array_equal(result, arr)
 
 
+def test_dt_day_remainder_cache_invalidated_on_sort():
+    # GH 63470: sort() mutates _pa_array in place, so the _dt_day_remainder
+    # cache must be cleared or the duration components would be stale
+    arr = pd.array(
+        [pd.Timedelta("2 days 4:05:06"), pd.Timedelta("1 days 1:02:03")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr._dt_day_remainder  # populate the cache
+    assert "_dt_day_remainder" in arr._cache
+
+    arr.sort()
+    assert arr._cache == {}
+
+    # Components reflect the sorted order, not the pre-sort cache
+    assert arr._dt_seconds.tolist() == [3723, 14706]
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624

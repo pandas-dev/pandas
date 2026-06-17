@@ -1492,6 +1492,8 @@ class ArrowExtensionArray(
         )
         sorted_array = self.take(sort_indices)
         self._pa_array = sorted_array._pa_array
+        # Invalidate any cache_readonly properties that depend on _pa_array
+        self._cache.clear()
 
     def _argmin_max(self, skipna: bool, method: str) -> int:
         if self._pa_array.length() in (0, self._pa_array.null_count) or (
