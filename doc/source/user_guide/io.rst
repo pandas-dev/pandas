@@ -4199,6 +4199,12 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
    You can also create a ``table`` by passing ``format='table'`` or ``format='t'`` to a ``put`` operation.
 
+.. note::
+
+   Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
+   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
+   emitted. Use ``format='fixed'`` to store an empty object.
+
 .. _io.hdf5-keys:
 
 Hierarchical keys
