@@ -40,7 +40,7 @@ when an individual is representing the project or its community.
 A working group of community members is committed to promptly addressing any
 reported issues. The working group is made up of pandas contributors and users.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the working group by e-mail (pandas-coc@googlegroups.com).
+reported by contacting the working group by e-mail (coc@pandas.pydata.org).
 Messages sent to this e-mail address will not be publicly visible but only to
 the working group members. The working group currently includes
 
