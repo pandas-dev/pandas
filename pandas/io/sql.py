@@ -2507,6 +2507,8 @@ def _get_valid_sqlite_name(name: object) -> str:
     if nul_index >= 0:
         raise ValueError("SQLite identifier cannot contain NULs")
 
+    return chr(34) + uname.replace(chr(34), chr(34) + chr(34)) + chr(34)
+
 
 def _get_valid_adbc_name(name: object) -> str:
     """
