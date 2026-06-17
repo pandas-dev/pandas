@@ -702,7 +702,7 @@ of length "1".
     df.at["h", "cats"]  # returns a string
 
 .. note::
-    The is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
+    This is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
     returns a single value ``factor``.
 
 To get a single value ``Series`` of type ``category``, you pass in a list with
@@ -798,6 +798,14 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
     df
     df.dtypes
 
+.. note::
+
+    The examples above use ``.loc`` / ``.iloc`` to set values *within* an
+    existing categorical column, which preserves the ``category`` dtype.
+    Assigning to a full column with ``df["cats"] = value`` instead **replaces**
+    the column, so the dtype is inferred from ``value`` rather than kept. See
+    :ref:`indexing.column_assignment_vs_in_place` for details.
+
 .. _categorical.merge:
 .. _categorical.concat:
 
@@ -889,7 +897,7 @@ The below raises ``TypeError`` because the categories are ordered and not identi
    union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
-using the ``ignore_ordered=True`` argument.
+using the ``ignore_order=True`` argument.
 
 .. ipython:: python
 

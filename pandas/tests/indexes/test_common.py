@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 from pandas import (
-    CategoricalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
@@ -437,23 +436,18 @@ class TestCommon:
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
-def test_sort_values_invalid_na_position(index_with_missing, na_position):
+def test_sort_values_invalid_na_position(index_with_missing_sortable, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        index_with_missing_sortable.sort_values(na_position=na_position)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
-def test_sort_values_with_missing(index_with_missing, na_position, request):
+def test_sort_values_with_missing(index_with_missing_sortable, na_position):
     # GH 35584. Test that sort_values works with missing values,
     # sort non-missing and place missing according to na_position
 
-    if isinstance(index_with_missing, CategoricalIndex):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="missing value sorting order not well-defined", strict=False
-            )
-        )
+    index_with_missing = index_with_missing_sortable
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values

@@ -8,7 +8,6 @@ from functools import partial
 from io import (
     BytesIO,
     StringIO,
-    UnsupportedOperation,
 )
 import mmap
 import os
@@ -609,7 +608,7 @@ def test_encoding_errors_badtype(encoding_errors):
         reader(content)
 
 
-def test_bad_encdoing_errors(temp_file):
+def test_bad_encoding_errors(temp_file):
     # GH 39777
     with pytest.raises(LookupError, match="unknown error handler name"):
         icom.get_handle(temp_file, "w", errors="bad")
@@ -624,7 +623,10 @@ def test_errno_attribute():
 
 
 def test_fail_mmap():
-    with pytest.raises(UnsupportedOperation, match="fileno"):
+    # GH#45630 raise a clear ValueError instead of the cryptic
+    # UnsupportedOperation("fileno") from BytesIO
+    msg = "memory_map=True is only supported when reading from a file path"
+    with pytest.raises(ValueError, match=msg):
         with BytesIO() as buffer:
             icom.get_handle(buffer, "rb", memory_map=True)
 

@@ -632,11 +632,37 @@ class TestFrameFlexArithmetic:
         expected = float_frame.sort_index() * np.nan
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], fill_value=3)
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_arith_flex_frame_fill_value_series(self, axis):
+        # GH#61581
+        df = DataFrame({"A": [1.0, np.nan], "B": [np.nan, 4.0]})
+        if axis == 0:
+            ser = Series([np.nan, 2.0])
+            expected = DataFrame({"A": [11.0, 12.0], "B": [np.nan, 6.0]})
+        else:
+            ser = Series([np.nan, 2.0], index=["A", "B"])
+            expected = DataFrame({"A": [11.0, np.nan], "B": [12.0, 6.0]})
+        result = df.add(ser, axis=axis, fill_value=10)
+        tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], axis="index", fill_value=3)
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_arith_flex_frame_fill_value_series_mismatched_index(self, axis):
+        # GH#61581
+        ser = Series([10.0, np.nan], index=["A", "C"])
+        if axis == 0:
+            df = DataFrame({"A": [1.0, np.nan], "B": [np.nan, 4.0]}, index=["A", "B"])
+            expected = DataFrame(
+                {"A": [11.0, np.nan, np.nan], "B": [15.0, 9.0, np.nan]},
+                index=["A", "B", "C"],
+            )
+        else:
+            df = DataFrame({"A": [1.0, np.nan], "B": [np.nan, 4.0]}, index=[0, 1])
+            expected = DataFrame(
+                {"A": [11.0, 15.0], "B": [np.nan, 9.0], "C": [np.nan, np.nan]},
+                index=[0, 1],
+            )
+        result = df.add(ser, axis=axis, fill_value=5)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "mod"])
     def test_arith_flex_series_ops(self, simple_frame, op):
@@ -671,18 +697,26 @@ class TestFrameFlexArithmetic:
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
 
-    def test_arith_flex_zero_len_raises(self):
-        # GH 19522 passing fill_value to frame flex arith methods should
-        # raise even in the zero-length special cases
+    def test_arith_flex_zero_len_fill_value(self):
         ser_len0 = Series([], dtype=object)
         df_len0 = DataFrame(columns=["A", "B"])
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
+        msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
+        with pytest.raises(TypeError, match=msg):
             df.add(ser_len0, fill_value="E")
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df_len0.sub(df["A"], axis=None, fill_value=3)
+        result = df_len0.sub(df, axis=None, fill_value=3)
+        expected = DataFrame([[2, 1], [0, -1]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df_len0.sub(df["A"], axis=0, fill_value=3)
+        expected = DataFrame([[2, 2], [0, 0]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df_len0.sub(df["A"], axis=1, fill_value=3)
+        expected = DataFrame([], columns=["A", "B", 0, 1])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_flex_add_scalar_fill_value(self):
         # GH#12723
@@ -1197,6 +1231,20 @@ class TestFrameArithmetic:
         right = DataFrame([[1, 2], [3, 4]], columns=midx2)
         result = left - right
         expected = DataFrame([[-1, 1], [-1, 1]], columns=midx)
+        tm.assert_frame_equal(result, expected)
+
+    def test_div_axis_level_multiindex_columns(self):
+        # GH#64428
+        x = DataFrame(
+            [[1, 2, 3, 4], [5, 6, 7, 8]],
+            columns=MultiIndex.from_product((["X", "Y"], ["A", "B"])),
+        )
+        y = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        result = x.div(y, axis=1, level=1)
+        expected = DataFrame(
+            [[1 / 1, 2 / 2, 3 / 1, 4 / 2], [5 / 3, 6 / 4, 7 / 3, 8 / 4]],
+            columns=MultiIndex.from_product((["X", "Y"], ["A", "B"])),
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -1961,7 +2009,7 @@ class TestFrameArithmeticUnsorted:
             getattr(df, all_arithmetic_operators)(b)
 
     def test_dunder_methods_binary(self, all_arithmetic_operators):
-        # GH#??? frame.__foo__ should only accept one argument
+        # GH#36796 frame.__foo__ should only accept one argument
         df = DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
         b = df["B"]
         with pytest.raises(TypeError, match="takes 2 positional arguments"):
@@ -2152,6 +2200,79 @@ def test_arithmetic_multiindex_column_align_with_fillvalue():
     tm.assert_frame_equal(result, expected)
 
 
+def test_arithmetic_multiindex_with_nan_index_and_fill_value():
+    # GH#30857 partially-overlapping MultiIndexes with NaN entries on both
+    #  sides plus fill_value used to align onto a non-unique index because
+    #  MultiIndex.union failed to deduplicate NaN-bearing rows.
+    df0 = DataFrame(
+        data=np.arange(1, 19).reshape(9, 2),
+        columns=["happy", "sad"],
+        index=MultiIndex.from_product(
+            [["a", "b", None], [0, 1, np.nan]], names=["l0", "l1"]
+        ),
+    )
+    df1 = DataFrame(
+        data=np.arange(1, 19).reshape(9, 2),
+        columns=["happy", "sad"],
+        index=MultiIndex.from_product(
+            [["b", "c", None], [1, 2, np.nan]], names=["l0", "l1"]
+        ),
+    )
+
+    result = df0.subtract(df1, fill_value=0)
+
+    expected = DataFrame(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+            [7.0, 8.0],
+            [8.0, 8.0],
+            [-3.0, -4.0],
+            [6.0, 6.0],
+            [-7.0, -8.0],
+            [-9.0, -10.0],
+            [-11.0, -12.0],
+            [13.0, 14.0],
+            [2.0, 2.0],
+            [-15.0, -16.0],
+            [0.0, 0.0],
+        ],
+        columns=["happy", "sad"],
+        index=df0.index.union(df1.index),
+    )
+
+    tm.assert_frame_equal(result, expected)
+    assert result.index.is_unique
+
+
+def test_arithmetic_multiindex_add_with_mixed_string_datetime_index():
+    # GH#26558
+    df1 = DataFrame(
+        data=[10],
+        index=MultiIndex.from_tuples([("Z", "2019-05-31")]),
+        columns=["A"],
+    )
+    df2 = DataFrame(
+        data=[20],
+        index=MultiIndex.from_tuples([("Z", datetime(2019, 5, 31))]),
+        columns=["A"],
+    )
+
+    expected = DataFrame(
+        data=[20.0, 10.0],
+        index=MultiIndex.from_tuples(
+            [("Z", datetime(2019, 5, 31)), ("Z", "2019-05-31")]
+        ),
+        columns=["A"],
+    )
+
+    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
+        result = df1.add(df2, fill_value=0)
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_bool_frame_mult_float():
     # GH 18549
     df = DataFrame(True, list("ab"), list("cd"))
@@ -2231,3 +2352,42 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize(
+    "dtype, fill_val",
+    [
+        (tm.ALL_INT_EA_DTYPES[0], 10),
+        (tm.FLOAT_NUMPY_DTYPES[0], 4.9),
+        (tm.FLOAT_EA_DTYPES[0], 4.9),
+    ],
+)
+def test_df_mul_array_fill_value(dtype, fill_val, axis, request):
+    # GH 61581
+    df = DataFrame([[np.nan, 1, 2], [3, np.nan, 5]], dtype=dtype)
+    if axis == 0:
+        mult = pd.array([np.nan, 1.0], dtype=dtype)
+        expected = DataFrame(
+            [[np.nan, fill_val, fill_val * 2], [3.0, fill_val, 5.0]]
+        ).astype(dtype)
+    else:
+        mult = pd.array([np.nan, 1.0, 2.0], dtype=dtype)
+        expected = DataFrame(
+            [[np.nan, 1.0, 2.0 * 2.0], [3.0 * fill_val, fill_val, 5.0 * 2.0]]
+        ).astype(dtype)
+    result = df.mul(mult, axis=axis, fill_value=fill_val)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sum_mixed_empty(any_string_dtype):
+    # GH 64657
+    # for actual string dtype, sum gives "", for object dtype we get 0
+    expected = Series(
+        {"col1": "" if any_string_dtype == "string" else 0, "col2": 0}, dtype=object
+    )
+    empty_df = DataFrame(columns=["col1", "col2"]).astype(
+        {"col1": any_string_dtype, "col2": int}
+    )
+    result = empty_df.sum()
+    tm.assert_series_equal(result, expected)

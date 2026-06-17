@@ -244,7 +244,7 @@ def test_usecols_regex_sep(all_parsers):
     data = "a  b  c\n4  apple  bat  5.7\n8  orange  cow  10"
 
     if parser.engine == "pyarrow":
-        msg = "the 'pyarrow' engine does not support regex separators"
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), sep=r"\s+", usecols=("a", "b"))
         return

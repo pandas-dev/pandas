@@ -131,12 +131,12 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
         ),
         # MultiIndex
         (
-            DataFrame.from_records(
-                {"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
-            ).c,
-            DataFrame.from_records(
-                {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
-            ).c,
+            DataFrame({"a": [1, 2], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
+            )["c"],
+            DataFrame({"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}).set_index(
+                ["a", "b"]
+            )["c"],
             "Series\\.index level \\[0\\] are different",
         ),
     ],
@@ -417,6 +417,31 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, y, check_exact=True)
 
 
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            Series([pd.array([1, 2, 3])], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+        (
+            Series([[1, 2, 3]], dtype=object),
+            Series([np.array([1, 2, 3])], dtype=object),
+        ),
+    ],
+    ids=["extensionarray-vs-ndarray", "list-vs-ndarray"],
+)
+def test_assert_series_equal_nested_arraylike_type_mismatch_check_exact(left, right):
+    # GH#63904
+    msg = "Series are different"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(left, right, check_exact=True)
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(right, left, check_exact=True)
+
+
 @pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])
 def test_check_dtype_false_different_reso(dtype):
     # GH 52449
@@ -507,3 +532,14 @@ def test_assert_series_equal_check_exact_index_default(left_idx, right_idx):
     ser2 = Series(np.zeros(6, dtype=int), right_idx)
     tm.assert_series_equal(ser1, ser2)
     tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())
+
+
+def test_assert_series_equal_int_near_bounds():
+    # GH#40719 - integer comparisons near int64 bounds should be exact by default
+    min_val = np.iinfo(np.int64).min
+    ser1 = Series([min_val], dtype=np.int64)
+    ser2 = Series([min_val + 1], dtype=np.int64)
+
+    msg = "Series are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_series_equal(ser1, ser2)

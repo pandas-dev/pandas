@@ -7,8 +7,6 @@ import time
 import numpy as np
 import pytest
 
-from pandas.compat import PY312
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -26,6 +24,7 @@ import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
 )
+from pandas.util.version import Version
 
 from pandas.io.pytables import (
     HDFStore,
@@ -53,6 +52,19 @@ def test_context(temp_h5_path):
         assert type(tbl["a"]) == DataFrame
 
 
+def test_track_times_default_deprecated(temp_h5_path):
+    # GH#51456 - not passing track_times explicitly warns about default change
+    df = DataFrame({"a": [1]})
+    msg = "The default value of 'track_times' in HDFStore.put"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        with HDFStore(temp_h5_path, mode="w") as hdf:
+            hdf.put("table", df, format="table", data_columns=True)
+
+
+@pytest.mark.xfail(
+    Version(tables.hdf5_version) >= Version("2"),
+    reason="track_times=False produces non-deterministic files with HDF5 >= 2",
+)
 def test_no_track_times(temp_h5_path):
     # GH 32682
     # enables to set track_times (see `pytables` `create_table` documentation)
@@ -160,6 +172,25 @@ def test_repr_get_storer(temp_hdfstore):
     str(s)
 
 
+@pytest.mark.parametrize(
+    "obj, expected",
+    [
+        (DataFrame(np.zeros((0, 1), dtype=np.int64)), [0, 1]),
+        (DataFrame(np.zeros((0, 3))), [0, 3]),
+        (
+            DataFrame({"a": Series(dtype=np.int64), "b": Series(dtype=np.float64)}),
+            [0, 2],
+        ),
+        (Series(dtype=np.int64), (0,)),
+    ],
+)
+def test_get_storer_shape_empty(temp_hdfstore, obj, expected):
+    # GH#37235 fixed-format storer reported a phantom length-1 axis for
+    # objects with no rows
+    temp_hdfstore.put("obj", obj, format="fixed", track_times=False)
+    assert temp_hdfstore.get_storer("obj").shape == expected
+
+
 def test_contains(temp_hdfstore):
     store = temp_hdfstore
     store["a"] = Series(
@@ -191,40 +222,6 @@ def test_contains(temp_hdfstore):
             index=Index([f"i-{i}" for i in range(30)]),
         )
     assert "node())" in store
-
-
-def test_versioning(temp_hdfstore):
-    store = temp_hdfstore
-    store["a"] = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-    )
-    store["b"] = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
-    )
-    df = DataFrame(
-        np.random.default_rng(2).standard_normal((20, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=20, freq="B"),
-    )
-    store.append("df1", df[:10])
-    store.append("df1", df[10:])
-    assert store.root.a._v_attrs.pandas_version == "0.15.2"
-    assert store.root.b._v_attrs.pandas_version == "0.15.2"
-    assert store.root.df1._v_attrs.pandas_version == "0.15.2"
-
-    # write a file and wipe its versioning
-    store.append("df2", df)
-
-    # this is an error because its table_type is appendable, but no
-    # version info
-    store.get_node("df2")._v_attrs.pandas_version = None
-
-    msg = "'NoneType' object has no attribute 'startswith'"
-
-    with pytest.raises(Exception, match=msg):
-        store.select("df2")
 
 
 @pytest.mark.parametrize(
@@ -263,11 +260,11 @@ def test_walk(where, expected, temp_hdfstore):
     }
 
     store = temp_hdfstore
-    store.put("/first_group/df1", objs["df1"])
-    store.put("/first_group/df2", objs["df2"])
-    store.put("/second_group/df3", objs["df3"])
-    store.put("/second_group/s1", objs["s1"])
-    store.put("/second_group/third_group/df4", objs["df4"])
+    store.put("/first_group/df1", objs["df1"], track_times=False)
+    store.put("/first_group/df2", objs["df2"], track_times=False)
+    store.put("/second_group/df3", objs["df3"], track_times=False)
+    store.put("/second_group/s1", objs["s1"], track_times=False)
+    store.put("/second_group/third_group/df4", objs["df4"], track_times=False)
     # Create non-pandas objects
     store._handle.create_array("/first_group", "a1", objs["a1"])
     store._handle.create_table("/first_group", "tb1", obj=objs["tb1"])
@@ -336,11 +333,14 @@ def test_store_dropna(temp_h5_path):
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
+    msg = "The 'dropna' keyword in HDFStore.put is deprecated"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=False)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
-    df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        df_with_missing.to_hdf(temp_h5_path, key="df", format="table", dropna=True)
     reloaded = read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
 
@@ -412,7 +412,7 @@ def test_create_table_index(temp_hdfstore):
     assert col("f2", "string2").is_indexed is False
 
     # try to index a non-table
-    store.put("f2", df)
+    store.put("f2", df, track_times=False)
     msg = "cannot create table index on a Fixed format store"
     with pytest.raises(TypeError, match=msg):
         store.create_table_index("f2")
@@ -506,9 +506,9 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
     mydt = dt.datetime(2013, 4, 30)
     dts = date_range(mydt, periods=5, freq=bday_egypt)
 
-    s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
-    temp_hdfstore.put("fixed", s)
+    temp_hdfstore.put("fixed", s, track_times=False)
     result = temp_hdfstore.select("fixed")
     tm.assert_series_equal(result, s)
 
@@ -561,12 +561,36 @@ def test_remove(temp_hdfstore):
     assert len(store) == 0
 
 
+@pytest.mark.parametrize("n_selectors", [3, 100])
+def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
+    # GH#17567 removing with a large "in" selector (more than numexpr can
+    #  handle, i.e. > _max_selectors=31) falls back to a post-read filter;
+    #  remove must apply that filter rather than dropping every row
+    store = temp_hdfstore
+    df = DataFrame(
+        {"A": np.arange(1000)},
+        index=date_range("2020-01-01", periods=1000, unit="ns"),
+    )
+    store.put("df", df, format="table", track_times=False)
+
+    selector = list(df.index[:n_selectors])
+    # the where clause matches exactly the selected rows
+    assert len(store.select("df", where="index in selector")) == n_selectors
+
+    removed = store.remove("df", where="index in selector")
+    assert removed == n_selectors
+
+    result = store.select("df")
+    expected = df[~df.index.isin(selector)]
+    tm.assert_frame_equal(result, expected)
+
+
 def test_same_name_scoping(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 2)),
         index=date_range("20130101", periods=20, unit="ns"),
     )
-    temp_hdfstore.put("df", df, format="table")
+    temp_hdfstore.put("df", df, format="table", track_times=False)
     expected = df[df.index > Timestamp("20130105")]
 
     result = temp_hdfstore.select("df", "index>datetime.datetime(2013,1,5)")
@@ -708,9 +732,7 @@ def test_coordinates_multiple_tables(temp_hdfstore):
 
     expected = concat([df1, df2], axis=1)
     expected = expected[(expected.A > 0) & (expected.B > 0)]
-    tm.assert_frame_equal(result, expected, check_freq=False)
-    # FIXME: 2021-01-18 on some (mostly windows) builds we get freq=None
-    #  but expect freq="18B"
+    tm.assert_frame_equal(result, expected)
 
 
 def test_coordinates_array_mask(temp_hdfstore):
@@ -817,7 +839,7 @@ def test_start_stop_fixed(temp_hdfstore):
         },
         index=date_range("20130101", periods=20),
     )
-    store.put("df", df)
+    store.put("df", df, track_times=False)
 
     result = store.select("df", start=0, stop=5)
     expected = df.iloc[0:5, :]
@@ -834,7 +856,7 @@ def test_start_stop_fixed(temp_hdfstore):
 
     # series
     s = df.A
-    store.put("s", s)
+    store.put("s", s, track_times=False)
     result = store.select("s", start=0, stop=5)
     expected = s.iloc[0:5]
     tm.assert_series_equal(result, expected)
@@ -853,20 +875,13 @@ def test_start_stop_fixed(temp_hdfstore):
     df.iloc[8:10, -2] = np.nan
 
 
-def test_select_filter_corner(temp_hdfstore, request):
+def test_select_filter_corner(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
-    temp_hdfstore.put("frame", df, format="table")
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
 
-    request.applymarker(
-        pytest.mark.xfail(
-            PY312,
-            reason="AST change in PY312",
-            raises=ValueError,
-        )
-    )
     crit = "columns=df.columns[:75]"
     result = temp_hdfstore.select("frame", [crit])
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75]])
@@ -874,6 +889,19 @@ def test_select_filter_corner(temp_hdfstore, request):
     crit = "columns=df.columns[:75:2]"
     result = temp_hdfstore.select("frame", [crit])
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
+
+
+def test_select_string_index_aligned(temp_hdfstore):
+    # GH#54396 string index -> byte-unaligned values block; the read-back
+    #  block must be realigned to avoid SIGBUS on strict-alignment platforms
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+    df.index = [f"{c:3d}" for c in df.index]
+
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
+    result = temp_hdfstore.select("frame")
+    tm.assert_frame_equal(result, df)
+    for blk in result._mgr.blocks:
+        assert blk.values.flags["ALIGNED"]
 
 
 def test_path_pathlib(temp_h5_path):
@@ -995,6 +1023,19 @@ def test_preserve_timedeltaindex_type(temp_hdfstore, unit):
     tm.assert_frame_equal(temp_hdfstore["df"], df)
 
 
+@pytest.mark.parametrize("freq", ["1s", None])
+def test_preserve_timedeltaindex_type_table_format(temp_h5_path, unit, freq):
+    # GH#21466 with format="table", a TimedeltaIndex used to round-trip as
+    #  PeriodIndex (when freq was set) or Int64Index (otherwise)
+    df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
+    df.index = timedelta_range(
+        start="0s", periods=10, freq=freq, name="example", unit=unit
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table")
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df)
+
+
 def test_columns_multiindex_modified(temp_h5_path):
     # BUG: 7212
 
@@ -1056,7 +1097,7 @@ def test_to_hdf_with_object_column_names_should_run(temp_h5_path, dtype):
 def test_hdfstore_strides(temp_hdfstore):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
-    temp_hdfstore.put("df", df)
+    temp_hdfstore.put("df", df, track_times=False)
     assert df["a"].values.strides == temp_hdfstore["df"]["a"].values.strides
 
 

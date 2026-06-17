@@ -292,9 +292,11 @@ cdef class _NaT(datetime):
             # GH#44460
             dtype = np.dtype(dtype)
             if dtype.kind == "M":
-                return np.datetime64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                return np.datetime64("NaT", unit)
             elif dtype.kind == "m":
-                return np.timedelta64("NaT").astype(dtype)
+                unit = np.datetime_data(dtype)[0]
+                return np.timedelta64("NaT", unit)
             else:
                 raise ValueError(
                     "NaT.to_numpy dtype must be a datetime64 dtype, timedelta64 "
@@ -422,12 +424,74 @@ class NaTType(_NaT):
     nanosecond = property(fget=lambda self: np.nan)
 
     week = property(fget=lambda self: np.nan)
-    dayofyear = property(fget=lambda self: np.nan)
+
+    @property
+    def dayofyear(self):
+        """
+        Return day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`day_of_year` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.dayofyear is deprecated and will be removed in a "
+            "future version. Use NaTType.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
     day_of_year = property(fget=lambda self: np.nan)
     weekofyear = property(fget=lambda self: np.nan)
     days_in_month = property(fget=lambda self: np.nan)
-    daysinmonth = property(fget=lambda self: np.nan)
-    dayofweek = property(fget=lambda self: np.nan)
+
+    @property
+    def daysinmonth(self):
+        """
+        Return the number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`days_in_month` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.daysinmonth is deprecated and will be removed in a "
+            "future version. Use NaTType.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
+    @property
+    def dayofweek(self):
+        """
+        Return day of the week.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`day_of_week` instead.
+        """
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "NaTType.dayofweek is deprecated and will be removed in a "
+            "future version. Use NaTType.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return np.nan
+
     day_of_week = property(fget=lambda self: np.nan)
 
     # inject Timedelta properties
@@ -592,7 +656,41 @@ class NaTType(_NaT):
     # _nat_methods
 
     # "fromisocalendar" was introduced in 3.8
-    fromisocalendar = _make_error_func("fromisocalendar", datetime)
+    fromisocalendar = _make_error_func(
+        "fromisocalendar",
+        """
+        Construct a Timestamp from an ISO year, week number, and weekday.
+
+        This is the inverse of :meth:`Timestamp.isocalendar`, constructing a
+        Timestamp from the ISO 8601 year, week number, and weekday.
+
+        Parameters
+        ----------
+        year : int
+            ISO year.
+        week : int
+            ISO week number, ranging from 1 to 52 or 53.
+        day : int
+            ISO weekday, where Monday is 1 and Sunday is 7.
+
+        Returns
+        -------
+        Timestamp
+            A `Timestamp` object corresponding to the given ISO calendar date.
+
+        See Also
+        --------
+        Timestamp.isocalendar : Return a named tuple with ISO year, week, and
+            weekday.
+        Timestamp.fromordinal : Construct a Timestamp from a proleptic Gregorian
+            ordinal.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisocalendar(2023, 1, 1)
+        Timestamp('2023-01-02 00:00:00')
+        """,
+    )
 
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
@@ -1029,6 +1127,40 @@ class NaTType(_NaT):
         Timestamp('2020-03-14 15:32:52+0000', tz='UTC')
         """,
     )
+    fromisoformat = _make_error_func(
+        "fromisoformat",
+        """
+        Construct a Timestamp from a string in ISO 8601 format.
+
+        This classmethod wraps :meth:`datetime.datetime.fromisoformat`,
+        returning a :class:`Timestamp` instead of a :class:`datetime.datetime`.
+
+        Parameters
+        ----------
+        date_string : str
+            A date-time string in one of the ISO 8601 formats supported by
+            :meth:`datetime.datetime.fromisoformat`.
+
+        Returns
+        -------
+        Timestamp
+            A Timestamp corresponding to the parsed date-time string.
+
+        See Also
+        --------
+        Timestamp : Represents a single timestamp, similar to ``datetime``.
+        to_datetime : Convert argument to datetime.
+        datetime.datetime.fromisoformat : The standard library counterpart.
+
+        Examples
+        --------
+        >>> pd.Timestamp.fromisoformat("2023-01-15")
+        Timestamp('2023-01-15 00:00:00')
+
+        >>> pd.Timestamp.fromisoformat("2023-01-15T10:30:00")
+        Timestamp('2023-01-15 10:30:00')
+        """,
+    )
     combine = _make_error_func(
         "combine",
         """
@@ -1352,8 +1484,8 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the rounding resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the rounding resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1429,6 +1561,11 @@ timedelta}, default 'raise'
         >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.round(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.round()
@@ -1457,8 +1594,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the flooring resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the flooring resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1528,6 +1665,11 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.floor(freq=pd.Timedelta('1h30min'))
+        Timestamp('2020-03-14 15:00:00')
+
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.floor()
@@ -1556,8 +1698,8 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str
-            Frequency string indicating the ceiling resolution.
+        freq : str or timedelta
+            Frequency string or timedelta value indicating the ceiling resolution.
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -1625,6 +1767,11 @@ timedelta}, default 'raise'
         or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
         >>> ts.ceil(freq='1h30min')
+        Timestamp('2020-03-14 16:30:00')
+
+        ``freq`` can also be a timedelta value:
+
+        >>> ts.ceil(freq=pd.Timedelta('1h30min'))
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -1704,16 +1851,18 @@ timedelta}, default 'raise'
     tz_localize = _make_nat_func(
         "tz_localize",
         """
-        Localize the Timestamp to a timezone.
+        Attach or detach a time zone on a Timestamp.
 
-        Convert naive Timestamp to local time zone or remove
-        timezone from timezone-aware Timestamp.
+        This method does not shift the date/time values. It attaches a time
+        zone to a tz-naive Timestamp, or detaches the time zone from a
+        tz-aware Timestamp. In both cases the wall time is preserved.
 
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+            Time zone to attach to the tz-naive Timestamp; the wall time is
+            preserved. ``None`` detaches the time zone from a tz-aware
+            Timestamp, returning a tz-naive Timestamp with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.

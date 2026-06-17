@@ -870,7 +870,7 @@ class TestDataFrameReshape:
             right = sorted(map(cast, right))
             assert left == right
 
-    @pytest.mark.parametrize("idx", itertools.permutations(["1st", "2nd", "3rd"]))
+    @pytest.mark.parametrize("idx", list(itertools.permutations(["1st", "2nd", "3rd"])))
     @pytest.mark.parametrize("lev", list(range(3)))
     @pytest.mark.parametrize("col", ["4th", "5th"])
     def test_unstack_nan_index_repeats(self, idx, lev, col):
@@ -1419,6 +1419,21 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
         dict(zip(expected_columns, expected_data, strict=True)),
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(expected_columns, names=[None, "level2"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_sort_false_unsorted_with_gaps():
+    # Unsorted MI with missing combinations, unstacking non-last level
+    # with sort=False. Exercises the identity=False, mask_all=False,
+    # sort=False path through _Unstacker.get_new_values.
+    index = MultiIndex.from_tuples([("b", 1), ("a", 2), ("b", 2)], names=["x", "y"])
+    ser = Series([10, 20, 30], index=index)
+    result = ser.unstack(level=0, sort=False)
+    expected = DataFrame(
+        {"b": [10.0, 30.0], "a": [np.nan, 20.0]},
+        index=Index([1, 2], name="y"),
+        columns=Index(["b", "a"], name="x"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2306,9 +2321,11 @@ class TestStackUnstackMultiLevel:
     )
     @pytest.mark.parametrize(
         "levels",
-        itertools.chain.from_iterable(
-            itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
-            for width in [2, 3]
+        list(
+            itertools.chain.from_iterable(
+                itertools.product(itertools.permutations([0, 1, 2], width), repeat=2)
+                for width in [2, 3]
+            )
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))

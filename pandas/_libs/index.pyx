@@ -56,6 +56,8 @@ cdef bint is_definitely_invalid_key(object val):
     return False
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
     Return an ndarray[bool] of locations where val matches self.values.
@@ -115,6 +117,8 @@ cdef _maybe_resize_array(ndarray values, Py_ssize_t loc, Py_ssize_t max_length):
 _SIZE_CUTOFF = 1_000_000
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef _unpack_bool_indexer(ndarray[uint8_t, ndim=1, cast=True] indexer, object val):
     """
     Possibly unpack a boolean mask to a single indexer.
@@ -370,9 +374,40 @@ cdef class IndexEngine:
         self.monotonic_dec = 0
 
     def get_indexer(self, ndarray values) -> np.ndarray:
+        cdef:
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
+
+        if (
+            not self.is_mapping_populated
+            and self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and n_values < (n_self / (2 * n_self.bit_length()))
+        ):
+            # GH#14273 avoid building a hash table for large monotonic indices;
+            # use vectorized binary search instead.  The target count threshold
+            # mirrors the heuristic in get_indexer_non_unique: searchsorted is
+            # O(m log n) vs hash table O(n + m), so we only win when m is small
+            # relative to n.
+            try:
+                indexer = self.values.searchsorted(values, side="left")
+            except TypeError:
+                # e.g. searching for strings in an integer index
+                pass
+            else:
+                # searchsorted returns insertion points, not exact matches.
+                # Clip to valid range for comparison, then check matches.
+                clipped = np.clip(indexer, 0, n_self - 1)
+                valid = self.values[clipped] == values
+                result = np.where(valid, clipped, -1)
+                return result.astype(np.intp)
+
         self._ensure_mapping_populated()
         return self.mapping.lookup(values)
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, ndarray targets):
         """
         Return an indexer suitable for taking from a non unique index
@@ -402,6 +437,11 @@ cdef class IndexEngine:
 
         n = len(values)
         n_t = len(targets)
+        if n == 0:
+            # GH#54746 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
@@ -514,28 +554,33 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # This is equivalent to the stdlib's bisect.bisect_left
 
     cdef:
-        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
-        object pval
-
-    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
-        return len(values)
+        Py_ssize_t mid, lo = 0, hi = len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = PySequence_GetItem(values, mid)
-        if val < pval:
-            hi = mid
-        elif val > pval:
+        if PySequence_GetItem(values, mid) < val:
             lo = mid + 1
         else:
-            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
-                mid -= 1
-            return mid
+            hi = mid
 
-    if val <= PySequence_GetItem(values, mid):
-        return mid
-    else:
-        return mid + 1
+    return lo
+
+
+cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
+    # GH#37800 Equivalent to bisect.bisect_right, companion to _bin_search.
+    # ndarray.searchsorted is not safe to use with array of tuples.
+
+    cdef:
+        Py_ssize_t mid, lo = 0, hi = len(values)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if val < PySequence_GetItem(values, mid):
+            hi = mid
+        else:
+            lo = mid + 1
+
+    return lo
 
 
 cdef class ObjectEngine(IndexEngine):
@@ -553,6 +598,29 @@ cdef class ObjectEngine(IndexEngine):
         except TypeError as err:
             raise KeyError(val) from err
         return loc
+
+    cdef _get_loc_duplicates(self, object val):
+        # GH#37800 override to use _bin_search/_bin_search_right instead of
+        #  ndarray.searchsorted, which treats tuples as sequences of keys.
+        cdef:
+            Py_ssize_t diff, left, right
+
+        if self.is_monotonic_increasing:
+            try:
+                left = _bin_search(self.values, val)
+                right = _bin_search_right(self.values, val)
+            except TypeError:
+                raise KeyError(val)
+
+            diff = right - left
+            if diff == 0:
+                raise KeyError(val)
+            elif diff == 1:
+                return left
+            else:
+                return slice(left, right)
+
+        return self._maybe_get_bool_indexer(val)
 
 
 cdef class StringEngine(IndexEngine):
@@ -1135,36 +1203,12 @@ cdef class ExtensionEngine(SharedEngine):
         self.need_unique_check = True
 
     cdef _do_monotonic_check(self):
-        cdef:
-            bint is_unique
-
         values = self.values
-        if values._hasna:
-            self.monotonic_inc = 0
-            self.monotonic_dec = 0
 
-            nunique = len(values.unique())
-            self.unique = nunique == len(values)
-            self.need_unique_check = 0
-            return
-
-        try:
-            ranks = values._rank()
-
-        except TypeError:
-            self.monotonic_inc = 0
-            self.monotonic_dec = 0
-            is_unique = 0
-        else:
-            self.monotonic_inc, self.monotonic_dec, is_unique = \
-                self._call_monotonic(ranks)
+        self.monotonic_inc = values._is_monotonic_increasing
+        self.monotonic_dec = values._is_monotonic_decreasing
 
         self.need_monotonic_check = 0
-
-        # we can only be sure of uniqueness if is_unique=1
-        if is_unique:
-            self.unique = 1
-            self.need_unique_check = 0
 
     cdef ndarray _get_bool_indexer(self, val):
         if checknull(val):
@@ -1207,9 +1251,37 @@ cdef class MaskedIndexEngine(IndexEngine):
         return values.isna()
 
     def get_indexer(self, object values) -> np.ndarray:
+        cdef:
+            Py_ssize_t n_self = len(self.values)
+            Py_ssize_t n_values = len(values)
+
+        if (
+            not self.is_mapping_populated
+            and self.over_size_threshold
+            and self.is_monotonic_increasing
+            and self.is_unique
+            and n_values < (n_self / (2 * n_self.bit_length()))
+        ):
+            # GH#14273 avoid building a hash table for large monotonic indices.
+            # NAs in self.mask break monotonicity, so we only get here when
+            # the index has no NAs.
+            target_data = self._get_data(values)
+            target_mask = self._get_mask(values)
+            try:
+                indexer = self.values.searchsorted(target_data, side="left")
+            except TypeError:
+                pass
+            else:
+                clipped = np.clip(indexer, 0, n_self - 1)
+                valid = (self.values[clipped] == target_data) & ~target_mask
+                result = np.where(valid, clipped, -1)
+                return result.astype(np.intp)
+
         self._ensure_mapping_populated()
         return self.mapping.lookup(self._get_data(values), self._get_mask(values))
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def get_indexer_non_unique(self, object targets):
         """
         Return an indexer suitable for taking from a non unique index
@@ -1244,6 +1316,11 @@ cdef class MaskedIndexEngine(IndexEngine):
 
         n = len(values)
         n_t = len(target_vals)
+        if n == 0:
+            # GH#64674 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
@@ -1256,7 +1333,7 @@ cdef class MaskedIndexEngine(IndexEngine):
         # map each starget to its position in the index
         if (
                 stargets and
-                len(stargets) < 5 and
+                len(stargets) < (n / (2 * n.bit_length())) and
                 not np.any(target_mask) and
                 self.is_monotonic_increasing
         ):

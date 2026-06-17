@@ -10,7 +10,6 @@ from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -593,6 +592,26 @@ def test_as_index_series_return_frame(df):
     expected2 = grouped2.sum().loc[:, ["A", "B", "C"]]
     assert isinstance(result2, DataFrame)
     tm.assert_frame_equal(result2, expected2)
+
+
+def test_as_index_series_ohlc(df):
+    # GH#65140
+    grouped = df.groupby("A", as_index=False)
+    grouped2 = df.groupby(["A", "B"], as_index=False)
+
+    result = grouped["C"].ohlc()
+    expected = df.groupby("A")["C"].ohlc().reset_index()
+    tm.assert_frame_equal(result, expected)
+
+    result2 = grouped2["C"].ohlc()
+    expected2 = df.groupby(["A", "B"])["C"].ohlc().reset_index()
+    tm.assert_frame_equal(result2, expected2)
+
+    df_conflict = DataFrame(
+        {"open": ["A", "A", "B", "B"], "price": [1.0, 2.0, 3.0, 4.0]}
+    )
+    with pytest.raises(ValueError, match="cannot insert open, already exists"):
+        df_conflict.groupby("open", as_index=False)["price"].ohlc()
 
 
 def test_as_index_series_column_slice_raises(df):
@@ -1834,6 +1853,7 @@ def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_st
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
     if len(keys) == 1:
+        expected.index = Index([], dtype=df[keys[0]].dtype, name=keys[0])
         expected.index.name = keys[0]
     tm.assert_equal(result, expected)
 
@@ -2210,23 +2230,13 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "infer_string",
-    [
-        False,
-        pytest.param(True, marks=td.skip_if_no("pyarrow")),
-    ],
-)
-def test_groupby_duplicate_columns(infer_string):
+def test_groupby_duplicate_columns():
     # GH: 31735
-    if infer_string:
-        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
     df.columns = ["A", "B", "B"]
-    with pd.option_context("future.infer_string", infer_string):
-        result = df.groupby([0, 0, 0, 0]).min()
+    result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame(
         [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
     )
@@ -3017,3 +3027,15 @@ def test_groupby_datetime_with_nat():
     grouped = df.groupby("a", dropna=False)
     result = len(grouped)
     assert result == 3
+
+
+def test_groupby_function_tuple_1677():
+    # GH#1677
+    df = DataFrame(
+        np.random.default_rng(2).random(100),
+        index=date_range("1/1/2000", periods=100),
+    )
+    monthly_group = df.groupby(lambda x: (x.year, x.month))
+
+    result = monthly_group.mean()
+    assert isinstance(result.index[0], tuple)

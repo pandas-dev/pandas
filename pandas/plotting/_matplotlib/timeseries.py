@@ -205,18 +205,34 @@ def _get_ax_freq(ax: Axes):
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     if isinstance(freq, BaseOffset):
+        n = freq.n
         freqstr = freq.rule_code
     else:
-        freqstr = to_offset(freq, is_period=True).rule_code
+        offset = to_offset(freq, is_period=True)
+        n = offset.n
+        freqstr = offset.rule_code
 
-    return get_period_alias(freqstr)
+    alias = get_period_alias(freqstr)
+    if alias is None:
+        return None
+    # Don't apply multiplier for business days — Period[B] is deprecated
+    # and the special-case BDay handling doesn't support multiplied freq.
+    if alias == "B":
+        return alias
+    # Use abs(n) because the sign only indicates traversal direction
+    # (e.g. descending DatetimeIndex infers freq "-1D"), not period span.
+    # GH#64819
+    n = abs(n)
+    if n != 1:
+        return f"{n}{alias}"
+    return alias
 
 
 def _get_freq(ax: Axes, series: Series):
     # get frequency from data
     freq = getattr(series.index, "freq", None)
     if freq is None:
-        freq = getattr(series.index, "inferred_freq", None)
+        freq = getattr(series.index, "_inferred_freq_str", None)
         freq = to_offset(freq, is_period=True)
 
     ax_freq = _get_ax_freq(ax)
@@ -248,12 +264,17 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     if freq_str is None:
         return False
 
-    # FIXME: hack this for 0.10.1, creating more technical debt...sigh
+    # GH#2571: for DatetimeIndex, fall back to non-dynamic plotting if the
+    # timestamps don't align with the inferred period frequency. We only
+    # inspect the first element because the index has a (possibly inferred)
+    # freq, so the rest are evenly spaced relative to it.
     if isinstance(index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
+            # Daily-or-coarser: any midnight timestamp is valid (e.g. month-end
+            # dates plotted monthly). Avoids tz_localize() on DST gaps.
             return index[:1].is_normalized
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
@@ -264,7 +285,7 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
 def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
-        freq = getattr(index, "inferred_freq", None)
+        freq = getattr(index, "_inferred_freq_str", None)
         freq = to_offset(freq)
     return freq
 

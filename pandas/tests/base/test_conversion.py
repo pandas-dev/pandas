@@ -140,7 +140,7 @@ class TestToIterable:
         ],
         ids=["tolist", "to_list", "list", "iter"],
     )
-    def test_categorial_datetimelike(self, method):
+    def test_categorical_datetimelike(self, method):
         i = CategoricalIndex([Timestamp("1999-12-31"), Timestamp("2000-12-31")])
 
         result = method(i)[0]

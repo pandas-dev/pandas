@@ -7,6 +7,8 @@ from pandas.util._decorators import set_module
 
 from pandas import DataFrame
 
+from pandas.io._util import arrow_table_to_pandas
+
 
 @set_module("pandas")
 def read_iceberg(
@@ -96,7 +98,7 @@ def read_iceberg(
         options=scan_properties,
         limit=limit,
     )
-    return result.to_pandas()
+    return arrow_table_to_pandas(result.to_arrow())
 
 
 def to_iceberg(

@@ -78,7 +78,7 @@ are homogeneously-typed.
 .. note::
 
    :func:`~pandas.pivot` can only handle unique rows specified by ``index`` and ``columns``.
-   If you data contains duplicates, use :func:`~pandas.pivot_table`.
+   If your data contains duplicates, use :func:`~pandas.pivot_table`.
 
 
 .. _reshaping.pivot:

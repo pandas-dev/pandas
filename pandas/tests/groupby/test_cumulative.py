@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import UnsupportedFunctionCall
+from pandas.errors import (
+    Pandas4Warning,
+    UnsupportedFunctionCall,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -305,6 +308,37 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
+@pytest.mark.parametrize("func", ["cummin", "cummax"])
+def test_kwargs_deprecated(func):
+    # GH#50407
+    df = DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})
+    gb = df.groupby("A")
+
+    msg = "Passing additional arguments to GroupBy"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(gb, func)(foo=1)
+
+
+@pytest.mark.parametrize(
+    "klass,msg",
+    [
+        ("SeriesGroupBy", "Passing additional arguments to SeriesGroupBy.take"),
+        ("DataFrameGroupBy", "Passing additional arguments to DataFrameGroupBy.take"),
+    ],
+)
+def test_take_kwargs_deprecated(klass, msg):
+    # GH#50407
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 2, 3]})
+    if klass == "SeriesGroupBy":
+        gb = df.groupby("a")["b"]
+    else:
+        gb = df.groupby("a")
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pytest.raises(TypeError, match="got an unexpected keyword argument"):
+            gb.take([0], foo=1)
+
+
 @td.skip_if_32bit
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize(
@@ -319,6 +353,39 @@ def test_nullable_int_not_cast_as_float(method, dtype, val):
     expected = DataFrame({"b": data}, dtype=dtype)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("cumprod", [2, pd.NA, 8]),
+        ("cummin", [2, pd.NA, 2]),
+        ("cummax", [2, pd.NA, 4]),
+    ],
+)
+def test_nullable_int_dtype_preserved_with_na_group_key(method, expected_values):
+    # GH#65550
+    df = DataFrame({"key": ["a", None, "a"], "val": Series([2, 3, 4], dtype="Int64")})
+    gb = df.groupby("key")["val"]
+
+    result = getattr(gb, method)()
+    expected = Series(expected_values, dtype="Int64", name="val")
+    tm.assert_series_equal(result, expected)
+
+
+def test_cumprod_nullable_int_no_precision_loss_with_na_group_key():
+    # GH#65550
+    df = DataFrame(
+        {
+            "key": ["a", pd.NA],
+            "val": pd.array([9007199254740993, 0], dtype="Int64"),
+        }
+    )
+    gb = df.groupby("key")["val"]
+
+    result = gb.cumprod()
+    expected = Series([9007199254740993, pd.NA], dtype="Int64", name="val")
+    tm.assert_series_equal(result, expected)
 
 
 def test_cython_api2(as_index):

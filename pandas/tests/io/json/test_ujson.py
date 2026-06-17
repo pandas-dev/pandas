@@ -11,7 +11,7 @@ import dateutil
 import numpy as np
 import pytest
 
-import pandas._libs.json as ujson
+import pandas._libs._ujson as ujson
 from pandas.compat import IS64
 
 from pandas import (
@@ -347,7 +347,7 @@ class TestUltraJSONTests:
         assert expected == output
 
     @pytest.mark.parametrize(
-        "decoded_input", [NaT, np.datetime64("NaT"), np.nan, np.inf, -np.inf]
+        "decoded_input", [NaT, np.datetime64("NaT", "ns"), np.nan, np.inf, -np.inf]
     )
     def test_encode_as_null(self, decoded_input):
         assert ujson.ujson_dumps(decoded_input) == "null", "Expected null"
@@ -410,6 +410,18 @@ class TestUltraJSONTests:
         msg = "Unexpected character found when decoding 'false'"
         with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(jibberish)
+
+    @pytest.mark.parametrize(
+        "bad_input, expected_pos",
+        [
+            ("[1, 2,", 5),
+            ('{"a": fzz}', 5),
+            ("[[[true", 7),
+        ],
+    )
+    def test_decode_error_includes_position(self, bad_input, expected_pos):
+        with pytest.raises(ValueError, match=f"at position {expected_pos}$"):
+            ujson.ujson_loads(bad_input)
 
     @pytest.mark.parametrize(
         "broken_json",
@@ -660,7 +672,7 @@ class TestUltraJSONTests:
 
     def test_ujson__name__(self):
         # GH 52898
-        assert ujson.__name__ == "pandas._libs.json"
+        assert ujson.__name__ == "pandas._libs._ujson"
 
 
 class TestNumpyJSONTests:

@@ -97,12 +97,11 @@ def data_for_compare(request):
 
 
 class TestSparseArray(base.ExtensionTests):
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        return True
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        if all_numeric_reductions in [
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        if op_name in [
             "prod",
             "median",
             "var",
@@ -111,11 +110,14 @@ class TestSparseArray(base.ExtensionTests):
             "skew",
             "kurt",
         ]:
-            mark = pytest.mark.xfail(
-                reason="This should be viable but is not implemented"
-            )
-            request.node.add_marker(mark)
-        elif (
+            # These should be viable but are not implemented
+            return False
+        else:
+            return True
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if (
             all_numeric_reductions in ["sum", "max", "min", "mean"]
             and data.dtype.kind == "f"
             and not skipna
@@ -217,11 +219,6 @@ class TestSparseArray(base.ExtensionTests):
             assert ser.get(4) == ser.iloc[2]
         assert ser.get(2) == ser.iloc[1]
 
-    def test_array_item_with_index(self, data, request):
-        # TODO https://github.com/pandas-dev/pandas/pull/64183
-        request.node.add_marker(pytest.mark.xfail(reason="SparseArray getitem buggy"))
-        super().test_array_item_with_index(data)
-
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
         super().test_reindex(data, na_value)
@@ -241,21 +238,6 @@ class TestSparseArray(base.ExtensionTests):
 
     def test_fillna_no_op_returns_copy(self, data, request):
         super().test_fillna_no_op_returns_copy(data)
-
-    def test_fillna_readonly(self, data_missing):
-        # copy keyword is ignored by SparseArray.fillna
-        # -> copy=True vs False doesn't make a difference
-        data = data_missing.copy()
-        data._readonly = True
-
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
-
-        # fillna(copy=False) is ignored -> so same result as above
-        result = data.fillna(data_missing[1], copy=False)
-        assert result[0] == data_missing[1]
-        tm.assert_extension_array_equal(data, data_missing)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
@@ -347,6 +329,22 @@ class TestSparseArray(base.ExtensionTests):
         with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
+    def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_for_sorting.sort()
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_for_sorting.sort(ascending=False)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_missing_for_sorting.sort(na_position=na_position)
+
     def test_shift_0_periods(self, data):
         # GH#33856 shifting with periods=0 should return a copy, not same obj
         result = data.shift(0)
@@ -360,15 +358,10 @@ class TestSparseArray(base.ExtensionTests):
         self._check_unsupported(data)
         super().test_argmin_argmax_all_na(method, data, na_value)
 
-    @pytest.mark.fails_arm_wheels
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
-
-    @pytest.mark.fails_arm_wheels
-    def test_equals_same_data_different_object(self, data):
-        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",
