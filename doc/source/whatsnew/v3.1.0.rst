@@ -373,6 +373,7 @@ I/O
 - Fixed bug in :func:`read_hdf` where the literal string ``"nan"`` in a string :class:`Index` was incorrectly converted to ``NaN`` on read, even when a custom ``nan_rep`` was supplied (:issue:`9604`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
+- Fixed bug in :meth:`DataFrame.to_parquet` (``pyarrow`` engine) where a local file path was opened twice, once by pandas and again by pyarrow, wasting a syscall and silently truncating output to 0 bytes on filesystems that finalize a file's contents on close (:issue:`65810`)
 - Fixed bug in :meth:`HDFStore.get_storer` where ``.shape`` reported a phantom row for a fixed-format :class:`Series` or :class:`DataFrame` stored with no rows (:issue:`37235`)
 - Fixed bug in :meth:`HDFStore.remove` where a ``where`` clause selecting on more than 31 values (e.g. ``"index in [...]"``) deleted every row in the table instead of only the matching rows (:issue:`17567`)
 - Fixed bug in :meth:`HDFStore.select` where passing ``where`` as a list of conditions referencing caller-scope variables failed on Python 3.12+ due to :pep:`709` inlining list comprehension stack frames (:issue:`64881`)
