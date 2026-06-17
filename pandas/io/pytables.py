@@ -98,6 +98,7 @@ from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
+    JointConditionBinOp,
     PyTablesExpr,
     maybe_expression,
 )
@@ -6016,6 +6017,38 @@ def _get_data_and_dtype_name(data: ArrayLike):
     return data, dtype_name
 
 
+def _or_of_ands_columns(condition) -> set[str]:
+    """
+    Look for an OR with at least one multi-column AND operand, e.g.
+    ``(A & B) | (C & D)`` or ``(A & B) | C``, in a pruned PyTables condition
+    tree.
+
+    This is the query shape that can trigger an upstream PyTables bug where
+    index-accelerated reads silently drop matching rows (GH#50598). Return the
+    set of column names referenced in ``condition`` if such a pattern is found,
+    otherwise an empty set.
+    """
+    cols: set[str] = set()
+    found = False
+
+    def visit(node) -> None:
+        nonlocal found
+        if not isinstance(node, JointConditionBinOp):
+            # leaf comparison: lhs.value is the column name
+            cols.add(node.lhs.value)
+            return
+        if node.op == "|" and (
+            (isinstance(node.lhs, JointConditionBinOp) and node.lhs.op == "&")
+            or (isinstance(node.rhs, JointConditionBinOp) and node.rhs.op == "&")
+        ):
+            found = True
+        visit(node.lhs)
+        visit(node.rhs)
+
+    visit(condition)
+    return cols if found else set()
+
+
 class Selection:
     """
     Carries out a selection operation on a tables.Table object.
@@ -6072,6 +6105,37 @@ class Selection:
             # create the numexpr & the filter
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
+                if self.condition is not None:
+                    self._warn_if_unreliable_or()
+
+    def _warn_if_unreliable_or(self) -> None:
+        """
+        Warn for nested-OR queries with AND-ed operands over indexed columns
+        (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
+        an upstream PyTables bug (GH#50598).
+        """
+        table = getattr(self.table, "table", None)
+        if table is None or table.chunkshape is None:
+            return
+        # the bug only affects tables stored in more than one chunk (row group)
+        if table.chunkshape[0] >= self.table.nrows:
+            return
+        cols = _or_of_ands_columns(self.condition)
+        if not any(
+            table.colinstances[name].is_indexed
+            for name in cols
+            if name in table.colnames
+        ):
+            return
+        warnings.warn(
+            "Reading with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can return incorrect "
+            "results due to an upstream PyTables bug (GH#50598). To get correct "
+            "results, write the table with 'index=False', or run each OR branch "
+            "as a separate query and concatenate the results.",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
 
     @overload
     def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
