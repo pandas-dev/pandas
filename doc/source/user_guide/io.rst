@@ -4072,8 +4072,18 @@ similar to how ``read_csv`` and ``to_csv`` work.
 .. ipython:: python
 
    df_tl = pd.DataFrame({"A": list(range(5)), "B": list(range(5))})
-   df_tl.to_hdf("store_tl.h5", key="table", append=True)
+   df_tl.to_hdf("store_tl.h5", key="table", format="table", append=True)
    pd.read_hdf("store_tl.h5", "table", where=["index>2"])
+
+.. note::
+
+   ``append=True`` only works for the :ref:`table format <io.hdf5-table>`. The
+   default format is ``fixed``, which is faster but cannot be appended to or
+   queried; calling ``to_hdf`` with ``append=True`` against an existing
+   ``fixed``-format object raises ``ValueError``. Pass ``format="table"`` (or
+   set ``pd.set_option("io.hdf.default_format", "table")``) when you intend to
+   append later. Each append must use exactly the same columns, in the same
+   order, as the existing table.
 
 .. ipython:: python
    :suppress:
@@ -4188,6 +4198,12 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. note::
 
    You can also create a ``table`` by passing ``format='table'`` or ``format='t'`` to a ``put`` operation.
+
+.. note::
+
+   Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
+   ``append`` is a no-op: the store is not modified and a ``UserWarning`` is
+   emitted. Use ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
 
@@ -4445,8 +4461,25 @@ returned, this is equivalent to passing a
 
    store.select("df", "columns=['A', 'B']")
 
+.. note::
+
+   ``PyTables`` ``table`` stores are row-oriented, so passing ``columns`` does
+   not avoid reading the full row width from disk -- it only filters the
+   returned object. To bound peak memory when selecting from a wide table,
+   pass ``chunksize`` and concatenate the chunks::
+
+      pd.concat(store.select("df", columns=["A", "B"], chunksize=50000))
+
 ``start`` and ``stop`` parameters can be specified to limit the total search
 space. These are in terms of the total number of rows in a table.
+
+.. note::
+
+   ``start`` and ``stop`` are applied to the table **before** the ``where``
+   filter, not after. ``select(..., where="A > 0", stop=1)`` reads only
+   the first row from the table and *then* applies ``where`` to that row, so
+   it returns an empty result if the first row does not match. This differs
+   from the SQL idiom ``SELECT * FROM df WHERE A > 0 LIMIT 1``.
 
 .. note::
 
