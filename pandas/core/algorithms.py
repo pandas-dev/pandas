@@ -502,6 +502,10 @@ unique1d = unique
 
 _MINIMUM_COMP_ARR_LEN = 1_000_000
 
+# Integers with magnitude <= 2**53 are exactly representable as float64; above
+# this a 64-bit int cast to float64 may collide with a distinct value.
+_FLOAT64_INT_EXACT_MAX = 2**53
+
 
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
@@ -528,6 +532,48 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f"to isin(), you passed a `{type(values).__name__}`"
         )
 
+    if isinstance(values, (set, frozenset)) and len(values) > 0:
+        # GH#25507: for a set of values, membership can be tested directly
+        # via the set, avoiding an O(len(values)) materialization that
+        # otherwise dominates when comps is much smaller than values.
+        # Restrict to integer/bool comps (i.e. dtypes that cannot contain
+        # NaN), since Python set membership would mis-handle the case where
+        # both sides contain NaN values that are not identical.
+        if isinstance(comps, (ABCSeries, ABCIndex)):
+            comps_arr = comps._values
+        else:
+            comps_arr = comps
+        if (
+            isinstance(comps_arr, np.ndarray)
+            and comps_arr.ndim == 1
+            and comps_arr.dtype.kind in "iub"
+            # Only worth it when comps is smaller than values: this path does
+            # an O(len(comps)) Python-level scan, which is much slower per
+            # element than the vectorized htable path below. It wins only by
+            # skipping the O(len(values)) materialization of the set, so it
+            # must not fire for the common large-comps/small-set case.
+            and comps_arr.size < len(values)
+            # A 64-bit comp with magnitude >= 2**53 can match a float in the
+            # set lossily under the materialized path below (via a float64
+            # cast) but never under exact Python equality, so the result would
+            # depend on which path is taken. Only use this path when comps
+            # values are strictly inside float64's exact-int range, where the
+            # two agree.
+            and (
+                comps_arr.dtype.itemsize < 8
+                or comps_arr.size == 0
+                or (
+                    -_FLOAT64_INT_EXACT_MAX < int(comps_arr.min())
+                    and int(comps_arr.max()) < _FLOAT64_INT_EXACT_MAX
+                )
+            )
+        ):
+            return np.fromiter(
+                (item in values for item in comps_arr.tolist()),
+                dtype=bool,
+                count=comps_arr.size,
+            )
+
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
@@ -538,9 +584,53 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             and not is_signed_integer_dtype(comps)
             and not is_dtype_equal(values, comps)
         ):
-            # GH#46485 Use object to avoid upcast to float64 later
+            # GH#46485: casting a 64-bit integer to float64 loses precision
+            # for magnitudes > 2**53, so a numeric comparison can give wrong
+            # results. Recast to object only when such a lossy cast is actually
+            # at risk; otherwise keep the numeric ndarray so the downstream
+            # htable dispatch can use the fast numeric path.
             # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(orig_values)
+            comps_dtype = getattr(comps, "dtype", None)
+            # values came from _ensure_arraylike's numeric branch, so its
+            # dtype is an np.dtype.
+            values_dtype = cast("np.dtype", values.dtype)
+            if not isinstance(comps_dtype, np.dtype):
+                needs_object = True
+            else:
+                common = np_find_common_type(values_dtype, comps_dtype)
+                if common.kind not in "iufcb":
+                    needs_object = True
+                elif common.kind not in "fc":
+                    # integer/bool common type -> no lossy float cast
+                    # (complex128 components are float64, so "c" is as lossy
+                    # as "f")
+                    needs_object = False
+                elif comps_dtype.kind in "iu" and comps_dtype.itemsize == 8:
+                    # comps is the (potentially large) caller and a 64-bit
+                    # integer that would be cast down to float64; too costly to
+                    # inspect element-wise, so fall back to object to be safe.
+                    needs_object = True
+                elif values_dtype.kind in "iu" and values_dtype.itemsize == 8:
+                    # values is the (small) targets list -> cheap to check
+                    # exactly. Only object-cast if a target falls outside
+                    # float64's exact integer range; otherwise the numeric
+                    # cast is lossless and the fast path stays correct.
+                    # values is an ndarray here (it came from the numeric
+                    # branch of _ensure_arraylike above).
+                    values_arr = cast("np.ndarray", values)
+                    needs_object = (
+                        int(values_arr.min()) < -_FLOAT64_INT_EXACT_MAX
+                        or int(values_arr.max()) > _FLOAT64_INT_EXACT_MAX
+                    )
+                else:
+                    # float/complex values_dtype means _ensure_arraylike may
+                    # already have rounded large ints in a mixed int/float
+                    # list, so exactness cannot be checked from the array;
+                    # recover it from orig_values via the object cast. Smaller
+                    # ints/bools cast to float64 exactly.
+                    needs_object = values_dtype.kind in "fc"
+            if needs_object:
+                values = construct_1d_object_array_from_listlike(orig_values)
 
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
