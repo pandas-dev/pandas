@@ -465,8 +465,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: '3.12'
-          pip-install: pyodide-build
+          python-version: '3.14'
+          pip-install: pyodide-build==0.35.0
 
       - name: Save Emscripten version
         run: echo EMSCRIPTEN_VERSION=$(pyodide config get emscripten_version) >> $GITHUB_ENV
@@ -482,7 +482,7 @@ jobs:
 
       - name: Set up Pyodide virtual environment
         run: |
-          pyodide xbuildenv install 0.27.1
+          pyodide xbuildenv install 314.0.0
           pyodide venv .venv-pyodide
           source .venv-pyodide/bin/activate
           python -m pip install dist/*.whl

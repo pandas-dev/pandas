@@ -100,7 +100,7 @@ jobs:
         python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
-            python: ["cp312", "3.12"]
+            python: ["cp314", "3.14"]
         exclude:
           # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
@@ -128,7 +128,7 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@f03ac7617d6cff873ccf24cc0d567ef5ba5a9e6d # v4.0.0
+        uses: pypa/cibuildwheel@294735312765b09d24a2fbec22660ce817587d55 # v4.1.0
         with:
           package-dir: ./dist/${{ env.sdist_name }}
         env:
