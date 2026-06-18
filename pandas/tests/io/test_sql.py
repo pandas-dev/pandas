@@ -18,7 +18,10 @@ import uuid
 import numpy as np
 import pytest
 
-sqlite3 = pytest.importorskip("sqlite3")
+try:
+    import sqlite3
+except ImportError:
+    pytest.skip("sqlite3 not available", allow_module_level=True)
 
 from pandas._config import using_string_dtype
 
@@ -43,8 +46,6 @@ from pandas.io.sql import (
 )
 
 if TYPE_CHECKING:
-    import sqlite3
-
     import sqlalchemy
 
 
