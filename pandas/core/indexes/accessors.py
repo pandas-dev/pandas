@@ -236,16 +236,12 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             ._dt_isocalendar()
             ._pa_array.combine_chunks()
         )
-        if self._orig is not None:
-            index = self._orig.index
-        else:
-            index = self._parent.index
         iso_calendar_df = DataFrame(
             {
                 col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
                 for i, col in enumerate(["year", "week", "day"])
             },
-            index=index,
+            index=self._parent.index,
         )
         return iso_calendar_df
 
