@@ -1,0 +1,34 @@
+.. _whatsnew_304:
+
+What's new in 3.0.4 (June XX 2026)
+----------------------------------
+
+These are the changes in pandas 3.0.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_304.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_304.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in :meth:`DataFrame.iloc` silently ignoring the assignment when setting values with an unordered or duplicated column indexer on a :class:`DataFrame` whose values are referenced by another object (:issue:`65446`)
+- Bug in :meth:`Series.str.__getitem__` raising ``AttributeError`` when underlying array is :class:`ArrowExtensionArray` (:issue:`65112`)
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_304.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.0.3..v3.0.4|HEAD
