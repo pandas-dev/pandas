@@ -11,16 +11,12 @@ from datetime import (
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
+import sqlite3
 from typing import TYPE_CHECKING
 import uuid
 
 import numpy as np
 import pytest
-
-try:
-    import sqlite3
-except ImportError:
-    pytest.skip("sqlite3 not available", allow_module_level=True)
 
 from pandas._config import using_string_dtype
 
