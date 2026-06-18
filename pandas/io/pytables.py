@@ -98,6 +98,7 @@ from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.arrays.string_ import BaseStringArray
 import pandas.core.common as com
 from pandas.core.computation.pytables import (
+    JointConditionBinOp,
     PyTablesExpr,
     maybe_expression,
 )
@@ -824,7 +825,25 @@ class HDFStore:
     @property
     def is_open(self) -> bool:
         """
-        return a boolean indicating whether the file is open
+        Return a boolean indicating whether the file is open.
+
+        ``HDFStore`` instances open the underlying PyTables file in their
+        constructor, but the file can be closed and reopened on the same
+        instance via :meth:`close` and :meth:`open`.
+
+        See Also
+        --------
+        HDFStore.open : Open the underlying file in the specified mode.
+        HDFStore.close : Close the underlying PyTables file handle.
+
+        Examples
+        --------
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.is_open  # doctest: +SKIP
+        True
+        >>> store.close()  # doctest: +SKIP
+        >>> store.is_open  # doctest: +SKIP
+        False
         """
         if self._handle is None:
             return False
@@ -834,10 +853,18 @@ class HDFStore:
         """
         Force all buffered modifications to be written to disk.
 
+        Useful when sharing access between processes -- call ``flush`` (with
+        ``fsync=True`` if needed) before releasing a write lock so that
+        readers see the latest data.
+
         Parameters
         ----------
-        fsync : bool (default False)
-          call ``os.fsync()`` on the file handle to force writing to disk.
+        fsync : bool, default False
+            Call ``os.fsync()`` on the file handle to force writing to disk.
+
+        See Also
+        --------
+        HDFStore.close : Close the underlying PyTables file handle.
 
         Notes
         -----
@@ -845,6 +872,14 @@ class HDFStore:
         to disk. With fsync, the operation will block until the OS claims the
         file has been written; however, other caching layers may still
         interfere.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.flush(fsync=True)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         if self._handle is not None:
             self._handle.flush()
@@ -997,7 +1032,7 @@ class HDFStore:
         stop: int | None = None,
     ):
         """
-        return the selection as an Index
+        Return the selection as an Index.
 
         .. warning::
 
@@ -1007,13 +1042,40 @@ class HDFStore:
 
            See: https://docs.python.org/3/library/pickle.html for more.
 
-
         Parameters
         ----------
         key : str
+            Object being retrieved from file.
         where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
+            Conditions to apply to the selection. ``start`` and ``stop`` are
+            applied to the table before ``where``.
+        start : int, optional
+            Row number to start selection.
+        stop : int, optional
+            Row number to stop selection.
+
+        Returns
+        -------
+        Index
+            Integer positions of the matching rows; can be passed as
+            ``where`` to a subsequent ``select``.
+
+        See Also
+        --------
+        HDFStore.select : Retrieve a stored object, optionally filtered by
+            ``where``.
+        HDFStore.select_as_multiple : Retrieve pandas objects from multiple
+            tables.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", data_columns=["A"]
+        ... )  # doctest: +SKIP
+        >>> store.select_as_coordinates("data", "A>1")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         where = _ensure_term(where, scope_level=1)
         tbl = self.get_storer(key)
@@ -1029,8 +1091,9 @@ class HDFStore:
         stop: int | None = None,
     ):
         """
-        return a single column from the table. This is generally only useful to
-        select an indexable
+        Return a single column from the table.
+
+        This is generally only useful to select an indexable.
 
         .. warning::
 
@@ -1043,18 +1106,43 @@ class HDFStore:
         Parameters
         ----------
         key : str
+            Object being retrieved from file.
         column : str
             The column of interest.
         start : int or None, default None
+            Row number to start selection.
         stop : int or None, default None
+            Row number to stop selection.
+
+        Returns
+        -------
+        Series
+            A ``Series`` of the column's values.
 
         Raises
         ------
-        raises KeyError if the column is not found (or key is not a valid
-            store)
-        raises ValueError if the column can not be extracted individually (it
-            is part of a data block)
+        KeyError
+            If the column is not found, or ``key`` is not a valid store.
+        ValueError
+            If the column cannot be extracted individually (not an
+            indexable or a data column).
 
+        See Also
+        --------
+        HDFStore.select : Retrieve a stored object, optionally filtered by
+            ``where``.
+        HDFStore.select_as_coordinates : Return the matching row coordinates
+            as an Index.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", data_columns=["A"]
+        ... )  # doctest: +SKIP
+        >>> store.select_column("data", "A")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         tbl = self.get_storer(key)
         if not isinstance(tbl, Table):
@@ -1086,22 +1174,59 @@ class HDFStore:
 
         Parameters
         ----------
-        keys : a list of the tables
-        selector : the table to apply the where criteria (defaults to keys[0]
-            if not supplied)
-        columns : the columns I want back
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
-        iterator : bool, return an iterator, default False
-        chunksize : nrows to include in iteration, return an iterator
+        keys : list of str
+            Names of the tables to read.
+        where : list, optional
+            List of Term (or convertible) objects.
+        selector : str, optional
+            The table to apply the where criteria to. Defaults to ``keys[0]``.
+        columns : list, optional
+            Columns to return.
+        start : int, optional
+            Row number to start selection. Applied to each table before
+            ``where`` is evaluated.
+        stop : int, optional
+            Row number to stop selection. Applied to each table before
+            ``where`` is evaluated.
+        iterator : bool, default False
+            Return an iterator.
+        chunksize : int, optional
+            Number of rows to include in each iteration; implies
+            ``iterator=True``.
         auto_close : bool, default False
             Should automatically close the store when finished.
 
+        Returns
+        -------
+        DataFrame or TableIterator
+            Concatenated result from the selected tables. A ``TableIterator``
+            is returned instead when ``iterator=True`` or ``chunksize`` is
+            given.
+
         Raises
         ------
-        raises KeyError if keys or selector is not found or keys is empty
-        raises TypeError if keys is not a list or tuple
-        raises ValueError if the tables are not ALL THE SAME DIMENSIONS
+        KeyError
+            If ``keys`` or ``selector`` is not found, or ``keys`` is empty.
+        TypeError
+            If ``keys`` is not a list or tuple.
+        ValueError
+            If the tables do not all have the same number of rows.
+
+        See Also
+        --------
+        HDFStore.append_to_multiple : Append to multiple tables, splitting a
+            single object into a dict of column groups.
+        HDFStore.select : Retrieve a single stored object.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=["C", "D"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("t1", df1, format="table")  # doctest: +SKIP
+        >>> store.append("t2", df2, format="table")  # doctest: +SKIP
+        >>> store.select_as_multiple(["t1", "t2"])  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         # default to single select
         where = _ensure_term(where, scope_level=1)
@@ -1275,6 +1400,13 @@ class HDFStore:
         HDFStore.info : Prints detailed information on the store.
         HDFStore.get_storer : Returns the storer object for a key.
 
+        Notes
+        -----
+        Writing an empty ``DataFrame`` or ``Series`` with ``format='table'``
+        or ``append=True`` is a no-op: the store is not modified and a
+        ``UserWarning`` is emitted. Use ``format='fixed'`` to store an empty
+        object.
+
         Examples
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -1323,24 +1455,46 @@ class HDFStore:
 
     def remove(self, key: str, where=None, start=None, stop=None) -> int | None:
         """
-        Remove pandas object partially by specifying the where condition
+        Remove pandas object partially by specifying the where condition.
+
+        If ``where`` is not provided, the entire object stored at ``key``
+        (and any of its child nodes) is removed. When ``where`` is given,
+        only matching rows are deleted, which requires the object to be in
+        ``table`` format.
 
         Parameters
         ----------
         key : str
-            Node to remove or delete rows from
+            Node to remove or delete rows from.
         where : list of Term (or convertible) objects, optional
-        start : integer (defaults to None), row number to start selection
-        stop  : integer (defaults to None), row number to stop selection
+            Conditions selecting which rows to remove.
+        start : int, optional
+            Row number to start selection.
+        stop : int, optional
+            Row number to stop selection.
 
         Returns
         -------
-        number of rows removed (or None if not a Table)
+        int or None
+            Number of rows removed (or ``None`` if the object is not a Table).
 
         Raises
         ------
-        raises KeyError if key is not a valid store
+        KeyError
+            If ``key`` is not a valid store.
 
+        See Also
+        --------
+        HDFStore.append : Append data to an existing table.
+        HDFStore.put : Store an object in the file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> store.remove("data")  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         where = _ensure_term(where, scope_level=1)
         try:
@@ -1471,6 +1625,9 @@ class HDFStore:
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
 
+        Appending an empty ``DataFrame`` or ``Series`` is a no-op: the store
+        is not modified and a ``UserWarning`` is emitted.
+
         Examples
         --------
         >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -1534,30 +1691,54 @@ class HDFStore:
         **kwargs,
     ) -> None:
         """
-        Append to multiple tables
+        Append to multiple tables.
+
+        Splits ``value`` column-wise according to ``d`` and appends each
+        slice to the corresponding table. The ``selector`` table is the one
+        you query against; its columns are made data_columns so they can be
+        used in ``where`` clauses.
 
         Parameters
         ----------
-        d : a dict of table_name to table_columns, None is acceptable as the
-            values of one node (this will get all the remaining columns)
-        value : a pandas object
-        selector : a string that designates the indexable table; all of its
-            columns will be designed as data_columns, unless data_columns is
-            passed, in which case these are used
-        data_columns : list of columns to create as data columns, or True to
-            use all columns
-        dropna : if evaluates to True, drop rows from all tables if any single
-                 row in each table has all NaN. Default False.
+        d : dict
+            Mapping of table_name to table_columns. ``None`` is acceptable as
+            the values for one node (that table will get all the remaining
+            columns).
+        value : DataFrame or Series
+            Pandas object to split across the tables.
+        selector : str
+            Designates the indexable table; all of its columns will be made
+            data_columns unless ``data_columns`` is passed, in which case
+            those are used.
+        data_columns : list of str or True, optional
+            Columns to create as data columns, or ``True`` to use all columns.
+        axes : default None
+            This parameter is currently not accepted.
+        dropna : bool, default False
+            If ``True``, drop rows from all tables if any single row in each
+            table has all NaN.
 
             .. deprecated:: 3.1.0
                 The ``dropna`` keyword is deprecated and will be removed in a
                 future version. Use :meth:`DataFrame.dropna` before writing
                 instead.
+        **kwargs
+            Additional keyword arguments forwarded to :meth:`HDFStore.append`.
 
-        Notes
-        -----
-        axes parameter is currently not accepted
+        See Also
+        --------
+        HDFStore.append : Append to a single table.
+        HDFStore.select_as_multiple : Read from multiple tables with a
+            single ``where``.
 
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})  # doctest: +SKIP
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append_to_multiple(
+        ...     {"t1": ["A", "B"], "t2": None}, df, selector="t1"
+        ... )  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         if axes is not None:
             raise TypeError(
@@ -1645,9 +1826,16 @@ class HDFStore:
         """
         Create a pytables index on the table.
 
+        Indexes are automatically created on indexable axes and
+        ``data_columns`` during ``append``/``put`` when ``index=True``
+        (the default). This method lets you add or rebuild indexes after
+        the fact, which is **highly encouraged** because it greatly speeds
+        up ``select`` calls that filter on the indexed dimension.
+
         Parameters
         ----------
         key : str
+            Object stored in the file to index.
         columns : None, bool, or listlike[str]
             Indicate which columns to create an index on.
 
@@ -1663,7 +1851,22 @@ class HDFStore:
 
         Raises
         ------
-        TypeError: raises if the node is not a table
+        TypeError
+            If the node is not a table.
+
+        See Also
+        --------
+        HDFStore.append : Append data to an existing table; columns are
+            indexed automatically by default.
+        HDFStore.select : Filter on indexed columns for fast retrieval.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table", index=False)  # doctest: +SKIP
+        >>> store.create_table_index("data", columns=["A"])  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         # version requirements
         _tables()
@@ -1799,7 +2002,43 @@ class HDFStore:
         return node
 
     def get_storer(self, key: str) -> GenericFixed | Table:
-        """return the storer object for a key, raise if not in the file"""
+        """
+        Return the storer object for a key.
+
+        The storer is the low-level wrapper around the stored pandas object.
+        It exposes implementation details such as ``nrows`` (the row count
+        on disk) and ``table`` (the underlying PyTables ``Table``), which
+        can be useful for inspecting a store without loading its data.
+
+        Parameters
+        ----------
+        key : str
+            Object stored in the file.
+
+        Returns
+        -------
+        GenericFixed or Table
+            The storer wrapping the stored object. ``Table`` instances expose
+            attributes such as ``nrows`` and ``table``.
+
+        Raises
+        ------
+        KeyError
+            If ``key`` is not in the file.
+
+        See Also
+        --------
+        HDFStore.get : Read the stored object back into pandas.
+        HDFStore.info : Print a summary of the store's contents.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.append("data", df, format="table")  # doctest: +SKIP
+        >>> store.get_storer("data").nrows  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        """
         group = self.get_node(key)
         if group is None:
             raise KeyError(f"No object named {key} in the file")
@@ -1822,19 +2061,49 @@ class HDFStore:
         """
         Copy the existing store to a new file, updating in place.
 
+        Each object stored in the current ``HDFStore`` is read and re-written
+        to the destination file, which can be useful for repacking (to
+        reclaim space after deletes), changing compression options, or
+        cloning a subset of keys.
+
         Parameters
         ----------
+        file : str or path-like
+            Destination file to write to.
+        mode : str, default 'w'
+            File mode for the destination, see :class:`HDFStore`.
         propindexes : bool, default True
             Restore indexes in copied file.
         keys : list, optional
             List of keys to include in the copy (defaults to all).
+        complib : str, optional
+            Compression library, see :class:`HDFStore`.
+        complevel : int, optional
+            Compression level, see :class:`HDFStore`.
+        fletcher32 : bool, default False
+            Whether to use the Fletcher32 checksum, see :class:`HDFStore`.
         overwrite : bool, default True
-            Whether to overwrite (remove and replace) existing nodes in the new store.
-        mode, complib, complevel, fletcher32 same as in HDFStore.__init__
+            Whether to overwrite (remove and replace) existing nodes in the
+            new store.
 
         Returns
         -------
-        open file handle of the new store
+        HDFStore
+            Open file handle of the new store.
+
+        See Also
+        --------
+        HDFStore.put : Write an object to the store.
+        HDFStore.append : Append to an existing table.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
+        >>> store.put("data", df)  # doctest: +SKIP
+        >>> new_store = store.copy("store_copy.h5")  # doctest: +SKIP
+        >>> new_store.close()  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         new_store = HDFStore(
             file, mode=mode, complib=complib, complevel=complevel, fletcher32=fletcher32
@@ -2059,8 +2328,14 @@ class HDFStore:
         track_times: bool = True,
     ) -> None:
         # we don't want to store a table node at all if our object is 0-len
-        # as there are not dtypes
+        # as there are no dtypes
         if getattr(value, "empty", None) and (format == "table" or append):
+            warnings.warn(
+                "Writing an empty DataFrame or Series with format='table' "
+                "or append=True is a no-op; the HDFStore is not modified.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
             return
 
         group = self._identify_group(key, append)
@@ -2070,7 +2345,12 @@ class HDFStore:
             # raise if we are trying to append to a Fixed format,
             #       or a table that exists (and we are putting)
             if not s.is_table or (s.is_table and format == "fixed" and s.is_exists):
-                raise ValueError("Can only append to Tables")
+                raise ValueError(
+                    f"Can only append to Tables; the write for key {key!r} "
+                    "uses the 'fixed' format. Pass format='table'; if a "
+                    "'fixed'-format object already exists at this key, remove "
+                    "or overwrite it first."
+                )
             if not s.is_exists:
                 s.set_object_info()
         else:
@@ -2838,6 +3118,10 @@ class DataCol(IndexCol):
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
+            if not values.flags["ALIGNED"]:
+                # GH#54396 copy to realign; unaligned buffers SIGBUS
+                #  on strict-alignment platforms (e.g. 32-bit ARM)
+                values = values.copy()
 
         assert self.typ is not None
         if self.dtype is None:
@@ -2909,8 +3193,13 @@ class DataCol(IndexCol):
             else:
                 mask = isna(categories)
                 if mask.any():
+                    # A category can be NaN if the nan_rep string was itself
+                    # a genuine category on write. Drop NaN categories and
+                    # remap the codes. GH#21741
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
                     categories = categories[~mask]
-                    codes[codes != -1] -= mask.astype(int).cumsum()._values
+                    codes = np.where(codes < 0, codes, remap[codes])
 
             converted = Categorical.from_codes(
                 codes, categories=categories, ordered=ordered, validate=False
@@ -3173,8 +3462,26 @@ class GenericFixed(Fixed):
             factory = index_class
             kwargs["copy"] = False
 
-        if "freq" in attrs:
-            kwargs["freq"] = attrs["freq"]
+        if "freq" in attrs and attrs["freq"] is not None:
+            # GH#33186 old versions of pandas wrote a freq=None attr on every
+            # index, including non-datetimelike ones; only a non-None freq is
+            # meaningful (and only a TimedeltaIndex reaches here as plain Index).
+            freq_attr = attrs["freq"]
+            if isinstance(freq_attr, bytes):
+                # GH#35917: HDF5 files written by old (Python 2) pandas
+                #  stored freq as a Python 2 pickle byte-string, which
+                #  pytables can't unpickle in Python 3. The original
+                #  freq is unrecoverable, so drop it. The index data
+                #  itself is unaffected; users can manually reassign
+                #  via `df.index.freq = df.index.inferred_freq`.
+                warnings.warn(
+                    "Could not decode freq attribute on stored index; "
+                    "the file was likely written by an older pandas "
+                    "version. Setting freq=None.",
+                    stacklevel=find_stack_level(),
+                )
+                freq_attr = None
+            kwargs["freq"] = freq_attr
             if index_class is Index:
                 # DTI/PI would be gotten by _alias_to_class
                 factory = TimedeltaIndex
@@ -3948,6 +4255,11 @@ class Table(Fixed):
         key : str
         values : ndarray
         """
+        if len(values) == 0:
+            # PyTables cannot store a zero-len array; the read path already
+            # treats a missing metadata node as an empty categories Index,
+            # so skipping the write is the contract we've relied on.
+            return
         self.parent.put(
             self._get_metadata_path(key),
             Series(values, copy=False),
@@ -4671,12 +4983,6 @@ class Table(Fixed):
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         coords = selection.select_coords()
-        if selection.filter is not None:
-            for field, op, filt in selection.filter.format():
-                data = self.read_column(
-                    field, start=coords.min(), stop=coords.max() + 1
-                )
-                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
 
         return Index(coords, copy=False)
 
@@ -5711,6 +6017,38 @@ def _get_data_and_dtype_name(data: ArrayLike):
     return data, dtype_name
 
 
+def _or_of_ands_columns(condition) -> set[str]:
+    """
+    Look for an OR with at least one multi-column AND operand, e.g.
+    ``(A & B) | (C & D)`` or ``(A & B) | C``, in a pruned PyTables condition
+    tree.
+
+    This is the query shape that can trigger an upstream PyTables bug where
+    index-accelerated reads silently drop matching rows (GH#50598). Return the
+    set of column names referenced in ``condition`` if such a pattern is found,
+    otherwise an empty set.
+    """
+    cols: set[str] = set()
+    found = False
+
+    def visit(node) -> None:
+        nonlocal found
+        if not isinstance(node, JointConditionBinOp):
+            # leaf comparison: lhs.value is the column name
+            cols.add(node.lhs.value)
+            return
+        if node.op == "|" and (
+            (isinstance(node.lhs, JointConditionBinOp) and node.lhs.op == "&")
+            or (isinstance(node.rhs, JointConditionBinOp) and node.rhs.op == "&")
+        ):
+            found = True
+        visit(node.lhs)
+        visit(node.rhs)
+
+    visit(condition)
+    return cols if found else set()
+
+
 class Selection:
     """
     Carries out a selection operation on a tables.Table object.
@@ -5767,6 +6105,37 @@ class Selection:
             # create the numexpr & the filter
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
+                if self.condition is not None:
+                    self._warn_if_unreliable_or()
+
+    def _warn_if_unreliable_or(self) -> None:
+        """
+        Warn for nested-OR queries with AND-ed operands over indexed columns
+        (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
+        an upstream PyTables bug (GH#50598).
+        """
+        table = getattr(self.table, "table", None)
+        if table is None or table.chunkshape is None:
+            return
+        # the bug only affects tables stored in more than one chunk (row group)
+        if table.chunkshape[0] >= self.table.nrows:
+            return
+        cols = _or_of_ands_columns(self.condition)
+        if not any(
+            table.colinstances[name].is_indexed
+            for name in cols
+            if name in table.colnames
+        ):
+            return
+        warnings.warn(
+            "Reading with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can return incorrect "
+            "results due to an upstream PyTables bug (GH#50598). To get correct "
+            "results, write the table with 'index=False', or run each OR branch "
+            "as a separate query and concatenate the results.",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
 
     @overload
     def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
@@ -5848,4 +6217,14 @@ class Selection:
         elif self.coordinates is not None:
             return self.coordinates
 
-        return np.arange(start, stop)
+        coords = np.arange(start, stop)
+        if self.filter is not None and len(coords):
+            # e.g. an "index in [...]" clause with more selectors than numexpr
+            #  can handle is realized as a post-read filter rather than a
+            #  numexpr condition (GH#17567)
+            for field, op, filt in self.filter.format():
+                data = self.table.read_column(
+                    field, start=coords.min(), stop=coords.max() + 1
+                )
+                coords = coords[op(data.iloc[coords - coords.min()], filt).values]
+        return coords

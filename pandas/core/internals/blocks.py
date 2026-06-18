@@ -1083,9 +1083,21 @@ class Block(PandasObject, libinternals.Block):
             New blocks of unstacked values.
         """
         new_values = unstacker.get_new_values(self.values.T, fill_value=fill_value)
+        new_values = new_values.T
+
+        # get_new_values can return a view of self.values on the identity-indexer
+        #  fast path (see _Unstacker._make_sorted_values); every other path copies
+        #  via take_nd.  Gate on that, then the O(1) may_share_memory, so CoW
+        #  tracks the reference.  GH#65107
+        if unstacker._indexer_is_identity and np.may_share_memory(
+            new_values, self.values
+        ):
+            refs = self.refs
+        else:
+            refs = None
 
         bp = BlockPlacement(new_placement)
-        blocks = [new_block_2d(new_values.T, placement=bp)]
+        blocks = [new_block_2d(new_values, placement=bp, refs=refs)]
         return blocks
 
     # ---------------------------------------------------------------------
@@ -1602,6 +1614,8 @@ class Block(PandasObject, libinternals.Block):
         We split the block to avoid copying the underlying data. We create new
         blocks for every connected segment of the initial block that is not deleted.
         The new blocks point to the initial array.
+
+        Assumes `loc` is strictly increasing when list-like.
         """
         if not is_list_like(loc):
             loc = [loc]
