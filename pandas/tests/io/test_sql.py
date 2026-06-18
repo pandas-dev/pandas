@@ -11,12 +11,13 @@ from datetime import (
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
-import sqlite3
 from typing import TYPE_CHECKING
 import uuid
 
 import numpy as np
 import pytest
+
+sqlite3 = pytest.importorskip("sqlite3")
 
 from pandas._config import using_string_dtype
 
@@ -53,6 +54,8 @@ from pandas.io.sql import (
 )
 
 if TYPE_CHECKING:
+    import sqlite3
+
     import sqlalchemy
 
 
