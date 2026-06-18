@@ -1335,7 +1335,7 @@ class TestPandasContainer:
         # when the values are object-dtype (GH#65868)
         warn = Pandas4Warning
         if as_object:
-            ser = ser.astype(object)
+            ser.index = ser.index.astype(object)
 
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
