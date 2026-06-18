@@ -2394,7 +2394,13 @@ class HDFStore:
 
         # remove the node if we are not appending
         if group is not None and not append:
-            self._handle.remove_node(group, recursive=True)
+            # When the group has child nodes (nested keys), don't delete
+            # them recursively — only remove the group itself.
+            # Fixes GH-17267: to_hdf to a parent key deleted child keys.
+            has_children = (
+                hasattr(group, "_v_children") and len(group._v_children) > 0
+            )
+            self._handle.remove_node(group, recursive=not has_children)
             group = None
 
         if group is None:
