@@ -1043,7 +1043,12 @@ class SQLTable(PandasObject):
         else:
             temp = self.frame
 
-        column_names = list(map(str, temp.columns))
+        if self.index is not None:
+            column_names = [str(name) for name in self.index] + [
+                str(c) for c in self.frame.columns
+            ]
+        else:
+            column_names = list(map(str, temp.columns))
         ncols = len(column_names)
         # this just pre-allocates the list: None's will be replaced with ndarrays
         # error: List item 0 has incompatible type "None"; expected "ndarray"
