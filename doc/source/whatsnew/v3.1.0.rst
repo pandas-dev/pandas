@@ -435,6 +435,11 @@ Styler
 -
 -
 
+Expressions
+^^^^^^^^^^^
+- Bug in :meth:`DataFrame.query` where a column named ``inf`` or ``Inf`` was incorrectly resolved to ``numpy.inf`` instead of the column values, causing incorrect results or a ``KeyError`` (:issue:`35695`)
+-
+
 Other
 ^^^^^
 

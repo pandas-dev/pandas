@@ -115,6 +115,13 @@ class Term:
             self.env.scope[local_name], type
         ):
             is_local = False
+        elif (
+            not str(self.name).startswith(LOCAL_TAG)
+            and self.env.has_resolvers
+            and local_name in self.env.resolvers
+        ):
+            # GH#35695 - column name shadows DEFAULT_GLOBALS non-type value
+            is_local = False
 
         res = self.env.resolve(local_name, is_local=is_local)
         self.update(res)

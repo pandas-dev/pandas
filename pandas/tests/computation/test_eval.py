@@ -1962,7 +1962,7 @@ def test_negate_lt_eq_le(engine, parser):
 )
 def test_eval_no_support_column_name(request, column):
     # GH 44603
-    if column in ["True", "False", "inf", "Inf"]:
+    if column in ["True", "False"]:
         request.applymarker(
             pytest.mark.xfail(
                 raises=KeyError,
@@ -1993,6 +1993,15 @@ def test_set_inplace():
     expected = Series([1, 2, 3], name="A")
     tm.assert_series_equal(ser, expected)
     tm.assert_series_equal(result_view["A"], expected)
+
+
+@pytest.mark.parametrize("column", ["inf", "Inf"])
+def test_query_column_named_like_default_global(column):
+    # GH#35695
+    df = DataFrame({column: [0.1, 0.3, 0.5, 1.0]})
+    expected = df[(df[column] > 0.25) & (df[column] < 0.75)]
+    result = df.query(f"0.25 < {column} < 0.75")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
