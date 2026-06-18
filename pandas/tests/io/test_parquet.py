@@ -1255,6 +1255,65 @@ class TestParquetPyArrow(Base):
             read_kwargs={"to_pandas_kwargs": {"maps_as_pydicts": "strict"}},
         )
 
+    def test_to_parquet_local_path_does_not_call_get_handle(
+        self, pa, temp_file, monkeypatch
+    ):
+        # GH#65810 local paths are handed to pyarrow directly; get_handle used
+        # to open them only to unwrap the name back to a string, opening the
+        # path a second time and truncating output to 0 bytes on filesystems
+        # that finalize contents on close
+        def fail(*args, **kwargs):
+            pytest.fail("get_handle should not be called for a local path")
+
+        monkeypatch.setattr("pandas.io.parquet.get_handle", fail)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+
+    def test_to_parquet_local_path_opens_destination_once(
+        self, pa, temp_file, monkeypatch
+    ):
+        # GH#65810 pandas must not open the destination itself; pyarrow opens it
+        # via C++ (bypassing builtins.open), so no Python-level open is expected
+        opens = []
+        real_open = open
+        target = os.fspath(temp_file)
+
+        def spy_open(file, *args, **kwargs):
+            if os.fspath(file) == target:
+                opens.append(file)
+            return real_open(file, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.open", spy_open)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+        assert opens == []
+
+    def test_to_parquet_missing_parent_directory_raises(self, pa, tmp_path):
+        # GH#65810 skipping get_handle must keep its parent-directory check
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        path = tmp_path / "missing" / "out.parquet"
+        msg = "Cannot save file into a non-existent directory"
+        with pytest.raises(OSError, match=msg):
+            df.to_parquet(path, engine=pa)
+
+    def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
+        # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
+        # be routed through it because pyarrow cannot fetch them
+        url = "http://example.com/nonexistent.parquet"
+        calls = []
+
+        def stub(path, mode, **kwargs):
+            calls.append((path, mode))
+            raise ValueError("reached get_handle")
+
+        monkeypatch.setattr("pandas.io.parquet.get_handle", stub)
+
+        with pytest.raises(ValueError, match="reached get_handle"):
+            read_parquet(url, engine=pa)
+        assert calls == [(url, "rb")]
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full, request, temp_file):

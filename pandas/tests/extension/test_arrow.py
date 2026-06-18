@@ -447,11 +447,21 @@ class TestArrowArray(base.ExtensionTests):
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew", "any", "all"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
+        ) and op_name in [
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "any",
+            "all",
+        ]:
             return False
 
         if (
@@ -496,25 +506,6 @@ class TestArrowArray(base.ExtensionTests):
             result = getattr(ser, op_name)(skipna=skipna)
             expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
-        pa_dtype = data.dtype.pyarrow_dtype
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_boolean_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-            # We *might* want to make this behave like the non-pyarrow cases,
-            #  but have not yet decided.
-            request.applymarker(xfail_mark)
-
-        return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         pa_type = arr._pa_array.type
@@ -4157,3 +4148,102 @@ def test_fillna_zero():
     result = ser.fillna(0)
     expected = pd.Series([1, 2, 3, 4, 0, 6], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+def test_sort_readonly():
+    arr = pd.array([3, 1, 2], dtype="int64[pyarrow]")
+    arr._readonly = True
+    with pytest.raises(ValueError, match="Cannot modify read-only array"):
+        arr.sort()
+    # the array must be left unchanged
+    tm.assert_extension_array_equal(arr, pd.array([3, 1, 2], dtype="int64[pyarrow]"))
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        pd.offsets.Hour(),
+        pd.offsets.Minute(),
+        pd.offsets.Second(),
+        pd.offsets.Milli(),
+        pd.offsets.Micro(),
+        pd.offsets.Nano(),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_intraday_offset_raises(offset, dtype):
+    ser = pd.Series([date(2022, 12, 30)], dtype=dtype)
+    with pytest.raises(TypeError, match="intra-day"):
+        ser + offset
+    with pytest.raises(TypeError, match="intra-day"):
+        ser - offset
+    with pytest.raises(TypeError, match="intra-day"):
+        offset + ser
+
+
+@pytest.mark.parametrize(
+    "offset",
+    [
+        pd.offsets.MonthEnd(),
+        pd.offsets.MonthBegin(),
+        pd.offsets.Day(5),
+        pd.DateOffset(years=1),
+    ],
+)
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_dateoffset_add(offset, dtype):
+    ser = pd.Series([date(2022, 12, 30)], dtype=dtype)
+
+    result = ser + offset
+    expected = offset + date(2022, 12, 30)
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+    result = ser - offset
+    expected = date(2022, 12, 30) - offset
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+    result = offset + ser
+    expected = offset + date(2022, 12, 30)
+    if isinstance(expected, pd.Timestamp):
+        expected = expected.date()
+    assert result[0] == expected
+
+
+@pytest.mark.parametrize("dtype", ["date32[pyarrow]", "date64[pyarrow]"])
+def test_date32_pyarrow_dateoffset_with_nulls(dtype):
+    ser = pd.Series([date(2022, 12, 30), None], dtype=dtype)
+    result = ser + pd.offsets.MonthEnd()
+    assert result[0] == date(2022, 12, 31)
+    assert pd.isna(result[1])  # handles NA, NaT, None uniformly
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [0, None, -1])
+def test_reduction_axis_valid(method, axis):
+    # axis equivalent to 0 (the only axis of a 1-D array) or None is accepted
+    if method == "skew" and pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    result = getattr(arr, method)(axis=axis)
+    expected = getattr(arr, method)()
+    assert result == expected or (pd.isna(result) and pd.isna(expected))
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [1, 2])
+def test_reduction_axis_out_of_bounds(method, axis):
+    # axis beyond the array's dimensions is rejected rather than silently ignored
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    msg = "`axis` must be fewer than the number of dimensions"
+    with pytest.raises(ValueError, match=msg):
+        getattr(arr, method)(axis=axis)

@@ -18,6 +18,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
@@ -54,6 +55,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        AxisInt,
         Dtype,
         NpDtype,
         Scalar,
@@ -586,8 +588,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return Float64Dtype().__from_arrow__(result)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         if self.dtype.na_value is np.nan and name in ["any", "all"]:
             if not skipna:
                 nas = pc.is_null(self._pa_array)
