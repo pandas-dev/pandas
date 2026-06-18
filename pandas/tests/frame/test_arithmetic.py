@@ -1163,6 +1163,31 @@ class TestFrameArithmetic:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_with_frame_fill_value_nullable_int_columns(self):
+        # GH#65805 with fill_value, non-overlapping nullable integer columns
+        #  should keep the nullable dtype instead of upcasting to Float64
+        df1 = DataFrame(
+            {
+                "a": pd.array([1, 2], dtype="UInt8"),
+                "b": pd.array([3, 4], dtype="UInt8"),
+            }
+        )
+        df2 = DataFrame(
+            {
+                "b": pd.array([5, 6], dtype="UInt8"),
+                "c": pd.array([7, 8], dtype="UInt8"),
+            }
+        )
+        result = df1.add(df2, fill_value=0)
+        expected = DataFrame(
+            {
+                "a": pd.array([1, 2], dtype="UInt8"),
+                "b": pd.array([8, 10], dtype="UInt8"),
+                "c": pd.array([7, 8], dtype="UInt8"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_with_frame_reindex_timedelta_columns(self):
         # GH#59529 non-overlapping timedelta columns should produce NaT,
         #  not NaN with float64 dtype
