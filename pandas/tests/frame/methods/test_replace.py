@@ -682,6 +682,24 @@ class TestDataFrameReplace:
         expected = DataFrame({"value": [42, None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_nan_with_none_string_dtype(self):
+        # GH#65892
+        df = DataFrame(
+            {
+                "a": Series([np.nan, "a"], dtype="str"),
+                "b": [1, 2],
+            }
+        )
+        result = df.replace(np.nan, None)
+        expected = DataFrame(
+            {
+                "a": Series([None, "a"], dtype=object),
+                "b": [1, 2],
+            }
+        )
+        assert result.loc[0, "a"] is None
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_NAT_with_None(self):
         # gh-45836
         df = DataFrame([pd.NaT, pd.NaT])

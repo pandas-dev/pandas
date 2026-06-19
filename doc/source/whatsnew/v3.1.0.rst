@@ -293,6 +293,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` not preserving explicit ``None`` values when replacing ``NaN`` values in ``str`` dtype data (:issue:`65892`)
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 
 Interval
