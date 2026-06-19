@@ -42,14 +42,8 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
     FY5253Mixin,
-    HalfYearOffset,
-    MonthOffset,
-    QuarterOffset,
     RelativeDeltaOffset,
-    SemiMonthBegin,
-    SemiMonthOffset,
     Week,
-    YearOffset,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -678,56 +672,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         return Index(res, dtype=res.dtype)
 
 
-def _base_freq_ordinal_diff(
-    ts_left: Timestamp, ts_right: Timestamp, freq: BaseOffset
-) -> int | None:
-    """
-    Compute the number of base-frequency steps between two on-offset
-    timestamps, using O(1) calendar arithmetic.
-
-    Returns None when the offset type doesn't support this computation
-    (e.g. BusinessDay, CustomBusinessDay, Easter, FY5253).
-
-    Parameters
-    ----------
-    ts_left, ts_right : Timestamp
-        Both must already be on-offset for *freq*.
-    freq : BaseOffset
-        The frequency whose base period defines the ordinal grid.
-    """
-    if isinstance(freq, MonthOffset):
-        return (ts_left.year * 12 + ts_left.month) - (
-            ts_right.year * 12 + ts_right.month
-        )
-    elif isinstance(freq, QuarterOffset):
-        return (ts_left.year * 4 + (ts_left.month - 1) // 3) - (
-            ts_right.year * 4 + (ts_right.month - 1) // 3
-        )
-    elif isinstance(freq, HalfYearOffset):
-        return (ts_left.year * 2 + (ts_left.month - 1) // 6) - (
-            ts_right.year * 2 + (ts_right.month - 1) // 6
-        )
-    elif isinstance(freq, YearOffset):
-        return ts_left.year - ts_right.year
-    elif isinstance(freq, Week):
-        # toordinal() difference is always a multiple of 7 when both
-        # timestamps are on the same phase.
-        return (ts_left.toordinal() - ts_right.toordinal()) // 7
-    elif isinstance(freq, SemiMonthOffset):
-        if isinstance(freq, SemiMonthBegin):
-            # anchor days are 1 and day_of_month (day_of_month >= 2)
-            half_left = 1 if ts_left.day >= freq.day_of_month else 0
-            half_right = 1 if ts_right.day >= freq.day_of_month else 0
-        else:
-            # SemiMonthEnd: anchor days are day_of_month and month-end
-            half_left = 1 if ts_left.day > freq.day_of_month else 0
-            half_right = 1 if ts_right.day > freq.day_of_month else 0
-        return (ts_left.year * 24 + (ts_left.month - 1) * 2 + half_left) - (
-            ts_right.year * 24 + (ts_right.month - 1) * 2 + half_right
-        )
-    return None
-
-
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     """
     Mixin class for methods shared by DatetimeIndex and TimedeltaIndex,
@@ -1297,17 +1241,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
+        freq = self.freq
+
         # GH#44025 DateOffset (RelativeDeltaOffset) has no fixed stride,
         #  so matching freq alone doesn't guarantee alignment.
-        if isinstance(self.freq, RelativeDeltaOffset):
+        if isinstance(freq, RelativeDeltaOffset):
             return False
 
         # Note we are assuming away Ticks, as those go through _range_intersect.
-        freq = self.freq
-
-        if freq.n < 0:
-            # Only reachable with len(self) == 1, where the monotonicity
-            #  check above is vacuous; `other` may be decreasing.
+        # For |n| != 1 two same-freq ranges can be offset by a non-multiple of
+        #  n (e.g. "2ME" starting in different months), so they need not line
+        #  up.  Rather than verify the phase, fall back to the general (slower)
+        #  intersection.  GH#42104, GH#44025
+        if freq.n != 1:
             return False
 
         # Below here we need actual timestamp values; cache them once
@@ -1330,13 +1276,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  start date: check that both indexes fall on the same day-of-week.
         if isinstance(freq, Week) and freq.weekday is None:
             if (left_start.toordinal() - right_start.toordinal()) % 7 != 0:
-                return False
-
-        # GH#42104, GH#44025 For n > 1, verify that both indices are on the
-        #  same phase of the base frequency using O(1) ordinal arithmetic.
-        if freq.n != 1:
-            ord_diff = _base_freq_ordinal_diff(left_start, right_start, freq)
-            if ord_diff is None or ord_diff % freq.n != 0:
                 return False
 
         return True
