@@ -1176,7 +1176,23 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         >>> arr.searchsorted([4])
         array([3])
         """
-        if self._hasna:
+
+        # GH#65837: avoid O(n) scan; NA confined to array ends in sorted data.
+        # When sorter is given, the sorted order is ndarray[sorter], so check
+        # the first/last positions via sorter instead of raw ndarray positions.
+        ndarray = self._ndarray
+        if len(ndarray):
+            if sorter is None:
+                has_na = libmissing.checknull(ndarray[0]) or libmissing.checknull(
+                    ndarray[-1]
+                )
+            else:
+                has_na = libmissing.checknull(
+                    ndarray[sorter[0]]
+                ) or libmissing.checknull(ndarray[sorter[-1]])
+        else:
+            has_na = False
+        if has_na:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
