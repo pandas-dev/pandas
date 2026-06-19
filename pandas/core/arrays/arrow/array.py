@@ -3288,6 +3288,7 @@ class ArrowExtensionArray(
             pa_result = pa.array(output_np, type=output_type, mask=null_mask)
 
         return self._from_pyarrow_array(pa_result)
+
     def _to_groupby_compatible(self) -> ExtensionArray:
         """Convert to a type compatible with groupby cython ops."""
         pa_type = self._pa_array.type
@@ -3367,16 +3368,6 @@ class ArrowExtensionArray(
                     **kwargs,
                 )
 
-        # Fall back to converting to masked/datetime array and using Cython
-        fallback_values: ExtensionArray
-        if pa.types.is_timestamp(pa_type):
-            fallback_values = self._to_datetimearray()
-        elif pa.types.is_duration(pa_type):
-            fallback_values = self._to_timedeltaarray()
-        else:
-            fallback_values = self._to_masked()
-
-        fallback_result = fallback_values._groupby_op(
         if how in ["first", "last"]:
             return self._groupby_first_last(
                 how=how,
@@ -3386,6 +3377,8 @@ class ArrowExtensionArray(
                 skipna=kwargs.get("skipna", True),
             )
 
+        # Fall back to converting to a groupby-compatible delegate
+        # (masked/datetime/timedelta array) and running the Cython path.
         values = self._to_groupby_compatible()
         result = values._groupby_op(
             how=how,
@@ -3395,15 +3388,6 @@ class ArrowExtensionArray(
             ids=ids,
             **kwargs,
         )
-        if isinstance(fallback_result, np.ndarray):
-            return fallback_result
-        elif isinstance(fallback_result, BaseMaskedArray):
-            pa_result = fallback_result.__arrow_array__()
-            return self._from_pyarrow_array(pa_result)
-        else:
-            # DatetimeArray, TimedeltaArray
-            pa_result = pa.array(fallback_result)
-            return self._from_pyarrow_array(pa_result)
         return self._groupby_result_to_arrow(result)
 
     def _groupby_quantile(

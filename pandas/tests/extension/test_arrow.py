@@ -3526,27 +3526,63 @@ class TestGroupbyAggPyArrowNative:
     """Tests for PyArrow-native groupby aggregations on decimal and string types."""
 
     @pytest.mark.parametrize(
-        "agg_func",
-        ["sum", "prod", "min", "max", "mean", "std", "var", "sem", "count"],
+        "agg_func, expected",
+        [
+            ("sum", [Decimal("1"), Decimal("5"), Decimal("4")]),
+            ("prod", [Decimal("0"), Decimal("6"), Decimal("4")]),
+            ("min", [Decimal("0"), Decimal("2"), Decimal("4")]),
+            ("max", [Decimal("1"), Decimal("3"), Decimal("4")]),
+            ("mean", [Decimal("0.5"), Decimal("2.5"), Decimal("4")]),
+            ("count", [2, 2, 1]),
+        ],
     )
-    def test_groupby_decimal_aggregations(self, agg_func):
-        """Test decimal types use PyArrow-native groupby path."""
+    def test_groupby_decimal_aggregations(self, agg_func, expected):
+        """PyArrow-native decimal groupby returns the correct values."""
         values = [Decimal(str(i)) for i in range(5)]
         ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        # groups: 1 -> [0, 1], 2 -> [2, 3], 3 -> [4]
         result = ser.groupby([1, 1, 2, 2, 3]).agg(agg_func)
-        assert len(result) == 3
         assert result.index.tolist() == [1, 2, 3]
         assert isinstance(result.dtype, ArrowDtype)
+        # Decimal equality is scale-insensitive (Decimal("1") == Decimal("1.00"))
+        assert result.tolist() == expected
 
-    @pytest.mark.parametrize("agg_func", ["min", "max", "count"])
-    @pytest.mark.parametrize("dtype", [pa.string(), pa.large_string()])
-    def test_groupby_string_aggregations(self, dtype, agg_func):
-        """Test string types use PyArrow-native groupby path."""
-        ser = pd.Series(list("abcde"), dtype=ArrowDtype(dtype))
+    @pytest.mark.parametrize(
+        "agg_func, expected",
+        [
+            ("var", 0.5),
+            ("std", 0.5**0.5),
+            ("sem", 0.5),
+        ],
+    )
+    def test_groupby_decimal_variance_aggregations(self, agg_func, expected):
+        """std/var/sem on decimal return float64; a single-element group is NA."""
+        values = [Decimal(str(i)) for i in range(5)]
+        ser = pd.Series(values, dtype=ArrowDtype(pa.decimal128(10, 2)))
+        # groups: 1 -> [0, 1], 2 -> [2, 3], 3 -> [4] (single element -> NA)
         result = ser.groupby([1, 1, 2, 2, 3]).agg(agg_func)
-        assert len(result) == 3
+        assert result.dtype == ArrowDtype(pa.float64())
+        assert result.iloc[0] == pytest.approx(expected)
+        assert result.iloc[1] == pytest.approx(expected)
+        assert pd.isna(result.iloc[2])
+
+    @pytest.mark.parametrize(
+        "agg_func, expected",
+        [
+            ("min", ["a", "c", "e"]),
+            ("max", ["b", "d", "e"]),
+            ("count", [2, 2, 1]),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [pa.string(), pa.large_string()])
+    def test_groupby_string_aggregations(self, dtype, agg_func, expected):
+        """PyArrow-native string groupby returns the correct values."""
+        ser = pd.Series(list("abcde"), dtype=ArrowDtype(dtype))
+        # groups: 1 -> [a, b], 2 -> [c, d], 3 -> [e]
+        result = ser.groupby([1, 1, 2, 2, 3]).agg(agg_func)
         assert result.index.tolist() == [1, 2, 3]
         assert isinstance(result.dtype, ArrowDtype)
+        assert result.tolist() == expected
 
     @pytest.mark.parametrize(
         "dtype,values,expected,agg_func",
@@ -3643,6 +3679,8 @@ class TestGroupbyAggPyArrowNative:
         assert result.iloc[1] == Decimal("7.0")  # 3 + 4
         if not dropna:
             assert result.iloc[2] == Decimal("7.0")  # 2 + 5 (NA group)
+
+
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):
