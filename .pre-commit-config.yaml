@@ -278,13 +278,13 @@ repos:
         name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
         language: pygrep
         entry: 'pg8000'
-        files: ^ci/deps
-        types: [yaml]
+        files: pixi\.toml
+        types: [toml]
     -   id: validate-min-versions-in-sync
         name: Check minimum version of dependencies are aligned
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
-        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        files: ^(pixi\.toml|pandas/compat/_optional\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations
