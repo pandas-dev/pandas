@@ -3177,17 +3177,13 @@ class ArrowExtensionArray(
         "var": "variance",
         "sem": "stddev",  # sem = stddev / sqrt(count)
         "count": "count",
-        "any": "any",
-        "all": "all",
     }
 
     # Identity elements for operations (used to fill missing groups)
-    _PYARROW_AGG_DEFAULTS: dict[str, int | bool] = {
+    _PYARROW_AGG_DEFAULTS: dict[str, int] = {
         "sum": 0,
         "prod": 1,
         "count": 0,
-        "any": False,
-        "all": True,
     }
 
     def _groupby_op_pyarrow(
@@ -3208,12 +3204,9 @@ class ArrowExtensionArray(
         if pa_agg_func is None:
             return None
 
+        # Only decimal and string types are routed here (see _groupby_op).
+        # PyArrow doesn't support sum/prod/mean/std/var/sem on strings.
         pa_type = self._pa_array.type
-        if pa.types.is_temporal(pa_type) and how in ["std", "var", "sem"]:
-            return None
-        if how in ["any", "all"] and not pa.types.is_boolean(pa_type):
-            return None
-        # PyArrow doesn't support sum/prod/mean/std/var/sem on strings
         is_str = pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
         if is_str and how in ["sum", "prod", "mean", "std", "var", "sem"]:
             return None
@@ -3347,15 +3340,15 @@ class ArrowExtensionArray(
             or pa.types.is_string(pa_type)
             or pa.types.is_large_string(pa_type)
         ):
-            result = self._groupby_op_pyarrow(
+            native_result = self._groupby_op_pyarrow(
                 how=how,
                 min_count=min_count,
                 ngroups=ngroups,
                 ids=ids,
                 **kwargs,
             )
-            if result is not None:
-                return result
+            if native_result is not None:
+                return native_result
             # For string types, fall back to parent implementation (Python path)
             # since _to_masked() doesn't support strings
             if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
