@@ -163,9 +163,11 @@ config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
 # pytest 9.1.0 has an indirect-parametrize regression (pytest-dev/pytest#14591)
-# that breaks collection; pin in the wheel test phase only (not the `test`
-# extra, which ships to users). Remove once 9.1.1 ships. See GH#65883.
-test-requires = "pytest<9.1"
+# that breaks collection; exclude the 9.1 line in the wheel test phase only (not
+# the `test` extra, which ships to users). Must be `!=9.1.*`, not `<9.1`:
+# cibuildwheel installs this via cmd on Windows, which reads `<` as a stdin
+# redirect ("The system cannot find the file specified."). See GH#65883.
+test-requires = "pytest!=9.1.*"
 test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
