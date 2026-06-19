@@ -16,7 +16,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config.config import _global_config as config
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -87,7 +87,8 @@ class Styler(StylerRenderer):
     The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
     styling, allowing users to control colors, font styles, and other visual aspects of
     tabular data. It is particularly useful for presenting DataFrame objects in a
-    Jupyter Notebook environment or when exporting styled tables for reports and
+    Jupyter Notebook environment or when exporting styled tables for reports or
+    other human-readable documents.
 
     Parameters
     ----------
@@ -238,11 +239,11 @@ class Styler(StylerRenderer):
         )
 
         # validate ordered args
-        thousands = thousands or get_option("styler.format.thousands")
-        decimal = decimal or get_option("styler.format.decimal")
-        na_rep = na_rep or get_option("styler.format.na_rep")
-        escape = escape or get_option("styler.format.escape")
-        formatter = formatter or get_option("styler.format.formatter")
+        thousands = thousands or config["styler"]["format"]["thousands"]
+        decimal = decimal or config["styler"]["format"]["decimal"]
+        na_rep = na_rep or config["styler"]["format"]["na_rep"]
+        escape = escape or config["styler"]["format"]["escape"]
+        formatter = formatter or config["styler"]["format"]["formatter"]
         # precision is handled by superclass as default for performance
 
         self.format(
@@ -375,12 +376,12 @@ class Styler(StylerRenderer):
         Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
         default if an object is returned at the end of a cell.
         """
-        if get_option("styler.render.repr") == "html":
+        if config["styler"]["render"]["repr"] == "html":
             return self.to_html()
         return None
 
     def _repr_latex_(self) -> str | None:
-        if get_option("styler.render.repr") == "latex":
+        if config["styler"]["render"]["repr"] == "latex":
             return self.to_latex()
         return None
 
@@ -748,6 +749,11 @@ class Styler(StylerRenderer):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
+        Output includes a ``\\begin{tabular}`` tag or, when using
+        ``environment`` parameter, can include table/longtable tags. Various
+        LaTeX packages (e.g. booktabs, siunitx, multirow) can be leveraged for
+        enhanced formatting through the method's parameters.
+
         Parameters
         ----------
         buf : str, path object, file-like object, or None, default None
@@ -788,7 +794,7 @@ class Styler(StylerRenderer):
               - `"all;index"`: as above with lines extending only the width of the
                 index entries.
               - `"skip-last;data"`: a cline is added for each index value except the
-                last level (which is never sparsified), extending the widtn of the
+                last level (which is never sparsified), extending the width of the
                 table.
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
@@ -1027,7 +1033,7 @@ class Styler(StylerRenderer):
 
         **CSS Conversion**
 
-        This method can convert a Styler constructured with HTML-CSS to LaTeX using
+        This method can convert a Styler constructed with HTML-CSS to LaTeX using
         the following limited conversions.
 
         ================== ==================== ============= ==========================
@@ -1242,7 +1248,7 @@ class Styler(StylerRenderer):
                 overwrite=False,
             )
 
-        hrules = get_option("styler.latex.hrules") if hrules is None else hrules
+        hrules = config["styler"]["latex"]["hrules"] if hrules is None else hrules
         if hrules:
             obj.set_table_styles(
                 [
@@ -1263,12 +1269,12 @@ class Styler(StylerRenderer):
             obj.set_caption(caption)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
-        environment = environment or get_option("styler.latex.environment")
-        multicol_align = multicol_align or get_option("styler.latex.multicol_align")
-        multirow_align = multirow_align or get_option("styler.latex.multirow_align")
+            sparse_columns = config["styler"]["sparse"]["columns"]
+        environment = environment or config["styler"]["latex"]["environment"]
+        multicol_align = multicol_align or config["styler"]["latex"]["multicol_align"]
+        multirow_align = multirow_align or config["styler"]["latex"]["multirow_align"]
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
@@ -1281,7 +1287,7 @@ class Styler(StylerRenderer):
         )
 
         encoding = (
-            (encoding or get_option("styler.render.encoding"))
+            (encoding or config["styler"]["render"]["encoding"])
             if isinstance(buf, str)  # i.e. a filepath
             else encoding
         )
@@ -1382,9 +1388,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         text = obj._render_typst(
             sparse_columns=sparse_columns,
@@ -1453,6 +1459,10 @@ class Styler(StylerRenderer):
     ) -> str | None:
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
+
+        The output includes ``<style>`` and ``<table>`` HTML elements with inline
+        CSS, suitable for embedding in web pages or Jupyter notebooks. Use
+        ``doctype_html=True`` to produce a fully structured HTML document.
 
         Parameters
         ----------
@@ -1542,9 +1552,9 @@ class Styler(StylerRenderer):
             obj.set_table_attributes(table_attributes)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         if bold_headers:
             obj.set_table_styles(
@@ -1561,7 +1571,7 @@ class Styler(StylerRenderer):
             max_rows=max_rows,
             max_cols=max_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding or get_option("styler.render.encoding"),
+            encoding=encoding or config["styler"]["render"]["encoding"],
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -1609,6 +1619,10 @@ class Styler(StylerRenderer):
     ) -> str | None:
         """
         Write Styler to a file, buffer or string in text format.
+
+        Produces a plain text representation of the styled DataFrame, without
+        any HTML or CSS formatting. This is useful for console output or
+        writing to text files.
 
         Parameters
         ----------
@@ -1658,9 +1672,9 @@ class Styler(StylerRenderer):
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
-            sparse_index = get_option("styler.sparse.index")
+            sparse_index = config["styler"]["sparse"]["index"]
         if sparse_columns is None:
-            sparse_columns = get_option("styler.sparse.columns")
+            sparse_columns = config["styler"]["sparse"]["columns"]
 
         text = obj._render_string(
             sparse_columns=sparse_columns,
@@ -1789,7 +1803,7 @@ class Styler(StylerRenderer):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
                 i = self.index.get_loc(rn)
-                self.ctx[(i, j)].extend(css_list)
+                self.ctx[(i, j)].extend(css_list)  # type: ignore[index]
 
     def _update_ctx_header(self, attrs: DataFrame, axis: AxisInt) -> None:
         """
@@ -2124,7 +2138,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a Series and return a string array of the same length.
-        axis : {{0, 1, "index", "columns"}}
+        axis : {0, 1, "index", "columns"}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -2201,7 +2215,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should take a scalar and return a string.
-        axis : {{0, 1, "index", "columns"}}
+        axis : {0, 1, "index", "columns"}
             The headers over which to apply the function.
         level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -2491,6 +2505,10 @@ class Styler(StylerRenderer):
     def set_uuid(self, uuid: str) -> Styler:
         """
         Set the uuid applied to ``id`` attributes of HTML elements.
+
+        Useful for controlling the HTML ``id`` attributes when embedding
+        multiple styled DataFrames in the same HTML page, ensuring there are
+        no CSS conflicts between them.
 
         Parameters
         ----------
@@ -2853,7 +2871,11 @@ class Styler(StylerRenderer):
         elif isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"
+            idf = (
+                f".{self.css['row']}"  # pyright: ignore[reportOptionalSubscript]
+                if axis == 1
+                else f".{self.css['col']}"  # pyright: ignore[reportOptionalSubscript]
+            )
 
             table_styles = [
                 {
@@ -3069,10 +3091,15 @@ class Styler(StylerRenderer):
             )
         else:
             if axis == 0:
-                subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+                subset_1 = IndexSlice[
+                    subset, :
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_1)
             else:
-                subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
-            subset = non_reducing_slice(subset_)
+                subset_2 = IndexSlice[
+                    :, subset
+                ]  # separate var so mypy reads different type
+                subset = non_reducing_slice(subset_2)
             hide = self.data.loc[subset]
             h_els = getattr(self, objs).get_indexer_for(getattr(hide, objs))
             setattr(self, f"hidden_{alt}", h_els)
@@ -3089,7 +3116,7 @@ class Styler(StylerRenderer):
         # Returns a boolean mask indicating where `self.data` has numerical columns.
         # Choosing a mask as opposed to the column names also works for
         # boolean column labels (GH47838).
-        return self.data.columns.isin(self.data.select_dtypes(include=np.number))
+        return self.data.columns.isin(self.data.select_dtypes(include=np.number))  # type: ignore[arg-type]
 
     def background_gradient(
         self,
@@ -3122,7 +3149,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0, 1, "index", "columns", None}}, default 0
+        axis : {0, 1, "index", "columns", None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -3279,7 +3306,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {{0, 1, "index", "columns", None}}, default 0
+        axis : {0, 1, "index", "columns", None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -3460,6 +3487,10 @@ class Styler(StylerRenderer):
         """
         Draw bar chart in the cell backgrounds.
 
+        Renders horizontal bars as CSS gradients within table cells,
+        proportional to the underlying cell values. Colors can be customized
+        with a single color, a positive/negative pair, or a colormap.
+
         Parameters
         ----------
         subset : label, array-like, IndexSlice, optional
@@ -3579,6 +3610,9 @@ class Styler(StylerRenderer):
         """
         Highlight missing values with a style.
 
+        Applies a background color or custom CSS properties to cells
+        containing missing (NaN) values in the DataFrame.
+
         Parameters
         ----------
         color : str, default 'red'
@@ -3628,6 +3662,9 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight the maximum with a style.
+
+        Applies a background color or custom CSS properties to cells
+        containing the maximum value along the specified axis.
 
         Parameters
         ----------
@@ -3684,6 +3721,9 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight the minimum with a style.
+
+        Applies a background color or custom CSS properties to cells
+        containing the minimum value along the specified axis.
 
         Parameters
         ----------
@@ -3743,6 +3783,9 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight a defined range with a style.
+
+        Applies a background color or custom CSS properties to cells whose
+        values fall within the range defined by ``left`` and ``right`` bounds.
 
         Parameters
         ----------
@@ -3860,6 +3903,10 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight values defined by a quantile with a style.
+
+        Applies a background color or custom CSS properties to cells whose
+        values fall within the quantile range specified by ``q_left`` and
+        ``q_right``.
 
         Parameters
         ----------
@@ -4043,6 +4090,9 @@ class Styler(StylerRenderer):
     ) -> T:
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
+
+        This is useful for chaining multiple user-defined styling operations
+        in a readable manner, rather than nesting function calls.
 
         Parameters
         ----------

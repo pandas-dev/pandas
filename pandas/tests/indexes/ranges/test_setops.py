@@ -66,7 +66,7 @@ class TestRangeIndexSetOps:
         other = Index(np.arange(1, 6))
         result = index.intersection(other, sort=sort)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact="equiv")
 
         result = other.intersection(index, sort=sort)
         expected = Index(

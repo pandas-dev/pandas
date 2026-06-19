@@ -7,7 +7,6 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
-import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -60,6 +59,57 @@ def test_long_strings(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     tm.assert_frame_equal(df, result)
+
+
+def test_string_nan_in_index_fixed(temp_h5_path):
+    # GH#9604 — literal "nan" string in a string Index was being converted to
+    # NaN on read because the unconverter applied a NaN-sentinel substitution
+    # that the writer never performed for indices.
+    words = ["nan", "kai", "institute", "of", "technology"]
+    ser = Series(range(len(words)), index=words)
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    result = read_hdf(temp_h5_path, "s")
+
+    tm.assert_series_equal(result, ser)
+
+
+def test_string_nan_in_index_table(temp_hdfstore):
+    # GH#9604 — same bug, table format. Also verifies that nan_rep is honored
+    # for the index (it was previously silently ignored on the index read).
+    words = ["nan", "kai", "institute", "of", "technology"]
+    ser = Series(range(len(words)), index=words)
+
+    temp_hdfstore.append("s", ser, nan_rep="_nan_")
+    result = temp_hdfstore.select("s")
+
+    tm.assert_series_equal(result, ser)
+
+
+def test_string_nan_in_dataframe_index(temp_h5_path):
+    # GH#9604 — DataFrame index with literal "nan" strings, both formats.
+    df = DataFrame(
+        {"a": [1, 2, 3, 4]},
+        index=Index(["nan", "kai", "institute", "of"], name="ix"),
+    )
+
+    df.to_hdf(temp_h5_path, key="fixed", mode="w")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "fixed"), df)
+
+    df.to_hdf(temp_h5_path, key="table", mode="a", format="table")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "table"), df)
+
+
+def test_string_column_literal_nan_and_real_nan(temp_hdfstore):
+    # GH#9604 — companion to the index tests: ensure the symmetric nan_rep
+    # substitution still works on a data column, i.e. a custom nan_rep lets
+    # both a literal "nan" string and an actual NaN round-trip correctly.
+    df = DataFrame({"a": ["x", "nan", np.nan, "y"]}, index=["i1", "i2", "i3", "i4"])
+
+    temp_hdfstore.append("df", df, nan_rep="_NA_")
+    result = temp_hdfstore.select("df")
+
+    tm.assert_frame_equal(result, df)
 
 
 def test_api(temp_h5_path):
@@ -423,9 +473,7 @@ def test_can_serialize_dates(temp_h5_path):
     _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
 
 
-def test_store_hierarchical(
-    temp_h5_path, using_infer_string, multiindex_dataframe_random_data
-):
+def test_store_hierarchical(temp_h5_path, multiindex_dataframe_random_data):
     frame = multiindex_dataframe_random_data
 
     _check_roundtrip(frame, tm.assert_frame_equal, path=temp_h5_path)
@@ -507,7 +555,7 @@ def _check_roundtrip_table(obj, comparator, path, compression=False):
         options["complib"] = "blosc"
 
     with HDFStore(path, "w", **options) as store:
-        store.put("obj", obj, format="table")
+        store.put("obj", obj, format="table", track_times=False)
         retrieved = store["obj"]
 
         comparator(retrieved, obj)
@@ -527,13 +575,13 @@ def test_unicode_longer_encoded(temp_hdfstore):
     # GH 11234
     char = "\u0394"
     df = DataFrame({"A": [char]})
-    temp_hdfstore.put("df", df, format="table", encoding="utf-8")
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8", track_times=False)
     result = temp_hdfstore.get("df")
     tm.assert_frame_equal(result, df)
 
     df = DataFrame({"A": ["a", char], "B": ["b", "b"]})
     temp_hdfstore.remove("df")
-    temp_hdfstore.put("df", df, format="table", encoding="utf-8")
+    temp_hdfstore.put("df", df, format="table", encoding="utf-8", track_times=False)
     result = temp_hdfstore.get("df")
     tm.assert_frame_equal(result, df)
 
@@ -559,14 +607,9 @@ def test_round_trip_equals(temp_h5_path):
 
 
 def test_infer_string_columns(temp_h5_path):
-    # GH#
-    pytest.importorskip("pyarrow")
-    with pd.option_context("future.infer_string", True):
-        df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(
-            ["A", "B"]
-        )
-        expected = df.copy()
-        df.to_hdf(temp_h5_path, key="df", format="table")
+    df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(["A", "B"])
+    expected = df.copy()
+    df.to_hdf(temp_h5_path, key="df", format="table")
 
-        result = read_hdf(temp_h5_path, "df")
-        tm.assert_frame_equal(result, expected)
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, expected)

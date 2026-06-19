@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -894,8 +895,11 @@ class TestTimeSeriesArithmetic:
         ts2 = ts_slice.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts + ts2
-        result2 = ts2 + ts
+        # GH#62158 alignment joins date-object Index with DatetimeIndex
+        msg = "Alignment of a DataFrame/Series with a DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts + ts2
+            result2 = ts2 + ts
         expected = ts + ts[5:]
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
@@ -925,7 +929,13 @@ class TestNamePreservation:
             if is_logical:
                 # Series doesn't have these as flex methods
                 return
-            result = getattr(left, name)(right)
+
+            warn = None
+            tuple_msg = "with a tuple is deprecated"
+            if box is tuple:
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=tuple_msg):
+                result = getattr(left, name)(right)
         else:
             if is_logical and box in [list, tuple]:
                 with pytest.raises(TypeError, match=msg):
@@ -1105,3 +1115,38 @@ def test_comparison_mismatched_datetime_units(index):
     result2 = ser2 < ser
     expected2 = Series([False, False, False], index=ser2.index)
     tm.assert_series_equal(result2, expected2)
+
+
+def test_multiindex_single_entry_arith_preserves_all_levels():
+    # GH#25891 - MultiIndex level dropped when multiplying two Series with a
+    # single entry. When both Series have exactly one entry and overlapping
+    # MultiIndex levels, all non-common index levels must be preserved in the
+    # result.
+    index1 = pd.MultiIndex.from_product([[], []], names=["T", "N"])
+    s1 = Series(index=index1, dtype=float)
+    s1["T.1A", "N.0"] = 0.5
+
+    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    s2 = Series(index=index2, dtype=float)
+    s2["N.0", "M.0"] = 0.5
+
+    expected_index = pd.MultiIndex.from_tuples(
+        [("T.1A", "N.0", "M.0")], names=["T", "N", "M"]
+    )
+    expected = Series([0.25], index=expected_index)
+
+    # multiplication
+    result = s1 * s2
+    tm.assert_series_equal(result, expected)
+
+    # addition
+    result_add = s1 + s2
+    tm.assert_series_equal(result_add, Series([1.0], index=expected_index))
+
+    # subtraction
+    result_sub = s1 - s2
+    tm.assert_series_equal(result_sub, Series([0.0], index=expected_index))
+
+    # division
+    result_div = s1 / s2
+    tm.assert_series_equal(result_div, Series([1.0], index=expected_index))

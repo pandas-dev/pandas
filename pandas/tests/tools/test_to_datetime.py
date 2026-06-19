@@ -46,7 +46,10 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    DatetimeArray,
+)
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
 
@@ -302,37 +305,23 @@ class TestTimeConversionFormats:
                 "%m/%d/%Y %H:%M:%S",
                 Timestamp("2010-01-10 13:56:01"),
             ],
-            # The 3 tests below are locale-dependent.
-            # They pass, except when the machine locale is zh_CN or it_IT .
             pytest.param(
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 20:14"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
-                ),
+                marks=td.skip_if_not_us_locale,
             ),
             pytest.param(
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 Timestamp("2010-01-10 07:40"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
-                ),
+                marks=td.skip_if_not_us_locale,
             ),
             pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 Timestamp("2010-01-10 09:12:56"),
-                marks=pytest.mark.xfail(
-                    locale.getlocale()[0] in ("zh_CN", "it_IT"),
-                    reason="fail on a CI build with LC_ALL=zh_CN.utf8/it_IT.utf8",
-                    strict=False,
-                ),
+                marks=td.skip_if_not_us_locale,
             ),
         ],
     )
@@ -1818,7 +1807,7 @@ class TestToDatetimeUnit:
         expected = Index([NaT], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
-        # In 3.0, the string "1.5" is parsed as as it would be without unit,
+        # In 3.0, the string "1.5" is parsed as it would be without unit,
         #  which fails. With errors="coerce" this becomes NaT.
         res = to_datetime(["1.5"], unit=unit, errors="coerce")
         expected = to_datetime([NaT])
@@ -2040,13 +2029,75 @@ class TestToDatetimeUnit:
                 expected.astype(np.float64),
                 rtol=1e-10,
             )
+
         # just out of bounds
         should_fail1 = Series([0, tsmax_in_days + 0.005], dtype=float)
         should_fail2 = Series([0, -tsmax_in_days - 0.005], dtype=float)
+        msg2 = "cannot convert input 106751.99616730065 with the unit 'D'"
+        msg3 = "cannot convert input -106751.99616730065 with the unit 'D'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(should_fail1, unit="D", errors="raise")
         with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(should_fail1[1], unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg2):
+            Timestamp(should_fail1[1], unit="D")
+
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(should_fail2, unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(should_fail2[1], unit="D", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg3):
+            Timestamp(should_fail2[1], unit="D")
+
+    def test_float_to_datetime_raise_oob_ns(self):
+        value = np.float64(2**63)
+        arr = np.array([value], dtype=np.float64)
+
+        msg = "cannot convert input with unit 'ns'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="ns", errors="raise")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(value, unit="ns", errors="raise")
+
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(value, unit="ns")
+
+    def test_uint64_to_datetime_raise_oob(self):
+        # GH#60677 uint64 values > int64 max overflow silently
+        uint64_max = np.iinfo(np.uint64).max
+        arr = np.array([uint64_max], dtype=np.uint64)
+
+        msg = "cannot convert input with unit 'ns'"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(arr, unit="ns", errors="raise")
+        # scalar via to_datetime
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(uint64_max, unit="ns", errors="raise")
+        # scalar via Timestamp constructor
+        msg = "Out of bounds nanosecond timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(uint64_max, unit="ns")
+
+    def test_uint64_to_datetime_coerce(self):
+        # GH#60677
+        uint64_max = np.iinfo(np.uint64).max
+        arr = np.array([uint64_max], dtype=np.uint64)
+
+        result = to_datetime(arr, unit="ns", errors="coerce")
+        expected = DatetimeIndex(["NaT"], dtype="datetime64[ns]")
+        tm.assert_index_equal(result, expected)
+
+        # scalar
+        result = to_datetime(uint64_max, unit="ns", errors="coerce")
+        assert result is NaT
+
+    def test_uint64_to_datetime_valid(self):
+        # GH#60677 valid uint64 values should still work
+        arr = np.array([1_000_000, 2_000_000], dtype=np.uint64)
+        result = to_datetime(arr, unit="ns")
+        expected = to_datetime(arr.astype(np.int64), unit="ns")
+        tm.assert_index_equal(result, expected)
 
 
 class TestToDatetimeDataFrame:
@@ -3257,18 +3308,24 @@ class TestOrigin:
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
     @pytest.mark.parametrize(
-        "epochs",
+        "epochs, origin_unit",
         [
-            Timestamp(1960, 1, 1),
-            datetime(1960, 1, 1),
-            "1960-01-01",
-            np.datetime64("1960-01-01"),
+            (Timestamp(1960, 1, 1), "us"),
+            (datetime(1960, 1, 1), "us"),
+            ("1960-01-01", "us"),
+            (np.datetime64("1960-01-01"), "s"),
         ],
     )
-    def test_epoch(self, units, epochs):
+    def test_epoch(self, units, epochs, origin_unit):
+        # GH 63419: after v3.0.0 default resolution is microseconds
         epoch_1960 = Timestamp(1960, 1, 1)
         units_from_epochs = np.arange(5, dtype=np.int64)
-        exp_unit = "s" if units == "D" else units
+        # result resolution is max of origin resolution and unit resolution
+        unit_reso = "s" if units == "D" else units
+        reso_order = ["s", "ms", "us", "ns"]
+        exp_unit = reso_order[
+            max(reso_order.index(origin_unit), reso_order.index(unit_reso))
+        ]
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
             dtype=f"M8[{exp_unit}]",
@@ -3283,17 +3340,11 @@ class TestOrigin:
             ("random_string", ValueError),
             ("epoch", ValueError),
             ("13-24-1990", ValueError),
-            (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
     def test_invalid_origins(self, origin, exc, units):
-        msg = "|".join(
-            [
-                f"origin {origin} is Out of Bounds",
-                f"origin {origin} cannot be converted to a Timestamp",
-                "Cannot cast .* to unit='ns' without overflow",
-            ]
-        )
+        # GH 63419
+        msg = f"origin {origin} cannot be converted to a Timestamp"
         with pytest.raises(exc, match=msg):
             to_datetime(list(range(5)), unit=units, origin=origin)
 
@@ -3369,6 +3420,44 @@ class TestOrigin:
         expected = to_datetime([exp]).as_unit("us")
         tm.assert_index_equal(result, expected)
 
+    def test_invalid_origins_oob(self):
+        # GH 63419 datetime(1, 1, 1) overflows only for unit='ns'
+        msg = "Cannot cast .* to unit='ns' without overflow"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime(list(range(5)), unit="ns", origin=datetime(1, 1, 1))
+
+    def test_preserve_origin_time_resolution(self):
+        # GH 63419
+        ts = Timestamp("2016-01-01 00:00:00.000001")
+        result = to_datetime([1, 2, 3], unit="D", origin=ts)
+        expected = DatetimeIndex(
+            [
+                "2016-01-02 00:00:00.000001",
+                "2016-01-03 00:00:00.000001",
+                "2016-01-04 00:00:00.000001",
+            ],
+            dtype="datetime64[us]",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_preserve_series_and_name(self):
+        # GH 63419
+        origin = Timestamp("2016-01-01")
+        data = ["2016-01-02", "2016-01-03", "2016-01-04"]
+        arg = Series([1, 2, 3], name="foo")
+        result = to_datetime(arg, unit="D", origin=origin)
+        assert isinstance(result, Series)
+        expected = Series(
+            [Timestamp(x) for x in data], dtype="datetime64[us]", name="foo"
+        )
+        tm.assert_series_equal(result, expected)
+
+        arg = Index([1, 2, 3], name="foo")
+        result = to_datetime(arg, unit="D", origin=origin)
+        assert isinstance(result, DatetimeIndex)
+        expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
+        tm.assert_index_equal(result, expected)
+
 
 class TestShouldCache:
     @pytest.mark.parametrize(
@@ -3410,6 +3499,52 @@ class TestShouldCache:
         assert tools.should_cache(listlike) is True
 
 
+class TestShouldCacheEarlyBail:
+    # GH#65380 should_cache returns False in O(1) for
+    # inputs where caching cannot help.
+
+    @pytest.mark.parametrize(
+        "arg, kwargs",
+        [
+            # unit is not None
+            (np.arange(100, dtype="int64"), {"unit": "s"}),
+            # arg.dtype is np.datetime64
+            (
+                date_range("2020-01-01", periods=100, freq="s").to_numpy(),
+                {},
+            ),
+            # arg.dtype is DatetimeTZDtype
+            (
+                date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
+                {},
+            ),
+        ],
+    )
+    def test_should_cache_returns_false(self, arg, kwargs):
+        assert tools.should_cache(arg, **kwargs) is False
+
+    @td.skip_if_no("pyarrow")
+    def test_should_cache_returns_false_arrow(self):
+        # ArrowDtype with Timestamp type
+        import pyarrow as pa
+
+        arr = ArrowExtensionArray(
+            pa.array(
+                date_range("2020-01-01", periods=100, freq="s").to_numpy(),
+                type=pa.timestamp("ns"),
+            )
+        )
+        idx = Index(arr)
+        assert tools.should_cache(idx) is False
+
+    def test_should_cache_explicit_format_not_skipped(self):
+        # GH#65380, asv-runner#137: an explicit ``format`` must NOT disable
+        # caching. Highly-duplicated strings still benefit from caching even
+        # with a (slow-parsing) strptime format, so should_cache returns True.
+        arg = Index(["19MAY11"] * 100)
+        assert tools.should_cache(arg) is True
+
+
 def test_nullable_integer_to_datetime():
     # Test for #30050
     ser = Series([1, 2, None, 2**61, None], dtype="Int64")
@@ -3421,9 +3556,9 @@ def test_nullable_integer_to_datetime():
         [
             np.datetime64("1970-01-01 00:00:00.000000001"),
             np.datetime64("1970-01-01 00:00:00.000000002"),
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
             np.datetime64("2043-01-25 23:56:49.213693952"),
-            np.datetime64("NaT"),
+            np.datetime64("NaT", "ns"),
         ]
     )
     tm.assert_series_equal(res, expected)
@@ -3827,3 +3962,19 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
 
     out = to_datetime(Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
     assert out.iloc[0] == Timestamp(s)
+
+
+def test_to_datetime_missing_component_no_runtime_warning():
+    df = DataFrame(
+        {
+            "year": [2023, 2023],
+            "month": [12, 2],
+            "day": [1, 2],
+            "hour": [2, np.nan],
+        }
+    )
+
+    with tm.assert_produces_warning(None):
+        result = to_datetime(df)
+
+    assert result.iloc[1] is NaT

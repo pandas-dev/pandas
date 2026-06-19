@@ -32,6 +32,7 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -41,7 +42,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
-    is_file_like,
     is_float,
     is_integer,
     is_list_like,
@@ -55,7 +55,6 @@ from pandas.core.indexes.api import RangeIndex
 from pandas.io.common import (
     IOHandles,
     get_handle,
-    stringify_path,
     validate_header_arg,
 )
 from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
@@ -132,7 +131,7 @@ if TYPE_CHECKING:
         comment: str | None
         encoding: str | None
         encoding_errors: str | None
-        dialect: str | csv.Dialect | None
+        dialect: str | csv.Dialect | type[csv.Dialect] | None
         on_bad_lines: str
         low_memory: bool
         memory_map: bool
@@ -296,6 +295,14 @@ def _read(
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
 
+    if kwds.get("float_precision") is not None:
+        warnings.warn(
+            "The 'float_precision' argument is deprecated. "
+            "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
 
@@ -394,7 +401,7 @@ def read_csv(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -420,10 +427,15 @@ def read_csv(
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -437,26 +449,30 @@ def read_csv(
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
-        Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior is to infer the column names:
-        if no ``names``
-        are passed the behavior is identical to ``header=0`` and column
-        names are inferred from the first line of the file, if column
-        names are passed explicitly to ``names`` then the behavior is identical to
-        ``header=None``. Explicitly pass ``header=0`` to be able to
-        replace existing names. The header can be a list of integers that
-        specify row locations for a :class:`~pandas.MultiIndex` on the columns
-        e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
-        skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
-        data rather than the first line of the file.
+        Row index or indices in the file to use as DataFrame column labels.
+        Indexing starts at 0 and counts only non-blank, non-commented lines
+        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
+        line of data rather than the first line of the file. Valid arguments
+        are:
+
+        * ``int``: line index at which column labels are read.
+        * Sequence of ``int``: line indices at which column labels are read
+          and combined into a :class:`~pandas.MultiIndex` on the columns,
+          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
+          be skipped (e.g. row 2 in this example).
+        * ``None``: no row in the file is interpreted as column labels.
+          Columns are labelled by integer position, or by the values passed
+          to ``names`` when provided. Use this for files with no header
+          row. If the file has a header row that should be overridden by
+          ``names``, pass ``header=0`` instead.
+        * ``'infer'`` (default): equivalent to ``header=0`` when no
+          ``names`` are passed, otherwise equivalent to ``header=None``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
-        ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
-        Empty headers are named ``"Unnamed: {{i}}"`` or ``
-        "Unnamed: {{i}}_level_{{level}}"``
+        ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+        Empty headers are named ``"Unnamed: {i}"`` or ``
+        "Unnamed: {i}_level_{level}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -493,9 +509,9 @@ def read_csv(
         example of a valid callable argument would be ``lambda x: x.upper() in
         ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
         parsing time and lower memory usage.
-    dtype : dtype or dict of {{Hashable : dtype}}, optional
+    dtype : dtype or dict of {Hashable : dtype}, optional
         Data type(s) to apply to either the whole dataset or individual columns.
-        E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
+        E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
@@ -503,14 +519,14 @@ def read_csv(
         the default determines the ``dtype``
         of the columns which are not explicitly
         listed.
-    engine : {{'c', 'python', 'pyarrow'}}, optional
+    engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading
         is currently only supported by
         the pyarrow engine. Some features of the "pyarrow" engine
         are unsupported or may not work correctly.
-    converters : dict of {{Hashable : Callable}}, optional
+    converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
@@ -546,7 +562,7 @@ def read_csv(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
         passed, specific
@@ -656,8 +672,8 @@ def read_csv(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
-        2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    quoting : {0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
+        2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
         ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
         only fields containing special
@@ -694,7 +710,7 @@ def read_csv(
         ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
-    on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
+    on_bad_lines : {'error', 'warn', 'skip'} or Callable, default 'error'
         Specifies what to do upon encountering a bad line (a line with too many fields).
         Allowed values are:
 
@@ -724,8 +740,15 @@ def read_csv(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference.  To ensure no mixed
-        types either set ``False``, or specify the type with the ``dtype`` parameter.
+        while parsing, but possibly mixed type inference. Because each chunk
+        is type-inferred independently, the same literal can be parsed as an
+        ``int`` in one chunk and a ``str`` in another; after concatenation the
+        column has ``object`` dtype and contains both representations, so
+        comparisons such as ``df["col"] == 12345`` or
+        ``df["col"] == "12345"`` will match only a subset of the rows holding
+        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
+        this occurs. To ensure no mixed types either set ``False``, or specify
+        the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator``
         parameter to return the data in
@@ -734,11 +757,15 @@ def read_csv(
         If a filepath is provided for ``filepath_or_buffer``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
-    float_precision : {{'high', 'legacy', 'round_trip'}}, optional
+    float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -750,7 +777,7 @@ def read_csv(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -800,7 +827,7 @@ def read_csv(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_csv("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_csv("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -844,7 +871,7 @@ def read_csv(
     >>> df = pd.read_csv(
     ...     "tmp.csv",
     ...     parse_dates=[1, 2],
-    ...     date_format={{"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"}},
+    ...     date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
     ... )  # doctest: +SKIP
 
     >>> df.dtypes  # doctest: +SKIP
@@ -961,7 +988,7 @@ def read_table(
     comment: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
-    dialect: str | csv.Dialect | None = None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None = None,
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
@@ -987,10 +1014,15 @@ def read_table(
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
-        By file-like object, we refer to objects with a ``read()`` method, such as
-        a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. If ``sep=None``, the
         C engine cannot automatically detect
@@ -1004,26 +1036,30 @@ def read_table(
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
-        Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior
-        is to infer the column names: if no ``names``
-        are passed the behavior is identical to ``header=0`` and column
-        names are inferred from the first line of the file, if column
-        names are passed explicitly to ``names`` then the behavior is identical to
-        ``header=None``. Explicitly pass ``header=0`` to be able to
-        replace existing names. The header can be a list of integers that
-        specify row locations for a :class:`~pandas.MultiIndex` on the columns
-        e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
-        skipped (e.g. 2 in this example is skipped). Note that this
-        parameter ignores commented lines and empty lines if
-        ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
-        data rather than the first line of the file.
+        Row index or indices in the file to use as DataFrame column labels.
+        Indexing starts at 0 and counts only non-blank, non-commented lines
+        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
+        line of data rather than the first line of the file. Valid arguments
+        are:
+
+        * ``int``: line index at which column labels are read.
+        * Sequence of ``int``: line indices at which column labels are read
+          and combined into a :class:`~pandas.MultiIndex` on the columns,
+          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
+          be skipped (e.g. row 2 in this example).
+        * ``None``: no row in the file is interpreted as column labels.
+          Columns are labelled by integer position, or by the values passed
+          to ``names`` when provided. Use this for files with no header
+          row. If the file has a header row that should be overridden by
+          ``names``, pass ``header=0`` instead.
+        * ``'infer'`` (default): equivalent to ``header=0`` when no
+          ``names`` are passed, otherwise equivalent to ``header=None``.
 
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
-        ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+        ``".{count}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
         Empty headers are named
-        ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+        ``"Unnamed: {i}"`` or ``"Unnamed: {i}_level_{level}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -1058,23 +1094,23 @@ def read_table(
         example of a valid callable argument would be ``lambda x: x.upper() in
         ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
         parsing time and lower memory usage.
-    dtype : dtype or dict of {{Hashable : dtype}}, optional
+    dtype : dtype or dict of {Hashable : dtype}, optional
         Data type(s) to apply to either the whole dataset or individual columns.
-        E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
+        E.g., ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which
         are not explicitly listed.
-    engine : {{'c', 'python', 'pyarrow'}}, optional
+    engine : {'c', 'python', 'pyarrow'}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading is
         currently only supported by
         the pyarrow engine. The 'pyarrow' engine is an *experimental* engine,
         and some features are unsupported, or may not work correctly, with this engine.
-    converters : dict of {{Hashable : Callable}}, optional
+    converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
@@ -1110,7 +1146,7 @@ def read_table(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    na_values : Hashable, Iterable of Hashable or dict of {Hashable : Iterable},
         optional
         Additional strings to recognize as ``NA``/``NaN``.
         If ``dict`` passed, specific
@@ -1219,8 +1255,8 @@ def read_table(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
-        csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    quoting : {0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
+        csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
         ``csv.QUOTE_MINIMAL`` (i.e., 0) which
         implies that only fields containing special
@@ -1257,7 +1293,7 @@ def read_table(
         ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
-    on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
+    on_bad_lines : {'error', 'warn', 'skip'} or Callable, default 'error'
         Specifies what to do upon encountering a bad
         line (a line with too many fields).
         Allowed values are:
@@ -1287,8 +1323,15 @@ def read_table(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference.  To ensure no mixed
-        types either set ``False``, or specify the type with the ``dtype`` parameter.
+        while parsing, but possibly mixed type inference. Because each chunk
+        is type-inferred independently, the same literal can be parsed as an
+        ``int`` in one chunk and a ``str`` in another; after concatenation the
+        column has ``object`` dtype and contains both representations, so
+        comparisons such as ``df["col"] == 12345`` or
+        ``df["col"] == "12345"`` will match only a subset of the rows holding
+        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
+        this occurs. To ensure no mixed types either set ``False``, or specify
+        the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator`` parameter
         to return the data in
@@ -1297,11 +1340,15 @@ def read_table(
         If a filepath is provided for ``filepath_or_buffer``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
-    float_precision : {{'high', 'legacy', 'round_trip'}}, optional
+    float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
         values. The options are ``None`` or ``'high'`` for the ordinary converter,
         ``'legacy'`` for the original lower precision pandas converter, and
         ``'round_trip'`` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
 
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
@@ -1313,7 +1360,7 @@ def read_table(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -1363,7 +1410,7 @@ def read_table(
 
     Column types are inferred but can be explicitly specified using the dtype argument.
 
-    >>> pd.read_table("data.csv", dtype={{"Value": float}})  # doctest: +SKIP
+    >>> pd.read_table("data.csv", dtype={"Value": float})  # doctest: +SKIP
        Name  Value
     0   foo    1.0
     1   bar    2.0
@@ -1407,7 +1454,7 @@ def read_table(
     >>> df = pd.read_table(
     ...     "tmp.csv",
     ...     parse_dates=[1, 2],
-    ...     date_format={{"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"}},
+    ...     date_format={"col 2": "%d/%m/%Y", "col 3": "%a %d %b %Y"},
     ... )  # doctest: +SKIP
 
     >>> df.dtypes  # doctest: +SKIP
@@ -1498,11 +1545,19 @@ def read_fwf(
     Parameters
     ----------
     filepath_or_buffer : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
-        object implementing a text ``read()`` function.The string could be a URL.
-        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be:
-        ``file://localhost/path/to/table.csv``.
+        Any valid string path is acceptable. The string could be a URL. Valid
+        URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.csv``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
+        If you want to pass in a path object, pandas accepts any ``os.PathLike``.
+
+        By file-like object, we refer to objects with a ``read()`` method that
+        accepts an optional size argument, such as a file handle (e.g. via
+        builtin ``open`` function) or ``StringIO``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to] ).
@@ -1514,7 +1569,10 @@ def read_fwf(
         the intervals are contiguous.
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
-        `colspecs`.
+        ``colspecs``. Pass ``np.inf`` to infer column specifications from the
+        entire file, which is useful when columns vary in width and a value
+        wider than anything in the first ``infer_nrows`` rows would otherwise
+        be truncated.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.
@@ -1592,9 +1650,43 @@ def read_fwf(
 
 class TextFileReader(abc.Iterator):
     """
+    Iterator over chunks of a delimited text file.
 
-    Passed dialect overrides any of the related parser options
+    Returned by :func:`read_csv`, :func:`read_table`, and :func:`read_fwf`
+    when ``iterator=True`` or ``chunksize`` is given. Not intended to be
+    constructed directly by users.
 
+    A ``TextFileReader`` can be iterated over to yield successive chunks as
+    :class:`DataFrame` objects, used as a context manager to ensure the
+    underlying file handle is closed, or queried explicitly via
+    :meth:`~TextFileReader.read` and :meth:`~TextFileReader.get_chunk`.
+
+    Passed ``dialect`` overrides any of the related parser options.
+
+    Parameters
+    ----------
+    f : str, path object, or file-like object
+        Source to read from. Accepts the same inputs as :func:`read_csv`.
+    engine : {'c', 'python', 'pyarrow', 'python-fwf'}, optional
+        Parser engine to use. If not specified, defaults to ``'python'``.
+    **kwds
+        Any keyword argument accepted by :func:`read_csv`, :func:`read_table`,
+        or :func:`read_fwf`.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a DataFrame.
+    read_table : Read general delimited file into a DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into a DataFrame.
+
+    Examples
+    --------
+    >>> with pd.read_csv("data.csv", chunksize=1000) as reader:  # doctest: +SKIP
+    ...     for chunk in reader:
+    ...         process(chunk)
+
+    >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+    ...     first = reader.get_chunk(5)
     """
 
     def __init__(
@@ -1645,6 +1737,22 @@ class TextFileReader(abc.Iterator):
         self._engine = self._make_engine(f, self.engine)
 
     def close(self) -> None:
+        """
+        Close the underlying file handle and parser engine.
+
+        Called automatically when the ``TextFileReader`` is used as a context
+        manager.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file into a DataFrame.
+        TextFileReader.get_chunk : Read the next chunk of rows.
+
+        Examples
+        --------
+        >>> reader = pd.read_csv("data.csv", chunksize=5)  # doctest: +SKIP
+        >>> reader.close()  # doctest: +SKIP
+        """
         if self.handles is not None:
             self.handles.close()
         self._engine.close()
@@ -1696,15 +1804,6 @@ class TextFileReader(abc.Iterator):
         return options
 
     def _check_file_or_buffer(self, f, engine: CSVEngine) -> None:
-        # see gh-16530
-        if is_file_like(f) and engine != "c" and not hasattr(f, "__iter__"):
-            # The C engine doesn't need the file-like to have the "__iter__"
-            # attribute. However, the Python engine needs "__iter__(...)"
-            # when iterating through such an object, meaning it
-            # needs to have that attribute
-            raise ValueError(
-                "The 'python' engine cannot iterate through this file buffer."
-            )
         if hasattr(f, "encoding"):
             file_encoding = f.encoding
             orig_reader_enc = self.orig_options.get("encoding", None)
@@ -1740,8 +1839,7 @@ class TextFileReader(abc.Iterator):
                 # wait until regex engine integrated
                 fallback_reason = (
                     f"the '{engine}' engine does not support "
-                    "regex separators (separators > 1 char and "
-                    r"different from '\s+' are interpreted as regex)"
+                    "separators > 1 char, including regex separators"
                 )
                 engine = "python"
         elif sep is not None:
@@ -1886,21 +1984,14 @@ class TextFileReader(abc.Iterator):
             )
         if not isinstance(f, list):
             # open file here
-            is_text = True
-            mode = "r"
-            if engine == "pyarrow":
-                is_text = False
-                mode = "rb"
-            elif (
+            # The c and pyarrow engines can decode utf-8 bytes natively;
+            # wrapping in TextIOWrapper makes them slower, especially for
+            # memory_map and remote file-like objects (GH#46823).
+            is_text = engine in ("python", "python-fwf") or (
                 engine == "c"
-                and self.options.get("encoding", "utf-8") == "utf-8"
-                and isinstance(stringify_path(f), str)
-            ):
-                # c engine can decode utf-8 bytes, adding TextIOWrapper makes
-                # the c-engine especially for memory_map=True far slower
-                is_text = False
-                if "b" not in mode:
-                    mode += "b"
+                and self.options.get("encoding", "utf-8") not in (None, "utf-8")
+            )
+            mode = "r" if is_text else "rb"
             self.handles = get_handle(
                 f,
                 mode,
@@ -1929,6 +2020,36 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows: int | None = None) -> DataFrame:
+        """
+        Read rows from the file into a :class:`DataFrame`.
+
+        Advances the internal cursor by the number of rows returned, so
+        successive calls yield later rows of the file. Used with readers
+        created via :func:`read_csv` or :func:`read_table` with
+        ``iterator=True`` or ``chunksize`` set.
+
+        Parameters
+        ----------
+        nrows : int, optional
+            Number of rows to read. If ``None``, read until end of file.
+            Ignored when the underlying engine is ``"pyarrow"``, which always
+            reads the full file.
+
+        Returns
+        -------
+        DataFrame
+            The parsed rows.
+
+        See Also
+        --------
+        TextFileReader.get_chunk : Read the next chunk of rows.
+        read_csv : Read a comma-separated values (csv) file into a DataFrame.
+
+        Examples
+        --------
+        >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+        ...     df = reader.read()
+        """
         if self.engine == "pyarrow":
             try:
                 # error: "ParserBase" has no attribute "read"
@@ -2000,6 +2121,40 @@ class TextFileReader(abc.Iterator):
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
+        """
+        Read the next chunk of rows from the file.
+
+        Convenience wrapper around :meth:`TextFileReader.read` that defaults
+        ``size`` to the ``chunksize`` passed to :func:`read_csv` or
+        :func:`read_table`, and respects a configured ``nrows`` limit by
+        raising ``StopIteration`` once it has been reached.
+
+        Parameters
+        ----------
+        size : int, optional
+            Number of rows to read in this chunk. Defaults to the ``chunksize``
+            passed when the reader was created.
+
+        Returns
+        -------
+        DataFrame
+            The next chunk of parsed rows.
+
+        Raises
+        ------
+        StopIteration
+            If ``nrows`` was set and has already been reached.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file into a DataFrame.
+        read_csv : Read a comma-separated values (csv) file into a DataFrame.
+
+        Examples
+        --------
+        >>> with pd.read_csv("data.csv", iterator=True) as reader:  # doctest: +SKIP
+        ...     first_five = reader.get_chunk(5)
+        """
         if size is None:
             size = self.chunksize
         if self.nrows is not None:
@@ -2033,7 +2188,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     ----------
     data : file-like object or list
     delimiter : separator character to use
-    dialect : str or csv.Dialect instance, optional
+    dialect : str or csv.Dialect class / instance, optional
         Ignored if delimiter is longer than 1 character
     names : sequence, default
     header : int, default 0
@@ -2071,6 +2226,10 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
+
+        .. deprecated:: 3.1.0
+            All float precision modes now use the same converter.
+            The ``float_precision`` argument will be removed in a future version.
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
@@ -2154,7 +2313,7 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 
 
 def _refine_defaults_read(
-    dialect: str | csv.Dialect | None,
+    dialect: str | csv.Dialect | type[csv.Dialect] | None,
     delimiter: str | None | lib.NoDefault,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
@@ -2175,7 +2334,7 @@ def _refine_defaults_read(
         documentation for more details.
     delimiter : str or object
         Alias for sep.
-    engine : {{'c', 'python'}}
+    engine : {'c', 'python'}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
     sep : str or object
@@ -2244,11 +2403,11 @@ def _refine_defaults_read(
         kwds["engine_specified"] = False
 
     if on_bad_lines == "error":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_ERROR
     elif on_bad_lines == "warn":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_WARN
     elif on_bad_lines == "skip":
-        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.BLHM_SKIP
     elif callable(on_bad_lines):
         if engine not in ["python", "pyarrow"]:
             raise ValueError(
@@ -2266,7 +2425,9 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
+def _extract_dialect(
+    kwds: dict[str, str | csv.Dialect | type[csv.Dialect]],
+) -> csv.Dialect | type[csv.Dialect] | None:
     """
     Extract concrete csv dialect instance.
 
@@ -2300,7 +2461,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect | str) -> None:
+def _validate_dialect(dialect: csv.Dialect | type[csv.Dialect] | str) -> None:
     """
     Validate csv dialect instance.
 
@@ -2315,7 +2476,7 @@ def _validate_dialect(dialect: csv.Dialect | str) -> None:
 
 
 def _merge_with_dialect_properties(
-    dialect: csv.Dialect,
+    dialect: csv.Dialect | type[csv.Dialect],
     defaults: dict[str, Any],
 ) -> dict[str, Any]:
     """

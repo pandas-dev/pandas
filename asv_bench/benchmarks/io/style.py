@@ -66,7 +66,7 @@ class Render:
         self.st = self.df.style.apply(_apply_func, axis=1)
 
     def _style_classes(self):
-        classes = self.df.map(lambda v: ("cls-1" if v > 0 else ""))
+        classes = self.df.map(lambda v: "cls-1" if v > 0 else "")
         classes.index, classes.columns = self.df.index, self.df.columns
         self.st = self.df.style.set_td_classes(classes)
 

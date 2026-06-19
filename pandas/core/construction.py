@@ -29,10 +29,8 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
-    ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
-    maybe_convert_platform,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -41,14 +39,20 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import NumpyEADtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 import pandas.core.common as com
 
@@ -191,6 +195,14 @@ def array(
     ['a', 'b']
     Length: 2, dtype: str32
 
+    pandas converts entries of a multidimensional sequence (excluding NumPy arrays)
+    to its string representation if the ``dtype`` is a string data type.
+
+    >>> pd.array([[1], [2], [3]], dtype="str")
+    <ArrowStringArray>
+    ['[1]', '[2]', '[3]']
+    Length: 3, dtype: str
+
     Finally, Pandas has arrays that mostly overlap with NumPy
 
       * :class:`arrays.DatetimeArray`
@@ -320,14 +332,31 @@ def array(
                 "Cannot construct an array from an ndarray with compound dtype. "
                 "Use DataFrame instead."
             )
-        elif data.mask is not np.False_ and ma.getmaskarray(data).any():
-            na_dtype = ensure_dtype_can_hold_na(data.dtype)
-            if na_dtype.char in "SU":
-                na_dtype = np.dtype("object")
-            data = cast("ma.MaskedArray", data.astype(na_dtype)).filled(np.nan)
-        else:
-            # No mask, convert to regular array
+        mask = ma.getmask(data)
+        if mask is ma.nomask:
+            # Avoid materializing an all-False mask.
             data = np.asarray(data)
+        else:
+            try:
+                masked_cls = BaseMaskedDtype.from_numpy_dtype(
+                    data.dtype
+                ).construct_array_type()
+            except (KeyError, NotImplementedError):
+                # No nullable masked dtype for this kind.
+                if data.dtype.char in "SU":
+                    data = lib.ensure_string_array(np.asarray(data.data))
+                    data[mask] = np.nan
+                else:
+                    # datetime64/timedelta64 use NaT; float16/complex/object NaN.
+                    # Argument to "filled" of "MaskedArray" has incompatible type...;
+                    # expected "complex | str | bytes | generic[Any] | None"
+                    data = data.filled(
+                        na_value_for_dtype(data.dtype, compat=False)  # type: ignore[arg-type]
+                    )
+            else:
+                # Argument 2 to "BaseMaskedArray" has incompatible type...;
+                # expected "ndarray[tuple[Any, ...], dtype[numpy.bool[builtins.bool]]]"
+                data = masked_cls(np.asarray(data.data), mask, copy=copy)  # type: ignore[arg-type]
 
     # this returns None for not-found dtypes.
     if dtype is not None:
@@ -362,6 +391,8 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=result.dtype, copy=copy
                 )
+            # We know result is an ExtensionArray here, but mypy doesn't
+            assert isinstance(result, ExtensionArray)
             if result is data and copy:
                 return result.copy()
             return result
@@ -537,7 +568,6 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     mask = ma.getmaskarray(data)
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
-        dtype = cast("np.dtype", dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
@@ -683,18 +713,12 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy)
 
         else:
-            subarr = maybe_convert_platform(data)
-            if subarr.dtype == object:
-                subarr = cast("np.ndarray", subarr)
-                subarr = lib.maybe_convert_objects(
-                    subarr,
-                    # Here we do not convert numeric dtypes, as if we wanted that,
-                    #  numpy would have done it for us.
-                    convert_numeric=False,
-                    convert_non_numeric=True,
-                    convert_to_nullable_dtype=False,
-                    dtype_if_all_nat=np.dtype("M8[s]"),
-                )
+            subarr = construct_1d_object_array_from_listlike(data)
+            subarr = lib.maybe_convert_objects(
+                subarr,
+                convert_non_numeric=True,
+                dtype_if_all_nat=np.dtype("M8[s]"),
+            )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
@@ -758,6 +782,9 @@ def _sanitize_ndim(
             raise ValueError(
                 f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
             )
+        elif allow_2d and isinstance(result, ABCExtensionArray):
+            # e.g. test_2d_ea_with_dtype_cast
+            return result
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. NumpyEADtype("O")
 

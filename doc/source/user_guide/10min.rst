@@ -89,10 +89,9 @@ will be completed:
    df2.align              df2.copy
    df2.all                df2.count
    df2.any                df2.combine
-   df2.append             df2.D
-   df2.apply              df2.describe
-   df2.B                  df2.duplicated
-   df2.diff
+   df2.apply              df2.D
+   df2.B                  df2.describe
+   df2.diff               df2.duplicated
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
@@ -547,6 +546,8 @@ groups:
 .. ipython:: python
 
    df.groupby("A")[["C", "D"]].sum()
+
+The unique values of the grouped column now form the index of the result.
 
 Grouping by multiple columns label forms :class:`MultiIndex`.
 

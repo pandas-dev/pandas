@@ -37,10 +37,12 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.string cimport memcmp
 
 from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
+from pandas.compat import PYARROW_INSTALLED
 from pandas.util._decorators import set_module
 
 import_datetime()
@@ -122,13 +124,12 @@ i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
 
 
-cdef bint PYARROW_INSTALLED = False
+cdef bint c_PYARROW_INSTALLED = PYARROW_INSTALLED
 
-try:
+
+if c_PYARROW_INSTALLED:
     import pyarrow as pa
-
-    PYARROW_INSTALLED = True
-except ImportError:
+else:
     pa = None
 
 
@@ -158,6 +159,10 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
+
+    This function determines whether a given Python object is a scalar
+    value rather than a collection. Scalars include numeric types,
+    strings, bytes, dates, timedeltas, intervals, periods, and ``None``.
 
     Parameters
     ----------
@@ -392,6 +397,8 @@ def dicts_to_array(dicts: list, columns: list):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def fast_zip(list ndarrays) -> ndarray[object]:
     """
     For zipping multiple ndarrays into an ndarray of tuples.
@@ -434,6 +441,8 @@ def fast_zip(list ndarrays) -> ndarray[object]:
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     """
     Reverse indexing operation.
@@ -489,6 +498,119 @@ def has_infs(const floating[:] arr) -> bool:
     return ret
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).any()``; exits on the first NaN found.
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        Py_ssize_t n4 = n & ~3  # round down to multiple of 4
+        bint found = False
+
+    with nogil:
+        for i in range(0, n4, 4):
+            if (
+                (arr[i] != arr[i])
+                | (arr[i + 1] != arr[i + 1])
+                | (arr[i + 2] != arr[i + 2])
+                | (arr[i + 3] != arr[i + 3])
+            ):
+                found = True
+                break
+        if not found:
+            for i in range(n4, n):
+                if arr[i] != arr[i]:
+                    found = True
+                    break
+    return found
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def all_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).all()``; exits on the first non-NaN found.
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        Py_ssize_t n4 = n & ~3
+        bint found_non_nan = False
+
+    with nogil:
+        for i in range(0, n4, 4):
+            if (
+                (arr[i] == arr[i])
+                | (arr[i + 1] == arr[i + 1])
+                | (arr[i + 2] == arr[i + 2])
+                | (arr[i + 3] == arr[i + 3])
+            ):
+                found_non_nan = True
+                break
+        if not found_non_nan:
+            for i in range(n4, n):
+                if arr[i] == arr[i]:
+                    found_non_nan = True
+                    break
+    return not found_non_nan
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equivalent_float(const floating[:] left,
+                           const floating[:] right) -> bool:
+    """
+    Faster equivalent to ``((left == right) | (isnan(left) & isnan(right))).all()``;
+    exits on the first mismatch. Caller is responsible for checking shapes match.
+    """
+    cdef:
+        Py_ssize_t i, n = len(left)
+        floating lval, rval
+        bint mismatch = False
+
+    with nogil:
+        for i in range(n):
+            lval = left[i]
+            rval = right[i]
+            if lval != rval:
+                if not (lval != lval and rval != rval):
+                    mismatch = True
+                    break
+    return not mismatch
+
+
+def array_equivalent_bytes(left, right) -> bool:
+    """
+    Faster equivalent to ``np.array_equal(left, right)`` via ``memcmp`` on
+    C-contiguous inputs. Not safe for dtypes where distinct bit patterns can
+    represent the same value (e.g. floats with -0.0/+0.0 or NaN) or for arrays
+    that contain object pointers.
+    """
+    cdef:
+        Py_ssize_t nbytes
+        int ndim, idx
+        ndarray left_arr, right_arr
+
+    left_arr = np.asarray(left)
+    right_arr = np.asarray(right)
+
+    ndim = cnp.PyArray_NDIM(left_arr)
+    if ndim != cnp.PyArray_NDIM(right_arr):
+        return False
+    for idx in range(ndim):
+        if cnp.PyArray_DIM(left_arr, idx) != cnp.PyArray_DIM(right_arr, idx):
+            return False
+    if not (cnp.PyArray_IS_C_CONTIGUOUS(left_arr)
+            and cnp.PyArray_IS_C_CONTIGUOUS(right_arr)):
+        return np.array_equal(left_arr, right_arr)
+    nbytes = cnp.PyArray_NBYTES(left_arr)
+    if nbytes == 0:
+        return True
+    return memcmp(cnp.PyArray_DATA(left_arr), cnp.PyArray_DATA(right_arr),
+                  <size_t>nbytes) == 0
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def has_only_ints_or_nan(const floating[:] arr) -> bool:
@@ -505,6 +627,8 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, intp_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
@@ -1185,6 +1309,10 @@ def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
 
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``bool`` type. It does not return True for numeric values like ``0``
+    or ``1`` that can evaluate as booleans.
+
     Parameters
     ----------
     obj : object
@@ -1215,6 +1343,9 @@ def is_bool(obj: object) -> bool:
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
+
+    This function checks whether ``obj`` is an instance of Python's built-in
+    ``complex`` type or numpy's complex type (e.g., ``numpy.complex128``).
 
     Parameters
     ----------
@@ -1326,7 +1457,7 @@ def is_pyarrow_array(obj):
     -------
     bool
     """
-    if PYARROW_INSTALLED:
+    if c_PYARROW_INSTALLED:
         return isinstance(obj, (pa.Array, pa.ChunkedArray))
     return False
 
@@ -2065,7 +2196,9 @@ cdef class TemporalValidator(Validator):
     cdef bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
-            bint is_generic_null = value is None or util.is_nan(value)
+            bint is_generic_null = (
+                value is None or value is C_NA or util.is_nan(value)
+            )
         if not is_generic_null:
             self.all_generic_na = False
         return self.is_value_typed(value) or is_typed_null or is_generic_null
@@ -2124,6 +2257,8 @@ cdef bint is_datetime_or_datetime64_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -2251,6 +2386,8 @@ cdef bint is_period_array(ndarray values, bint skipna=True):
 
 
 # Note: only python-exposed for tests
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
@@ -3082,6 +3219,8 @@ def map_infer(
         return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def to_object_array(rows: object, min_width: int = 0) -> ndarray:
     """
     Convert a list of lists into an object array.
@@ -3142,6 +3281,8 @@ def tuples_to_object_array(ndarray[object] tuples):
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def to_object_array_tuples(rows: object) -> np.ndarray:
     """
     Convert a list of tuples into an object array. Any subclass of
@@ -3250,6 +3391,8 @@ def is_bool_list(obj: list) -> bool:
     return True
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
     """
     Check for `arr == key`, treating all values as not-equal to pd.NA.

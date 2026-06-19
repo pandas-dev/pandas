@@ -10,10 +10,15 @@ from pandas._libs.tslibs.np_datetime import (
     py_get_unit_from_dtype,
     py_td64_to_tdstruct,
 )
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 
 import pandas._testing as tm
 
 
+@pytest.mark.filterwarnings("ignore:.*'generic' unit:DeprecationWarning")
 def test_is_unitless():
     dtype = np.dtype("M8[ns]")
     assert not is_unitless(dtype)
@@ -172,10 +177,15 @@ class TestAstypeOverflowSafe:
         dt = np.datetime64("2262-04-05", "D")
         arr = dt + np.arange(10, dtype="m8[D]")
 
-        # arr.astype silently overflows, so this
-        wrong = arr.astype(dtype)
-        roundtrip = wrong.astype(arr.dtype)
-        assert not (wrong == roundtrip).all()
+        if is_numpy_dev or np_version_gt2_5:
+            # numpy now raises instead of silently overflowing
+            with pytest.raises(OverflowError, match="Overflow"):
+                arr.astype(dtype)
+        else:
+            # arr.astype silently overflows, so this
+            wrong = arr.astype(dtype)
+            roundtrip = wrong.astype(arr.dtype)
+            assert not (wrong == roundtrip).all()
 
         msg = "Out of bounds nanosecond timestamp"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
@@ -194,10 +204,15 @@ class TestAstypeOverflowSafe:
         arr = dt + np.arange(10, dtype="m8[D]")
         arr = arr.view("m8[D]")
 
-        # arr.astype silently overflows, so this
-        wrong = arr.astype(dtype)
-        roundtrip = wrong.astype(arr.dtype)
-        assert not (wrong == roundtrip).all()
+        if is_numpy_dev or np_version_gt2_5:
+            # numpy now raises instead of silently overflowing
+            with pytest.raises(OverflowError, match="Overflow"):
+                arr.astype(dtype)
+        else:
+            # arr.astype silently overflows, so this
+            wrong = arr.astype(dtype)
+            roundtrip = wrong.astype(arr.dtype)
+            assert not (wrong == roundtrip).all()
 
         msg = r"Cannot convert 106752 days to timedelta64\[ns\] without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):

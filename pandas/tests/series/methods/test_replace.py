@@ -1,8 +1,10 @@
+from datetime import datetime
 import re
 
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -739,3 +741,10 @@ def test_replace_from_index():
     expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
     result = pd.Series(idx).replace({"z": "b", "a": "d"})
     tm.assert_series_equal(result, expected)
+
+
+def test_replace_datetime_out_of_bounds_for_ns():
+    # GH#61671
+    ser = pd.Series([np.nan], dtype="datetime64[ns]")
+    with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+        ser.replace(np.nan, datetime(3000, 1, 1))

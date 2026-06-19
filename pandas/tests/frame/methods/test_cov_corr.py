@@ -252,6 +252,30 @@ class TestDataFrameCorr:
             with pytest.raises(ValueError, match="could not convert string to float"):
                 df.corr(meth, numeric_only=numeric_only)
 
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    def test_rank_corr_with_duplicates(self, method):
+        # GH#43401
+        st = pytest.importorskip("scipy.stats")
+        rng = np.random.default_rng(2)
+
+        data = {
+            "A": rng.integers(0, 5, 20),
+            "B": rng.integers(0, 5, 20),
+        }
+        df = DataFrame(data)
+        result = df.corr(method=method)
+
+        comparison_method = st.kendalltau if method == "kendall" else st.spearmanr
+        expected_val = comparison_method(df["A"], df["B"])[0]
+
+        expected = DataFrame(
+            {"A": [1.0, expected_val], "B": [expected_val, 1.0]},
+            index=["A", "B"],
+            columns=["A", "B"],
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameCorrWith:
     @pytest.mark.parametrize(

@@ -43,7 +43,7 @@ VERSIONS = {
     "pyreadstat": "1.2.8",
     "pytest": "8.3.4",
     "python-calamine": "0.3.0",
-    "pytz": "2024.2",
+    "pytz": "2020.1",  # keep this pinned (https://github.com/pandas-dev/pandas/pull/65133)
     "pyxlsb": "1.0.10",
     "s3fs": "2024.10.0",
     "scipy": "1.14.1",
@@ -79,7 +79,7 @@ def get_version(module: types.ModuleType) -> str:
     if version is None:
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
-        # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
+        # psycopg2 appends " (dt dec pq3 ext lo64)" to its version
         version = version.split()[0]
     return version
 
@@ -152,7 +152,8 @@ def import_optional_dependency(
 
     msg = (
         f"`Import {install_name}` failed. {extra} "
-        f"Use pip or conda to install the {install_name} package."
+        f"Use pip, conda, or your preferred package management tool "
+        f"to install the {install_name} package."
     )
     try:
         module = importlib.import_module(name)
@@ -162,7 +163,7 @@ def import_optional_dependency(
         return None
 
     # Handle submodules: if we have submodule, grab parent module from sys.modules
-    parent = name.split(".")[0]
+    parent = name.split(".", maxsplit=1)[0]
     if parent != name:
         install_name = parent
         module_to_get = sys.modules[install_name]

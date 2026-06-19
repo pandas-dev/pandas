@@ -32,10 +32,10 @@ pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
-def test_mode(temp_h5_path, mode, using_infer_string):
+def test_mode(temp_h5_path, mode):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     msg = r"[\S]* does not exist"
@@ -77,23 +77,19 @@ def test_mode(temp_h5_path, mode, using_infer_string):
             read_hdf(temp_h5_path, "df", mode=mode)
     else:
         result = read_hdf(temp_h5_path, "df", mode=mode)
-        if using_infer_string:
-            df.columns = df.columns.astype("str")
         tm.assert_frame_equal(result, df)
 
 
-def test_default_mode(temp_h5_path, using_infer_string):
+def test_default_mode(temp_h5_path):
     # read_hdf uses default mode
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     df.to_hdf(temp_h5_path, key="df", mode="w")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
 
@@ -151,12 +147,12 @@ def test_reopen_handle(temp_h5_path):
     assert not store.is_open
 
 
-def test_open_args(using_infer_string):
+def test_open_args():
     not_written = f"{uuid.uuid4()}.h5"
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     # create an in memory store
@@ -167,10 +163,6 @@ def test_open_args(using_infer_string):
     store.append("df2", df)
 
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
-
     tm.assert_frame_equal(store["df"], expected)
     tm.assert_frame_equal(store["df2"], expected)
 
@@ -187,12 +179,12 @@ def test_flush(temp_h5_path):
         store.flush(fsync=True)
 
 
-def test_complibs_default_settings(temp_h5_path, using_infer_string):
+def test_complibs_default_settings(temp_h5_path):
     # GH15943
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
 
     # Set complevel and check if complib is automatically set to
@@ -200,9 +192,6 @@ def test_complibs_default_settings(temp_h5_path, using_infer_string):
     df.to_hdf(temp_h5_path, key="df", complevel=9)
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(temp_h5_path, mode="r") as h5file:
@@ -214,9 +203,6 @@ def test_complibs_default_settings(temp_h5_path, using_infer_string):
     df.to_hdf(temp_h5_path, key="df", complib="zlib")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(temp_h5_path, mode="r") as h5file:
@@ -228,9 +214,6 @@ def test_complibs_default_settings(temp_h5_path, using_infer_string):
     df.to_hdf(temp_h5_path, key="df")
     result = read_hdf(temp_h5_path, "df")
     expected = df.copy()
-    if using_infer_string:
-        expected.index = expected.index.astype("str")
-        expected.columns = expected.columns.astype("str")
     tm.assert_frame_equal(result, expected)
 
     with tables.open_file(temp_h5_path, mode="r") as h5file:
@@ -243,8 +226,8 @@ def test_complibs_default_settings_override(temp_h5_path):
     # Check if file-defaults can be overridden on a per table basis
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     store = HDFStore(temp_h5_path)
     store.append("dfc", df, complevel=9, complib="blosc")
@@ -268,7 +251,9 @@ def test_complibs(tmp_path, lvl, lib, request):
     if is_platform_linux() and lib == "blosc2" and lvl != 0:
         request.applymarker(pytest.mark.xfail(reason=f"Fails for {lib} on Linux"))
     df = DataFrame(
-        np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
+        np.ones((30, 4)),
+        columns=list("ABCD"),
+        index=np.arange(30).astype(np.str_),
     )
 
     # Remove lzo if its not available on this platform
@@ -299,6 +284,25 @@ def test_complibs(tmp_path, lvl, lib, request):
                 assert res in [lib, "blosc2:blosclz"], res
             else:
                 assert node.filters.complib == lib
+
+
+def test_complib_object_dtype_compressed(temp_h5_path):
+    # GH#45286 object-dtype columns are stored in a VLArray; the compression
+    # filter used to be dropped on that path, so string-heavy frames written
+    # with format="fixed" were never compressed regardless of complib/complevel.
+    df = DataFrame({"a": np.array(["foo"] * 100, dtype=object)}).astype(object)
+    assert df["a"].dtype == object
+
+    df.to_hdf(temp_h5_path, key="df", complib="zlib", complevel=9)
+    result = read_hdf(temp_h5_path, "df")
+    tm.assert_frame_equal(result, df.astype(result.dtypes))
+
+    # the VLArray holding the object column must carry the requested filter
+    with tables.open_file(temp_h5_path, mode="r") as h5table:
+        node = h5table.get_node("/df/block0_values")
+        assert isinstance(node, tables.VLArray)
+        assert node.filters.complevel == 9
+        assert node.filters.complib == "zlib"
 
 
 @pytest.mark.skipif(
@@ -342,8 +346,7 @@ def test_latin_encoding(temp_h5_path, dtype, val):
     ser.to_hdf(temp_h5_path, key=key, format="table", encoding=enc, nan_rep=nan_rep)
     retr = read_hdf(temp_h5_path, key)
 
-    # TODO:(3.0): once Categorical replace deprecation is enforced,
-    #  we may be able to re-simplify the construction of s_nan
+    # Can't use ser.replace here: it keeps nan_rep in categories
     if dtype == "category":
         if nan_rep in ser.cat.categories:
             s_nan = ser.cat.remove_categories([nan_rep])
@@ -360,8 +363,8 @@ def test_multiple_open_close(temp_h5_path):
 
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df.to_hdf(temp_h5_path, key="df", mode="w", format="table")
 
@@ -437,8 +440,8 @@ def test_multiple_open_close(temp_h5_path):
     # ops on a closed store
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
     )
     df.to_hdf(temp_h5_path, key="df", mode="w", format="table")
 
@@ -468,7 +471,7 @@ def test_multiple_open_close(temp_h5_path):
         store.append("df2", df)
 
     with pytest.raises(ClosedFileError, match=msg):
-        store.put("df3", df)
+        store.put("df3", df, track_times=False)
 
     with pytest.raises(ClosedFileError, match=msg):
         store.get_storer("df2")

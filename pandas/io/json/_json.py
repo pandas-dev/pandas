@@ -23,7 +23,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs.json import (
+from pandas._libs._ujson import (
     ujson_dumps,
     ujson_loads,
 )
@@ -570,6 +570,10 @@ def read_json(
         expected. A local file could be:
         ``file://localhost/path/to/table.json``.
 
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
+
         If you want to pass in a path object, pandas accepts any
         ``os.PathLike``.
 
@@ -584,34 +588,34 @@ def read_json(
         The set of possible orients is:
 
         - ``'split'`` : dict like
-          ``{{index -> [index], columns -> [columns], data -> [values]}}``
+          ``{index -> [index], columns -> [columns], data -> [values]}``
         - ``'records'`` : list like
-          ``[{{column -> value}}, ... , {{column -> value}}]``
-        - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
-        - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
+          ``[{column -> value}, ... , {column -> value}]``
+        - ``'index'`` : dict like ``{index -> {column -> value}}``
+        - ``'columns'`` : dict like ``{column -> {index -> value}}``
         - ``'values'`` : just the values array
-        - ``'table'`` : dict like ``{{'schema': {{schema}}, 'data': {{data}}}}``
+        - ``'table'`` : dict like ``{'schema': {schema}, 'data': {data}}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.
 
         * when ``typ == 'series'``,
 
-          - allowed orients are ``{{'split','records','index'}}``
+          - allowed orients are ``{'split','records','index'}``
           - default is ``'index'``
           - The Series index must be unique for orient ``'index'``.
 
         * when ``typ == 'frame'``,
 
-          - allowed orients are ``{{'split','records','index',
-            'columns','values', 'table'}}``
+          - allowed orients are ``{'split','records','index',
+            'columns','values', 'table'}``
           - default is ``'columns'``
           - The DataFrame index must be unique for orients ``'index'`` and
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
 
-    typ : {{'frame', 'series'}}, default 'frame'
+    typ : {'frame', 'series'}, default 'frame'
         The type of object to recover.
 
     dtype : bool or dict, default None
@@ -710,7 +714,7 @@ def read_json(
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
 
-    dtype_backend : {{'numpy_nullable', 'pyarrow'}}
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
         is to not use nullable data types. If specified, the behavior
@@ -722,7 +726,7 @@ def read_json(
 
         .. versionadded:: 2.0
 
-    engine : {{"ujson", "pyarrow"}}, default "ujson"
+    engine : {"ujson", "pyarrow"}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
         ``lines=True``.
 
@@ -1264,8 +1268,11 @@ class Parser:
                 filled = data.fillna(np.nan)
 
                 return filled, True
-
-            elif self.dtype is True:
+            # error: Non-overlapping identity check (left operand type: "ExtensionDtype
+            # | str | dtype[Any] | type[object] | Mapping[Hashable, ExtensionDtype
+            # | str | dtype[Any] | type[str] | type[complex] | type[bool]
+            # | type[object]]", right operand type: "Literal[True]")
+            elif self.dtype is True:  # type: ignore[comparison-overlap]
                 pass
             elif not _should_convert_dates(
                 convert_dates, self.keep_default_dates, name

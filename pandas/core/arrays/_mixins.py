@@ -21,6 +21,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
@@ -61,6 +62,7 @@ if TYPE_CHECKING:
         ScalarIndexer,
         SequenceIndexer,
         Shape,
+        SortKind,
         TakeIndexer,
         npt,
     )
@@ -114,7 +116,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
 
     @overload
-    def view(self) -> Self: ...
+    def view(self, dtype: None = ...) -> Self: ...
 
     @overload
     def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
@@ -206,7 +208,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
     def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
         return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
@@ -229,6 +232,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        self._ndarray[:] = self._ndarray[sort_indices]
+
     @classmethod
     def _concat_same_type(
         cls,
@@ -236,7 +253,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         """
-        Concatenate multiple array of this dtype.
+        Concatenate multiple arrays of this dtype.
 
         Parameters
         ----------
@@ -330,10 +347,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
         """
-        # NB: shift is always along axis=0
-        axis = 0
+        # NB: shift is always along axis=self.ndim-1
         fill_value = self._validate_scalar(fill_value)
-        new_values = shift(self._ndarray, periods, axis, fill_value)
+        new_values = shift(self._ndarray, periods, fill_value)
 
         return self._from_backing_data(new_values)
 
@@ -343,7 +359,16 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
-        self._ndarray[key] = value
+        try:
+            self._ndarray[key] = value
+        except TypeError as err:
+            if self._ndarray.dtype.kind == "c":
+                # GH#54761 numpy raises TypeError for cases like setting a
+                # 1d sequence into a complex scalar position ("only 0-dimensional
+                # arrays can be converted to Python scalars"); normalize to
+                # ValueError for consistency with other numeric dtypes.
+                raise ValueError(*err.args) from err
+            raise
 
     def _validate_setitem_value(self, value):
         return value
@@ -577,8 +602,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if dropna:
-            # error: Unsupported operand type for ~ ("ExtensionArray")
-            values = self[~self.isna()]._ndarray  # type: ignore[operator]
+            # error: Invalid index type
+            values = self[~self.isna()]._ndarray  # type: ignore[index]
         else:
             values = self._ndarray
 

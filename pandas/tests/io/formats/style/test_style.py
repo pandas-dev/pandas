@@ -742,7 +742,7 @@ class TestStyler:
 
     def test_map_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
-        # Checks styler.map works with multindex when codes are provided
+        # Checks styler.map works with multiindex when codes are provided
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
         columns = MultiIndex(
             levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]

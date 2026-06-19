@@ -20,17 +20,6 @@ Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 #include <stdlib.h>
 #include <string.h>
 
-static inline float __skiplist_nanf(void) {
-  const union {
-    int __i;
-    float __f;
-  } __bint = {0x7fc00000UL};
-  return __bint.__f;
-}
-#define PANDAS_NAN ((double)__skiplist_nanf())
-
-static inline double Log2(double val) { return log(val) / log(2.); }
-
 typedef struct node_t node_t;
 
 struct node_t {
@@ -113,7 +102,7 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   node_t *NIL, *head;
   int maxlevels, i;
 
-  maxlevels = 1 + Log2((double)expected_size);
+  maxlevels = 1 + log2((double)expected_size);
   result = (skiplist_t *)malloc(sizeof(skiplist_t));
   if (!result) {
     return NULL;
@@ -123,7 +112,7 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   result->maxlevels = maxlevels;
   result->size = 0;
 
-  head = result->head = node_init(PANDAS_NAN, maxlevels);
+  head = result->head = node_init(NAN, maxlevels);
   NIL = node_init(0.0, 0);
 
   if (!(result->tmp_chain && result->tmp_steps && result->head && NIL)) {
@@ -222,7 +211,7 @@ static inline int skiplist_insert(skiplist_t *skp, double value) {
     chain[level] = node;
   }
 
-  size = int_min(skp->maxlevels, 1 - ((int)Log2(urand())));
+  size = int_min(skp->maxlevels, 1 - ((int)log2(urand())));
 
   newnode = node_init(value, size);
   if (!newnode) {

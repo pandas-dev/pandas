@@ -617,6 +617,47 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_nested_table(self, flavor_read_html):
+        # GH-64524
+        tables = flavor_read_html(
+            StringIO("""
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <table id="descendant">
+                                    <thead>
+                                        <tr>
+                                            <th>A</th>
+                                            <th>B</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>1</td>
+                                            <td>2</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            """),
+            attrs={"id": "descendant"},
+        )
+        assert len(tables) == 1
+        result = tables[0]
+
+        expected = DataFrame(data=[[1, 2]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_header_and_one_column(self, flavor_read_html):
         """
         Don't fail with bs4 when there is a header and only one column
@@ -1666,4 +1707,16 @@ class TestReadHtml:
         """
         result = flavor_read_html(StringIO(data))[0]
         expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_html_comma_separated_digit_groups(self, flavor_read_html):
+        # GH#52619 - ensure read_html doesn't suffer from catastrophic
+        # backtracking when cells contain comma-separated digit groups
+        # followed by non-numeric text.
+        data = """<table>
+            <tr><th>Codes</th></tr>
+            <tr><td>41651,65125,17328,02872,49459,79208,ABCDE</td></tr>
+        </table>"""
+        result = flavor_read_html(StringIO(data))[0]
+        expected = DataFrame({"Codes": ["41651,65125,17328,02872,49459,79208,ABCDE"]})
         tm.assert_frame_equal(result, expected)

@@ -67,6 +67,9 @@ def data_for_grouping():
 
 
 class TestDecimalArray(base.ExtensionTests):
+    def _honors_copy_keyword(self, data) -> bool:
+        return False
+
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
@@ -99,9 +102,18 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
-    def test_compare_scalar(self, data, comparison_op):
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
+        op_name = all_reductions
         ser = pd.Series(data)
-        self._compare_other(ser, data, comparison_op, 0.5)
+
+        if op_name != "count":
+            # https://github.com/pandas-dev/pandas/pull/63512
+            # DecimalArray does not implement sum et all as attributes.
+            msg = f"object has no attribute '{op_name}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(ser.array, op_name)()
+        else:
+            return super().test_reduce_array(request, data, all_reductions, skipna)
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
@@ -171,10 +183,6 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_series(data_missing)
 
-    @pytest.mark.xfail(reason="copy keyword is missing")
-    def test_fillna_readonly(self, data_missing):
-        super().test_fillna_readonly(data_missing)
-
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
         # the custom _formatter is used
@@ -186,6 +194,15 @@ class TestDecimalArray(base.ExtensionTests):
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
         super().test_unary_ufunc_dunder_equivalence(data, ufunc)
+
+    @pytest.mark.xfail(
+        raises=AssertionError, reason="DecimalArray does not support roundtrip"
+    )
+    def test_json_roundtrip(self, data):
+        # GH 65127
+        # DecimalArray does not support roundtrip as Decimal cannot be created from
+        # dictionary created in JSON serialization
+        super().test_json_roundtrip(data)
 
 
 def test_take_na_value_other_decimal():
