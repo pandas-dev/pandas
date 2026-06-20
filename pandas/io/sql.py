@@ -2868,11 +2868,10 @@ class SQLiteDatabase(PandasSQL):
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
                     raise ValueError(
-                        f"Column '{col}' has dtype '{my_type}' which is not a "
+                        f"Column '{col}' has type '{my_type}' which is not a "
                         "string. When using a DB-API connection (e.g. sqlite3), "
                         "dtype values must be SQL type strings (e.g. 'TEXT', "
-                        "'FLOAT'). To use SQLAlchemy types, use a SQLAlchemy "
-                        "engine instead."
+                        "'FLOAT')."
                     )
 
         table = SQLiteTable(
