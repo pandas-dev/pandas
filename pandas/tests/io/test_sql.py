@@ -4066,7 +4066,7 @@ def test_sqlite_test_dtype(sqlite_buildin):
     assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
 
     assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
-    msg = r"Column 'B' has type '<class 'bool'>' which is not a string"
+    msg = r"Invalid type '<class 'bool'>' for dtype of column 'B': expected a string"
     with pytest.raises(ValueError, match=msg):
         df.to_sql(name="error", con=conn, dtype={"B": bool})
 
