@@ -9101,9 +9101,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9174,9 +9173,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9254,9 +9252,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9355,9 +9352,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9437,9 +9433,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9498,9 +9493,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9791,9 +9785,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Unused.
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9847,9 +9840,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
-
-            For compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
