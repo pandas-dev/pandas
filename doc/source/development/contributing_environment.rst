@@ -12,9 +12,6 @@ changes, you can skip to :ref:`contributing to the documentation <contributing_d
 creating the development environment you won't be able to build the documentation
 locally before pushing your changes. It's recommended to also install the :ref:`pre-commit hooks <contributing.pre-commit>`.
 
-.. toctree::
-    :maxdepth: 2
-    :hidden:
 
 
 Step 1: install a C compiler
