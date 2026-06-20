@@ -722,7 +722,10 @@ def test_select_dtypes_string_spec_matches_arrow_strings(spec):
     # Arrow-backed string columns
     pa = pytest.importorskip("pyarrow")
     data = {
-        "default": pd.array(["x", "y"], dtype="str"),
+        # NaN-variant StringDtype (the default "str" dtype under the future
+        # string option); construct explicitly so the test does not depend on
+        # PANDAS_FUTURE_INFER_STRING (with which off, dtype="str" is object)
+        "default": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
         "nullable": pd.array(["x", "y"], dtype="string"),
         "arrow": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
         "large": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.large_string())),
