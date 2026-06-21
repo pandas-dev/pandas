@@ -4302,7 +4302,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
-        elif isinstance(loc, slice) and self.ndim == 1:
+        elif isinstance(loc, slice):
             # GH#38650: bypass iloc dispatch and pass new_index
             # directly to avoid redundantly slicing the index
             # in the manager path.
@@ -4343,7 +4343,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
-        new_mgr = self._mgr.get_slice(slobj, axis=axis)
+        new_mgr = self._mgr.get_slice(slobj, axis=axis, new_index=new_index)
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         result = result.__finalize__(self)
         return result
