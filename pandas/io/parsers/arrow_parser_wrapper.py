@@ -252,6 +252,10 @@ class ArrowParserWrapper(ParserBase):
         frame = self._do_date_conversions(frame.columns, frame)
         frame = self._finalize_index(frame, multi_index_named)
         frame = self._finalize_dtype(frame)
+        # tuples passed via names imply MultiIndex columns, as with other engines
+        frame.columns = self._maybe_make_multi_index_columns(
+            list(frame.columns), self.col_names
+        )
         return frame
 
     def _validate_usecols(self, usecols) -> None:
