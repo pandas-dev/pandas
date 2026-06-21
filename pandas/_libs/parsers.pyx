@@ -1033,6 +1033,8 @@ cdef class TextReader:
                 return col_res, na_count
 
         if i in self.noconvert:
+            # noconvert columns are parse_dates targets; keep them as
+            # object ndarray so to_datetime can take its fast path.
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
@@ -1040,6 +1042,13 @@ cdef class TextReader:
             for dt in self.dtype_cast_order:
                 if not maybe_int and dt.kind in "iu":
                     continue
+
+                if dt == object:
+                    # Last entry in the cast order; _convert_with_dtype would
+                    # just delegate to _string_convert, so call it directly.
+                    col_res, na_count = self._string_convert(
+                        i, start, end, na_filter, na_hashset)
+                    break
 
                 try:
                     col_res, na_count = self._convert_with_dtype(
@@ -1053,17 +1062,15 @@ cdef class TextReader:
                         # and we discover that we cannot convert to any numerical
                         # dtype successfully. As a result, we leave the data
                         # column AS IS with object dtype.
-                        col_res, na_count = self._convert_with_dtype(
-                            np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset, False)
+                        col_res, na_count = self._string_convert(
+                            i, start, end, 0, na_hashset)
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
                                                         end, na_filter, na_hashset)
                     except ValueError:
-                        col_res, na_count = self._convert_with_dtype(
-                            np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset, False)
+                        col_res, na_count = self._string_convert(
+                            i, start, end, 0, na_hashset)
 
                 if col_res is not None:
                     break
