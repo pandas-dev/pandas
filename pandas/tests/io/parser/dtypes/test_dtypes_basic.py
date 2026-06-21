@@ -59,6 +59,19 @@ def test_dtype_all_columns(
     tm.assert_frame_equal(result, expected)
 
 
+def test_dtype_scalar_with_index_col(all_parsers):
+    # A non-dict (scalar) dtype passed together with index_col previously
+    # raised AttributeError on the pyarrow engine
+    parser = all_parsers
+    data = "idx,a,b\nx,1,2\ny,3,4\n"
+    result = parser.read_csv(StringIO(data), dtype=str, index_col=0)
+    expected = DataFrame(
+        {"a": ["1", "3"], "b": ["2", "4"]},
+        index=pd.Index(["x", "y"], name="idx"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_per_column(all_parsers):
     parser = all_parsers
@@ -422,7 +435,6 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -450,7 +462,6 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_invalid(all_parsers):
     # GH#41574
     data = """a,b

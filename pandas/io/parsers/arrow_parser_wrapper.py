@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 import warnings
 
@@ -196,7 +197,8 @@ class ArrowParserWrapper(ParserBase):
                     raise ValueError(f"Index {item} invalid")
 
                 # Process dtype for index_col and drop from dtypes
-                if self.dtype is not None:
+                # (non-dict dtype is applied to the whole frame later)
+                if isinstance(self.dtype, dict):
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
@@ -307,6 +309,15 @@ class ArrowParserWrapper(ParserBase):
             table = table.cast(new_schema)
 
         multi_index_named = self._adjust_column_names(table)
+
+        if isinstance(self.dtype, defaultdict):
+            if self.header is None:
+                # set by _adjust_column_names above
+                assert self.names is not None
+                columns = list(self.names)
+            else:
+                columns = table.column_names
+            self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
