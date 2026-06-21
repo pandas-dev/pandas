@@ -346,7 +346,7 @@ MultiIndex
 I/O
 ^^^
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
-- :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection, explaining that SQLAlchemy types require a SQLAlchemy engine (:issue:`61385`)
+- :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
