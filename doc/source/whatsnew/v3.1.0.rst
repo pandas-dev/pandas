@@ -169,6 +169,7 @@ Performance improvements
 - Performance improvement in :func:`util.hash_pandas_object` for PyArrow-backed string and binary types by using PyArrow's ``dictionary_encode`` instead of converting to NumPy for factorization (:issue:`48964`)
 - Performance improvement in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with user-defined functions (:issue:`46505`)
 - Performance improvement in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` when data contains no NaN values (:issue:`64857`)
+- Performance improvement in :meth:`DataFrame.diff` (:issue:`64864`)
 - Performance improvement in :meth:`DataFrame.equals`, :meth:`DataFrame.select_dtypes`, and other operations performing shallow column slicing on Arrow-backed columns (:issue:`58966`)
 - Performance improvement in :meth:`DataFrame.fillna` and :meth:`Series.fillna` with scalar fill value for float, object, nullable, and datetime-like dtypes (:issue:`42147`)
 - Performance improvement in :meth:`DataFrame.from_records` when passing a 2D :class:`numpy.ndarray` (:issue:`22025`)
