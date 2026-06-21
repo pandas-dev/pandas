@@ -5222,6 +5222,9 @@ Several caveats.
 * The ``pyarrow`` engine preserves extension data types such as the nullable integer and string data
   type (this can also work for external extension types, requiring the extension type to implement the needed protocols,
   see the :ref:`extension types documentation <extending.extension.arrow>`).
+* With the ``pyarrow`` engine, ``uint32`` data written with parquet format ``version="1.0"``
+  is stored as ``int64``, so it does not survive a round trip. The default format version
+  (``"2.4"`` or higher) preserves ``uint32`` (:issue:`37327`).
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,

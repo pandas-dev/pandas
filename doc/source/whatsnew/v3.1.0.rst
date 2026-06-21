@@ -111,6 +111,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
+- Deprecated :class:`PeriodIndex` and :class:`PeriodArray` inferring the frequency from a :class:`Series` of datetime64 data when ``freq`` is not provided. Pass ``freq`` explicitly instead (:issue:`64241`)
 - Deprecated :func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`, and :attr:`TimedeltaIndex.inferred_freq` returning a string; in a future version these will return a :class:`BaseOffset` instead. Use ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in to the future behavior (:issue:`55504`)
 - Deprecated :func:`set_eng_float_format`. Use ``pd.set_option("display.precision", N)`` to control decimal precision, or pass a custom callable to ``pd.set_option("display.float_format", func)`` (:issue:`64460`)
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
@@ -223,6 +224,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.iloc` and :meth:`DataFrame.iloc`
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
+- Performance improvement in the :attr:`Series.dt` duration component accessors (``days``, ``seconds``, ``microseconds``, ``nanoseconds``, ``components``, etc.) for :class:`ArrowDtype` durations by using PyArrow compute instead of converting to :class:`TimedeltaArray` (:issue:`63470`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
@@ -268,6 +270,7 @@ Timedelta
 - Bug in :class:`DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions (:issue:`61862`)
 - Bug in :class:`Timedelta` constructor where keyword arguments (e.g. ``days=365000``) that exceeded nanosecond int64 bounds raised ``OutOfBoundsTimedelta`` instead of falling back to a coarser resolution (:issue:`46587`)
 - Bug in :func:`to_timedelta` where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
+- Bug in ``Series.dt.seconds`` and ``Series.dt.microseconds`` with :class:`ArrowDtype` durations returning the ``Series.dt.components`` field values (e.g. 0-59 for seconds, or 0 for ``microseconds`` on a ``"ms"`` unit) instead of the totals within each day and second respectively, inconsistent with NumPy-backed timedeltas (:issue:`63470`)
 
 Timezones
 ^^^^^^^^^
@@ -372,8 +375,10 @@ I/O
 - Fixed bug in :func:`read_hdf` raising on files written by older pandas versions whose ``freq`` index attribute could not be decoded; the ``freq`` is now dropped with a warning instead of corrupting the index (:issue:`35917`)
 - Fixed bug in :func:`read_hdf` where a categorical column containing a category equal to the ``nan_rep`` string (e.g. the default ``"nan"``) raised ``ValueError: operands could not be broadcast together`` instead of reading that category back as ``NaN`` (:issue:`21741`)
 - Fixed bug in :func:`read_hdf` where the literal string ``"nan"`` in a string :class:`Index` was incorrectly converted to ``NaN`` on read, even when a custom ``nan_rep`` was supplied (:issue:`9604`)
+- Fixed bug in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.put` where writing an object to a key silently deleted any nested keys stored beneath it (:issue:`17267`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
+- Fixed :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` to round-trip a :class:`CategoricalIndex` in both ``"fixed"`` and ``"table"`` formats; previously raised ``AssertionError`` (:issue:`33909`, :issue:`16118`)
 - Fixed bug in :meth:`DataFrame.to_parquet` (``pyarrow`` engine) where a local file path was opened twice, once by pandas and again by pyarrow, wasting a syscall and silently truncating output to 0 bytes on filesystems that finalize a file's contents on close (:issue:`65810`)
 - Fixed bug in :meth:`HDFStore.get_storer` where ``.shape`` reported a phantom row for a fixed-format :class:`Series` or :class:`DataFrame` stored with no rows (:issue:`37235`)
 - Fixed bug in :meth:`HDFStore.remove` where a ``where`` clause selecting on more than 31 values (e.g. ``"index in [...]"``) deleted every row in the table instead of only the matching rows (:issue:`17567`)
@@ -415,6 +420,7 @@ Reshaping
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :meth:`DataFrame.pivot_table` with ``margins=True`` raising ``TypeError`` when ``values`` has an :class:`ExtensionDtype` that cannot hold ``NA`` (e.g. :class:`IntervalDtype` with an integer subtype) and no ``columns`` were specified (:issue:`55484`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
+- Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 -
 
