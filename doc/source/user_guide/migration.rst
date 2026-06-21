@@ -149,6 +149,18 @@ A different alternative would be to not use ``inplace``:
     df["foo"] = df["foo"].replace(1, 5)
     df
 
+**Per-column attrs are no longer preserved**
+
+Selecting a column from a :class:`DataFrame` under CoW returns a new
+:class:`Series` each time, and that Series's :attr:`~Series.attrs` is
+initialized from a deepcopy of the parent :class:`DataFrame`'s
+:attr:`~DataFrame.attrs` (via ``__finalize__``) rather than sharing it. As a
+result, mutating the selection (for example ``df["A"].attrs["x"] = ...``) does
+not persist on the parent ``df`` or on subsequent ``df["A"]`` accesses.
+``attrs`` is best treated as a property of a whole :class:`DataFrame` or
+:class:`Series`, not of an individual column. For per-column metadata, store
+the mapping externally.
+
 **Constructors now copy NumPy arrays by default**
 
 The Series and DataFrame constructors now copies a NumPy array by default when not
