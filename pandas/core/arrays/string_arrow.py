@@ -177,6 +177,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             pa_array = pa.chunked_array([pa_array])
         obj._pa_array = pa_array
         obj._dtype = self._dtype
+        obj._cache = {}
         return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:

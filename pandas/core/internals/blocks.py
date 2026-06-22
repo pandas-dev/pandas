@@ -1842,9 +1842,17 @@ class EABackedBlock(Block):
         self = self._maybe_copy(inplace=True)
         values = self.values
         if values.ndim == 2:
-            # GH#45419 Transpose the mask to storage layout instead of
-            #  transposing values, since EA.T may not be a view.
+            # GH#64620 Reorient the read-only inputs to the block's storage
+            #  layout and putmask into self.values in place. We must not
+            #  transpose self.values: EA.T is only zero-copy when
+            #  dtype._can_fast_transpose, so a transpose could yield a copy and
+            #  _putmask would silently mutate that throwaway instead of self.
+            #  mask/new are read-only, so transposing them is always correct
+            #  (mirrors value = value.T in EABackedBlock.setitem); failing to
+            #  transpose new fills masked cells from the wrong column.
             mask = mask.T
+            if isinstance(new, (np.ndarray, ExtensionArray)) and new.ndim == 2:
+                new = new.T
 
         try:
             # Caller is responsible for ensuring matching lengths
