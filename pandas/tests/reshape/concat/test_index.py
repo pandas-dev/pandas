@@ -224,6 +224,28 @@ class TestMultiIndexConcat:
         expected = DataFrame({"col": no_name}, index=index, dtype=np.int32)
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_keys_mixed_single_and_multiindex(self):
+        # GH#25413 concatenating a single-level Index with a MultiIndex and
+        # passing keys used to raise AssertionError. It now mirrors the no-keys
+        # behavior (mixed object level) as the inner level of the result.
+        df1 = DataFrame({"A": [1, 2]}, index=Index(["x", "y"]))
+        df2 = DataFrame(
+            {"A": [3, 4]}, index=MultiIndex.from_tuples([("a", 1), ("b", 2)])
+        )
+
+        result = concat([df1, df2], keys=[1, 2])
+
+        expected_index = MultiIndex.from_tuples(
+            [(1, "x"), (1, "y"), (2, ("a", 1)), (2, ("b", 2))]
+        )
+        expected = DataFrame({"A": [1, 2, 3, 4]}, index=expected_index)
+        tm.assert_frame_equal(result, expected)
+
+        # the inner level matches what concat without keys produces
+        tm.assert_index_equal(
+            result.index.get_level_values(1), concat([df1, df2]).index
+        )
+
     def test_concat_multiindex_rangeindex(self):
         # GH13542
         # when multi-index levels are RangeIndex objects

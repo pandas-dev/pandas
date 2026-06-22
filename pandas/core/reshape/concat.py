@@ -45,7 +45,6 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     get_objs_combined_axis,
-    get_unanimous_names,
     union_indexes,
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -945,14 +944,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         if len(names) == len(levels):
             names = list(names)
         else:
-            # make sure that all of the passed indices have the same nlevels
-            if not len({idx.nlevels for idx in indexes}) == 1:
-                raise AssertionError(
-                    "Cannot concat indices that do not have the same number of levels"
-                )
-
-            # also copies
-            names = list(names) + list(get_unanimous_names(*indexes))
+            # The inner level(s) come from concat_index; their names match
+            # whatever survived the append (None when the pieces disagree, e.g.
+            # mixing a single Index with a MultiIndex). GH#25413
+            names = list(names) + list(concat_index.names)
 
         return MultiIndex(
             levels=levels, codes=codes_list, names=names, verify_integrity=False

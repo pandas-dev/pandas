@@ -231,18 +231,15 @@ def test_indices_concatenation_order():
     result2 = df2.groupby("a").apply(f1)
     tm.assert_frame_equal(result1, result2)
 
-    # should fail (not the same number of levels)
-    msg = "Cannot concat indices that do not have the same number of levels"
-    with pytest.raises(AssertionError, match=msg):
-        df.groupby("a").apply(f2)
-    with pytest.raises(AssertionError, match=msg):
-        df2.groupby("a").apply(f2)
-
-    # should fail (incorrect shape)
-    with pytest.raises(AssertionError, match=msg):
-        df.groupby("a").apply(f3)
-    with pytest.raises(AssertionError, match=msg):
-        df2.groupby("a").apply(f3)
+    # GH#25413 these used to raise AssertionError "Cannot concat indices that
+    # do not have the same number of levels" because the per-group results mix
+    # single-level and MultiIndex indexes. That is now concatenated into an
+    # object level instead of raising. The exact result is order-dependent for
+    # such degenerate inputs, so we only check that it no longer raises.
+    df.groupby("a").apply(f2)
+    df2.groupby("a").apply(f2)
+    df.groupby("a").apply(f3)
+    df2.groupby("a").apply(f3)
 
 
 def test_attr_wrapper(ts):
