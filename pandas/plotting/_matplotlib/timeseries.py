@@ -247,6 +247,12 @@ def _get_freq(ax: Axes, series: Series):
 
 
 def use_dynamic_x(ax: Axes, index: Index) -> bool:
+    if len(index) == 0:
+        # GH#39705 plotting an empty subset onto an existing time-series axis:
+        # the dynamic-x path assumes a non-empty index, so fall back to the
+        # regular path (which handles empty data without error).
+        return False
+
     freq = _get_index_freq(index)
     ax_freq = _get_ax_freq(ax)
 

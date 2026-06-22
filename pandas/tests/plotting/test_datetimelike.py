@@ -1745,6 +1745,19 @@ class TestTSPlot:
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
 
+    @pytest.mark.parametrize("freq", ["10s", "D", "ME"])
+    def test_plot_empty_subset_on_existing_ts_ax(self, freq):
+        # GH#39705 plotting an empty DatetimeIndex subset onto an existing
+        # time-series axis should not raise, matching the regular-index case
+        df = DataFrame(
+            {"col1": [1, 2, 3]}, index=date_range("2020-01-01", periods=3, freq=freq)
+        )
+        ax = df.plot()
+        n_lines = len(ax.get_lines())
+        df[df["col1"] == 9].plot(ax=ax)
+        # the empty subset adds an (empty) line without erroring
+        assert len(ax.get_lines()) == n_lines + 1
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     fig = plt.gcf()

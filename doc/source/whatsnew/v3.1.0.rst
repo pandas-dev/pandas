@@ -396,6 +396,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``IndexError`` or ``ValueError`` when plotting an empty subset of a :class:`DatetimeIndex`- or :class:`PeriodIndex`-indexed object onto an existing time-series axis (:issue:`39705`)
 -
 
 Groupby/resample/rolling
