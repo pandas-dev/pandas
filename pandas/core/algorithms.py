@@ -928,10 +928,10 @@ def value_counts_internal(
                 not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
-                and values.inferred_freq is not None
+                and values._inferred_freq_str is not None
             ):
                 # Preserve freq of original index
-                idx.freq = values.inferred_freq  # type: ignore[attr-defined]
+                idx.freq = values._inferred_freq_str  # type: ignore[attr-defined]
 
             result = Series(counts, index=idx, name=name, copy=False)
 
@@ -1116,6 +1116,30 @@ def rank(
         raise TypeError("Array with ndim > 2 is not supported.")
 
     return ranks
+
+
+def is_monotonic(values: ArrayLike) -> tuple[bool, bool, bool]:
+    """
+    Determine whether values are monotonic increasing/decreasing.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    tuple[bool, bool, bool]
+        (is_monotonic_increasing, is_monotonic_decreasing, is_strict_monotonic)
+
+    Raises
+    ------
+    TypeError
+        If the dtype is not orderable by the underlying routine (e.g. complex).
+    """
+    timelike = needs_i8_conversion(values.dtype)
+    values = _ensure_data(values)
+    inc, dec, strict = algos.is_monotonic(values, timelike=timelike)
+    return bool(inc), bool(dec), bool(strict)
 
 
 # ---- #
