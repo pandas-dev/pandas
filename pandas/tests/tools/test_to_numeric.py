@@ -910,3 +910,29 @@ def test_large_exponent_coerce():
     result = to_numeric(ser, errors="coerce")
     expected = Series([np.inf])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        # mixing in a float forces the float64 result dtype
+        ([10084566.0, "10084566", "000000000010084566"], [10084566.0] * 3),
+        # a missing value forces float64 as well
+        ([pd.NA, "10084566", "000000000010084566"], [np.nan, 10084566.0, 10084566.0]),
+    ],
+)
+def test_leading_zeros_no_precision_loss(data, expected):
+    # GH#64184 - integer-like strings with leading zeros must not lose
+    # precision when other values force a float64 result, e.g.
+    # "000000000010084566" should stay 10084566.0, not become 10084560.0.
+    result = to_numeric(Series(data))
+    tm.assert_series_equal(result, Series(expected))
+
+
+def test_leading_zeros_no_precision_loss_coerce():
+    # GH#64184 - leading-zero precision must also hold on the errors="coerce"
+    # path, where a non-numeric value forces float64.
+    ser = Series(["TWZ10084566", "10084566", "000000000010084566"])
+    result = to_numeric(ser, errors="coerce")
+    expected = Series([np.nan, 10084566.0, 10084566.0])
+    tm.assert_series_equal(result, expected)
