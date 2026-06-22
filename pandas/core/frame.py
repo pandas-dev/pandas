@@ -5024,6 +5024,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+        The expression must evaluate to a boolean result; otherwise a
+        ``ValueError`` is raised.
+
         The result of the evaluation of this expression is first passed to
         :attr:`DataFrame.loc` and if that fails because of a
         multidimensional key (e.g., a DataFrame) then the result will be passed
@@ -5131,6 +5134,19 @@ class DataFrame(NDFrame, OpsMixin):
             global_dict=global_dict,
             resolvers=resolvers or (),
         )
+
+        # GH#8560 the expression must evaluate to a boolean mask; otherwise a
+        #  non-boolean result is silently misinterpreted as a label indexer
+        if isinstance(res, DataFrame):
+            is_bool = all(is_bool_dtype(dtype) for dtype in res.dtypes)
+        else:
+            is_bool = com.is_bool_indexer(res)
+        if not is_bool:
+            dtype = getattr(res, "dtype", None)
+            extra = f" (got dtype {dtype})" if dtype is not None else ""
+            raise ValueError(
+                f"query expression must evaluate to a boolean array{extra}"
+            )
 
         try:
             result = self.loc[res]

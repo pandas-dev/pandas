@@ -1723,3 +1723,32 @@ class TestDataFrameQueryInWithColumnRefs:
         result = df.query("a in (2, 3)", engine=engine, parser=parser)
         expected = df[df["a"].isin([2, 3])]
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("expr", ["cat", "cat + 1", "cat & count"])
+def test_query_non_bool_result_raises(engine, parser, expr):
+    # GH#8560 a non-boolean query result must raise rather than be silently
+    #  misinterpreted as a label indexer
+    df = DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
+    msg = "query expression must evaluate to a boolean array"
+    with pytest.raises(ValueError, match=msg):
+        df.query(expr, engine=engine, parser=parser)
+
+
+def test_query_non_bool_result_ndim2_raises(engine, parser):
+    # GH#8560 a non-boolean DataFrame result must also raise
+    skip_if_no_pandas_parser(parser)
+    df = DataFrame(np.arange(6).reshape(3, 2), columns=["a", "b"])
+    msg = "query expression must evaluate to a boolean array"
+    with pytest.raises(ValueError, match=msg):
+        df.query("@df + 1", engine=engine, parser=parser)
+
+
+@pytest.mark.parametrize("dtype", ["bool", "boolean"])
+def test_query_bool_result_ok(engine, parser, dtype):
+    # GH#8560 a boolean result (incl. nullable EA) is a valid mask
+    if dtype == "boolean":
+        engine = "python"
+    df = DataFrame({"a": pd.array([True, False, True], dtype=dtype), "b": [1, 2, 3]})
+    result = df.query("a", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df[df["a"].astype(bool)])

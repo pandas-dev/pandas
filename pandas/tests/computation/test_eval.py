@@ -1965,7 +1965,7 @@ def test_eval_no_support_column_name(request, column):
     if column in ["True", "False", "inf", "Inf"]:
         request.applymarker(
             pytest.mark.xfail(
-                raises=KeyError,
+                raises=ValueError,
                 reason=f"GH 47859 DataFrame eval not supported with {column}",
             )
         )
