@@ -293,6 +293,7 @@ Conversion
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
+- Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 
 Strings
 ^^^^^^^
