@@ -111,8 +111,13 @@ class Term:
     def _resolve_name(self):
         local_name = str(self.local_name)
         is_local = self.is_local
-        if local_name in self.env.scope and isinstance(
-            self.env.scope[local_name], type
+        # GH#44603 a column sharing a name with a pandas global (e.g. "Timestamp")
+        # is flagged is_local via DEFAULT_GLOBALS; flip it so the column (resolver)
+        # is found.  But an explicit "@name" reference (GH#48694) must stay local.
+        if (
+            not str(self.name).startswith(LOCAL_TAG)
+            and local_name in self.env.scope
+            and isinstance(self.env.scope[local_name], type)
         ):
             is_local = False
 

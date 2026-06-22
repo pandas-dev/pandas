@@ -40,6 +40,24 @@ def skip_if_no_pandas_parser(parser):
         pytest.skip(f"cannot evaluate with parser={parser}")
 
 
+def test_query_local_class_attribute(engine, parser):
+    # GH#48694 referencing an attribute of a local that happens to be a class
+    skip_if_no_pandas_parser(parser)
+
+    class A:
+        a = 1
+
+    df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+    result = df.query("x == @A.a", engine=engine, parser=parser)
+    expected = df[df["x"] == A.a]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.eval("x == @A.a", engine=engine, parser=parser)
+    expected = df["x"] == A.a
+    tm.assert_series_equal(result, expected)
+
+
 class TestCompat:
     @pytest.fixture
     def df(self):
