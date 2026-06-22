@@ -618,6 +618,33 @@ class TestTSPlot:
 
         assert rs == xp
 
+    @pytest.mark.parametrize(
+        "freq, equiv_freq", [("h", "60min"), ("2h", "120min"), ("D", "24h")]
+    )
+    def test_finder_period_equivalent_freq_same_labels(self, freq, equiv_freq):
+        # GH#57587 equivalent frequencies (e.g. "h" and "60min") must render
+        # identical x-axis tick labels, not just identical line data.
+        def _tick_labels(frqncy):
+            idx = period_range("2000-01-01", freq=frqncy, periods=4)
+            df = DataFrame(np.array([0, 1, 0, 1]), index=idx, columns=["A"])
+            _, ax = mpl.pyplot.subplots()
+            df.plot(ax=ax)
+            ax.figure.canvas.draw()
+            labels = [
+                label.get_text()
+                for label in list(ax.get_xticklabels(minor=False))
+                + list(ax.get_xticklabels(minor=True))
+                if label.get_text()
+            ]
+            mpl.pyplot.close(ax.figure)
+            return sorted(labels)
+
+        expected = _tick_labels(freq)
+        # sanity check: more than just the two endpoints are labeled, so a
+        # regression that collapses the ticks would not silently match
+        assert len(expected) > 2
+        assert _tick_labels(equiv_freq) == expected
+
     def test_gaps(self):
         ts = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
