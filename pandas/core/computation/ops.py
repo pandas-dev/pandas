@@ -445,25 +445,32 @@ class BinOp(Op):
                 encoder = pprint_thing
             return encoder(value)
 
+        def convert(value):
+            if isinstance(value, (int, float)):
+                value = stringify(value)
+            value = Timestamp(ensure_decoded(value))
+            if value.tz is not None:
+                value = value.tz_convert("UTC")
+            return value
+
+        def convert_term(term) -> None:
+            value = term.value
+            if term.is_scalar:
+                term.update(convert(value))
+            elif isinstance(value, list):
+                # ``==``/``in`` comparisons are rewritten to membership ops
+                # with the right-hand side wrapped in a list (see
+                # _rewrite_membership_op), so convert the elements too
+                # (GH#35595)
+                term.update([convert(element) for element in value])
+
         lhs, rhs = self.lhs, self.rhs
 
-        if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.is_scalar:
-            v = rhs.value
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = Timestamp(ensure_decoded(v))
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            self.rhs.update(v)
+        if is_term(lhs) and lhs.is_datetime and is_term(rhs):
+            convert_term(self.rhs)
 
-        if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.is_scalar:
-            v = lhs.value
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = Timestamp(ensure_decoded(v))
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            self.lhs.update(v)
+        if is_term(rhs) and rhs.is_datetime and is_term(lhs):
+            convert_term(self.lhs)
 
     def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs

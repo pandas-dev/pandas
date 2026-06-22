@@ -574,6 +574,39 @@ class TestDataFrameQueryNumExprPandas:
             with pytest.raises(TypeError, match=msg):
                 df.query(f"dates {op} nondate", parser=parser, engine=engine)
 
+    def test_date_query_eq_ne_with_str(self, engine, parser):
+        # GH#35595 equality/membership against a date string was not converted
+        # to a Timestamp, silently returning wrong results
+        skip_if_no_pandas_parser(parser)
+        df = DataFrame({"dates": date_range("1/1/2012", periods=5)})
+
+        res = df.query('dates == "2012-01-03"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, df[df["dates"] == "2012-01-03"])
+
+        res = df.query('dates != "2012-01-03"', engine=engine, parser=parser)
+        tm.assert_frame_equal(res, df[df["dates"] != "2012-01-03"])
+
+        res = df.query(
+            'dates in ["2012-01-02", "2012-01-04"]', engine=engine, parser=parser
+        )
+        expec = df[
+            df["dates"].isin([pd.Timestamp("2012-01-02"), pd.Timestamp("2012-01-04")])
+        ]
+        tm.assert_frame_equal(res, expec)
+
+    def test_date_index_named_datetime_query(self, engine, parser):
+        # GH#35595 a datetime index level named "datetime" shadowed the
+        # ``datetime`` builtin and was compared against an unconverted string
+        skip_if_no_pandas_parser(parser)
+        mi = MultiIndex.from_product(
+            [date_range("2020-01-01", periods=3), ["A", "B"]],
+            names=["datetime", "count"],
+        )
+        df = DataFrame({"val": range(len(mi))}, index=mi)
+        res = df.query('datetime == "2020-01-01"', engine=engine, parser=parser)
+        expec = df[df.index.get_level_values("datetime") == "2020-01-01"]
+        tm.assert_frame_equal(res, expec)
+
     def test_query_syntax_error(self, engine, parser):
         df = DataFrame({"i": range(10), "+": range(3, 13), "r": range(4, 14)})
         msg = "invalid syntax"
