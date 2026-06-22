@@ -122,6 +122,12 @@ static void parser_clear_data_buffers(parser_t *self) {
 }
 
 static void parser_cleanup(parser_t *self) {
+  // self can be NULL when cleanup runs on a TextReader whose __cinit__
+  // raised before parser_new() was called (GH#53131).
+  if (self == NULL) {
+    return;
+  }
+
   // XXX where to put this
   free_if_not_null((void *)&self->error_msg);
   free_if_not_null((void *)&self->warn_msg);
