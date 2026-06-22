@@ -157,6 +157,7 @@ dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
+enable = ["pyodide-eol"]
 build-verbosity = 1
 build-frontend = "pip"
 config-settings = { compile-args = ["-v"] }
