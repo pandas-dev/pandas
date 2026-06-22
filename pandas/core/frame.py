@@ -4865,10 +4865,11 @@ class DataFrame(NDFrame, OpsMixin):
                 self.loc[index, col] = value
 
         except InvalidIndexError as ii_err:
-            # GH48729: Seems like you are trying to assign a value to a
-            # row when only scalar options are permitted
+            # GH#48729, GH#51866: get_loc raises InvalidIndexError when a
+            #  row/column label is not a scalar (e.g. a boolean mask, array,
+            #  list, or slice). .at only supports scalar label access.
             raise InvalidIndexError(
-                f"You can only assign a scalar value not a {type(value)}"
+                ".at-based indexing can only have scalar indexers; use .loc instead"
             ) from ii_err
 
     def _ensure_valid_index(self, value) -> None:
