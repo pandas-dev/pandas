@@ -245,9 +245,14 @@ def ndarray_to_mgr(
 
         return arrays_to_mgr(values, columns, index, dtype=dtype, consolidate=copy)
 
-    if isinstance(values, (ABCSeries, Index)):
-        if not copy and (dtype is None or astype_is_view(values.dtype, dtype)):
-            refs = values._references
+    source_refs = None
+    if not copy and isinstance(values, (ABCSeries, Index)):
+        # Hold onto the source references; whether the constructed block ends
+        #  up sharing memory is verified after sanitize_array below, since e.g.
+        #  casting object -> "str" keeps a view that astype_is_view misses.
+        source_refs = values._references
+        if dtype is None or astype_is_view(values.dtype, dtype):
+            refs = source_refs
 
     if isinstance(vdtype, ExtensionDtype):
         # i.e. Datetime64TZ, PeriodDtype; cases with is_1d_only_ea_dtype(vdtype)
@@ -283,6 +288,7 @@ def ndarray_to_mgr(
 
     if dtype is not None and values.dtype != dtype:
         # GH#40110 see similar check inside sanitize_array
+        pre_sanitize = values
         values = sanitize_array(
             values,
             None,
@@ -290,6 +296,17 @@ def ndarray_to_mgr(
             copy=copy,
             allow_2d=True,
         )
+        if (
+            refs is None
+            and source_refs is not None
+            and isinstance(values, np.ndarray)
+            and isinstance(pre_sanitize, np.ndarray)
+            and np.shares_memory(values, pre_sanitize)
+        ):
+            # GH#63936: sanitize_array kept a view of the source (e.g. casting
+            #  object -> "str"), which astype_is_view does not predict; attach
+            #  refs so copy-on-write tracking stays correct.
+            refs = source_refs
 
     # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
