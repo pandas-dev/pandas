@@ -689,12 +689,16 @@ def merge_asof(
         The data MUST be in ascending order. Furthermore this must be
         a numeric column, such as datetimelike, integer, or float. ``on``
         or ``left_on`` / ``right_on`` must be given.
-    left_on : label
-        Field name to join on in left DataFrame. If specified, sort the left
-        DataFrame by this column in ascending order before merging.
-    right_on : label
-        Field name to join on in right DataFrame. If specified, sort the right
-        DataFrame by this column in ascending order before merging.
+    left_on : label or array-like
+        Field name to join on in left DataFrame. Can also be an array of the
+        length of the left DataFrame, which is treated as if it were a column.
+        If specified, sort the left DataFrame by this key in ascending order
+        before merging.
+    right_on : label or array-like
+        Field name to join on in right DataFrame. Can also be an array of the
+        length of the right DataFrame, which is treated as if it were a column.
+        If specified, sort the right DataFrame by this key in ascending order
+        before merging.
     left_index : bool
         Use the index of the left DataFrame as the join key.
     right_index : bool
