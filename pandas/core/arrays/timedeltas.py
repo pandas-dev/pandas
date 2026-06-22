@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
+import textwrap
 from typing import (
     TYPE_CHECKING,
     Self,
@@ -82,13 +83,11 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         NpDtype,
-        npt,
         TimeUnit,
+        npt,
     )
 
     from pandas import DataFrame
-
-import textwrap
 
 
 def _field_accessor(name: str, alias: str, docstring: str):
