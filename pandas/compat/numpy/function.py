@@ -153,18 +153,20 @@ def validate_argsort_with_ascending(
     ascending: bool | int | None, args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> bool:
     """
-    If 'Categorical.argsort' is called via the 'numpy' library, the first
-    parameter in its signature is 'axis', which takes either an integer or
-    'None', so check if the 'ascending' parameter has either integer type or is
-    None, since 'ascending' itself should be a boolean
-    """
-    if is_integer(ascending) or ascending is None:
-        args = (ascending, *args)
-        ascending = True
+    Validate the 'ascending' argument to 'ExtensionArray.argsort'.
 
+    'argsort' is keyword-only, so when it is reached via NumPy (e.g.
+    'np.argsort(cat, axis=0)') the 'axis'/'order'/'kind' arguments arrive in
+    'kwargs' and are validated here. 'ascending' itself should be a boolean, so
+    coerce integers to bool (GH#41318) and reject 'None' and other types.
+    """
     validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
-    ascending = cast("bool", ascending)
-    return ascending
+    if not is_bool(ascending) and not is_integer(ascending):
+        raise ValueError(
+            f'For argument "ascending" expected type bool, received '
+            f"type {type(ascending).__name__}."
+        )
+    return bool(ascending)
 
 
 CLIP_DEFAULTS: dict[str, Any] = {"out": None}

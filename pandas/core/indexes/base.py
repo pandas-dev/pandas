@@ -60,6 +60,7 @@ from pandas.util._exceptions import (
     find_stack_level,
     rewrite_exception,
 )
+from pandas.util._validators import validate_ascending
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -6177,6 +6178,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
+        ascending = validate_ascending(ascending)
+
         if key is None and (
             (ascending and self.is_monotonic_increasing)
             or (not ascending and self.is_monotonic_decreasing)

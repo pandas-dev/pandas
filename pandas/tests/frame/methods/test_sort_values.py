@@ -907,3 +907,12 @@ class TestSortValuesLevelAsStr:
         expected = df.loc[df.index[indexer]]
         result = df.sort_values(by="D", ascending=ascending)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("ascending, order", [(1, [1, 2, 0]), (0, [0, 2, 1])])
+def test_sort_values_ascending_integer_extension_column(ascending, order):
+    # GH#41318 an integer ascending on a single extension-array column is
+    # coerced to bool; previously it raised a confusing "axis" error
+    df = DataFrame({"a": pd.array([3, 1, 2], dtype="Int64")})
+    result = df.sort_values("a", ascending=ascending)
+    tm.assert_frame_equal(result, df.iloc[order])

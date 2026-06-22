@@ -475,6 +475,26 @@ def test_sort_values_natsort_key():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "category"])
+def test_sort_values_ascending_none_raises(dtype):
+    # GH#41318 ascending=None raises a clear error instead of silently sorting
+    # descending (numpy-backed) or raising a confusing "axis" error (EA-backed)
+    idx = pd.Index([2, 51, 17], dtype=dtype)
+    msg = 'For argument "ascending" expected type bool, received type NoneType.'
+    with pytest.raises(ValueError, match=msg):
+        idx.sort_values(ascending=None)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+@pytest.mark.parametrize("ascending, expected", [(1, [2, 17, 51]), (0, [51, 17, 2])])
+def test_sort_values_ascending_integer(dtype, ascending, expected):
+    # GH#41318 an integer ascending is coerced to bool (previously raised a
+    # confusing "axis" error for EA-backed indexes)
+    idx = pd.Index([2, 51, 17], dtype=dtype)
+    result = idx.sort_values(ascending=ascending)
+    tm.assert_index_equal(result, pd.Index(expected, dtype=dtype))
+
+
 def test_ndarray_compat_properties(index):
     if isinstance(index, PeriodIndex) and not IS64:
         pytest.skip("Overflow")
