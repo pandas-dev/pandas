@@ -1162,6 +1162,12 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
 
+    def test_empty_column_multiindex(self, pa, temp_file):
+        # GH#40173 reading back an empty frame with a column MultiIndex used to
+        # raise inside pyarrow's metadata reconstruction
+        df = pd.DataFrame(columns=pd.MultiIndex(levels=[["abc"], []], codes=[[], []]))
+        check_round_trip(df, temp_file, pa)
+
     def test_df_attrs_persistence(self, temp_file, pa):
         df = pd.DataFrame(data={1: [1]})
         df.attrs = {"test_attribute": 1}
