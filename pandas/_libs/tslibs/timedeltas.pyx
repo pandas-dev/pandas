@@ -1001,8 +1001,6 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             elif c == "+":
                 pass
             elif c in ["W", "D", "H", "M"]:
-                if c in ["H", "M"] and len(number) > 2:
-                    raise ValueError(err_msg)
                 if c in ["M", "H"]:
                     c = c.replace("M", "min").replace("H", "h")
                 unit.append(c)

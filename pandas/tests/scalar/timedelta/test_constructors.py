@@ -656,6 +656,10 @@ def test_construction_out_of_bounds_td64s(val, unit):
         ("PT-6H3M", Timedelta(hours=-6, minutes=3)),
         ("-PT6H3M", Timedelta(hours=-6, minutes=-3)),
         ("-PT-6H+3M", Timedelta(hours=6, minutes=-3)),
+        # GH#48122: hour/minute components may have more than two digits
+        ("PT100H", Timedelta(hours=100)),
+        ("PT100M", Timedelta(minutes=100)),
+        ("P0DT999H999M999S", Timedelta(hours=999, minutes=999, seconds=999)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -667,7 +671,6 @@ def test_iso_constructor(fmt, exp):
     [
         "PPPPPPPPPPPP",
         "PDTHMS",
-        "P0DT999H999M999S",
         "P1DT0H0M0.0000000000000S",
         "P1DT0H0M0.S",
         "P",
