@@ -44,6 +44,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
     find_common_type,
     maybe_box_datetimelike,
 )
@@ -126,6 +127,7 @@ if TYPE_CHECKING:
         Scalar,
         ScalarIndexer,
         SequenceIndexer,
+        SortKind,
         npt,
     )
 
@@ -613,6 +615,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        raise NotImplementedError("SparseArray does not support in-place sort")
+
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
@@ -624,7 +635,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return cls(values, dtype=original.dtype)
 
     def _cast_pointwise_result(self, values):
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
         result = lib.maybe_convert_objects(values, convert_non_numeric=True)
         if result.dtype.kind == self.dtype.kind:
             try:

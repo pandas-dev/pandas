@@ -1315,7 +1315,7 @@ class TestLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         # assigning the entire column using __setitem__ swaps in the new array
-        # GH#???
+        # GH#38896
         result["A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
@@ -2280,6 +2280,24 @@ class TestLocSetitemWithExpansion:
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df, check_column_type=False)
 
+    def test_loc_setitem_with_expansion_str_list_partial(self):
+        # GH#42099 — partial assignment of a list of strings used to fill
+        #  unselected rows with the literal string "n" (truncated "nan").
+        df = DataFrame(index=range(4))
+        df.loc[[0, 1, 2], "data"] = ["a", "b", "c"]
+        expected = DataFrame({"data": ["a", "b", "c", np.nan]}, index=range(4))
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+    def test_loc_setitem_with_expansion_bool_list_partial(self):
+        # GH#42099 — partial assignment of a list of bools used to raise
+        #  TypeError because the column was initialized as float64.
+        df = DataFrame(index=range(4))
+        df.loc[[0, 1, 2], "data"] = [True, False, True]
+        expected = DataFrame(
+            {"data": [True, False, True, np.nan]}, index=range(4), dtype=object
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime
         # should not be interpreted as a row indexer
@@ -3043,16 +3061,45 @@ class TestLocListlike:
             ser.loc[keys]
 
     def test_loc_named_index(self):
-        # GH 42790
+        # GH#17110 - loc should preserve the original index name,
+        # not adopt the key's index name
         df = DataFrame(
             [[1, 2], [4, 5], [7, 8]],
             index=["cobra", "viper", "sidewinder"],
             columns=["max_speed", "shield"],
         )
         expected = df.iloc[:2]
-        expected.index.name = "foo"
         result = df.loc[Index(["cobra", "viper"], name="foo")]
         tm.assert_frame_equal(result, expected)
+        assert result.index.name is None
+
+    def test_loc_setitem_single_column_listlike_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = ["one"]
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_single_column_ea_value(self):
+        # GH#44103
+        df = DataFrame({"a": [None, "two"]}, index=[0, 1], dtype="string")
+        df.loc[0, ["a"]] = pd.array(["one"], dtype="string")
+        expected = DataFrame({"a": ["one", "two"]}, index=[0, 1], dtype="string")
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_multi_column_listlike_value(self):
+        # GH#44103 - multi-column assignment with a list-like value on a
+        # single-block DataFrame (EA dtype)
+        df = DataFrame(
+            {"a": [None, "two"], "b": ["1", "2"]}, index=[0, 1], dtype="string"
+        )
+        df.loc[0, ["a", "b"]] = ["new_a", "new_b"]
+        expected = DataFrame(
+            {"a": ["new_a", "two"], "b": ["new_b", "2"]},
+            index=[0, 1],
+            dtype="string",
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 @pytest.mark.parametrize(

@@ -360,7 +360,7 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(result, expected)
 
     def test_interp_ignore_all_good(self):
-        # GH
+        # GH#6290
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],

@@ -242,7 +242,11 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nogil=True, parallel=True)
+    # Not jitted directly: this is passed through jit_user_function in
+    # generate_numba_table_func, which wraps it with register_jitable so it
+    # inlines into roll_table's outer jit. A standalone @jit(parallel=True)
+    # here nests parallel regions and crashes the workqueue threading layer
+    # on platforms without tbb/openmp (GH#40454).
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
         for i in numba.prange(table.shape[1]):

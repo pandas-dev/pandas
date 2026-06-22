@@ -857,10 +857,7 @@ class TestDataFrameToString:
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()
         assert (np.abs(recons["A"].dropna() - biggie["A"].dropna()) < 0.1).all()
-
-        # FIXME: don't leave commented-out
-        # expected = ['B', 'A']
-        # assert header == expected
+        assert header == ["B", "A"]
 
         result = biggie.to_string(columns=["A"], col_space=17)
         header = result.split("\n")[0].strip().split()

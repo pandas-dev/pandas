@@ -490,6 +490,17 @@ def test_astype_from_float_dtype(float_dtype, dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_astype_from_masked_float_with_nan(dtype, using_nan_is_na):
+    # GH#61617, GH#65227 - FloatingArray.astype(str) with unmasked NaN
+    arr = pd.array([np.nan, pd.NA, 3.0], dtype="Float64")
+    result = arr.astype(dtype)
+    if using_nan_is_na:
+        expected = pd.array([pd.NA, pd.NA, "3.0"], dtype=dtype)
+    else:
+        expected = pd.array(["nan", pd.NA, "3.0"], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_to_numpy_returns_pdna_default(dtype):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = np.array(arr)
@@ -639,3 +650,12 @@ def test_numpy_random_permute(dtype, box):
     result = rng.permutation(arr)
     assert isinstance(result, np.ndarray)
     assert sorted(result.tolist()) == ["a", "bb", "ccc"]
+
+
+def test_sort_unique_result(dtype):
+    # https://github.com/pandas-dev/pandas/issues/64977
+    arr = pd.array(["Bob", "Alice", "Bob"], dtype=dtype)
+    unique_names = arr.unique()
+    unique_names.sort()
+    expected = pd.array(["Alice", "Bob"], dtype=dtype)
+    tm.assert_extension_array_equal(unique_names, expected)

@@ -256,7 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # GH#46768 - deprecated but still need to be accessible via .dt accessor
     _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
     _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "freq", "tz"]
+        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "tz"]
     )
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -282,7 +282,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Constructors
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
-    _freq: BaseOffset | None = None
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -303,7 +302,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.datetime64],
-        freq: BaseOffset | None = None,
         dtype: np.dtype[np.datetime64] | DatetimeTZDtype = DT64NS_DTYPE,
     ) -> Self:
         assert isinstance(values, np.ndarray)
@@ -316,9 +314,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             #  then values.dtype should be M8[us].
             assert dtype._creso == get_unit_from_dtype(values.dtype)
 
-        result = super()._simple_new(values, dtype)
-        result._freq = freq
-        return result
+        return super()._simple_new(values, dtype)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
@@ -548,7 +544,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
         dtype = tz_to_dtype(tz, unit=unit)
-        return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
+        return cls._simple_new(dt64_values, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -945,7 +941,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=None)
+        return self._simple_new(self._ndarray, dtype=dtype)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -967,8 +963,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
-            Time zone to convert timestamps to. Passing ``None`` will
-            remove the time zone information preserving local time.
+            Time zone to attach to the tz-naive timestamps; the wall time is
+            preserved. Passing ``None`` detaches the time zone from a tz-aware
+            Array/Index, returning a tz-naive result with the same wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -1032,8 +1029,8 @@ default 'raise'
                        '2018-03-03 09:00:00-05:00'],
                       dtype='datetime64[us, US/Eastern]', freq=None)
 
-        With the ``tz=None``, we can remove the time zone information
-        while keeping the local time (not converted to UTC):
+        With ``tz=None`` we can remove the time zone information while
+        preserving the wall time (no conversion to UTC):
 
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
@@ -1122,7 +1119,7 @@ default 'raise'
         new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
         dtype = tz_to_dtype(tz, unit=self.unit)
 
-        return self._simple_new(new_dates_dt64, dtype=dtype, freq=None)
+        return self._simple_new(new_dates_dt64, dtype=dtype)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1194,13 +1191,16 @@ default 'raise'
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
-        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
-        dt64_values = new_values.view(self._ndarray.dtype)
-
-        dta = type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
+        dta = self._normalize_naive()
         if self.tz is not None:
             dta = dta.tz_localize(self.tz)
         return dta
+
+    def _normalize_naive(self) -> Self:
+        """Normalize times to midnight, ignoring the timezone."""
+        new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
+        dt64_values = new_values.view(self._ndarray.dtype)
+        return type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
 
     def to_period(self, freq=None) -> PeriodArray:
         """
@@ -1264,7 +1264,7 @@ default 'raise'
             )
 
         if freq is None:
-            freq = self.inferred_freq
+            freq = self._inferred_freq_str
 
             if freq is None:
                 raise ValueError(
@@ -2486,6 +2486,9 @@ default 'raise'
         >>> idx.to_julian_date()
         Index([2461995.5375, 2461995.5875], dtype='float64')
         """
+        if self.tz is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            return self.tz_convert("UTC").tz_localize(None).to_julian_date()
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
         year = np.asarray(self.year)
@@ -3175,7 +3178,9 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     start = Timestamp(start)  # type: ignore[arg-type]
-    if start is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if start is not NaT:  # type: ignore[comparison-overlap]
         start = start.as_unit(unit)
     else:
         start = None
@@ -3183,7 +3188,9 @@ def _generate_range(
     # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
     # expected "Union[integer[Any], float, str, date, datetime64]"
     end = Timestamp(end)  # type: ignore[arg-type]
-    if end is not NaT:
+    # error: Non-overlapping identity check (left operand type: "Timestamp",
+    # right operand type: "NaTType")
+    if end is not NaT:  # type: ignore[comparison-overlap]
         end = end.as_unit(unit)
     else:
         end = None

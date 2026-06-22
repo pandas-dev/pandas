@@ -13,9 +13,9 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under14p0,
     pa_version_under15p0,
     pa_version_under17p0,
+    pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
 )
@@ -45,9 +45,11 @@ try:
 
     _HAVE_FASTPARQUET = True
     _fp_version_lt_2025 = Version(fastparquet.__version__) < Version("2025.12.0")
+    _fp_version_lt_2026_5 = Version(fastparquet.__version__) < Version("2026.5.0")
 except ImportError:
     _HAVE_FASTPARQUET = False
     _fp_version_lt_2025 = False
+    _fp_version_lt_2026_5 = False
 
 
 pytestmark = [
@@ -215,8 +217,8 @@ def check_round_trip(
             if "string_with_nan" in expected:
                 expected.loc[1, "string_with_nan"] = None
             tm.assert_frame_equal(
-                expected,
                 actual,
+                expected,
                 check_names=check_names,
                 check_like=check_like,
                 check_dtype=check_dtype,
@@ -361,7 +363,10 @@ def test_get_engine_auto_error_message():
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
         else:
-            match = "Use pip or conda to install the fastparquet package"
+            match = (
+                "Use pip, conda, or your preferred package management tool "
+                "to install the fastparquet package"
+            )
             with pytest.raises(ImportError, match=match):
                 get_engine("auto")
 
@@ -384,8 +389,11 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
 
 
 @pytest.mark.xfail(
-    using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-    reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+    using_string_dtype()
+    and _HAVE_PYARROW
+    and not _fp_version_lt_2025
+    and _fp_version_lt_2026_5,
+    reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
 )
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
@@ -1068,31 +1076,7 @@ class TestParquetPyArrow(Base):
     def test_timezone_aware_index(self, pa, timezone_aware_date_list, temp_file):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
-
-        # see gh-36004
-        # compare time(zone) values only, skip their class:
-        # pyarrow always creates fixed offset timezones using pytz.FixedOffset()
-        # even if it was datetime.timezone() originally
-        #
-        # technically they are the same:
-        # they both implement datetime.tzinfo
-        # they both wrap datetime.timedelta()
-        # this use-case sets the resolution to 1 minute
-
-        expected = df[:]
-        if timezone_aware_date_list.tzinfo != datetime.UTC:
-            # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
-            # https://github.com/pandas-dev/pandas/issues/37286
-            try:
-                import pytz
-            except ImportError:
-                pass
-            else:
-                offset = df.index.tz.utcoffset(timezone_aware_date_list)
-                tz = pytz.FixedOffset(offset.total_seconds() / 60)
-                expected.index = expected.index.tz_convert(tz)
-                expected["index_as_col"] = expected["index_as_col"].dt.tz_convert(tz)
-        check_round_trip(df, temp_file, pa, check_dtype=False, expected=expected)
+        check_round_trip(df, temp_file, pa, check_dtype=False)
 
     def test_filter_row_groups(self, pa, temp_file):
         # https://github.com/pandas-dev/pandas/issues/26551
@@ -1248,7 +1232,7 @@ class TestParquetPyArrow(Base):
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        pa_version_under14p0, reason="pyarrow < 14 writes unit-less datetime64 metadata"
+        pa_version_under18p0, reason="pyarrow < 18 writes unit-less datetime64 metadata"
     )
     def test_datetime64_column_index_roundtrip(self, pa, temp_file):
         # GH#55118
@@ -1270,6 +1254,65 @@ class TestParquetPyArrow(Base):
             write_kwargs={"schema": schema},
             read_kwargs={"to_pandas_kwargs": {"maps_as_pydicts": "strict"}},
         )
+
+    def test_to_parquet_local_path_does_not_call_get_handle(
+        self, pa, temp_file, monkeypatch
+    ):
+        # GH#65810 local paths are handed to pyarrow directly; get_handle used
+        # to open them only to unwrap the name back to a string, opening the
+        # path a second time and truncating output to 0 bytes on filesystems
+        # that finalize contents on close
+        def fail(*args, **kwargs):
+            pytest.fail("get_handle should not be called for a local path")
+
+        monkeypatch.setattr("pandas.io.parquet.get_handle", fail)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+
+    def test_to_parquet_local_path_opens_destination_once(
+        self, pa, temp_file, monkeypatch
+    ):
+        # GH#65810 pandas must not open the destination itself; pyarrow opens it
+        # via C++ (bypassing builtins.open), so no Python-level open is expected
+        opens = []
+        real_open = open
+        target = os.fspath(temp_file)
+
+        def spy_open(file, *args, **kwargs):
+            if os.fspath(file) == target:
+                opens.append(file)
+            return real_open(file, *args, **kwargs)
+
+        monkeypatch.setattr("builtins.open", spy_open)
+
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+        assert opens == []
+
+    def test_to_parquet_missing_parent_directory_raises(self, pa, tmp_path):
+        # GH#65810 skipping get_handle must keep its parent-directory check
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        path = tmp_path / "missing" / "out.parquet"
+        msg = "Cannot save file into a non-existent directory"
+        with pytest.raises(OSError, match=msg):
+            df.to_parquet(path, engine=pa)
+
+    def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
+        # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
+        # be routed through it because pyarrow cannot fetch them
+        url = "http://example.com/nonexistent.parquet"
+        calls = []
+
+        def stub(path, mode, **kwargs):
+            calls.append((path, mode))
+            raise ValueError("reached get_handle")
+
+        monkeypatch.setattr("pandas.io.parquet.get_handle", stub)
+
+        with pytest.raises(ValueError, match="reached get_handle"):
+            read_parquet(url, engine=pa)
+        assert calls == [(url, "rb")]
 
 
 class TestParquetFastParquet(Base):
@@ -1339,8 +1382,11 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
     @pytest.mark.xfail(
-        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
     )
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
@@ -1370,8 +1416,11 @@ class TestParquetFastParquet(Base):
         )
 
     @pytest.mark.xfail(
-        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_cols_supported(self, tmp_path, fp, df_full):
         # GH #23283
@@ -1390,8 +1439,11 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 2
 
     @pytest.mark.xfail(
-        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_cols_string(self, tmp_path, fp, df_full):
         # GH #27117
@@ -1410,8 +1462,11 @@ class TestParquetFastParquet(Base):
         assert len(actual_partition_cols) == 1
 
     @pytest.mark.xfail(
-        using_string_dtype() and _HAVE_PYARROW and not _fp_version_lt_2025,
-        reason="fastparquet >= 2025.12.0 can't write ArrowStringArray",
+        using_string_dtype()
+        and _HAVE_PYARROW
+        and not _fp_version_lt_2025
+        and _fp_version_lt_2026_5,
+        reason="fastparquet >= 2025.12.0, < 2026.5.0 can't write ArrowStringArray",
     )
     def test_partition_on_supported(self, tmp_path, fp, df_full):
         # GH #23283
