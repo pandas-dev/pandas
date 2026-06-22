@@ -1605,7 +1605,7 @@ class TestDataFrameAnalytics:
         ],
     )
     @pytest.mark.parametrize(
-        "data, op, expected",
+        "data, op, expected_value",
         [
             ([False, None], "any", pd.NA),
             ([True, None], "all", pd.NA),
@@ -1614,22 +1614,25 @@ class TestDataFrameAnalytics:
             ([True, None], "any", True),
         ],
     )
-    def test_any_all_skipna_false_nullable_GH65710(self, dtype, data, op, expected):
+    def test_any_all_skipna_false_nullable(self, dtype, data, op, expected_value):
+        # GH#65710
         if dtype != "boolean":
             data = [(0 if v is False else 1 if v is True else None) for v in data]
         arr = pd.array(data, dtype=dtype)
         df = DataFrame({"a": arr})
+
         result = getattr(df, op)(skipna=False)
+        expected = Series([expected_value], index=["a"], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
         ser_result = getattr(Series(arr), op)(skipna=False)
-        if expected is pd.NA:
-            assert result.iloc[0] is pd.NA
+        if expected_value is pd.NA:
             assert ser_result is pd.NA
         else:
-            assert result.iloc[0] == expected
-            assert ser_result == expected
-        assert result.dtype == "boolean"
+            assert ser_result == expected_value
 
-    def test_any_skipna_false_axis_none_nullable_GH65710(self):
+    def test_any_skipna_false_axis_none_nullable(self):
+        # GH#65710
         df = DataFrame({"a": pd.array([False, None], dtype="boolean")})
         assert df.any(skipna=False, axis=None) is pd.NA
 
@@ -2530,6 +2533,9 @@ def test_numeric_ea_axis_1(
             expected[mask] = 0
             expected = expected.astype(expected_dtype)
             expected[mask] = pd.NA
+        if not skipna and method == "all":
+            # GH#65710 Kleene "all" on (truthy, NA) row returns NA
+            expected.iloc[2] = pd.NA
     tm.assert_series_equal(result, expected)
 
 
