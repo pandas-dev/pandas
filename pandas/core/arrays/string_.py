@@ -9,6 +9,7 @@ from typing import (
     Literal,
     Self,
     cast,
+    overload,
 )
 import warnings
 
@@ -597,7 +598,13 @@ class BaseStringArray(ExtensionArray):
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
-    def view(self, dtype: Dtype | None = None) -> Self:
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         if dtype is not None:
             raise TypeError("Cannot change data-type for string array.")
         return super().view()
@@ -1058,14 +1065,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return np.nan
         return super()._wrap_reduction_result(axis, result)
 
-    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def any(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> bool:
+        nv.validate_any((), kwargs)
+        return self._reduce("any", axis=axis, skipna=skipna, **kwargs)
+
+    def all(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> bool:
+        nv.validate_all((), kwargs)
+        return self._reduce("all", axis=axis, skipna=skipna, **kwargs)
+
+    def min(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
@@ -1153,7 +1176,23 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         >>> arr.searchsorted([4])
         array([3])
         """
-        if self._hasna:
+
+        # GH#65837: avoid O(n) scan; NA confined to array ends in sorted data.
+        # When sorter is given, the sorted order is ndarray[sorter], so check
+        # the first/last positions via sorter instead of raw ndarray positions.
+        ndarray = self._ndarray
+        if len(ndarray):
+            if sorter is None:
+                has_na = libmissing.checknull(ndarray[0]) or libmissing.checknull(
+                    ndarray[-1]
+                )
+            else:
+                has_na = libmissing.checknull(
+                    ndarray[sorter[0]]
+                ) or libmissing.checknull(ndarray[sorter[-1]])
+        else:
+            has_na = False
+        if has_na:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."

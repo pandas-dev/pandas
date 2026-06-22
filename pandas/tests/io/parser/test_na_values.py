@@ -826,7 +826,6 @@ False
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize(
     "na_values",
     [[-99.0, -99], [-99, -99.0]],
@@ -838,6 +837,12 @@ def test_na_values_dict_without_dtype(all_parsers, na_values):
 -99
 -99.0
 -99.0"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'pyarrow' engine requires all na_values to be strings"
+        with pytest.raises(TypeError, match=msg):
+            parser.read_csv(StringIO(data), na_values=na_values)
+        return
 
     result = parser.read_csv(StringIO(data), na_values=na_values)
     expected = DataFrame({"A": [np.nan, np.nan, np.nan, np.nan]})
