@@ -100,7 +100,7 @@ jobs:
         python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
-            python: ["cp314", "3.14"]
+            python: ["cp312", "3.12"]
         exclude:
           # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
