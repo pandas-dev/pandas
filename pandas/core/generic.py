@@ -321,6 +321,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         present dataset. :func:`pandas.concat` and :func:`pandas.merge` will
         only copy ``attrs`` if all input datasets have the same ``attrs``.
 
+        ``attrs`` is a property of a :class:`Series` or :class:`DataFrame` as a
+        whole, not of an individual column. The :class:`DataFrame` constructor
+        does not extract ``attrs`` from a :class:`Series` it is built from, and
+        assigning a :class:`Series` as a column of an existing
+        :class:`DataFrame` (e.g. ``df[col] = ser``) does not modify
+        :attr:`DataFrame.attrs`. Methods that build a new :class:`DataFrame`
+        from a single :class:`Series` (such as :meth:`Series.to_frame`) do
+        propagate the source ``attrs``.
+
         Examples
         --------
         For Series:
@@ -577,7 +586,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return {clean_column_name(k): v for k, v in d.items() if not isinstance(k, int)}
 
     @final
-    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series]:
+    def _get_cleaned_column_resolvers(self) -> dict[Hashable, Series | DataFrame]:
         """
         Return the special character free column resolvers of a DataFrame.
 
@@ -586,23 +595,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Used in :meth:`DataFrame.eval`.
         """
         from pandas.core.computation.parsing import clean_column_name
-        from pandas.core.series import Series
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        dtypes = self.dtypes
-        return {
-            clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtype
-            ).__finalize__(self)
-            for k, v, dtype in zip(
-                self.columns,
-                self._iter_column_arrays(),
-                dtypes,
-                strict=True,
-            )
-        }
+        return {clean_column_name(k): self[k] for k in self.columns}
 
     @final
     @property
@@ -1492,6 +1489,51 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def __invert__(self) -> Self:
+        """
+        Return the bitwise inverse of the Series/DataFrame, element-wise.
+
+        Equivalent to applying the ``~`` (tilde) operator element-wise. For
+        boolean data this returns the logical NOT; for integer data it returns
+        the bitwise NOT (ones complement).
+
+        Returns
+        -------
+        Series or DataFrame
+            A new object of the same type and shape with every element
+            bitwise inverted.
+
+        See Also
+        --------
+        numpy.invert : Compute bitwise inversion element-wise.
+
+        Examples
+        --------
+        **Boolean Series:**
+
+        >>> s = pd.Series([True, False, True])
+        >>> ~s
+        0    False
+        1     True
+        2    False
+        dtype: bool
+
+        **Integer Series:**
+
+        >>> s = pd.Series([1, 0, 3], dtype="int8")
+        >>> ~s
+        0   -2
+        1   -1
+        2   -4
+        dtype: int8
+
+        **Boolean DataFrame:**
+
+        >>> df = pd.DataFrame({"a": [True, False], "b": [False, True]})
+        >>> ~df
+               a      b
+        0  False   True
+        1   True  False
+        """
         if not self.size:
             # inv fails with 0 len
             return self.copy(deep=False)
@@ -1855,7 +1897,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # Handle dropping columns labels
             if labels_to_drop:
-                dropped.drop(labels_to_drop, axis=1, inplace=True)
+                dropped = dropped.drop(labels_to_drop, axis=1)
         else:
             # Handle dropping column levels
             if levels_to_drop:
@@ -1869,7 +1911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             # Handle dropping index labels
             if labels_to_drop:
-                dropped.drop(labels_to_drop, axis=0, inplace=True)
+                dropped = dropped.drop(labels_to_drop, axis=0)
 
         return dropped
 
@@ -2331,8 +2373,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         *,
-        orient: Literal["split", "records", "index", "table", "columns", "values"]
-        | None = None,
+        orient: (
+            Literal["split", "records", "index", "table", "columns", "values"] | None
+        ) = None,
         date_format: str | None = None,
         double_precision: int = 10,
         force_ascii: bool = True,
@@ -2725,7 +2768,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specifying a compression library which is not available issues
             a ValueError.
         append : bool, default False
-            For Table formats, append the input data to the existing.
+            For Table formats, append the input data to the existing table.
+            The object stored at ``key`` (if any) must already be in
+            ``'table'`` format; appending to a ``'fixed'`` object raises
+            ``ValueError``. When creating a new key with ``append=True``,
+            ``format`` defaults to ``'table'``. Each append must use exactly
+            the same columns, in the same order, as the existing table.
         format : {'fixed', 'table', None}, default 'fixed'
             Possible values:
 
@@ -3663,18 +3711,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "sparse_index": sparsify,
             "sparse_columns": sparsify,
             "environment": "longtable" if longtable else None,
-            "multicol_align": multicolumn_format
-            if multicolumn
-            else f"naive-{multicolumn_format}",
+            "multicol_align": (
+                multicolumn_format if multicolumn else f"naive-{multicolumn_format}"
+            ),
             "multirow_align": "t" if multirow else "naive",
             "encoding": encoding,
             "caption": caption,
             "label": label,
             "position": position,
             "column_format": column_format,
-            "clines": "skip-last;data"
-            if (multirow and isinstance(self.index, MultiIndex))
-            else None,
+            "clines": (
+                "skip-last;data"
+                if (multirow and isinstance(self.index, MultiIndex))
+                else None
+            ),
             "bold_rows": bold_rows,
         }
 
@@ -4858,7 +4908,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Keywords must be strings
         # error: No overload variant of "_rename" of "NDFrame" matches
         # argument type "dict[Literal['index', 'columns'], Callable[[Any], str]]"
-        return self._rename(**mapper)  # type: ignore[call-overload, misc]
+        return self._rename(**mapper)  # type: ignore[call-overload]
 
     @final
     def add_suffix(self, suffix: str, axis: Axis | None = None) -> Self:
@@ -4929,7 +4979,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # error: Keywords must be strings
         # error: No overload variant of "_rename" of "NDFrame" matches argument
         # type "dict[Literal['index', 'columns'], Callable[[Any], str]]"
-        return self._rename(**mapper)  # type: ignore[call-overload, misc]
+        return self._rename(**mapper)  # type: ignore[call-overload]
 
     @overload
     def sort_values(
@@ -5682,8 +5732,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if len(items) == 0:
                 # Keep the dtype of labels when we are empty
                 items = items.astype(labels.dtype)
-            # error: Keywords must be strings
-            return self.reindex(**{name: items})  # type: ignore[misc]
+            return self.reindex(**{name: items})
         elif like:
 
             def f(x) -> bool:
@@ -7842,7 +7891,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Note: Checking below for `in foo.keys()` instead of
                     #  `in foo` is needed for when we have a Series and not dict
                     mapping = {
-                        col: (to_replace[col], value[col])  # pyright: ignore[reportOptionalSubscript]
+                        col: (
+                            to_replace[col],  # pyright: ignore[reportOptionalSubscript]
+                            value[col],
+                        )
                         for col in to_replace.keys()
                         if col in value.keys() and col in self
                     }
@@ -10304,9 +10356,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The where method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``True`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
-        will be filled with False.
+        ``other`` is used. If the axis of ``cond`` does not align with
+        the caller Series/DataFrame, the values of ``cond`` on misaligned
+        index positions will be filled with False.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.
@@ -10472,9 +10524,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The mask method is an application of the if-then idiom. For each
         element in the caller, if ``cond`` is ``False`` the
         element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` Series/DataFrame, the values of ``cond`` on misaligned index positions
-        will be filled with True.
+        ``other`` is used. If the axis of ``cond`` does not align with
+        the caller Series/DataFrame, the values of ``cond`` on misaligned
+        index positions will be filled with True.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.

@@ -237,17 +237,19 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_str
 
 @pytest.mark.parametrize(
     "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series("a b c".split()),
-            [
-                ("mean", TypeError),  # mean raises TypeError
-                ("prod", TypeError),
-                ("std", TypeError),
-                ("var", TypeError),
-                ("median", TypeError),
-                ("cumprod", TypeError),
-            ],
+    list(
+        chain(
+            tm.get_cython_table_params(
+                Series("a b c".split()),
+                [
+                    ("mean", TypeError),  # mean raises TypeError
+                    ("prod", TypeError),
+                    ("std", TypeError),
+                    ("var", TypeError),
+                    ("median", TypeError),
+                    ("cumprod", TypeError),
+                ],
+            )
         )
     ),
 )

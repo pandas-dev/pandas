@@ -4,7 +4,6 @@ import mmap
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 
 import numpy as np
@@ -518,7 +517,6 @@ class OpenpyxlWriter(ExcelWriter):
         from openpyxl.utils import get_column_letter
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast("tuple[int, int]", freeze_panes)
             col_letter = get_column_letter(freeze_panes[1] + 1)
             wks.freeze_panes = f"{col_letter}{freeze_panes[0] + 1}"
 
@@ -595,7 +593,6 @@ class OpenpyxlWriter(ExcelWriter):
         _style_cache: dict[str, dict[str, Serialisable]],
     ) -> None:
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast("tuple[int, int]", freeze_panes)
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
