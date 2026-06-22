@@ -1489,6 +1489,51 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def __invert__(self) -> Self:
+        """
+        Return the bitwise inverse of the Series/DataFrame, element-wise.
+
+        Equivalent to applying the ``~`` (tilde) operator element-wise. For
+        boolean data this returns the logical NOT; for integer data it returns
+        the bitwise NOT (ones complement).
+
+        Returns
+        -------
+        Series or DataFrame
+            A new object of the same type and shape with every element
+            bitwise inverted.
+
+        See Also
+        --------
+        numpy.invert : Compute bitwise inversion element-wise.
+
+        Examples
+        --------
+        **Boolean Series:**
+
+        >>> s = pd.Series([True, False, True])
+        >>> ~s
+        0    False
+        1     True
+        2    False
+        dtype: bool
+
+        **Integer Series:**
+
+        >>> s = pd.Series([1, 0, 3], dtype="int8")
+        >>> ~s
+        0   -2
+        1   -1
+        2   -4
+        dtype: int8
+
+        **Boolean DataFrame:**
+
+        >>> df = pd.DataFrame({"a": [True, False], "b": [False, True]})
+        >>> ~df
+               a      b
+        0  False   True
+        1   True  False
+        """
         if not self.size:
             # inv fails with 0 len
             return self.copy(deep=False)
