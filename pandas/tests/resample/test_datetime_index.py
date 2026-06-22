@@ -2167,6 +2167,20 @@ def test_arrow_timestamp_resample_keep_index_name():
     tm.assert_series_equal(result, expected)
 
 
+@td.skip_if_no("pyarrow")
+def test_arrow_timestamp_resample_on_keep_index_name():
+    # GH#59823 resampling on a pyarrow-backed column should keep its name
+    df = DataFrame(
+        {
+            "date": date_range("2020-01-01", periods=5),
+            "metric": np.arange(5, dtype=np.int64),
+        }
+    ).astype({"date": "timestamp[ns][pyarrow]"})
+    result = df.resample("1D", on="date").sum()
+    assert result.index.name == "date"
+    assert result.index.dtype == "timestamp[ns][pyarrow]"
+
+
 def test_resample_unit_second_large_years():
     # GH#57427
     index = DatetimeIndex(
