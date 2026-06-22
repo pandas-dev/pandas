@@ -171,14 +171,12 @@ test-command = """
 [tool.cibuildwheel.windows]
 config-settings = { setup-args = ["--vsenv"] }
 environment = {}
-before-build = "python -m pip install delvewheel"
 # powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
