@@ -1245,7 +1245,7 @@ cdef class TextReader:
         if (
             allow_pyarrow
             and HAS_PYARROW
-            and strcasecmp(self.encoding_errors, "strict") == 0
+            and self.encoding_errors == b"strict"
         ):
             if self.dtype_backend == "pyarrow":
                 target = "arrow"
