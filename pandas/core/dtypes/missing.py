@@ -564,10 +564,12 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
     """
     ExtensionArray-compatible implementation of array_equivalent.
     """
-    if left.dtype != right.dtype:
-        return False
-    elif isinstance(left, ABCExtensionArray):
+    if isinstance(left, ABCExtensionArray):
+        # let the EA decide its own equality semantics (e.g. datetimelike
+        #  arrays treat values differing only in resolution as equal)
         return left.equals(right)
+    elif left.dtype != right.dtype:
+        return False
     else:
         return array_equivalent(left, right, dtype_equal=True)
 

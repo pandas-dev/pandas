@@ -45,8 +45,6 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
     NullFrequencyError,
-    OutOfBoundsDatetime,
-    OutOfBoundsTimedelta,
     Pandas4Warning,
 )
 from pandas.util._decorators import (
@@ -377,18 +375,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         if type(self) != type(other):
             return False
-        elif self.dtype == other.dtype:
-            return lib.array_equivalent_bytes(self.asi8, other.asi8)
-        elif (self.dtype.kind == "M" and self.tz == other.tz) or self.dtype.kind == "m":  # type: ignore[attr-defined]
-            # different units, otherwise matching
-            try:
-                # TODO: do this at the EA level?
-                left, right = self._data._ensure_matching_resos(other._data)  # type: ignore[union-attr]
-            except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
-                return False
-            else:
-                return lib.array_equivalent_bytes(left.view("i8"), right.view("i8"))
-        return False
+
+        if (
+            self.dtype.kind in "mM"
+            and self.freq is not None
+            and self.freq == other.freq
+            and len(self) == len(other)
+            # for tz-aware, equal freq+first only generalizes when tz matches
+            and (self.dtype.kind == "m" or self.tz == other.tz)  # type: ignore[attr-defined]
+        ):
+            # Fastpath: regularly-spaced DatetimeIndex/TimedeltaIndex with a
+            #  matching freq are equal iff they have the same length and first
+            #  entry. (Not valid for PeriodIndex, where freq is the period
+            #  resolution rather than the step between entries.)
+            return len(self) == 0 or self[0] == other[0]
+
+        return self._data.equals(other._data)
 
     def __contains__(self, key: Any) -> bool:
         """

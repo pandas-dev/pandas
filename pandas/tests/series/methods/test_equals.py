@@ -11,6 +11,8 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    date_range,
+    timedelta_range,
 )
 
 
@@ -116,6 +118,27 @@ def test_equals_none_vs_nan():
     assert ser.equals(ser2)
     assert Index(ser, dtype=ser.dtype).equals(Index(ser2, dtype=ser2.dtype))
     assert ser.array.equals(ser2.array)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+def test_equals_mismatched_datetimelike_resolution(unit):
+    # GH#55694 datetimes/timedeltas differing only in resolution are equal
+    dti = date_range("2016-01-01", periods=3).as_unit("ns")
+    left = Series(dti)
+    right = Series(dti.as_unit(unit))
+    assert left.dtype != right.dtype
+    assert left.equals(right)
+    assert right.equals(left)
+
+    tdi = timedelta_range("1 day", periods=3).as_unit("ns")
+    assert Series(tdi).equals(Series(tdi.as_unit(unit)))
+
+    # tz-aware with a matching tz is also equal
+    dti_tz = dti.tz_localize("US/Pacific")
+    assert Series(dti_tz).equals(Series(dti_tz.as_unit(unit)))
+
+    # same instants but a different tz are not equal
+    assert not Series(dti_tz).equals(Series(dti_tz.tz_convert("UTC")))
 
 
 def test_equals_None_vs_float():

@@ -89,6 +89,15 @@ class TestEquals:
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
 
+    def test_equals_mismatched_datetimelike_resolution(self):
+        # GH#55694 columns differing only in resolution compare as equal
+        dti = date_range("2016-01-01", periods=3)
+        df1 = DataFrame({"a": dti, "b": dti - dti[0]})
+        df2 = DataFrame({"a": dti.as_unit("s"), "b": (dti - dti[0]).as_unit("s")})
+        assert df1["a"].dtype != df2["a"].dtype
+        assert df1.equals(df2)
+        assert df2.equals(df1)
+
     def test_equals_categorical_categories_order(self):
         cat1 = Categorical(["a", "b", "a"], categories=["a", "b"])
         cat2 = Categorical(["a", "b", "a"], categories=["b", "a"])

@@ -48,6 +48,24 @@ class EqualsTests:
         other = Index(list("abc"))
         assert not index.equals(other)
 
+    def test_equals_mismatched_reso(self, index):
+        # GH#55694 entries differing only in resolution compare as equal,
+        #  consistently across Index, the underlying array, and Series
+        if not hasattr(index._data, "as_unit"):
+            pytest.skip("PeriodIndex has no resolution to mismatch")
+
+        other = index.as_unit("s" if index.unit != "s" else "ns")
+        assert index.dtype != other.dtype
+        assert index.equals(other)
+        assert other.equals(index)
+        assert index._data.equals(other._data)
+        assert pd.Series(index).equals(pd.Series(other))
+
+        # element-wise path (freq dropped) still compares equal
+        noff = index._with_freq(None)
+        assert noff.freq is None
+        assert noff.equals(noff.as_unit("s" if noff.unit != "s" else "ns"))
+
 
 class TestPeriodIndexEquals(EqualsTests):
     @pytest.fixture
@@ -140,6 +158,26 @@ class TestDatetimeIndexEquals(EqualsTests):
     def test_not_equals_bday(self, freq):
         rng = date_range("2009-01-01", "2010-01-01", freq=freq)
         assert not rng.equals(list(rng))
+
+    def test_equals_freq_fastpath(self):
+        # GH#55694 regularly-spaced indexes compare via length + freq + first
+        #  entry, including across a resolution mismatch
+        rng = date_range("2020-01-01", periods=1000, freq="D")
+        assert rng.equals(rng.as_unit("s"))
+        assert not rng.equals(date_range("2020-01-02", periods=1000, freq="D"))
+        assert not rng.equals(rng[:-1])
+
+        # tz-aware spanning a DST transition compares correctly
+        dti = date_range("2021-03-01", periods=30, freq="D", tz="US/Eastern")
+        assert dti.equals(dti.as_unit("s"))
+
+        # matching freq/length and equal first instant but different tz: the
+        #  sequences diverge across DST, so these must not compare equal
+        left = date_range("2021-03-01 00:00", periods=30, freq="D", tz="UTC")
+        right = date_range("2021-02-28 19:00", periods=30, freq="D", tz="US/Eastern")
+        assert left[0] == right[0]
+        assert left.freq == right.freq
+        assert not left.equals(right)
 
 
 class TestTimedeltaIndexEquals(EqualsTests):

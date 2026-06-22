@@ -79,6 +79,8 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Pandas4Warning,
     PerformanceWarning,
 )
@@ -108,6 +110,7 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
 )
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     is_valid_na_for_dtype,
     isna,
 )
@@ -1982,6 +1985,20 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             new_values,
             dtype=new_dtype,
         )
+
+    def equals(self, other) -> bool:
+        if type(self) is not type(other):
+            return False
+        if self.dtype != other.dtype:
+            if self.dtype.kind == "M" and self.tz != other.tz:  # type: ignore[attr-defined]
+                # tz-aware datetimes with mismatched tz are never equal
+                return False
+            # GH#55694 values differing only in resolution compare as equal
+            try:
+                self, other = self._ensure_matching_resos(other)
+            except (OutOfBoundsDatetime, OutOfBoundsTimedelta):
+                return False
+        return bool(array_equivalent(self._ndarray, other._ndarray, dtype_equal=True))
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta
     #  with the return type matching input type.  TypeVar?
