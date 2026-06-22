@@ -1662,15 +1662,27 @@ cdef void accumulate_moments_scalar(
 ) noexcept nogil:
     cdef:
         Py_ssize_t i, n = len(values)
-        bint uses_mask = mask is not None
+        bint is_na_entry, uses_mask = mask is not None
         float64_t val
 
     for i in range(n):
         val = values[i]
-        if uses_mask and mask[i]:
-            val = NaN
-        if skipna and isnan(val):
+        if uses_mask:
+            is_na_entry = mask[i]
+        else:
+            is_na_entry = isnan(val)
+
+        if skipna and is_na_entry:
             continue
+        elif is_na_entry:
+            if max_moment >= 4:
+                m4[0] = NaN
+            if max_moment >= 3:
+                m3[0] = NaN
+            m2[0] = NaN
+            mean[0] = NaN
+            nobs[0] = n
+            return
         moments_add_value(val, nobs, mean, m2, m3, m4, max_moment)
 
 
@@ -1691,7 +1703,7 @@ cdef void accumulate_moments_axis(
     cdef:
         Py_ssize_t i, j, nrows = values.shape[0], ncols = values.shape[1]
         Py_ssize_t nouter, ninner
-        bint uses_mask = mask is not None
+        bint is_na_entry, uses_mask = mask is not None
         float64_t val
         float64_t* m3_ptr = NULL
         float64_t* m4_ptr = NULL
@@ -1712,10 +1724,22 @@ cdef void accumulate_moments_axis(
             m4_ptr = &m4[i]
         for j in range(ninner):
             val = values[j, i] if axis == 0 else values[i, j]
-            if uses_mask and (mask[j, i] if axis == 0 else mask[i, j]):
-                val = NaN
-            if skipna and isnan(val):
+            if uses_mask:
+                is_na_entry = mask[j, i] if axis == 0 else mask[i, j]
+            else:
+                is_na_entry = isnan(val)
+
+            if skipna and is_na_entry:
                 continue
+            elif is_na_entry:
+                if max_moment >= 4:
+                    m4[i] = NaN
+                if max_moment >= 3:
+                    m3[i] = NaN
+                m2[i] = NaN
+                mean[i] = NaN
+                nobs[i] = ninner
+                break
             moments_add_value(val, &nobs[i], &mean[i], &m2[i], m3_ptr, m4_ptr,
                               max_moment)
 

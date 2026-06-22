@@ -13,7 +13,9 @@ from typing import (
 )
 
 import numpy as np
+import numpy._typing as np_t
 
+from pandas._libs.tslibs import Tick
 from pandas._libs.tslibs.period import Period
 from pandas._typing import (
     Frequency,
@@ -29,15 +31,24 @@ _TimeLike: TypeAlias = datetime | timedelta | Period | np.datetime64 | np.timede
 _TimeDelta: TypeAlias = timedelta | np.timedelta64
 
 class NaTType:
-    _value: np.int64
+    _value: int
     @property
     def value(self) -> int: ...
     @property
     def asm8(self) -> np.datetime64: ...
     def to_datetime64(self) -> np.datetime64: ...
+    @overload
     def to_numpy(
-        self, dtype: np.dtype | str | None = ..., copy: bool = ...
-    ) -> np.datetime64 | np.timedelta64: ...
+        self,
+        dtype: np.dtype[np.timedelta64] | np_t._TD64Codes,
+        copy: bool = ...,
+    ) -> np.timedelta64: ...
+    @overload
+    def to_numpy(
+        self,
+        dtype: np.dtype[np.datetime64] | np_t._DT64Codes | None = ...,
+        copy: bool = ...,
+    ) -> np.datetime64: ...
     @property
     def is_leap_year(self) -> bool: ...
     @property
@@ -84,21 +95,21 @@ class NaTType:
     def round(
         self,
         freq: Frequency | timedelta,
-        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        ambiguous: bool | Literal["raise", "NaT"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> NaTType: ...
+    ) -> Self: ...
     def floor(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> NaTType: ...
+    ) -> Self: ...
     def ceil(
         self,
         freq: Frequency | timedelta,
         ambiguous: bool | Literal["raise"] | NaTType = ...,
         nonexistent: TimestampNonexistent = ...,
-    ) -> NaTType: ...
+    ) -> Self: ...
     @property
     def tzinfo(self) -> None: ...
     @property
@@ -107,7 +118,7 @@ class NaTType:
     def tz_localize(
         self,
         tz: _tzinfo | str | None,
-        ambiguous: bool | Literal["raise"] | NaTType = ...,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> NaTType: ...
     def replace(
@@ -166,9 +177,9 @@ class NaTType:
     def __pos__(self) -> Self: ...
     def __neg__(self) -> Self: ...
     # binary operators
-    def __sub__(self, other: Self | _TimeLike, /) -> Self: ...
+    def __sub__(self, other: Self | _TimeLike | Tick, /) -> Self: ...
     def __rsub__(self, other: Self | _TimeLike, /) -> Self: ...
-    def __add__(self, other: Self | _TimeLike, /) -> Self: ...
+    def __add__(self, other: Self | _TimeLike | Tick, /) -> Self: ...
     def __radd__(self, other: Self | _TimeLike, /) -> Self: ...
     def __mul__(self, other: float, /) -> Self: ...  # analogous to timedelta
     def __rmul__(self, other: float, /) -> Self: ...

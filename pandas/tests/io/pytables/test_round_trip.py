@@ -61,6 +61,57 @@ def test_long_strings(temp_hdfstore):
     tm.assert_frame_equal(df, result)
 
 
+def test_string_nan_in_index_fixed(temp_h5_path):
+    # GH#9604 — literal "nan" string in a string Index was being converted to
+    # NaN on read because the unconverter applied a NaN-sentinel substitution
+    # that the writer never performed for indices.
+    words = ["nan", "kai", "institute", "of", "technology"]
+    ser = Series(range(len(words)), index=words)
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    result = read_hdf(temp_h5_path, "s")
+
+    tm.assert_series_equal(result, ser)
+
+
+def test_string_nan_in_index_table(temp_hdfstore):
+    # GH#9604 — same bug, table format. Also verifies that nan_rep is honored
+    # for the index (it was previously silently ignored on the index read).
+    words = ["nan", "kai", "institute", "of", "technology"]
+    ser = Series(range(len(words)), index=words)
+
+    temp_hdfstore.append("s", ser, nan_rep="_nan_")
+    result = temp_hdfstore.select("s")
+
+    tm.assert_series_equal(result, ser)
+
+
+def test_string_nan_in_dataframe_index(temp_h5_path):
+    # GH#9604 — DataFrame index with literal "nan" strings, both formats.
+    df = DataFrame(
+        {"a": [1, 2, 3, 4]},
+        index=Index(["nan", "kai", "institute", "of"], name="ix"),
+    )
+
+    df.to_hdf(temp_h5_path, key="fixed", mode="w")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "fixed"), df)
+
+    df.to_hdf(temp_h5_path, key="table", mode="a", format="table")
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "table"), df)
+
+
+def test_string_column_literal_nan_and_real_nan(temp_hdfstore):
+    # GH#9604 — companion to the index tests: ensure the symmetric nan_rep
+    # substitution still works on a data column, i.e. a custom nan_rep lets
+    # both a literal "nan" string and an actual NaN round-trip correctly.
+    df = DataFrame({"a": ["x", "nan", np.nan, "y"]}, index=["i1", "i2", "i3", "i4"])
+
+    temp_hdfstore.append("df", df, nan_rep="_NA_")
+    result = temp_hdfstore.select("df")
+
+    tm.assert_frame_equal(result, df)
+
+
 def test_api(temp_h5_path):
     # GH4584
     # API issue when to_hdf doesn't accept append AND format args
