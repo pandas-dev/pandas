@@ -267,6 +267,9 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
   // NB we are implicitly assuming that o is a Timedelta or Timestamp, or NaT
 
   PyObject *value = PyObject_GetAttrString(o, attr);
+  if (value == NULL) {
+    return -1;
+  }
   const npy_int64 long_val =
       (PyLong_Check(value) ? PyLong_AsLongLong(value) : PyLong_AsLong(value));
 
@@ -304,7 +307,10 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
 
 static npy_float64 total_seconds(PyObject *td) {
   PyObject *value = PyObject_CallMethod(td, "total_seconds", NULL);
-  const npy_float64 double_val = PyFloat_AS_DOUBLE(value);
+  if (value == NULL) {
+    return -1.0;
+  }
+  const npy_float64 double_val = PyFloat_AsDouble(value);
   Py_DECREF(value);
   return double_val;
 }
