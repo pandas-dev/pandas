@@ -394,8 +394,6 @@ jobs:
 
       - name: Build pandas
         id: build
-        env:
-          SAN_FLAGS: "-fno-sanitize-recover=all -fno-sanitize=function -fsanitize-recover=alignment,signed-integer-overflow,float-cast-overflow"
         run: |
           pixi run \
             --environment sanitizers \
@@ -405,9 +403,7 @@ jobs:
             -- \
             -Csetup-args="-Dbuildtype=debugoptimized" \
             -Csetup-args="-Db_sanitize=address,undefined" \
-            -Csetup-args="-Db_lundef=false" \
-            -Csetup-args=-Dc_args="${{ env.SAN_FLAGS }}" \
-            -Csetup-args=-Dcpp_args="${{ env.SAN_FLAGS }}"
+            -Csetup-args="-Db_lundef=false"
 
       - name: Get Sanitizer Path
         run: |
@@ -418,6 +414,7 @@ jobs:
         env:
           LD_PRELOAD: ${{ env.ASAN_LIB_PATH }}
           ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: halt_on_error=1:suppressions=${{ github.workspace }}/ci/suppressions/ubsan.txt
         with:
           environment: sanitizers
           numprocesses: "auto"
