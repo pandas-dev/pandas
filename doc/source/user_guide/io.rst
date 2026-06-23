@@ -1406,6 +1406,15 @@ of multi-columns indices.
    with ``df.to_csv(..., index=False)``), then any ``names`` on the columns index will
    be *lost*.
 
+.. warning::
+   When a ``DataFrame`` with ``MultiIndex`` columns has an *unnamed* index, the row
+   that would hold the index names is omitted on write. If the first data row then
+   consists entirely of missing values, it is written identically to that omitted
+   row, and on read ``read_csv`` cannot tell the two apart: it consumes the first
+   data row as the index names, silently dropping that row. Avoid this by writing
+   missing values with a non-empty ``na_rep`` (e.g. ``df.to_csv(na_rep="NaN")``) or
+   by giving the index a name.
+
 .. ipython:: python
    :suppress:
 
