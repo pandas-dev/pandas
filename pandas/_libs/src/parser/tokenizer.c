@@ -808,6 +808,10 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                                : vterm;
 #endif
 
+  // Reserve worst-case stream space up front: the bulk-scan copies below
+  // (scalar and SIMD) write input data 1:1 with no per-copy capacity check, so
+  // the stream must already hold all remaining input. Field null-terminators
+  // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     const size_t bufsize = 100;
     self->error_msg = malloc(bufsize);
@@ -1106,6 +1110,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             size_t skip = fast_scan_simd(buf, remaining, vdelim, vterm, vcr,
                                          vquote, vescape, vcomment);
             if (skip > 0) {
+              // in-bounds; see stream reservation at loop start
               memcpy(stream, buf, skip);
               stream += skip;
               slen += skip;
