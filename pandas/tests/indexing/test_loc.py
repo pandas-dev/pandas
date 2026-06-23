@@ -894,6 +894,17 @@ class TestLocBaseIndependent:
         df.loc[0, [1, 2]] = [5, 6]
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_getitem_single_row_mixed_dtype_subset(self):
+        # GH#37346 selecting a single row with a list of same-dtype columns
+        #  from a mixed-dtype frame preserves the column dtype rather than
+        #  upcasting to the frame's interleaved dtype
+        df = DataFrame({"a": [1], "b": [0.1]})
+
+        result = df.loc[0, ["a"]]
+        expected = Series([1], index=Index(["a"]), dtype="int64", name=0)
+        tm.assert_series_equal(result, expected)
+        assert result.values.dtype == np.int64
+
     def test_loc_setitem_frame_multiples(self):
         # multiple setting
         df = DataFrame(

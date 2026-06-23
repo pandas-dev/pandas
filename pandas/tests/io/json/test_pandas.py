@@ -953,6 +953,14 @@ class TestPandasContainer:
         result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
+    def test_convert_dates_infer_unparseable_kept_as_str(self):
+        # GH#59227 a column whose name matches the date-inference heuristic
+        #  (ends in "_time") but whose values are not parseable dates must be
+        #  left untouched rather than raising
+        data = [{"id": 1, "event_time": "Thursday, 10:00 p.m."}]
+        result = read_json(StringIO(ujson_dumps(data)))
+        assert (result["event_time"] == "Thursday, 10:00 p.m.").all()
+
     @pytest.mark.parametrize(
         "date,date_unit",
         [
