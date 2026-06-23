@@ -5773,10 +5773,12 @@ will convert the data to UTC.
 
 .. note::
 
-   When using :func:`~pandas.DataFrame.to_sql` with Microsoft SQL Server and pyodbc,
-   datetime precision may be lost when writing to local temporary tables
-   (tables with names starting with ``#``). This is due to a limitation in how
-   the ODBC driver infers parameter types for temporary tables.
+   When using :func:`~pandas.DataFrame.to_sql` with Microsoft SQL Server and pyodbc
+   with ``fast_executemany=True``, datetime precision may be lost when writing to
+   local temporary tables (tables with names starting with ``#``). This is because
+   that code path binds parameters as arrays and relies on the ODBC driver inferring
+   the temporary table's column types, which it cannot do for temporary tables. The
+   default (per-row) insert path is unaffected.
 
    To preserve datetime precision with SQL Server temporary tables, add
    ``UseFMTONLY=Yes`` to your connection string:
