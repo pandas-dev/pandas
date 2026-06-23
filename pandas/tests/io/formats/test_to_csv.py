@@ -313,6 +313,18 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False) == expected
 
+    def test_to_csv_period_columns_date_format(self):
+        # GH#51621 - date_format is honored for a PeriodArray column, not just
+        # a PeriodIndex
+        df = DataFrame({"a": pd.period_range("2000-01-01", periods=2, freq="h")})
+        expected_rows = [
+            ",a",
+            "0,2000-01-01___00:00:00",
+            "1,2000-01-01___01:00:00",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d___%H:%M:%S") == expected
+
     def test_to_csv_interval_columns(self):
         # GH#55426 - exercise the column path for IntervalArray
         df = DataFrame(
