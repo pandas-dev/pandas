@@ -1,12 +1,16 @@
 import array
 from collections import (
     OrderedDict,
+    UserList,
     abc,
     defaultdict,
     namedtuple,
 )
 from collections.abc import Iterator
-from dataclasses import make_dataclass
+from dataclasses import (
+    dataclass,
+    make_dataclass,
+)
 from datetime import (
     date,
     datetime,
@@ -1653,6 +1657,17 @@ class TestDataFrameConstructors:
         msg = "asdict() should be called on dataclass instances"
         with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
+
+    def test_constructor_list_of_list_like_dataclasses(self):
+        # GH#41682 a dataclass that is also list-like (e.g. a UserList subclass)
+        # is treated as list-like, not converted to a dict of its fields
+        @dataclass(frozen=True)
+        class MyList(UserList):
+            data: list
+
+        result = DataFrame([MyList([1, 2, 3]), [4, 5, 6]])
+        expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dict_order(self):
         # GH10056
