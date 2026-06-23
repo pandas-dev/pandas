@@ -13,7 +13,7 @@ def test_pickle_compat_construction():
         MultiIndex()
 
 
-def test_multiindex_datetime64ns_pickle_roundtrip():
+def test_multiindex_datetime64ns_pickle_roundtrip(tmp_path):
     # GH#63078 - pickling a MultiIndex with datetime64[ns] level raised
     # NotImplementedError in NDArrayBacked.__setstate__
     df = pd.DataFrame(
@@ -24,5 +24,5 @@ def test_multiindex_datetime64ns_pickle_roundtrip():
         }
     ).set_index(["date", "id"])
 
-    result = tm.round_trip_pickle(df)
+    result = tm.round_trip_pickle(df, tmp_path)
     tm.assert_frame_equal(result, df)
