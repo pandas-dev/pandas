@@ -1308,13 +1308,25 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         // pd.Timestamp object or pd.NaT
         // see test_date_index_and_values for case with non-nano
         i8date = get_long_attr(item, "_value");
+        if (i8date == -1 && PyErr_Occurred()) {
+          Py_DECREF(item);
+          NpyArr_freeLabels(ret, num);
+          ret = 0;
+          break;
+        }
       } else {
         if (PyDelta_Check(item)) {
           // TODO(anyone): cast below loses precision if total_seconds return
           // value exceeds number of bits that significand can hold
           // also liable to overflow
-          i8date = (int64_t)(total_seconds(item) *
-                             1000000000LL); // nanoseconds per second
+          const npy_float64 sec = total_seconds(item);
+          if (sec == -1.0 && PyErr_Occurred()) {
+            Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
+          i8date = (int64_t)(sec * 1000000000LL); // nanoseconds per second
         } else {
           // datetime.* objects don't follow above rules
           i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
@@ -1575,12 +1587,18 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     // TODO(anyone): cast below loses precision if total_seconds return
     // value exceeds number of bits that significand can hold
     // also liable to overflow
-    int64_t value = PyObject_HasAttrString(obj, "_value")
-                        ? get_long_attr(obj, "_value")
-                        : (int64_t)(total_seconds(obj) * 1000000000LL);
-
-    if (PyErr_Occurred()) {
-      goto INVALID;
+    int64_t value;
+    if (PyObject_HasAttrString(obj, "_value")) {
+      value = get_long_attr(obj, "_value");
+      if (value == -1 && PyErr_Occurred()) {
+        goto INVALID;
+      }
+    } else {
+      const npy_float64 sec = total_seconds(obj);
+      if (sec == -1.0 && PyErr_Occurred()) {
+        goto INVALID;
+      }
+      value = (int64_t)(sec * 1000000000LL);
     }
 
     if (value == get_nat()) {
