@@ -8045,7 +8045,7 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: bool
         """
 
-        if self.empty:
+        if len(self) == 0:
             return self._constructor_sliced(False, dtype=bool, index=self.index)
 
         def f(vals) -> tuple[np.ndarray, int]:
@@ -8070,6 +8070,25 @@ class DataFrame(NDFrame, OpsMixin):
         diff = set(subset) - set(self.columns)
         if diff:
             raise KeyError(Index(diff))
+
+        if len(subset) == 0:
+            # GH#61191 When no columns are in scope every row is identical to
+            # every other row, so the whole frame is one duplicate group.
+            nrows = len(self)
+            if nrows <= 1:
+                # A single row cannot be a duplicate of anything
+                result_values = np.zeros(nrows, dtype=bool)
+            elif keep == "first":
+                result_values = np.ones(nrows, dtype=bool)
+                result_values[0] = False
+            elif keep == "last":
+                result_values = np.ones(nrows, dtype=bool)
+                result_values[-1] = False
+            else:  # keep is False
+                result_values = np.ones(nrows, dtype=bool)
+            return self._constructor_sliced(
+                result_values, index=self.index
+            ).__finalize__(self, method="duplicated")
 
         if len(subset) == 1 and self.columns.is_unique:
             # GH#45236 This is faster than get_group_index below
