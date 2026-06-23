@@ -1579,6 +1579,10 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                         ? get_long_attr(obj, "_value")
                         : (int64_t)(total_seconds(obj) * 1000000000LL);
 
+    if (PyErr_Occurred()) {
+      goto INVALID;
+    }
+
     if (value == get_nat()) {
       tc->type = JT_NULL;
       return;
