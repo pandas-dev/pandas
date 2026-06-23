@@ -2184,14 +2184,14 @@ class PiePlot(MPLPlot):
                 ]
             else:
                 blabels = None
-            results = ax.pie(y, labels=blabels, **kwds)
+            # Any: pie returns a 2- or 3-tuple and matplotlib's return type
+            # for it differs across versions
+            results: Any = ax.pie(y, labels=blabels, **kwds)
 
             if kwds.get("autopct", None) is not None:
-                # error: Need more than 2 values to unpack (3 expected)
-                patches, texts, autotexts = results  # type: ignore[misc]
+                patches, texts, autotexts = results
             else:
-                # error: Too many values to unpack (2 expected, 3 provided)
-                patches, texts = results  # type: ignore[misc]
+                patches, texts = results
                 autotexts = []
 
             if self.fontsize is not None:
