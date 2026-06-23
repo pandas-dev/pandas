@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
+import textwrap
 from typing import (
     TYPE_CHECKING,
     Self,
@@ -83,13 +84,11 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         NpDtype,
-        npt,
         TimeUnit,
+        npt,
     )
 
     from pandas import DataFrame
-
-import textwrap
 
 
 def _field_accessor(name: str, alias: str, docstring: str):
@@ -314,7 +313,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if value is NaT:
             return np.timedelta64(value._value, self.unit)
         else:
-            return value.as_unit(self.unit, round_ok=False).asm8
+            #  error: Incompatible return value type (got "timedelta64[timedelta |
+            # int | None] | datetime64[date | int | None]",
+            # expected "timedelta64[timedelta | int | None]")
+            return value.as_unit(self.unit, round_ok=False).asm8  # type: ignore[return-value]
 
     def _scalar_from_string(self, value) -> Timedelta | NaTType:
         return Timedelta(value)
@@ -863,8 +865,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         return ints_to_pytimedelta(self._ndarray)
 
-    days_docstring = textwrap.dedent(
-        """Number of days for each element.
+    days_docstring = textwrap.dedent("""Number of days for each element.
 
     This attribute returns the number of whole days in each timedelta value.
     It represents the days component of the duration, not the total duration
@@ -899,8 +900,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     TimedeltaIndex(['0 days', '10 days', '20 days'],
                     dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.days
-    Index([0, 10, 20], dtype='int64')"""
-    )
+    Index([0, 10, 20], dtype='int64')""")
     days = _field_accessor("days", "days", days_docstring)
 
     seconds_docstring = textwrap.dedent(

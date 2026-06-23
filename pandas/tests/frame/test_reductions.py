@@ -2287,6 +2287,30 @@ def test_sum_timedelta64_skipna_false():
     tm.assert_series_equal(result, expected)
 
 
+def test_sum_empty_timedelta_column():
+    # GH#50628 summing an empty timedelta column used to raise
+    #  "Cannot cast TimedeltaArray to dtype float64"
+    df = DataFrame({"b": np.array([], dtype="m8[ns]")})
+    result = df.sum()
+    expected = Series([pd.Timedelta(0)], index=["b"], dtype="m8[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_sum_empty_mixed_with_timedelta_column():
+    # GH#50628 sum over an empty mixed-dtype frame keeps per-column dtypes
+    #  rather than force-casting to float64 (which raised for timedelta)
+    df = DataFrame(
+        {
+            "a": np.array([], dtype="float64"),
+            "b": np.array([], dtype="m8[ns]"),
+            "c": np.array([], dtype="int64"),
+        }
+    )
+    result = df.sum()
+    expected = Series([0.0, pd.Timedelta(0), 0], index=["a", "b", "c"], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))

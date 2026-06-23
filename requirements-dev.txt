@@ -54,7 +54,7 @@ ipython
 moto
 asv>=0.6.5
 py-rattler
-mypy==1.17.1
+mypy==2.1.0
 tokenize-rt
 pre-commit>=4.2.0
 gitpython
