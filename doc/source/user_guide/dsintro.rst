@@ -800,7 +800,7 @@ option:
 
 .. ipython:: python
 
-   pd.set_option("display.width", 40)  # default is 80
+   pd.set_option("display.width", 40)  # default is None (auto-detect)
 
    pd.DataFrame(np.random.randn(3, 12))
 

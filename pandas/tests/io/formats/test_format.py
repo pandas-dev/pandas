@@ -285,17 +285,13 @@ class TestDataFrameFormatting:
         )
         assert "..." not in str(df)
 
-    def test_repr_truncation_accounts_for_dot_separator(self, monkeypatch):
-        # GH#32461 - repr should not exceed terminal width after inserting
+    def test_repr_truncation_accounts_for_dot_separator(self):
+        # GH#32461 - repr should not exceed display.width after inserting
         # the " ..." separator column during horizontal truncation.
         # Width 82 hits the boundary where the unfixed code overflows by 4
         # because the " ..." separator column (4 chars + 1 adjoin spacing)
         # was not budgeted.
-        terminal_width = 82
-        monkeypatch.setattr(
-            "pandas.io.formats.string.get_terminal_size",
-            lambda: (terminal_width, 24),
-        )
+        width = 82
 
         ncols = 20
         df = DataFrame(
@@ -305,10 +301,40 @@ class TestDataFrameFormatting:
             }
         )
 
-        with option_context("display.width", terminal_width, "display.max_columns", 0):
+        with option_context("display.width", width, "display.max_columns", 0):
             result = repr(df)
             for line in result.split("\n"):
-                assert len(line) <= terminal_width
+                assert len(line) <= width
+
+    def test_repr_honors_display_width_with_max_columns_zero(self, monkeypatch):
+        # GH#21337 with max_columns=0 an explicitly set display.width must be
+        # honored instead of being overridden by the detected terminal width.
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (80, 24)
+        )
+        df = DataFrame(np.arange(40).reshape(2, 20))
+
+        with option_context("mode.sim_interactive", True, "display.max_columns", 0):
+            # default width (None) auto-detects the narrow terminal -> truncates
+            with option_context("display.width", None):
+                assert "..." in repr(df)
+            # a large explicit width is honored -> no truncation
+            with option_context("display.width", 10000):
+                assert "..." not in repr(df)
+
+        # a small explicit width is honored even when the terminal is wide
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (10000, 24)
+        )
+        with option_context(
+            "mode.sim_interactive",
+            True,
+            "display.max_columns",
+            0,
+            "display.width",
+            40,
+        ):
+            assert "..." in repr(df)
 
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
@@ -1242,26 +1268,29 @@ class TestDataFrameFormatting:
 
     def test_info_repr(self):
         # GH#21746 For tests inside a terminal (i.e. not CI) we need to detect
-        # the terminal size to ensure that we try to print something "too big"
+        # the terminal size to ensure that we try to print something "too big".
+        # GH#21337 auto-detection of the terminal width only happens in an
+        # interactive session, so simulate one here.
         term_width, term_height = get_terminal_size()
 
         max_rows = 60
         max_cols = 20 + (max(term_width, 80) - 80) // 4
-        # Long
-        h, w = max_rows + 1, max_cols - 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert has_vertically_truncated_repr(df)
-        with option_context("display.large_repr", "info"):
-            assert has_info_repr(df)
+        with option_context("mode.sim_interactive", True):
+            # Long
+            h, w = max_rows + 1, max_cols - 1
+            df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+            assert has_vertically_truncated_repr(df)
+            with option_context("display.large_repr", "info"):
+                assert has_info_repr(df)
 
-        # Wide
-        h, w = max_rows - 1, max_cols + 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert has_horizontally_truncated_repr(df)
-        with option_context(
-            "display.large_repr", "info", "display.max_columns", max_cols
-        ):
-            assert has_info_repr(df)
+            # Wide
+            h, w = max_rows - 1, max_cols + 1
+            df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+            assert has_horizontally_truncated_repr(df)
+            with option_context(
+                "display.large_repr", "info", "display.max_columns", max_cols
+            ):
+                assert has_info_repr(df)
 
     def test_info_repr_max_cols(self):
         # GH #6939

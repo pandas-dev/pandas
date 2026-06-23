@@ -242,10 +242,11 @@ pc_max_dir_items = """\
 """
 
 pc_width_doc = """
-: int
-    Width of the display in characters. In case python/IPython is running in
-    a terminal this can be set to None and pandas will correctly auto-detect
-    the width.
+: int or None
+    Width of the display in characters. The default of None means that when
+    python/IPython is running in a terminal the width is auto-detected, and
+    that wide output is not wrapped or truncated in non-interactive sessions.
+    Set to an int to force a specific width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
 """
@@ -370,7 +371,7 @@ with cf.config_prefix("display"):
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(
-        "width", 80, pc_width_doc, validator=is_instance_factory((type(None), int))
+        "width", None, pc_width_doc, validator=is_instance_factory((type(None), int))
     )
     cf.register_option(
         "memory_usage",

@@ -103,7 +103,7 @@ Other API changes
 - :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file. The value was hardcoded to ``"0.15.2"`` and was only used internally to detect files written by pandas versions older than 0.10.1 (:issue:`62792`)
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
--
+- The default of the ``display.width`` option is now ``None``: the terminal width is auto-detected in interactive sessions, and wide output is no longer truncated to 80 columns in non-interactive sessions (e.g. scripts and redirected output). Set ``display.width`` to an integer to force a specific width (:issue:`21337`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.deprecations:
@@ -357,6 +357,7 @@ I/O
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
 - Bug in :meth:`DataFrame.__repr__` raising ``TypeError`` for a column with a NumPy structured dtype (e.g. produced by :meth:`DataFrame.from_records` from a structured ``ndarray``) (:issue:`55011`)
+- Bug in :meth:`DataFrame.__repr__` where an explicitly set ``display.width`` was ignored when ``display.max_columns`` was ``0`` (the default), so the output was truncated to the detected terminal width regardless (:issue:`21337`)
 - Bug in :meth:`DataFrame.__repr__` where horizontally truncated output could exceed the terminal width by up to 4 characters (:issue:`32461`)
 - Bug in :meth:`DataFrame.to_stata` raising ``KeyError`` when column names require renaming and ``convert_dates`` is specified for a different column (:issue:`60536`)
 - Bug in :meth:`DataFrame.to_string` where ``formatters`` dict was applied to wrong columns when output was horizontally truncated via ``max_cols`` (:issue:`35410`)
