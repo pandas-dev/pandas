@@ -2888,6 +2888,20 @@ def test_groupby_series_with_datetimeindex_month_name():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_series_with_datetimeindex_numeric_name():
+    # GH 51818 - a name parseable as an out-of-bounds datetime (e.g. "09")
+    # should not make groupby(self) raise OutOfBoundsDatetime
+    ser = Series(
+        [0, 1, 0],
+        index=date_range("2013-06-07", periods=3, freq="15min"),
+        name="09",
+    )
+    result = ser.groupby(ser).count()
+    expected = Series([2, 1], name="09")
+    expected.index.name = "09"
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize(
     "kwarg, value, name, warn",
