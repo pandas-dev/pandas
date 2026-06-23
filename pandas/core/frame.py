@@ -15997,11 +15997,6 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    if name == "all":
-                        # Behavior here appears incorrect; preserving
-                        # for backwards compatibility for now.
-                        # See https://github.com/pandas-dev/pandas/issues/57171
-                        skipna = True
                     result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
                     return result
