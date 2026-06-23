@@ -396,6 +396,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
+- Bug in :meth:`Series.plot.bar`, :meth:`Series.plot.barh`, :meth:`DataFrame.plot.bar`, and :meth:`DataFrame.plot.barh` raising ``TypeError`` when the data had ``timedelta64`` dtype and contained ``NaT`` (:issue:`39320`)
 -
 
 Groupby/resample/rolling

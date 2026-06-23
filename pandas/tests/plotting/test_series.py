@@ -348,6 +348,21 @@ class TestSeriesPlots:
         ]
         assert result == expected
 
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_timedelta(self, kind):
+        # GH#39320 bar/barh of timedelta data, including NaT, should not raise
+        ser = Series([pd.Timedelta(seconds=1), pd.NaT, pd.Timedelta(seconds=3)])
+        ax = ser.plot(kind=kind)
+        get_dim = "get_height" if kind == "bar" else "get_width"
+        result = [getattr(patch, get_dim)() for patch in ax.patches]
+        # NaT is plotted as a zero-length bar, matching the numeric NaN behavior
+        expected = [
+            np.timedelta64(1, "s"),
+            np.timedelta64(0, "s"),
+            np.timedelta64(3, "s"),
+        ]
+        assert result == expected
+
     def test_rotation_default(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0

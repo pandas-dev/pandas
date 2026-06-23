@@ -23,6 +23,7 @@ import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import Timedelta
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -1950,7 +1951,16 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        data = self.data.fillna(0)
+        if any(dtype.kind == "m" for dtype in self.data.dtypes):
+            # GH#39320 plain fillna(0) casts timedelta64 columns to object
+            # dtype, which then cannot be plotted; fill those with a zero
+            # Timedelta so the dtype (and any NaT->0 bars) survive.
+            data = self.data.copy()
+            for i, (_, ser) in enumerate(self.data.items()):
+                fill_value = Timedelta(0) if ser.dtype.kind == "m" else 0
+                data.isetitem(i, ser.fillna(fill_value))
+        else:
+            data = self.data.fillna(0)
 
         _stacked_subplots_ind: dict[int, int] = {}
         _stacked_subplots_offsets: list[tuple[np.ndarray, np.ndarray]] = []
