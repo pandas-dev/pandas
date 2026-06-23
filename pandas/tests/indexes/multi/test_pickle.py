@@ -24,5 +24,5 @@ def test_multiindex_datetime64ns_pickle_roundtrip(tmp_path):
         }
     ).set_index(["date", "id"])
 
-    result = tm.round_trip_pickle(df, tmp_path)
+    result = tm.round_trip_pickle(df, tmp_path / "test.pkl")
     tm.assert_frame_equal(result, df)
