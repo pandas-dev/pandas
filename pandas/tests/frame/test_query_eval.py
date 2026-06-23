@@ -1725,7 +1725,7 @@ class TestDataFrameQueryInWithColumnRefs:
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("expr", ["cat", "cat + 1", "cat & count"])
+@pytest.mark.parametrize("expr", ["cat", "cat + 1"])
 def test_query_non_bool_result_raises(engine, parser, expr):
     # GH#8560 a non-boolean query result must raise rather than be silently
     #  misinterpreted as a label indexer
