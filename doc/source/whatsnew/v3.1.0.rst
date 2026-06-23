@@ -330,7 +330,7 @@ Indexing
 - Bug in :meth:`Index.where` and :meth:`Index.putmask` preserving ``numpy.datetime64`` / ``numpy.timedelta64`` ``NaT`` scalars in the object-dtype result for mismatched-dtype inputs, instead of normalizing to :attr:`pandas.NaT` as :meth:`Series.where` does (:issue:`55174`)
 - Bug in :meth:`MultiIndex.get_loc` returning a slice instead of an integer for a unique key when the :class:`MultiIndex` contained duplicates elsewhere, causing ``.loc`` to return a :class:`Series` instead of a scalar (:issue:`42102`)
 - Bug in :meth:`Series.where` and :meth:`Series.mask` raising ``ValueError`` when ``other`` is a tuple on object-dtype :class:`Series` (:issue:`37681`)
-- Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`57962`)
+- Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`26333`, :issue:`57962`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
 -
