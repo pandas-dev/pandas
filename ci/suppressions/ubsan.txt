@@ -17,7 +17,7 @@ function:pandas/_libs/interval.pyx.c
 function:pandas/_libs/lib.pyx.c
 function:pandas/_libs/missing.pyx.c
 function:pandas/_libs/ops.pyx.c
-function:pandas/_libs/sas.pyx.c
+function:pandas/_libs/sparse.pyx.c
 function:pandas/_libs/tslibs/np_datetime.pyx.c
 function:pandas/_libs/tslibs/offsets.pyx.c
 function:pandas/_libs/tslibs/period.pyx.c
