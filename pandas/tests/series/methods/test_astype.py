@@ -346,7 +346,7 @@ class TestAstype:
             result = ser.astype(float, errors="ignore")
             tm.assert_series_equal(result, expected)
         else:
-            msg = "|".join(["(Cannot cast)", "(could not convert)"])
+            msg = "|".join(["Cannot cast", "could not convert"])
             with pytest.raises((ValueError, TypeError), match=msg):
                 ser.astype(float, errors=errors)
 
