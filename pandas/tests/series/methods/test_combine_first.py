@@ -171,3 +171,15 @@ def test_combine_first_timestamp_names_anterior():
     result = s1.combine_first(s3)
     expected = Series([0, 3], index=[0, 1], name=to_datetime("2026"))
     tm.assert_series_equal(result, expected)
+def test_combine_first_duplicate_index_stable():
+    # GH#66009
+    s1 = pd.Series([1.0, np.nan, 3.0], index=[0, 0, 1])
+    s2 = pd.Series([10.0, 20.0, 30.0], index=[0, 0, 1])
+
+    result = s1.combine_first(s2)
+
+    # behavior should remain deterministic and positional
+    assert len(result) == 3
+    assert result.iloc[0] == 1.0
+    assert result.iloc[1] == 20.0
+    assert result.iloc[2] == 3.0
