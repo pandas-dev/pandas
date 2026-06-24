@@ -111,7 +111,12 @@ cdef class Localizer:
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
             self.has_tz_rule = has_tz_rule
-            self.last_trans = trans[self.ntrans - 1]
+            # since we are sometimes comparing local times with UTC transitions,
+            # subtract 12 hours (12 * 60 * 60) to be safe
+            # (i.e. ensure to use correct but slower path around the last transition)
+            self.last_trans = (
+                trans[self.ntrans - 1] - (43200 * periods_per_second(creso))
+            )
 
             if typ != "pytz" and typ != "dateutil" and typ != "zoneinfo":
                 # static/fixed; in this case we know that len(delta) == 1

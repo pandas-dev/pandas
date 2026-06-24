@@ -18,7 +18,10 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import is_platform_windows
 
+import pandas as pd
 from pandas import (
+    Index,
+    Timedelta,
     Timestamp,
     date_range,
     to_datetime,
@@ -296,6 +299,89 @@ def test_zoneinfo_local_to_utc_far_future_seconds_resolution():
 
     assert result_utc.dtype == "datetime64[s, UTC]"
     tm.assert_numpy_array_equal(result_utc.to_pydatetime(), np.array(expected_utc))
+
+
+@pytest.mark.parametrize(
+    "tz_name",
+    ["America/New_York", "America/Santiago", "Australia/Melbourne", "Europe/Brussels"],
+)
+def test_zoneinfo_boundary_at_last_cached_transition(tz_name):
+    # GH#65733 - target the boundary where UTC is beyond the cached transition
+    # range while local wall time can still compare below that UTC cutoff.
+    tz = zoneinfo.ZoneInfo(tz_name)
+
+    from zoneinfo._zoneinfo import ZoneInfo
+
+    trans = datetime.fromtimestamp(max(ZoneInfo(tz_name)._tz_after.transitions(2099)))
+    start = (trans - timedelta(days=1)).replace(tzinfo=timezone.utc)
+    expected_utc = [(start + timedelta(minutes=30 * i)) for i in range(24 * 2 * 2)]
+    expected_tz = [ts.astimezone(tz) for ts in expected_utc]
+    expected_str = [str(ts) for ts in expected_tz]
+
+    local = to_datetime([v[:-6] for v in expected_str])
+
+    # ambiguous keyword only needed for timezones of northern hemisphere, ignored for
+    # the others
+    result = local.tz_localize(tz_name, ambiguous="infer")
+
+    # verify local to UTC
+    tm.assert_equal(
+        result.tz_convert("UTC").to_pydatetime(), np.array(expected_utc, dtype="O")
+    )
+    # verify UTC to local by converting to pydatetime/str repr of underlying UTC value
+    tm.assert_equal(result.astype(str), Index(expected_str))
+    tm.assert_equal(result.to_pydatetime(), np.array(expected_tz, dtype="O"))
+
+
+@pytest.mark.parametrize(
+    "tz_name",
+    ["America/New_York", "America/Santiago", "Australia/Melbourne", "Europe/Brussels"],
+)
+def test_zoneinfo_nonexistent_at_last_cached_transition(tz_name):
+    # GH#65733 - target the boundary where UTC is beyond the cached transition
+    # range while local wall time can still compare below that UTC cutoff.
+    tz = zoneinfo.ZoneInfo(tz_name)
+
+    from zoneinfo._zoneinfo import ZoneInfo
+
+    start, end = ZoneInfo(tz_name)._tz_after.transitions(2099)
+    if start > end:
+        # to-dst nonexistent transition at the end of the year
+        ts = Timestamp(start, unit="s") + Timedelta(minutes=30)
+
+        with pytest.raises(ValueError, match="nonexistent time"):
+            ts.tz_localize(tz_name)
+
+        result = ts.tz_localize(tz_name, nonexistent="NaT")
+        assert result is pd.NaT
+
+        result_dst = ts.tz_localize(tz_name, nonexistent="shift_forward")
+        expected_dst = (ts.to_pydatetime() + timedelta(minutes=30)).replace(tzinfo=tz)
+        assert result_dst.to_pydatetime() == expected_dst
+
+        result_std = ts.tz_localize(tz_name, nonexistent="shift_backward")
+        expected_std = (
+            ts.to_pydatetime() - timedelta(minutes=30, microseconds=1)
+        ).replace(tzinfo=tz)
+        assert result_std.to_pydatetime() == expected_std
+
+    else:
+        # to-std ambiguous transition at the end of the year
+        ts = Timestamp(end, unit="s") - Timedelta(minutes=30)
+
+        with pytest.raises(ValueError, match="Cannot infer dst time"):
+            ts.tz_localize(tz_name)
+
+        result = ts.tz_localize(tz_name, ambiguous="NaT")
+        assert result is pd.NaT
+
+        result_dst = ts.tz_localize(tz_name, ambiguous=True)
+        expected_dst = ts.to_pydatetime().replace(fold=0, tzinfo=tz)
+        assert result_dst.to_pydatetime() == expected_dst
+
+        result_dst = ts.tz_localize(tz_name, ambiguous=False)
+        expected_dst = ts.to_pydatetime().replace(fold=1, tzinfo=tz)
+        assert result_dst.to_pydatetime() == expected_dst
 
 
 @pytest.mark.parametrize("key", ["US/Eastern", "Africa/Lusaka", "Asia/Qyzylorda"])
