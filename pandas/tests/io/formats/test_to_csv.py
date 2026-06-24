@@ -961,3 +961,11 @@ def test_new_style_with_template():
     result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
     expected = ',A\n0,"Value: 1,234.57"\n'
     assert result == expected
+
+
+def test_to_csv_null_byte_no_escapechar():
+    # GH#47871 a null byte does not require escapechar to be set
+    # (was a CPython _csv regression on 3.10, fixed in 3.11)
+    df = DataFrame({"A": ["\x00"]})
+    result = df.to_csv(index=False, lineterminator="\n")
+    assert result == "A\n\x00\n"
