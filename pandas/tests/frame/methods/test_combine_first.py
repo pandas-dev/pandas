@@ -214,11 +214,14 @@ class TestDataFrameCombineFirst:
         assert res["b"].dtype == "int64"
 
         res = dfa.iloc[:0].combine_first(dfb)
-        exp = DataFrame({"a": [np.nan, np.nan], "b": [4, 5]}, columns=["a", "b"])
+        # GH#60128 "a" keeps self's datetime64 dtype and "b" stays int64
+        #  instead of being promoted through float
+        exp = DataFrame(
+            {"a": Series([pd.NaT, pd.NaT], dtype="datetime64[s]"), "b": [4, 5]},
+            columns=["a", "b"],
+        )
         tm.assert_frame_equal(res, exp)
-        # TODO: this must be datetime64
-        assert res["a"].dtype == "float64"
-        # TODO: this must be int64
+        assert res["a"].dtype == "datetime64[s]"
         assert res["b"].dtype == "int64"
 
     def test_combine_first_timezone(self, unit):
@@ -404,16 +407,28 @@ class TestDataFrameCombineFirst:
     @pytest.mark.parametrize(
         "wide_val, dtype",
         (
+            (1666880195890293744, "uint64"),
             (1666880195890293744, "UInt64"),
+            (-1666880195890293744, "int64"),
             (-1666880195890293744, "Int64"),
         ),
     )
-    def test_combine_first_preserve_EA_precision(self, wide_val, dtype):
-        # GH#60128
+    def test_combine_first_preserve_precision(self, wide_val, dtype):
+        # GH#60128 values outside float64's exactly-representable range must
+        #  not be promoted through float when filling unaligned rows
         df1 = DataFrame({"A": [wide_val, 5]}, dtype=dtype)
         df2 = DataFrame({"A": [6, 7, wide_val]}, dtype=dtype)
         result = df1.combine_first(df2)
         expected = DataFrame({"A": [wide_val, 5, wide_val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_combine_first_preserve_precision_non_unique_index(self):
+        # GH#60128 precision is preserved even with duplicate row labels
+        wide_val = 1666880195890293744
+        df1 = DataFrame({"A": [wide_val, 5]}, index=[0, 0])
+        df2 = DataFrame({"A": [6, 7]}, index=[1, 1])
+        result = df1.combine_first(df2)
+        expected = DataFrame({"A": [wide_val, 5, 6, 7]}, index=[0, 0, 1, 1])
         tm.assert_frame_equal(result, expected)
 
     def test_combine_first_non_unique_columns(self):
@@ -426,6 +441,14 @@ class TestDataFrameCombineFirst:
         expected = DataFrame(
             [[1, 6.0, 7.0], [3, 4.0, 4.0]], index=["A", "B"], columns=["P", "Q", "Q"]
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_combine_first_duplicate_columns_new_column(self):
+        # GH#60128 self has duplicate columns and other introduces a new one
+        df1 = DataFrame([[1, 2, 3]], columns=["P", "Q", "Q"])
+        df2 = DataFrame([[4, 5]], columns=["P", "R"])
+        result = df1.combine_first(df2)
+        expected = DataFrame([[1, 2, 3, 5]], columns=["P", "Q", "Q", "R"])
         tm.assert_frame_equal(result, expected)
 
 
@@ -595,3 +618,18 @@ def test_combine_first_preserve_column_order():
     result = df1.combine_first(df2)
     expected = DataFrame({"B": [1, 2, 3], "A": [4.0, 5.0, 6.0]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_preserve_precision_mixed_columns():
+    # GH#60128 a wide-int column keeps its precision even alongside a column
+    #  that does pass through float
+    wide_val = 1666880195890293744
+    df1 = DataFrame({"a": [wide_val, 5], "b": [1.0, 2.0]})
+    df2 = DataFrame({"a": [6, 7, 8]})
+
+    result = df1.combine_first(df2)
+    expected = DataFrame(
+        {"a": [wide_val, 5, 8], "b": [1.0, 2.0, np.nan]},
+    )
+    tm.assert_frame_equal(result, expected)
+    assert result["a"].dtype == "int64"

@@ -124,7 +124,10 @@ from pandas.core import (
 )
 from pandas.core.accessor import Accessor
 from pandas.core.apply import reconstruct_and_relabel_result
-from pandas.core.array_algos.take import take_2d_multi
+from pandas.core.array_algos.take import (
+    take_2d_multi,
+    take_nd,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     BaseMaskedArray,
@@ -12364,17 +12367,106 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0  1.0
         """
 
-        def combiner(x: Series, y: Series):
-            # GH#60128 The combiner is supposed to preserve EA Dtypes.
-            return y if y.name not in self.columns else y.where(x.isna(), x)
+        from pandas.core.reshape.concat import concat
 
         if len(other) == 0:
             combined = self.reindex(
                 self.columns.append(other.columns.difference(self.columns)), axis=1
             )
             combined = combined.astype(other.dtypes)
+            return combined.__finalize__(self, method="combine_first")
+
+        # GH#60128 Align the rows positionally and fill column-by-column without
+        #  ever reindexing a column through a NA-incompatible cast. Taking values
+        #  by integer position from the original arrays (rather than reindexing
+        #  self to the union, which promotes int -> float) preserves integer
+        #  values that float64 cannot represent exactly.
+        new_columns = self.columns.union(other.columns, sort=False)
+        left: npt.NDArray[np.intp]
+        right: npt.NDArray[np.intp]
+        if self.index.equals(other.index):
+            new_index = self.index
+            left = right = np.arange(len(new_index), dtype=np.intp)
         else:
-            combined = self.combine(other, combiner, overwrite=False)
+            # join(how="outer") matches the row order produced by align; the
+            #  indexers map each result row to a position in self / other (-1
+            #  when absent) and handle duplicate labels positionally.
+            new_index, lidx, ridx = self.index.join(
+                other.index, how="outer", return_indexers=True
+            )
+            left = np.arange(len(new_index), dtype=np.intp) if lidx is None else lidx
+            right = np.arange(len(new_index), dtype=np.intp) if ridx is None else ridx
+
+        if len(new_columns) == 0 and len(new_index) == len(self.index):
+            # No data columns and no new rows (e.g. set_index left nothing to
+            #  combine): match align's order-preserving short-circuit.
+            return self.copy().__finalize__(self, method="combine_first")
+
+        def col_positions(columns) -> npt.NDArray[np.intp]:
+            # Position in `columns` of each result column, broadcasting the last
+            #  duplicate when `columns` has fewer copies than `new_columns`.
+            groups: dict[Hashable, list[int]] = {}
+            for pos, label in enumerate(columns):
+                groups.setdefault(label, []).append(pos)
+            seen: dict[Hashable, int] = {}
+            out = np.empty(len(new_columns), dtype=np.intp)
+            for i, label in enumerate(new_columns):
+                positions = groups.get(label)
+                if positions is None:
+                    out[i] = -1
+                else:
+                    nth = seen.get(label, 0)
+                    out[i] = positions[min(nth, len(positions) - 1)]
+                    seen[label] = nth + 1
+            return out
+
+        self_cols = col_positions(self.columns)
+        other_cols = col_positions(other.columns)
+
+        def combine_column(self_col: Series, other_col: Series) -> Series:
+            # Take `other` only where `self` is NA; keep every other `self` row
+            #  (including its own NA values, preserving their dtype). `concat`
+            #  of the two disjoint pieces yields the common dtype without
+            #  forcing a NA fill into either piece.
+            self_isna = self_col.isna().to_numpy()
+            self_na = left == -1
+            present = ~self_na
+            self_na[present] = self_isna[left[present]]
+            take_other = self_na & (right != -1)
+            if not take_other.any():
+                merged = self_col.take(left)
+            elif take_other.all():
+                merged = other_col.take(right)
+            else:
+                take_self = ~take_other
+                merged = concat(
+                    [self_col.take(left[take_self]), other_col.take(right[take_other])],
+                    ignore_index=True,
+                )
+                order = np.concatenate(
+                    [np.flatnonzero(take_self), np.flatnonzero(take_other)]
+                )
+                merged = merged.iloc[np.argsort(order, kind="stable")]
+            merged.index = new_index
+            return merged
+
+        result = {}
+        for i in range(len(new_columns)):
+            self_pos = self_cols[i]
+            other_pos = other_cols[i]
+            if self_pos != -1 and other_pos != -1:
+                result[i] = combine_column(
+                    self.iloc[:, self_pos], other.iloc[:, other_pos]
+                )
+            elif self_pos != -1:
+                values = take_nd(self.iloc[:, self_pos]._values, left)
+                result[i] = Series(values, index=new_index)
+            else:
+                values = take_nd(other.iloc[:, other_pos]._values, right)
+                result[i] = Series(values, index=new_index)
+
+        combined = self._constructor(result, index=new_index)
+        combined.columns = new_columns
 
         dtypes = {
             # Check for isinstance(..., (np.dtype, ExtensionDtype))
