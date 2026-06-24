@@ -675,6 +675,25 @@ def test_1000_sep_with_decimal(
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "value, thousands, decimal",
+    [
+        ("1,234.567890123456789", ",", "."),
+        ("60,329,669.631706690743915", ",", "."),
+        ("1.234,567890123456789", ".", ","),
+    ],
+)
+def test_1000_sep_correctly_rounded(c_parser_only, value, thousands, decimal):
+    # GH 44145 - stripping the thousands separator must still hand the token to
+    # the correctly-rounded float parser, not the legacy off-by-an-ULP path.
+    parser = c_parser_only
+    plain = value.replace(thousands, "").replace(decimal, ".")
+    result = parser.read_csv(
+        StringIO(f"A\n{value}\n"), sep="|", thousands=thousands, decimal=decimal
+    )
+    assert result["A"].iloc[0] == float(plain)
+
+
 def test_float_precision_options(c_parser_only):
     # GH 17154, 36228
     parser = c_parser_only

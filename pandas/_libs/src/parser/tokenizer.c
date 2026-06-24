@@ -1390,19 +1390,84 @@ int to_boolean(const char *item, uint8_t *val) {
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
 
+// A thousands separator is only valid in the integer part of a number, where
+// it immediately follows a digit; one elsewhere (in the fractional part or the
+// exponent) makes the token invalid. Return whether the separator at `c` should
+// be dropped, matching the acceptance of the bespoke fallback below.
+static inline int skip_tsep(const char *c, const char *start, char tsep,
+                            int integer_part) {
+  return *c == tsep && integer_part && c > start && isdigit_ascii(c[-1]);
+}
+
+// fast_float has no thousands-separator concept, so for a token that may
+// contain a `tsep` we copy it into a scratch buffer with the integer-part
+// separators removed before handing it to fast_float. On success this writes
+// the correctly-rounded value, the number of *original* characters consumed,
+// and (optionally) maybe_int, then returns 0. It returns -1 when the token does
+// not fit the scratch buffer or fast_float rejects it, leaving the caller to
+// fall back to its slower parser (GH 44145).
+static int fast_float_strtod_tsep(const char *start, const char *end,
+                                  char decimal, char tsep, double *value,
+                                  size_t *consumed, int *maybe_int) {
+  char scratch[256];
+  if ((size_t)(end - start) >= sizeof(scratch))
+    return -1;
+
+  // Strip integer-part separators; keep any others so fast_float stops there.
+  size_t n = 0;
+  int integer_part = 1;
+  for (const char *c = start; c < end; c++) {
+    if (*c == decimal || *c == 'e' || *c == 'E')
+      integer_part = 0;
+    if (!skip_tsep(c, start, tsep, integer_part))
+      scratch[n++] = *c;
+  }
+
+  const char *parsed_end;
+  if (fast_float_strtod(scratch, scratch + n, value, &parsed_end, decimal) != 0)
+    return -1;
+
+  if (maybe_int != NULL) {
+    *maybe_int = 1;
+    for (const char *c = scratch; c < parsed_end; c++) {
+      if (*c == decimal || *c == 'e' || *c == 'E') {
+        *maybe_int = 0;
+        break;
+      }
+    }
+  }
+
+  // Translate the count of consumed scratch chars back to original chars by
+  // replaying the same separator-skipping walk.
+  const size_t clean_consumed = (size_t)(parsed_end - scratch);
+  size_t seen = 0;
+  const char *c = start;
+  integer_part = 1;
+  while (seen < clean_consumed && c < end) {
+    if (*c == decimal || *c == 'e' || *c == 'E')
+      integer_part = 0;
+    if (!skip_tsep(c, start, tsep, integer_part))
+      seen++;
+    c++;
+  }
+  *consumed = (size_t)(c - start);
+  return 0;
+}
+
 double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int) {
-  // Use fast_float for standard format (no tsep, sci='e'/'E').
-  // fast_float provides IEEE 754 correctly-rounded parsing.
-  if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
+  // Use fast_float for correctly-rounded IEEE 754 parsing whenever the exponent
+  // marker is the standard 'e'/'E'. Thousands separators are stripped first by
+  // fast_float_strtod_tsep, since fast_float cannot skip them itself.
+  if (sci == 'e' || sci == 'E') {
     const char *p = str;
     while (isspace_ascii(*p))
       p++;
 
     // Only try fast_float for numeric-looking input (digit, sign+digit,
     // or decimal point). This avoids fast_float parsing "nan"/"inf" which
-    // the original precise_xstrtod did not handle.
+    // the fallback below does not handle.
     const char *q = p;
     if (*q == '-' || *q == '+')
       q++;
@@ -1415,8 +1480,17 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
       end++;
 
     double value;
-    const char *parsed_end;
-    if (fast_float_strtod(p, end, &value, &parsed_end, decimal) == 0) {
+    const char *result_end;
+    if (tsep != '\0') {
+      size_t consumed;
+      if (fast_float_strtod_tsep(p, end, decimal, tsep, &value, &consumed,
+                                 maybe_int) != 0)
+        goto fallback;
+      result_end = p + consumed;
+    } else {
+      const char *parsed_end;
+      if (fast_float_strtod(p, end, &value, &parsed_end, decimal) != 0)
+        goto fallback;
       // Determine maybe_int by checking if we saw decimal or 'e'/'E'.
       if (maybe_int != NULL) {
         *maybe_int = 1;
@@ -1427,17 +1501,19 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
           }
         }
       }
-      if (skip_trailing)
-        while (isspace_ascii(*parsed_end))
-          parsed_end++;
-      if (endptr)
-        *endptr = (char *)parsed_end;
-      return value;
+      result_end = parsed_end;
     }
+
+    if (skip_trailing)
+      while (isspace_ascii(*result_end))
+        result_end++;
+    if (endptr)
+      *endptr = (char *)result_end;
+    return value;
   }
 
 fallback:
-    // Fallback for non-standard formats (custom tsep, or sci char).
+    // Fallback for non-standard formats (e.g. a custom sci char).
     ;
   const char *p = str;
   const int max_digits = 17;

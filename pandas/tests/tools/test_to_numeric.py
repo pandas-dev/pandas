@@ -684,6 +684,22 @@ def test_precision_float_conversion(strrep):
 
 
 @pytest.mark.parametrize(
+    "strrep",
+    [
+        "0.01234567890123456789",
+        "0.00498124967521367",
+        "1234.567890123456789",
+        "123456789012345.6789",
+        "9.999999999999999e-5",
+    ],
+)
+def test_to_numeric_correctly_rounded(strrep):
+    # GH 44145 - long-mantissa strings should round-trip to the same float64
+    # as the Python builtin (correctly rounded), not a value off by a few ULP.
+    assert to_numeric(strrep) == float(strrep)
+
+
+@pytest.mark.parametrize(
     "values, expected",
     [
         (["1", "2", None], Series([1, 2, pd.NA], dtype="Int64")),
