@@ -1485,6 +1485,22 @@ class TestPandasContainer:
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.single_cpu
+    @pytest.mark.network
+    @td.skip_if_not_us_locale
+    def test_read_s3_jsonl_chunksize(self, s3_bucket_public_with_data, s3so):
+        # GH47659 - reading a binary (e.g. S3) stream in chunks used to raise
+        # "TypeError: initial_value must be str or None, not bytes"
+        with read_json(
+            f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
+            lines=True,
+            chunksize=1,
+            storage_options=s3so,
+        ) as reader:
+            result = pd.concat(reader)
+        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
     def test_read_local_jsonl(self, temp_file):
         # GH17200
         with open(temp_file, "w", encoding="utf-8") as infile:
