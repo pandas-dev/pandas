@@ -1150,3 +1150,14 @@ def test_multiindex_single_entry_arith_preserves_all_levels():
     # division
     result_div = s1 / s2
     tm.assert_series_equal(result_div, Series([1.0], index=expected_index))
+
+
+def test_comparison_result_missing_value():
+    # GH#63328
+    ser = Series([None, 0, 1, False, True, np.nan, pd.NaT, pd.NA])
+
+    result = ser == 3
+    lst = [False] * (len(ser) - 1) + [pd.NA]
+    expected = Series(lst, dtype="object")
+
+    tm.assert_series_equal(result, expected)
