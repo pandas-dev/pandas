@@ -2199,3 +2199,135 @@ def test_resample_sum_with_inat_value():
     result = df.resample("MS").apply(np.sum)
     expected = DataFrame([-1], index=date_range("2013-01-01", periods=1, freq="MS"))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed,label",
+    [("right", "right"), ("left", "left"), ("right", "left"), ("left", "right")],
+)
+def test_resample_7D_vs_168h(closed, label):
+    # GH#44996 - resample('7D') should match resample('168h')
+    df = DataFrame(
+        {"val": [1] * 8},
+        index=date_range(
+            start="2021-04-21 01:00:00", end="2021-04-28 01:00", freq="1D"
+        ),
+    )
+    result_7d = df.resample(
+        rule="7D", origin="2021-04-29 00:00:00", closed=closed, label=label
+    ).sum()
+    result_168h = df.resample(
+        rule="168h", origin="2021-04-29 00:00:00", closed=closed, label=label
+    ).sum()
+    tm.assert_frame_equal(result_7d, result_168h, check_freq=False)
+
+
+def test_resample_day_origin_offset():
+    # GH#44996 - origin and offset should take effect with tz-naive Day freq
+    index = date_range("2021-01-01", periods=14, freq="1D")
+    ser = Series(range(14), index=index)
+    origin = Timestamp("2021-01-04")
+    result = ser.resample("7D", origin=origin).sum()
+    expected = ser.resample("168h", origin=origin).sum()
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+    # a tz-mismatched origin now raises, like the equivalent Hour freq
+    msg = "The origin must have the same timezone as the index."
+    with pytest.raises(ValueError, match=msg):
+        ser.resample("7D", origin=Timestamp("2021-01-04", tz="UTC")).sum()
+
+
+def test_resample_day_origin_tz_aware_index_warns():
+    # GH#44996: origin only takes effect with Day freq on a tz-naive
+    # DatetimeIndex; tz-aware indexes keep the prior behavior and warn
+    index = date_range("2021-01-01", periods=10, freq="D", tz="US/Eastern")
+    df = DataFrame({"a": range(10)}, index=index)
+    origin = Timestamp("2021-01-04", tz="US/Eastern")
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = df.resample("7D").sum()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.resample("7D", origin=origin).sum()
+    tm.assert_frame_equal(result, expected)
+
+    # the same applies when the TimeGrouper is built without an obj
+    # (pd.Grouper) or checks a column instead of the index (on=...)
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df.groupby(Grouper(freq="7D", origin=origin)).sum()
+    tm.assert_frame_equal(result, expected)
+
+    df_on = df.reset_index(names="ts")
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = df_on.resample("7D", on="ts", origin=origin).sum()
+    tm.assert_frame_equal(result, expected.rename_axis("ts"))
+
+
+def test_resample_day_origin_on_tz_naive_column():
+    # GH#44996: origin takes effect (without warning) when resampling on a
+    # tz-naive datetime column, even if the index is tz-aware
+    df = DataFrame(
+        {"ts": date_range("2021-01-01", periods=10, freq="D"), "a": range(10)},
+        index=date_range("2021-01-01", periods=10, freq="D", tz="US/Eastern"),
+    )
+    origin = Timestamp("2021-01-04")
+    with tm.assert_produces_warning(None):
+        result = df.resample("7D", on="ts", origin=origin).sum()
+    expected = df.resample("168h", on="ts", origin=origin).sum()
+    tm.assert_frame_equal(result, expected, check_freq=False)
+
+
+def test_resample_day_origin_period_index_warns():
+    # GH#44996: origin still does not take effect with Day freq on a
+    # PeriodIndex (the Period grid ignores it), so the warning is kept
+    pi = period_range("2021-01-01", periods=14, freq="D")
+    ser = Series(range(14), index=pi)
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = ser.resample("7D").sum()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ser.resample("7D", origin=Timestamp("2021-01-04")).sum()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_D_closed_right_no_extra_bin():
+    # GH#62200: resample("D", closed="right") should not produce an extra
+    # trailing empty bin when last value falls exactly on a Day boundary.
+    index = date_range("2000-05-13", "2000-05-15", freq="h")
+    ser = Series(range(len(index)), index=index)
+
+    result_d = ser.resample("D", closed="right").count()
+    result_24h = ser.resample("24h", closed="right").count()
+
+    expected = Series(
+        [1, 24, 24],
+        index=date_range("2000-05-12", periods=3, freq="D"),
+    )
+    tm.assert_series_equal(result_d, expected)
+    tm.assert_series_equal(result_24h, expected, check_freq=False)
+
+
+def test_resample_D_closed_right_label_right_no_extra_bin():
+    # GH#62200: original reproducer with label="right" and closed="right"
+    index = date_range("1-1-2000", "2-15-2000", freq="h").union(
+        date_range("4-15-2000", "5-15-2000", freq="h")
+    )
+    ser = Series(range(len(index)), index=index)
+    result_d = ser.resample("D", label="right", closed="right").count()
+    result_24h = ser.resample("24h", label="right", closed="right").count()
+
+    assert len(result_d) == len(result_24h)
+    tm.assert_series_equal(result_d, result_24h, check_freq=False)
+
+
+def test_resample_D_closed_right_not_on_boundary():
+    # GH#62200: when last value is NOT on a Day boundary, the trailing
+    # bin should still be present.
+    index = date_range("2000-05-13", "2000-05-15 12:00", freq="h")
+    ser = Series(range(len(index)), index=index)
+
+    result = ser.resample("D", closed="right").count()
+    expected = Series(
+        [1, 24, 24, 12],
+        index=date_range("2000-05-12", periods=4, freq="D"),
+    )
+    tm.assert_series_equal(result, expected)

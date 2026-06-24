@@ -9234,8 +9234,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. note::
 
-                Only takes effect for Tick-frequencies (i.e. fixed frequencies like
-                hours and minutes, rather than days, months or quarters).
+                Only takes effect for Tick-frequencies (i.e. fixed frequencies
+                like hours and minutes) and, on a timezone-naive index, for day
+                frequencies; not for months or quarters.
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
