@@ -3756,13 +3756,13 @@ def test_loc_setitem_extension_array_into_object_series():
 class TestLocSetitemDataFrameAlignment:
     def test_loc_setitem_scalar_column_dataframe_alignment(self):
         # GH 58482
-        df = DataFrame([[1.0, 2], [3.0, 4]], index=["x", "y"], columns=["A", "B"])
+        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
         item = DataFrame([100], columns=["A"], index=["v"])
 
         # Setting a single block dataframe's column with a dataframe should align
         df.loc[:, "A"] = item
 
         expected = DataFrame(
-            [[np.nan, 2], [np.nan, 4]], index=["x", "y"], columns=["A", "B"]
+            [[np.nan, 2.0], [np.nan, 4.0]], index=["x", "y"], columns=["A", "B"]
         )
         tm.assert_frame_equal(df, expected)
