@@ -58,7 +58,8 @@ cdef class Localizer:
     # cdef:
     #    tzinfo tz
     #    NPY_DATETIMEUNIT _creso
-    #    bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
+    #    bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz, use_zoneinfo
+    #    bint has_tz_rule
     #    ndarray trans
     #    Py_ssize_t ntrans
     #    const int64_t[::1] deltas
@@ -73,6 +74,7 @@ cdef class Localizer:
         self._creso = creso
         self.use_utc = self.use_tzlocal = self.use_fixed = False
         self.use_dst = self.use_pytz = self.use_zoneinfo = False
+        self.has_tz_rule = False
         self.ntrans = -1  # placeholder
         self.delta = -1  # placeholder
         self.deltas = _deltas_placeholder
@@ -85,7 +87,7 @@ cdef class Localizer:
             self.use_tzlocal = True
 
         else:
-            trans, deltas, typ = get_dst_info(tz)
+            trans, deltas, typ, has_tz_rule = get_dst_info(tz)
             if creso != NPY_DATETIMEUNIT.NPY_FR_ns:
                 # NB: using floordiv here is implicitly assuming we will
                 #  never see trans or deltas that are not an integer number
@@ -106,6 +108,7 @@ cdef class Localizer:
             self.trans = trans
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
+            self.has_tz_rule = has_tz_rule
 
             if typ != "pytz" and typ != "dateutil" and typ != "zoneinfo":
                 # static/fixed; in this case we know that len(delta) == 1
@@ -133,7 +136,11 @@ cdef class Localizer:
         elif self.use_fixed:
             return utc_val + self.delta
         else:
-            if self.use_zoneinfo and utc_val > self.tdata[self.ntrans - 1]:
+            if (
+                self.use_zoneinfo
+                and self.has_tz_rule
+                and utc_val > self.tdata[self.ntrans - 1]
+            ):
                 return utc_val + _tz_localize_using_tzinfo_api(
                     utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
                 )
@@ -169,7 +176,7 @@ cdef int64_t tz_localize_to_utc_single(
         return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
 
     elif is_fixed_offset(tz):
-        _, deltas, _ = get_dst_info(tz)
+        _, deltas, _, _ = get_dst_info(tz)
         delta = deltas[0]
         # TODO: de-duplicate with Localizer.__init__
         if creso != NPY_DATETIMEUNIT.NPY_FR_ns:
@@ -393,7 +400,11 @@ timedelta-like}
                     # nonexistent times
                     new_local = val - remaining_mins - 1
 
-                if info.use_zoneinfo and new_local > info.tdata[info.ntrans - 1]:
+                if (
+                    info.use_zoneinfo
+                    and info.has_tz_rule
+                    and new_local > info.tdata[info.ntrans - 1]
+                ):
                     if shift_forward or shift_delta > 0:
                         delta = _tz_localize_using_tzinfo_api(
                             new_local, tz, True, creso, NULL, 0
@@ -499,7 +510,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         if val == NPY_NAT:
             continue
 
-        if use_zoneinfo and val > tdata[ntrans - 1]:
+        if use_zoneinfo and info.has_tz_rule and val > tdata[ntrans - 1]:
             # For values beyond cached transition coverage, derive the two
             # candidate UTC instants via zoneinfo and keep whichever
             # round-trip back to this wall time.

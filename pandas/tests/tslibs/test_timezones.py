@@ -232,10 +232,14 @@ def test_zoneinfo_utc_to_local_post_2037():
     tm.assert_numpy_array_equal(local.hour.to_numpy(), expected_hours)
 
 
-@pytest.mark.parametrize("tz_name", ["America/New_York", "Australia/Melbourne"])
+@pytest.mark.parametrize(
+    "tz_name", ["America/New_York", "Australia/Melbourne", "Europe/Kaliningrad"]
+)
 def test_zoneinfo_utc_to_local_post_2100(tz_name):
     # GH#65712 - verify zoneinfo-generated future DST transitions are used
     # beyond year 2100 for both hemispheres.
+    # Europe/Kaliningrad is a special case because it has no rule for future DST
+    # transitions (and is also not a fixed offset timezone)
     tz = zoneinfo.ZoneInfo(tz_name)
     # fmt: off
     data = [
