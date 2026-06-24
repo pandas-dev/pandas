@@ -179,6 +179,21 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
+    def test_sort_values_ignore_index_on_already_sorted(self):
+        # GH 65833 - ignore_index had no effect on already sorted Series
+        ser = Series([1, 2, 3], index=[2, 3, 4])
+        expected = Series([1, 2, 3], index=[0, 1, 2])
+        result = ser.sort_values(ignore_index=True)
+        tm.assert_series_equal(result, expected)
+
+        ser2 = Series([1, 2, 3], index=[2, 3, 4])
+        ser2.sort_values(ignore_index=True, inplace=True)
+        tm.assert_series_equal(ser2, expected)
+
+        ser3 = Series([1, 2, 3], index=[2, 3, 4])
+        result3 = ser3.sort_values(ignore_index=False)
+        tm.assert_series_equal(result3, Series([1, 2, 3], index=[2, 3, 4]))
+
     def test_mergesort_descending_stability(self):
         # GH 28697
         s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])

@@ -1371,8 +1371,7 @@ Automatic date tick adjustment
 tick locator methods, it is useful to call the automatic
 date tick adjustment from matplotlib for figures whose ticklabels overlap.
 
-See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method and the
-`matplotlib documentation <https://matplotlib.org/2.0.2/users/recipes.html#fixing-common-date-annoyances>`__ for more.
+See the :meth:`autofmt_xdate <matplotlib.figure.autofmt_xdate>` method.
 
 Subplots
 ~~~~~~~~
