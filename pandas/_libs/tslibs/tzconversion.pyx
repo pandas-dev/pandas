@@ -65,6 +65,7 @@ cdef class Localizer:
     #    const int64_t[::1] deltas
     #    int64_t delta
     #    int64_t* tdata
+    #    int64_t last_trans
 
     @cython.initializedcheck(False)
     @cython.wraparound(False)
@@ -77,6 +78,7 @@ cdef class Localizer:
         self.has_tz_rule = False
         self.ntrans = -1  # placeholder
         self.delta = -1  # placeholder
+        self.last_trans = -1  # placeholder
         self.deltas = _deltas_placeholder
         self.tdata = NULL
 
@@ -109,6 +111,7 @@ cdef class Localizer:
             self.ntrans = self.trans.shape[0]
             self.deltas = deltas
             self.has_tz_rule = has_tz_rule
+            self.last_trans = trans[self.ntrans - 1]
 
             if typ != "pytz" and typ != "dateutil" and typ != "zoneinfo":
                 # static/fixed; in this case we know that len(delta) == 1
@@ -139,7 +142,7 @@ cdef class Localizer:
             if (
                 self.use_zoneinfo
                 and self.has_tz_rule
-                and utc_val > self.tdata[self.ntrans - 1]
+                and utc_val > self.last_trans
             ):
                 return utc_val + _tz_localize_using_tzinfo_api(
                     utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
@@ -403,7 +406,7 @@ timedelta-like}
                 if (
                     info.use_zoneinfo
                     and info.has_tz_rule
-                    and new_local > info.tdata[info.ntrans - 1]
+                    and new_local > info.last_trans
                 ):
                     if shift_forward or shift_delta > 0:
                         delta = _tz_localize_using_tzinfo_api(
@@ -510,7 +513,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         if val == NPY_NAT:
             continue
 
-        if use_zoneinfo and info.has_tz_rule and val > tdata[ntrans - 1]:
+        if use_zoneinfo and info.has_tz_rule and val > info.last_trans:
             # For values beyond cached transition coverage, derive the two
             # candidate UTC instants via zoneinfo and keep whichever
             # round-trip back to this wall time.

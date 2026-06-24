@@ -31,6 +31,7 @@ cdef class Localizer:
         const int64_t[::1] deltas
         int64_t delta
         int64_t* tdata
+        int64_t last_trans
 
     cdef int64_t utc_val_to_local_val(
         self,
