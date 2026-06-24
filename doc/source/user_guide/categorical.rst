@@ -1041,7 +1041,7 @@ an ``object`` dtype is proportional to the size of the objects times the length 
 
 .. ipython:: python
 
-   s = pd.Series(["foo", "bar"] * 1000)
+   s = pd.Series(["foo", "bar"] * 1000, dtype="object")
 
    # object dtype
    s.memory_usage(deep=True)
