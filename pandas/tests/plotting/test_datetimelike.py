@@ -26,6 +26,7 @@ from pandas import (
     concat,
     isna,
     to_datetime,
+    to_timedelta,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import (
@@ -1608,6 +1609,20 @@ class TestTSPlot:
         result_labels = [x.get_text() for x in labels]
         assert len(result_labels) == len(expected_labels)
         assert result_labels == expected_labels
+
+    def test_irregular_timedelta_index_labels(self):
+        # GH#18910 a sub-millisecond TimedeltaIndex with no inferred freq must
+        # still get x-axis tick labels
+        rng = to_timedelta(np.arange(0, 1, 1e-4), unit="s")
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
+        _, ax = mpl.pyplot.subplots()
+        df.plot(ax=ax)
+        mpl.pyplot.draw()
+
+        labels = [x.get_text() for x in ax.get_xticklabels() if x.get_text().strip()]
+        assert labels
+        # every label shown corresponds to an actual index entry
+        assert set(labels) <= {str(td) for td in rng}
 
     def test_timedelta_plot(self):
         # test issue #8711
