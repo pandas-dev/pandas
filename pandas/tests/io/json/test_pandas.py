@@ -2386,3 +2386,21 @@ def test_large_number():
     )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+def test_large_number_string_column():
+    # GH#44684 inferring a string column of big ints must not lose precision
+    # by routing through float64
+    data = (
+        '[{"NO": "202101010000000003", "NAME": "A"}, '
+        '{"NO": "202101010000000013", "NAME": "B"}, '
+        '{"NO": "202101010000000023", "NAME": "C"}]'
+    )
+    result = read_json(StringIO(data))
+    expected = DataFrame(
+        {
+            "NO": [202101010000000003, 202101010000000013, 202101010000000023],
+            "NAME": ["A", "B", "C"],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
