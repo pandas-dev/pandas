@@ -2474,11 +2474,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
-        if isinstance(self._values, ExtensionArray) and isinstance(
-            self._engine, libindex.ObjectEngine
+        if isinstance(self._values, ExtensionArray) and (
+            type(self._engine) is libindex.ObjectEngine
         ):
             # For custom EAs we use ObjectEngine by default, which gets the EA as
-            # object ndarray -> use the EA's implementation directly instead of engine
+            # object ndarray -> use the EA's implementation directly instead of engine.
+            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
             return self._values._is_monotonic_increasing
         return self._engine.is_monotonic_increasing
 
@@ -2508,11 +2509,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
-        if isinstance(self._values, ExtensionArray) and isinstance(
-            self._engine, libindex.ObjectEngine
+        if isinstance(self._values, ExtensionArray) and (
+            type(self._engine) is libindex.ObjectEngine
         ):
             # For custom EAs we use ObjectEngine by default, which gets the EA as
-            # object ndarray -> use the EA's implementation directly instead of engine
+            # object ndarray -> use the EA's implementation directly instead of engine.
+            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
             return self._values._is_monotonic_decreasing
         return self._engine.is_monotonic_decreasing
 

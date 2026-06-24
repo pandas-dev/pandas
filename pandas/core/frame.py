@@ -2236,7 +2236,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if any(exclude):
             arr_exclude = (x for x in exclude if x in arr_columns)
-            to_remove = {arr_columns.get_loc(col) for col in arr_exclude}  # pyright: ignore[reportUnhashable]
+            to_remove = {
+                arr_columns.get_loc(col)
+                for col in arr_exclude  # pyright: ignore[reportUnhashable]
+            }
             arrays = [v for i, v in enumerate(arrays) if i not in to_remove]
 
             columns = columns.drop(exclude)
@@ -2382,9 +2385,13 @@ class DataFrame(NDFrame, OpsMixin):
             # columns, whichever is applicable.
             if is_dict_like(dtype_mapping):
                 if name in dtype_mapping:
-                    dtype_mapping = dtype_mapping[name]  # pyright: ignore[reportOptionalSubscript]
+                    dtype_mapping = dtype_mapping[  # pyright: ignore[reportOptionalSubscript]
+                        name
+                    ]
                 elif index_int in dtype_mapping:
-                    dtype_mapping = dtype_mapping[index_int]  # pyright: ignore[reportOptionalSubscript]
+                    dtype_mapping = dtype_mapping[  # pyright: ignore[reportOptionalSubscript]
+                        index_int
+                    ]
                 else:
                     dtype_mapping = None
 
@@ -2821,8 +2828,9 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
-        engine: Literal["auto", "pyarrow", "fastparquet"]
-        | lib.NoDefault = lib.no_default,
+        engine: (
+            Literal["auto", "pyarrow", "fastparquet"] | lib.NoDefault
+        ) = lib.no_default,
         compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
@@ -6060,7 +6068,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: IndexLabel | ListLike = ...,
         columns: IndexLabel | ListLike = ...,
         level: Level = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
         errors: IgnoreRaise = ...,
     ) -> DataFrame | None: ...
 
@@ -6072,7 +6080,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: IndexLabel | ListLike = None,
         columns: IndexLabel | ListLike = None,
         level: Level | None = None,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         errors: IgnoreRaise = "raise",
     ) -> DataFrame | None:
         """
@@ -6103,6 +6111,14 @@ class DataFrame(NDFrame, OpsMixin):
         inplace : bool, default False
             If False, return a copy. Otherwise, do operation
             in place and return None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -6222,6 +6238,19 @@ class DataFrame(NDFrame, OpsMixin):
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.drop is deprecated "
+                "and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().drop(
             labels=labels,
             axis=axis,
@@ -6418,7 +6447,7 @@ class DataFrame(NDFrame, OpsMixin):
             warnings.warn(
                 "The inplace keyword in DataFrame.rename is "
                 "deprecated and will be removed in a future version. "
-                "See `PDEP-8 for more details:"
+                "See PDEP-8 for more details:"
                 "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
@@ -6675,7 +6704,6 @@ class DataFrame(NDFrame, OpsMixin):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                period = cast("int", period)
                 shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
@@ -13742,10 +13770,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-        The result is calculated according to current dtype in DataFrame,
-        however dtype of the result is always float64.
+        Equivalent to ``self - self.shift(periods)``, except that boolean
+        dtypes use :meth:`operator.xor` rather than :meth:`operator.sub`; the
+        result dtype follows from that operation.
+
+        In particular, because the leading ``periods`` positions are filled
+        with a missing value, NumPy integer dtypes are cast to floating and
+        NumPy ``bool`` to ``object``.
 
         Examples
         --------
@@ -15966,11 +15997,6 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    if name == "all":
-                        # Behavior here appears incorrect; preserving
-                        # for backwards compatibility for now.
-                        # See https://github.com/pandas-dev/pandas/issues/57171
-                        skipna = True
                     result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
                     return result
