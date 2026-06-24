@@ -265,6 +265,18 @@ def test_na_handling(labels):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+def test_cut_series_with_nan_integer_bins(use_bottleneck):
+    # GH#55684 cut on a Series with NaN and an integer number of bins raised
+    # "TypeError: putmask: first argument must be an array" when bottleneck
+    # was not in use, because nanmin/nanmax was computed on the Series itself.
+    with pd.option_context("use_bottleneck", use_bottleneck):
+        data = [1.1, 2.2, 3.3, np.nan]
+        result = cut(Series(data), 2)
+        expected = Series(cut(data, 2))
+        tm.assert_series_equal(result, expected)
+
+
 def test_inf_handling():
     data = np.arange(6)
     data_ser = Series(data, dtype="int64")
