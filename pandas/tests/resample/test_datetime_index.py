@@ -378,12 +378,12 @@ def test_resample_basic_from_daily(unit):
 
     # to biz day
     result = s.resample("B").last()
-    assert len(result) == 7
-    assert (result.index.day_of_week == [4, 0, 1, 2, 3, 4, 0]).all()
+    assert len(result) == 6
+    assert (result.index.day_of_week == [0, 1, 2, 3, 4, 0]).all()
 
-    assert result.iloc[0] == s["1/2/2005"]
-    assert result.iloc[1] == s["1/3/2005"]
-    assert result.iloc[5] == s["1/9/2005"]
+    assert result.iloc[0] == s["1/3/2005"]
+    assert result.iloc[1] == s["1/4/2005"]
+    assert result.iloc[5] == s["1/10/2005"]
     assert result.index.name == "index"
 
 
@@ -637,7 +637,7 @@ def test_resample_reresample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
-    assert len(result) == 25
+    assert len(result) == 22
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
 
@@ -2080,35 +2080,128 @@ def test_resample_ms_closed_right(unit):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "freq", ["B", "C", "W", "ME", "SME", "BME", "CBME", "QE", "BQE"]
+)
+def test_resample_c_b_default(freq: str, unit):
+    # https://github.com/pandas-dev/pandas/issues/55281
+    # check the default.
+    # it's very important that the default be the same direction.
+    #     label=right with closed=right
+    #     label=left with closed=left
+    #
+    # the result is incomprehensible when mixing left/right.
+    # e.g. consider label=left close=right with business days.
+    # it samples future days (Saturday Sunday) onto the previous business day (Thursday)
+    # - the interval covers Thursday 23:59 to Friday 23:59 (closed=right).
+    # - the label shows Thursday date (label=left), as a plain date without time.
+    dti = date_range(start="2020-01-31", freq="1h", periods=1000, unit=unit)
+    df = DataFrame({"ts": dti}, index=dti)
+    grouped_right_right = df.resample(freq, label="right", closed="right")
+    grouped_default = df.resample(freq, label="right", closed="right")
+
+    tm.assert_frame_equal(grouped_default.first(), grouped_right_right.first())
+    tm.assert_frame_equal(grouped_default.last(), grouped_right_right.last())
+
+
 @pytest.mark.parametrize("freq", ["B", "C"])
-def test_resample_c_b_closed_right(freq: str, unit):
+def test_resample_c_b_label_right_closed_right(freq: str, unit):
     # https://github.com/pandas-dev/pandas/issues/55281
     dti = date_range(start="2020-01-31", freq="1min", periods=6000, unit=unit)
     df = DataFrame({"ts": dti}, index=dti)
-    grouped = df.resample(freq, closed="right")
-    result = grouped.last()
+    grouped = df.resample(freq, label="right", closed="right")
+    result_first = grouped.first()
+    result_last = grouped.last()
 
-    exp_dti = DatetimeIndex(
+    exp_dti_first = DatetimeIndex(
         [
-            datetime(2020, 1, 30),
-            datetime(2020, 1, 31),
-            datetime(2020, 2, 3),
-            datetime(2020, 2, 4),
+            datetime(2020, 1, 31),  # Friday
+            datetime(2020, 2, 3),  # Monday
+            datetime(2020, 2, 4),  # Tuesday
         ],
         freq=freq,
     ).as_unit(unit)
-    expected = DataFrame(
+    expected_first = DataFrame(
+        {
+            "ts": [
+                datetime(2020, 1, 31),
+                datetime(2020, 2, 1),
+                datetime(2020, 2, 4),
+            ]
+        },
+        index=exp_dti_first,
+    ).astype(f"M8[{unit}]")
+
+    exp_dti_last = DatetimeIndex(
+        [
+            datetime(2020, 1, 31),  # Friday
+            datetime(2020, 2, 3),  # Monday
+            datetime(2020, 2, 4),  # Tuesday
+        ],
+        freq=freq,
+    ).as_unit(unit)
+    expected_last = DataFrame(
+        {
+            "ts": [
+                datetime(2020, 1, 31, 23, 59),
+                datetime(2020, 2, 3, 23, 59),
+                datetime(2020, 2, 4, 3, 59),
+            ]
+        },
+        index=exp_dti_last,
+    ).astype(f"M8[{unit}]")
+    tm.assert_frame_equal(result_first, expected_first)
+    tm.assert_frame_equal(result_last, expected_last)
+
+
+@pytest.mark.parametrize("freq", ["B", "C"])
+def test_resample_c_b_label_left_closed_left(freq: str, unit):
+    # https://github.com/pandas-dev/pandas/issues/55281
+    dti = date_range(start="2020-01-31", freq="1min", periods=6000, unit=unit)
+    df = DataFrame({"ts": dti}, index=dti)
+    grouped = df.resample(freq, label="left", closed="left")
+    result_first = grouped.first()
+    result_last = grouped.last()
+
+    exp_dti_first = DatetimeIndex(
+        [
+            datetime(2020, 1, 31),  # Friday
+            datetime(2020, 2, 3),  # Monday
+            datetime(2020, 2, 4),  # Tuesday
+        ],
+        freq=freq,
+    ).as_unit(unit)
+    expected_first = DataFrame(
         {
             "ts": [
                 datetime(2020, 1, 31),
                 datetime(2020, 2, 3),
                 datetime(2020, 2, 4),
+            ]
+        },
+        index=exp_dti_first,
+    ).astype(f"M8[{unit}]")
+
+    exp_dti_last = DatetimeIndex(
+        [
+            datetime(2020, 1, 31),  # Friday
+            datetime(2020, 2, 3),  # Monday
+            datetime(2020, 2, 4),  # Tuesday
+        ],
+        freq=freq,
+    ).as_unit(unit)
+    expected_last = DataFrame(
+        {
+            "ts": [
+                datetime(2020, 2, 2, 23, 59),
+                datetime(2020, 2, 3, 23, 59),
                 datetime(2020, 2, 4, 3, 59),
             ]
         },
-        index=exp_dti,
+        index=exp_dti_last,
     ).astype(f"M8[{unit}]")
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result_first, expected_first)
+    tm.assert_frame_equal(result_last, expected_last)
 
 
 def test_resample_b_55282(unit):
@@ -2122,14 +2215,77 @@ def test_resample_b_55282(unit):
             datetime(2023, 9, 26),
             datetime(2023, 9, 27),
             datetime(2023, 9, 28),
-            datetime(2023, 9, 29),
         ],
         freq="B",
     ).as_unit(unit)
     expected = Series(
-        [1.0, 2.5, 4.5, 6.0],
+        [1.5, 3.5, 5.5],
         index=exp_dti,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["B", "C"])
+def test_resample_closed_right_no_leading_nan(freq: str, unit):
+    # https://github.com/pandas-dev/pandas/issues/65740
+    # Intraday timestamps (e.g. EOD 16:00) on a business-day boundary
+    # should land in the bin labeled with their own date, not the next
+    # business day. Otherwise a leading empty bin is produced and the
+    # int column is coerced to float.
+    dti = DatetimeIndex(
+        [
+            "2023-09-25 16:00",
+            "2023-09-26 16:00",
+            "2023-09-27 16:00",
+            "2023-09-28 16:00",
+            "2023-09-29 16:00",
+        ]
+    ).as_unit(unit)
+    ser = Series([1, 2, 3, 4, 5], index=dti)
+    result = ser.resample(freq, closed="right", label="right").last()
+
+    exp_dti = DatetimeIndex(
+        [
+            datetime(2023, 9, 25),
+            datetime(2023, 9, 26),
+            datetime(2023, 9, 27),
+            datetime(2023, 9, 28),
+            datetime(2023, 9, 29),
+        ],
+        freq=freq,
+    ).as_unit(unit)
+    expected = Series([1, 2, 3, 4, 5], index=exp_dti)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["B", "C"])
+def test_resample_closed_right_no_trailing_nan(freq: str, unit):
+    # https://github.com/pandas-dev/pandas/issues/65740
+    # When input ends exactly on a business-day boundary, no trailing
+    # empty bin should be emitted (which would coerce int -> float).
+    dti = DatetimeIndex(
+        [
+            "2023-09-25",
+            "2023-09-26",
+            "2023-09-27",
+            "2023-09-28",
+            "2023-09-29",
+        ]
+    ).as_unit(unit)
+    ser = Series([1, 2, 3, 4, 5], index=dti)
+    result = ser.resample(freq, closed="right", label="right").last()
+
+    exp_dti = DatetimeIndex(
+        [
+            datetime(2023, 9, 25),
+            datetime(2023, 9, 26),
+            datetime(2023, 9, 27),
+            datetime(2023, 9, 28),
+            datetime(2023, 9, 29),
+        ],
+        freq=freq,
+    ).as_unit(unit)
+    expected = Series([1, 2, 3, 4, 5], index=exp_dti)
     tm.assert_series_equal(result, expected)
 
 

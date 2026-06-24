@@ -114,6 +114,9 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+_END_TYPES = {"SME", "ME", "YE", "QE", "BME", "CBME", "BYE", "BQE", "W", "C", "B"}
+
+
 @set_module("pandas.api.typing")
 class Resampler(BaseGroupBy, PandasObject):
     """
@@ -2479,9 +2482,8 @@ class TimeGrouper(Grouper):
                     stacklevel=find_stack_level(),
                 )
 
-        end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
         rule = freq.rule_code
-        if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
+        if rule in _END_TYPES or ("-" in rule and rule.split("-", 1)[0] in _END_TYPES):
             if closed is None:
                 closed = "right"
             if label is None:
@@ -2698,21 +2700,16 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
-            "BQE",
-            "BYE",
-            "QE",
-            "YE",
-            "W",
-        ):
+        # GH 21459, GH 9119: Adjust the bins relative to the wall time
+        if self.closed == "right":
             # If the right end-point is on the last day of the month, roll forwards
             # until the last moment of that day. Note that we only do this for offsets
             # which correspond to the end of a super-daily period - "month start", for
             # example, is excluded.
-            if self.closed == "right":
-                # GH 21459, GH 9119: Adjust the bins relative to the wall time
+            rule = self.freq.rule_code
+            if rule in _END_TYPES or (
+                "-" in rule and rule.split("-", 1)[0] in _END_TYPES
+            ):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
                     edges_dti
