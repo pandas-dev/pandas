@@ -114,12 +114,13 @@ def test_td64_summation_overflow():
     assert np.allclose(result._value / 1000, expected._value / 1000)
 
     # sum
+    # GH#43178: OutOfBoundsTimedelta (a ValueError subclass) is raised
     msg = "overflow in timedelta operation"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (ser - ser.min()).sum()
 
     s1 = ser[0:10000]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (s1 - s1.min()).sum()
     s2 = ser[0:1000]
     (s2 - s2.min()).sum()
