@@ -1264,7 +1264,7 @@ class _MergeOperation:
         right_indexer: npt.NDArray[np.intp] | None,
     ) -> None:
         # Inner joins never produce -1 (missing) in the indexers, so we can
-        # skip the potentially expensive (indexer == -1).any() scans.
+        # skip the potentially expensive lib.has_sentinel scans.
         if self.how == "inner":
             left_has_missing = False
             right_has_missing = False
@@ -1288,7 +1288,7 @@ class _MergeOperation:
                             left_has_missing = (
                                 False
                                 if left_indexer is None
-                                else (left_indexer == -1).any()
+                                else lib.has_sentinel(left_indexer, -1)
                             )
 
                         if left_has_missing:
@@ -1302,7 +1302,7 @@ class _MergeOperation:
                             right_has_missing = (
                                 False
                                 if right_indexer is None
-                                else (right_indexer == -1).any()
+                                else lib.has_sentinel(right_indexer, -1)
                             )
 
                         if right_has_missing:

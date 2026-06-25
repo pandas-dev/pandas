@@ -675,10 +675,12 @@ def test_append_misc_chunksize(temp_hdfstore, chunksize):
 
 
 def test_append_misc_empty_frame(temp_hdfstore):
-    # empty frame, GH4273
+    # empty frame, GH#4273, GH#13016
     # 0 len
     df_empty = DataFrame(columns=list("ABC"))
-    temp_hdfstore.append("df", df_empty)
+    msg = "Writing an empty DataFrame or Series with format='table'"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.append("df", df_empty)
     with pytest.raises(KeyError, match="'No object named df in the file'"):
         temp_hdfstore.select("df")
 
@@ -686,13 +688,20 @@ def test_append_misc_empty_frame(temp_hdfstore):
     df = DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
     temp_hdfstore.append("df", df)
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
-    temp_hdfstore.append("df", df_empty)
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.append("df", df_empty)
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
-    # store
+    # store with fixed format stores the empty frame without warning
     df = DataFrame(columns=list("ABC"))
     temp_hdfstore.put("df2", df, track_times=False)
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
+
+    # put with format="table" is a no-op and warns, like append
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        temp_hdfstore.put("df3", df_empty, format="table", track_times=False)
+    with pytest.raises(KeyError, match="'No object named df3 in the file'"):
+        temp_hdfstore.select("df3")
 
 
 def test_append_raise(temp_hdfstore):
