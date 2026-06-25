@@ -112,6 +112,13 @@ Binary operator functions
    Series.product
    Series.dot
 
+Unary operator functions
+-------------------------
+.. autosummary::
+   :toctree: api/
+
+   Series.__invert__
+
 Function application, GroupBy & window
 --------------------------------------
 .. autosummary::
