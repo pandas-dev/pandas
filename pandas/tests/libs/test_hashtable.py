@@ -871,7 +871,7 @@ class hash_eq_raiser:
         return f"hash_eq_raiser({self.value}, {self.raise_hash}, {self.raise_eq})"
 
 
-@pytest.mark.parametrize("raise1, raise2", product([True, False], repeat=2))
+@pytest.mark.parametrize("raise1, raise2", list(product([True, False], repeat=2)))
 def test_error_raised_from_hash_method_in_set_item(raise1, raise2):
     # GH 57052
     table = ht.PyObjectHashTable()
@@ -898,7 +898,7 @@ def test_error_raised_from_hash_method_in_set_item(raise1, raise2):
         assert table.get_item(key2) == 456
 
 
-@pytest.mark.parametrize("raise1, raise2", product([True, False], repeat=2))
+@pytest.mark.parametrize("raise1, raise2", list(product([True, False], repeat=2)))
 def test_error_raised_from_hash_method_in_get_item(raise1, raise2):
     # GH 57052
     table = ht.PyObjectHashTable()
