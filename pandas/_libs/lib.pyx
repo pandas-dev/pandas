@@ -61,6 +61,8 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int8_t,
+    int16_t,
     int32_t,
     int64_t,
     intp_t,
@@ -837,6 +839,48 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
             for i in range(n4, n):
                 if sequence[i] != first_element + i * step:
                     ret = False
+                    break
+    return ret
+
+
+ctypedef fused signed_int_t:
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_sentinel(const signed_int_t[:] arr, signed_int_t sentinel) -> bool:
+    """
+    Faster equivalent to `(arr == sentinel).any()` for integer indexers.
+    """
+    cdef:
+        Py_ssize_t i, n = arr.shape[0]
+        Py_ssize_t n8 = n & ~7  # round down to multiple of 8
+        bint ret = False
+
+    with nogil:
+        for i in range(0, n8, 8):
+            # Bitwise | (not `or`) so all 8 lanes evaluate unconditionally,
+            # letting the compiler emit vectorized comparisons.
+            if (
+                (arr[i] == sentinel)
+                | (arr[i + 1] == sentinel)
+                | (arr[i + 2] == sentinel)
+                | (arr[i + 3] == sentinel)
+                | (arr[i + 4] == sentinel)
+                | (arr[i + 5] == sentinel)
+                | (arr[i + 6] == sentinel)
+                | (arr[i + 7] == sentinel)
+            ):
+                ret = True
+                break
+        if not ret:
+            for i in range(n8, n):
+                if arr[i] == sentinel:
+                    ret = True
                     break
     return ret
 
