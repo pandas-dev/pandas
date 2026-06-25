@@ -737,12 +737,18 @@ cdef int64_t _tz_localize_using_tzinfo_api(
             # NB: fold is only passed with to_utc=False
             fold[0] = dt.fold
     else:
-        if fold_in == -1:
-            dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, None)
-        else:
-            dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, None, fold=fold_in)
+        try:
+            if fold_in == -1:
+                dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                                  dts.min, dts.sec, dts.us, None)
+            else:
+                dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                                  dts.min, dts.sec, dts.us, None, fold=fold_in)
+        except ValueError as err:
+            raise NotImplementedError(
+                "Localizing Timestamps which are outside the range of Python's "
+                f"standard library datetime is not supported ({err})."
+            ) from err
 
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * pps)
@@ -765,8 +771,15 @@ cdef datetime _astimezone(npy_datetimestruct dts, tzinfo tz):
     cdef:
         datetime result
 
-    result = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
+    try:
+        result = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                              dts.min, dts.sec, dts.us, tz)
+    except ValueError as err:
+        raise NotImplementedError(
+            "Localizing Timestamps which are outside the range of Python's "
+            f"standard library datetime is not supported ({err})."
+        ) from err
+
     return tz.fromutc(result)
 
 

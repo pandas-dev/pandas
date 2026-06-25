@@ -397,6 +397,19 @@ def test_zoneinfo_utc_to_local_pre_first_transition(key):
     assert ts.minute == expected.minute
 
 
+def test_zoneinfo_conversion_outside_range_stdlib():
+    # GH#65733 - verify that datetimes outside the range of Python's standard
+    # library (year > 9999) raises a proper error message
+    ts = Timestamp(np.datetime64("10000-01-01T09:00:00", "us"))
+
+    msg = "Localizing Timestamps which are outside the range of Python"
+    with pytest.raises(NotImplementedError, match=msg):
+        ts.tz_localize("Europe/Brussels")
+
+    with pytest.raises(NotImplementedError, match=msg):
+        ts = Timestamp(ts._value, unit="us", tz="Europe/Brussels")
+
+
 def test_normalize_pytz_timezone():
     pytz = pytest.importorskip("pytz")
 
