@@ -154,9 +154,12 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
 
     except OutOfBoundsDatetime:
         pass
-    except (ValueError, KeyError):
+    except (ValueError, KeyError, NotImplementedError, OverflowError):
         # we are creating an invalid offset
         # so ignore
+        # - NotImplememtedError is raised for tz-aware timestamps outside Python's
+        #   range that are created by adding the offset
+        # - OverflowError is raised in the same case on 32-bit systems
         pass
 
 

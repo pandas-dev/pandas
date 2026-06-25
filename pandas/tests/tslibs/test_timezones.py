@@ -16,7 +16,10 @@ from pandas._libs.tslibs import (
     conversion,
     timezones,
 )
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 import pandas as pd
 from pandas import (
@@ -301,6 +304,10 @@ def test_zoneinfo_local_to_utc_far_future_seconds_resolution():
     tm.assert_numpy_array_equal(result_utc.to_pydatetime(), np.array(expected_utc))
 
 
+@pytest.mark.skipif(
+    not IS64,
+    reason="stdlib datetime.fromtimestamp fails on 32-bit platforms with overflow",
+)
 @pytest.mark.parametrize(
     "tz_name",
     ["America/New_York", "America/Santiago", "Australia/Melbourne", "Europe/Brussels"],
