@@ -246,3 +246,7 @@ def is_sequence_range(
     sequence: np.ndarray,
     step: int,  # np.ndarray[np.int64, ndim=1]
 ) -> bool: ...
+def has_sentinel(
+    arr: np.ndarray,  # const signed_int_t[:]
+    sentinel: int,
+) -> bool: ...

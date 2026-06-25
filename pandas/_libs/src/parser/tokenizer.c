@@ -17,6 +17,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
 #include "pandas/parser/tokenizer.h"
+#include "pandas/parser/pd_strtoi.h"
 #include "pandas/portable.h"
 
 #include <ctype.h>
@@ -163,6 +164,12 @@ static void parser_clear_data_buffers(parser_t *self) {
 }
 
 static void parser_cleanup(parser_t *self) {
+  // self can be NULL when cleanup runs on a TextReader whose __cinit__
+  // raised before parser_new() was called (GH#53131).
+  if (self == NULL) {
+    return;
+  }
+
   // XXX where to put this
   free_if_not_null((void *)&self->error_msg);
   free_if_not_null((void *)&self->warn_msg);
@@ -1820,9 +1827,14 @@ int uint64_conflict(uint_state *self) {
 }
 
 /* Copy a numeric token without `tsep` into `output`.
+ *
+ * Returns the number of bytes written (excluding NUL), or -1 on overflow.
+ * `*endptr` is set to the position in `str` where copying stopped (the first
+ * non-digit / non-tsep char or the end of input) so the caller can detect
+ * trailing garbage like "1 ," (GH#64631).
  */
 static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, char **endptr,
+                                    const char *str, const char **endptr,
                                     size_t str_len, char tsep) {
   const char *p = str;
   const char *end = str + str_len;
@@ -1844,53 +1856,62 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
 
   output[bytes_written] = '\0';
   if (endptr != NULL) {
-    *endptr = (char *)p;
+    *endptr = p;
   }
-  return 0;
+  return (int)bytes_written;
 }
 
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
-  char *number_end = NULL;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
   }
 
-  // Handle sign.
+  // Handle sign. std::from_chars accepts '-' but rejects '+', so strip '+'
+  // after verifying the following char is a digit (not another sign).
   const bool has_sign = *p == '-' || *p == '+';
-  // Handle sign.
   const char *digit_start = has_sign ? p + 1 : p;
-
-  // Check that there is a first digit.
   if (!isdigit_ascii(*digit_start)) {
-    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
+  if (*p == '+') {
+    ++p;
+  }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
+  size_t str_len = strlen(p);
+  const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status =
+    const int written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (status != 0) {
+    if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
+    str_len = (size_t)written;
   }
 
-  char *endptr;
-  int64_t number = strtoll(p, &endptr, 10);
+  int64_t number;
+  const char *endptr;
+  const pd_strtoi_status status = pd_strtoll(p, p + str_len, &number, &endptr);
   if (number_end != NULL) {
+    // GH#64631: detect trailing junk in the original input that
+    // copy_number_without_tsep stopped at (e.g. "1 ," with tsep=',').
     endptr = number_end;
   }
-
-  if (errno == ERANGE) {
+  if (status == PD_STRTOI_OVERFLOW) {
+    // Overflow with trailing junk → INVALID_CHARS (so caller can fall through
+    // to float parsing, e.g. "18446744073709551616.0"). Pure overflow (endptr
+    // at NUL) → OVERFLOW (caller retries as uint64).
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
-    errno = 0;
+    return 0;
+  }
+  if (status == PD_STRTOI_INVALID) {
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
@@ -1912,7 +1933,6 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
                        char tsep) {
   const char *p = p_item;
-  char *number_end = NULL;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
     ++p;
@@ -1929,33 +1949,38 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
 
   // Check that there is a first digit.
   if (!isdigit_ascii(*p)) {
-    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
+  size_t str_len = strlen(p);
+  const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status =
+    const int written =
         copy_number_without_tsep(buffer, p, &number_end, str_len, tsep);
-    if (status != 0) {
+    if (written < 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
     p = buffer;
+    str_len = (size_t)written;
   }
 
-  char *endptr;
-  uint64_t number = strtoull(p, &endptr, 10);
+  uint64_t number;
+  const char *endptr;
+  const pd_strtoi_status status = pd_strtoull(p, p + str_len, &number, &endptr);
   if (number_end != NULL) {
+    // GH#64631: detect trailing junk in the original input.
     endptr = number_end;
   }
-
-  if (errno == ERANGE) {
+  if (status == PD_STRTOI_OVERFLOW) {
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
-    errno = 0;
+    return 0;
+  }
+  if (status == PD_STRTOI_INVALID) {
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
