@@ -3742,7 +3742,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         from pandas.core.reshape.concat import concat
 
         if self.dtype == other.dtype:
-            if self.index.equals(other.index):
+            if self.index.equals(other.index) and self.index.is_unique:
                 return self.mask(self.isna(), other)
 
         new_index = self.index.union(other.index)
