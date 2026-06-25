@@ -1691,6 +1691,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - bytes
     - floating
     - integer
+    - integer-na
     - mixed-integer
     - mixed-integer-float
     - decimal
@@ -1704,7 +1705,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - timedelta
     - time
     - period
+    - interval
     - mixed
+    - empty
     - unknown-array
 
     Raises
@@ -1726,6 +1729,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'integer-na' are integers mixed with NaN, returned only when skipna=False
+    - 'empty' is returned for inputs with no inferable values (e.g. an empty
+      input, or all-NA with skipna=True)
     - 'unknown-array' is the catchall for something that *is* an array (has
       a dtype attribute), but has a dtype unknown to pandas (e.g. external
       extension array)
