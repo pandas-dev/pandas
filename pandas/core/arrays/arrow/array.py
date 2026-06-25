@@ -3247,14 +3247,12 @@ class ArrowExtensionArray(
         "std": "stddev",
         "var": "variance",
         "sem": "stddev",  # sem = stddev / sqrt(count)
-        "count": "count",
     }
 
     # Identity elements for operations (used to fill missing groups)
     _PYARROW_AGG_DEFAULTS: dict[str, int] = {
         "sum": 0,
         "prod": 1,
-        "count": 0,
     }
 
     def _groupby_op_pyarrow(
@@ -3294,13 +3292,19 @@ class ArrowExtensionArray(
         group_id_arr = pa.array(ids, type=pa.int64())
         table = pa.table({"value": values, "group_id": group_id_arr})
 
+        # When skipna=False, propagate nulls: any group containing a null
+        # should aggregate to null. PyArrow skips nulls by default.
+        skipna = kwargs.get("skipna", True)
+        agg_option: pc.VarianceOptions | pc.ScalarAggregateOptions
         if how in ["std", "var", "sem"]:
             ddof = kwargs.get("ddof", 1)
-            aggs: list[tuple[str, str] | tuple[str, str, pc.VarianceOptions]] = [
-                ("value", pa_agg_func, pc.VarianceOptions(ddof=ddof))
-            ]
+            agg_option = pc.VarianceOptions(ddof=ddof, skip_nulls=skipna)
         else:
-            aggs = [("value", pa_agg_func)]
+            agg_option = pc.ScalarAggregateOptions(skip_nulls=skipna)
+        aggs: list[tuple[str, str] | tuple[str, str, pc.FunctionOptions]] = [
+            ("value", pa_agg_func, agg_option)
+        ]
+        # Counts non-null values only; used for min_count and sem.
         aggs.append(("value", "count"))
 
         result_table = table.group_by("group_id").aggregate(aggs)
@@ -3314,8 +3318,14 @@ class ArrowExtensionArray(
         output_type = result_values.type
         default_value = pa.scalar(self._PYARROW_AGG_DEFAULTS.get(how), type=output_type)
 
-        # Replace nulls from all-null groups with identity element
-        if result_values.null_count > 0 and how in ["sum", "prod"] and min_count == 0:
+        # Replace nulls from all-null groups with identity element.
+        # Skipped when skipna=False, where a null must propagate as null.
+        if (
+            skipna
+            and result_values.null_count > 0
+            and how in ["sum", "prod"]
+            and min_count == 0
+        ):
             result_values = pc.if_else(
                 pc.is_null(result_values), default_value, result_values
             )
