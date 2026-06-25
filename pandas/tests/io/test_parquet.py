@@ -14,6 +14,7 @@ from pandas._config import using_string_dtype
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under15p0,
+    pa_version_under16p0,
     pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
@@ -1161,6 +1162,20 @@ class TestParquetPyArrow(Base):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, temp_file, pa)
+
+    @pytest.mark.xfail(
+        pa_version_under16p0,
+        reason="GH#40173 fixed in pyarrow 16.0.0",
+        raises=AttributeError,
+    )
+    def test_empty_column_multiindex(self, pa, temp_file):
+        # GH#40173 reading back an empty frame with a column MultiIndex used to
+        # raise inside pyarrow's metadata reconstruction
+        df = pd.DataFrame(columns=pd.MultiIndex(levels=[["abc"], []], codes=[[], []]))
+        # the unused "abc" level value is not preserved through the round-trip
+        expected = df.copy()
+        expected.columns = expected.columns.remove_unused_levels()
+        check_round_trip(df, temp_file, pa, expected=expected)
 
     def test_df_attrs_persistence(self, temp_file, pa):
         df = pd.DataFrame(data={1: [1]})
