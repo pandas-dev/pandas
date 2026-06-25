@@ -41,30 +41,38 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #  endif
 #endif
 
-// Portable count-trailing-zeros, defined only for the architecture that
-// uses it: _pandas_ctzll for NEON (MSVC implies ARM64, where
-// _BitScanForward64 exists), _pandas_ctz for SSE2 (which includes 32-bit
-// MSVC, where _BitScanForward64 does not exist).
+// Portable count-trailing-zeros, defined only for the architecture that uses
+// it: pandas_ctzll for NEON (64-bit lane), pandas_ctz for SSE2 (32-bit
+// movemask). The __builtin_ctz* form is preferred where available (including
+// clang-cl and mingw on Windows); MSVC falls back to _BitScanForward*.
+#ifndef __has_builtin
+#  define __has_builtin(x) 0
+#endif
+
 #if defined(PANDAS_HAS_NEON)
-#  ifdef _MSC_VER
-static __inline int _pandas_ctzll(unsigned long long mask) {
+static inline int pandas_ctzll(unsigned long long mask) {
+#  if __has_builtin(__builtin_ctzll)
+  return __builtin_ctzll(mask);
+#  elif defined(_MSC_VER)
   unsigned long index;
   _BitScanForward64(&index, mask);
   return (int)index;
-}
 #  else
-#    define _pandas_ctzll(x) __builtin_ctzll(x)
+#    error "no count-trailing-zeros builtin available"
 #  endif
+}
 #elif defined(PANDAS_HAS_SSE2)
-#  ifdef _MSC_VER
-static __inline int _pandas_ctz(unsigned int mask) {
+static inline int pandas_ctz(unsigned int mask) {
+#  if __has_builtin(__builtin_ctz)
+  return __builtin_ctz(mask);
+#  elif defined(_MSC_VER)
   unsigned long index;
   _BitScanForward(&index, mask);
   return (int)index;
-}
 #  else
-#    define _pandas_ctz(x) __builtin_ctz(x)
+#    error "no count-trailing-zeros builtin available"
 #  endif
+}
 #endif
 
 #include "pandas/portable.h"
@@ -667,7 +675,7 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
 // Scan data for any special character using NEON.
 // Returns the byte offset of the first special character,
 // or the number of bytes scanned (all clean) if none found.
-static inline size_t fast_scan_neon(const char *data, size_t len,
+static inline size_t fast_scan_simd(const char *data, size_t len,
                                     uint8x16_t vdelim, uint8x16_t vterm,
                                     uint8x16_t vcr, uint8x16_t vquote,
                                     uint8x16_t vescape, uint8x16_t vcomment) {
@@ -685,16 +693,16 @@ static inline size_t fast_scan_neon(const char *data, size_t len,
     // Extract as two u64 lanes and find the first set byte.
     uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
     if (low)
-      return i + _pandas_ctzll(low) / 8;
+      return i + pandas_ctzll(low) / 8;
     uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
     if (high)
-      return i + 8 + _pandas_ctzll(high) / 8;
+      return i + 8 + pandas_ctzll(high) / 8;
   }
   return i;
 }
 
 // Lighter scan for quoted fields: only check quote and escape chars.
-static inline size_t fast_scan_quoted_neon(const char *data, size_t len,
+static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
                                            uint8x16_t vquote,
                                            uint8x16_t vescape) {
   size_t i = 0;
@@ -705,19 +713,20 @@ static inline size_t fast_scan_quoted_neon(const char *data, size_t len,
 
     uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
     if (low)
-      return i + _pandas_ctzll(low) / 8;
+      return i + pandas_ctzll(low) / 8;
     uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
     if (high)
-      return i + 8 + _pandas_ctzll(high) / 8;
+      return i + 8 + pandas_ctzll(high) / 8;
   }
   return i;
 }
 
 #elif defined(PANDAS_HAS_SSE2)
 
-static inline size_t fast_scan_sse(const char *data, size_t len, __m128i vdelim,
-                                   __m128i vterm, __m128i vcr, __m128i vquote,
-                                   __m128i vescape, __m128i vcomment) {
+static inline size_t fast_scan_simd(const char *data, size_t len,
+                                    __m128i vdelim, __m128i vterm, __m128i vcr,
+                                    __m128i vquote, __m128i vescape,
+                                    __m128i vcomment) {
   size_t i = 0;
   for (; i + 15 < len; i += 16) {
     __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
@@ -730,13 +739,13 @@ static inline size_t fast_scan_sse(const char *data, size_t len, __m128i vdelim,
 
     int mask = _mm_movemask_epi8(m);
     if (mask)
-      return i + _pandas_ctz(mask);
+      return i + pandas_ctz(mask);
   }
   return i;
 }
 
-static inline size_t fast_scan_quoted_sse(const char *data, size_t len,
-                                          __m128i vquote, __m128i vescape) {
+static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
+                                           __m128i vquote, __m128i vescape) {
   size_t i = 0;
   for (; i + 15 < len; i += 16) {
     __m128i chunk = _mm_loadu_si128((const __m128i *)&data[i]);
@@ -745,21 +754,11 @@ static inline size_t fast_scan_quoted_sse(const char *data, size_t len,
 
     int mask = _mm_movemask_epi8(m);
     if (mask)
-      return i + _pandas_ctz(mask);
+      return i + pandas_ctz(mask);
   }
   return i;
 }
 
-#endif
-
-// Unified dispatch macros so call sites don't need to repeat
-// NEON-vs-SSE2 #ifdefs.
-#ifdef PANDAS_HAS_NEON
-#  define fast_scan_simd fast_scan_neon
-#  define fast_scan_quoted_simd fast_scan_quoted_neon
-#elif defined(PANDAS_HAS_SSE2)
-#  define fast_scan_simd fast_scan_sse
-#  define fast_scan_quoted_simd fast_scan_quoted_sse
 #endif
 
 static int tokenize_bytes(parser_t *self, uint64_t line_limit,
@@ -798,21 +797,17 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
                                   ? vdupq_n_u8((uint8_t)self->commentchar)
                                   : vterm;
 #elif defined(PANDAS_HAS_SSE2)
-  const __m128i vdelim = _mm_set1_epi8((char)delimiter);
-  const __m128i vterm = _mm_set1_epi8((char)lineterminator);
-  const __m128i vcr =
-      has_carriage ? _mm_set1_epi8((char)carriage_symbol) : vterm;
-  const __m128i vquote = (self->quoting != QUOTE_NONE)
-                             ? _mm_set1_epi8((char)self->quotechar)
-                             : vterm;
+  const __m128i vdelim = _mm_set1_epi8(delimiter);
+  const __m128i vterm = _mm_set1_epi8(lineterminator);
+  const __m128i vcr = has_carriage ? _mm_set1_epi8(carriage_symbol) : vterm;
+  const __m128i vquote =
+      (self->quoting != QUOTE_NONE) ? _mm_set1_epi8(self->quotechar) : vterm;
   // Fall back to vquote (not vterm) so the quoted-field scan is not
   // broken by line terminators inside quoted fields.
-  const __m128i vescape = (self->escapechar != '\0')
-                              ? _mm_set1_epi8((char)self->escapechar)
-                              : vquote;
-  const __m128i vcomment = (self->commentchar != '\0')
-                               ? _mm_set1_epi8((char)self->commentchar)
-                               : vterm;
+  const __m128i vescape =
+      (self->escapechar != '\0') ? _mm_set1_epi8(self->escapechar) : vquote;
+  const __m128i vcomment =
+      (self->commentchar != '\0') ? _mm_set1_epi8(self->commentchar) : vterm;
 #endif
 
   // Reserve worst-case stream space up front: the bulk-scan copies below
