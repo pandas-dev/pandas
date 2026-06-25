@@ -778,16 +778,27 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        Py_ssize_t n4 = n & ~3
         bint ret = True
 
     if left.size != n:
         return False
 
     with nogil:
-        for i in range(n):
-            if left[i] != i:
+        for i in range(0, n4, 4):
+            if (
+                (left[i] != i)
+                | (left[i + 1] != i + 1)
+                | (left[i + 2] != i + 2)
+                | (left[i + 3] != i + 3)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if left[i] != i:
+                    ret = False
+                    break
     return ret
 
 
@@ -799,6 +810,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     """
     cdef:
         Py_ssize_t i, n = len(sequence)
+        Py_ssize_t n4 = n & ~3
         int6432_t first_element
         bint ret = True
 
@@ -808,11 +820,24 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
+    # sequence[0] == first_element by construction, so the i=0 lane of the
+    # unrolled loop is trivially true — skipping the explicit head loop
+    # costs one redundant compare on the first iteration.
     with nogil:
-        for i in range(1, n):
-            if sequence[i] != first_element + i * step:
+        for i in range(0, n4, 4):
+            if (
+                (sequence[i] != first_element + i * step)
+                | (sequence[i + 1] != first_element + (i + 1) * step)
+                | (sequence[i + 2] != first_element + (i + 2) * step)
+                | (sequence[i + 3] != first_element + (i + 3) * step)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if sequence[i] != first_element + i * step:
+                    ret = False
+                    break
     return ret
 
 
