@@ -1649,7 +1649,8 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
-int64_t str_to_int64(const char *p_item, int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, int64_t length, int *error,
+                     char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1669,7 +1670,10 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
@@ -1718,8 +1722,8 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
-                       char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1742,7 +1746,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =

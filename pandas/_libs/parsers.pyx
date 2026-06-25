@@ -37,7 +37,6 @@ from cpython.ref cimport (
 )
 from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
-    PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
     PyUnicode_FromString,
 )
@@ -76,7 +75,6 @@ from pandas._libs.khash cimport (
     kh_get_float64,
     kh_get_str,
     kh_get_str_starts_item,
-    kh_get_strbox,
     kh_init_float64,
     kh_init_str,
     kh_init_str_starts,
@@ -280,8 +278,10 @@ cdef extern from "pandas/parser/pd_parser.h":
         parser_t *self, uint64_t nrows, const char *encoding_errors
     ) nogil
 
-    int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
+    int64_t str_to_int64(char *p_item, int64_t length, int *error, char tsep) nogil
+    uint64_t str_to_uint64(
+        uint_state *state, char *p_item, int64_t length, int *error, char tsep
+    ) nogil
 
     double precise_xstrtod(const char *p, char **q, char decimal,
                            char sci, char tsep, int skip_trailing,
@@ -1506,10 +1506,11 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
                 result[i] = NA
                 continue
 
-        k = kh_get_strbox(table, word)
+        # no deletions from this table, so ret == 0 means already present
+        k = kh_put_strbox(table, word, &ret)
 
         # in the hash table
-        if k != table.n_buckets:
+        if ret == 0:
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
@@ -1524,9 +1525,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             else:
                 word_len = (<int64_t>parser.stream_len
                             - parser.word_starts[token_idx] - 1)
-            pyval = PyUnicode_Decode(word, word_len, "utf-8", encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
-            k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
@@ -1777,6 +1777,17 @@ cdef _try_uint64(parser_t *parser, int64_t col,
     return result
 
 
+cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nogil:
+    # Token length from adjacent word_starts offsets (avoids strlen);
+    # token_idx == -1 marks a missing field; the last token uses stream_len.
+    if token_idx < 0:
+        return 0
+    elif <uint64_t>(token_idx + 1) < parser.words_len:
+        return (parser.word_starts[token_idx + 1]
+                - parser.word_starts[token_idx] - 1)
+    return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
+
+
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                            int64_t line_start,
                            int64_t line_end, bint na_filter,
@@ -1787,26 +1798,29 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        int64_t token_idx = 0
         char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 state.seen_null = 1
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, &error, thousands)
+            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
+                                    &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, &error, thousands)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
+                                    &error, thousands)
             if error != 0:
                 return error
 
@@ -1852,6 +1866,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        int64_t token_idx = 0
         char thousands = parser.thousands
 
     na_count[0] = 0
@@ -1859,20 +1874,22 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 na_count[0] += 1
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, &error, thousands)
+            data[i] = str_to_int64(word, _token_len(parser, token_idx),
+                                   &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, &error, thousands)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            data[i] = str_to_int64(word, _token_len(parser, token_idx),
+                                   &error, thousands)
             if error != 0:
                 return error
 
