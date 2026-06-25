@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed performance regression in :meth:`Series.searchsorted` and :meth:`Index.searchsorted` with the string dtype, where a full ``O(n)`` NA scan made the operation much slower than the binary search itself (:issue:`65837`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_304.bug_fixes:
@@ -21,6 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
+- Bug in :meth:`DataFrame.iloc` silently ignoring the assignment when setting values with an unordered or duplicated column indexer on a :class:`DataFrame` whose values are referenced by another object (:issue:`65446`)
 - Bug in :meth:`Series.str.__getitem__` raising ``AttributeError`` when underlying array is :class:`ArrowExtensionArray` (:issue:`65112`)
 
 

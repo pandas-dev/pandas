@@ -221,6 +221,16 @@ def test_readjson_chunks_from_file(request, engine, temp_file):
     tm.assert_frame_equal(unchunked, chunked)
 
 
+def test_readjson_chunks_from_binary_stream():
+    # GH47659 - reading a binary stream (e.g. from S3) in chunks used to raise
+    # "TypeError: initial_value must be str or None, not bytes"
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    data = df.to_json(lines=True, orient="records").encode("utf-8")
+    with read_json(BytesIO(data), lines=True, chunksize=1) as reader:
+        chunked = pd.concat(reader)
+    tm.assert_frame_equal(chunked, df)
+
+
 @pytest.mark.parametrize("chunksize", [None, 1])
 def test_readjson_chunks_closes(chunksize, temp_file):
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
