@@ -197,9 +197,10 @@ build-verbosity = 1
 build-frontend = "build"
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
+# nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p", "no:cacheprovider"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p no:cacheprovider"]);' \
   """
 
 [tool.ruff]

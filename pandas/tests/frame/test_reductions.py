@@ -1588,6 +1588,54 @@ class TestDataFrameAnalytics:
 
         assert df.any(bool_only=True, axis=None)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "boolean",
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "UInt8",
+            "UInt16",
+            "UInt32",
+            "UInt64",
+            "Float32",
+            "Float64",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data, op, expected_value",
+        [
+            ([False, None], "any", pd.NA),
+            ([True, None], "all", pd.NA),
+            ([None, None], "any", pd.NA),
+            ([None, None], "all", pd.NA),
+            ([True, None], "any", True),
+        ],
+    )
+    def test_any_all_skipna_false_nullable(self, dtype, data, op, expected_value):
+        # GH#65710
+        if dtype != "boolean":
+            data = [(0 if v is False else 1 if v is True else None) for v in data]
+        arr = pd.array(data, dtype=dtype)
+        df = DataFrame({"a": arr})
+
+        result = getattr(df, op)(skipna=False)
+        expected = Series([expected_value], index=["a"], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        ser_result = getattr(Series(arr), op)(skipna=False)
+        if expected_value is pd.NA:
+            assert ser_result is pd.NA
+        else:
+            assert ser_result == expected_value
+
+    def test_any_skipna_false_axis_none_nullable(self):
+        # GH#65710
+        df = DataFrame({"a": pd.array([False, None], dtype="boolean")})
+        assert df.any(skipna=False, axis=None) is pd.NA
+
     # ---------------------------------------------------------------------
     # Unsorted
 
@@ -2509,6 +2557,9 @@ def test_numeric_ea_axis_1(
             expected[mask] = 0
             expected = expected.astype(expected_dtype)
             expected[mask] = pd.NA
+        if not skipna and method == "all":
+            # GH#65710 Kleene "all" on (truthy, NA) row returns NA
+            expected.iloc[2] = pd.NA
     tm.assert_series_equal(result, expected)
 
 

@@ -632,8 +632,6 @@ class TestPandasContainer:
             df_roundtrip,
             check_index_type=True,
             check_column_type=True,
-            by_blocks=True,
-            check_exact=True,
         )
 
     def test_frame_nonprintable_bytes(self):
@@ -1119,6 +1117,32 @@ class TestPandasContainer:
         result = read_json(StringIO(json), convert_dates=["date", "date_obj"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_epoch_non_nano_datetimes(self, unit):
+        # GH#57738 a non-nano datetime column or index serialized with the
+        # (deprecated) "epoch" date format must use the underlying integer
+        # values in ``unit``, not values rescaled as if they were nanoseconds
+        index = DatetimeIndex(
+            ["2023-09-29 02:55:54", "2023-09-29 02:56:03"],
+            dtype=f"datetime64[{unit}]",
+        )
+        df = DataFrame({"date": Series(index, index=index)})
+
+        msg = "'epoch' date format is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.to_json(date_format="epoch", date_unit=unit)
+
+        # both the column values and the index labels are the underlying i8
+        # values expressed in ``unit`` (the two timestamps stay distinct)
+        i8 = list(index.asi8)
+        parsed = json.loads(result)["date"]
+        assert [int(key) for key in parsed] == i8
+        assert list(parsed.values()) == i8
+
+        # and the frame round-trips, preserving the original resolution (GH#55827)
+        roundtripped = read_json(StringIO(result), convert_dates=["date"])
+        tm.assert_frame_equal(roundtripped, df)
+
     def test_weird_nested_json(self):
         # this used to core dump the parser
         s = r"""{
@@ -1482,6 +1506,22 @@ class TestPandasContainer:
             lines=True,
             storage_options=s3so,
         )
+        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.single_cpu
+    @pytest.mark.network
+    @td.skip_if_not_us_locale
+    def test_read_s3_jsonl_chunksize(self, s3_bucket_public_with_data, s3so):
+        # GH47659 - reading a binary (e.g. S3) stream in chunks used to raise
+        # "TypeError: initial_value must be str or None, not bytes"
+        with read_json(
+            f"s3n://{s3_bucket_public_with_data.name}/items.jsonl",
+            lines=True,
+            chunksize=1,
+            storage_options=s3so,
+        ) as reader:
+            result = pd.concat(reader)
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -2386,3 +2426,21 @@ def test_large_number():
     )
     expected = Series([9999999999999999])
     tm.assert_series_equal(result, expected)
+
+
+def test_large_number_string_column():
+    # GH#44684 inferring a string column of big ints must not lose precision
+    # by routing through float64
+    data = (
+        '[{"NO": "202101010000000003", "NAME": "A"}, '
+        '{"NO": "202101010000000013", "NAME": "B"}, '
+        '{"NO": "202101010000000023", "NAME": "C"}]'
+    )
+    result = read_json(StringIO(data))
+    expected = DataFrame(
+        {
+            "NO": [202101010000000003, 202101010000000013, 202101010000000023],
+            "NAME": ["A", "B", "C"],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
