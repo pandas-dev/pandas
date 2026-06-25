@@ -336,7 +336,10 @@ Indexing
 - Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`57962`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
--
+- Bug in :meth:`Series.combine_first` where duplicate index labels were silently
+  positionally aligned instead of raising, when both Series shared the same
+  dtype and index; this is now consistent with the existing behavior for
+  mismatched dtypes, which already raised ``ValueError`` (:issue:`66009`)
 
 Missing
 ^^^^^^^
