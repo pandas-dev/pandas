@@ -2411,26 +2411,7 @@ class Index(IndexOpsMixin, PandasObject):
             new_codes.pop(i)
             new_names.pop(i)
 
-        if len(new_levels) == 1:
-            lev = new_levels[0]
-
-            if len(lev) == 0 and len(new_codes[0]) == 0:
-                # GH#42055, GH#45230 preserve RangeIndex here
-                result = lev[:0]
-            else:
-                result = lev.take(new_codes[0], allow_fill=True)
-                result._name = new_names[0]
-
-            return result
-        else:
-            from pandas.core.indexes.multi import MultiIndex
-
-            return MultiIndex(
-                levels=new_levels,
-                codes=new_codes,
-                names=new_names,
-                verify_integrity=False,
-            )
+        return droplevel_result(new_levels, new_codes, new_names)
 
     # --------------------------------------------------------------------
     # Introspection Methods
@@ -2470,11 +2451,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
-        if isinstance(self._values, ExtensionArray) and isinstance(
-            self._engine, libindex.ObjectEngine
+        if isinstance(self._values, ExtensionArray) and (
+            type(self._engine) is libindex.ObjectEngine
         ):
             # For custom EAs we use ObjectEngine by default, which gets the EA as
-            # object ndarray -> use the EA's implementation directly instead of engine
+            # object ndarray -> use the EA's implementation directly instead of engine.
+            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
             return self._values._is_monotonic_increasing
         return self._engine.is_monotonic_increasing
 
@@ -2504,11 +2486,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
-        if isinstance(self._values, ExtensionArray) and isinstance(
-            self._engine, libindex.ObjectEngine
+        if isinstance(self._values, ExtensionArray) and (
+            type(self._engine) is libindex.ObjectEngine
         ):
             # For custom EAs we use ObjectEngine by default, which gets the EA as
-            # object ndarray -> use the EA's implementation directly instead of engine
+            # object ndarray -> use the EA's implementation directly instead of engine.
+            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
             return self._values._is_monotonic_decreasing
         return self._engine.is_monotonic_decreasing
 
@@ -8346,6 +8329,37 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     name_sets = ({*ns} for ns in zip_longest(*name_tups))
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
+
+
+def droplevel_result(
+    new_levels: list[Index],
+    new_codes: list[npt.NDArray[np.intp]],
+    new_names: list[Hashable],
+) -> Index:
+    """
+    Construct the result of dropping MultiIndex levels from the
+    retained levels, codes, and names.
+    """
+    if len(new_levels) == 1:
+        lev = new_levels[0]
+
+        if len(lev) == 0 and len(new_codes[0]) == 0:
+            # GH#42055, GH#45230 preserve RangeIndex here
+            result = lev[:0]
+        else:
+            result = lev.take(new_codes[0], allow_fill=True)
+            result._name = new_names[0]
+
+        return result
+    else:
+        from pandas.core.indexes.multi import MultiIndex
+
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes,
+            names=new_names,
+            verify_integrity=False,
+        )
 
 
 def _unpack_nested_dtype(other: Index) -> DtypeObj:

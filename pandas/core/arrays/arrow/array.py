@@ -36,8 +36,10 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under21p0,
 )
+from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
+    cache_readonly,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -179,6 +181,63 @@ if HAS_PYARROW:
             result = pc.floor(divided)
         return result
 
+    # Conversion factors for duration units to various time components.
+    # Maps component -> {unit: divisor} to extract that component from the unit.
+    # Units coarser than a component are absent (e.g. "s" is missing from
+    # "millisecond"), in which case that component is always 0.
+    _DURATION_DIVISORS: dict[str, dict[str, int]] = {
+        "day": {
+            "s": 86400,
+            "ms": 86_400_000,
+            "us": 86_400_000_000,
+            "ns": 86_400_000_000_000,
+        },
+        "hour": {
+            "s": 3600,
+            "ms": 3_600_000,
+            "us": 3_600_000_000,
+            "ns": 3_600_000_000_000,
+        },
+        "minute": {"s": 60, "ms": 60_000, "us": 60_000_000, "ns": 60_000_000_000},
+        "second": {"s": 1, "ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000},
+        "millisecond": {"ms": 1, "us": 1_000, "ns": 1_000_000},
+        "microsecond": {"us": 1, "ns": 1_000},
+        "nanosecond": {"ns": 1},
+    }
+
+    def floor_div_int64(
+        arr: pa.Array | pa.ChunkedArray, divisor: int
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Floor division for an int64 (chunked) array, handling negatives correctly.
+
+        PyArrow's ``pc.divide`` truncates toward zero, but we need floor division
+        (toward negative infinity) to match pandas behavior for negative durations.
+        Uses a fast path for all-non-negative arrays (the common case).
+        """
+        min_scalar = pc.min(arr)
+        if not min_scalar.is_valid or min_scalar.as_py() >= 0:
+            # Fast path: truncation equals floor when all values are non-negative
+            return pc.divide(arr, divisor)
+        # Truncated division (toward zero) and remainder with the dividend's sign
+        trunc_div = pc.divide(arr, divisor)
+        remainder = pc.subtract(arr, pc.multiply(trunc_div, divisor))
+        # floor(a/b) = trunc(a/b) - 1 when a < 0 and remainder != 0
+        needs_adjustment = pc.and_(pc.less(arr, 0), pc.not_equal(remainder, 0))
+        return pc.subtract(trunc_div, pc.if_else(needs_adjustment, 1, 0))
+
+    def mod_int(
+        arr: pa.Array | pa.ChunkedArray, modulo: int
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Compute ``arr % modulo`` for a non-negative int (chunked) array.
+
+        PyArrow lacks a modulo kernel, so emulate it with divide/multiply/subtract.
+        TODO: revisit once Arrow has a modulo kernel.
+        """
+        quotient = pc.divide(arr, modulo)
+        return pc.subtract(arr, pc.multiply(quotient, modulo))
+
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
         "radd": lambda x, y: pc.add_checked(y, x),
@@ -313,6 +372,8 @@ class ArrowExtensionArray(
 
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
+    # results from calls to methods decorated with cache_readonly get added here
+    _cache: dict[str, pa.ChunkedArray]
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if not HAS_PYARROW:
@@ -330,6 +391,7 @@ class ArrowExtensionArray(
                 f"Unsupported type '{type(values)}' for ArrowExtensionArray"
             )
         self._dtype = ArrowDtype(self._pa_array.type)
+        self._cache = {}
 
     @classmethod
     def _from_sequence(
@@ -445,6 +507,7 @@ class ArrowExtensionArray(
         obj._dtype = (
             self._dtype if pa_type == self._dtype.pyarrow_dtype else ArrowDtype(pa_type)
         )
+        obj._cache = {}
         return obj
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
@@ -975,6 +1038,8 @@ class ArrowExtensionArray(
     def __getstate__(self):
         state = self.__dict__.copy()
         state["_pa_array"] = self._pa_array.combine_chunks()
+        # cached properties can be recomputed; don't bloat the pickle
+        state["_cache"] = {}
         return state
 
     def __setstate__(self, state) -> None:
@@ -983,6 +1048,8 @@ class ArrowExtensionArray(
         else:
             data = state["_pa_array"]
         state["_pa_array"] = pa.chunked_array(data)
+        # pickles created before _cache existed
+        state.setdefault("_cache", {})
         self.__dict__.update(state)
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
@@ -1419,6 +1486,26 @@ class ArrowExtensionArray(
         np_result = result.to_numpy()
         return np_result.astype(np.intp, copy=False)
 
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        # This override replaces self._pa_array directly, bypassing __setitem__,
+        # so enforce the read-only guard here to stay consistent with it and
+        # with the base ExtensionArray.sort.
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        sorted_array = self.take(sort_indices)
+        self._pa_array = sorted_array._pa_array
+        # Invalidate any cache_readonly properties that depend on _pa_array
+        self._cache.clear()
+
     def _argmin_max(self, skipna: bool, method: str) -> int:
         if self._pa_array.length() in (0, self._pa_array.null_count) or (
             self._hasna and not skipna
@@ -1467,6 +1554,7 @@ class ArrowExtensionArray(
         result._pa_array = self._pa_array
         result._dtype = self._dtype
         result._readonly = self._readonly
+        result._cache = {}
         return result
 
     def count(self) -> int:
@@ -2347,7 +2435,10 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
-        if name in ["any", "all"] and (
+        if name == "count":
+            return self.count()
+
+        elif name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
             or pa.types.is_duration(pa_type)
@@ -2410,6 +2501,8 @@ class ArrowExtensionArray(
                     [0, len(data)], data.combine_chunks()
                 )[0]
                 return pc.binary_join(data_list, "")
+        elif name in ["argmin", "argmax"]:
+            return super()._reduce(name, skipna=skipna, **kwargs)
 
         else:
             pyarrow_name = {
@@ -2423,15 +2516,20 @@ class ArrowExtensionArray(
             # "Callable[[Any, Any, KwArg(Any)], Any]")
             pyarrow_meth = getattr(pc, pyarrow_name, None)  # type: ignore[assignment]
             if pyarrow_meth is None:
-                # Let ExtensionArray._reduce raise the TypeError
-                return super()._reduce(name, skipna=skipna, **kwargs)
+                raise TypeError(
+                    f"'{type(self).__name__}' with dtype {self.dtype} "
+                    f"does not support operation '{name}'"
+                )
 
         # GH51624: pyarrow defaults to min_count=1, pandas behavior is min_count=0
-        if name in ["any", "all"] and "min_count" not in kwargs:
+        if name in ["any", "all", "sum", "prod"] and "min_count" not in kwargs:
             kwargs["min_count"] = 0
         elif name == "median":
             # GH 52679: Use quantile instead of approximate_median
             kwargs["q"] = 0.5
+        elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
+            # pyarrow defaults to ddof=0, pandas behavior is ddof=1
+            kwargs["ddof"] = 1
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -2472,7 +2570,13 @@ class ArrowExtensionArray(
         return result
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
         """
         Return a scalar result of performing the reduction operation.
@@ -2485,6 +2589,8 @@ class ArrowExtensionArray(
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        axis : int or None, default 0
+            The axis to reduce over; for a 1-D array this must be 0 or None.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -2497,6 +2603,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        nv.validate_minmax_axis(axis, self.ndim)
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if isinstance(result, pa.Array):
             return self._from_pyarrow_array(result)
@@ -2530,6 +2637,114 @@ class ArrowExtensionArray(
             return result
         else:
             return pa_result
+
+    def sum(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_sum((), kwargs)
+        return self._reduce(
+            "sum", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
+
+    def min(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_min((), kwargs)
+        return self._reduce("min", skipna=skipna, axis=axis, **kwargs)
+
+    def max(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_max((), kwargs)
+        return self._reduce("max", skipna=skipna, axis=axis, **kwargs)
+
+    def mean(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_mean((), kwargs)
+        return self._reduce("mean", skipna=skipna, axis=axis, **kwargs)
+
+    def sem(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+
+    def skew(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+
+    def median(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_median((), kwargs)
+        return self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+
+    def var(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="var")
+        return self._reduce("var", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+
+    def std(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="std")
+        return self._reduce("std", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
+
+    def prod(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_prod((), kwargs)
+        return self._reduce(
+            "prod", skipna=skipna, min_count=min_count, axis=axis, **kwargs
+        )
 
     def _explode(self):
         """
@@ -2647,6 +2862,8 @@ class ArrowExtensionArray(
         if isinstance(data, pa.Array):
             data = pa.chunked_array([data])
         self._pa_array = data
+        # Invalidate any cache_readonly properties that depend on _pa_array
+        self._cache.clear()
 
     def _rank_calc(
         self,
@@ -3308,75 +3525,146 @@ class ArrowExtensionArray(
             return type(self)(pa.chunked_array(result))
         return type(self)(pc.utf8_zfill(self._pa_array, width))
 
-    @property
-    def _dt_days(self) -> Self:
+    def _dt_zero_or_null_int32(self) -> Self:
+        """
+        Return an int32 result that is 0 where the input is valid and null
+        where the input is null.
+
+        Used for duration components that are always 0 because the array's
+        resolution is coarser than the component (e.g. nanoseconds of a
+        second-resolution duration).
+        """
         return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.days,
-                from_pandas=True,
-                type=pa.int32(),
+            pc.if_else(
+                pc.is_null(self._pa_array),
+                pa.scalar(None, type=pa.int32()),
+                pa.scalar(0, type=pa.int32()),
             )
         )
+
+    @property
+    def _duration_unit(self) -> str:
+        """
+        Return the time unit for a duration-typed array.
+
+        Raises ``AttributeError`` for non-duration dtypes so the duration
+        component accessors (``_dt_days``, ``_dt_seconds``, etc.) are rejected
+        for e.g. ``timestamp[pyarrow]`` instead of silently treating the
+        underlying int64 as a duration. The ``dt`` dispatcher turns this into
+        the usual "dt.<name> is not supported for <dtype>" error.
+        """
+        pa_type = self._pa_array.type
+        if not pa.types.is_duration(pa_type):
+            raise AttributeError(f"'{self.dtype}' does not have duration components")
+        return pa_type.unit
+
+    @cache_readonly
+    def _dt_day_remainder(self) -> pa.ChunkedArray:
+        """
+        Return the remainder after removing full days, always non-negative.
+
+        For negative durations like -22h 57m 57s (= -1 day + 1h 2m 3s),
+        this returns the positive offset from the day boundary.
+
+        This is cached because it's used by all sub-day component accessors.
+        """
+        unit = self._duration_unit
+        divisor = _DURATION_DIVISORS["day"][unit]
+        arr = self._pa_array.cast(pa.int64())
+        days = floor_div_int64(arr, divisor)
+        # remainder = arr - days * divisor (always non-negative)
+        return pc.subtract(arr, pc.multiply(days, divisor))
+
+    def _dt_subday_component(self, component: str, modulo: int) -> Self:
+        """
+        Extract a sub-day component (hours, minutes, etc.) from the day remainder.
+
+        The remainder is always non-negative, so we can use integer division.
+        """
+        unit = self._duration_unit
+        divisors = _DURATION_DIVISORS[component]
+        # For units coarser than this component, the result is always 0
+        if unit not in divisors:
+            return self._dt_zero_or_null_int32()
+        # Integer division is fine here since remainder is non-negative
+        result = pc.divide(self._dt_day_remainder, divisors[unit])
+        result = mod_int(result, modulo)
+        return self._from_pyarrow_array(result.cast(pa.int32()))
+
+    @property
+    def _dt_days(self) -> Self:
+        unit = self._duration_unit
+        arr = self._pa_array.cast(pa.int64())
+        result = floor_div_int64(arr, _DURATION_DIVISORS["day"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_hours(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.hours,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("hour", modulo=24)
 
     @property
     def _dt_minutes(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.minutes,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("minute", modulo=60)
 
     @property
     def _dt_seconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.seconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Total seconds in sub-day portion (0-86399), per Python timedelta semantics.
+        # Every duration unit (s/ms/us/ns) is at least as fine as seconds, so the
+        # remainder always has enough resolution and no zero-result shortcut is
+        # needed here.
+        unit = self._duration_unit
+        # Convert remainder to seconds (no modulo - we want total sub-day seconds)
+        result = pc.divide(self._dt_day_remainder, _DURATION_DIVISORS["second"][unit])
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_milliseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.milliseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        return self._dt_subday_component("millisecond", modulo=1000)
 
     @property
     def _dt_microseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.microseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Total microseconds in sub-second portion (0-999999), per Python timedelta
+        # semantics. For units coarser than microseconds (e.g. "ms") the sub-second
+        # portion must be scaled *up* to microseconds rather than returning 0.
+        unit = self._duration_unit
+        divisors = _DURATION_DIVISORS
+        # Sub-second portion, expressed in the storage unit (always non-negative)
+        sub_second = mod_int(self._dt_day_remainder, divisors["second"][unit])
+        units_per_second = divisors["second"][unit]
+        micros_per_second = divisors["second"]["us"]
+        if units_per_second >= micros_per_second:
+            # Unit at least as fine as microseconds: divide down (e.g. ns -> us)
+            result = pc.divide(sub_second, units_per_second // micros_per_second)
+        else:
+            # Unit coarser than microseconds: scale up (e.g. ms -> us)
+            result = pc.multiply(sub_second, micros_per_second // units_per_second)
+        return self._from_pyarrow_array(result.cast(pa.int32()))
 
     @property
     def _dt_nanoseconds(self) -> Self:
-        return self._from_pyarrow_array(
-            pa.array(
-                self._to_timedeltaarray().components.nanoseconds,
-                from_pandas=True,
-                type=pa.int32(),
-            )
-        )
+        # Nanoseconds only (0-999), per Python timedelta semantics
+        return self._dt_subday_component("nanosecond", modulo=1000)
+
+    @property
+    def _dt_components(self) -> dict[str, ArrowExtensionArray]:
+        """
+        Return all duration components.
+
+        The day remainder is computed once (and cached on ``_dt_day_remainder``),
+        so every sub-day component below reuses it. Note that the per-field
+        semantics differ from the like-named accessors: ``seconds`` here is the
+        0-59 seconds field (not the 0-86399 total) and ``microseconds`` is the
+        0-999 field (not the 0-999999 total).
+        """
+        return {
+            "days": self._dt_days,
+            "hours": self._dt_hours,
+            "minutes": self._dt_minutes,
+            "seconds": self._dt_subday_component("second", modulo=60),
+            "milliseconds": self._dt_milliseconds,
+            "microseconds": self._dt_subday_component("microsecond", modulo=1000),
+            "nanoseconds": self._dt_nanoseconds,
+        }
 
     def _dt_to_pytimedelta(self) -> np.ndarray:
         data = self._pa_array.to_pylist()

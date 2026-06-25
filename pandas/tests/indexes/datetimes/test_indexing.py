@@ -493,6 +493,16 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="2000"):
             index.get_loc("1/1/2000")
 
+    def test_get_loc_nonmonotonic_missing_label(self):
+        # GH#7827 a missing label on a non-monotonic DatetimeIndex should
+        #  raise KeyError rather than return an empty array
+        index = pd.to_datetime(["2000-01-02", "2000-01-01"])
+        assert not index.is_monotonic_increasing
+        with pytest.raises(KeyError, match="1900-01-01"):
+            index.get_loc("1900-01-01")
+        with pytest.raises(KeyError, match="1900-01-01"):
+            index.get_loc(Timestamp("1900-01-01"))
+
     def test_get_loc_year_str(self):
         rng = date_range("1/1/2000", "1/1/2010")
 

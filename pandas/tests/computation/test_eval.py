@@ -1960,13 +1960,13 @@ def test_negate_lt_eq_le(engine, parser):
     "column",
     DEFAULT_GLOBALS.keys(),
 )
-def test_eval_no_support_column_name(request, column):
-    # GH 44603
+def test_eval_no_support_column_name(request, engine, parser, column):
+    # GH#44603, GH#35695
     if column in ["True", "False", "inf", "Inf"]:
         request.applymarker(
             pytest.mark.xfail(
                 raises=KeyError,
-                reason=f"GH 47859 DataFrame eval not supported with {column}",
+                reason=f"GH#47859 DataFrame eval not supported with {column}",
             )
         )
 
@@ -1975,7 +1975,7 @@ def test_eval_no_support_column_name(request, column):
         columns=[column, "col1"],
     )
     expected = df[df[column] > 6]
-    result = df.query(f"{column}>6")
+    result = df.query(f"{column}>6", engine=engine, parser=parser)
 
     tm.assert_frame_equal(result, expected)
 
