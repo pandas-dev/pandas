@@ -36,6 +36,11 @@ class TestTextReader:
     def csv_path(self, datapath):
         return datapath("io", "data", "csv", "test1.csv")
 
+    def test_no_args_raises_no_segfault(self):
+        # GH#53131 TextReader() with no source used to segfault during cleanup
+        with pytest.raises(TypeError, match="positional argument"):
+            TextReader()
+
     def test_file_handle(self, csv_path):
         with open(csv_path, "rb") as f:
             reader = TextReader(f, **_na_value_kwargs)

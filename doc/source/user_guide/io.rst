@@ -5827,6 +5827,34 @@ with respect to the timezone.
 timezone aware or naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
 will convert the data to UTC.
 
+.. note::
+
+   When using :func:`~pandas.DataFrame.to_sql` with Microsoft SQL Server and pyodbc
+   with ``fast_executemany=True``, datetime precision may be lost when writing to
+   local temporary tables (tables with names starting with ``#``). This is because
+   that code path binds parameters as arrays and relies on the ODBC driver inferring
+   the temporary table's column types, which it cannot do for temporary tables. The
+   default (per-row) insert path is unaffected.
+
+   To preserve datetime precision with SQL Server temporary tables, add
+   ``UseFMTONLY=Yes`` to your connection string:
+
+   .. code-block:: python
+
+      from sqlalchemy import create_engine
+
+      connection_string = (
+          "mssql+pyodbc://user:password@server/database"
+          "?driver=ODBC+Driver+17+for+SQL+Server"
+          "&UseFMTONLY=Yes"
+      )
+      engine = create_engine(connection_string)
+
+   Alternatively, use global temporary tables (``##table_name``) instead of
+   local temporary tables (``#table_name``). See the `pyodbc documentation
+   <https://github.com/mkleehammer/pyodbc/wiki/Tips-and-Tricks-by-Database-Platform#using-fast_executemany-with-a-temporary-table>`__
+   for more details.
+
 .. _io.sql.method:
 
 Insertion method

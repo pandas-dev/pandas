@@ -1996,6 +1996,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
 
@@ -2008,13 +2009,13 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, thousands)
             if error != 0:
                 return error
 
@@ -2060,6 +2061,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        char thousands = parser.thousands
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -2073,13 +2075,13 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, thousands)
             if error != 0:
                 return error
 
