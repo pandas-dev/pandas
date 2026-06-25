@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import numpy as np
-
 import pytest
 
 from pandas.errors import Pandas4Warning
