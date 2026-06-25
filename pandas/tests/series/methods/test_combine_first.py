@@ -2,6 +2,8 @@ from datetime import datetime
 
 import numpy as np
 
+import pytest
+
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
@@ -162,6 +164,19 @@ class TestCombineFirst:
         result = s1.combine_first(s2)
         expected = Series([None] * 4, index=["a", "b", "c", "d"])
         tm.assert_series_equal(result, expected)
+
+    def test_combine_first_duplicate_index_raises(self):
+        # GH#66009
+        # The fast path (matching dtype, matching index) used to skip the
+        # duplicate-label check that the slower reindex-based path already
+        # enforces, silently returning a positionally-misaligned result
+        # instead of raising.
+        s1 = Series([1.0, np.nan, 3.0], index=[0, 0, 1])
+        s2 = Series([10.0, 20.0, 30.0], index=[0, 0, 1])
+
+        msg = "cannot reindex on an axis with duplicate labels"
+        with pytest.raises(ValueError, match=msg):
+            s1.combine_first(s2)
 
 
 def test_combine_first_timestamp_names_anterior():
