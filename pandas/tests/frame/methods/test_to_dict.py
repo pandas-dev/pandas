@@ -529,6 +529,52 @@ class TestDataFrameToDict:
         }
         assert result == expected
 
+    def test_to_dict_index_into_nested(self):
+        # GH#65778
+        # Test that into= applies to nested mappings when orient='index'
+
+        class MyDict(dict):
+            pass
+
+        df = DataFrame({"A": [1, 2], "B": ["x", "y"]})
+
+        # Test with all object dtype columns (are_all_object_dtype_cols path)
+        result = df.to_dict(orient="index", into=MyDict)
+        assert isinstance(result, MyDict)
+        assert isinstance(result[0], MyDict)
+        assert isinstance(result[1], MyDict)
+        assert result[0] == {"A": 1, "B": "x"}
+        assert result[1] == {"A": 2, "B": "y"}
+
+        # Test with mixed dtypes (box_native_indices path)
+        df_mixed = DataFrame({"A": [1, 2], "B": [1.0, 2.0]})
+        result_mixed = df_mixed.to_dict(orient="index", into=MyDict)
+        assert isinstance(result_mixed, MyDict)
+        assert isinstance(result_mixed[0], MyDict)
+        assert isinstance(result_mixed[1], MyDict)
+        assert result_mixed[0] == {"A": 1, "B": 1.0}
+        assert result_mixed[1] == {"A": 2, "B": 2.0}
+
+        # Test with non-object dtypes (else path)
+        df_numeric = DataFrame({"A": [1, 2], "B": [3.0, 4.0]})
+        result_numeric = df_numeric.to_dict(orient="index", into=MyDict)
+        assert isinstance(result_numeric, MyDict)
+        assert isinstance(result_numeric[0], MyDict)
+        assert isinstance(result_numeric[1], MyDict)
+        assert result_numeric[0] == {"A": 1, "B": 3.0}
+        assert result_numeric[1] == {"A": 2, "B": 4.0}
+
+        # Test with OrderedDict
+        result_ordered = df.to_dict(orient="index", into=OrderedDict)
+        assert isinstance(result_ordered, OrderedDict)
+        assert isinstance(result_ordered[0], OrderedDict)
+        assert isinstance(result_ordered[1], OrderedDict)
+
+        # Test with defaultdict
+        result_defaultdict = df.to_dict(orient="index", into=defaultdict(dict))
+        assert isinstance(result_defaultdict, defaultdict)
+        assert isinstance(result_defaultdict[0], defaultdict)
+
 
 @pytest.mark.parametrize(
     "val", [Timestamp(2020, 1, 1), Timedelta(1), Period("2020"), Interval(1, 2)]
