@@ -6,6 +6,10 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
+from datetime import (
+    timedelta,
+    timezone,
+)
 import warnings
 
 from pandas._config import is_nan_na
@@ -19,12 +23,16 @@ from pandas import (
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
+    DatetimeArray,
     FloatingArray,
     IntegerArray,
 )
 
 cimport cython
-from cpython.bytes cimport PyBytes_AsString
+from cpython.bytes cimport (
+    PyBytes_AsString,
+    PyBytes_FromStringAndSize,
+)
 from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
@@ -42,8 +50,13 @@ from cpython.unicode cimport (
     PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
+from libc.stdint cimport (
+    INT64_MAX,
+    INT64_MIN,
+)
 from libc.stdlib cimport free
 from libc.string cimport (
+    memcpy,
     strcasecmp,
     strlen,
     strncpy,
@@ -101,11 +114,41 @@ from pandas.errors import (
 
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    npy_unit_to_abbrev,
+)
+from pandas._libs.tslibs.nattype cimport NPY_NAT
+from pandas._libs.tslibs.np_datetime cimport (
+    NPY_DATETIMEUNIT,
+    import_pandas_datetime,
+    npy_datetimestruct,
+    npy_datetimestruct_to_datetime,
+)
+
+import_pandas_datetime()
+
+
+cdef extern from "pandas/datetime/pd_datetime.h":
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT
+
+    int parse_iso_8601_datetime(const char *str, int length, int want_exc,
+                                npy_datetimestruct *out,
+                                NPY_DATETIMEUNIT *out_bestunit,
+                                int *out_local, int *out_tzoffset,
+                                const char *format, int format_len,
+                                FormatRequirement exact) nogil
+
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -331,6 +374,9 @@ cdef class TextReader:
         list dtype_cast_order  # list[np.dtype]
         list names   # can be None
         set noconvert  # set[int]
+        dict datetime_cols  # dict[int, bool]
+        dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
+        int64_t lm_chunk_idx
 
     cdef public:
         int64_t leading_cols, table_width
@@ -501,6 +547,9 @@ cdef class TextReader:
         self.dtype_backend = dtype_backend
 
         self.noconvert = set()
+        self.datetime_cols = {}
+        self.dt_chunk_states = None
+        self.lm_chunk_idx = 0
 
         self.index_col = index_col
 
@@ -805,37 +854,74 @@ cdef class TextReader:
             size_t rows_read = 0
             list chunks = []
 
-        if rows is None:
-            while True:
-                try:
-                    chunk = self._read_rows(self.buffer_lines, 0)
-                    if len(chunk) == 0:
+        if self.datetime_cols:
+            # Per-read state for the parse_dates fastpath: keeps format/tz
+            # consistency across chunks and holds raw-byte receipts so a
+            # later chunk's fallback can restore earlier chunks to the exact
+            # strings the object path would have produced.
+            self.dt_chunk_states = {}
+
+        try:
+            if rows is None:
+                while True:
+                    try:
+                        self.lm_chunk_idx = len(chunks)
+                        chunk = self._read_rows(self.buffer_lines, 0)
+                        if len(chunk) == 0:
+                            break
+                    except StopIteration:
                         break
-                except StopIteration:
-                    break
-                else:
-                    chunks.append(chunk)
-        else:
-            while rows_read < rows:
-                try:
-                    crows = min(self.buffer_lines, rows - rows_read)
+                    else:
+                        chunks.append(chunk)
+            else:
+                while rows_read < rows:
+                    try:
+                        crows = min(self.buffer_lines, rows - rows_read)
 
-                    chunk = self._read_rows(crows, 0)
-                    if len(chunk) == 0:
+                        self.lm_chunk_idx = len(chunks)
+                        chunk = self._read_rows(crows, 0)
+                        if len(chunk) == 0:
+                            break
+
+                        rows_read += len(list(chunk.values())[0])
+                    except StopIteration:
                         break
+                    else:
+                        chunks.append(chunk)
 
-                    rows_read += len(list(chunk.values())[0])
-                except StopIteration:
-                    break
-                else:
-                    chunks.append(chunk)
+            parser_trim_buffers(self.parser)
 
-        parser_trim_buffers(self.parser)
+            if len(chunks) == 0:
+                raise StopIteration
 
-        if len(chunks) == 0:
-            raise StopIteration
+            self._finalize_datetime_chunks(chunks)
+            return chunks
+        finally:
+            self.dt_chunk_states = None
 
-        return chunks
+    cdef _finalize_datetime_chunks(self, list chunks):
+        """
+        For parse_dates fastpath columns where a chunk fell back to strings,
+        rebuild the already-converted chunks' object-string arrays from their
+        raw-byte receipts so the column is all-or-nothing, exactly like a
+        non-chunked read.
+        """
+        cdef _DatetimeChunkState state
+
+        if self.dt_chunk_states is None:
+            return
+        for col, state in self.dt_chunk_states.items():
+            if not state.failed:
+                continue
+            for chunk_idx, arena, offsets, use_dtype_backend in state.receipts:
+                strs = _box_arena_utf8(arena, offsets, self.encoding_errors)
+                if use_dtype_backend:
+                    strs = _maybe_upcast(
+                        strs,
+                        use_dtype_backend=True,
+                        dtype_backend=self.dtype_backend,
+                    )
+                chunks[chunk_idx][col] = strs
 
     cdef _tokenize_rows(self, uint64_t nrows):
         cdef:
@@ -903,6 +989,11 @@ cdef class TextReader:
 
     def remove_noconvert(self, i: int) -> None:
         self.noconvert.remove(i)
+
+    def set_datetime_convert(
+        self, i: int, require_consistent_format: bool = True
+    ) -> None:
+        self.datetime_cols[i] = require_consistent_format
 
     def _convert_column_data(self, rows: int | None) -> dict[int, "ArrayLike"]:
         cdef:
@@ -1033,6 +1124,25 @@ cdef class TextReader:
                 return col_res, na_count
 
         if i in self.noconvert:
+            if i in self.datetime_cols:
+                # Try direct char-buffer -> datetime64 fastpath; fall back to
+                # object-strings if the input isn't ISO8601 (handled downstream
+                # by date_converter via to_datetime).
+                state = None
+                if self.dt_chunk_states is not None:
+                    state = self.dt_chunk_states.get(i)
+                    if state is None:
+                        state = _DatetimeChunkState()
+                        self.dt_chunk_states[i] = state
+                if state is None or not state.failed:
+                    col_res, na_count = _datetime_box_utf8(
+                        self.parser, i, start, end, na_filter, na_hashset,
+                        self.datetime_cols[i], state, self.lm_chunk_idx,
+                        self.dtype_backend != "numpy" and col_dtype is None)
+                    if col_res is not None:
+                        return col_res, na_count
+                    if state is not None:
+                        state.failed = True
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
@@ -1414,6 +1524,11 @@ def _maybe_upcast(
         #  be reached. Is that incorrect?
         return arr
 
+    if arr.dtype.kind in "Mm":
+        # datetime64/timedelta64 already carry NaT as the missing-value
+        # sentinel; no upcast is required.
+        return arr
+
     na_value = na_values[arr.dtype]
 
     if issubclass(arr.dtype.type, np.integer):
@@ -1520,6 +1635,353 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     kh_destroy_strbox(table)
 
     return result, na_count
+
+
+cdef inline bint _same_format_shape(const char *left, Py_ssize_t left_len,
+                                    const char *right, Py_ssize_t right_len) noexcept:
+    """
+    Check whether two datetime strings share a layout: same length, digits and
+    non-digits in the same positions, and identical non-digit characters.
+    This conservatively approximates "both match the strptime format inferred
+    from the first" — false negatives only cost the fastpath.
+    """
+    cdef:
+        Py_ssize_t j
+        bint left_digit, right_digit
+
+    if left_len != right_len:
+        return False
+    for j in range(left_len):
+        left_digit = 48 <= <unsigned char>left[j] <= 57  # "0"-"9"
+        right_digit = 48 <= <unsigned char>right[j] <= 57
+        if left_digit != right_digit:
+            return False
+        if not left_digit and left[j] != right[j]:
+            return False
+    return True
+
+
+cdef class _DatetimeChunkState:
+    """
+    Per-read state for the parse_dates fastpath in low_memory mode: keeps the
+    format template and tz-awareness consistent across chunks, and holds
+    raw-byte receipts so a later chunk's fallback can rebuild earlier chunks'
+    object-string arrays exactly.
+    """
+    cdef public:
+        bint failed
+        bint saw_tz, saw_naive
+        int first_tzoffset
+        int creso_seen  # NPY_DATETIMEUNIT of the last parsed chunk, -1 unset
+        bytes template
+        list receipts  # list[tuple[chunk_idx, arena, offsets, use_be]]
+
+    def __cinit__(self):
+        self.failed = False
+        self.saw_tz = False
+        self.saw_naive = False
+        self.first_tzoffset = 0
+        self.creso_seen = -1
+        self.template = None
+        self.receipts = []
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _collect_arena(parser_t *parser, int64_t col,
+                    int64_t line_start, int64_t line_end,
+                    bint na_filter, kh_str_starts_t *na_hashset,
+                    Py_ssize_t arena_size):
+    """
+    Copy a column's raw NUL-terminated words into one bytes arena, with
+    per-row offsets (-1 for na_values hits). Together with `_box_arena_utf8`
+    this lets the fastpath reconstruct exactly what `_string_box_utf8` would
+    have produced.
+    """
+    cdef:
+        Py_ssize_t i, lines, word_len, pos = 0
+        coliter_t it
+        const char *word = NULL
+        bytes arena = PyBytes_FromStringAndSize(NULL, arena_size)
+        char *buf = PyBytes_AsString(arena)
+        ndarray[int64_t] offsets
+
+    lines = line_end - line_start
+    offsets = np.empty(lines, dtype=np.int64)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            offsets[i] = -1
+            continue
+        word_len = strlen(word) + 1  # include the NUL
+        memcpy(buf + pos, word, word_len)
+        offsets[i] = pos
+        pos += word_len
+
+    return arena, offsets
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
+                     const char *encoding_errors):
+    """
+    Rebuild the object-string array `_string_box_utf8` would have produced,
+    from an arena captured by `_collect_arena`.
+    """
+    cdef:
+        Py_ssize_t i, lines = offsets.shape[0]
+        const char *buf = PyBytes_AsString(arena)
+        const char *word
+        ndarray[object] result = np.empty(lines, dtype=np.object_)
+        int ret = 0
+        kh_strbox_t *table
+        object pyval
+        object NA = na_values[np.object_]
+        khiter_t k
+
+    table = kh_init_strbox()
+    for i in range(lines):
+        if offsets[i] == -1:
+            result[i] = NA
+            continue
+        word = buf + offsets[i]
+
+        k = kh_get_strbox(table, word)
+        if k != table.n_buckets:
+            pyval = <object>table.vals[k]
+        else:
+            pyval = PyUnicode_Decode(word, strlen(word), "utf-8",
+                                     encoding_errors)
+            k = kh_put_strbox(table, word, &ret)
+            table.vals[k] = <PyObject *>pyval
+
+        result[i] = pyval
+
+    kh_destroy_strbox(table)
+    return result
+
+
+# -> tuple[ArrayLike, int] | tuple[None, 0]
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _datetime_box_utf8(parser_t *parser, int64_t col,
+                        int64_t line_start, int64_t line_end,
+                        bint na_filter, kh_str_starts_t *na_hashset,
+                        bint require_consistent_format,
+                        _DatetimeChunkState state=None,
+                        int64_t chunk_idx=0,
+                        bint use_dtype_backend=False,
+                        NPY_DATETIMEUNIT force_creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC):
+    """
+    Faster equivalent to `_string_box_utf8` + `to_datetime(...)` for
+    ISO8601-formatted datetime columns: parse each tokenized field directly
+    from the tokenizer's `const char *` buffer into a datetime64 output array,
+    skipping the intermediate object ndarray of Python strings.
+
+    With `require_consistent_format=True` (the `date_format=None` case), every
+    value must share the layout of the first parsed value, mirroring
+    `to_datetime`'s infer-format-from-first-element behavior. With False (the
+    `date_format="ISO8601"` case), any mix of ISO8601 layouts is accepted.
+
+    `state` is the cross-chunk state in low_memory mode (None otherwise); on
+    success it is updated and a raw-byte receipt of this chunk is recorded,
+    with `use_dtype_backend` stored for fallback reconstruction.
+
+    `force_creso` is used during a recursive reparse triggered by mid-column
+    resolution bumps. When it is the sentinel `NPY_FR_GENERIC`, resolution is
+    inferred per-row.
+
+    Returns (result, na_count) on success, or (None, 0) to signal that the
+    caller should fall back to the object-string path.
+    """
+    cdef:
+        int na_count = 0
+        Py_ssize_t i, lines, word_len
+        Py_ssize_t arena_size = 0
+        coliter_t it
+        const char *word = NULL
+        ndarray result
+        int64_t[::1] iresult
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit, item_reso
+        NPY_DATETIMEUNIT creso = NPY_DATETIMEUNIT.NPY_FR_us
+        int out_local = 0, out_tzoffset = 0
+        int ret
+        bint creso_set = False
+        bint tz_set = False
+        bint saw_tz = False, saw_naive = False
+        int first_tzoffset = 0
+        int64_t offset_in_unit, tz_offset_mult
+        const char *template_word = NULL
+        Py_ssize_t template_len = 0
+        bytes state_template = None
+
+    if force_creso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        creso = force_creso
+        creso_set = True
+
+    if state is not None:
+        saw_tz = state.saw_tz
+        saw_naive = state.saw_naive
+        tz_set = state.saw_tz
+        first_tzoffset = state.first_tzoffset
+        # Keep a reference so the char buffer stays valid for the loop.
+        state_template = state.template
+        if state_template is not None:
+            template_word = state_template
+            template_len = len(state_template)
+
+    lines = line_end - line_start
+    # Output buffer holds int64s at `creso` resolution; the final dtype is
+    # assigned via a view once the final creso is known (matching
+    # array_strptime's behavior of flooring at us for ISO8601 inputs).
+    result = np.empty(lines, dtype="M8[us]")
+    iresult = result.view("i8")
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            na_count += 1
+            iresult[i] = NPY_NAT
+            continue
+
+        word_len = strlen(word)
+        arena_size += word_len + 1
+        if word_len == 0:
+            na_count += 1
+            iresult[i] = NPY_NAT
+            continue
+
+        if require_consistent_format:
+            if template_word == NULL:
+                # Word pointers stay valid for the duration of this chunk's
+                # conversion, so we can hold on to the first one.
+                template_word = word
+                template_len = word_len
+            elif not _same_format_shape(template_word, template_len,
+                                        word, word_len):
+                return None, 0
+
+        ret = parse_iso_8601_datetime(
+            word, <int>word_len, 0,
+            &dts, &out_bestunit, &out_local, &out_tzoffset,
+            NULL, 0, INFER_FORMAT,
+        )
+        if ret:
+            # Not ISO8601 — signal caller to fall back to the object path.
+            return None, 0
+
+        if out_local:
+            # Tracked here so we can uniformly shift to UTC after the loop.
+            # Mixed naive+aware or differing offsets defer to the slow path,
+            # matching the existing error behavior.
+            if saw_naive:
+                return None, 0
+            if not tz_set:
+                first_tzoffset = out_tzoffset
+                tz_set = True
+            elif out_tzoffset != first_tzoffset:
+                return None, 0
+            saw_tz = True
+        else:
+            if saw_tz:
+                return None, 0
+            saw_naive = True
+
+        item_reso = get_supported_reso(out_bestunit)
+        if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+            item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+
+        if not creso_set:
+            creso = item_reso
+            creso_set = True
+        elif item_reso > creso:
+            # Higher-resolution row encountered mid-column — reparse the whole
+            # column at the new resolution. Mirrors array_strptime's recursive
+            # reparse on `creso_ever_changed` and keeps output values
+            # consistent with one another.
+            return _datetime_box_utf8(
+                parser, col, line_start, line_end,
+                na_filter, na_hashset, require_consistent_format,
+                state, chunk_idx, use_dtype_backend,
+                force_creso=item_reso,
+            )
+        # else: item_reso <= creso; fine to write at the higher creso.
+
+        try:
+            iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+        except OverflowError:
+            return None, 0
+
+    if not creso_set:
+        if state is not None and state.creso_seen != -1:
+            # All-NA chunk after a parsed chunk: emit all-NaT at the prior
+            # chunk's resolution (NA rows never affect resolution inference,
+            # and EA concat upcasts mixed units losslessly anyway).
+            creso = <NPY_DATETIMEUNIT>state.creso_seen
+        else:
+            # No values parsed in the whole read (all-NA or empty); defer to
+            # the slow path so the dtype matches it (datetime64[s]).
+            return None, 0
+
+    if creso != NPY_DATETIMEUNIT.NPY_FR_us:
+        result = iresult.base.view(f"M8[{npy_unit_to_abbrev(creso)}]")
+
+    if saw_tz:
+        # Normalize each non-NaT entry to UTC by subtracting the fixed offset.
+        if creso == NPY_DATETIMEUNIT.NPY_FR_s:
+            tz_offset_mult = 60
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
+            tz_offset_mult = 60_000
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
+            tz_offset_mult = 60_000_000
+        else:  # ns
+            tz_offset_mult = 60_000_000_000
+        offset_in_unit = first_tzoffset * tz_offset_mult
+        for i in range(lines):
+            if iresult[i] != NPY_NAT:
+                # Guard against int64 wraparound (or landing exactly on NaT)
+                # near the implementation bounds; the slow path raises for
+                # these, so fall back.
+                if offset_in_unit > 0:
+                    if iresult[i] <= INT64_MIN + offset_in_unit:
+                        return None, 0
+                elif iresult[i] > INT64_MAX + offset_in_unit:
+                    return None, 0
+                iresult[i] -= offset_in_unit
+
+        if first_tzoffset == 0:
+            tz = timezone.utc
+        else:
+            tz = timezone(timedelta(minutes=first_tzoffset))
+        dtype = DatetimeTZDtype(tz=tz, unit=npy_unit_to_abbrev(creso))
+        out = DatetimeArray._simple_new(result, dtype=dtype)
+    else:
+        # Wrap naive output in a DatetimeArray for consistency with the
+        # tz-aware case; the ExtensionArray concat path then upcasts
+        # mixed-unit datetime64 across chunks correctly where raw mixed-unit
+        # M8 ndarrays would silently demote to object.
+        out = DatetimeArray._simple_new(result, dtype=result.dtype)
+
+    if state is not None:
+        state.saw_tz = saw_tz
+        state.saw_naive = saw_naive
+        state.first_tzoffset = first_tzoffset
+        state.creso_seen = <int>creso
+        if (require_consistent_format and state.template is None
+                and template_word != NULL):
+            state.template = template_word[:template_len]
+        arena, offsets = _collect_arena(
+            parser, col, line_start, line_end, na_filter, na_hashset,
+            arena_size)
+        state.receipts.append((chunk_idx, arena, offsets, use_dtype_backend))
+
+    return out, na_count
 
 
 @cython.wraparound(False)
