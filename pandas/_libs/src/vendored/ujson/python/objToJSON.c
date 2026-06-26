@@ -195,6 +195,11 @@ static PyObject *get_values(PyObject *obj) {
 
   // MultiIndex raises on .array -> go through .values to get numpy array
   typ = PyObject_GetAttrString(obj, "_typ");
+  if (typ == NULL) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Error retrieving _typ from Index/Series object");
+    return NULL;
+  }
   if (PyUnicode_Check(typ) &&
       PyUnicode_CompareWithASCIIString(typ, "multiindex") == 0) {
     Py_DECREF(typ);
