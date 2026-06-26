@@ -1025,10 +1025,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
+    def _slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
-        mgr = self._mgr.get_slice(slobj, axis=axis)
+        mgr = self._mgr.get_slice(slobj, axis=axis, new_index=new_index)
         out = self._constructor_from_mgr(mgr, axes=mgr.axes)
         out._name = self._name
         return out.__finalize__(self)
