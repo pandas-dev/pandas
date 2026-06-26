@@ -10,6 +10,7 @@ from typing import (
 import numpy as np
 
 from pandas.core.dtypes.common import (
+    is_hashable,
     is_integer,
     is_list_like,
 )
@@ -511,6 +512,15 @@ def hist_frame(
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
     if by is not None:
+        if column is None:
+            # GH#41188: when grouping by one (or more) of the frame's own
+            #  columns, exclude the grouping column(s) so a numeric ``by``
+            #  column is not plotted as its own histogram (matching the
+            #  behavior when ``by`` is non-numeric).
+            by_keys = list(by) if isinstance(by, (list, tuple)) else [by]
+            drop = [key for key in by_keys if is_hashable(key) and key in data.columns]
+            if drop:
+                column = data.columns.difference(drop, sort=False)
         axes = _grouped_hist(
             data,
             column=column,

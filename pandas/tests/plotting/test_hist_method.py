@@ -695,6 +695,30 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
         _check_ticks_props(axes, xrot=30)
 
+    @pytest.mark.parametrize("by_dtype", ["int", "object"])
+    def test_grouped_hist_excludes_by_column(self, by_dtype):
+        # GH#41188 the grouping column must not be plotted alongside the
+        #  other columns, regardless of whether it is numeric
+        rng = np.random.default_rng(2)
+        df = DataFrame(
+            {
+                "length": rng.standard_normal(100),
+                "width": rng.standard_normal(100),
+                "a": rng.integers(0, 2, 100),
+            }
+        )
+        if by_dtype == "object":
+            df["a"] = df["a"].map({0: "x", 1: "y"})
+
+        bins = 5
+        axes = df.hist(by="a", bins=bins, legend=True)
+
+        _check_axes_shape(axes, axes_num=2, layout=(1, 2))
+        for ax in np.asarray(axes).ravel():
+            # only "length" and "width" are plotted, not the grouping column
+            assert len(ax.patches) == 2 * bins
+            _check_legend_labels(ax, ["length", "width"])
+
     def test_grouped_hist_legacy_grouped_hist_kwargs(self):
         rs = np.random.default_rng(2)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])

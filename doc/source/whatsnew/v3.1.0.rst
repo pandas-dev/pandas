@@ -397,8 +397,8 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` specified plotting the numeric grouping column as its own histogram (:issue:`41188`)
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
--
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
