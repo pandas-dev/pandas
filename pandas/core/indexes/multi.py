@@ -4216,7 +4216,7 @@ class MultiIndex(Index):
                         if missing_mask.sum() > na_count:
                             raise KeyError(k) from None
                         # NaN is in k but must also be present in the data
-                        if not (level_codes == -1).any():
+                        if not lib.has_sentinel(level_codes, -1):
                             raise KeyError(k) from None
                     elif missing_mask.any():
                         raise KeyError(k) from None

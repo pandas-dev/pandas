@@ -908,9 +908,22 @@ class Index(IndexOpsMixin, PandasObject):
 
         If this is a MultiIndex, it's first level values are used.
         """
+        max_items = config["display"]["max_dir_items"]
+        # GH#18587 avoid hashing the entire Index in the common case where
+        # only the first ``max_items`` unique values are needed. Examining a
+        # bounded prefix suffices when it already contains enough uniques;
+        # otherwise fall back to the full unique() call.
+        if max_items is not None and len(self) > max_items * 10:
+            prefix_uniq = self[: max_items * 10].unique(level=0)
+            if len(prefix_uniq) >= max_items:
+                return {
+                    c
+                    for c in prefix_uniq[:max_items]
+                    if isinstance(c, str) and c.isidentifier()
+                }
         return {
             c
-            for c in self.unique(level=0)[: config["display"]["max_dir_items"]]
+            for c in self.unique(level=0)[:max_items]
             if isinstance(c, str) and c.isidentifier()
         }
 

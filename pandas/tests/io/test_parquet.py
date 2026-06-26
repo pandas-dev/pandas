@@ -470,11 +470,7 @@ class TestBasic(Base):
             read_kwargs={"columns": ["string"]},
         )
 
-    def test_read_filters(self, engine, request, tmp_path):
-        if engine == "fastparquet" and using_string_dtype() and _fp_version_lt_2025:
-            request.applymarker(
-                pytest.mark.xfail(reason="TODO(infer_string) fastparquet < 2025.12.0")
-            )
+    def test_read_filters(self, engine, tmp_path):
         df = pd.DataFrame(
             {
                 "int": list(range(4)),

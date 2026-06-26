@@ -240,7 +240,8 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             {
                 col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
                 for i, col in enumerate(["year", "week", "day"])
-            }
+            },
+            index=self._parent.index,
         )
         return iso_calendar_df
 
