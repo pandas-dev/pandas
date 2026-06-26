@@ -1461,6 +1461,7 @@ class TestPandasContainer:
     )
     def test_tz_range_is_utc(self, tz_range):
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
+        serexp = '{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000Z","1":"2013-01-02T05:00:00.000Z"}}'
 
         assert ujson_dumps(tz_range, iso_dates=True) == exp
@@ -1469,25 +1470,49 @@ class TestPandasContainer:
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
+        # Series[dt64tz] must preserve the tz like the DTI case
+        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
         df = DataFrame({"DT": dti})
         result = ujson_dumps(df, iso_dates=True)
         assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
 
     def test_tz_range_is_naive(self):
         dti = date_range("2013-01-01 05:00:00", periods=2, unit="ns")
 
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
+        serexp = '{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
 
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
         assert ujson_dumps(dti, iso_dates=True) == exp
         assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
+        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
         df = DataFrame({"DT": dti})
         result = ujson_dumps(df, iso_dates=True)
         assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "index", "columns", "values"]
+    )
+    def test_tz_aware_to_json_matches_object(self, orient):
+        # tz-aware datetime values and labels serialize identically to the
+        # equivalent object-dtype Timestamps for every orient, keeping the
+        # trailing "Z" -- the "split" data path in particular regressed when
+        # values were taken straight from the datetime64 ndarray
+        dti = date_range("2013-01-01 05:00:00", periods=2, tz="US/Eastern")
+        ser = Series(dti, index=dti)
+        expected = Series(dti.astype(object), index=dti.astype(object))
+        assert ser.to_json(orient=orient, date_format="iso") == expected.to_json(
+            orient=orient, date_format="iso"
+        )
+        df = DataFrame({"A": dti}, index=dti)
+        df_expected = DataFrame({"A": dti.astype(object)}, index=dti.astype(object))
+        assert df.to_json(orient=orient, date_format="iso") == df_expected.to_json(
+            orient=orient, date_format="iso"
+        )
 
     def test_read_inline_jsonl(self):
         # GH9180
