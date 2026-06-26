@@ -2133,6 +2133,23 @@ def test_resample_b_55282(unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("n", [2, 3, 7, 14])
+def test_resample_multiday_closed_right_43198(n, unit):
+    # GH#43198 multi-day downsampling with closed="right" used to raise
+    # "Values falls before first bin" when no value landed on a bin edge
+    dti = DatetimeIndex(["2013-04-01 22:00:00"]).as_unit(unit)
+    ser = Series([0.0], index=dti)
+
+    result = ser.resample(f"{n}D", closed="right").max()
+
+    exp_dti = DatetimeIndex(
+        [Timestamp("2013-04-01") - n * Day(), Timestamp("2013-04-01")],
+        freq=f"{n}D",
+    ).as_unit(unit)
+    expected = Series([np.nan, 0.0], index=exp_dti)
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "tz",
