@@ -233,7 +233,9 @@ def concat(
         If True and all values for a given column have categorical dtype,
         the resulting column will preserve categorical dtype with the
         union of the categories, rather than casting to the underlying
-        dtype. Has no effect when concatenating mixed categorical and
+        dtype. The result is unordered unless every input shares the same
+        dtype, in which case it inherits that dtype's ``ordered`` attribute.
+        Has no effect when concatenating mixed categorical and
         non-categorical data.
 
         .. versionadded:: 3.1.0

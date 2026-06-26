@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import numpy as np
-import pytest
 
 from pandas.errors import Pandas4Warning
 
@@ -339,29 +338,47 @@ class TestConcatUnionCategories:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_ordered_incompatible_raises(self):
-        # Ordered categoricals with different categories should raise
+    def test_ordered_incompatible_categories_drops_order(self):
+        # Ordered categoricals with different categories union to an unordered
+        # result rather than raising (GH#14177, dev-call decision)
         s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
         s2 = Series(Categorical(["b", "c"], categories=["b", "c"], ordered=True))
-        msg = "to union ordered Categoricals, all categories must be the same"
-        with pytest.raises(TypeError, match=msg):
-            pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", "b", "c"], categories=["a", "b", "c"]),
+        )
+        tm.assert_series_equal(result, expected)
 
-    def test_mixed_ordered_unordered_raises(self):
+    def test_mixed_ordered_unordered_drops_order(self):
+        # Mixed ordered/unordered with the same categories: dtypes differ, so
+        # the result is unordered rather than raising
         s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
         s2 = Series(Categorical(["a", "b"], categories=["a", "b"]))
-        msg = "Categorical.ordered must be the same"
-        with pytest.raises(TypeError, match=msg):
-            pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", "a", "b"], categories=["a", "b"]),
+        )
+        tm.assert_series_equal(result, expected)
 
-    def test_incompatible_category_dtypes_raises(self):
-        # With union_categories=True, categoricals whose categories have
-        # different dtypes raise instead of falling back to object
+    def test_ordered_same_categories_different_order_drops_order(self):
+        # Same category set in a different order means the dtypes differ, so
+        # the result is the unordered union rather than an ordered categorical
+        s1 = Series(Categorical(["a", "b"], categories=["a", "b"], ordered=True))
+        s2 = Series(Categorical(["a", "b"], categories=["b", "a"], ordered=True))
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(
+            Categorical(["a", "b", "a", "b"], categories=["a", "b"]),
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_incompatible_category_dtypes_fall_back_to_object(self):
+        # Categoricals whose categories have different dtypes can't be unioned,
+        # so they fall back to object rather than raising
         s1 = Series(Categorical(["a", "b"]))
         s2 = Series(Categorical([1, 2]))
-        msg = "dtype of categories must be the same"
-        with pytest.raises(TypeError, match=msg):
-            pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+        expected = Series(["a", "b", 1, 2], dtype=object)
+        tm.assert_series_equal(result, expected)
 
     def test_dataframe_column_missing_from_one_frame(self):
         # Column present in only one frame still keeps categorical dtype,

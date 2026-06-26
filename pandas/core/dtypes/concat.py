@@ -85,8 +85,15 @@ def concat_compat(
         and len(to_concat)
         and all(isinstance(x.dtype, CategoricalDtype) for x in to_concat)
     ):
-        eas = cast("Sequence[ExtensionArray]", to_concat)
-        return eas[0]._concat_same_type(eas)
+        cats = cast("Sequence[Categorical]", to_concat)
+        if lib.dtypes_all_equal([x.categories.dtype for x in cats]):
+            # GH#14177 When all inputs share a dtype, preserve dtypes[0].ordered.
+            #  Otherwise union the categories and drop any orderedness instead
+            #  of raising, matching union_categoricals(ignore_order=True).
+            ignore_order = not lib.dtypes_all_equal([x.dtype for x in cats])
+            return union_categoricals(cats, ignore_order=ignore_order)
+        # categories themselves have differing dtypes (e.g. str vs int): fall
+        #  through to the common-dtype (object) concat below rather than raising.
 
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
