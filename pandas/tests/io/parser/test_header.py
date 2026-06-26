@@ -682,21 +682,23 @@ def test_header_missing_rows(all_parsers):
         parser.read_csv(StringIO(data), header=[0, 1, 2])
 
 
-# ValueError: the 'pyarrow' engine does not support regex separators
-@xfail_pyarrow
 def test_header_multiple_whitespaces(all_parsers):
     # GH#54931
     parser = all_parsers
     data = """aa    bb(1,1)   cc(1,1)
                 0  2  3.5"""
 
+    if parser.engine == "pyarrow":
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=r"\s+")
+        return
+
     result = parser.read_csv(StringIO(data), sep=r"\s+")
     expected = DataFrame({"aa": [0], "bb(1,1)": 2, "cc(1,1)": 3.5})
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: the 'pyarrow' engine does not support regex separators
-@xfail_pyarrow
 def test_header_delim_whitespace(all_parsers):
     # GH#54918
     parser = all_parsers
@@ -704,6 +706,12 @@ def test_header_delim_whitespace(all_parsers):
 1,2
 3,4
     """
+    if parser.engine == "pyarrow":
+        msg = "the 'pyarrow' engine does not support separators > 1 char"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=r"\s+")
+        return
+
     result = parser.read_csv(StringIO(data), sep=r"\s+")
     expected = DataFrame({"a,b": ["1,2", "3,4"]})
     tm.assert_frame_equal(result, expected)

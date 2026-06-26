@@ -901,8 +901,8 @@ def pandasSQL_builder(
 
     if isinstance(con, str) and sqlalchemy is None:
         raise ImportError(
-            f"Using URI string without version '{VERSIONS['sqlalchemy']}' or newer "
-            "of 'sqlalchemy' installed."
+            "Using a URI string requires 'sqlalchemy' version "
+            f"'{VERSIONS['sqlalchemy']}' or newer."
         )
 
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Connectable)):
@@ -1477,7 +1477,10 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
-        raise NotImplementedError
+        raise NotImplementedError(
+            "read_sql_table not supported for a DBAPI connection. Use "
+            "read_sql_query, or pass a SQLAlchemy connectable."
+        )
 
     @abstractmethod
     def read_query(
@@ -2427,7 +2430,7 @@ class ADBCDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
-            db_schema_filter=schema, table_name_filter=name
+            depth="tables", db_schema_filter=schema, table_name_filter=name
         ).read_all()
 
         for catalog_schema in meta["catalog_db_schemas"].to_pylist():
