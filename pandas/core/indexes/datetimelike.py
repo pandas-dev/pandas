@@ -1431,7 +1431,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         ):
             freq = obj.freq
             tz = getattr(self.dtype, "tz", None)
-            if isinstance(freq, Tick) or (tz is None and isinstance(freq, Day)):
+            if (
+                isinstance(freq, Tick) or (tz is None and isinstance(freq, Day))
+            ) and all(idx.unit == self.unit for idx in to_concat_nonempty):
                 # freq is a fixed delta in the stored i8 representation, so we
                 # can check boundary continuity without boxing endpoints to
                 # Timestamps and doing per-pair offset arithmetic.
