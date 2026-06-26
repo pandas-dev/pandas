@@ -576,7 +576,7 @@ class TestMelt:
         df = DataFrame(
             {"id": [1, 2], "variable": [9, 9], "a": [10, 20], "b": [100, 200]}
         )
-        with pytest.raises(ValueError, match="duplicate column names"):
+        with pytest.raises(ValueError, match="duplicate names"):
             df.melt(**kwargs)
 
 
