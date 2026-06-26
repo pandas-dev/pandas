@@ -529,6 +529,38 @@ class TestDataFrameToDict:
         }
         assert result == expected
 
+    def test_to_dict_index_into_nested(self):
+        # GH#65778
+        df = DataFrame({"A": [1, 2], "B": ["x", "y"]})
+
+        result = df.to_dict(orient="index", into=OrderedDict)
+        assert isinstance(result, OrderedDict)
+        assert all(isinstance(v, OrderedDict) for v in result.values())
+
+        result = df.to_dict(orient="index", into=defaultdict(dict))
+        assert isinstance(result, defaultdict)
+        assert all(isinstance(v, defaultdict) for v in result.values())
+
+    def test_to_dict_index_into_nested_mixed_dtypes(self):
+        # GH#65778
+        df = DataFrame({"A": [1, 2], "B": ["x", "y"], "C": [1.0, 2.0]})
+
+        result = df.to_dict(orient="index", into=OrderedDict)
+        assert isinstance(result, OrderedDict)
+        assert all(isinstance(v, OrderedDict) for v in result.values())
+        assert result[0] == OrderedDict([("A", 1), ("B", "x"), ("C", 1.0)])
+        assert result[1] == OrderedDict([("A", 2), ("B", "y"), ("C", 2.0)])
+
+    def test_to_dict_index_into_nested_all_object(self):
+        # GH#65778
+        df = DataFrame({"A": ["a", "b"], "B": ["x", "y"]})
+
+        result = df.to_dict(orient="index", into=OrderedDict)
+        assert isinstance(result, OrderedDict)
+        assert all(isinstance(v, OrderedDict) for v in result.values())
+        assert result[0] == OrderedDict([("A", "a"), ("B", "x")])
+        assert result[1] == OrderedDict([("A", "b"), ("B", "y")])
+
 
 @pytest.mark.parametrize(
     "val", [Timestamp(2020, 1, 1), Timedelta(1), Period("2020"), Interval(1, 2)]
