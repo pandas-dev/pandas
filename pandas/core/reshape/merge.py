@@ -1291,7 +1291,13 @@ class _MergeOperation:
                                 else lib.has_sentinel(left_indexer, -1)
                             )
 
-                        if left_has_missing:
+                        right_key_dtype = self.right_join_keys[i].dtype
+                        needs_resolution_cast = (
+                            result[name].dtype.kind == "M"
+                            and right_key_dtype.kind == "M"
+                            and result[name].dtype != right_key_dtype
+                        )
+                        if left_has_missing or needs_resolution_cast:
                             take_right = self.right_join_keys[i]
 
                             if result[name].dtype != self.left[name].dtype:
@@ -1305,7 +1311,13 @@ class _MergeOperation:
                                 else lib.has_sentinel(right_indexer, -1)
                             )
 
-                        if right_has_missing:
+                        left_key_dtype = self.left_join_keys[i].dtype
+                        needs_resolution_cast = (
+                            result[name].dtype.kind == "M"
+                            and left_key_dtype.kind == "M"
+                            and result[name].dtype != left_key_dtype
+                        )
+                        if right_has_missing or needs_resolution_cast:
                             take_left = self.left_join_keys[i]
 
                             if result[name].dtype != self.right[name].dtype:
@@ -1355,8 +1367,9 @@ class _MergeOperation:
                         and rvals.dtype.kind == "M"
                         and result_dtype.kind == "O"
                     ):
-                        # TODO(non-nano) Workaround for common_type not dealing
-                        # with different resolutions
+                        # find_common_type returns object for datetimes with
+                        # different timezones; keep the combined datetime key
+                        # dtype instead of degrading to object.
                         result_dtype = key_col.dtype
 
                 if result._is_label_reference(name):

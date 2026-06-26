@@ -2933,20 +2933,30 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
 
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, join_type):
+@pytest.mark.parametrize(
+    "left_unit, right_unit, expected_unit",
+    [
+        ("ns", "s", "ns"),  # left higher resolution
+        ("us", "ns", "ns"),  # GH#55212 - left lower resolution
+    ],
+)
+def test_merge_datetime_different_resolution(
+    tz, join_type, left_unit, right_unit, expected_unit
+):
     # https://github.com/pandas-dev/pandas/issues/53200
+    # GH#55212
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
         pd.Timestamp(2023, 5, 13, tz=tz),
         pd.Timestamp(2023, 5, 14, tz=tz),
     ]
     df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
-    df1["t"] = df1["t"].dt.as_unit("ns")
+    df1["t"] = df1["t"].dt.as_unit(left_unit)
     df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
-    df2["t"] = df2["t"].dt.as_unit("s")
+    df2["t"] = df2["t"].dt.as_unit(right_unit)
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
-    expected["t"] = expected["t"].dt.as_unit("ns")
+    expected["t"] = expected["t"].dt.as_unit(expected_unit)
     if join_type == "inner":
         expected = expected.iloc[[1]].reset_index(drop=True)
     elif join_type == "left":
@@ -2956,6 +2966,62 @@ def test_merge_datetime_different_resolution(tz, join_type):
 
     result = df1.merge(df2, on="t", how=join_type)
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_tz_preserves_dtype(join_type):
+    # GH#55212 - merging on keys that differ only by tz must keep the join
+    #  key tz-aware (left's tz) rather than collapsing to object dtype.
+    i0 = pd.Timestamp("2023-05-12 12:00", tz="UTC")
+    i1 = pd.Timestamp("2023-05-12 13:00", tz="UTC")
+    i2 = pd.Timestamp("2023-05-12 14:00", tz="UTC")
+
+    left = DataFrame({"t": [i0, i1], "a": [1.0, 2.0]})
+    left["t"] = left["t"].dt.tz_convert("US/Eastern")
+    right = DataFrame({"t": [i0, i2], "b": [3.0, 4.0]})
+    right["t"] = right["t"].dt.tz_convert("US/Pacific")
+
+    result = left.merge(right, on="t", how=join_type)
+
+    keys = {"inner": [i0], "left": [i0, i1], "outer": [i0, i1, i2], "right": [i0, i2]}
+    avals = {
+        "inner": [1.0],
+        "left": [1.0, 2.0],
+        "outer": [1.0, 2.0, None],
+        "right": [1.0, None],
+    }
+    bvals = {
+        "inner": [3.0],
+        "left": [3.0, None],
+        "outer": [3.0, None, 4.0],
+        "right": [3.0, 4.0],
+    }
+    expected = DataFrame(
+        {
+            "t": DatetimeIndex(keys[join_type]).tz_convert("US/Eastern").as_unit("us"),
+            "a": avals[join_type],
+            "b": bvals[join_type],
+        }
+    )
+    # tz-aware result key; with the workaround removed this dtype becomes object
+    assert result["t"].dtype == left["t"].dtype
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_resolution_right_on(join_type):
+    # GH#55212 - when the join key lives only in the right frame
+    # (via left_index=True + right_on), it must still upcast to the highest
+    # datetime64 resolution.
+    vals = [
+        pd.Timestamp("2023-05-12"),
+        pd.Timestamp("2023-05-13"),
+        pd.Timestamp("2023-05-14"),
+    ]
+    left = DataFrame({"a": [1.0, 2.0]}, index=DatetimeIndex(vals[:2]).as_unit("ns"))
+    right = DataFrame({"rk": vals[1:], "b": [3.0, 4.0]})
+    right["rk"] = right["rk"].dt.as_unit("us")
+
+    result = left.merge(right, left_index=True, right_on="rk", how=join_type)
+    assert result["rk"].dtype == np.dtype("datetime64[ns]")
 
 
 def test_merge_multiindex_single_level():
