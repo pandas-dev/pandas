@@ -10,7 +10,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.indexes.frozen import FrozenList
 
 
 def test_equals(idx):
@@ -286,15 +285,13 @@ def test_equals_ea_int_regular_int():
 
 
 def test_multiindex_equals_different_bit_widths():
-    # GH 65700
-    mi1 = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    # GH#65700 - MultiIndex.equals should be value-based, not byte-based.
+    # Slicing a large MultiIndex preserves int16 codes, while a freshly
+    # constructed small MultiIndex gets int8 codes. Comparing them was
+    # incorrectly returning False before this fix.
+    mi_large = MultiIndex.from_arrays([range(200), range(200)])
+    mi_sliced = mi_large[:2]  # int16 codes preserved after slicing
 
-    # Create the second index normally first
-    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    mi_fresh = MultiIndex.from_arrays([[0, 1], [0, 1]])  # int8 codes
 
-    # Hack the internal _codes to force them to be int32,
-    # bypassing the constructor's automatic downcasting to int8
-    codes2 = [np.array([0, 1], dtype=np.int32), np.array([0, 1], dtype=np.int32)]
-    mi2._codes = FrozenList(codes2)
-
-    assert mi1.equals(mi2)
+    assert mi_sliced.equals(mi_fresh)
