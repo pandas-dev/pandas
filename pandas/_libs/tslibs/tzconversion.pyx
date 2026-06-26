@@ -147,8 +147,8 @@ cdef class Localizer:
         else:
             if (
                 self.use_zoneinfo
-                # and self.has_tz_rule
-                # and utc_val > self.last_trans
+                and self.has_tz_rule
+                and utc_val > self.last_trans
             ):
                 return utc_val + _tz_localize_using_tzinfo_api(
                     utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
@@ -411,8 +411,8 @@ timedelta-like}
 
                 if (
                     info.use_zoneinfo
-                    # and info.has_tz_rule
-                    # and new_local > info.last_trans
+                    and info.has_tz_rule
+                    and new_local > info.last_trans
                 ):
                     if shift_forward or shift_delta > 0:
                         delta = _tz_localize_using_tzinfo_api(
@@ -519,7 +519,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         if val == NPY_NAT:
             continue
 
-        if use_zoneinfo:  # and info.has_tz_rule and val > info.last_trans:
+        if use_zoneinfo and info.has_tz_rule and val > info.last_trans:
             # For values beyond cached transition coverage, derive the two
             # candidate UTC instants via zoneinfo and keep whichever
             # round-trip back to this wall time.
