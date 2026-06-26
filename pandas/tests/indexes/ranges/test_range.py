@@ -9,6 +9,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
+import pandas.core.indexes.range as range_module
 from pandas.core.indexes.range import min_fitting_element
 
 
@@ -370,6 +371,19 @@ class TestRangeIndex:
         # constant memory usage
         i2 = RangeIndex(0, 10)
         assert idx.nbytes == i2.nbytes
+
+    def test_nbytes_pypy_compat(self, monkeypatch):
+        # GH#46176 sys.getsizeof always raises TypeError on PyPy unless
+        # a default is provided; nbytes must keep working there.
+        def pypy_getsizeof(obj, default=None):
+            if default is None:
+                raise TypeError("PyPy")
+            return default
+
+        monkeypatch.setattr(range_module, "getsizeof", pypy_getsizeof)
+        idx = RangeIndex(0, 1000)
+        assert isinstance(idx.nbytes, int)
+        assert idx.memory_usage() == idx.nbytes
 
     @pytest.mark.parametrize(
         "start,stop,step",

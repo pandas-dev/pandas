@@ -2751,6 +2751,23 @@ def test_dt_isocalendar():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_isocalendar_preserves_index():
+    # GH#65894
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+        index=["a", "b"],
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        index=["a", "b"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, exp", [["day_name", "Sunday"], ["month_name", "January"]]
 )

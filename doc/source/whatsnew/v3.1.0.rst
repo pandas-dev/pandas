@@ -166,6 +166,7 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :func:`merge` with ``how="left"`` and ``sort=False`` when joining on a right index with unique keys (:issue:`65160`)
 - Performance improvement in :func:`merge` with ``sort=False`` for single-key ``how="left"``/``how="right"`` joins when the opposite join key is sorted, unique, and range-like (:issue:`64146`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_hdf` for the fixed (default) format, especially on large frames (:issue:`47726`)
 - Performance improvement in :func:`read_html` and the Python CSV parser when ``thousands`` is set, fixing catastrophic regex backtracking on cells with many comma-separated digit groups followed by non-numeric text (:issue:`52619`)
@@ -226,6 +227,9 @@ Performance improvements
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
 - Performance improvement in the :attr:`Series.dt` duration component accessors (``days``, ``seconds``, ``microseconds``, ``nanoseconds``, ``components``, etc.) for :class:`ArrowDtype` durations by using PyArrow compute instead of converting to :class:`TimedeltaArray` (:issue:`63470`)
+- Performance improvement in tab completion and :meth:`DataFrame.__dir__`
+  for :class:`DataFrame` and :class:`Series` with a large string-valued
+  index or large number of columns (:issue:`18587`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
@@ -262,6 +266,7 @@ Datetimelike
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``AssertionError`` instead of :class:`OutOfBoundsDatetime` when replacing with a ``datetime`` value outside the ``datetime64[ns]`` range (:issue:`61671`)
 - Bug in :meth:`DataFrame.to_string` and :meth:`Series.to_string` where ``na_rep`` was ignored for datetime and timedelta columns, always displaying ``NaT`` (:issue:`55426`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
+- Bug in :meth:`Series.dt.isocalendar` with a pyarrow-backed datetime or date dtype not preserving the original index, resetting it to a default :class:`RangeIndex` (:issue:`65894`)
 - Bug in adding non-nano :class:`DatetimeIndex` with non-vectorized offsets (e.g. :class:`CustomBusinessDay`, :class:`CustomBusinessMonthEnd`) having a sub-unit ``offset`` parameter incorrectly truncating the result or raising ``AttributeError`` (:issue:`56586`)
 - Bug in subtracting :class:`BusinessHour` (or :class:`CustomBusinessHour`) from a :class:`Timestamp` giving incorrect results when the subtraction would land exactly on the business-hour opening time (:issue:`33682`)
 
@@ -300,11 +305,12 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
+- Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 
 Interval
 ^^^^^^^^
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
--
+- Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
 
 Indexing
 ^^^^^^^^
@@ -332,8 +338,9 @@ Indexing
 - Bug in :meth:`Index.take` where ``fill_value`` was silently ignored and integer-dtype indexes raised ``ValueError`` instead of filling with the provided value. Passing ``fill_value=None`` now fills ``-1`` entries with the Index's NA value (matching the :class:`~pandas.api.extensions.ExtensionArray` convention); omit ``fill_value`` to retain the previous behavior where negative indices wrap (:issue:`65210`)
 - Bug in :meth:`Index.where` and :meth:`Index.putmask` preserving ``numpy.datetime64`` / ``numpy.timedelta64`` ``NaT`` scalars in the object-dtype result for mismatched-dtype inputs, instead of normalizing to :attr:`pandas.NaT` as :meth:`Series.where` does (:issue:`55174`)
 - Bug in :meth:`MultiIndex.get_loc` returning a slice instead of an integer for a unique key when the :class:`MultiIndex` contained duplicates elsewhere, causing ``.loc`` to return a :class:`Series` instead of a scalar (:issue:`42102`)
+- Bug in :meth:`RangeIndex.memory_usage` and :attr:`RangeIndex.nbytes` raising ``TypeError`` on PyPy (:issue:`46176`)
 - Bug in :meth:`Series.where` and :meth:`Series.mask` raising ``ValueError`` when ``other`` is a tuple on object-dtype :class:`Series` (:issue:`37681`)
-- Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`57962`)
+- Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`26333`, :issue:`57962`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
 -
@@ -353,9 +360,11 @@ MultiIndex
 I/O
 ^^^
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
+- :func:`read_sql_table` now raises an informative ``NotImplementedError`` (instead of one with no message) when passed a DBAPI connection such as ``sqlite3``, and reading from a URI string without a usable ``sqlalchemy`` install now raises a clearer ``ImportError`` (:issue:`41237`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
+- Fixed memory leak in :func:`read_csv` (:issue:`19941`)
 - Fixed segfault when instantiating the internal ``pandas._libs.parsers.TextReader`` with no arguments; it now raises ``TypeError`` (:issue:`53131`)
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)
