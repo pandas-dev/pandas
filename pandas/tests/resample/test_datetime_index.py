@@ -2199,3 +2199,18 @@ def test_resample_sum_with_inat_value():
     result = df.resample("MS").apply(np.sum)
     expected = DataFrame([-1], index=date_range("2013-01-01", periods=1, freq="MS"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_multiday_grouper_closed_right_intraday():
+    # GH#43896 intraday values with a multi-day Grouper and closed="right"
+    #  used to raise "Values falls before first bin"
+    index = date_range("2019-12-31 00:10:00", "2020-01-04 00:10:00", freq="12h")
+    df = DataFrame({"a": np.arange(len(index), dtype=float)}, index=index)
+    result = df.groupby(Grouper(freq="2D", closed="right")).sum()
+    expected = DataFrame(
+        {"a": [0.0, 6.0, 22.0, 8.0]},
+        index=DatetimeIndex(
+            ["2019-12-29", "2019-12-31", "2020-01-02", "2020-01-04"], freq="2D"
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -2224,7 +2224,8 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match="^$"):
+        msg = "read_sql_table not supported for a DBAPI connection"
+        with pytest.raises(NotImplementedError, match=msg):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -2595,7 +2596,7 @@ def test_sql_open_close(temp_file, test_frame3):
 @td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
-    msg = "Using URI string without sqlalchemy installed"
+    msg = "Using a URI string requires 'sqlalchemy'"
     with pytest.raises(ImportError, match=msg):
         sql.read_sql("SELECT * FROM iris", conn)
 
