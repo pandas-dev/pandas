@@ -8,6 +8,7 @@ from pandas._libs.missing import is_matching_na
 from pandas.core.dtypes.common import is_float
 
 from pandas import (
+    DataFrame,
     Index,
     MultiIndex,
     Series,
@@ -116,6 +117,27 @@ def test_equals_none_vs_nan():
     assert ser.equals(ser2)
     assert Index(ser, dtype=ser.dtype).equals(Index(ser2, dtype=ser2.dtype))
     assert ser.array.equals(ser2.array)
+
+
+@pytest.mark.parametrize("box", [Series, DataFrame])
+def test_equals_nested_pandas_object(box):
+    # GH#43008 equals() failed for a nested Series/DataFrame
+    inner = box(np.array([1.0, np.nan]))
+    ser = Series([inner.copy()], dtype=object)
+    ser2 = Series([inner.copy()], dtype=object)
+    assert ser.equals(ser2)
+
+    # NaN in a matching location compares equal
+    other = Series([box(np.array([1.0, 2.0]))], dtype=object)
+    assert not ser.equals(other)
+
+
+def test_equals_nested_empty_series():
+    # GH#43008
+    inner = Series(dtype=float)
+    ser = Series({0: inner})
+    ser2 = Series({0: inner.copy()})
+    assert ser.equals(ser2)
 
 
 def test_equals_None_vs_float():

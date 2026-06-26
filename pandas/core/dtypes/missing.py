@@ -532,7 +532,12 @@ def _array_equivalent_object(
         left_remaining = left
         right_remaining = right
 
-    for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
+    # left_remaining/right_remaining may be 2-D here (e.g. DataFrame block
+    # values that reached this fallback); use .flat to compare element-wise
+    # rather than row-wise (GH#43008)
+    for left_value, right_value in zip(
+        left_remaining.flat, right_remaining.flat, strict=True
+    ):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -541,6 +546,12 @@ def _array_equivalent_object(
 
         elif isinstance(left_value, float) and np.isnan(left_value):
             if not isinstance(right_value, float) or not np.isnan(right_value):
+                return False
+        elif isinstance(left_value, (ABCSeries, ABCDataFrame)):
+            # GH#43008 nested Series/DataFrame: recurse via equals so that NaNs
+            # in the same location compare equal (a plain `!=` treats NaN as
+            # unequal to NaN). equals also returns False for a type mismatch.
+            if not left_value.equals(right_value):
                 return False
         else:
             with warnings.catch_warnings():

@@ -3,6 +3,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Series,
     date_range,
 )
 import pandas._testing as tm
@@ -88,6 +89,16 @@ class TestEquals:
         df3 = df1.set_index(["floats"], append=True)
         df2 = df1.set_index(["floats"], append=True)
         assert df3.equals(df2)
+
+    def test_equals_nested_pandas_object(self):
+        # GH#43008 equals() with a column of nested Series, including NaNs in
+        # a matching location
+        df1 = DataFrame({"x": [Series([1.0, np.nan]), Series([3.0])]}, dtype=object)
+        df2 = df1.copy()
+        assert df1.equals(df2)
+
+        df3 = DataFrame({"x": [Series([1.0, np.nan]), Series([9.0])]}, dtype=object)
+        assert not df1.equals(df3)
 
     def test_equals_categorical_categories_order(self):
         cat1 = Categorical(["a", "b", "a"], categories=["a", "b"])

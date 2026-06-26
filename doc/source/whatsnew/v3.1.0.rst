@@ -448,6 +448,7 @@ Other
 ^^^^^
 
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
+- Bug in :meth:`Series.equals` and :meth:`DataFrame.equals` raising ``ValueError`` or returning ``False`` when an element was itself a :class:`Series` or :class:`DataFrame`, even when the nested objects were equal (:issue:`43008`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 
 .. ***DO NOT USE THIS SECTION***
