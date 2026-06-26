@@ -1125,11 +1125,13 @@ def test_arithmetic_with_incomparable_multiindex_deprecated(
     s1 = Series(index=index1)
     s1["T.1A", "N.0"] = 0.5
     s1["T.1B", "N.0"] = 0.5
-    op = tm.get_op_from_name(all_arithmetic_operators)
 
-    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    index2 = pd.MultiIndex.from_product([[], []], names=["X", "M"])
     s2 = Series(index=index2)
-    s2["N.0", "M.0"] = 0.5
+    s2["T.1A", "N.0"] = 0.5
+    s2["T.1B", "N.0"] = 0.5
+
+    op = tm.get_op_from_name(all_arithmetic_operators)
 
     msg = (
         "The silent alignment on arithmetic operations between "
@@ -1148,9 +1150,10 @@ def test_flex_method_with_incomparable_multiindex_deprecated(opname):
     s1["T.1A", "N.0"] = 0.5
     s1["T.1B", "N.0"] = 0.5
 
-    index2 = pd.MultiIndex.from_product([[], []], names=["N", "M"])
+    index2 = pd.MultiIndex.from_product([[], []], names=["X", "M"])
     s2 = Series(index=index2)
-    s2["N.0", "M.0"] = 0.5
+    s2["T.1A", "N.0"] = 0.5
+    s2["T.1B", "N.0"] = 0.5
 
     op = getattr(Series, opname)
 

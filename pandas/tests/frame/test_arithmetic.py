@@ -917,9 +917,10 @@ class TestFrameFlexArithmetic:
         s1["T.1A", "N.0"] = 0.5
         s1["T.1B", "N.0"] = 0.5
 
-        index2 = MultiIndex.from_product([[], []], names=["N", "M"])
+        index2 = MultiIndex.from_product([[], []], names=["X", "M"])
         s2 = DataFrame(index=index2)
-        s2["N.0", "M.0"] = 0.5
+        s2["T.1A", "N.0"] = 0.5
+        s2["T.1B", "N.0"] = 0.5
 
         op = getattr(DataFrame, opname)
 
@@ -1280,11 +1281,13 @@ class TestFrameArithmetic:
         s1 = DataFrame(index=index1)
         s1["T.1A", "N.0"] = 0.5
         s1["T.1B", "N.0"] = 0.5
-        op = tm.get_op_from_name(all_arithmetic_operators)
 
-        index2 = MultiIndex.from_product([[], []], names=["N", "M"])
+        index2 = MultiIndex.from_product([[], []], names=["X", "M"])
         s2 = DataFrame(index=index2)
-        s2["N.0", "M.0"] = 0.5
+        s2["T.1A", "N.0"] = 0.5
+        s2["T.1B", "N.0"] = 0.5
+
+        op = tm.get_op_from_name(all_arithmetic_operators)
 
         msg = (
             "The silent alignment on arithmetic operations between "
