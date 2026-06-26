@@ -860,6 +860,13 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
+        .. deprecated:: 3.1.0
+
+            Passing integer or float values together with ``format`` is
+            deprecated; cast them to strings first. In a future version numeric
+            values will be interpreted as epochs via ``unit`` instead, and
+            ``format`` will only apply to string input.
+
         .. note::
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
