@@ -34,7 +34,7 @@ class ArrowStringArrayMixin:
     def __init__(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-    def _from_pyarrow_array(self, pa_array) -> Self:
+    def _from_pyarrow_array(self, pa_array: pa.Array | pa.ChunkedArray) -> Self:
         raise NotImplementedError
 
     def _convert_bool_result(self, result, na=lib.no_default, method_name=None):
@@ -203,6 +203,12 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
+
+    def _str_getitem(self, key: slice | int) -> Self:
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None

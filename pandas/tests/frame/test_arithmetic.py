@@ -2009,7 +2009,7 @@ class TestFrameArithmeticUnsorted:
             getattr(df, all_arithmetic_operators)(b)
 
     def test_dunder_methods_binary(self, all_arithmetic_operators):
-        # GH#??? frame.__foo__ should only accept one argument
+        # GH#36796 frame.__foo__ should only accept one argument
         df = DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
         b = df["B"]
         with pytest.raises(TypeError, match="takes 2 positional arguments"):
@@ -2198,6 +2198,52 @@ def test_arithmetic_multiindex_column_align_with_fillvalue():
     )
     result = df1.add(df2, fill_value=0)
     tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_multiindex_with_nan_index_and_fill_value():
+    # GH#30857 partially-overlapping MultiIndexes with NaN entries on both
+    #  sides plus fill_value used to align onto a non-unique index because
+    #  MultiIndex.union failed to deduplicate NaN-bearing rows.
+    df0 = DataFrame(
+        data=np.arange(1, 19).reshape(9, 2),
+        columns=["happy", "sad"],
+        index=MultiIndex.from_product(
+            [["a", "b", None], [0, 1, np.nan]], names=["l0", "l1"]
+        ),
+    )
+    df1 = DataFrame(
+        data=np.arange(1, 19).reshape(9, 2),
+        columns=["happy", "sad"],
+        index=MultiIndex.from_product(
+            [["b", "c", None], [1, 2, np.nan]], names=["l0", "l1"]
+        ),
+    )
+
+    result = df0.subtract(df1, fill_value=0)
+
+    expected = DataFrame(
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+            [7.0, 8.0],
+            [8.0, 8.0],
+            [-3.0, -4.0],
+            [6.0, 6.0],
+            [-7.0, -8.0],
+            [-9.0, -10.0],
+            [-11.0, -12.0],
+            [13.0, 14.0],
+            [2.0, 2.0],
+            [-15.0, -16.0],
+            [0.0, 0.0],
+        ],
+        columns=["happy", "sad"],
+        index=df0.index.union(df1.index),
+    )
+
+    tm.assert_frame_equal(result, expected)
+    assert result.index.is_unique
 
 
 def test_arithmetic_multiindex_add_with_mixed_string_datetime_index():

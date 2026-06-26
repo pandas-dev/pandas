@@ -1,13 +1,19 @@
-from collections.abc import Hashable
-from typing import (
-    Literal,
+from collections.abc import (
+    Callable,
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
 )
+from typing import Literal
 
 import numpy as np
 
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    ReadCsvBuffer,
+    UsecolsArgType,
     npt,
 )
 
@@ -16,7 +22,7 @@ DEFAULT_BUFFER_HEURISTIC: int
 
 def sanitize_objects(
     values: npt.NDArray[np.object_],
-    na_values: set,
+    na_values: set[Hashable],
 ) -> int: ...
 
 class TextReader:
@@ -26,37 +32,37 @@ class TextReader:
     header: list[list[int]]  # non-negative integers
     def __init__(
         self,
-        source,
+        source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],
         delimiter: bytes | str = ...,  # single-character only
-        header=...,
+        header: int | Sequence[int] | None = ...,
         header_start: int = ...,  # int64_t
         header_end: int = ...,  # uint64_t
-        index_col=...,
-        names=...,
+        index_col: Hashable | Sequence[Hashable] | Literal[False] | None = ...,
+        names: Sequence[Hashable] | None = ...,
         tokenize_chunksize: int = ...,  # int64_t
         delim_whitespace: bool = ...,
-        converters=...,
+        converters: Mapping[Hashable, Callable] | None = ...,
         skipinitialspace: bool = ...,
         escapechar: bytes | str | None = ...,  # single-character only
         doublequote: bool = ...,
         quotechar: str | bytes | None = ...,  # at most 1 character
         quoting: int = ...,
         lineterminator: bytes | str | None = ...,  # at most 1 character
-        comment=...,
+        comment: bytes | str | None = ...,  # at most 1 character
         decimal: bytes | str = ...,  # single-character only
         thousands: bytes | str | None = ...,  # single-character only
         dtype: Dtype | dict[Hashable, Dtype] = ...,
-        usecols=...,
+        usecols: UsecolsArgType = ...,
         error_bad_lines: bool = ...,
         warn_bad_lines: bool = ...,
         na_filter: bool = ...,
-        na_values=...,
-        na_fvalues=...,
+        na_values: set[str] | Mapping[Hashable, set[str]] = ...,
+        na_fvalues: set[float] | Mapping[Hashable, set[float]] = ...,
         keep_default_na: bool = ...,
-        true_values=...,
-        false_values=...,
+        true_values: list | None = ...,
+        false_values: list | None = ...,
         allow_leading_cols: bool = ...,
-        skiprows=...,
+        skiprows: int | Iterable[int] | Callable[[Hashable], bool] | None = ...,
         skipfooter: int = ...,  # int64_t
         verbose: bool = ...,
         float_precision: Literal["round_trip", "legacy", "high"] | None = ...,
@@ -71,8 +77,8 @@ class TextReader:
     def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...
 
 # _maybe_upcast, na_values are only exposed for testing
-na_values: dict
+na_values: dict[type | np.dtype, float | int]
 
 def _maybe_upcast(
-    arr, use_dtype_backend: bool = ..., dtype_backend: str = ...
+    arr: np.ndarray, use_dtype_backend: bool = ..., dtype_backend: str = ...
 ) -> np.ndarray: ...

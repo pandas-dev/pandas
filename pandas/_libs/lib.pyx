@@ -20,11 +20,6 @@ from cpython.datetime cimport (
     time,
     timedelta,
 )
-from cpython.exc cimport (
-    PyErr_Clear,
-    PyErr_ExceptionMatches,
-    PyErr_Occurred,
-)
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
@@ -42,10 +37,12 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.string cimport memcmp
 
 from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
+from pandas.compat import PYARROW_INSTALLED
 from pandas.util._decorators import set_module
 
 import_datetime()
@@ -64,6 +61,8 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int8_t,
+    int16_t,
     int32_t,
     int64_t,
     intp_t,
@@ -127,13 +126,12 @@ i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
 
 
-cdef bint PYARROW_INSTALLED = False
+cdef bint c_PYARROW_INSTALLED = PYARROW_INSTALLED
 
-try:
+
+if c_PYARROW_INSTALLED:
     import pyarrow as pa
-
-    PYARROW_INSTALLED = True
-except ImportError:
+else:
     pa = None
 
 
@@ -502,6 +500,119 @@ def has_infs(const floating[:] arr) -> bool:
     return ret
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).any()``; exits on the first NaN found.
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        Py_ssize_t n4 = n & ~3  # round down to multiple of 4
+        bint found = False
+
+    with nogil:
+        for i in range(0, n4, 4):
+            if (
+                (arr[i] != arr[i])
+                | (arr[i + 1] != arr[i + 1])
+                | (arr[i + 2] != arr[i + 2])
+                | (arr[i + 3] != arr[i + 3])
+            ):
+                found = True
+                break
+        if not found:
+            for i in range(n4, n):
+                if arr[i] != arr[i]:
+                    found = True
+                    break
+    return found
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def all_nans(const floating[:] arr) -> bool:
+    """
+    Faster equivalent to ``np.isnan(arr).all()``; exits on the first non-NaN found.
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        Py_ssize_t n4 = n & ~3
+        bint found_non_nan = False
+
+    with nogil:
+        for i in range(0, n4, 4):
+            if (
+                (arr[i] == arr[i])
+                | (arr[i + 1] == arr[i + 1])
+                | (arr[i + 2] == arr[i + 2])
+                | (arr[i + 3] == arr[i + 3])
+            ):
+                found_non_nan = True
+                break
+        if not found_non_nan:
+            for i in range(n4, n):
+                if arr[i] == arr[i]:
+                    found_non_nan = True
+                    break
+    return not found_non_nan
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def array_equivalent_float(const floating[:] left,
+                           const floating[:] right) -> bool:
+    """
+    Faster equivalent to ``((left == right) | (isnan(left) & isnan(right))).all()``;
+    exits on the first mismatch. Caller is responsible for checking shapes match.
+    """
+    cdef:
+        Py_ssize_t i, n = len(left)
+        floating lval, rval
+        bint mismatch = False
+
+    with nogil:
+        for i in range(n):
+            lval = left[i]
+            rval = right[i]
+            if lval != rval:
+                if not (lval != lval and rval != rval):
+                    mismatch = True
+                    break
+    return not mismatch
+
+
+def array_equivalent_bytes(left, right) -> bool:
+    """
+    Faster equivalent to ``np.array_equal(left, right)`` via ``memcmp`` on
+    C-contiguous inputs. Not safe for dtypes where distinct bit patterns can
+    represent the same value (e.g. floats with -0.0/+0.0 or NaN) or for arrays
+    that contain object pointers.
+    """
+    cdef:
+        Py_ssize_t nbytes
+        int ndim, idx
+        ndarray left_arr, right_arr
+
+    left_arr = np.asarray(left)
+    right_arr = np.asarray(right)
+
+    ndim = cnp.PyArray_NDIM(left_arr)
+    if ndim != cnp.PyArray_NDIM(right_arr):
+        return False
+    for idx in range(ndim):
+        if cnp.PyArray_DIM(left_arr, idx) != cnp.PyArray_DIM(right_arr, idx):
+            return False
+    if not (cnp.PyArray_IS_C_CONTIGUOUS(left_arr)
+            and cnp.PyArray_IS_C_CONTIGUOUS(right_arr)):
+        return np.array_equal(left_arr, right_arr)
+    nbytes = cnp.PyArray_NBYTES(left_arr)
+    if nbytes == 0:
+        return True
+    return memcmp(cnp.PyArray_DATA(left_arr), cnp.PyArray_DATA(right_arr),
+                  <size_t>nbytes) == 0
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def has_only_ints_or_nan(const floating[:] arr) -> bool:
@@ -669,16 +780,27 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        Py_ssize_t n4 = n & ~3
         bint ret = True
 
     if left.size != n:
         return False
 
     with nogil:
-        for i in range(n):
-            if left[i] != i:
+        for i in range(0, n4, 4):
+            if (
+                (left[i] != i)
+                | (left[i + 1] != i + 1)
+                | (left[i + 2] != i + 2)
+                | (left[i + 3] != i + 3)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if left[i] != i:
+                    ret = False
+                    break
     return ret
 
 
@@ -690,6 +812,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     """
     cdef:
         Py_ssize_t i, n = len(sequence)
+        Py_ssize_t n4 = n & ~3
         int6432_t first_element
         bint ret = True
 
@@ -699,11 +822,66 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
+    # sequence[0] == first_element by construction, so the i=0 lane of the
+    # unrolled loop is trivially true — skipping the explicit head loop
+    # costs one redundant compare on the first iteration.
     with nogil:
-        for i in range(1, n):
-            if sequence[i] != first_element + i * step:
+        for i in range(0, n4, 4):
+            if (
+                (sequence[i] != first_element + i * step)
+                | (sequence[i + 1] != first_element + (i + 1) * step)
+                | (sequence[i + 2] != first_element + (i + 2) * step)
+                | (sequence[i + 3] != first_element + (i + 3) * step)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if sequence[i] != first_element + i * step:
+                    ret = False
+                    break
+    return ret
+
+
+ctypedef fused signed_int_t:
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_sentinel(const signed_int_t[:] arr, signed_int_t sentinel) -> bool:
+    """
+    Faster equivalent to `(arr == sentinel).any()` for integer indexers.
+    """
+    cdef:
+        Py_ssize_t i, n = arr.shape[0]
+        Py_ssize_t n8 = n & ~7  # round down to multiple of 8
+        bint ret = False
+
+    with nogil:
+        for i in range(0, n8, 8):
+            # Bitwise | (not `or`) so all 8 lanes evaluate unconditionally,
+            # letting the compiler emit vectorized comparisons.
+            if (
+                (arr[i] == sentinel)
+                | (arr[i + 1] == sentinel)
+                | (arr[i + 2] == sentinel)
+                | (arr[i + 3] == sentinel)
+                | (arr[i + 4] == sentinel)
+                | (arr[i + 5] == sentinel)
+                | (arr[i + 6] == sentinel)
+                | (arr[i + 7] == sentinel)
+            ):
+                ret = True
+                break
+        if not ret:
+            for i in range(n8, n):
+                if arr[i] == sentinel:
+                    ret = True
+                    break
     return ret
 
 
@@ -1348,7 +1526,7 @@ def is_pyarrow_array(obj):
     -------
     bool
     """
-    if PYARROW_INSTALLED:
+    if c_PYARROW_INSTALLED:
         return isinstance(obj, (pa.Array, pa.ChunkedArray))
     return False
 
@@ -1582,6 +1760,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - bytes
     - floating
     - integer
+    - integer-na
     - mixed-integer
     - mixed-integer-float
     - decimal
@@ -1595,7 +1774,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - timedelta
     - time
     - period
+    - interval
     - mixed
+    - empty
     - unknown-array
 
     Raises
@@ -1617,6 +1798,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'integer-na' are integers mixed with NaN, returned only when skipna=False
+    - 'empty' is returned for inputs with no inferable values (e.g. an empty
+      input, or all-NA with skipna=True)
     - 'unknown-array' is the catchall for something that *is* an array (has
       a dtype attribute), but has a dtype unknown to pandas (e.g. external
       extension array)
@@ -2591,46 +2775,6 @@ def maybe_convert_numeric(
     elif seen.uint_:
         return (uints, None)
     return (ints, None)
-
-
-cdef extern from "Python.h":
-    # Declare without exception propagation so we can inspect the error
-    # ourselves. The cpython.object declaration uses `except? -1` which
-    # causes Cython to auto-raise before we can check the error type.
-    Py_hash_t _PyObject_Hash "PyObject_Hash"(object) noexcept
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def check_all_hashable(ndarray[object] values) -> None:
-    """
-    Check that all elements in an object array are hashable.
-
-    Raises
-    ------
-    TypeError
-        If any element is not hashable.
-    """
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val
-
-    for i in range(n):
-        val = values[i]
-        if is_scalar(val):
-            # Scalars are always hashable, so skip the PyObject_Hash call.
-            # This is a fast path to avoid the overhead of hashing every
-            # element in the common case where all values are scalars.
-            continue
-        if _PyObject_Hash(val) == -1 and PyErr_Occurred():
-            if PyErr_ExceptionMatches(TypeError):
-                PyErr_Clear()
-                raise TypeError(
-                    f"unhashable type: '{type(val).__name__}'"
-                )
-            # Clear non-TypeError exceptions (e.g. ValueError from
-            # numpy timedelta64 without units)
-            PyErr_Clear()
 
 
 @cython.boundscheck(False)

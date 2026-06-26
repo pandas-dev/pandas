@@ -891,6 +891,17 @@ class TestLocBaseIndependent:
         df.loc[0, [1, 2]] = [5, 6]
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_getitem_single_row_mixed_dtype_subset(self):
+        # GH#37346 selecting a single row with a list of same-dtype columns
+        #  from a mixed-dtype frame preserves the column dtype rather than
+        #  upcasting to the frame's interleaved dtype
+        df = DataFrame({"a": [1], "b": [0.1]})
+
+        result = df.loc[0, ["a"]]
+        expected = Series([1], index=Index(["a"]), dtype="int64", name=0)
+        tm.assert_series_equal(result, expected)
+        assert result.values.dtype == np.int64
+
     def test_loc_setitem_frame_multiples(self):
         # multiple setting
         df = DataFrame(
@@ -1315,7 +1326,7 @@ class TestLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         # assigning the entire column using __setitem__ swaps in the new array
-        # GH#???
+        # GH#38896
         result["A"] = [float(x) for x in col_data]
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
@@ -2279,6 +2290,24 @@ class TestLocSetitemWithExpansion:
         result = DataFrame(index=df.index)
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df, check_column_type=False)
+
+    def test_loc_setitem_with_expansion_str_list_partial(self):
+        # GH#42099 — partial assignment of a list of strings used to fill
+        #  unselected rows with the literal string "n" (truncated "nan").
+        df = DataFrame(index=range(4))
+        df.loc[[0, 1, 2], "data"] = ["a", "b", "c"]
+        expected = DataFrame({"data": ["a", "b", "c", np.nan]}, index=range(4))
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+    def test_loc_setitem_with_expansion_bool_list_partial(self):
+        # GH#42099 — partial assignment of a list of bools used to raise
+        #  TypeError because the column was initialized as float64.
+        df = DataFrame(index=range(4))
+        df.loc[[0, 1, 2], "data"] = [True, False, True]
+        expected = DataFrame(
+            {"data": [True, False, True, np.nan]}, index=range(4), dtype=object
+        )
+        tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime

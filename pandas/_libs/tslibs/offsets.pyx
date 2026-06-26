@@ -1927,6 +1927,15 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
         self.__dict__.update(state)
 
+    def __reduce__(self):
+        # GH#45790: BaseOffset.__reduce__ can't be used here because
+        #  RelativeDeltaOffset has kwargs not captured by _attributes.
+        #  We need our own __reduce__ (rather than relying on __getstate__/
+        #  __setstate__) so that pickle protocol 0 also works — pytables
+        #  hardcodes protocol 0 when storing object attrs, which routes
+        #  through copyreg._reduce_ex and breaks for RelativeDeltaOffset.
+        return type(self), (), self.__getstate__()
+
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         other_nanos = 0
@@ -7140,6 +7149,28 @@ _lite_rule_alias = {
 
 _dont_uppercase = {"min", "h", "bh", "cbh", "s", "ms", "us", "ns"}
 
+# Map tick-prefix string -> (Tick subclass, factor relative to that class's unit).
+# Used to fast-path to_offset for integer strides; matches what
+# ``delta_to_tick(Timedelta(1, unit=name))`` returns. ``D`` produces ``Hour``
+# (not ``Day``) because ``Day`` is not a ``Tick``; the ``Day`` post-processing
+# in ``to_offset`` converts back when appropriate.
+_tick_klass_factor = {
+    "D": (Hour, 24),
+    "h": (Hour, 1),
+    "min": (Minute, 1),
+    "s": (Second, 1),
+    "ms": (Milli, 1),
+    "us": (Micro, 1),
+    "ns": (Nano, 1),
+}
+
+# Precomputed set of values from c_PERIOD_AND_OFFSET_DEPR_FREQSTR so that
+# membership tests in ``_warn_about_deprecated_aliases`` don't recompute
+# ``.values()`` on every call.
+_period_and_offset_depr_freqstr_values = frozenset(
+    c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values()
+)
+
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -7191,27 +7222,31 @@ def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
     raise ValueError(msg)
 
 
-def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
+cdef str _warn_about_deprecated_aliases(str name, bint is_period):
+    cdef:
+        str _name, replacement
+
     if name in _lite_rule_alias:
         return name
-    if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+    replacement = c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)
+    if replacement is not None:
         from pandas.errors import Pandas4Warning
 
         # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"\'{replacement}\' "
             f"instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
             )
-        return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
+        return replacement
 
     for _name in (name.lower(), name.upper()):
         if name == _name:
             continue
-        if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+        if _name in _period_and_offset_depr_freqstr_values:
             from pandas.errors import Pandas4Warning
 
             # https://github.com/pandas-dev/pandas/pull/59240
@@ -7228,28 +7263,29 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     return name
 
 
-def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
+cdef _validate_to_offset_alias(str alias, bint is_period):
+    cdef:
+        str alias_upper, renamed, period_alias
+
     if not is_period:
-        if alias.upper() in c_OFFSET_RENAMED_FREQSTR:
+        alias_upper = alias.upper()
+        renamed = c_OFFSET_RENAMED_FREQSTR.get(alias_upper)
+        if renamed is not None:
             raise ValueError(
                 f"\'{alias}\' is no longer supported for offsets. Please "
-                f"use \'{c_OFFSET_RENAMED_FREQSTR.get(alias.upper())}\' "
-                f"instead."
+                f"use \'{renamed}\' instead."
             )
-        if (alias.upper() != alias and
+        if (alias_upper != alias and
                 alias.lower() not in {"s", "ms", "us", "ns"} and
-                alias.upper().split("-")[0].endswith(("S", "E"))):
+                alias_upper.split("-")[0].endswith(("S", "E"))):
             raise ValueError(raise_invalid_freq(freq=alias))
-    if (
-        is_period and
-        alias in c_OFFSET_TO_PERIOD_FREQSTR and
-        alias != c_OFFSET_TO_PERIOD_FREQSTR[alias]
-    ):
-        alias_msg = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
-        raise ValueError(
-            f"for Period, please use \'{alias_msg}\' "
-            f"instead of \'{alias}\'"
-        )
+    else:
+        period_alias = c_OFFSET_TO_PERIOD_FREQSTR.get(alias)
+        if period_alias is not None and period_alias != alias:
+            raise ValueError(
+                f"for Period, please use \'{period_alias}\' "
+                f"instead of \'{alias}\'"
+            )
 
 
 # TODO: better name?
@@ -7363,8 +7399,12 @@ cpdef to_offset(freq, bint is_period=False):
                 # the last element must be blank
                 raise ValueError("last element must be blank")
 
-            tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
-            for n, (sep, stride, name) in enumerate(tups):
+            # split has 4*N + 1 elements where N is the number of segments
+            n_segments = (len(split) - 1) // 4
+            for n in range(n_segments):
+                sep = split[n * 4]
+                stride = split[n * 4 + 1]
+                name = split[n * 4 + 2]
                 name = _warn_about_deprecated_aliases(name, is_period)
                 _validate_to_offset_alias(name, is_period)
                 if is_period:
@@ -7384,21 +7424,30 @@ cpdef to_offset(freq, bint is_period=False):
                 if not stride:
                     stride = 1
 
-                if name in {"D", "h", "min", "s", "ms", "us", "ns"}:
-                    # For these prefixes, we have something like "3h" or
-                    #  "2.5min", so we can construct a Timedelta with the
-                    #  matching unit and get our offset from delta_to_tick
+                tick_info = _tick_klass_factor.get(name)
+                if tick_info is not None and isinstance(stride, str) and \
+                        "." in stride:
+                    # For these prefixes, fractional strides like "2.5min"
+                    #  go through Tick.__mul__(float) which handles unit
+                    #  promotion to a higher-resolution Tick subclass.
                     td = Timedelta(1, unit=name)
                     off = delta_to_tick(td)
                     offset = off * float(stride)
                     if n != 0:
-                        # If n==0, then stride_sign is already incorporated
-                        #  into the offset
+                        # If n==0, stride_sign is already in the offset
                         offset *= stride_sign
                 else:
-                    stride = int(stride)
-                    offset = _get_offset(name)
-                    offset = offset * int(np.fabs(stride) * stride_sign)
+                    int_stride = int(stride)
+                    if n != 0:
+                        # If n==0, stride_sign is already in stride
+                        int_stride *= stride_sign
+                    if tick_info is not None:
+                        # Integer-stride tick: construct directly to skip
+                        #  Timedelta + delta_to_tick + Tick.__mul__(float).
+                        klass, factor = tick_info
+                        offset = klass(int_stride * factor)
+                    else:
+                        offset = _get_offset(name) * int_stride
 
                 if result is None:
                     result = offset

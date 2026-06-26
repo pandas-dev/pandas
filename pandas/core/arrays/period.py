@@ -295,7 +295,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
-            if not np.isnan(arrdata).all():
+            if not lib.all_nans(arrdata):
                 raise TypeError(
                     "PeriodArray does not allow floating point in construction"
                 )
@@ -365,16 +365,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
-    # "DatetimeLikeArrayMixin"; supertype defines the argument type as
-    # "Union[Union[Period, Any, Timedelta], NaTType]"
-    def _unbox_scalar(  # type: ignore[override]
+    def _unbox_scalar(
         self,
-        value: Period | NaTType,
+        # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
+        # "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin"; supertype
+        #  defines the argument type as "Period | Timestamp | Timedelta | NaTType"
+        value: Period | NaTType,  # type: ignore[override]
     ) -> np.int64:
         if value is NaT:
-            # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value._value)  # type: ignore[union-attr]
+            return np.int64(value._value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -384,10 +383,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    # error: Argument 1 of "_check_compatible_with" is incompatible with
-    # supertype "DatetimeLikeArrayMixin"; supertype defines the argument type
-    # as "Period | Timestamp | Timedelta | NaTType"
-    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
+    def _check_compatible_with(
+        self,
+        #  error: Argument 1 of "_check_compatible_with" is incompatible with
+        # supertype "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin";
+        # supertype defines the argument type as "Period | Timestamp | Timedelta
+        # | NaTType"
+        other: Period | NaTType | PeriodArray,  # type: ignore[override]
+    ) -> None:
         if other is NaT:
             return
         elif isinstance(other, Period):
@@ -896,7 +899,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Cast to DatetimeArray/Index.
 
         If possible, gives microsecond-unit DatetimeArray/Index. Otherwise
-        gives nanosecond unit.
+        gives nanosecond unit. On the ``Series.dt`` accessor, this is only
+        available for period-typed Series.
 
         Parameters
         ----------
@@ -1008,7 +1012,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
                 # TODO: other cases?
             return None
 
-        result_freq = to_offset(dta.inferred_freq)
+        result_freq = to_offset(dta._inferred_freq_str)
         if target_freq is not None:
             # match the normalization applied in to_timestamp
             target_freq = Period._maybe_convert_freq(target_freq)
@@ -1473,7 +1477,19 @@ def dt64arr_to_periodarr(
         if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
-            data, freq = data._values, data.dt.freq
+            # freq is always None for DatetimeArray inside a Series;
+            # data.dt.freq uses inferred_freq, which we are deprecating.
+            inferred_freq = data.dt.freq
+            if inferred_freq is not None:
+                warnings.warn(
+                    "Constructing PeriodArray from a Series of datetime64 data "
+                    "will stop inferring the frequency in a future version. "
+                    "Pass `freq` explicitly instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                freq = inferred_freq
+            data = data._values
 
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
@@ -1557,11 +1573,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast("int", FreqGroup.FR_QTR.value)
+            base = FreqGroup.FR_QTR.value
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast("int", FreqGroup.FR_QTR.value):
+            if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr

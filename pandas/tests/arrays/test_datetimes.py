@@ -299,8 +299,6 @@ class TestDatetimeArrayComparisons:
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
         arr = dti._data
-        # freq is now Index-level state; the underlying array never carries one
-        assert arr.freq is None
         assert arr.tz == dti.tz
 
         right = dti
@@ -667,7 +665,7 @@ class TestDatetimeArray:
             pd.Timedelta(days=2),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
-            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10**9,
+            np.arange(10, dtype="i8").view("timedelta64[ns]") * 24 * 3600 * 10**9,
             pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )

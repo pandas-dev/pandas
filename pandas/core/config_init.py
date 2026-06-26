@@ -936,6 +936,16 @@ with cf.config_prefix("future"):
         validator=is_one_of_factory([True, False]),
     )
 
+    cf.register_option(
+        "infer_freq_returns_offset",
+        None,
+        "Whether pd.infer_freq and .inferred_freq return a BaseOffset object "
+        "instead of a string, which will be the default in a future version of "
+        "pandas. Set to True to opt in to the future behavior, or False to "
+        "keep the old behavior and silence the warning.",
+        validator=is_one_of_factory([True, False, None]),
+    )
+
 
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)

@@ -167,7 +167,7 @@ class TestWhere:
 
         # passing tz-naive ndarray to tzaware DTI
         result = dti.where(mask, i2.values)
-        expected = Index([pd.NaT.asm8, pd.NaT.asm8, *tail], dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         # passing tz-aware DTI to tznaive DTI
@@ -178,13 +178,12 @@ class TestWhere:
 
         pi = i2.tz_localize(None).to_period("D")
         result = dti.where(mask, pi)
-        expected = Index([pi[0], pi[1], *tail], dtype=object)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         tda = i2.asi8.view("timedelta64[ns]")
         result = dti.where(mask, tda)
-        expected = Index([tda[0], tda[1], *tail], dtype=object)
-        assert isinstance(expected[0], np.timedelta64)
+        expected = Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)
 
         result = dti.where(mask, i2.asi8)
@@ -490,6 +489,16 @@ class TestGetLoc:
         index = DatetimeIndex(["1/3/2000"])
         with pytest.raises(KeyError, match="2000"):
             index.get_loc("1/1/2000")
+
+    def test_get_loc_nonmonotonic_missing_label(self):
+        # GH#7827 a missing label on a non-monotonic DatetimeIndex should
+        #  raise KeyError rather than return an empty array
+        index = pd.to_datetime(["2000-01-02", "2000-01-01"])
+        assert not index.is_monotonic_increasing
+        with pytest.raises(KeyError, match="1900-01-01"):
+            index.get_loc("1900-01-01")
+        with pytest.raises(KeyError, match="1900-01-01"):
+            index.get_loc(Timestamp("1900-01-01"))
 
     def test_get_loc_year_str(self):
         rng = date_range("1/1/2000", "1/1/2010")

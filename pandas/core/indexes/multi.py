@@ -89,6 +89,7 @@ from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
+    droplevel_result,
     ensure_index,
     get_unanimous_names,
 )
@@ -538,7 +539,7 @@ class MultiIndex(Index):
 
         Parameters
         ----------
-        tuples : list / sequence of tuple-likes
+        tuples : list-like of tuples
             Each tuple is the index of one row/column.
         sortorder : int or None
             Level of sortedness (must be lexicographically sorted by that
@@ -568,7 +569,7 @@ class MultiIndex(Index):
                    names=['number', 'color'])
         """
         if not is_list_like(tuples):
-            raise TypeError("Input must be a list / sequence of tuple-likes.")
+            raise TypeError("Input must be list-like of tuples.")
         if is_iterator(tuples):
             tuples = list(tuples)
         tuples = cast("Collection[tuple[Hashable, ...]]", tuples)
@@ -3812,12 +3813,26 @@ class MultiIndex(Index):
             If level does not exist or all levels were dropped, the exception
             has to be handled outside.
             """
-            new_index = self[indexer]
+            if not levels:
+                # No levels to drop, just slice
+                return self[indexer]
 
-            for i in sorted(levels, reverse=True):
-                new_index = new_index._drop_level_numbers([i])
+            # Combine indexing and level-dropping into a single step
+            # to avoid creating an intermediate MultiIndex.
+            drop_set = set(levels)
+            kept = [i for i in range(self.nlevels) if i not in drop_set]
 
-            return new_index
+            if not kept:
+                raise ValueError(
+                    f"Cannot remove {len(levels)} levels from an index with "
+                    f"{self.nlevels} levels: at least one level must be left."
+                )
+
+            new_levels = [self.levels[i] for i in kept]
+            new_codes = [self.codes[i][indexer] for i in kept]
+            new_names = [self.names[i] for i in kept]
+
+            return droplevel_result(new_levels, new_codes, new_names)
 
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
@@ -4201,7 +4216,7 @@ class MultiIndex(Index):
                         if missing_mask.sum() > na_count:
                             raise KeyError(k) from None
                         # NaN is in k but must also be present in the data
-                        if not (level_codes == -1).any():
+                        if not lib.has_sentinel(level_codes, -1):
                             raise KeyError(k) from None
                     elif missing_mask.any():
                         raise KeyError(k) from None
@@ -4417,14 +4432,14 @@ class MultiIndex(Index):
             other_codes = other.codes[i]
             self_mask = self_codes == -1
             other_mask = other_codes == -1
-            if not np.array_equal(self_mask, other_mask):
+            if not lib.array_equivalent_bytes(self_mask, other_mask):
                 return False
             self_level = self.levels[i]
             other_level = other.levels[i]
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
-            if not np.array_equal(self_codes, new_codes):
+            if not lib.array_equivalent_bytes(self_codes, new_codes):
                 return False
             if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64

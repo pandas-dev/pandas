@@ -64,6 +64,20 @@ class TestDataFrameToStringFormatters:
         )
         assert result == expected
 
+    def test_to_string_object_dtype_with_formatter(self):
+        # GH#39850 formatter applied to floats stored in an object-dtype column
+        df = DataFrame([0.123456789, 1.123456789, 2.123456789], columns=["value"])
+        df = df.astype({"value": "object"})
+        result = df.to_string(formatters=["{:.2f}".format])
+        expected = dedent(
+            """\
+              value
+            0  0.12
+            1  1.12
+            2  2.12"""
+        )
+        assert result == expected
+
     def test_to_string_with_formatters(self):
         df = DataFrame(
             {
@@ -857,10 +871,7 @@ class TestDataFrameToString:
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()
         assert (np.abs(recons["A"].dropna() - biggie["A"].dropna()) < 0.1).all()
-
-        # FIXME: don't leave commented-out
-        # expected = ['B', 'A']
-        # assert header == expected
+        assert header == ["B", "A"]
 
         result = biggie.to_string(columns=["A"], col_space=17)
         header = result.split("\n")[0].strip().split()
