@@ -227,6 +227,9 @@ Performance improvements
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
 - Performance improvement in the :attr:`Series.dt` duration component accessors (``days``, ``seconds``, ``microseconds``, ``nanoseconds``, ``components``, etc.) for :class:`ArrowDtype` durations by using PyArrow compute instead of converting to :class:`TimedeltaArray` (:issue:`63470`)
+- Performance improvement in tab completion and :meth:`DataFrame.__dir__`
+  for :class:`DataFrame` and :class:`Series` with a large string-valued
+  index or large number of columns (:issue:`18587`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.bug_fixes:
