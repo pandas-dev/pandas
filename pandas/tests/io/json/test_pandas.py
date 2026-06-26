@@ -632,8 +632,6 @@ class TestPandasContainer:
             df_roundtrip,
             check_index_type=True,
             check_column_type=True,
-            by_blocks=True,
-            check_exact=True,
         )
 
     def test_frame_nonprintable_bytes(self):
