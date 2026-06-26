@@ -240,6 +240,17 @@ def melt(
     else:
         var_name = [var_name]
 
+    # GH#65654 - prevent silent data corruption when var_name collides with id_vars
+    var_name_set = set(var_name)
+    id_vars_set = set(id_vars)
+    collisions = var_name_set & id_vars_set
+    if collisions:
+        raise ValueError(
+            f"var_name ({collisions}) cannot match an element in "
+            "id_vars. This would cause the id_vars data to be "
+            "silently overwritten."
+        )
+
     num_rows, K = frame.shape
     num_cols_adjusted = K - len(id_vars)
 

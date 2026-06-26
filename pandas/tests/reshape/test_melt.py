@@ -1224,6 +1224,26 @@ class TestWideToLong:
         ):
             df.melt(id_vars="value", value_name="value")
 
+    def test_raise_of_var_name_in_id_vars(self):
+        # GH#65654
+        # raise a ValueError if var_name matches an element in id_vars
+        df = DataFrame({"id": [1, 2], "a": [10, 20], "b": [100, 200]})
+
+        with pytest.raises(
+            ValueError, match=re.escape("var_name ({'id'}) cannot match")
+        ):
+            df.melt(id_vars="id", var_name="id")
+
+    def test_raise_of_var_name_in_id_vars_list(self):
+        # GH#65654
+        # raise a ValueError if var_name matches any element in id_vars list
+        df = DataFrame({"id1": [1, 2], "id2": [3, 4], "a": [10, 20]})
+
+        with pytest.raises(
+            ValueError, match=re.escape("var_name ({'id1'}) cannot match")
+        ):
+            df.melt(id_vars=["id1", "id2"], var_name="id1")
+
     def test_missing_stubname(self, any_string_dtype):
         # GH46044
         df = DataFrame({"id": ["1", "2"], "a-1": [100, 200], "a-2": [300, 400]})
