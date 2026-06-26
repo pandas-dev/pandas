@@ -1144,6 +1144,22 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
         assert ser.loc[0] == value
 
 
+def test_scalar_setitem_tuple_into_object_column():
+    # GH#26333 - assigning a tuple to a single cell of an object-dtype column
+    #  that already holds tuples should store it as-is, not raise on length
+    df = DataFrame({"a": [1, 2, 3], "b": [(1, 2), (1, 2, 3), (3, 4)]})
+
+    df.loc[0, "b"] = (7, 8, 9)
+    assert df.loc[0, "b"] == (7, 8, 9)
+
+    # .at takes the same path
+    df.at[1, "b"] = (4, 5)
+    assert df.at[1, "b"] == (4, 5)
+
+    expected = DataFrame({"a": [1, 2, 3], "b": [(7, 8, 9), (4, 5), (3, 4)]})
+    tm.assert_frame_equal(df, expected)
+
+
 def test_loc_setitem_list_of_tuples_on_object_column():
     # GH#37629 - assigning list of tuples to object-dtype column
     # with a boolean mask on a mixed-dtype DataFrame
