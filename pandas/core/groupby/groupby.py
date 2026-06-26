@@ -169,35 +169,23 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-<<<<<<< HEAD
+
         return self._groupby._python_apply_plot(f)
-=======
-        return self._groupby._python_apply_general(
-            f,
-            self._groupby._selected_obj,
-        )
->>>>>>> e46cff2930 ( BUG:#22183 : Fixed Groupby Legend Labels ensuring parity with scatter plots)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 local_kwargs = kwargs.copy()
 
-<<<<<<< HEAD
-            return self._groupby._python_apply_plot(f)
-=======
                 if name == "scatter":
                     local_kwargs.setdefault("label", self.name)
 
                 return getattr(self.plot, name)(*args, **local_kwargs)
 
-            return self._groupby._python_apply_general(
-                f,
-                self._groupby._selected_obj,
-            )
->>>>>>> e46cff2930 ( BUG:#22183 : Fixed Groupby Legend Labels ensuring parity with scatter plots)
+            return self._groupby._python_apply_plot(f)
 
         return attr
+
 
 
 _KeysArgType: TypeAlias = (
