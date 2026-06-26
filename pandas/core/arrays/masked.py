@@ -1094,7 +1094,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             unit = np.datetime_data(result.dtype)[0]
             result[mask] = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
-            return TimedeltaArray._simple_new(result, dtype=result.dtype)
+            if not isinstance(result, TimedeltaArray):
+                return TimedeltaArray._simple_new(result, dtype=result.dtype)
+
+            return result
 
         elif result.dtype.kind in "iu":
             from pandas.core.arrays import IntegerArray
