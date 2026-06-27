@@ -10,6 +10,7 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
+from pandas.core.indexes.frozen import FrozenList
 
 
 def test_equals(idx):
@@ -286,12 +287,9 @@ def test_equals_ea_int_regular_int():
 
 def test_multiindex_equals_different_bit_widths():
     # GH#65700 - MultiIndex.equals should be value-based, not byte-based.
-    # Slicing a large MultiIndex preserves int16 codes, while a freshly
-    # constructed small MultiIndex gets int8 codes. Comparing them was
-    # incorrectly returning False before this fix.
-    mi_large = MultiIndex.from_arrays([range(200), range(200)])
-    mi_sliced = mi_large[:2]  # int16 codes preserved after slicing
-
-    mi_fresh = MultiIndex.from_arrays([[0, 1], [0, 1]])  # int8 codes
-
-    assert mi_sliced.equals(mi_fresh)
+    # There is no user-facing way to construct cross-dtype codes naturally;
+    # this reproduces the internal regression found in #65192.
+    midx1 = MultiIndex.from_product([["a", "b", "c"], [1, 2]])
+    midx2 = MultiIndex.from_product([["a", "b", "c"], [1, 2]])
+    midx2._codes = FrozenList([midx2.codes[0].astype("int64"), midx2.codes[1]])
+    assert midx1.equals(midx2)
