@@ -56,6 +56,17 @@ class ArrowParserWrapper(ParserBase):
             )
         self.na_values = list(self.kwds["na_values"])
 
+        header = self.header
+        if lib.is_list_like(header, allow_sets=False):
+            if len(header) == 1:
+                # equivalent to passing the integer directly
+                self.header = header[0]
+            else:
+                raise ValueError(
+                    "header argument must be an integer or None when "
+                    "using engine='pyarrow'"
+                )
+
     def _get_pyarrow_options(self) -> None:
         """
         Rename some arguments to pass to pyarrow
