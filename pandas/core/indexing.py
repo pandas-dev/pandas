@@ -3320,6 +3320,10 @@ class _AtIndexer(_ScalarAccessIndexer):
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
                 raise ValueError("Invalid call for scalar access (setting)!")
 
+            if is_list_like(value) and not isinstance(value, dict):
+                # GH#61223: non-unique axes; .loc would distribute list-like
+                raise KeyError(key[-1])
+
             self.obj.loc[key] = value
             return
 
