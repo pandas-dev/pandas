@@ -838,20 +838,31 @@ def test_dict_keys_as_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
-@xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
-def test_encoding_surrogatepass(all_parsers, tmp_path):
+def test_encoding_surrogatepass(all_parsers, tmp_path, request):
     # GH39017
     parser = all_parsers
     content = b"\xed\xbd\xbf"
-    decoded = content.decode("utf-8", errors="surrogatepass")
-    expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
-    expected.index.name = decoded * 2
 
     path = tmp_path / "test_encoding.csv"
     path.write_bytes(
         content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
     )
+
+    if parser.engine == "pyarrow":
+        # pyarrow's CSV reader does not support surrogatepass decoding
+        msg = "'utf-8' codec can't decode byte 0xed"
+        with pytest.raises(UnicodeDecodeError, match=msg):
+            parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
+        return
+
+    if using_string_dtype() and HAS_PYARROW:
+        # the string dtype cannot hold surrogate characters
+        request.applymarker(pytest.mark.xfail(reason="TODO(infer_string)"))
+
+    decoded = content.decode("utf-8", errors="surrogatepass")
+    expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
+    expected.index.name = decoded * 2
+
     df = parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
     tm.assert_frame_equal(df, expected)
     with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
