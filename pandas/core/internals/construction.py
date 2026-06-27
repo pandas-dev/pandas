@@ -279,7 +279,7 @@ def ndarray_to_mgr(
     else:
         # by definition an array here
         # the dtypes will be coerced to a single dtype
-        values = _prep_ndarraylike(values, copy=copy)
+        values = _prep_ndarraylike(values, copy=copy, dtype=dtype)
 
     if dtype is not None and values.dtype != dtype:
         # GH#40110 see similar check inside sanitize_array
@@ -501,7 +501,7 @@ def treat_as_nested(data) -> bool:
 # ---------------------------------------------------------------------
 
 
-def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
+def _prep_ndarraylike(values, copy: bool = True, dtype=None) -> np.ndarray:
     # values is specifically _not_ ndarray, EA, Index, or Series
     # We only get here with `not treat_as_nested(values)`
 
@@ -520,7 +520,11 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
         v = extract_array(v, extract_numpy=True)
         if isinstance(v, (list, tuple, range)):
             v = construct_1d_object_array_from_listlike(v)
-        if isinstance(v, np.ndarray) and v.dtype == object:
+        if (
+            isinstance(v, np.ndarray)
+            and v.dtype == object
+            and dtype != np.dtype("object")
+        ):
             v = lib.maybe_convert_objects(v)
         # We don't do maybe_infer_objects here bc we will end up doing
         #  it column-by-column in ndarray_to_mgr
