@@ -140,6 +140,19 @@ class TestDataFrameGroupByPlots:
             _check_axes_shape(ax, axes_num=1, layout=(1, 1))
             _check_legend_labels(ax, ["1", "2"])
 
+    def test_groupby_plot_series_with_legend(self):
+        # GH#41090 - legend labels are the group keys, with no reliance on
+        #  the name attribute being pinned to the group key as a side effect
+        index = Index(15 * ["1"] + 15 * ["2"], name="c")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)),
+            index=index,
+            columns=["a", "b"],
+        )
+
+        axes = df.groupby("c")["a"].plot(legend=True)
+        _check_legend_labels(axes.iloc[0], ["1", "2"])
+
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
