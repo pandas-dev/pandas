@@ -381,7 +381,7 @@ def test_dtype_multi_index(all_parsers):
     data = "A,B,B\nX,Y,Z\n1,2,3"
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(
                 StringIO(data),
                 header=list(range(2)),

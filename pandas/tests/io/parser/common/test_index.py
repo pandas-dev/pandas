@@ -166,7 +166,7 @@ def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip, re
 
     if parser.engine == "pyarrow":
         if len(header) > 1:
-            with pytest.raises(ValueError, match="header"):
+            with pytest.raises(ValueError, match="does not support a list of integers"):
                 parser.read_csv(StringIO(data), header=header)
             return
         # header=[0] is a singleton, so it behaves like header=0, but the

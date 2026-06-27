@@ -594,7 +594,7 @@ def test_date_parser_multiindex_columns(all_parsers):
 1,2
 2019-12-31,6"""
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
         return
 

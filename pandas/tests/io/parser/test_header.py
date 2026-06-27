@@ -140,7 +140,7 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[0, 1])
         return
 
@@ -369,7 +369,7 @@ q,r,s,t,u,v
 7,8,9,10,11,12"""
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=[0, 1], index_col=0)
         return
 
@@ -395,7 +395,7 @@ q,r,s,t,u,v
 7,8,9,10,11,12"""
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=[0, 1], index_col=0)
         return
 
@@ -420,7 +420,7 @@ q,r,s,t,u,v
 7,8,9,10,11,12"""
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=[0, 1], index_col=[0, 1])
         return
 
@@ -437,7 +437,7 @@ def test_header_multi_index_blank_line(all_parsers):
     data = "a,b\nA,B\n,\n1,2\n3,4"
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=[0, 1])
         return
 
@@ -562,7 +562,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     parser = all_parsers
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=[0, 1])
         return
 
@@ -592,7 +592,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(data), header=header, index_col=index_col)
         return
 
@@ -652,7 +652,7 @@ def test_read_csv_multiindex_columns(all_parsers):
     )
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(s1), header=[0, 1])
         return
 
@@ -672,7 +672,7 @@ row31,row32
 """
 
     if parser.engine == "pyarrow":
-        with pytest.raises(ValueError, match="header"):
+        with pytest.raises(ValueError, match="does not support a list of integers"):
             parser.read_csv(StringIO(case), header=[0, 2])
         return
 
@@ -721,7 +721,7 @@ def test_header_missing_rows(all_parsers):
 1,2
 """
     if parser.engine == "pyarrow":
-        msg = "header"
+        msg = "does not support a list of integers"
     else:
         msg = r"Passed header=\[0,1,2\], len of 3, but only 2 lines in file"
     with pytest.raises(ValueError, match=msg):
