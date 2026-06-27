@@ -54,6 +54,10 @@ class ArrowParserWrapper(ParserBase):
             raise ValueError(
                 "The pyarrow engine doesn't support passing a dict for na_values"
             )
+        # pyarrow's null_values only accepts strings, so reject any non-string
+        #  na_values up front instead of silently ignoring them.
+        if not all(isinstance(na_value, str) for na_value in na_values):
+            raise TypeError("The 'pyarrow' engine requires all na_values to be strings")
         self.na_values = list(self.kwds["na_values"])
 
     def _get_pyarrow_options(self) -> None:
@@ -152,18 +156,12 @@ class ArrowParserWrapper(ParserBase):
 
         try:
             convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
-        except TypeError as err:
+        except TypeError:
+            # Non-string na_values are rejected in _parse_kwds, so any remaining
+            #  TypeError here is from invalid usecols/include_columns.
             include = self.convert_options.get("include_columns", None)
             if include is not None:
                 self._validate_usecols(include)
-
-            nulls = self.convert_options.get("null_values", set())
-            if not lib.is_list_like(nulls) or not all(
-                isinstance(x, str) for x in nulls
-            ):
-                raise TypeError(
-                    "The 'pyarrow' engine requires all na_values to be strings"
-                ) from err
 
             raise
 
