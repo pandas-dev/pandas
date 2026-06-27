@@ -188,7 +188,7 @@ class TestCommon:
     def test_immutable(self, offset_types):
         # GH#21341 check that __setattr__ raises
         offset = _create_offset(offset_types)
-        msg = "objects is not writable|DateOffset objects are immutable"
+        msg = "|".join(["objects is not writable", "DateOffset objects are immutable"])
         with pytest.raises(AttributeError, match=msg):
             offset.normalize = True
         with pytest.raises(AttributeError, match=msg):
@@ -572,6 +572,23 @@ class TestCommon:
 
         base_dt = datetime(2020, 1, 1)
         assert base_dt + off == base_dt + res
+
+    @pytest.mark.parametrize(
+        "off",
+        [
+            DateOffset(years=1),
+            DateOffset(months=2),
+            DateOffset(days=3, weeks=1),
+            DateOffset(),
+        ],
+    )
+    def test_pickle_dateoffset_protocol_0(self, off):
+        # GH#45790: protocol 0 is what pytables uses for object attrs;
+        #  RelativeDeltaOffset previously only round-tripped at protocol >= 2
+        import pickle
+
+        res = pickle.loads(pickle.dumps(off, protocol=0))
+        assert off == res
 
     def test_offsets_hashable(self, offset_types):
         # GH: 37267

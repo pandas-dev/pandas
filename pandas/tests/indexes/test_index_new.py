@@ -191,6 +191,21 @@ class TestIndexConstructorInference:
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_preserves_byteorder(self):
+        # GH#43042 non-native byteorder (and the values) must be preserved
+        arr = np.array([0, 256, 2**40], dtype=">i8")
+        expected = [0, 256, 2**40]
+
+        # inferred from a big-endian ndarray
+        result = Index(arr)
+        assert result.dtype == np.dtype(">i8")
+        assert result.tolist() == expected
+
+        # explicit big-endian dtype from a python list
+        result = Index([0, 256, 2**40], dtype=">i8")
+        assert result.dtype == np.dtype(">i8")
+        assert result.tolist() == expected
+
 
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
