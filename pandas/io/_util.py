@@ -180,22 +180,25 @@ def _post_convert_dtypes(
                 ):
                     df[col] = pd.to_datetime(df[col])
 
-        else:
-            dtype = pandas_dtype(dtype)
+            try:
+                df = df.astype(dtype)
+            except TypeError as err:
+                # GH#44901 reraise to keep api consistent
+                raise ValueError(str(err)) from err
+        # A scalar dtype is intentionally not applied here. GH#45801 the
+        #  read_csv arrow wrapper applies it later in _finalize_dtype, after the
+        #  index columns have been moved into the index, so that an index column
+        #  keeps its inferred dtype rather than being cast to the scalar dtype.
 
-        try:
-            df = df.astype(dtype)
-        except TypeError as err:
-            # GH#44901 reraise to keep api consistent
-            raise ValueError(str(err)) from err
-
-    if (
-        not using_string_dtype()
-        and dtype != "str"
-        and (dtype_backend is lib.no_default or dtype_backend == "numpy")
+    if not using_string_dtype() and (
+        dtype_backend is lib.no_default or dtype_backend == "numpy"
     ):
         # Convert any StringDtype columns back to object dtype (pyarrow always
-        # uses string dtype even when the infer_string option is False)
+        # uses string dtype even when the infer_string option is False).
+        # This normalizes pyarrow's inference to match the other engines and
+        # runs regardless of a user-provided scalar dtype: the read_csv arrow
+        # wrapper applies a scalar dtype later in _finalize_dtype (which leaves
+        # the index untouched), so the index column relies on this step.
         for i in range(len(df.columns)):
             new_col = _maybe_convert_string_to_object(df.iloc[:, i])
             if new_col is not None:

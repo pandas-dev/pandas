@@ -256,7 +256,7 @@ class ArrowParserWrapper(ParserBase):
                     raise ValueError(f"Index {item} invalid")
 
                 # Process dtype for index_col and drop from dtypes
-                if self.dtype is not None:
+                if isinstance(self.dtype, dict):
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
