@@ -638,7 +638,7 @@ def test_resample_reresample(unit):
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
     assert len(result) == 25
-    assert isinstance(result.index.freq, offsets.DateOffset)
+    assert isinstance(result.index.freq, offsets.BaseOffset)
     assert result.index.freq == offsets.Hour(8)
 
 

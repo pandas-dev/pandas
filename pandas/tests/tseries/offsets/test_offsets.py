@@ -122,7 +122,9 @@ def month_classes(request):
 
 @pytest.fixture(
     params=[
-        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if o not in ("Tick", "BaseOffset", "Offset")
     ]
 )
 def offset_types(request):
@@ -811,6 +813,45 @@ class TestDateOffset:
         msg = "^Invalid argument/s or bad combination of arguments"
         with pytest.raises(ValueError, match=msg):
             DateOffset(picoseconds=1)
+
+
+class TestOffsetMetaDeprecation:
+    def test_isinstance_dateoffset_warns_for_non_dateoffset(self):
+        # GH#48262
+        bday = BDay()
+        msg = "isinstance.*DateOffset.*is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = isinstance(bday, DateOffset)
+        assert result is True
+
+    def test_isinstance_dateoffset_no_warning_for_dateoffset(self):
+        # GH#48262
+        offset = DateOffset(days=1)
+        with tm.assert_produces_warning(None):
+            result = isinstance(offset, DateOffset)
+        assert result is True
+
+    def test_isinstance_offset_no_warning(self):
+        # GH#48262 - pd.offsets.Offset is the non-deprecated alternative
+        from pandas.tseries.offsets import Offset
+
+        bday = BDay()
+        with tm.assert_produces_warning(None):
+            result = isinstance(bday, Offset)
+        assert result is True
+
+    def test_issubclass_dateoffset_warns_for_non_dateoffset(self):
+        # GH#48262
+        msg = "issubclass.*DateOffset.*is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = issubclass(BDay, DateOffset)
+        assert result is True
+
+    def test_issubclass_dateoffset_no_warning_for_dateoffset(self):
+        # GH#48262
+        with tm.assert_produces_warning(None):
+            result = issubclass(DateOffset, DateOffset)
+        assert result is True
 
 
 class TestOffsetNames:

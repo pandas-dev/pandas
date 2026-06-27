@@ -2099,10 +2099,30 @@ class OffsetMeta(type):
 
     @classmethod
     def __instancecheck__(cls, obj) -> bool:
+        if isinstance(obj, BaseOffset) and not isinstance(obj, RelativeDeltaOffset):
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                "isinstance(obj, DateOffset) is deprecated when obj is not a "
+                "DateOffset instance. Use isinstance(obj, pd.offsets.Offset) "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         return isinstance(obj, BaseOffset)
 
     @classmethod
     def __subclasscheck__(cls, obj) -> bool:
+        if issubclass(obj, BaseOffset) and not issubclass(obj, RelativeDeltaOffset):
+            from pandas.errors import Pandas4Warning
+
+            warnings.warn(
+                "issubclass(obj, DateOffset) is deprecated when obj is not a "
+                "subclass of DateOffset. Use issubclass(obj, pd.offsets.Offset) "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         return issubclass(obj, BaseOffset)
 
 
@@ -2237,6 +2257,9 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
+
+
+Offset = BaseOffset
 
 # --------------------------------------------------------------------
 
