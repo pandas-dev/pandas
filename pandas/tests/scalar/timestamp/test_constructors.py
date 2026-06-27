@@ -261,7 +261,9 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 
     def test_constructor_keyword(self):
         # GH#10758
-        msg = "function missing required argument 'day'|Required argument 'day'"
+        msg = "|".join(
+            ["function missing required argument 'day'", "Required argument 'day'"]
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(year=2000, month=1)
 

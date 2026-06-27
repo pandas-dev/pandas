@@ -101,11 +101,7 @@ class TestSparseArray(base.ExtensionTests):
         return False
 
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        return True
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        if all_numeric_reductions in [
+        if op_name in [
             "prod",
             "median",
             "var",
@@ -114,12 +110,15 @@ class TestSparseArray(base.ExtensionTests):
             "skew",
             "kurt",
         ]:
-            mark = pytest.mark.xfail(
-                reason="This should be viable but is not implemented"
-            )
-            request.node.add_marker(mark)
-        elif (
-            all_numeric_reductions in ["sum", "max", "min", "mean"]
+            # These should be viable but are not implemented
+            return False
+        else:
+            return True
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if (
+            all_numeric_reductions in ["sum", "max", "min"]
             and data.dtype.kind == "f"
             and not skipna
         ):
@@ -144,7 +143,7 @@ class TestSparseArray(base.ExtensionTests):
             )
             request.node.add_marker(mark)
         elif (
-            all_numeric_reductions in ["sum", "max", "min", "mean"]
+            all_numeric_reductions in ["sum", "max", "min"]
             and data.dtype.kind == "f"
             and not skipna
         ):
@@ -329,6 +328,22 @@ class TestSparseArray(base.ExtensionTests):
     def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
         with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
+
+    def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_for_sorting.sort()
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_for_sorting.sort(ascending=False)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        with pytest.raises(NotImplementedError):
+            data_missing_for_sorting.sort(na_position=na_position)
 
     def test_shift_0_periods(self, data):
         # GH#33856 shifting with periods=0 should return a copy, not same obj

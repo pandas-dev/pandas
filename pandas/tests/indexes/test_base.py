@@ -389,10 +389,13 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = (
-                r"Cannot change data-type for array of references\.|"
-                r"Cannot change data-type for object array\.|"
-                r"Cannot change data-type for array of strings\.|"
+            msg = "|".join(
+                [
+                    r"Cannot change data-type for array of references\.",
+                    r"Cannot change data-type for object array\.",
+                    r"Cannot change data-type for array of strings\.",
+                    "",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
@@ -1416,12 +1419,12 @@ class TestMixedIntIndex:
 
     def test_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             index.argsort()
 
     def test_numpy_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             np.argsort(index)
 
     def test_copy_name(self, simple_index):
