@@ -3795,12 +3795,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
           3  7.0  0.705
 
         >>> df.groupby("A").rolling(2, on="B").sum()
-            B      C
+                 C
         A
-        1 0  1    NaN
-          1  2  0.589
-        2 2  3    NaN
-          3  4  0.705
+        1 0    NaN
+          1  0.589
+        2 2    NaN
+          3  0.705
         """
         from pandas.core.window import RollingGroupby
 

@@ -603,6 +603,75 @@ def test_rolling_axis_count():
     tm.assert_frame_equal(result, expected)
 
 
+def test_rolling_on_integer_column_excluded_with_non_integer_index():
+    df = DataFrame(
+        {"foo": range(5), "bar": range(1, 6), "baz": range(2, 7)},
+        index=["1", "2", "3", "4", "5"],
+    )
+
+    result = df.rolling(window=3, on="foo").max()
+
+    expected = DataFrame(
+        {
+            "bar": [np.nan, np.nan, 3.0, 4.0, 5.0],
+            "baz": [np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=["1", "2", "3", "4", "5"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_on_integer_column_excluded_when_not_equal_to_index():
+    df = DataFrame(
+        {"foo": range(5), "bar": range(1, 6), "baz": range(2, 7)},
+        index=[10, 20, 30, 40, 50],
+    )
+
+    result = df.rolling(window=3, on="foo").max()
+
+    expected = DataFrame(
+        {
+            "bar": [np.nan, np.nan, 3.0, 4.0, 5.0],
+            "baz": [np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=[10, 20, 30, 40, 50],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_on_integer_column_excluded_with_default_index():
+    df = DataFrame({"foo": [10, 4, 25, 9, 17], "bar": range(1, 6), "baz": range(2, 7)})
+
+    result = df.rolling(window=3, on="foo").max()
+
+    expected = DataFrame(
+        {
+            "bar": [np.nan, np.nan, 3.0, 4.0, 5.0],
+            "baz": [np.nan, np.nan, 4.0, 5.0, 6.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_on_non_integer_column_preserved():
+    df = DataFrame(
+        {"foo": list("abcde"), "bar": range(1, 6), "baz": range(2, 7)},
+        index=["1", "2", "3", "4", "5"],
+    )
+
+    result = df.rolling(window=3, on="foo").max()
+
+    expected = DataFrame(
+        {
+            "foo": list("abcde"),
+            "bar": [np.nan, np.nan, 3.0, 4.0, 5.0],
+            "baz": [np.nan, np.nan, 4.0, 5.0, 6.0],
+        },
+        index=["1", "2", "3", "4", "5"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_readonly_array():
     # GH-27766
     arr = np.array([1, 3, np.nan, 3, 5])
