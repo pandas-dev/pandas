@@ -689,14 +689,13 @@ static inline size_t fast_scan_simd(const char *data, size_t len,
     m = vorrq_u8(m, vceqq_u8(chunk, vescape));
     m = vorrq_u8(m, vceqq_u8(chunk, vcomment));
 
-    // Each matching byte is 0xFF, non-matching is 0x00.
-    // Extract as two u64 lanes and find the first set byte.
-    uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
-    if (low)
-      return i + pandas_ctzll(low) / 8;
-    uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
-    if (high)
-      return i + 8 + pandas_ctzll(high) / 8;
+    // Each matching byte is 0xFF, non-matching is 0x00. NEON has no movemask,
+    // so narrow each byte to a nibble (shift-right-narrow by 4): byte k becomes
+    // nibble k of a single u64, 0xF if matched else 0x0. ctzll/4 is the offset.
+    const uint8x8_t m8 = vshrn_n_u16(vreinterpretq_u16_u8(m), 4);
+    const uint64_t matches = vget_lane_u64(vreinterpret_u64_u8(m8), 0);
+    if (matches)
+      return i + pandas_ctzll(matches) / 4;
   }
   return i;
 }
@@ -711,12 +710,10 @@ static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
     uint8x16_t m = vceqq_u8(chunk, vquote);
     m = vorrq_u8(m, vceqq_u8(chunk, vescape));
 
-    uint64_t low = vgetq_lane_u64(vreinterpretq_u64_u8(m), 0);
-    if (low)
-      return i + pandas_ctzll(low) / 8;
-    uint64_t high = vgetq_lane_u64(vreinterpretq_u64_u8(m), 1);
-    if (high)
-      return i + 8 + pandas_ctzll(high) / 8;
+    const uint8x8_t m8 = vshrn_n_u16(vreinterpretq_u16_u8(m), 4);
+    const uint64_t matches = vget_lane_u64(vreinterpret_u64_u8(m8), 0);
+    if (matches)
+      return i + pandas_ctzll(matches) / 4;
   }
   return i;
 }
