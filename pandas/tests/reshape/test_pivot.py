@@ -1344,9 +1344,11 @@ class TestPivotTable:
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
         # see gh-3335
-        msg = (
-            f'Conflicting name "{margin_name}" in margins|'
-            "margins_name argument must be a string"
+        msg = "|".join(
+            [
+                f'Conflicting name "{margin_name}" in margins',
+                "margins_name argument must be a string",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             # multi-index index

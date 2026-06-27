@@ -17,7 +17,6 @@ import pandas._testing as tm
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
@@ -92,13 +91,22 @@ def test_quote_char_various(all_parsers, quote_char):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
-def test_null_quote_char(all_parsers, quoting, quote_char):
+def test_null_quote_char(all_parsers, quoting, quote_char, request):
     kwargs = {"quotechar": quote_char, "quoting": quoting}
     data = "a,b,c\n1,2,3"
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        if quoting != csv.QUOTE_MINIMAL:
+            # any non-default value of ``quoting`` is rejected outright
+            msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), **kwargs)
+            return
+        mark = pytest.mark.xfail(reason="pyarrow mishandles null/blank quote chars")
+        request.applymarker(mark)
 
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.
@@ -137,11 +145,20 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
         ({"quotechar": '"', "quoting": csv.QUOTE_NONNUMERIC}, [[1.0, 2.0, "foo"]]),
     ],
 )
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
-def test_quoting_various(all_parsers, kwargs, exp_data):
+def test_quoting_various(all_parsers, kwargs, exp_data, request):
     data = '1,2,"foo"'
     parser = all_parsers
     columns = ["a", "b", "c"]
+
+    if parser.engine == "pyarrow":
+        if kwargs.get("quoting", csv.QUOTE_MINIMAL) != csv.QUOTE_MINIMAL:
+            # any non-default value of ``quoting`` is rejected outright
+            msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), names=columns, **kwargs)
+            return
+        mark = pytest.mark.xfail(reason="ParserError: Empty CSV file or block")
+        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), names=columns, **kwargs)
     expected = DataFrame(exp_data, columns=columns)

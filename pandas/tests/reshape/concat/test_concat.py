@@ -19,6 +19,8 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    Interval,
+    IntervalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
@@ -1008,3 +1010,36 @@ def test_concat_of_series_and_frame(inputs, ignore_index, axis, expected):
     # GH #60723 and #56257
     result = concat(inputs, ignore_index=ignore_index, axis=axis)
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_keys_overlapping_intervalindex_level():
+    # GH#64825 an overlapping IntervalIndex passed as levels is not
+    #  unique-as-index, but its values are distinct, so concat should resolve it
+    value_index = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], name="foo")
+    level_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="bar")
+    values = [
+        Series([1.0, 3.0], name=Interval(0.0, 10.0), index=value_index),
+        Series([5.0, 7.0], name=Interval(0.0, 20.0), index=value_index),
+    ]
+    result = concat(values, keys=level_index, levels=[level_index], names=["bar"])
+    expected = Series(
+        [1.0, 3.0, 5.0, 7.0],
+        index=MultiIndex.from_product([level_index, value_index]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_keys_overlapping_intervalindex_value_index():
+    # GH#64825 the per-Series index is itself an overlapping IntervalIndex
+    value_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="foo")
+    level_index = IntervalIndex.from_tuples([(0.0, 10.0), (0.0, 20.0)], name="bar")
+    values = [
+        Series([1.0, 3.0], name=Interval(0.0, 10.0), index=value_index),
+        Series([5.0, 7.0], name=Interval(0.0, 20.0), index=value_index),
+    ]
+    result = concat(values, keys=level_index, levels=[level_index], names=["bar"])
+    expected = Series(
+        [1.0, 3.0, 5.0, 7.0],
+        index=MultiIndex.from_product([level_index, value_index]),
+    )
+    tm.assert_series_equal(result, expected)

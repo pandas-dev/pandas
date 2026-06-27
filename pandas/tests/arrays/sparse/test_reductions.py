@@ -174,6 +174,27 @@ class TestReductions:
         out = SparseArray(data).mean()
         assert out == 40.0 / 9
 
+        out = SparseArray(data).mean(skipna=True)
+        assert out == 40.0 / 9
+
+        out = SparseArray(data).mean(skipna=False)
+        assert isna(out)
+
+        arr = SparseArray([1.0, np.nan, 3.0], fill_value=np.nan)
+        out = arr.mean(skipna=True)
+        assert out == 2.0
+
+        out = arr.mean(skipna=False)
+        assert isna(out)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_mean_raises_for_unsupported_object_dtype_with_na(self, skipna):
+        arr = SparseArray(["a", np.nan], dtype=SparseDtype(object))
+
+        msg = "unsupported operand type"
+        with pytest.raises(TypeError, match=msg):
+            arr.mean(skipna=skipna)
+
     def test_numpy_mean(self):
         data = np.arange(10).astype(float)
         out = np.mean(SparseArray(data))
