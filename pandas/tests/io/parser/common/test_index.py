@@ -146,7 +146,6 @@ bar,two,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "data,columns,header",
     [
@@ -159,11 +158,23 @@ bar,two,12,13,14,15
     ],
 )
 @pytest.mark.parametrize("round_trip", [True, False])
-def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip):
+def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip, request):
     # see gh-14545
     parser = all_parsers
     expected = DataFrame(columns=columns)
     data = expected.to_csv(index=False) if round_trip else data
+
+    if parser.engine == "pyarrow":
+        if len(header) > 1:
+            with pytest.raises(ValueError, match="header"):
+                parser.read_csv(StringIO(data), header=header)
+            return
+        # header=[0] is a singleton, so it behaves like header=0, but the
+        # empty-frame dtypes still differ for the pyarrow engine
+        mark = pytest.mark.xfail(
+            reason="empty frame dtypes differ; apache/arrow#38676 without newline"
+        )
+        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), header=header)
     tm.assert_frame_equal(result, expected)
