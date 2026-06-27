@@ -307,6 +307,7 @@ Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
+- Bug in :meth:`Series.str.match` and :meth:`Index.str.match` on PyArrow-backed string dtypes where a leading ``^`` only anchored the first branch of an alternation pattern (e.g. ``r"^foo|bar"``) (:issue:`66069`)
 - Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
 
 Interval
