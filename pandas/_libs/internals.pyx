@@ -892,7 +892,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Indexing
 
-    cdef BlockManager _slice_mgr_rows(self, slice slobj):
+    cdef BlockManager _slice_mgr_rows(self, slice slobj, object new_index):
         cdef:
             Block blk, nb
             BlockManager mgr
@@ -903,7 +903,9 @@ cdef class BlockManager:
             nb = blk.slice_block_rows(slobj)
             nbs.append(nb)
 
-        new_axes = [self.axes[0].view(), self.axes[1]._getitem_slice(slobj)]
+        if new_index is None:
+            new_index = self.axes[1]._getitem_slice(slobj)
+        new_axes = [self.axes[0].view(), new_index]
         mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
 
         # We can avoid having to rebuild blklocs/blknos
@@ -915,17 +917,23 @@ cdef class BlockManager:
             mgr._blklocs = blklocs.copy()
         return mgr
 
-    def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
+    def get_slice(
+        self, slobj: slice, axis: int = 0, new_index=None
+    ) -> BlockManager:
+        # new_index, if provided, is used as-is for the sliced axis instead of
+        # recomputing self.axes[axis]._getitem_slice(slobj) (GH#38650).
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            return self._slice_mgr_rows(slobj)
+            return self._slice_mgr_rows(slobj, new_index)
         else:
             raise IndexError("Requested axis not found in manager")
 
         new_axes = list(self.axes)
-        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
+        if new_index is None:
+            new_index = new_axes[axis]._getitem_slice(slobj)
+        new_axes[axis] = new_index
         new_axes[1 - axis] = self.axes[1 - axis].view()
 
         return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)

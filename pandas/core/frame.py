@@ -4676,7 +4676,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             ilocs = self.columns.get_indexer_non_unique(key)[0]
-            if (ilocs < 0).any():
+            if lib.has_sentinel(ilocs, -1):
                 # key entries not in self.columns
                 raise NotImplementedError
 
@@ -8151,9 +8151,10 @@ class DataFrame(NDFrame, OpsMixin):
              If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
-             information. `mergesort` and `stable` are the only stable algorithms. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+             information. The sort order is deterministic for a given input.
+             `mergesort` and `stable` are the only stable algorithms, which preserve
+             the relative order of equal keys. For DataFrames, this option is only
+             applied when sorting on a single column or label.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
@@ -13770,10 +13771,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-        The result is calculated according to current dtype in DataFrame,
-        however dtype of the result is always float64.
+        Equivalent to ``self - self.shift(periods)``, except that boolean
+        dtypes use :meth:`operator.xor` rather than :meth:`operator.sub`; the
+        result dtype follows from that operation.
+
+        In particular, because the leading ``periods`` positions are filled
+        with a missing value, NumPy integer dtypes are cast to floating and
+        NumPy ``bool`` to ``object``.
 
         Examples
         --------
@@ -15994,11 +15998,6 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    if name == "all":
-                        # Behavior here appears incorrect; preserving
-                        # for backwards compatibility for now.
-                        # See https://github.com/pandas-dev/pandas/issues/57171
-                        skipna = True
                     result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
                     return result

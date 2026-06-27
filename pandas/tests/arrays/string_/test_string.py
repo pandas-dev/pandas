@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+import pandas.core.arrays.string_ as string_module
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
 )
@@ -479,6 +480,19 @@ def test_memory_usage(dtype):
     series = pd.Series(["a", "b", "c"], dtype=dtype)
 
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
+
+
+def test_memory_usage_pypy_compat(dtype, monkeypatch):
+    # GH#46176 deep introspection uses sys.getsizeof, which always raises
+    # TypeError on PyPy; deep=True should fall back to the shallow result
+    if dtype.storage == "pyarrow":
+        pytest.skip(f"not applicable for {dtype.storage}")
+
+    series = pd.Series(["a", "b", "c"], dtype=dtype)
+
+    monkeypatch.setattr(string_module, "PYPY", True)
+    result = series.memory_usage(index=False, deep=True)
+    assert result == series.memory_usage(index=False)
 
 
 @pytest.mark.parametrize("float_dtype", [np.float16, np.float32, np.float64])
