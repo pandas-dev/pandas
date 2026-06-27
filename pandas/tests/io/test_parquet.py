@@ -18,7 +18,6 @@ from pandas.compat.pyarrow import (
     pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
-    pa_version_under20p0,
 )
 from pandas.errors import Pandas4Warning
 
@@ -1128,14 +1127,7 @@ class TestParquetPyArrow(Base):
         "columns",
         [
             [0, 1],
-            pytest.param(
-                [b"foo", b"bar"],
-                marks=pytest.mark.xfail(
-                    pa_version_under20p0,
-                    raises=NotImplementedError,
-                    reason="https://github.com/apache/arrow/pull/44171",
-                ),
-            ),
+            [b"foo", b"bar"],
             pytest.param(
                 [
                     datetime.datetime(2011, 1, 1, 0, 0),
