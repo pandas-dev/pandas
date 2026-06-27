@@ -1916,12 +1916,12 @@ class TestDataFrameReductions:
             _make_2d_ea_df(
                 [
                     to_datetime(["2020-02-01", "2020-02-02", pd.NaT])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                     to_datetime([pd.NaT, "2020-02-04", "2020-02-05"])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                 ],
                 ["dz3", "dz4"],
@@ -2032,6 +2032,60 @@ class TestDataFrameReductions:
                 check_dtype=False,
                 check_names=False,
             )
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_with_nat(self, method):
+        # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
+        # must skip NaT under skipna=True, matching the transpose path.
+        ts = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        df = DataFrame({"a": [ts, ts], "b": [ts, pd.NaT]})
+        # Two separate blocks (CoW), same EA dtype.
+        assert len(df._mgr.blocks) == 2
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([ts, ts], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        # skipna=False propagates NaT.
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
+        # GH#65500: different tz across blocks must not enter the EA fast
+        # path (which would silently produce a wrong-dtype result); fall
+        # through to the slow path so the result has object dtype.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, ts2]})
+
+        result = df.max(axis=1)
+        expected = Series([ts1, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = df.min(axis=1)
+        expected = Series([ts2, ts2], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_mixed_tz_with_nat(self, method):
+        # GH#65500: mixed-tz frames reduce via the object path; NaT must
+        # be skipped under skipna=True instead of raising TypeError on
+        # comparison with the NA fill value.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, pd.NaT]})
+        winner = ts2 if method == "min" else ts1
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, pd.NaT], dtype=object)
+        tm.assert_series_equal(result, expected)
 
     def test_frame_any_with_timedelta(self):
         # GH#17667

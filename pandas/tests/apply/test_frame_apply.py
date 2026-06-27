@@ -1677,14 +1677,13 @@ def test_apply_datetime_tz_issue(engine, request):
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_mixed_column_raises(df, method, using_infer_string):
     # GH 16832
-    if method == "sum":
+    if method == "sum" and not using_infer_string:
         msg = r'can only concatenate str \(not "int"\) to str|does not support'
-    else:
-        msg = "not supported between instances of 'str' and 'float'"
-    if not using_infer_string:
         with pytest.raises(TypeError, match=msg):
             getattr(df, method)()
     else:
+        # GH#65500: object min/max fill NA from the same slice rather than
+        # +/-inf, so they no longer raise when NA sits alongside strings
         getattr(df, method)()
 
 

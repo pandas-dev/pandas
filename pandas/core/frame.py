@@ -15959,20 +15959,19 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
-                # GH#51474: block-wise axis=1 reduction avoiding expensive
-                # transpose for numpy-backed and 2D EA blocks.
+                # GH#51474: block-wise axis=1 reduction avoiding an expensive
+                # transpose for numpy-backed blocks.  EA blocks are excluded
+                # here (GH#65500): frames sharing a single EA dtype are handled
+                # by the EA fastpath just below, while everything else falls
+                # through to the transpose (coerced to object when there is no
+                # common non-object dtype).
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all", "mean")
                     and len(df._mgr.blocks) > 1
                     and all(
-                        (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
-                        or (
-                            isinstance(bv, ExtensionArray)
-                            and bv.ndim == 2
-                            and name in ("min", "max")
-                            and skipna
-                        )
-                        for bv in (block.values for block in df._mgr.blocks)
+                        isinstance(block.values, np.ndarray)
+                        and block.values.dtype.kind != "O"
+                        for block in df._mgr.blocks
                     )
                 ):
                     return df._reduce_axis1(

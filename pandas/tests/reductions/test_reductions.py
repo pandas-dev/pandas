@@ -1186,6 +1186,36 @@ class TestSeriesReductions:
         with pytest.raises(ValueError, match=msg):
             test_input.idxmax(skipna=False)
 
+    @pytest.mark.parametrize(
+        "data, exp_min, exp_max",
+        [
+            (["a", "b", np.nan], "a", "b"),
+            (["a", "b", None], "a", "b"),
+            ([(1, 3), (2, 2), np.nan], (1, 3), (2, 2)),
+        ],
+    )
+    def test_minmax_object_with_na(self, data, exp_min, exp_max):
+        # GH#65500: NA entries in object dtype were filled with +/-inf,
+        # which cannot be compared with strings/tuples
+        ser = Series(data, dtype=object)
+        assert ser.min() == exp_min
+        assert ser.max() == exp_max
+
+    def test_minmax_object_timestamps_mixed_tz(self):
+        # GH#65500
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        ser = Series([ts1, ts2, NaT], dtype=object)
+        assert ser.max() == ts1
+        assert ser.min() == ts2
+
+    def test_minmax_object_all_na(self):
+        # GH#65500
+        ser = Series([np.nan, np.nan], dtype=object)
+        assert isna(ser.min())
+        assert isna(ser.max())
+
     def test_idxminmax_object_dtype(self, using_infer_string):
         # pre-2.1 object-dtype was disallowed for argmin/max
         ser = Series(["foo", "bar", "baz"])
