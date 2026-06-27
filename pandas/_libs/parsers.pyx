@@ -32,7 +32,6 @@ from cpython.exc cimport (
 from cpython.long cimport PyLong_FromString
 from cpython.object cimport PyObject
 from cpython.ref cimport (
-    Py_INCREF,
     Py_XDECREF,
 )
 from cpython.unicode cimport (
@@ -325,6 +324,7 @@ cdef class TextReader:
         bint allow_leading_cols
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
+        object _encoding_errors
         kh_str_starts_t *false_set
         kh_str_starts_t *true_set
         int64_t buffer_lines, skipfooter
@@ -386,7 +386,8 @@ cdef class TextReader:
             encoding_errors = encoding_errors.encode("utf-8")
         elif encoding_errors is None:
             encoding_errors = b"strict"
-        Py_INCREF(encoding_errors)
+        # store encoding_errors in `self` for Cython to manage its lifetime.
+        self._encoding_errors = encoding_errors
         self.encoding_errors = PyBytes_AsString(encoding_errors)
 
         self.parser = parser_new()
