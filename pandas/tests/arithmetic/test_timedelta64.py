@@ -156,7 +156,13 @@ class TestTimedelta64ArrayLikeComparisons:
         result = rng != other
         tm.assert_numpy_array_equal(result, ~expected)
 
-        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        msg = "|".join(
+            [
+                "Invalid comparison between",
+                "Cannot compare type",
+                "not supported between",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             rng < other
         with pytest.raises(TypeError, match=msg):
@@ -864,7 +870,7 @@ class TestTimedeltaArraylikeAddSubOps:
         actual = df1 - timedelta_NaT
         tm.assert_frame_equal(actual, dfn)
 
-        msg = "cannot subtract a datelike from|unsupported operand type"
+        msg = "|".join(["cannot subtract a datelike from", "unsupported operand type"])
         with pytest.raises(TypeError, match=msg):
             df1 + np.nan
         with pytest.raises(TypeError, match=msg):
@@ -1478,7 +1484,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = "has incorrect type|cannot add the type MonthEnd"
+        msg = "|".join(["has incorrect type", "cannot add the type MonthEnd"])
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(performance_warning):
                 tdi + anchored
@@ -1513,7 +1519,7 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
-        msg = "unsupported operand type|cannot subtract a datelike"
+        msg = "|".join(["unsupported operand type", "cannot subtract a datelike"])
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(performance_warning):
                 tdarr - other
@@ -1863,7 +1869,7 @@ class TestTimedeltaArraylikeMulDivOps:
         mismatched = [1, 2, 3, 4]
 
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Cannot divide vectors|Unable to coerce to Series"
+        msg = "|".join(["Cannot divide vectors", "Unable to coerce to Series"])
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
             for other in [obj, np.array(obj), Index(obj)]:
