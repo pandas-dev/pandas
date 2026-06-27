@@ -240,7 +240,8 @@ Notice that the :meth:`~DataFrame.unstack` method implicitly sorts the index lev
 while :meth:`~DataFrame.stack` preserves the order of the stacked column level. Because
 :meth:`~DataFrame.unstack` sorts, a call to :meth:`~DataFrame.stack` and then
 :meth:`~DataFrame.unstack`, or vice versa, will result in a **sorted** copy of the original
-:class:`DataFrame` or :class:`Series`:
+:class:`DataFrame` or :class:`Series`. Here "sorted" is with respect to the order of the
+:attr:`MultiIndex.levels`, which for a typical :class:`MultiIndex` matches sorting by value:
 
 .. ipython:: python
 
