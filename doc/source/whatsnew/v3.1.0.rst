@@ -239,6 +239,7 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
+- Fixed bug in :meth:`DataFrame.resample` where resampling a :class:`DataFrame` with datetime that generates bin edges that are not valid in the index's timezone due to DST would not raise NonExistentTimeError and properly handle the DST gap (:issue:`62601`)
 
 Categorical
 ^^^^^^^^^^^
