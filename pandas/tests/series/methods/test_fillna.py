@@ -1065,3 +1065,21 @@ def test_ffill_bfill_limit_area(data, expected_data, method, kwargs):
     expected = Series(expected_data)
     result = getattr(s, method)(**kwargs)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, dtype, msg",
+    [
+        ([1, None], "Int64", "Invalid value"),
+        ([1.0, None], "Float64", "Invalid value"),
+        ([True, None], "boolean", "Invalid value"),
+        (["a", None], "category", "new category"),
+    ],
+)
+def test_fillna_incompatible_value_raises_without_warning(data, dtype, msg):
+    # GH#45153 ExtensionArrays whose array-level fillna already raises on an
+    #  incompatible fill value must not also emit the casting deprecation warning
+    ser = Series(data, dtype=dtype)
+    with tm.assert_produces_warning(None):
+        with pytest.raises(TypeError, match=msg):
+            ser.fillna("x")
