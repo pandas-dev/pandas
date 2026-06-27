@@ -194,6 +194,23 @@ static TypeContext *createTypeContext(void) {
   return pc;
 }
 
+// Returns 1 if obj has a DatetimeTZDtype (dt64tz), else 0. Works for Series,
+// Index, and DatetimeArray, all of which expose the tz via ``obj.dtype.tz``.
+// The underlying datetime64 values of such objects are UTC-localized, so the
+// ISO serialization must append a trailing "Z".
+static int object_is_dt64tz(PyObject *obj) {
+  PyObject *dtype = PyObject_GetAttrString(obj, "dtype");
+  if (dtype == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  // Only DatetimeTZDtype exposes a `tz` attribute; numpy datetime64 dtypes
+  // and CategoricalDtype do not.
+  const int is_dt64tz = PyObject_HasAttrString(dtype, "tz");
+  Py_DECREF(dtype);
+  return is_dt64tz;
+}
+
 static PyObject *get_values(PyObject *obj) {
   PyObject *typ = NULL;
   PyObject *arr = NULL;
@@ -235,6 +252,27 @@ static PyObject *get_values(PyObject *obj) {
     return NULL;
   }
 
+  if (object_is_dt64tz(obj)) {
+    // Serialize tz-aware datetimes from the underlying UTC datetime64 ndarray
+    //  rather than boxing into an object array of Timestamps (what
+    //  _values_for_json does for dt64tz). Callers flag dt64tz objects as UTC
+    //  (see object_is_dt64tz) so the ISO output keeps its trailing "Z".
+    //  category[dt64tz] has no dtype.tz and falls through to _values_for_json.
+    values = PyObject_GetAttrString(arr, "_ndarray");
+    Py_DECREF(arr);
+    if (values == NULL) {
+      PyErr_SetString(PyExc_ValueError,
+                      "Error retrieving ._ndarray from DatetimeArray");
+      return NULL;
+    }
+    if (!PyArray_CheckExact(values)) {
+      PyErr_Format(PyExc_ValueError, "._ndarray should be a numpy array");
+      Py_DECREF(values);
+      return NULL;
+    }
+    return values;
+  }
+
   values = PyObject_CallMethod(arr, "_values_for_json", NULL);
 
   if (values == NULL) {
@@ -251,23 +289,6 @@ static PyObject *get_values(PyObject *obj) {
   }
   Py_DECREF(arr);
   return values;
-}
-
-// Returns 1 if obj has a DatetimeTZDtype (dt64tz), else 0. Works for Series,
-// Index, and DatetimeArray, all of which expose the tz via ``obj.dtype.tz``.
-// The underlying datetime64 values of such objects are UTC-localized, so the
-// ISO serialization must append a trailing "Z".
-static int object_is_dt64tz(PyObject *obj) {
-  PyObject *dtype = PyObject_GetAttrString(obj, "dtype");
-  if (dtype == NULL) {
-    PyErr_Clear();
-    return 0;
-  }
-  // Only DatetimeTZDtype exposes a `tz` attribute; numpy datetime64 dtypes
-  // and CategoricalDtype do not.
-  const int is_dt64tz = PyObject_HasAttrString(dtype, "tz");
-  Py_DECREF(dtype);
-  return is_dt64tz;
 }
 
 static PyObject *get_sub_attr(PyObject *obj, char *attr, char *subAttr) {
