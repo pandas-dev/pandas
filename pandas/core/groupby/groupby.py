@@ -169,14 +169,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+        return self._groupby._python_apply_plot(f)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            return self._groupby._python_apply_plot(f)
 
         return attr
 
@@ -880,7 +880,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self._python_apply_general(curried, self._selected_obj)
+            return self._python_apply_plot(curried)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1440,6 +1440,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             not_indexed_same,
             is_transform,
         )
+
+    @final
+    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+        """
+        Apply a plotting function f group-wise.
+
+        Each Series group gets its group key as the name, which plotting
+        methods use for legend labels. Unlike the general apply path, this
+        labels the group explicitly rather than relying on the name attribute
+        being pinned to the group key as a side effect (GH#41090).
+        """
+        data = self._selected_obj
+        values = []
+        for key, group in self._grouper.get_iterator(data):
+            if group.ndim == 1:
+                group.name = key
+            values.append(f(group))
+        # plotting functions return matplotlib objects, never something
+        #  indexed like the group, so this is always not_indexed_same
+        return self._wrap_applied_output(data, values, not_indexed_same=True)
 
     @final
     def _agg_general(
