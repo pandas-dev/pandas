@@ -11,6 +11,7 @@ import pytest
 
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 
@@ -334,7 +335,6 @@ def test_skip_whitespace(c_parser_only, float_precision):
     tm.assert_series_equal(df.iloc[:, 1], pd.Series([1.2, 2.1, 1.0, 1.2], name="num"))
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_true_values_cast_to_bool(all_parsers):
     # GH#34655
     text = """a,b
@@ -344,6 +344,17 @@ no,yyy
 0,aaa
     """
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        # pyarrow does not skip the trailing whitespace-only line, so it sees a
+        # row with the wrong number of columns and raises before any bool cast.
+        with pytest.raises(ParserError, match="Expected 2 columns, got 1"):
+            parser.read_csv(
+                StringIO(text),
+                true_values=["yes"],
+                false_values=["no"],
+                dtype={"a": "boolean"},
+            )
+        return
     result = parser.read_csv(
         StringIO(text),
         true_values=["yes"],
