@@ -216,6 +216,7 @@ Performance improvements
 - Performance improvement in indexing a :class:`MultiIndex` with a list-like indexer (:issue:`55786`)
 - Performance improvement in partial-string indexing on a monotonic decreasing :class:`DatetimeIndex` or :class:`PeriodIndex` (:issue:`64811`)
 - Performance improvement in plotting :class:`DatetimeIndex` with multiplied frequencies (e.g. ``"1000ms"``, ``"100s"``) (:issue:`50355`)
+- Performance improvement in plotting :class:`Series` and :class:`DataFrame` with a :class:`PeriodIndex` or with a :class:`DatetimeIndex` whose frequency upsamples to one (:issue:`10578`)
 - Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)
 - Performance improvement in reductions along ``axis=1`` and other operations on DataFrames produced by :meth:`DataFrame.copy` (:issue:`60469`)
 - Performance improvement in repr of :class:`Series` and :class:`DataFrame` containing third-party array-like objects (e.g. xarray ``DataArray``) in object dtype columns (:issue:`61809`)
