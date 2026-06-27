@@ -195,6 +195,7 @@ class BaseBlockManager(PandasObject):
 
     _blknos: npt.NDArray[np.intp]
     _blklocs: npt.NDArray[np.intp]
+    _dtypes_cache: npt.NDArray[np.object_] | None
     blocks: tuple[Block, ...]
     axes: list[Index]
 
@@ -340,8 +341,12 @@ class BaseBlockManager(PandasObject):
         return algos.unique(np.array([blk.dtype for blk in self.blocks], dtype=object))
 
     def get_dtypes(self) -> npt.NDArray[np.object_]:
-        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
-        return dtypes.take(self.blknos)
+        cache = self._dtypes_cache
+        if cache is None:
+            dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
+            cache = dtypes.take(self.blknos)
+            self._dtypes_cache = cache
+        return cache.copy()
 
     @property
     def arrays(self) -> list[ArrayLike]:
@@ -1426,6 +1431,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Invalidate cache before mutating blocks so that a concurrent
             # reader never sees stale cache + new blocks.
             self._interleaved_dtype = None
+            self._dtypes_cache = None
             self._known_consolidated = False
 
             self.blocks += tuple(new_blocks)
@@ -1512,6 +1518,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Invalidate cache before mutating blocks so that a concurrent
         # reader never sees stale cache + new blocks.
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self.blocks = new_blocks
         return
 
@@ -1584,6 +1591,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # Invalidate cache before mutating blocks so that a concurrent
         # reader never sees stale cache + new blocks.
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self._known_consolidated = False
         self.blocks += (block,)
 

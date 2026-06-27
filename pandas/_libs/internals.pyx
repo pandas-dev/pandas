@@ -725,6 +725,7 @@ cdef class BlockManager:
         public list axes
         public bint _known_consolidated, _is_consolidated
         public object _interleaved_dtype
+        public object _dtypes_cache
         ndarray __blknos, __blklocs
 
     def __cinit__(
@@ -749,6 +750,7 @@ cdef class BlockManager:
         self._known_consolidated = False
         self._is_consolidated = False
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self._blknos = None
         self._blklocs = None
 
