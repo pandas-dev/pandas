@@ -1031,10 +1031,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
+    def _slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
-        mgr = self._mgr.get_slice(slobj, axis=axis)
+        mgr = self._mgr.get_slice(slobj, axis=axis, new_index=new_index)
         out = self._constructor_from_mgr(mgr, axes=mgr.axes)
         out._name = self._name
         return out.__finalize__(self)
@@ -3188,10 +3190,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Notes
         -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-        The result is calculated according to current dtype in Series,
-        however dtype of the result is always float64.
+        Equivalent to ``self - self.shift(periods)``, except that boolean
+        dtypes use :meth:`operator.xor` rather than :meth:`operator.sub`; the
+        result dtype follows from that operation.
+
+        In particular, because the leading ``periods`` positions are filled
+        with a missing value, NumPy integer dtypes are cast to floating and
+        NumPy ``bool`` to ``object``.
 
         Examples
         --------
@@ -3934,7 +3939,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. 'mergesort' and 'stable' are the only stable  algorithms.
+            information. The sort order is deterministic for a given input.
+            `mergesort` and `stable` are the only stable algorithms, which preserve
+            the relative order of equal keys.
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
@@ -4085,9 +4092,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
+            result = self if inplace else self.copy(deep=False)
+            if ignore_index:
+                result.index = default_index(len(sorted_index))
             if inplace:
-                return self._update_inplace(self)
-            return self.copy(deep=False)
+                return None
+            return result
 
         result = self._constructor(
             self._values[sorted_index], index=self.index[sorted_index], copy=False

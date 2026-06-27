@@ -313,6 +313,22 @@ class TestGrouping:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_grouper_func_returning_tz_naive(self):
+        # GH#57192 grouping by a function that strips the tz should give
+        #  tz-naive group keys, not keys re-localized to the original tz
+        index = date_range("2024-02-01", "2024-02-03", freq="8h", tz="UTC")
+        df = DataFrame({"A": 1}, index=index)
+
+        gb = df.groupby(by=lambda ts: ts.normalize().tz_convert(None))
+        keys = list(gb.groups.keys())
+        assert all(key.tz is None for key in keys)
+        expected = [
+            Timestamp("2024-02-01"),
+            Timestamp("2024-02-02"),
+            Timestamp("2024-02-03"),
+        ]
+        assert keys == expected
+
     def test_grouper_column_and_index(self):
         # GH 14327
 

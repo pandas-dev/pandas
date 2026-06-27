@@ -683,16 +683,14 @@ class SeriesGroupBy(GroupBy[Series]):
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
-        The current implementation imposes three requirements on f:
+        ``func`` is passed each group as a whole :class:`Series`. The current
+        implementation imposes two requirements on ``func``:
 
-        * f must return a value that either has the same shape as the input
-          subframe or can be broadcast to the shape of the input subframe.
-          For example, if `f` returns a scalar it will be broadcast to have the
-          same shape as the input subframe.
-        * if this is a DataFrame, f must support application column-by-column
-          in the subframe. If f also supports application to the entire subframe,
-          then a fast path is used starting from the second chunk.
-        * f must not mutate groups. Mutation is not supported and may
+        * ``func`` must return a value that either has the same shape as the input
+          group or can be broadcast to the shape of the input group.
+          For example, if ``func`` returns a scalar it will be broadcast to have
+          the same shape as the input group.
+        * ``func`` must not mutate groups. Mutation is not supported and may
           produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
         When using ``engine='numba'``, there will be no "fall back" behavior internally.
@@ -2530,6 +2528,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns a DataFrame having the same indexes as the original object
         filled with the transformed values.
 
+        When ``func`` is a user-defined function, by default it operates on each
+        column of each group separately (each column is passed as a
+        :class:`Series`); see the Notes section below.
+
         Parameters
         ----------
         func : function, str, list, or dict
@@ -2601,16 +2603,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Each group is endowed the attribute 'name' in case you need to know
         which group you are working on.
 
-        The current implementation imposes three requirements on f:
+        The current implementation imposes three requirements on ``func``:
 
-        * f must return a value that either has the same shape as the input
+        * ``func`` must return a value that either has the same shape as the input
           subframe or can be broadcast to the shape of the input subframe.
-          For example, if `f` returns a scalar it will be broadcast to have the
-          same shape as the input subframe.
-        * if this is a DataFrame, f must support application column-by-column
-          in the subframe. If f also supports application to the entire subframe,
-          then a fast path is used starting from the second chunk.
-        * f must not mutate groups. Mutation is not supported and may
+          For example, if ``func`` returns a scalar it will be broadcast to have
+          the same shape as the input subframe.
+        * ``func`` is applied to each column of the group separately (each column
+          is passed as a :class:`Series`). If ``func`` also supports application to
+          the entire group :class:`DataFrame` and returns the same result, a faster
+          path operating on the whole group is used starting from the second group.
+        * ``func`` must not mutate groups. Mutation is not supported and may
           produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
         When using ``engine='numba'``, there will be no "fall back" behavior internally.

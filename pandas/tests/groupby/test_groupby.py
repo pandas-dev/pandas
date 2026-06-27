@@ -1156,7 +1156,7 @@ def test_groupby_dtype_inference_empty():
     result = df.groupby("x").first()
     exp_index = Index([], name="x", dtype=np.float64)
     expected = DataFrame({"range": Series([], index=exp_index, dtype="int64")})
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_unit64_float_conversion():
@@ -2894,6 +2894,20 @@ def test_groupby_series_with_datetimeindex_month_name():
     result = s.groupby(s).count()
     expected = Series([2, 1], name="jan")
     expected.index.name = "jan"
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_series_with_datetimeindex_numeric_name():
+    # GH 51818 - a name parseable as an out-of-bounds datetime (e.g. "09")
+    # should not make groupby(self) raise OutOfBoundsDatetime
+    ser = Series(
+        [0, 1, 0],
+        index=date_range("2013-06-07", periods=3, freq="15min"),
+        name="09",
+    )
+    result = ser.groupby(ser).count()
+    expected = Series([2, 1], name="09")
+    expected.index.name = "09"
     tm.assert_series_equal(result, expected)
 
 
