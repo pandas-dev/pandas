@@ -55,6 +55,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -1651,9 +1652,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 except KeyError:
                     na_val = np.nan
 
-        if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
+        # A MultiIndex (i.e. mapper returned tuples) can't back a
+        # CategoricalDtype, so it must take the slow path below regardless
+        # of uniqueness/na checks.
+        if (
+            not isinstance(new_categories, ABCMultiIndex)
+            and new_categories.is_unique
+            and not new_categories.hasnans
+            and na_val is np.nan
+        ):
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
+
+        if isinstance(new_categories, ABCMultiIndex):
+            # mapper returned tuples; a CategoricalDtype/Categorical cannot be
+            # constructed from a MultiIndex, so fall back to a flat
+            # object-dtype Index of tuples.
+            new_categories = new_categories.to_flat_index()
 
         if has_nans:
             new_categories = new_categories.insert(len(new_categories), na_val)
