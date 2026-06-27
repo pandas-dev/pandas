@@ -113,6 +113,13 @@ class StringDtype(StorageExtensionDtype):
     ----------
     storage : {"python", "pyarrow"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
+        This determines the storage backend for string data:
+
+        - "pyarrow": Uses PyArrow for efficient vectorized operations
+          but immutable strings
+        - "python": Uses Python objects for mutable strings but with
+          higher memory overhead
+
     na_value : {np.nan, pd.NA}, default pd.NA
         Whether the dtype follows NaN or NA missing value semantics.
 
@@ -129,6 +136,19 @@ class StringDtype(StorageExtensionDtype):
     --------
     BooleanDtype : Extension dtype for boolean data.
 
+    Notes
+    -----
+    When choosing between storage backends, consider the following:
+
+    - PyArrow storage offers superior performance and memory efficiency
+      but immutability (modifications create new arrays)
+    - Python storage allows string mutations but with higher memory overhead
+      and slower operations
+
+    There are also some known behavioral differences between storage backends
+    for edge cases involving Unicode operations and regex handling. See the
+    :ref:`text.known_differences` section in the user guide for details.
+
     Examples
     --------
     >>> pd.StringDtype()
@@ -136,6 +156,9 @@ class StringDtype(StorageExtensionDtype):
 
     >>> pd.StringDtype(storage="python")
     <StringDtype(storage='python', na_value=<NA>)>
+
+    For more information on storage variants and their trade-offs,
+    see :ref:`text.performance_considerations` in the user guide.
     """
 
     @property
@@ -178,9 +201,22 @@ class StringDtype(StorageExtensionDtype):
 
         Can be either "pyarrow" or "python".
 
+        The storage backend determines how string data is stored internally:
+
+        - "pyarrow": Uses Apache Arrow for efficient vectorized operations.
+          Offers better performance and memory efficiency but with immutable strings.
+        - "python": Uses NumPy object arrays containing Python string objects.
+          Allows string mutations but with higher memory overhead.
+
         See Also
         --------
         StringDtype.na_value : The missing value for this dtype.
+
+        Notes
+        -----
+        For detailed information on performance trade-offs and known differences
+        between storage backends, see :ref:`text.performance_considerations`
+        and :ref:`text.known_differences` in the user guide.
 
         Examples
         --------
