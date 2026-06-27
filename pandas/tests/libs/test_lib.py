@@ -276,6 +276,28 @@ class TestIndexing:
         assert not lib.is_range_indexer(left, 2)
 
 
+@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+def test_has_sentinel(dtype):
+    arr = np.array([0, 1, 2, 3], dtype=dtype)
+    assert not lib.has_sentinel(arr, -1)
+    # sentinel need not be -1
+    assert lib.has_sentinel(arr, 2)
+    assert not lib.has_sentinel(arr, 4)
+
+
+@pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+@pytest.mark.parametrize("n", [0, 1, 7, 8, 9, 15, 16, 17])
+def test_has_sentinel_every_position(dtype, n):
+    # the scan unrolls 8 lanes at a time, so check the body/tail boundary
+    # by placing the sentinel at every position for lengths around 8 and 16
+    base = np.arange(1, n + 1, dtype=dtype)  # all positive, no -1
+    assert not lib.has_sentinel(base, -1)
+    for pos in range(n):
+        arr = base.copy()
+        arr[pos] = -1
+        assert lib.has_sentinel(arr, -1)
+
+
 def test_cache_readonly_preserve_docstrings():
     # GH18197
     assert Index.hasnans.__doc__ is not None

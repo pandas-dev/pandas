@@ -48,12 +48,14 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
-    DtypeObj,
     IndexLabel,
     IntervalClosedType,
+    ListLike,
     NDFrameT,
     PositionalIndexer,
     RandomState,
+    RankMethod,
+    RankNaOption,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -72,7 +74,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
-    is_float_dtype,
     is_hashable,
     is_integer,
     is_integer_dtype,
@@ -81,7 +82,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
@@ -99,7 +99,6 @@ from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
     ExtensionArray,
-    FloatingArray,
     IntegerArray,
 )
 from pandas.core.arrays.string_ import StringDtype
@@ -140,8 +139,11 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
+        Level,
         P,
         T,
+        TimedeltaConvertibleTypes,
+        TimestampConvertibleTypes,
     )
 
     from pandas.core.indexers.objects import BaseIndexer
@@ -167,14 +169,14 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+        return self._groupby._python_apply_plot(f)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            return self._groupby._python_apply_plot(f)
 
         return attr
 
@@ -824,7 +826,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -878,7 +880,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self._python_apply_general(curried, self._selected_obj)
+            return self._python_apply_plot(curried)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1440,6 +1442,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
+    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+        """
+        Apply a plotting function f group-wise.
+
+        Each Series group gets its group key as the name, which plotting
+        methods use for legend labels. Unlike the general apply path, this
+        labels the group explicitly rather than relying on the name attribute
+        being pinned to the group key as a side effect (GH#41090).
+        """
+        data = self._selected_obj
+        values = []
+        for key, group in self._grouper.get_iterator(data):
+            if group.ndim == 1:
+                group.name = key
+            values.append(f(group))
+        # plotting functions return matplotlib objects, never something
+        #  indexed like the group, so this is always not_indexed_same
+        return self._wrap_applied_output(data, values, not_indexed_same=True)
+
+    @final
     def _agg_general(
         self,
         numeric_only: bool = False,
@@ -1526,7 +1548,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#37850 For numpy boolean data, any==max and all==min.
             # The min/max Cython path is faster (fused types, no mask overhead).
             # Excludes nullable BooleanDtype which needs Kleene logic.
-            if how in ["any", "all"] and values.dtype == np.dtype("bool"):
+            use_bool_fastpath = how in ["any", "all"] and values.dtype == np.dtype(
+                "bool"
+            )
+            if use_bool_fastpath:
                 _how = "max" if how == "any" else "min"
             else:
                 _how = how
@@ -1547,6 +1572,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
+                if use_bool_fastpath and result.dtype.kind == "f":
+                    fill = 0.0 if how == "any" else 1.0
+                    result = np.where(
+                        np.isnan(result), fill, np.asarray(result)
+                    ).astype(bool)
                 return result
 
             assert alt is not None
@@ -2209,6 +2239,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series.std : Apply function std to a Series.
         DataFrame.std : Apply function std to each row or column of a DataFrame.
 
+        Notes
+        -----
+        To have the same behaviour as ``numpy.std``, use ``ddof=0`` (instead of
+        the default ``ddof=1``) and ``skipna=False``.
+
         Examples
         --------
         For SeriesGroupBy:
@@ -2771,12 +2806,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.sum : Return the sum of the values over the requested axis.
+        DataFrame.sum : Return the sum of the values over the requested axis.
 
         Examples
         --------
@@ -2980,12 +3011,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.min : Return the minimum of the values over the requested axis.
+        DataFrame.min : Return the minimum of the values over the requested axis.
 
         Examples
         --------
@@ -3101,12 +3128,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        SeriesGroupBy.min : Return the min of the group values.
-        DataFrameGroupBy.min : Return the min of the group values.
-        SeriesGroupBy.max : Return the max of the group values.
-        DataFrameGroupBy.max : Return the max of the group values.
-        SeriesGroupBy.sum : Return the sum of the group values.
-        DataFrameGroupBy.sum : Return the sum of the group values.
+        Series.max : Return the maximum of the values over the requested axis.
+        DataFrame.max : Return the maximum of the values over the requested axis.
 
         Examples
         --------
@@ -3172,7 +3195,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the first entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the first non-NA
+        value per column — which may differ from the first row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3182,7 +3207,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
@@ -3195,9 +3220,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.last : Compute the last non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        api.typing.DataFrameGroupBy.last : Compute the last entry of each
+            column within each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3257,7 +3282,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute the last entry of each column within each group.
 
-        Defaults to skipping NA elements.
+        NA values are skipped by default, so the result is the last non-NA
+        value per column — which may differ from the last row of the group.
+        Pass ``skipna=False`` to keep NAs.
 
         Parameters
         ----------
@@ -3268,22 +3295,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             The required number of valid values to perform the operation. If fewer
             than ``min_count`` valid values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values. If an entire group is NA, the result will be NA.
+            Exclude NA values. If an entire group is NA, the result will be NA.
 
             .. versionadded:: 2.2.1
 
         Returns
         -------
         Series or DataFrame
-            Last of values within each group.
+            Last values within each group.
 
         See Also
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        core.groupby.DataFrameGroupBy.first : Compute the first non-null entry
-            of each column.
-        core.groupby.DataFrameGroupBy.nth : Take the nth row from each group.
+        api.typing.DataFrameGroupBy.first : Compute the first entry of each
+            column within each group.
+        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3427,6 +3454,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self.obj._constructor_expanddim(
                 res_values, index=self._grouper.result_index, columns=agg_names
             )
+            if not self.as_index:
+                result = result.reset_index()
             return result
 
         result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
@@ -3438,245 +3467,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         include=None,
         exclude=None,
     ) -> NDFrameT:
-        """
-        Generate descriptive statistics.
-
-        Descriptive statistics include those that summarize the central
-        tendency, dispersion and shape of a
-        dataset's distribution, excluding ``NaN`` values.
-
-        Analyzes both numeric and object series, as well
-        as ``DataFrame`` column sets of mixed data types. The output
-        will vary depending on what is provided. Refer to the notes
-        below for more detail.
-
-        Parameters
-        ----------
-        percentiles : list-like of numbers, optional
-            The percentiles to include in the output. All should
-            fall between 0 and 1. The default, ``None``, will automatically
-            return the 25th, 50th, and 75th percentiles.
-        include : 'all', list-like of dtypes or None (default), optional
-            A white list of data types to include in the result. Ignored
-            for ``Series``. Here are the options:
-
-            - 'all' : All columns of the input will be included in the output.
-            - A list-like of dtypes : Limits the results to the
-              provided data types.
-              To limit the result to numeric types submit
-              ``numpy.number``. To limit it instead to object columns submit
-              the ``numpy.object`` data type. Strings
-              can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
-              select pandas categorical columns, use ``'category'``
-            - None (default) : The result will include all numeric columns.
-        exclude : list-like of dtypes or None (default), optional,
-            A black list of data types to omit from the result. Ignored
-            for ``Series``. Here are the options:
-
-            - A list-like of dtypes : Excludes the provided data types
-              from the result. To exclude numeric types submit
-              ``numpy.number``. To exclude object columns submit the data
-              type ``numpy.object``. Strings can also be used in the style of
-              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
-              exclude pandas categorical columns, use ``'category'``
-            - None (default) : The result will exclude nothing.
-
-        Returns
-        -------
-        Series or DataFrame
-            Summary statistics of the Series or Dataframe provided.
-
-        See Also
-        --------
-        DataFrame.count: Count number of non-NA/null observations.
-        DataFrame.max: Maximum of the values in the object.
-        DataFrame.min: Minimum of the values in the object.
-        DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the observations.
-        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
-            columns based on their dtype.
-
-        Notes
-        -----
-        For numeric data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
-        upper percentiles. By default the lower percentile is ``25`` and the
-        upper percentile is ``75``. The ``50`` percentile is the
-        same as the median.
-
-        For object data (e.g. strings), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
-        is the most common value. The ``freq`` is the most common value's
-        frequency.
-
-        If multiple object values have the highest count, then the
-        ``count`` and ``top`` results will be arbitrarily chosen from
-        among those with the highest count.
-
-        For mixed data types provided via a ``DataFrame``, the default is to
-        return only an analysis of numeric columns. If the DataFrame consists
-        only of object and categorical data without any numeric columns, the
-        default is to return an analysis of both the object and categorical
-        columns. If ``include='all'`` is provided as an option, the result
-        will include a union of attributes of each type.
-
-        The `include` and `exclude` parameters can be used to limit
-        which columns in a ``DataFrame`` are analyzed for the output.
-        The parameters are ignored when analyzing a ``Series``.
-
-        Examples
-        --------
-        Describing a numeric ``Series``.
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
-        dtype: float64
-
-        Describing a categorical ``Series``.
-
-        >>> s = pd.Series(["a", "a", "b", "c"])
-        >>> s.describe()
-        count     4
-        unique    3
-        top       a
-        freq      2
-        dtype: object
-
-        Describing a timestamp ``Series``.
-
-        >>> s = pd.Series(
-        ...     [
-        ...         np.datetime64("2000-01-01"),
-        ...         np.datetime64("2010-01-01"),
-        ...         np.datetime64("2010-01-01"),
-        ...     ]
-        ... )
-        >>> s.describe()
-        count                      3
-        mean     2006-09-01 08:00:00
-        min      2000-01-01 00:00:00
-        25%      2004-12-31 12:00:00
-        50%      2010-01-01 00:00:00
-        75%      2010-01-01 00:00:00
-        max      2010-01-01 00:00:00
-        dtype: object
-
-        Describing a ``DataFrame``. By default only numeric fields
-        are returned.
-
-        >>> df = pd.DataFrame(
-        ...     {
-        ...         "categorical": pd.Categorical(["d", "e", "f"]),
-        ...         "numeric": [1, 2, 3],
-        ...         "object": ["a", "b", "c"],
-        ...     }
-        ... )
-        >>> df.describe()
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
-
-        Describing all columns of a ``DataFrame`` regardless of data type.
-
-        >>> df.describe(include="all")  # doctest: +SKIP
-               categorical  numeric object
-        count            3      3.0      3
-        unique           3      NaN      3
-        top              f      NaN      a
-        freq             1      NaN      1
-        mean           NaN      2.0    NaN
-        std            NaN      1.0    NaN
-        min            NaN      1.0    NaN
-        25%            NaN      1.5    NaN
-        50%            NaN      2.0    NaN
-        75%            NaN      2.5    NaN
-        max            NaN      3.0    NaN
-
-        Describing a column from a ``DataFrame`` by accessing it as
-        an attribute.
-
-        >>> df.numeric.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
-        Name: numeric, dtype: float64
-
-        Including only numeric columns in a ``DataFrame`` description.
-
-        >>> df.describe(include=[np.number])
-               numeric
-        count      3.0
-        mean       2.0
-        std        1.0
-        min        1.0
-        25%        1.5
-        50%        2.0
-        75%        2.5
-        max        3.0
-
-        Including only string columns in a ``DataFrame`` description.
-
-        >>> df.describe(include=[object])  # doctest: +SKIP
-               object
-        count       3
-        unique      3
-        top         a
-        freq        1
-
-        Including only categorical columns from a ``DataFrame`` description.
-
-        >>> df.describe(include=["category"])
-               categorical
-        count            3
-        unique           3
-        top              d
-        freq             1
-
-        Excluding numeric columns from a ``DataFrame`` description.
-
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
-               categorical object
-        count            3      3
-        unique           3      3
-        top              f      a
-        freq             1      1
-
-        Excluding object columns from a ``DataFrame`` description.
-
-        >>> df.describe(exclude=[object])  # doctest: +SKIP
-               categorical  numeric
-        count            3      3.0
-        unique           3      NaN
-        top              f      NaN
-        freq             1      NaN
-        mean           NaN      2.0
-        std            NaN      1.0
-        min            NaN      1.0
-        25%            NaN      1.5
-        50%            NaN      2.0
-        75%            NaN      2.5
-        max            NaN      3.0
-        """
         obj = self._obj_with_exclusions
 
         if len(obj) == 0:
@@ -3708,10 +3498,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def resample(
-        self, rule, *args, include_groups: bool = False, **kwargs
+        self,
+        rule,
+        closed: Literal["right", "left"] | None = None,
+        label: Literal["right", "left"] | None = None,
+        convention: Literal["start", "end", "s", "e"] | None = None,
+        on: Level | None = None,
+        origin: str | TimestampConvertibleTypes = "start_day",
+        offset: TimedeltaConvertibleTypes | None = None,
+        group_keys: bool = False,
+        *,
+        include_groups: bool = False,
+        **kwargs,
     ) -> Resampler:
         """
-        Provide resampling when using a TimeGrouper.
+        Provide resampling within each group of a groupby.
 
         Given a grouper, the function resamples it according to a string
         "string" -> "frequency".
@@ -3723,10 +3524,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
-        *args
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
-        include_groups : bool, default True
+        closed : {'right', 'left'}, optional
+            Which side of bin interval is closed. See :meth:`Series.resample`.
+        label : {'right', 'left'}, optional
+            Which bin edge label to label bucket with. See :meth:`Series.resample`.
+        convention : {'start', 'end', 's', 'e'}, optional
+            For ``PeriodIndex`` only. See :meth:`Series.resample`.
+        on : str, optional
+            For a DataFrame, column to use instead of index for resampling.
+            Column must be datetime-like.
+        origin : Timestamp or str, default 'start_day'
+            The timestamp on which to adjust the grouping. See
+            :meth:`Series.resample` for accepted string values.
+        offset : Timedelta or str, optional
+            An offset timedelta added to the origin.
+        group_keys : bool, default False
+            Whether to include the group keys in the result index when using
+            ``.apply()`` on the resampled object.
+        include_groups : bool, default False
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
             TypeError, the result will be computed with the groupings excluded.
@@ -3739,16 +3554,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                The default was changed to False, and True is no longer allowed.
 
         **kwargs
-            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
-            `on`, and other arguments of `TimeGrouper`.
+            Additional keyword arguments forwarded to the underlying
+            :class:`Grouper`.
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimdeltaResampler
+        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
             Resampler object for the type of the index.
 
         See Also
         --------
+        Series.resample : Resample a Series.
+        DataFrame.resample : Resample a DataFrame.
         Grouper : Specify a frequency to resample with when
             grouping by a key.
         DatetimeIndex.resample : Frequency conversion and resampling of
@@ -3824,7 +3641,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if include_groups:
             raise ValueError("include_groups=True is no longer allowed.")
 
-        return get_resampler_for_grouping(self, rule, *args, **kwargs)
+        return get_resampler_for_grouping(
+            self,
+            rule,
+            on=on,
+            closed=closed,
+            label=label,
+            convention=convention,
+            origin=origin,
+            offset=offset,
+            group_keys=group_keys,
+            **kwargs,
+        )
 
     @final
     def rolling(
@@ -4625,94 +4453,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
-        def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if isinstance(vals.dtype, StringDtype) or is_object_dtype(vals.dtype):
-                raise TypeError(
-                    f"dtype '{vals.dtype}' does not support operation 'quantile'"
-                )
-
-            inference: DtypeObj | None = None
-            if isinstance(vals, BaseMaskedArray) and is_numeric_dtype(vals.dtype):
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
-                inference = vals.dtype
-            elif is_integer_dtype(vals.dtype):
-                if isinstance(vals, ExtensionArray):
-                    out = vals.to_numpy(dtype=float, na_value=np.nan)
-                else:
-                    out = vals
-                inference = np.dtype(np.int64)
-            elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
-            elif is_bool_dtype(vals.dtype):
-                # GH#51424 remove to match Series/DataFrame behavior
-                raise TypeError("Cannot use quantile with bool dtype")
-            elif needs_i8_conversion(vals.dtype):
-                inference = vals.dtype
-                # In this case we need to delay the casting until after the
-                #  np.lexsort below.
-                # error: Incompatible return value type (got
-                # "Tuple[Union[ExtensionArray, ndarray[Any, Any]], Union[Any,
-                # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
-                # Optional[Union[dtype[Any], ExtensionDtype]]]")
-                return vals, inference  # type: ignore[return-value]
-            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
-                inference = np.dtype(np.float64)
-                out = vals.to_numpy(dtype=float, na_value=np.nan)
-            else:
-                out = np.asarray(vals)
-
-            return out, inference
-
-        def post_processor(
-            vals: np.ndarray,
-            inference: DtypeObj | None,
-            result_mask: np.ndarray | None,
-            orig_vals: ArrayLike,
-        ) -> ArrayLike:
-            if inference:
-                # Check for edge case
-                if isinstance(orig_vals, BaseMaskedArray):
-                    assert result_mask is not None  # for mypy
-
-                    if interpolation in {"linear", "midpoint"} and not is_float_dtype(
-                        orig_vals
-                    ):
-                        return FloatingArray(vals, result_mask)
-                    else:
-                        # Item "ExtensionDtype" of "Union[ExtensionDtype, str,
-                        # dtype[Any], Type[object]]" has no attribute "numpy_dtype"
-                        # [union-attr]
-                        with warnings.catch_warnings():
-                            # vals.astype with nan can warn with numpy >1.24
-                            warnings.filterwarnings("ignore", category=RuntimeWarning)
-                            return type(orig_vals)(
-                                vals.astype(
-                                    inference.numpy_dtype  # type: ignore[union-attr]
-                                ),
-                                result_mask,
-                            )
-
-                elif not (
-                    is_integer_dtype(inference)
-                    and interpolation in {"linear", "midpoint"}
-                ):
-                    if needs_i8_conversion(inference):
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any]]" has no attribute "_ndarray"
-                        vals = vals.astype("i8").view(
-                            orig_vals._ndarray.dtype  # type: ignore[union-attr]
-                        )
-                        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-                        # ndarray[Any, Any]]" has no attribute "_from_backing_data"
-                        return orig_vals._from_backing_data(  # type: ignore[union-attr]
-                            vals
-                        )
-
-                    assert isinstance(inference, np.dtype)  # for mypy
-                    return vals.astype(inference)
-
-            return vals
-
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
             pass_qs: None | np.ndarray = None
@@ -4737,17 +4477,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
         def blk_func(values: ArrayLike) -> ArrayLike:
-            orig_vals = values
-            if isinstance(values, BaseMaskedArray):
-                mask = values._mask
-                result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
-            else:
-                mask = isna(values)
-                result_mask = None
+            if isinstance(values, ExtensionArray):
+                return values._groupby_quantile(
+                    qs=qs,
+                    interpolation=interpolation,
+                    ids=ids,
+                    ngroups=ngroups,
+                    starts=starts,
+                    ends=ends,
+                )
 
-            is_datetimelike = needs_i8_conversion(values.dtype)
+            # ndarray path
+            if is_object_dtype(values.dtype):
+                raise TypeError(
+                    f"dtype '{values.dtype}' does not support operation 'quantile'"
+                )
+            if is_bool_dtype(values.dtype):
+                # GH#51424 remove to match Series/DataFrame behavior
+                raise TypeError("Cannot use quantile with bool dtype")
 
-            vals, inference = pre_processor(values)
+            mask = isna(values)
+            inference: np.dtype | None = (
+                np.dtype(np.int64) if is_integer_dtype(values.dtype) else None
+            )
+            vals = np.asarray(values)
 
             ncols = 1
             if vals.ndim == 2:
@@ -4755,17 +4508,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
 
-            if is_datetimelike:
-                vals = vals.view("i8")
-
             if vals.ndim == 1:
-                # EA is always 1d
                 func(
                     out[0],
                     values=vals,
                     mask=mask,  # type: ignore[arg-type]
-                    result_mask=result_mask,
-                    is_datetimelike=is_datetimelike,
+                    result_mask=None,
+                    is_datetimelike=False,
                 )
             else:
                 for i in range(ncols):
@@ -4774,17 +4523,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         values=vals[i],
                         mask=mask[i],
                         result_mask=None,
-                        is_datetimelike=is_datetimelike,
+                        is_datetimelike=False,
                     )
 
             if vals.ndim == 1:
                 out = out.ravel("K")  # type: ignore[assignment]
-                if result_mask is not None:
-                    result_mask = result_mask.ravel("K")  # type: ignore[assignment]
             else:
                 out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
-            return post_processor(out, inference, result_mask, orig_vals)
+            if inference is not None and interpolation not in {
+                "linear",
+                "midpoint",
+            }:
+                out = out.astype(inference)
+
+            return out
 
         res_mgr = sdata._mgr.grouped_reduce(blk_func)
 
@@ -4934,9 +4687,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def rank(
         self,
-        method: str = "average",
+        method: RankMethod = "average",
         ascending: bool = True,
-        na_option: str = "keep",
+        na_option: RankNaOption = "keep",
         pct: bool = False,
     ) -> NDFrameT:
         """
@@ -5490,7 +5243,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     f"Periods must be integer, but {period} is {type(period)}."
                 )
-            period = cast("int", period)
             if freq is not None:
                 f = lambda x: x.shift(
                     period,
@@ -5837,7 +5589,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         n: int | None = None,
         frac: float | None = None,
         replace: bool = False,
-        weights: Sequence | Series | None = None,
+        weights: ListLike | None = None,
         random_state: RandomState | None = None,
     ):
         """

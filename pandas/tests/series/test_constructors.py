@@ -1221,7 +1221,8 @@ class TestSeriesConstructors:
         # construction from interval & array of intervals
         intervals = interval_constructor.from_breaks(np.arange(3), closed="right")
         result = Series(intervals)
-        assert result.dtype == "interval[int64, right]"
+        expected_subtype = np.dtype(np.intp)
+        assert result.dtype == f"interval[{expected_subtype}, right]"
         tm.assert_index_equal(Index(result.values), Index(intervals))
 
     @pytest.mark.parametrize(
@@ -2068,8 +2069,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
         expected = Series(["a", 1], dtype="object")
-        with pd.option_context("future.infer_string", True):
-            ser = Series(["a", 1])
+        ser = Series(["a", 1])
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
@@ -2277,3 +2277,19 @@ def test_constructor_from_series_with_incompatible_dtype_raises():
     ser = Series([1, 2, "x", 4, 5])
     with pytest.raises(ValueError, match="invalid literal"):
         Series(ser, dtype=int)
+
+
+def test_constructor_preserves_byteorder():
+    # GH#43042 non-native byteorder (and the values) must be preserved
+    arr = np.array([0, 256, 2**40], dtype=">i8")
+    expected = [0, 256, 2**40]
+
+    # inferred from a big-endian ndarray
+    result = Series(arr)
+    assert result.dtype == np.dtype(">i8")
+    assert result.tolist() == expected
+
+    # explicit big-endian dtype from a python list
+    result = Series([0, 256, 2**40], dtype=">i8")
+    assert result.dtype == np.dtype(">i8")
+    assert result.tolist() == expected

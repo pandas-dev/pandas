@@ -99,11 +99,11 @@ class ArrowParserWrapper(ParserBase):
         if on_bad_lines is not None:
             if callable(on_bad_lines):
                 self.parse_options["invalid_row_handler"] = on_bad_lines
-            elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.BLHM_ERROR:
                 self.parse_options["invalid_row_handler"] = (
                     None  # PyArrow raises an exception by default
                 )
-            elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.BLHM_WARN:
 
                 def handle_warning(invalid_row) -> str:
                     warnings.warn(
@@ -115,7 +115,7 @@ class ArrowParserWrapper(ParserBase):
                     return "skip"
 
                 self.parse_options["invalid_row_handler"] = handle_warning
-            elif on_bad_lines == ParserBase.BadLineHandleMethod.SKIP:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.BLHM_SKIP:
                 self.parse_options["invalid_row_handler"] = lambda _: "skip"
 
         self.convert_options = {

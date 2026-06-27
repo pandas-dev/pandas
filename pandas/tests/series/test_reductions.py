@@ -74,13 +74,11 @@ def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_mode_infer_string():
+def test_mode_string(any_string_dtype):
     # GH#56183
-    pytest.importorskip("pyarrow")
-    ser = Series(["a", "b"], dtype=object)
-    with pd.option_context("future.infer_string", True):
-        result = ser.mode()
-    expected = Series(["a", "b"], dtype=object)
+    ser = Series(["a", "b"], dtype=any_string_dtype)
+    result = ser.mode()
+    expected = Series(["a", "b"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -116,12 +114,13 @@ def test_td64_summation_overflow():
     assert np.allclose(result._value / 1000, expected._value / 1000)
 
     # sum
+    # GH#43178: OutOfBoundsTimedelta (a ValueError subclass) is raised
     msg = "overflow in timedelta operation"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (ser - ser.min()).sum()
 
     s1 = ser[0:10000]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (s1 - s1.min()).sum()
     s2 = ser[0:1000]
     (s2 - s2.min()).sum()

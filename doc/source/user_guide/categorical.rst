@@ -798,6 +798,14 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
     df
     df.dtypes
 
+.. note::
+
+    The examples above use ``.loc`` / ``.iloc`` to set values *within* an
+    existing categorical column, which preserves the ``category`` dtype.
+    Assigning to a full column with ``df["cats"] = value`` instead **replaces**
+    the column, so the dtype is inferred from ``value`` rather than kept. See
+    :ref:`indexing.column_assignment_vs_in_place` for details.
+
 .. _categorical.merge:
 .. _categorical.concat:
 
@@ -1028,18 +1036,18 @@ Memory usage
 
 .. _categorical.memory:
 
-The memory usage of a ``Categorical`` is proportional to the number of categories plus the length of the data. In contrast,
-an ``object`` dtype is a constant times the length of the data.
+The memory usage of a ``Categorical`` is proportional to the number *and size* of categories plus the length of the data. In contrast,
+an ``object`` dtype is proportional to the size of the objects times the length of the data.
 
 .. ipython:: python
 
-   s = pd.Series(["foo", "bar"] * 1000)
+   s = pd.Series(["foo", "bar"] * 1000, dtype="object")
 
    # object dtype
-   s.nbytes
+   s.memory_usage(deep=True)
 
    # category dtype
-   s.astype("category").nbytes
+   s.astype("category").memory_usage(deep=True)
 
 .. note::
 
@@ -1048,13 +1056,13 @@ an ``object`` dtype is a constant times the length of the data.
 
    .. ipython:: python
 
-      s = pd.Series(["foo%04d" % i for i in range(2000)])
+      s = pd.Series(["foo%04d" % i for i in range(2000)], dtype="object")
 
       # object dtype
-      s.nbytes
+      s.memory_usage(deep=True)
 
       # category dtype
-      s.astype("category").nbytes
+      s.astype("category").memory_usage(deep=True)
 
 
 ``Categorical`` is not a ``numpy`` array

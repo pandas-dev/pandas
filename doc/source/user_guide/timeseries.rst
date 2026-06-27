@@ -526,17 +526,43 @@ used if a custom frequency string is passed.
 Timestamp limitations
 ---------------------
 
-The limits of timestamp representation depend on the chosen resolution. For
-nanosecond resolution, the time span that
-can be represented using a 64-bit integer is limited to approximately 584 years:
+:class:`Timestamp` uses a 64-bit integer to represent time, so the representable
+range depends on the chosen resolution (``unit``). For the default nanosecond
+resolution the span is limited to approximately 584 years; coarser resolutions
+such as second extend the range to roughly ``+/- 2.9e11`` years.
+
+The class-level attributes :attr:`Timestamp.min`, :attr:`Timestamp.max`, and
+:attr:`Timestamp.resolution` default to nanosecond limits:
 
 .. ipython:: python
 
    pd.Timestamp.min
    pd.Timestamp.max
+   pd.Timestamp.resolution
 
-When choosing second-resolution, the available range grows to  ``+/- 2.9e11 years``.
-Different resolutions can be converted to each other through ``as_unit``.
+On a :class:`Timestamp` *instance*, the same attributes reflect the bounds and
+step size of that instance's resolution:
+
+.. ipython:: python
+
+   ts = pd.Timestamp("2262-04-12").as_unit("s")
+   ts.min
+   ts.max
+   ts.resolution
+
+Because :class:`Timestamp` construction automatically picks a resolution wide
+enough to represent the input, a value outside the nanosecond range (such as
+``"3000-06-10"``) is parsed using a coarser unit rather than raising
+:class:`OutOfBoundsDatetime`:
+
+.. ipython:: python
+
+   far_future = pd.Timestamp("3000-06-10")
+   far_future
+   far_future.unit
+
+Different resolutions can be converted to each other through
+:meth:`Timestamp.as_unit`.
 
 .. seealso::
 
@@ -771,6 +797,53 @@ With no defaults.
            2013, 2, 28, 10, 12, 0
        )
    ]
+
+.. _timeseries.noninclusive_slicing:
+
+Non-inclusive slicing
+~~~~~~~~~~~~~~~~~~~~~
+
+As noted in the sections above, label-based slicing with a ``DatetimeIndex``
+**includes both endpoints**. This differs from standard Python sequence slicing
+where the stop endpoint is excluded.
+
+If you need to select data using open or half-open intervals (for example,
+``start < t < end`` or ``start <= t < end``), you can use boolean indexing:
+
+.. ipython:: python
+
+   ts_example = pd.Series(
+       range(5),
+       index=pd.date_range("2000-01-01", periods=5, freq="D"),
+   )
+   ts_example
+
+Select all entries strictly between ``"2000-01-02"`` and ``"2000-01-04"``
+(excluding both endpoints):
+
+.. ipython:: python
+
+   ts_example[(ts_example.index > "2000-01-02") & (ts_example.index < "2000-01-04")]
+
+Select entries with a half-open interval (include left, exclude right):
+
+.. ipython:: python
+
+   ts_example[(ts_example.index >= "2000-01-02") & (ts_example.index < "2000-01-04")]
+
+For large time series where boolean indexing may be less efficient, you can use
+:meth:`~pandas.Index.get_slice_bound` together with ``.iloc`` to achieve
+non-inclusive slicing on a sorted index:
+
+.. ipython:: python
+
+   lo = ts_example.index.get_slice_bound("2000-01-02", "right")
+   hi = ts_example.index.get_slice_bound("2000-01-04", "left")
+   ts_example.iloc[lo:hi]
+
+Here, ``side="right"`` returns the position just past ``"2000-01-02"``, and
+``side="left"`` returns the position of ``"2000-01-04"`` itself. Since ``.iloc``
+uses standard Python half-open slicing, the result excludes both endpoints.
 
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2645,17 +2718,19 @@ This method can convert between different timezone-aware dtypes.
       s_naive.to_numpy()
       s_aware.to_numpy()
 
-   By converting to an object array of Timestamps, it preserves the time zone
-   information. For example, when converting back to a Series:
-
-   .. ipython:: python
-
-      pd.Series(s_aware.to_numpy())
-
-   However, if you want an actual NumPy ``datetime64`` array (with the values
-   converted to UTC) instead of an array of objects, you can specify the
-   ``dtype`` argument:
+   This object-dtype default is significantly slower and more memory-intensive
+   than a native ``datetime64`` array. For better performance, pass an explicit
+   ``dtype``:
 
    .. ipython:: python
 
       s_aware.to_numpy(dtype="datetime64[us]")
+
+   This converts to UTC and drops the timezone, returning a native
+   ``datetime64`` array. If you need to preserve per-element timezone
+   information (e.g. when converting back to a Series), use
+   ``dtype=object`` explicitly:
+
+   .. ipython:: python
+
+      pd.Series(s_aware.to_numpy(dtype=object))

@@ -991,11 +991,15 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
     if conn == "postgresql_adbc_conn" and not using_string_dtype():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="postgres ADBC driver < 1.2 cannot insert index with null type",
+        adbc_pg = pytest.importorskip("adbc_driver_postgresql")
+        if Version(adbc_pg.__version__) < Version("1.11"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "postgres ADBC driver < 1.11 cannot insert index with null type"
+                    ),
+                )
             )
-        )
 
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
@@ -2220,7 +2224,8 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match="^$"):
+        msg = "read_sql_table not supported for a DBAPI connection"
+        with pytest.raises(NotImplementedError, match=msg):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -2591,7 +2596,7 @@ def test_sql_open_close(temp_file, test_frame3):
 @td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
-    msg = "Using URI string without sqlalchemy installed"
+    msg = "Using a URI string requires 'sqlalchemy'"
     with pytest.raises(ImportError, match=msg):
         sql.read_sql("SELECT * FROM iris", conn)
 
@@ -3853,16 +3858,10 @@ def test_read_sql_string_inference(sqlite_engine):
     # GH#54430
     table = "test"
     df = DataFrame({"a": ["x", "y"]})
+    expected = df.copy()
+
     df.to_sql(table, con=conn, index=False, if_exists="replace")
-
-    with pd.option_context("future.infer_string", True):
-        result = read_sql_table(table, conn)
-
-    dtype = pd.StringDtype(na_value=np.nan)
-    expected = DataFrame(
-        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
-    )
-
+    result = read_sql_table(table, conn)
     tm.assert_frame_equal(result, expected)
 
 
