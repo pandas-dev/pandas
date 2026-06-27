@@ -195,50 +195,61 @@ static TypeContext *createTypeContext(void) {
 }
 
 static PyObject *get_values(PyObject *obj) {
+  PyObject *typ = NULL;
+  PyObject *arr = NULL;
   PyObject *values = NULL;
 
-  if (object_is_index_type(obj) || object_is_series_type(obj)) {
-    // For dt64tz, ``.values`` is the underlying UTC-localized datetime64
-    //  ndarray. We serialize that directly rather than an object array of
-    //  Timestamps; callers flag dt64tz objects as UTC (see
-    //  ``object_is_dt64tz``) so the ISO output keeps its trailing "Z".
-    //  category[dt64tz] is handled below via ``_values_for_json``.
-    values = PyObject_GetAttrString(obj, "values");
-    if (values == NULL) {
-      // Clear so we can subsequently try another method
-      PyErr_Clear();
-    } else if (PyObject_HasAttrString(values, "_values_for_json")) {
-      // We have gotten an ExtensionArray
-      PyObject *array_values =
-          PyObject_CallMethod(values, "_values_for_json", NULL);
-      Py_DECREF(values);
-      values = array_values;
-    } else if (!PyArray_CheckExact(values)) {
-      // Didn't get a numpy array, so keep trying
-      Py_DECREF(values);
-      values = NULL;
-    }
-  }
-
-  if (values == NULL) {
+  if (!(object_is_index_type(obj) || object_is_series_type(obj))) {
     PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
-    PyObject *repr;
-    if (PyObject_HasAttrString(obj, "dtype")) {
-      PyObject *dtype = PyObject_GetAttrString(obj, "dtype");
-      repr = PyObject_Repr(dtype);
-      Py_DECREF(dtype);
-    } else {
-      repr = PyUnicode_FromString("<unknown dtype>");
-    }
-
-    PyErr_Format(PyExc_ValueError, "%R or %R are not JSON serializable yet",
-                 repr, typeRepr);
-    Py_DECREF(repr);
+    PyErr_Format(PyExc_ValueError, "get_values expected Series/Index, got %R",
+                 typeRepr);
     Py_DECREF(typeRepr);
-
     return NULL;
   }
 
+  // MultiIndex raises on .array -> go through .values to get numpy array
+  typ = PyObject_GetAttrString(obj, "_typ");
+  if (typ == NULL) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Error retrieving _typ from Index/Series object");
+    return NULL;
+  }
+  if (PyUnicode_Check(typ) &&
+      PyUnicode_CompareWithASCIIString(typ, "multiindex") == 0) {
+    Py_DECREF(typ);
+    values = PyObject_GetAttrString(obj, "values");
+    if (values == NULL) {
+      PyErr_SetString(PyExc_ValueError,
+                      "Error retrieving .values from MultiIndex object");
+      return NULL;
+    }
+    return values;
+  }
+  Py_DECREF(typ);
+
+  // For all other cases, call _values_for_json on the underlying array
+  arr = PyObject_GetAttrString(obj, "array");
+  if (arr == NULL) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Error retrieving .array from Index/Series object");
+    return NULL;
+  }
+
+  values = PyObject_CallMethod(arr, "_values_for_json", NULL);
+
+  if (values == NULL) {
+    Py_DECREF(arr);
+    PyErr_SetString(PyExc_ValueError, "Error calling _values_for_json");
+    return NULL;
+  }
+  if (!PyArray_CheckExact(values)) {
+    PyErr_Format(PyExc_ValueError,
+                 "_values_for_json should return a numpy array");
+    Py_DECREF(values);
+    Py_DECREF(arr);
+    return NULL;
+  }
+  Py_DECREF(arr);
   return values;
 }
 
