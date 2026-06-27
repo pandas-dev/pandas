@@ -260,6 +260,10 @@ ul.task-bullet > li > p:first-child {
   color: var(--pst-color-text-base);
 }
 
+.card-body {
+  color: var(--pst-color-text-base);
+}
+
 .tutorial-card .badge {
   background-color: var(--pst-color-primary);
   margin: 10px 10px 10px 10px;
