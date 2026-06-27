@@ -1681,14 +1681,7 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        try:
-            value_set = pa.array(values)
-        except (pa.ArrowInvalid, pa.ArrowTypeError):
-            value_set_mask = is_pdna_or_none(np.asarray(values, dtype=object))
-            if not value_set_mask.any():
-                raise
-            value_set = pa.array(values, mask=value_set_mask)
-
+        value_set = self._box_pa(values)
         result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False

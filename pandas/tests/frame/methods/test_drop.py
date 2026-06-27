@@ -555,18 +555,12 @@ class TestDataFrameDrop:
         # GH#63304
         pytest.importorskip("pyarrow")
 
-        df = DataFrame(
-            index=Index(
-                [None, b"\xe3", b"\xe3"],
-                dtype="binary[pyarrow]",
-                name="bytes_col",
-            )
-        )
+        idx = Index([None, b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
+        df = DataFrame(index=idx)
 
         result = df.drop(index=[pd.NA])
-        expected = DataFrame(
-            index=Index([b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
-        )
+        idx = Index([b"\xe3", b"\xe3"], dtype="binary[pyarrow]", name="bytes_col")
+        expected = DataFrame(index=idx)
         tm.assert_frame_equal(result, expected)
 
     def test_drop_parse_strings_datetime_index(self):
