@@ -26,10 +26,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
-
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -77,7 +74,6 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 def test_categorical_dtype_unsorted(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -96,7 +92,6 @@ def test_categorical_dtype_unsorted(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 def test_categorical_dtype_missing(all_parsers):
     # see gh-10153
     parser = all_parsers
@@ -115,7 +110,6 @@ def test_categorical_dtype_missing(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.slow
 def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     # see gh-18186

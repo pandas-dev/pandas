@@ -17,6 +17,7 @@ from pandas.util._exceptions import (
 from pandas.core.dtypes.common import (
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.io._util import arrow_table_to_pandas
@@ -28,6 +29,21 @@ if TYPE_CHECKING:
     from pandas._typing import ReadBuffer
 
     from pandas import DataFrame
+
+
+def _is_inferred_categorical(dtype) -> bool:
+    """
+    Whether ``dtype`` is a categorical dtype whose categories should be
+    inferred from the data (``"category"`` or ``CategoricalDtype()``), as
+    opposed to a CategoricalDtype with explicit categories.
+    """
+    if dtype is None:
+        return False
+    try:
+        resolved = pandas_dtype(dtype)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(resolved, CategoricalDtype) and resolved.categories is None
 
 
 class ArrowParserWrapper(ParserBase):
@@ -232,6 +248,38 @@ class ArrowParserWrapper(ParserBase):
                 raise ValueError(str(err)) from err
         return frame
 
+    def _cast_categorical_to_string(self, table: pa.Table) -> pa.Table:
+        """
+        Read columns targeted by an inferred categorical dtype (``"category"``
+        or ``CategoricalDtype()``) as raw strings rather than letting pyarrow
+        infer their type, so the resulting categories match the other engines
+        (GH#10153). Columns with explicit categories are left untouched.
+        """
+        pa = import_optional_dependency("pyarrow")
+
+        dtype = self.dtype
+        if isinstance(dtype, dict):
+            columns = [
+                col
+                for col, col_dtype in dtype.items()
+                if _is_inferred_categorical(col_dtype) and col in table.column_names
+            ]
+        elif _is_inferred_categorical(dtype):
+            columns = list(table.column_names)
+        else:
+            columns = []
+
+        if not columns:
+            return table
+
+        new_schema = table.schema
+        for col in columns:
+            idx = table.schema.get_field_index(col)
+            new_schema = new_schema.set(
+                idx, new_schema.field(idx).with_type(pa.string())
+            )
+        return table.cast(new_schema)
+
     def _finalize_pandas_output(
         self, frame: DataFrame, multi_index_named: bool
     ) -> DataFrame:
@@ -290,6 +338,10 @@ class ArrowParserWrapper(ParserBase):
             )
         except pa.ArrowInvalid as e:
             raise ParserError(e) from e
+
+        # GH#10153 read columns targeted by an inferred categorical dtype as
+        # raw strings so their categories match the other engines
+        table = self._cast_categorical_to_string(table)
 
         dtype_backend = self.kwds["dtype_backend"]
 
