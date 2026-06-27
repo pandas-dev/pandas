@@ -16,6 +16,7 @@ Fixed regressions
 
 - Fixed a regression in setting into a DataFrame with MultiIndex columns and mixed-dtype level silently doing nothing (:issue:`65118`)
 - Fixed performance regression in :meth:`Series.searchsorted` and :meth:`Index.searchsorted` with the string dtype, where a full ``O(n)`` NA scan made the operation much slower than the binary search itself (:issue:`65837`)
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_304.bug_fixes:
 
