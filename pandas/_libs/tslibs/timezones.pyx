@@ -394,7 +394,7 @@ cdef object get_dst_info(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     str
         Describing the type of tzinfo object.
-    has_tz_tule
+    has_tz_rule
         Bool indicating if the tz has a "rule" attached describing transitions
         after the array of transitions/deltas (only used for ZoneInfo).
     """
