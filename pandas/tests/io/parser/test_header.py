@@ -79,7 +79,6 @@ b"""
         parser.read_csv(StringIO(data), header=header)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -199,7 +198,6 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 _TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -228,7 +226,7 @@ _TestTuple = namedtuple("_TestTuple", ["first", "second"])
         },
     ],
 )
-def test_header_multi_index_common_format1(all_parsers, kwargs):
+def test_header_multi_index_common_format1(all_parsers, kwargs, request):
     parser = all_parsers
     expected = DataFrame(
         [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]],
@@ -243,11 +241,16 @@ def test_header_multi_index_common_format1(all_parsers, kwargs):
 one,1,2,3,4,5,6
 two,7,8,9,10,11,12"""
 
+    if parser.engine == "pyarrow" and "header" in kwargs:
+        # list-valued header is unsupported by the pyarrow engine
+        request.applymarker(
+            pytest.mark.xfail(reason="TypeError: an integer is required")
+        )
+
     result = parser.read_csv(StringIO(data), index_col=0, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -276,7 +279,7 @@ two,7,8,9,10,11,12"""
         },
     ],
 )
-def test_header_multi_index_common_format2(all_parsers, kwargs):
+def test_header_multi_index_common_format2(all_parsers, kwargs, request):
     parser = all_parsers
     expected = DataFrame(
         [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]],
@@ -290,11 +293,16 @@ def test_header_multi_index_common_format2(all_parsers, kwargs):
 one,1,2,3,4,5,6
 two,7,8,9,10,11,12"""
 
+    if parser.engine == "pyarrow" and "header" in kwargs:
+        # list-valued header is unsupported by the pyarrow engine
+        request.applymarker(
+            pytest.mark.xfail(reason="TypeError: an integer is required")
+        )
+
     result = parser.read_csv(StringIO(data), index_col=0, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -323,7 +331,7 @@ two,7,8,9,10,11,12"""
         },
     ],
 )
-def test_header_multi_index_common_format3(all_parsers, kwargs):
+def test_header_multi_index_common_format3(all_parsers, kwargs, request):
     parser = all_parsers
     expected = DataFrame(
         [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]],
@@ -337,6 +345,12 @@ def test_header_multi_index_common_format3(all_parsers, kwargs):
 q,r,s,t,u,v
 1,2,3,4,5,6
 7,8,9,10,11,12"""
+
+    if parser.engine == "pyarrow" and "header" in kwargs:
+        # list-valued header is unsupported by the pyarrow engine
+        request.applymarker(
+            pytest.mark.xfail(reason="TypeError: an integer is required")
+        )
 
     result = parser.read_csv(StringIO(data), index_col=None, **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -421,13 +435,9 @@ def test_header_multi_index_blank_line(all_parsers):
 @pytest.mark.parametrize(
     "data,header", [("1,2,3\n4,5,6", None), ("foo,bar,baz\n1,2,3\n4,5,6", 0)]
 )
-def test_header_names_backward_compat(all_parsers, data, header, request):
+def test_header_names_backward_compat(all_parsers, data, header):
     # see gh-2539
     parser = all_parsers
-
-    if parser.engine == "pyarrow" and header is not None:
-        mark = pytest.mark.xfail(reason="DataFrame.columns are different")
-        request.applymarker(mark)
 
     expected = parser.read_csv(StringIO("1,2,3\n4,5,6"), names=["a", "b", "c"])
 
