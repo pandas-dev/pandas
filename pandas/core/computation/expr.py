@@ -448,7 +448,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                 name = self.env.add_tmp([right.value])
                 right = self.term_type(name, self.env)
 
-            if left_str:
+            if left_str and op_type not in (ast.In, ast.NotIn):
                 name = self.env.add_tmp([left.value])
                 left = self.term_type(name, self.env)
 

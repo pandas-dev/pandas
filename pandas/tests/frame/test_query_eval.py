@@ -308,18 +308,14 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res1, exp)
         tm.assert_frame_equal(res2, exp)
 
-        # in/not in ops
+        # in/not in ops (list literal — isin semantics)
         res1 = df.query('["red"] in color', parser=parser, engine=engine)
-        res2 = df.query('"red" in color', parser=parser, engine=engine)
         exp = df[ind.isin(["red"])]
         tm.assert_frame_equal(res1, exp)
-        tm.assert_frame_equal(res2, exp)
 
         res1 = df.query('["red"] not in color', parser=parser, engine=engine)
-        res2 = df.query('"red" not in color', parser=parser, engine=engine)
         exp = df[~ind.isin(["red"])]
         tm.assert_frame_equal(res1, exp)
-        tm.assert_frame_equal(res2, exp)
 
     def test_query_with_unnamed_multiindex(self, parser, engine):
         skip_if_no_pandas_parser(parser)
@@ -355,18 +351,14 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res1, exp)
         tm.assert_frame_equal(res2, exp)
 
-        # in/not in ops
+        # in/not in ops (list literal — isin semantics)
         res1 = df.query('["red"] in ilevel_0', parser=parser, engine=engine)
-        res2 = df.query('"red" in ilevel_0', parser=parser, engine=engine)
         exp = df[ind.isin(["red"])]
         tm.assert_frame_equal(res1, exp)
-        tm.assert_frame_equal(res2, exp)
 
         res1 = df.query('["red"] not in ilevel_0', parser=parser, engine=engine)
-        res2 = df.query('"red" not in ilevel_0', parser=parser, engine=engine)
         exp = df[~ind.isin(["red"])]
         tm.assert_frame_equal(res1, exp)
-        tm.assert_frame_equal(res2, exp)
 
         # ## LEVEL 1
         ind = Series(df.index.get_level_values(1).values, index=index)
@@ -396,18 +388,14 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res1, exp)
         tm.assert_frame_equal(res2, exp)
 
-        # in/not in ops
+        # in/not in ops (list literal — isin semantics)
         res1 = df.query('["eggs"] in ilevel_1', parser=parser, engine=engine)
-        res2 = df.query('"eggs" in ilevel_1', parser=parser, engine=engine)
         exp = df[ind.isin(["eggs"])]
         tm.assert_frame_equal(res1, exp)
-        tm.assert_frame_equal(res2, exp)
 
         res1 = df.query('["eggs"] not in ilevel_1', parser=parser, engine=engine)
-        res2 = df.query('"eggs" not in ilevel_1', parser=parser, engine=engine)
         exp = df[~ind.isin(["eggs"])]
         tm.assert_frame_equal(res1, exp)
-        tm.assert_frame_equal(res2, exp)
 
     def test_query_with_partially_named_multiindex(self, parser, engine):
         skip_if_no_pandas_parser(parser)
@@ -1136,7 +1124,7 @@ class TestDataFrameQueryStrings:
         exp = df[df.a != df.b]
         tm.assert_frame_equal(res, exp)
 
-    def test_query_with_nested_strings(self, parser, engine):
+    def test_eval_with_nested_strings(self, parser, engine):
         skip_if_no_pandas_parser(parser)
         events = [
             f"page {n} {act}" for n in range(1, 4) for act in ["load", "exit"]
@@ -1151,9 +1139,10 @@ class TestDataFrameQueryStrings:
             }
         )
 
-        expected = df[df.event == '"page 1 load"']
-        res = df.query("""'"page 1 load"' in event""", parser=parser, engine=engine)
-        tm.assert_frame_equal(expected, res)
+        # GH#64391: use eval() directly since query() requires a boolean array mask
+        assert not df.eval(
+            """'"page 1 load"' in event""", parser=parser, engine=engine
+        )
 
     def test_query_with_nested_special_character(self, parser, engine):
         skip_if_no_pandas_parser(parser)
