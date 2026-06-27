@@ -22,6 +22,7 @@ from pandas._libs import (
     NaT,
     algos as libalgos,
     lib,
+    ops as libops,
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
@@ -651,7 +652,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def _from_inferred_categories(
-        cls, inferred_categories, inferred_codes, dtype, true_values=None
+        cls,
+        inferred_categories,
+        inferred_codes,
+        dtype,
+        true_values=None,
+        false_values=None,
+        convert_numeric: bool = True,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
@@ -668,6 +675,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         true_values : list, optional
             If none are provided, the default ones are
             "True", "TRUE", and "true."
+        false_values : list, optional
+            If none are provided, the default ones are
+            "False", "FALSE", and "false."
+        convert_numeric : bool, default True
+            Whether to convert string categories to numeric when `dtype` does
+            not provide categories. Callers pass False when the strings may
+            not round-trip through ``to_numeric`` (e.g. read_csv with
+            non-default ``thousands``/``decimal``).
 
         Returns
         -------
@@ -684,6 +699,41 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
+
+        if not known_categories and cats.dtype.kind == "O":
+            # GH#56044 - When categories are not explicitly provided, mirror the
+            #  type inference performed on ordinary (non-categorical) columns so
+            #  that all engines agree: try numeric first, then boolean.
+            converted = None
+            if convert_numeric:
+                # e.g. "1" -> 1, "3.4" -> 3.4. to_numeric is unaware of the
+                #  thousands/decimal options, so callers disable this when those
+                #  are set.
+                try:
+                    converted = Index(to_numeric(cats, errors="raise"), copy=False)
+                except (ValueError, TypeError):
+                    converted = None
+            if converted is None:
+                # e.g. "True"/"False" -> bool. Unaffected by thousands/decimal,
+                #  so always attempted when numeric inference does not apply.
+                inferred_bool, _ = libops.maybe_convert_bool(
+                    np.asarray(cats),
+                    true_values=true_values,
+                    false_values=false_values,
+                )
+                if inferred_bool.dtype.kind == "b":
+                    converted = Index(inferred_bool, copy=False)
+
+            if converted is not None:
+                if not converted.is_unique:
+                    # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True; merge the
+                    #  duplicated categories and recode
+                    unique_cats = converted.unique()
+                    inferred_codes = recode_for_categories(
+                        inferred_codes, converted, unique_cats, copy=False
+                    )
+                    converted = unique_cats
+                cats = converted
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.

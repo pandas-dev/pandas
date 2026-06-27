@@ -35,7 +35,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
-    is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
@@ -506,19 +505,19 @@ class PythonParser(ParserBase):
         converted : ndarray or ExtensionArray
         """
         if isinstance(cast_type, CategoricalDtype):
-            known_cats = cast_type.categories is not None
-
-            if not is_object_dtype(values.dtype) and not known_cats:
-                # TODO: this is for consistency with
-                # c-parser which parses all categories
-                # as strings
-                values = lib.ensure_string_array(
-                    values, skipna=False, convert_na_value=False
-                )
-
             cats = Index(values, copy=False).unique().dropna()
+            # to_numeric inference is unaware of the thousands/decimal
+            #  options, so keep string categories when those are set
+            convert_numeric = (
+                self.thousands is None and self.decimal == parser_defaults["decimal"]
+            )
             values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type, true_values=self.true_values
+                cats,
+                cats.get_indexer(values),
+                cast_type,
+                true_values=self.true_values,
+                false_values=self.false_values,
+                convert_numeric=convert_numeric,
             )
 
         # use the EA's implementation of casting

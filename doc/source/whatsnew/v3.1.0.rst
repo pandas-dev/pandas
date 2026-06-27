@@ -54,10 +54,32 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_310.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_310.notable_bug_fixes.read_csv_categorical:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:func:`read_csv` with ``dtype="category"`` infers numeric and boolean categories
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` with ``dtype="category"`` and the ``c`` or ``python`` engine
+produced string categories for numeric and boolean columns, while the
+``pyarrow`` engine inferred numeric and boolean categories. All engines now
+infer numeric and boolean categories, matching the type a column would receive
+without ``dtype="category"`` (:issue:`56044`).
+
+.. ipython:: python
+
+    from io import StringIO
+
+    data = "a\n1\n1\n2"
+    pd.read_csv(StringIO(data), dtype="category")["a"].dtype
+
+    data = "a\nTrue\nFalse\nTrue"
+    pd.read_csv(StringIO(data), dtype="category")["a"].dtype
+
+Columns whose values do not all parse as numeric or boolean, and columns read
+with non-default ``thousands`` or ``decimal`` options, retain string categories.
+Datetime-like columns continue to follow each engine's usual inference (the
+``c`` and ``python`` engines keep string categories unless ``parse_dates`` is
+given, while the ``pyarrow`` engine infers datetime categories).
 
 .. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
 

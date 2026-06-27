@@ -1121,9 +1121,16 @@ cdef class TextReader:
 
             # Method accepts list of strings, not encoded ones.
             true_values = [x.decode() for x in self.true_values]
+            false_values = [x.decode() for x in self.false_values]
             array_type = dtype.construct_array_type()
+            # to_numeric inference is unaware of the thousands/decimal
+            #  options, so keep string categories when those are set
+            convert_numeric = (
+                self.parser.thousands == b"\0" and self.parser.decimal == b"."
+            )
             cat = array_type._from_inferred_categories(
-                cats, codes, dtype, true_values=true_values)
+                cats, codes, dtype, true_values=true_values,
+                false_values=false_values, convert_numeric=convert_numeric)
             return cat, na_count
 
         elif isinstance(dtype, ExtensionDtype):
