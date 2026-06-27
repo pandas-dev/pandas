@@ -63,6 +63,40 @@ class TestToPeriod:
         prng = rng.to_period()
         assert prng.freq == "YE-DEC"
 
+    @pytest.mark.parametrize(
+        "off, expected_freq",
+        [
+            ("QS-APR", "Q-MAR"),
+            ("BQS-APR", "Q-MAR"),
+            ("BQE-APR", "Q-APR"),
+            # start-offset month is shifted back one; JAN wraps to DEC
+            ("QS-JAN", "Q-DEC"),
+            ("QS-DEC", "Q-NOV"),
+        ],
+    )
+    def test_to_period_quarterly_anchored(self, off, expected_freq):
+        # GH#36939 - anchored quarter offsets should preserve the anchor
+        rng = date_range("01-Apr-2012", periods=4, freq=off)
+        result = rng.to_period()
+        assert result.freqstr == expected_freq
+
+    @pytest.mark.parametrize(
+        "off, expected_freq",
+        [
+            ("YS-APR", "Y-MAR"),
+            ("BYS-APR", "Y-MAR"),
+            ("BYE-APR", "Y-APR"),
+            # start-offset month is shifted back one; JAN wraps to DEC
+            ("YS-JAN", "Y-DEC"),
+            ("YS-DEC", "Y-NOV"),
+        ],
+    )
+    def test_to_period_annual_anchored(self, off, expected_freq):
+        # GH#36939 - anchored annual offsets should preserve the anchor
+        rng = date_range("01-Apr-2012", periods=3, freq=off)
+        result = rng.to_period()
+        assert result.freqstr == expected_freq
+
     def test_to_period_monthish(self):
         offsets = ["MS", "BME"]
         for off in offsets:
