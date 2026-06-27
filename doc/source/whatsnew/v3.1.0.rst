@@ -362,8 +362,8 @@ I/O
 ^^^
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
 - :func:`read_sql_table` now raises an informative ``NotImplementedError`` (instead of one with no message) when passed a DBAPI connection such as ``sqlite3``, and reading from a URI string without a usable ``sqlalchemy`` install now raises a clearer ``ImportError`` (:issue:`41237`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where an empty ``usecols`` (e.g. ``usecols=[]``) was ignored and returned all columns instead of an empty frame, unlike the other engines (:issue:`66056`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
-- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where an empty ``usecols`` (e.g. ``usecols=[]``) was ignored and returned all columns instead of an empty frame, unlike the other engines (:issue:`PRNUM`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
