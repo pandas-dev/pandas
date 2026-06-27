@@ -15998,11 +15998,6 @@ class DataFrame(NDFrame, OpsMixin):
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
                     row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
-                    if name == "all":
-                        # Behavior here appears incorrect; preserving
-                        # for backwards compatibility for now.
-                        # See https://github.com/pandas-dev/pandas/issues/57171
-                        skipna = True
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
                             # Match the error raised by GroupBy._idxmax_idxmin
