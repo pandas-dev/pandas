@@ -1983,6 +1983,8 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
+            if freq.nanos <= 0:
+                raise ValueError("window must be a positive timedelta or offset")
             if isinstance(self._on, PeriodIndex):
                 # error: Incompatible types in assignment (expression has type
                 # "float", variable has type "Optional[int]")
