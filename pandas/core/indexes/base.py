@@ -357,6 +357,12 @@ class Index(IndexOpsMixin, PandasObject):
     An Index instance can **only** contain hashable objects.
     An Index instance *can not* hold numpy float16 dtype.
 
+    NumPy arrays with ``dtype=object`` are handled like other list-like inputs:
+    pandas may infer a more specific dtype (for example ``str`` for an array of
+    Python strings) instead of preserving NumPy object dtype. Values that
+    NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
+    not altered in the same way. To force object dtype, pass ``dtype=object``.
+
     Examples
     --------
     >>> pd.Index([1, 2, 3])
@@ -573,11 +579,6 @@ class Index(IndexOpsMixin, PandasObject):
             if "Data must be 1-dimensional" in str(err):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
-
-        if isinstance(arr, np.ndarray) and arr.dtype == np.object_:
-            # GH#20285 reject unhashable elements (e.g. list, dict, set)
-            lib.check_all_hashable(arr)
-
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
         klass = cls._dtype_to_subclass(arr.dtype)
@@ -907,9 +908,22 @@ class Index(IndexOpsMixin, PandasObject):
 
         If this is a MultiIndex, it's first level values are used.
         """
+        max_items = config["display"]["max_dir_items"]
+        # GH#18587 avoid hashing the entire Index in the common case where
+        # only the first ``max_items`` unique values are needed. Examining a
+        # bounded prefix suffices when it already contains enough uniques;
+        # otherwise fall back to the full unique() call.
+        if max_items is not None and len(self) > max_items * 10:
+            prefix_uniq = self[: max_items * 10].unique(level=0)
+            if len(prefix_uniq) >= max_items:
+                return {
+                    c
+                    for c in prefix_uniq[:max_items]
+                    if isinstance(c, str) and c.isidentifier()
+                }
         return {
             c
-            for c in self.unique(level=0)[: config["display"]["max_dir_items"]]
+            for c in self.unique(level=0)[:max_items]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -2410,26 +2424,7 @@ class Index(IndexOpsMixin, PandasObject):
             new_codes.pop(i)
             new_names.pop(i)
 
-        if len(new_levels) == 1:
-            lev = new_levels[0]
-
-            if len(lev) == 0 and len(new_codes[0]) == 0:
-                # GH#42055, GH#45230 preserve RangeIndex here
-                result = lev[:0]
-            else:
-                result = lev.take(new_codes[0], allow_fill=True)
-                result._name = new_names[0]
-
-            return result
-        else:
-            from pandas.core.indexes.multi import MultiIndex
-
-            return MultiIndex(
-                levels=new_levels,
-                codes=new_codes,
-                names=new_names,
-                verify_integrity=False,
-            )
+        return droplevel_result(new_levels, new_codes, new_names)
 
     # --------------------------------------------------------------------
     # Introspection Methods
@@ -2469,6 +2464,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
+        if isinstance(self._values, ExtensionArray) and (
+            type(self._engine) is libindex.ObjectEngine
+        ):
+            # For custom EAs we use ObjectEngine by default, which gets the EA as
+            # object ndarray -> use the EA's implementation directly instead of engine.
+            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
+            return self._values._is_monotonic_increasing
         return self._engine.is_monotonic_increasing
 
     @property
@@ -2497,6 +2499,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
+        if isinstance(self._values, ExtensionArray) and (
+            type(self._engine) is libindex.ObjectEngine
+        ):
+            # For custom EAs we use ObjectEngine by default, which gets the EA as
+            # object ndarray -> use the EA's implementation directly instead of engine.
+            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
+            return self._values._is_monotonic_decreasing
         return self._engine.is_monotonic_decreasing
 
     @final
@@ -5163,6 +5172,17 @@ class Index(IndexOpsMixin, PandasObject):
            We recommend using :attr:`Index.array` or
            :meth:`Index.to_numpy`, depending on whether you need
            a reference to the underlying data or a NumPy array.
+           The return type of ``.values`` depends on the dtype: it is a
+           :class:`numpy.ndarray` for some dtypes (for example ``int64``
+           or ``float64``) and an
+           :class:`~pandas.api.extensions.ExtensionArray` for others (for
+           example ``interval``, ``category``, or nullable ``Int64``),
+           which makes it harder to write code that works across dtypes.
+           :attr:`Index.array` always returns the underlying array as an
+           :class:`~pandas.api.extensions.ExtensionArray`, and
+           :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`
+           and accepts ``dtype``, ``copy``, and ``na_value`` arguments to
+           control the conversion.
 
         .. versionchanged:: 3.0.0
 
@@ -5179,7 +5199,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        For :class:`pandas.Index`:
+        For an :class:`Index` backed by a NumPy dtype such as ``int64``,
+        ``.values`` returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.Index([1, 2, 3])
         >>> idx
@@ -5187,13 +5208,20 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.values
         array([1, 2, 3])
 
-        For :class:`pandas.IntervalIndex`:
+        For an :class:`Index` backed by an extension dtype such as
+        ``interval``, ``.values`` returns an
+        :class:`~pandas.api.extensions.ExtensionArray` instead, while
+        :meth:`Index.to_numpy` always returns a :class:`numpy.ndarray`:
 
         >>> idx = pd.interval_range(start=0, end=5)
         >>> idx.values
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
         Length: 5, dtype: interval[int64, right]
+        >>> idx.to_numpy()
+        array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+               Interval(2, 3, closed='right'), Interval(3, 4, closed='right'),
+               Interval(4, 5, closed='right')], dtype=object)
         """
         data = self._data
         if isinstance(data, np.ndarray):
@@ -5456,7 +5484,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False)
+        ser = Series(self._values, copy=False, dtype=self.dtype)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
@@ -5661,7 +5689,7 @@ class Index(IndexOpsMixin, PandasObject):
         https://github.com/pandas-dev/pandas/issues/19764
         """
         if (
-            is_object_dtype(self.dtype)
+            self.dtype == object
             or is_string_dtype(self.dtype)
             or isinstance(self.dtype, CategoricalDtype)
         ):
@@ -7241,16 +7269,28 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Index.get_loc : Get location for a single label.
+        Index.get_slice_bound : Calculate the slice bound for a single label;
+            used internally by ``slice_locs`` for each of ``start`` and ``end``.
 
         Notes
         -----
         This method only works if the index is monotonic or unique.
+
+        If ``start`` or ``end`` is not present in a monotonic index, the
+        returned position is the insertion point that preserves ordering
+        (analogous to :func:`numpy.searchsorted`); no error is raised. If the
+        index is not monotonic and the label is missing, a ``KeyError`` is
+        raised.
 
         Examples
         --------
         >>> idx = pd.Index(list("abcd"))
         >>> idx.slice_locs(start="b", end="c")
         (1, 3)
+
+        ``start`` and ``end`` need not be present in the index; for a
+        monotonic index they are mapped to the appropriate insertion
+        positions:
 
         >>> idx = pd.Index(list("bcde"))
         >>> idx.slice_locs(start="a", end="c")
@@ -8299,6 +8339,37 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     name_sets = ({*ns} for ns in zip_longest(*name_tups))
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
+
+
+def droplevel_result(
+    new_levels: list[Index],
+    new_codes: list[npt.NDArray[np.intp]],
+    new_names: list[Hashable],
+) -> Index:
+    """
+    Construct the result of dropping MultiIndex levels from the
+    retained levels, codes, and names.
+    """
+    if len(new_levels) == 1:
+        lev = new_levels[0]
+
+        if len(lev) == 0 and len(new_codes[0]) == 0:
+            # GH#42055, GH#45230 preserve RangeIndex here
+            result = lev[:0]
+        else:
+            result = lev.take(new_codes[0], allow_fill=True)
+            result._name = new_names[0]
+
+        return result
+    else:
+        from pandas.core.indexes.multi import MultiIndex
+
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes,
+            names=new_names,
+            verify_integrity=False,
+        )
 
 
 def _unpack_nested_dtype(other: Index) -> DtypeObj:
