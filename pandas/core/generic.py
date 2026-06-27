@@ -2978,6 +2978,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Not all datastores support ``method="multi"``. Oracle, for example,
         does not support multi-value insert.
 
+        When using SQL Server with pyodbc and ``fast_executemany=True``, datetime
+        precision may be lost when writing to local temporary tables (names starting
+        with ``#``). To avoid this, add ``UseFMTONLY=Yes`` to the connection string.
+        See :ref:`io.sql_datetime_data` for details.
+
         References
         ----------
         .. [1] https://docs.sqlalchemy.org
@@ -4361,6 +4366,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self.iloc[:, slice(loc, loc + 1)]
         elif axis == 1:
             result = self.iloc[:, loc]
+        elif isinstance(loc, slice):
+            # GH#38650: bypass iloc dispatch and pass new_index
+            # directly to avoid redundantly slicing the index
+            # in the manager path.
+            result = self._slice(loc, new_index=new_index)
         else:
             result = self.iloc[loc]
             result.index = new_index
@@ -4387,7 +4397,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             slobj = indexer
         return self._slice(slobj)
 
-    def _slice(self, slobj: slice, axis: AxisInt = 0) -> Self:
+    def _slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> Self:
         """
         Construct a slice of this container.
 
@@ -4395,7 +4407,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
-        new_mgr = self._mgr.get_slice(slobj, axis=axis)
+        new_mgr = self._mgr.get_slice(slobj, axis=axis, new_index=new_index)
         result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         result = result.__finalize__(self)
         return result

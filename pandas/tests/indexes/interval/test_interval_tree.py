@@ -4,24 +4,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.interval import IntervalTree
-from pandas.compat import (
-    IS64,
-    WASM,
-)
 
 import pandas._testing as tm
 
 
-def skipif_32bit(param):
-    """
-    Skip parameters in a parametrize on 32bit systems. Specifically used
-    here to skip leaf_size parameters related to GH 23440.
-    """
-    marks = pytest.mark.skipif(not IS64, reason="GH 23440: int type mismatch on 32bit")
-    return pytest.param(param, marks=marks)
-
-
-@pytest.fixture(params=[skipif_32bit(1), skipif_32bit(2), 10])
+@pytest.fixture(params=[1, 2, 10])
 def leaf_size(request):
     """
     Fixture to specify IntervalTree leaf_size parameter; to be used with the
@@ -120,9 +107,7 @@ class TestIntervalTree:
         expected = np.array([], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "leaf_size", [skipif_32bit(1), skipif_32bit(10), skipif_32bit(100), 10000]
-    )
+    @pytest.mark.parametrize("leaf_size", [1, 10, 100, 10000])
     def test_get_indexer_closed(self, closed, leaf_size):
         x = np.arange(1000, dtype="float64")
         found = x.astype("intp")
@@ -178,7 +163,6 @@ class TestIntervalTree:
         tree = IntervalTree(left, right, closed=closed)
         assert tree.is_overlapping is False
 
-    @pytest.mark.skipif(not IS64, reason="GH 23440")
     def test_construction_overflow(self):
         # GH 25485
         left, right = np.arange(101, dtype="int64"), [np.iinfo(np.int64).max] * 101
@@ -189,7 +173,6 @@ class TestIntervalTree:
         expected = (50 + np.iinfo(np.int64).max) / 2
         assert result == expected
 
-    @pytest.mark.xfail(WASM, reason="GH 23440")
     @pytest.mark.parametrize(
         "left, right, expected",
         [
