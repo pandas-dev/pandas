@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 import warnings
 
@@ -307,6 +308,17 @@ class ArrowParserWrapper(ParserBase):
             table = table.cast(new_schema)
 
         multi_index_named = self._adjust_column_names(table)
+
+        if isinstance(self.dtype, defaultdict):
+            # GH#41574 materialize the factory default over the actual columns
+            # so missing keys get the default, matching the other engines
+            if self.header is None:
+                # set by _adjust_column_names above
+                assert self.names is not None
+                columns = list(self.names)
+            else:
+                columns = table.column_names
+            self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():
             warnings.filterwarnings(

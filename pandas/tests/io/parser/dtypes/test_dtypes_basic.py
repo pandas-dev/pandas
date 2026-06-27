@@ -422,7 +422,6 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -450,7 +449,6 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_invalid(all_parsers):
     # GH#41574
     data = """a,b
