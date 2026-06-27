@@ -16,7 +16,11 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    IntervalDtype,
+    IntervalIndex,
+)
 import pandas._testing as tm
 
 from pandas.io.json._table_schema import (
@@ -133,6 +137,21 @@ class TestBuildSchema:
         expected["primaryKey"] = ["idx0", "level_1"]
         result = build_table_schema(df, version=False)
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "subtype",
+        ["int8", "int16", "int32", "int64", "uint8", "uint32", "float32", "float64"],
+    )
+    @pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
+    def test_interval(self, closed, subtype):
+        # GH #35420
+        dtype = IntervalDtype(subtype, closed)
+        df = DataFrame(
+            index=IntervalIndex([pd.Interval(0, 2, closed=closed)], dtype=dtype),
+            data={"a": [1]},
+        )
+        field = json.loads(df.to_json(orient="table"))["schema"]["fields"][0]
+        assert field["extDtype"] == str(dtype)
 
 
 class TestTableSchemaType:
@@ -892,6 +911,54 @@ class TestTableOrientReader:
         df = DataFrame(
             {"ints": [1, 2]},
             index=pd.PeriodIndex(["2020-01", "2021-06"], freq=freq),
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize(
+        "subtype", ["int8", "int16", "int32", "int64", "float32", "float64"]
+    )
+    def test_read_json_table_orient_interval_index(self, subtype, closed):
+        # GH #35420
+        dtype = IntervalDtype(subtype, closed)
+        df = DataFrame(
+            index=IntervalIndex([pd.Interval(0, 2, closed=closed)], dtype=dtype),
+            data={"a": [42]},
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_interval_column(self):
+        # GH #35420
+        dtype = IntervalDtype("int32", "left")
+        df = DataFrame(
+            {
+                "a": [1, 2],
+                "iv": pd.array(
+                    [pd.Interval(0, 1, "left"), pd.Interval(1, 3, "left")],
+                    dtype=dtype,
+                ),
+            }
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_interval_multiindex(self):
+        # GH #35420
+        df = DataFrame(
+            index=pd.MultiIndex.from_arrays(
+                [
+                    IntervalIndex(
+                        [pd.Interval(0, 2, "left"), pd.Interval(2, 5, "left")]
+                    ),
+                    ["a", "b"],
+                ],
+                names=["bins", "label"],
+            ),
+            data={"val": [10, 20]},
         )
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")

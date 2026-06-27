@@ -237,6 +237,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed Bug in :meth:`DataFrame.to_json` with ``orient='table'`` where :class:`IntervalIndex` was not preserved during round-trip with :func:`read_json` (:issue:`35420`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
