@@ -31,12 +31,19 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(
-    all_parsers, dtype, check_orig, using_infer_string, temp_file
+    all_parsers, dtype, check_orig, using_infer_string, temp_file, request
 ):
     # see gh-3795, gh-6607
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and dtype is object and not check_orig:
+        # GH#58260 the pyarrow engine cannot disable type inference, so a scalar
+        # object dtype yields the inferred (e.g. float) values rather than the
+        # raw strings the other engines preserve
+        request.applymarker(
+            pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
+        )
 
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)).round(4),
