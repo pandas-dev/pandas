@@ -91,6 +91,45 @@ def test_pathlib_path_division(any_string_dtype, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_arithmetic_custom_object(any_string_dtype):
+    # GH#64107
+    class CustomObject:
+        def __init__(self, val):
+            self.val = val
+
+        def __add__(self, other):
+            if hasattr(other, "dtype"):
+                return NotImplemented
+            return CustomObject(self.val + other)
+
+        def __radd__(self, other):
+            if hasattr(other, "dtype"):
+                return NotImplemented
+            return CustomObject(other + self.val)
+
+        def __eq__(self, other):
+            return isinstance(other, CustomObject) and self.val == other.val
+
+        def __repr__(self):
+            return f"<CustomObject({self.val})>"
+
+    arr = np.array([CustomObject("a"), CustomObject("b")], dtype=object)
+    ser = Series(["1", "2"], dtype=any_string_dtype)
+    obj_ser = Series(arr)
+
+    cases = [
+        (ser + arr[0], [CustomObject("1a"), CustomObject("2a")]),
+        (ser + arr, [CustomObject("1a"), CustomObject("2b")]),
+        (ser + obj_ser, [CustomObject("1a"), CustomObject("2b")]),
+        (arr[0] + ser, [CustomObject("a1"), CustomObject("a2")]),
+        (arr + ser, [CustomObject("a1"), CustomObject("b2")]),
+        (obj_ser + ser, [CustomObject("a1"), CustomObject("b2")]),
+    ]
+    for result, expected_values in cases:
+        expected = Series(expected_values, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+
 def test_mixed_object_comparison(any_string_dtype):
     # GH#60228
     dtype = any_string_dtype
@@ -198,7 +237,7 @@ def test_add(any_string_dtype, request):
 def test_add_2d(any_string_dtype, request):
     dtype = any_string_dtype
 
-    if dtype == object or dtype.storage == "pyarrow":
+    if dtype == object:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.applymarker(mark)

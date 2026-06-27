@@ -16,6 +16,7 @@ Fixed regressions
 
 - Fixed performance regression in :meth:`Series.searchsorted` and :meth:`Index.searchsorted` with the string dtype, where a full ``O(n)`` NA scan made the operation much slower than the binary search itself (:issue:`65837`)
 - Fixed regression in :meth:`~Series.isin` raising an error when checking for ``pd.NA`` with ``ArrowDtype``, which also affected :meth:`DataFrame.drop` with ``ArrowDtype``-backed indexes (:issue:`63304`)
+- Fixed regression in arithmetic operations involving :class:`StringDtype` and custom Python objects incorrectly raising instead of returning object-dtype results (:issue:`64107`)
 - Fixed regression in localizing timestamps beyond the year 2100 when using ``zoneinfo`` timezones (:issue:`65733`)
 
 .. ---------------------------------------------------------------------------
