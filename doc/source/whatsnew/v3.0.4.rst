@@ -28,6 +28,7 @@ Bug fixes
 - Bug in :meth:`DataFrame.iloc` silently ignoring the assignment when setting values with an unordered or duplicated column indexer on a :class:`DataFrame` whose values are referenced by another object (:issue:`65446`)
 - Bug in :meth:`DataFrame.to_sql` and :func:`read_sql_table` when using an ADBC engine where table and schema names were not quoted as SQL identifiers, causing failures for identifiers containing spaces or reserved words, and making it vulnerable to SQL injection (:issue:`65065`)
 - Bug in :meth:`Series.str.__getitem__` raising ``AttributeError`` when underlying array is :class:`ArrowExtensionArray` (:issue:`65112`)
+- Bug in :meth:`Series.str.match` and :meth:`Index.str.match` on PyArrow-backed string dtypes where a leading ``^`` only anchored the first branch of an alternation pattern (e.g. ``r"^foo|bar"``) (:issue:`66069`)
 
 
 .. ---------------------------------------------------------------------------
