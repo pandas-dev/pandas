@@ -1384,3 +1384,73 @@ def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars)
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype
+
+
+class TestNanopsEmptyInput:
+    # GH#18976 - each nanops function should handle empty inputs on its own.
+
+    FUNCS_NAN_FOR_EMPTY = [
+        nanops.nanmean,
+        nanops.nanmedian,
+        nanops.nanvar,
+        nanops.nanstd,
+        nanops.nansem,
+        nanops.nanmin,
+        nanops.nanmax,
+        nanops.nanskew,
+        nanops.nankurt,
+    ]
+    EMPTY_DTYPES = ["f8", "M8[ns]", "m8[ns]"]
+
+    @pytest.fixture(params=[True, False], name="bottleneck_context")
+    def _bottleneck_context(self, request, monkeypatch):
+        """Test with and without Bottleneck to catch regressions."""
+        with monkeypatch.context() as m:
+            m.setattr(nanops, "_USE_BOTTLENECK", request.param)
+            yield
+
+    @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
+    @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
+    def test_empty_1d_returns_na(self, func, dtype, bottleneck_context):
+        arr = np.array([], dtype=dtype)
+        if dtype in ["M8[ns]", "m8[ns]"] and func.__name__ in [
+            "nanvar",
+            "nansem",
+            "nanskew",
+            "nankurt",
+        ]:
+            op_name = func.__name__.replace("nan", "")
+            msg = f"reduction operation '{op_name}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg):
+                func(arr)
+            return
+
+        result = func(arr)
+        assert isna(result)
+
+    @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
+    @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    def test_empty_2d_returns_na(self, func, dtype, axis, bottleneck_context):
+        shape = (0, 3) if axis == 0 else ((3, 0) if axis == 1 else (0, 3))
+        arr = np.empty(shape, dtype=dtype)
+
+        if dtype in ["M8[ns]", "m8[ns]"] and func.__name__ in [
+            "nanvar",
+            "nansem",
+            "nanskew",
+            "nankurt",
+        ]:
+            op_name = func.__name__.replace("nan", "")
+            msg = f"reduction operation '{op_name}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg):
+                func(arr, axis=axis)
+            return
+
+        result = func(arr, axis=axis)
+
+        if axis is not None:
+            assert result.shape == (3,)
+            assert isna(result).all()
+        else:
+            assert isna(result)
