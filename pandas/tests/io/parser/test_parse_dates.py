@@ -311,6 +311,23 @@ def test_parse_dates_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_parse_dates_missing_value(all_parsers):
+    # GH#47950 a missing value in a parse_dates column should become NaT,
+    # not be left as the string "None" (which the pyarrow engine used to do)
+    parser = all_parsers
+    data = "idx,date\n2,2000-01-01\n,\n"
+    result = parser.read_csv(StringIO(data), parse_dates=["date"])
+
+    expected = DataFrame(
+        {
+            "idx": [2.0, np.nan],
+            "date": [Timestamp("2000-01-01"), pd.NaT],
+        }
+    )
+    expected["date"] = expected["date"].astype("M8[us]")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [

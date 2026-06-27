@@ -364,7 +364,8 @@ def test_comparison_methods_scalar_not_string(comparison_op, any_string_dtype):
     other = 42
 
     if op_name not in ["__eq__", "__ne__"]:
-        with pytest.raises(TypeError, match="Invalid comparison|not supported between"):
+        msg = "|".join(["Invalid comparison", "not supported between"])
+        with pytest.raises(TypeError, match=msg):
             getattr(a, op_name)(other)
 
         return
