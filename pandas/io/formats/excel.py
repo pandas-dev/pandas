@@ -631,7 +631,7 @@ class ExcelFormatter:
             yield ExcelCell(
                 row=lnum,
                 col=coloffset,
-                val=name if name is not None else "",
+                val=name,
                 style=None,
             )
 
