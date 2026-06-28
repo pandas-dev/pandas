@@ -42,7 +42,6 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
     CategoricalDtype,
     CategoricalDtypeType,
     ExtensionDtype,
@@ -703,7 +702,7 @@ class MPLPlot(ABC):
 
         # GH23719, allow plotting boolean
         if self.include_bool is True:
-            include_type.append(np.bool_)
+            include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
         exclude_type = []
@@ -727,8 +726,6 @@ class MPLPlot(ABC):
 
         def predicate_for_plottability(blk_vals) -> bool:
             dtype = blk_vals.dtype
-            if isinstance(dtype, ArrowDtype):
-                dtype = dtype.numpy_dtype
             is_included = dtype_predicate(dtype, include_type)
             is_excluded = dtype_predicate(dtype, exclude_type)
             return is_included and not is_excluded

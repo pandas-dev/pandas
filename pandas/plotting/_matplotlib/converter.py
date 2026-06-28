@@ -87,8 +87,11 @@ def plottable_types() -> list[type]:
     types: list[type] = [
         np.number,
         np.datetime64,
-        Timestamp,
         np.timedelta64,
+        pydt.date,
+        pydt.datetime,
+        pydt.time,
+        pydt.timedelta,
     ]
     # Get the types supported by ExtensionDtypes that are plottable
     types.extend([tpl[0] for tpl in plottable_ea_pairs()])
