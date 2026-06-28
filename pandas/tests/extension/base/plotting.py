@@ -131,12 +131,8 @@ class BasePlottingTests:
     def test_plot_on_x_axis(self, data):
         """Test that EA data can be plotted on the x-axis."""
         _plot(data, x="Data", y="Numeric")
-        # _plot(df_plot, x="Data", y="Numeric", kind=plot_kind)
-        # _check_plot_works(df_plot.plot, x="Data", y="Numeric")
 
     # Idea: Add plot_kind fixture defined by the EAs
     def test_plot_on_y_axis(self, data, **kwargs):
         """Test that EA data can be plotted on the y-axis."""
         _plot(data, x="Numeric", y="Data", **kwargs)
-        # _plot(df_plot, x="Numeric", y="Data", kind=plot_kind)
-        # _check_plot_works(df_plot.plot, x="Numeric", y="Data")
