@@ -1536,23 +1536,6 @@ class TestPandasContainer:
         assert result == dfexp
         assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
 
-    def test_tz_range_is_naive(self):
-        dti = date_range("2013-01-01 05:00:00", periods=2, unit="ns")
-
-        exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
-        serexp = '{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}'
-        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
-
-        # Ensure datetimes in object array are serialized correctly
-        # in addition to the normal DTI case
-        assert ujson_dumps(dti, iso_dates=True) == exp
-        assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
-        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
-        df = DataFrame({"DT": dti})
-        result = ujson_dumps(df, iso_dates=True)
-        assert result == dfexp
-        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
-
     @pytest.mark.parametrize(
         "orient", ["split", "records", "index", "columns", "values"]
     )
@@ -1572,6 +1555,23 @@ class TestPandasContainer:
         assert df.to_json(orient=orient, date_format="iso") == df_expected.to_json(
             orient=orient, date_format="iso"
         )
+
+    def test_tz_range_is_naive(self):
+        dti = date_range("2013-01-01 05:00:00", periods=2, unit="ns")
+
+        exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
+        serexp = '{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}'
+        dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
+
+        # Ensure datetimes in object array are serialized correctly
+        # in addition to the normal DTI case
+        assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
+        assert ujson_dumps(Series(dti), iso_dates=True) == serexp
+        df = DataFrame({"DT": dti})
+        result = ujson_dumps(df, iso_dates=True)
+        assert result == dfexp
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True) == dfexp
 
     def test_read_inline_jsonl(self):
         # GH9180

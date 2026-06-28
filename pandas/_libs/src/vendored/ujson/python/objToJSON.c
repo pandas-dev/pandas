@@ -76,6 +76,9 @@ typedef struct __NpyArrContext {
   npy_intp ndim;
   npy_intp index[NPY_MAXDIMS];
   int type_num;
+  // whether the values are UTC-localized datetime64 (dt64tz), so that the
+  // ISO output should carry a trailing "Z"
+  int is_utc;
 
   char **rowLabels;
   char **columnLabels;
@@ -112,6 +115,9 @@ typedef struct __TypeContext {
   NpyArrContext *npyarr;
   PdBlockContext *pdblock;
   int transpose;
+  // whether newObj is a UTC-localized datetime64 ndarray (dt64tz values),
+  // propagated to the NpyArrContext so the ISO output keeps its "Z"
+  int ndarrayIsUTC;
   char **rowLabels;
   char **columnLabels;
   npy_intp rowLabelsLen;
@@ -139,6 +145,13 @@ typedef struct __PyObjectEncoder {
   // (has to be set when calling NpyDateTimeToIsoCallback or
   // NpyTimeDeltaToIsoCallback)
   NPY_DATETIMEUNIT valueUnit;
+  // pass-through: whether the datetime64 value being encoded is UTC-localized
+  // (dt64tz), so NpyDateTimeToIsoCallback appends a trailing "Z"
+  int datetimeIsUTC;
+  // one-shot signal that the next bare ndarray encoded via the generic
+  // PyArray_Check path holds UTC-localized datetime64 values (used by the
+  // Series "split" data path, which routes get_values() through that path)
+  int pendingArrayIsUTC;
 
   // output format style for pandas data types
   int outputFormat;
@@ -174,10 +187,28 @@ static TypeContext *createTypeContext(void) {
   pc->rowLabels = NULL;
   pc->columnLabels = NULL;
   pc->transpose = 0;
+  pc->ndarrayIsUTC = 0;
   pc->rowLabelsLen = 0;
   pc->columnLabelsLen = 0;
 
   return pc;
+}
+
+// Returns 1 if obj has a DatetimeTZDtype (dt64tz), else 0. Works for Series,
+// Index, and DatetimeArray, all of which expose the tz via ``obj.dtype.tz``.
+// The underlying datetime64 values of such objects are UTC-localized, so the
+// ISO serialization must append a trailing "Z".
+static int object_is_dt64tz(PyObject *obj) {
+  PyObject *dtype = PyObject_GetAttrString(obj, "dtype");
+  if (dtype == NULL) {
+    PyErr_Clear();
+    return 0;
+  }
+  // Only DatetimeTZDtype exposes a `tz` attribute; numpy datetime64 dtypes
+  // and CategoricalDtype do not.
+  const int is_dt64tz = PyObject_HasAttrString(dtype, "tz");
+  Py_DECREF(dtype);
+  return is_dt64tz;
 }
 
 static PyObject *get_values(PyObject *obj) {
@@ -219,6 +250,27 @@ static PyObject *get_values(PyObject *obj) {
     PyErr_SetString(PyExc_ValueError,
                     "Error retrieving .array from Index/Series object");
     return NULL;
+  }
+
+  if (object_is_dt64tz(obj)) {
+    // Serialize tz-aware datetimes from the underlying UTC datetime64 ndarray
+    //  rather than boxing into an object array of Timestamps (what
+    //  _values_for_json does for dt64tz). Callers flag dt64tz objects as UTC
+    //  (see object_is_dt64tz) so the ISO output keeps its trailing "Z".
+    //  category[dt64tz] has no dtype.tz and falls through to _values_for_json.
+    values = PyObject_GetAttrString(arr, "_ndarray");
+    Py_DECREF(arr);
+    if (values == NULL) {
+      PyErr_SetString(PyExc_ValueError,
+                      "Error retrieving ._ndarray from DatetimeArray");
+      return NULL;
+    }
+    if (!PyArray_CheckExact(values)) {
+      PyErr_Format(PyExc_ValueError, "._ndarray should be a numpy array");
+      Py_DECREF(values);
+      return NULL;
+    }
+    return values;
   }
 
   values = PyObject_CallMethod(arr, "_values_for_json", NULL);
@@ -336,7 +388,9 @@ static const char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                             JSONTypeContext *tc, size_t *len) {
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
   NPY_DATETIMEUNIT valueUnit = ((PyObjectEncoder *)tc->encoder)->valueUnit;
-  GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, valueUnit, base, len);
+  const int utc = ((PyObjectEncoder *)tc->encoder)->datetimeIsUTC;
+  GET_TC(tc)->cStr =
+      int64ToIso(GET_TC(tc)->longValue, valueUnit, base, utc, len);
   return GET_TC(tc)->cStr;
 }
 
@@ -443,6 +497,7 @@ static void NpyArr_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
   npyarr->ndim = PyArray_NDIM(obj) - 1;
   npyarr->curdim = 0;
   npyarr->type_num = PyArray_DESCR(obj)->type_num;
+  npyarr->is_utc = GET_TC(tc)->ndarrayIsUTC;
 
   if (GET_TC(tc)->transpose) {
     npyarr->dim = PyArray_DIM(obj, (int)npyarr->ndim);
@@ -522,6 +577,8 @@ static int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
     PyArray_Descr *dtype = PyArray_DESCR(arrayobj);
     ((PyObjectEncoder *)tc->encoder)->valueUnit =
         get_datetime_metadata_from_dtype(dtype).base;
+    // and whether these UTC-localized values should serialize with a "Z"
+    ((PyObjectEncoder *)tc->encoder)->datetimeIsUTC = npyarr->is_utc;
     ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
     ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
   } else {
@@ -1094,6 +1151,9 @@ static int Series_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     if (!GET_TC(tc)->itemValue) {
       return 0;
     }
+    // get_values returns the bare UTC datetime64 ndarray for dt64tz; flag it
+    // so the generic ndarray path keeps the trailing "Z".
+    ((PyObjectEncoder *)tc->encoder)->pendingArrayIsUTC = object_is_dt64tz(obj);
   } else {
     return 0;
   }
@@ -1248,8 +1308,10 @@ static void NpyArr_freeLabels(char **labels, npy_intp len) {
  * which may need to be represented in various formats.
  */
 static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
-                                  npy_intp num) {
+                                  npy_intp num, int is_utc) {
   // NOTE this function steals a reference to labels.
+  // is_utc: whether numpy datetime64 labels are UTC-localized (dt64tz), so
+  //  the ISO output should carry a trailing "Z".
   PyObject *item = NULL;
   const NPY_DATETIMEUNIT targetUnit = enc->datetimeUnit;
 
@@ -1331,7 +1393,7 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             cLabel = int64ToIsoDuration(i8date, valueUnit, &len);
           } else {
             if (type_num == NPY_DATETIME) {
-              cLabel = int64ToIso(i8date, valueUnit, targetUnit, &len);
+              cLabel = int64ToIso(i8date, valueUnit, targetUnit, is_utc, &len);
             } else {
               cLabel = PyDateTimeToIso(item, targetUnit, &len);
             }
@@ -1641,6 +1703,7 @@ ISITERABLE:
 
     pc->newObj = get_values(obj);
     if (pc->newObj) {
+      pc->ndarrayIsUTC = object_is_dt64tz(obj);
       tc->type = JT_ARRAY;
       pc->iterBegin = NpyArr_iterBegin;
       pc->iterEnd = NpyArr_iterEnd;
@@ -1667,6 +1730,7 @@ ISITERABLE:
     if (!pc->newObj) {
       goto INVALID;
     }
+    pc->ndarrayIsUTC = object_is_dt64tz(obj);
 
     if (enc->outputFormat == INDEX || enc->outputFormat == COLUMNS) {
       tc->type = JT_OBJECT;
@@ -1675,6 +1739,7 @@ ISITERABLE:
         goto INVALID;
       }
       PyObject *values = get_values(tmpObj);
+      const int values_is_utc = object_is_dt64tz(tmpObj);
       Py_DECREF(tmpObj);
       if (!values) {
         goto INVALID;
@@ -1687,8 +1752,8 @@ ISITERABLE:
       }
       const PyArrayObject *arrayobj = (const PyArrayObject *)pc->newObj;
       pc->columnLabelsLen = PyArray_DIM(arrayobj, 0);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
-                                             pc->columnLabelsLen);
+      pc->columnLabels = NpyArr_encodeLabels(
+          (PyArrayObject *)values, enc, pc->columnLabelsLen, values_is_utc);
       if (!pc->columnLabels) {
         goto INVALID;
       }
@@ -1717,6 +1782,9 @@ ISITERABLE:
     }
 
     tc->type = JT_ARRAY;
+    // consume a one-shot UTC flag set by a caller (e.g. Series "split" data)
+    pc->ndarrayIsUTC = enc->pendingArrayIsUTC;
+    enc->pendingArrayIsUTC = 0;
     pc->iterBegin = NpyArr_iterBegin;
     pc->iterEnd = NpyArr_iterEnd;
     pc->iterNext = NpyArr_iterNext;
@@ -1768,9 +1836,10 @@ ISITERABLE:
         Py_DECREF(tmpObj);
         goto INVALID;
       }
+      const int values_is_utc = object_is_dt64tz(tmpObj);
       pc->columnLabelsLen = PyObject_Size(tmpObj);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
-                                             pc->columnLabelsLen);
+      pc->columnLabels = NpyArr_encodeLabels(
+          (PyArrayObject *)values, enc, pc->columnLabelsLen, values_is_utc);
       Py_DECREF(tmpObj);
       if (!pc->columnLabels) {
         goto INVALID;
@@ -1788,9 +1857,10 @@ ISITERABLE:
         Py_DECREF(tmpObj);
         goto INVALID;
       }
+      int values_is_utc = object_is_dt64tz(tmpObj);
       pc->rowLabelsLen = PyObject_Size(tmpObj);
-      pc->rowLabels =
-          NpyArr_encodeLabels((PyArrayObject *)values, enc, pc->rowLabelsLen);
+      pc->rowLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
+                                          pc->rowLabelsLen, values_is_utc);
       Py_DECREF(tmpObj);
       tmpObj =
           (enc->outputFormat == INDEX ? PyObject_GetAttrString(obj, "columns")
@@ -1807,9 +1877,10 @@ ISITERABLE:
         pc->rowLabels = NULL;
         goto INVALID;
       }
+      values_is_utc = object_is_dt64tz(tmpObj);
       pc->columnLabelsLen = PyObject_Size(tmpObj);
-      pc->columnLabels = NpyArr_encodeLabels((PyArrayObject *)values, enc,
-                                             pc->columnLabelsLen);
+      pc->columnLabels = NpyArr_encodeLabels(
+          (PyArrayObject *)values, enc, pc->columnLabelsLen, values_is_utc);
       Py_DECREF(tmpObj);
       if (!pc->columnLabels) {
         NpyArr_freeLabels(pc->rowLabels, pc->rowLabelsLen);
