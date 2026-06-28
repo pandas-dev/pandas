@@ -4,6 +4,9 @@ Tests for plotting compatibility.
 
 from typing import Literal
 
+import pytest
+
+mpl = pytest.importorskip("matplotlib", reason="test requires matplotlib")
 from matplotlib import (
     axes as maxes,
     axis as maxis,
