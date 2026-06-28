@@ -1,7 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
+
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,7 +25,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.io._util import arrow_table_to_pandas
-from pandas.io.parsers.base_parser import ParserBase
+from pandas.io.parsers.base_parser import (
+    ParserBase,
+    date_converter,
+)
 
 if TYPE_CHECKING:
     import pyarrow as pa
@@ -147,6 +155,16 @@ class ArrowParserWrapper(ParserBase):
             "encoding": self.encoding,
         }
 
+    def _index_col_should_parse_dates(self, name, position: int) -> bool:
+        """
+        Whether the index column with the given name/position should be parsed
+        as dates. Unlike the other engines, the pyarrow path sets the index after
+        reading, so parse_dates handling for index columns happens here.
+        """
+        if isinstance(self.parse_dates, bool):
+            return self.parse_dates
+        return name in self.parse_dates or position in self.parse_dates
+
     def _get_convert_options(self):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
 
@@ -169,6 +187,55 @@ class ArrowParserWrapper(ParserBase):
 
         return convert_options
 
+    def _dedup_column_names(self, raw_names: list[str]) -> list[str]:
+        """
+        Match other engines' header handling: empty names become
+        "Unnamed: {i}" and duplicated names are mangled with ".{count}",
+        mirroring the algorithm in pandas._libs.parsers.TextReader.
+
+        Sets ``self.unnamed_cols`` as a side effect.
+        """
+        names = []
+        unnamed_col_indices = []
+        for i, name in enumerate(raw_names):
+            if name == "":
+                name = f"Unnamed: {i}"
+                unnamed_col_indices.append(i)
+            names.append(name)
+
+        # Ensure that regular columns are used before unnamed ones
+        # to keep given names and mangle unnamed columns
+        col_loop_order = [
+            i for i in range(len(names)) if i not in unnamed_col_indices
+        ] + unnamed_col_indices
+        counts: dict[str, int] = {}
+
+        for i in col_loop_order:
+            col = old_col = names[i]
+            cur_count = counts.get(col, 0)
+
+            if cur_count > 0:
+                while cur_count > 0:
+                    counts[old_col] = cur_count + 1
+                    col = f"{old_col}.{cur_count}"
+                    if col in names:
+                        cur_count += 1
+                    else:
+                        cur_count = counts.get(col, 0)
+
+                if (
+                    isinstance(self.dtype, dict)
+                    and self.dtype.get(old_col) is not None
+                    and self.dtype.get(col) is None
+                ):
+                    self.dtype[col] = self.dtype[old_col]
+
+            names[i] = col
+            counts[col] = cur_count + 1
+
+        self.unnamed_cols = {names[i] for i in unnamed_col_indices}
+        return names
+
     def _adjust_column_names(self, table: pa.Table) -> bool:
         num_cols = len(table.columns)
         multi_index_named = True
@@ -190,13 +257,30 @@ class ArrowParserWrapper(ParserBase):
             index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
-                    index_to_set[i] = frame.columns[item]
+                    col_name = frame.columns[item]
+                    index_to_set[i] = col_name
+                    position = int(item)
                 # String case
                 elif item not in frame.columns:
                     raise ValueError(f"Index {item} invalid")
+                else:
+                    col_name = item
+                    position = cast("int", frame.columns.get_loc(item))
+
+                # parse_dates for index columns: the other engines parse these
+                # while building the index, but the pyarrow path sets the index
+                # after reading, so do the conversion here.
+                if self._index_col_should_parse_dates(col_name, position):
+                    frame[col_name] = date_converter(
+                        frame[col_name],
+                        col=col_name,
+                        dayfirst=self.dayfirst,
+                        cache_dates=self.cache_dates,
+                        date_format=self.date_format,
+                    )
 
                 # Process dtype for index_col and drop from dtypes
-                if self.dtype is not None:
+                if isinstance(self.dtype, dict):
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
@@ -210,6 +294,13 @@ class ArrowParserWrapper(ParserBase):
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
+            elif self.unnamed_cols:
+                # GH#13017 match other engines: empty header fields used as
+                # an index produce an unnamed index level
+                frame.index.names = [
+                    None if name in self.unnamed_cols else name
+                    for name in frame.index.names
+                ]
 
         return frame
 
@@ -224,7 +315,19 @@ class ArrowParserWrapper(ParserBase):
                     if k in frame.columns
                 }
             else:
-                self.dtype = pandas_dtype(self.dtype)
+                # GH#34066 a scalar dtype must not clobber the dtype produced by
+                # date parsing, so exclude parse_dates columns from the cast.
+                scalar_dtype = pandas_dtype(self.dtype)
+                parse_dates_cols = (
+                    set(self.parse_dates)
+                    if isinstance(self.parse_dates, list)
+                    else set()
+                )
+                self.dtype = {
+                    col: scalar_dtype
+                    for col in frame.columns
+                    if col not in parse_dates_cols
+                }
             try:
                 frame = frame.astype(self.dtype)
             except TypeError as err:
@@ -250,8 +353,20 @@ class ArrowParserWrapper(ParserBase):
             The processed DataFrame.
         """
         frame = self._do_date_conversions(frame.columns, frame)
+        frame = self._maybe_restore_string_dtype(frame)
         frame = self._finalize_index(frame, multi_index_named)
         frame = self._finalize_dtype(frame)
+        return frame
+
+    def _maybe_restore_string_dtype(self, frame: DataFrame) -> DataFrame:
+        # When parse_dates fails to parse a column it falls back to the original
+        # strings; keep the default string dtype rather than object, matching
+        # the other engines.
+        if not (using_string_dtype() and isinstance(self.parse_dates, list)):
+            return frame
+        for col in self.parse_dates:
+            if col in frame.columns and frame[col].dtype == object:
+                frame[col] = frame[col].astype("str")
         return frame
 
     def _validate_usecols(self, usecols) -> None:
@@ -305,6 +420,11 @@ class ArrowParserWrapper(ParserBase):
                     )
 
             table = table.cast(new_schema)
+
+        if self.header is not None and self.names is None:
+            new_names = self._dedup_column_names(table.column_names)
+            if new_names != table.column_names:
+                table = table.rename_columns(new_names)
 
         multi_index_named = self._adjust_column_names(table)
 

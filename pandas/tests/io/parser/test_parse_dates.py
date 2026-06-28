@@ -85,7 +85,6 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_nat_parse(all_parsers, temp_file):
     # see gh-3062
     parser = all_parsers
@@ -118,7 +117,6 @@ def test_parse_dates_implicit_first_col(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_parse_dates_string(all_parsers):
     data = """date,A,B,C
 20090101,a,1,2
@@ -162,7 +160,6 @@ def test_parse_dates_column_list(all_parsers, parse_dates):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
 def test_multi_index_parse_dates(all_parsers, index_col):
     data = """index1,index2,A,B,C
@@ -575,7 +572,7 @@ def test_missing_parse_dates_column_raises(
         )
 
 
-@xfail_pyarrow  # mismatched shape
+@xfail_pyarrow  # names shorter than columns produces wrong shape (not parse_dates)
 def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
@@ -777,7 +774,6 @@ def test_replace_nans_before_parsing_dates(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # string[python] instead of dt64[ns]
 def test_parse_dates_and_string_dtype(all_parsers):
     # GH#34066
     parser = all_parsers
@@ -796,23 +792,14 @@ def test_parse_dot_separated_dates(all_parsers):
     data = """a,b
 27.03.2003 14:55:00.000,1
 03.08.2003 15:20:00.000,2"""
-    if parser.engine == "pyarrow":
-        expected_index = Index(
-            ["27.03.2003 14:55:00.000", "03.08.2003 15:20:00.000"],
-            dtype="str",
-            name="a",
-        )
-        warn = None
-    else:
-        expected_index = DatetimeIndex(
-            ["2003-03-27 14:55:00", "2003-08-03 15:20:00"],
-            dtype="datetime64[us]",
-            name="a",
-        )
-        warn = UserWarning
+    expected_index = DatetimeIndex(
+        ["2003-03-27 14:55:00", "2003-08-03 15:20:00"],
+        dtype="datetime64[us]",
+        name="a",
+    )
     msg = r"when dayfirst=False \(the default\) was specified"
     result = parser.read_csv_check_warnings(
-        warn,
+        UserWarning,
         msg,
         StringIO(data),
         parse_dates=True,
@@ -845,7 +832,6 @@ def test_parse_dates_dict_format(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # object dtype index
 def test_parse_dates_dict_format_index(all_parsers):
     # GH#51240
     parser = all_parsers
@@ -887,7 +873,10 @@ def test_parse_dates_arrow_engine(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # object dtype index
+# pyarrow normalizes mixed offsets to UTC; reading as strings to preserve them
+# would change the resolution of cleanly-parsed datetimes (see
+# test_parse_dates_arrow_engine), so this divergence is left for a follow-up.
+@xfail_pyarrow  # returns datetime64[s, UTC] instead of the original strings
 def test_from_csv_with_mixed_offsets(all_parsers):
     parser = all_parsers
     data = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
