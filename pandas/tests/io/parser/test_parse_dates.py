@@ -303,6 +303,13 @@ def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), parse_dates=["Date"], na_filter=False)
+        return
+
     result = parser.read_csv(StringIO(data), parse_dates=["Date"], na_filter=False)
 
     expected = DataFrame(
