@@ -135,6 +135,7 @@ Deprecations
 - Deprecated the default value of ``exact`` in :func:`assert_index_equal`; in a future version this will default to ``True`` instead of "equiv" (:issue:`57436`)
 - Deprecated the default value of ``track_times`` in :meth:`HDFStore.put`. In a future version, the default will change from ``True`` to ``False`` so that HDF5 files are deterministic by default (:issue:`51456`)
 - Deprecated the keyword ``by_blocks`` in :func:`testing.assert_frame_equal` (:issue:`65911`)
+- The default ``date_format="epoch"`` deprecation warning in :meth:`DataFrame.to_json` and :meth:`Series.to_json` is now also emitted when the datetime-like values are in the index or column labels rather than in the column values (:issue:`65868`)
 - Deprecated passing a non-boolean value for ``numeric_only`` to :meth:`DataFrame.mean`,
   :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.median`,
   :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`DataFrame.std`,
@@ -300,6 +301,7 @@ Conversion
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`)
+- Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 
 Strings
@@ -360,9 +362,11 @@ MultiIndex
 
 I/O
 ^^^
+- :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
 - :func:`read_sql_table` now raises an informative ``NotImplementedError`` (instead of one with no message) when passed a DBAPI connection such as ``sqlite3``, and reading from a URI string without a usable ``sqlalchemy`` install now raises a clearer ``ImportError`` (:issue:`41237`)
+- :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)

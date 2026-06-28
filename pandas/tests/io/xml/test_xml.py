@@ -1044,9 +1044,11 @@ def test_wrong_encoding(xml_baby_names, parser):
 def test_utf16_encoding(xml_baby_names, parser):
     with pytest.raises(
         UnicodeError,
-        match=(
-            "UTF-16 stream does not start with BOM|"
-            "'utf-16(-le)?' codec can't decode byte"
+        match="|".join(
+            [
+                "UTF-16 stream does not start with BOM",
+                "'utf-16(-le)?' codec can't decode byte",
+            ]
         ),
     ):
         read_xml(xml_baby_names, encoding="UTF-16", parser=parser)
@@ -1512,7 +1514,9 @@ def test_bad_xml(parser, temp_file):
 
     with pytest.raises(
         SyntaxError,
-        match="Extra content at the end of the document|junk after document element",
+        match="|".join(
+            ["Extra content at the end of the document", "junk after document element"]
+        ),
     ):
         read_xml(
             temp_file,

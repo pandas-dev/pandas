@@ -658,7 +658,9 @@ class TestEval:
         x, a, b = np.random.default_rng(2).standard_normal(3), 1, 2  # noqa: F841
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))  # noqa: F841
 
-        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        msg = "|".join(
+            ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
+        )
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 
@@ -1902,7 +1904,9 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
     ex3 = f"(lhs {cmp} mid) & (mid {cmp} rhs)"
     for ex in (ex1, ex2, ex3):
-        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        msg = "|".join(
+            ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
+        )
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 
