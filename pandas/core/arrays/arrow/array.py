@@ -2885,6 +2885,7 @@ class ArrowExtensionArray(
         null_placement = "at_start" if na_option == "top" else "at_end"
         tiebreaker = "min" if method == "average" else method
 
+        rank_kwargs: dict[str, Any]
         if pa_version_under25p0:
             rank_kwargs = {"sort_keys": order, "null_placement": null_placement}
         else:
