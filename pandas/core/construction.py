@@ -573,7 +573,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
         data[mask] = fill_value
     else:
         data = data.copy()
-    return data
+    return np.asarray(data)
 
 
 def sanitize_array(
