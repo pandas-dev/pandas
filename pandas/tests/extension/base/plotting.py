@@ -123,7 +123,7 @@ def _plot(
             or is_datetime64_any_dtype(x_dtype)
         ):
             continue
-        _check_plot_data(ax, plot_df[col], axis)
+        _check_plot_data(ax, plot_df[col], axis)  # type: ignore[arg-type]
 
 
 class BasePlottingTests:
