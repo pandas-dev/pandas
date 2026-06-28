@@ -934,7 +934,9 @@ class TestReaders:
     )
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
-        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        msg = "|".join(
+            ["Worksheet index 3 is invalid", "Worksheet named 'Sheet4' not found"]
+        )
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("blank" + read_ext, sheet_name=sheet_name)
 
@@ -1682,7 +1684,9 @@ class TestExcelFileRead:
     )
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
-        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        msg = "|".join(
+            ["Worksheet index 3 is invalid", "Worksheet named 'Sheet4' not found"]
+        )
         depr_msg = "ExcelFile.parse is deprecated"
         with pytest.raises(ValueError, match=msg):
             with pd.ExcelFile("blank" + read_ext) as excel:

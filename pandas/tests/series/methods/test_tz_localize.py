@@ -59,6 +59,7 @@ class TestTZLocalize:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("year", ["2015", "2201"])
     @pytest.mark.parametrize(
         "method, exp",
         [
@@ -69,11 +70,16 @@ class TestTZLocalize:
             ["foo", "invalid"],
         ],
     )
-    def test_tz_localize_nonexistent(self, warsaw, method, exp, unit):
+    def test_tz_localize_nonexistent(self, warsaw, method, exp, year, unit):
         # GH 8917
         tz = warsaw
+        if year == "2201" and (not isinstance(tz, str) or tz.startswith("dateutil/")):
+            # zoneinfo tz passed as string
+            pytest.skip("ZoneInfo required for year 2201")
         n = 60
-        dti = date_range(start="2015-03-29 02:00:00", periods=n, freq="min", unit=unit)
+        dti = date_range(
+            start=f"{year}-03-29 02:00:00", periods=n, freq="min", unit=unit
+        )
         ser = Series(1, index=dti)
         df = ser.to_frame()
 
@@ -99,6 +105,8 @@ class TestTZLocalize:
                 df.tz_localize(tz, nonexistent=method)
 
         else:
+            if isinstance(exp, str):
+                exp = exp.replace("2015", year)
             result = ser.tz_localize(tz, nonexistent=method)
             expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz).as_unit(unit))
             tm.assert_series_equal(result, expected)
