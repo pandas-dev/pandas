@@ -140,11 +140,21 @@ class ArrowParserWrapper(ParserBase):
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
 
+        header = self.header
+        if isinstance(header, list):
+            # GH#65862 pyarrow.csv cannot produce multi-row/MultiIndex headers
+            if len(header) == 1:
+                header = header[0]
+            else:
+                raise ValueError(
+                    "The 'pyarrow' engine does not support a list of integers "
+                    "for the 'header' argument (MultiIndex columns are not "
+                    "supported)."
+                )
+
         self.read_options = {
-            "autogenerate_column_names": self.header is None,
-            "skip_rows": self.header
-            if self.header is not None
-            else self.kwds["skiprows"],
+            "autogenerate_column_names": header is None,
+            "skip_rows": header if header is not None else self.kwds["skiprows"],
             "encoding": self.encoding,
         }
 

@@ -375,11 +375,23 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers
     data = "A,B,B\nX,Y,Z\n1,2,3"
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(
+                StringIO(data),
+                header=list(range(2)),
+                dtype={
+                    ("A", "X"): np.int32,
+                    ("B", "Y"): np.int32,
+                    ("B", "Z"): np.float32,
+                },
+            )
+        return
 
     result = parser.read_csv(
         StringIO(data),
