@@ -2161,6 +2161,42 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_dict_of_series_preserves_byteorder(self):
+        # GH#43042 same-dtype Series get consolidated into one block; the
+        #  non-native byteorder (and the values) must be preserved
+        df = DataFrame(
+            {
+                "a": Series([0, 256], dtype=">i8"),
+                "b": Series([1, 257], dtype=">i4"),
+                "c": Series([2, 258], dtype=">i8"),
+            }
+        )
+        assert df["a"].dtype == np.dtype(">i8")
+        assert df["b"].dtype == np.dtype(">i4")
+        assert df["c"].dtype == np.dtype(">i8")
+        assert df["a"].tolist() == [0, 256]
+        assert df["b"].tolist() == [1, 257]
+        assert df["c"].tolist() == [2, 258]
+
+    def test_constructor_list_of_ragged_arrays_first_shortest(self):
+        # GH#64958 the uniform-dtype fast path must not silently truncate
+        # ragged rows; they should be padded to max width with NaN
+        # (pin int64 so the result dtype matches on 32- and 64-bit platforms)
+        result = DataFrame(
+            [np.array([1, 2], dtype=np.int64), np.array([3, 4, 5], dtype=np.int64)]
+        )
+        expected = DataFrame([[1, 2, np.nan], [3, 4, 5]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_list_of_ragged_arrays_first_longest(self):
+        # GH#64958 a longer first row must not raise IndexError; ragged rows
+        # should be padded to max width with NaN
+        result = DataFrame(
+            [np.array([1, 2, 3], dtype=np.int64), np.array([4, 5], dtype=np.int64)]
+        )
+        expected = DataFrame([[1, 2, 3], [4, 5, np.nan]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_for_list_with_dtypes(self, using_infer_string):
         # test list of lists/ndarrays
         df = DataFrame([np.arange(5) for x in range(5)])
@@ -2529,7 +2565,9 @@ class TestDataFrameConstructors:
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
         dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
-        msg = "Shape of passed values|Passed arrays should have the same length"
+        msg = "|".join(
+            ["Shape of passed values", "Passed arrays should have the same length"]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame(dti, index=range(4))
 

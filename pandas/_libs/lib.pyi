@@ -85,7 +85,6 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> ArrayLike: ...
-def check_all_hashable(values: npt.NDArray[np.object_]) -> None: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -246,4 +245,8 @@ def is_range_indexer(
 def is_sequence_range(
     sequence: np.ndarray,
     step: int,  # np.ndarray[np.int64, ndim=1]
+) -> bool: ...
+def has_sentinel(
+    arr: np.ndarray,  # const signed_int_t[:]
+    sentinel: int,
 ) -> bool: ...

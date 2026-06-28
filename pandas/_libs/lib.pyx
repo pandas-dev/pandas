@@ -20,11 +20,6 @@ from cpython.datetime cimport (
     time,
     timedelta,
 )
-from cpython.exc cimport (
-    PyErr_Clear,
-    PyErr_ExceptionMatches,
-    PyErr_Occurred,
-)
 from cpython.iterator cimport PyIter_Check
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
@@ -66,6 +61,8 @@ from numpy cimport (
     complex128_t,
     flatiter,
     float64_t,
+    int8_t,
+    int16_t,
     int32_t,
     int64_t,
     intp_t,
@@ -783,16 +780,27 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        Py_ssize_t n4 = n & ~3
         bint ret = True
 
     if left.size != n:
         return False
 
     with nogil:
-        for i in range(n):
-            if left[i] != i:
+        for i in range(0, n4, 4):
+            if (
+                (left[i] != i)
+                | (left[i + 1] != i + 1)
+                | (left[i + 2] != i + 2)
+                | (left[i + 3] != i + 3)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if left[i] != i:
+                    ret = False
+                    break
     return ret
 
 
@@ -804,6 +812,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     """
     cdef:
         Py_ssize_t i, n = len(sequence)
+        Py_ssize_t n4 = n & ~3
         int6432_t first_element
         bint ret = True
 
@@ -813,11 +822,66 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
+    # sequence[0] == first_element by construction, so the i=0 lane of the
+    # unrolled loop is trivially true — skipping the explicit head loop
+    # costs one redundant compare on the first iteration.
     with nogil:
-        for i in range(1, n):
-            if sequence[i] != first_element + i * step:
+        for i in range(0, n4, 4):
+            if (
+                (sequence[i] != first_element + i * step)
+                | (sequence[i + 1] != first_element + (i + 1) * step)
+                | (sequence[i + 2] != first_element + (i + 2) * step)
+                | (sequence[i + 3] != first_element + (i + 3) * step)
+            ):
                 ret = False
                 break
+        if ret:
+            for i in range(n4, n):
+                if sequence[i] != first_element + i * step:
+                    ret = False
+                    break
+    return ret
+
+
+ctypedef fused signed_int_t:
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def has_sentinel(const signed_int_t[:] arr, signed_int_t sentinel) -> bool:
+    """
+    Faster equivalent to `(arr == sentinel).any()` for integer indexers.
+    """
+    cdef:
+        Py_ssize_t i, n = arr.shape[0]
+        Py_ssize_t n8 = n & ~7  # round down to multiple of 8
+        bint ret = False
+
+    with nogil:
+        for i in range(0, n8, 8):
+            # Bitwise | (not `or`) so all 8 lanes evaluate unconditionally,
+            # letting the compiler emit vectorized comparisons.
+            if (
+                (arr[i] == sentinel)
+                | (arr[i + 1] == sentinel)
+                | (arr[i + 2] == sentinel)
+                | (arr[i + 3] == sentinel)
+                | (arr[i + 4] == sentinel)
+                | (arr[i + 5] == sentinel)
+                | (arr[i + 6] == sentinel)
+                | (arr[i + 7] == sentinel)
+            ):
+                ret = True
+                break
+        if not ret:
+            for i in range(n8, n):
+                if arr[i] == sentinel:
+                    ret = True
+                    break
     return ret
 
 
@@ -1696,6 +1760,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - bytes
     - floating
     - integer
+    - integer-na
     - mixed-integer
     - mixed-integer-float
     - decimal
@@ -1709,7 +1774,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     - timedelta
     - time
     - period
+    - interval
     - mixed
+    - empty
     - unknown-array
 
     Raises
@@ -1731,6 +1798,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
       specialized
     - 'mixed-integer-float' are floats and integers
     - 'mixed-integer' are integers mixed with non-integers
+    - 'integer-na' are integers mixed with NaN, returned only when skipna=False
+    - 'empty' is returned for inputs with no inferable values (e.g. an empty
+      input, or all-NA with skipna=True)
     - 'unknown-array' is the catchall for something that *is* an array (has
       a dtype attribute), but has a dtype unknown to pandas (e.g. external
       extension array)
@@ -2705,46 +2775,6 @@ def maybe_convert_numeric(
     elif seen.uint_:
         return (uints, None)
     return (ints, None)
-
-
-cdef extern from "Python.h":
-    # Declare without exception propagation so we can inspect the error
-    # ourselves. The cpython.object declaration uses `except? -1` which
-    # causes Cython to auto-raise before we can check the error type.
-    Py_hash_t _PyObject_Hash "PyObject_Hash"(object) noexcept
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def check_all_hashable(ndarray[object] values) -> None:
-    """
-    Check that all elements in an object array are hashable.
-
-    Raises
-    ------
-    TypeError
-        If any element is not hashable.
-    """
-    cdef:
-        Py_ssize_t i, n = len(values)
-        object val
-
-    for i in range(n):
-        val = values[i]
-        if is_scalar(val):
-            # Scalars are always hashable, so skip the PyObject_Hash call.
-            # This is a fast path to avoid the overhead of hashing every
-            # element in the common case where all values are scalars.
-            continue
-        if _PyObject_Hash(val) == -1 and PyErr_Occurred():
-            if PyErr_ExceptionMatches(TypeError):
-                PyErr_Clear()
-                raise TypeError(
-                    f"unhashable type: '{type(val).__name__}'"
-                )
-            # Clear non-TypeError exceptions (e.g. ValueError from
-            # numpy timedelta64 without units)
-            PyErr_Clear()
 
 
 @cython.boundscheck(False)
