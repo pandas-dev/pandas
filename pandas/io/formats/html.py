@@ -205,7 +205,7 @@ class HTMLFormatter:
             # FIX: Escape the URL so quotes don't break the href attribute
             safe_href = html.escape(rs_unescaped, quote=True)
             start_tag += f'<a href="{safe_href}" target="_blank">'
-            end_tag = f"</a></{kind}>"
+            end_a = f"</a></{kind}>"
         else:
             end_a = ""
 
