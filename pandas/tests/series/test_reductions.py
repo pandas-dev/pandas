@@ -184,34 +184,40 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-def test_mean_with_convertible_string_raises():
+def test_mean_with_convertible_string_raises(using_infer_string):
     # GH#44008
     ser = Series(["1", "2"])
     assert ser.sum() == "12"
 
-    msg = "|".join(
-        [
-            "Could not convert string '12' to numeric",
-            "does not support",
-            "Cannot perform",
-        ]
+    # str dtype vs object dtype (infer_string=False) raise differently; drop the
+    # object-dtype branch once infer_string=False is no longer supported.
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else "Could not convert string '12' to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
     df = ser.to_frame()
-    msg = "|".join(
-        [r"Could not convert \['12'\] to numeric", "does not support", "Cannot perform"]
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else r"Could not convert \['12'\] to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
 
-def test_mean_dont_convert_j_to_complex():
+def test_mean_dont_convert_j_to_complex(using_infer_string):
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    msg = "|".join(
-        [r"Could not convert \['J'\] to numeric", "does not support", "Cannot perform"]
+    # str dtype vs object dtype (infer_string=False) raise differently; drop the
+    # object-dtype branches once infer_string=False is no longer supported.
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else r"Could not convert \['J'\] to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         df.mean()
@@ -219,41 +225,37 @@ def test_mean_dont_convert_j_to_complex():
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "|".join(
-        [
-            "Could not convert string 'J' to numeric",
-            "does not support",
-            "Cannot perform",
-        ]
+    msg = (
+        "Cannot perform reduction 'mean' with string dtype"
+        if using_infer_string
+        else "Could not convert string 'J' to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "|".join(
-        ["Could not convert string 'J' to numeric", "ufunc 'divide'", "Cannot perform"]
-    )
+
+    # .astype("string") forces str dtype regardless of the infer_string setting
+    msg = "Cannot perform reduction 'mean' with string dtype"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
 
-def test_median_with_convertible_string_raises():
+def test_median_with_convertible_string_raises(using_infer_string):
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
-    msg = "|".join(
-        [
-            r"Cannot convert \['1' '2' '3'\] to numeric",
-            "does not support",
-            "Cannot perform",
-        ]
+    # str dtype vs object dtype (infer_string=False) raise differently; drop the
+    # object-dtype branch once infer_string=False is no longer supported.
+    msg = (
+        "Cannot perform reduction 'median' with string dtype"
+        if using_infer_string
+        else r"Cannot convert \['1' '2' '3'\] to numeric"
     )
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    msg = "|".join(
-        [
-            r"Cannot convert \[\['1' '2' '3'\]\] to numeric",
-            "does not support",
-            "Cannot perform",
-        ]
+    msg = (
+        "Cannot perform reduction 'median' with string dtype"
+        if using_infer_string
+        else r"Cannot convert \[\['1' '2' '3'\]\] to numeric"
     )
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):

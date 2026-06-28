@@ -389,14 +389,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = "|".join(
-                [
-                    r"Cannot change data-type for array of references\.",
-                    r"Cannot change data-type for object array\.",
-                    r"Cannot change data-type for array of strings\.",
-                    "",
-                ]
-            )
+            msg = "Cannot change data-type"
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 

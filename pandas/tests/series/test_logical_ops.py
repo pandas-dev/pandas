@@ -141,7 +141,7 @@ class TestSeriesLogicalOps:
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    def test_logical_operators_int_dtype_with_object(self):
+    def test_logical_operators_int_dtype_with_object(self, using_infer_string):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
@@ -150,10 +150,12 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        with pytest.raises(
-            TypeError,
-            match="|".join(["unsupported.* 'int' and 'str'", "'rand_' not supported"]),
-        ):
+        # str dtype routes through the pandas op; object dtype hits the Python operator
+        if using_infer_string:
+            msg = "'rand_' not supported"
+        else:
+            msg = r"unsupported operand type\(s\) for &: 'int' and 'str'"
+        with pytest.raises(TypeError, match=msg):
             s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
