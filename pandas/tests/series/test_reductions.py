@@ -237,13 +237,9 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
 
-    # .astype("string") forces str dtype regardless of the infer_string setting,
-    # but the storage (hence the message) still follows pyarrow availability
-    msg = (
-        "Cannot perform reduction 'mean' with string dtype"
-        if HAS_PYARROW
-        else "Could not convert string 'J' to numeric"
-    )
+    # .astype("string") forces a real str dtype regardless of the infer_string
+    # setting or pyarrow availability, so the reduction always raises here
+    msg = "Cannot perform reduction 'mean' with string dtype"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
