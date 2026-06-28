@@ -35,6 +35,7 @@ from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
     pa_version_under21p0,
+    pa_version_under25p0,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -2880,16 +2881,18 @@ class ArrowExtensionArray(
             return result
 
         data = self._pa_array.combine_chunks()
-        sort_keys = "ascending" if ascending else "descending"
+        order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
         tiebreaker = "min" if method == "average" else method
 
-        result = pc.rank(
-            data,
-            sort_keys=sort_keys,
-            null_placement=null_placement,
-            tiebreaker=tiebreaker,
-        )
+        if pa_version_under25p0:
+            rank_kwargs = {"sort_keys": order, "null_placement": null_placement}
+        else:
+            # pyarrow 25 deprecated the null_placement keyword in favor of
+            # specifying it per sort key
+            rank_kwargs = {"sort_keys": [("", order, null_placement)]}
+
+        result = pc.rank(data, tiebreaker=tiebreaker, **rank_kwargs)
 
         if na_option == "keep":
             mask = pc.is_null(self._pa_array)
@@ -2897,12 +2900,7 @@ class ArrowExtensionArray(
             result = pc.if_else(mask, null, result)
 
         if method == "average":
-            result_max = pc.rank(
-                data,
-                sort_keys=sort_keys,
-                null_placement=null_placement,
-                tiebreaker="max",
-            )
+            result_max = pc.rank(data, tiebreaker="max", **rank_kwargs)
             result_max = result_max.cast(pa.float64())
             result_min = result.cast(pa.float64())
             result = pc.divide(pc.add(result_min, result_max), 2)
