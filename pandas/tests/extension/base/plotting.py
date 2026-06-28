@@ -37,7 +37,8 @@ def _get_plot_df(data: ExtensionArray) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        A DataFrame with two columns: 'Data' containing the provided ExtensionArray and 'Numeric' containing a range of integers.
+        A DataFrame with two columns: 'Data' containing the provided ExtensionArray and
+        'Numeric' containing a range of integers.
     """
     return pd.DataFrame({"Data": data, "Numeric": np.arange(len(data))}).dropna()
 
@@ -47,7 +48,7 @@ def _check_plot_data(
     sr: pd.Series,
     axis: Literal["x", "y"],
 ) -> None:
-    """Helper function to check that the data plotted on the given axis matches the expected data from the Series.
+    """Check that the data plotted matches the expected converted data from the Series.
 
     Parameters
     ----------
@@ -112,7 +113,7 @@ def _plot(
     # Check that the data plotted on the specified axes matches the expected data from
     # the DataFrame
     x_dtype = plot_df[x].dtype
-    for axis, col in zip(["x", "y"], [x, y]):
+    for axis, col in zip(["x", "y"], [x, y], strict=True):
         # Skip checking the x-axis if the data type is not numeric, period, or datetime
         # as pandas uses just numeric values for all other types and use the actual
         # values only as labels.

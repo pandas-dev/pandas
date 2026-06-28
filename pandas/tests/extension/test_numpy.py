@@ -526,7 +526,8 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             super().test_json_roundtrip(data)
 
     @pytest.mark.filterwarnings(
-        "ignore:Casting complex values to real discards the imaginary part:numpy.exceptions.ComplexWarning"
+        "ignore:Casting complex values to real discards the imaginary part:"
+        "numpy.exceptions.ComplexWarning"
     )
     def test_plot_on_y_axis(self, data, request):
         # GH 64535
