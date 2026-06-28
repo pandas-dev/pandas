@@ -4,6 +4,7 @@ Module for formatting output data in HTML.
 
 from __future__ import annotations
 
+import html
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -13,8 +14,6 @@ from typing import (
 )
 
 from pandas._config.config import _global_config as config
-
-import html
 
 from pandas._libs import lib
 
