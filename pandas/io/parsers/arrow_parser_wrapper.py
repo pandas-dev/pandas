@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 import warnings
 
@@ -139,16 +140,28 @@ class ArrowParserWrapper(ParserBase):
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
 
-        if self.header is None:
+        header = self.header
+        if isinstance(header, list):
+            # GH#66059 pyarrow.csv cannot produce multi-row/MultiIndex headers
+            if len(header) == 1:
+                header = header[0]
+            else:
+                raise ValueError(
+                    "The 'pyarrow' engine does not support a list of integers "
+                    "for the 'header' argument (MultiIndex columns are not "
+                    "supported)."
+                )
+
+        if header is None:
             skip_rows = self.kwds["skiprows"]
         elif self.names is not None:
             # GH#65862 names replace the header row, which is discarded as
             # the other engines do
-            skip_rows = self.header + 1
+            skip_rows = header + 1
         else:
-            skip_rows = self.header
+            skip_rows = header
         self.read_options = {
-            "autogenerate_column_names": self.header is None or self.names is not None,
+            "autogenerate_column_names": header is None or self.names is not None,
             "skip_rows": skip_rows,
             "encoding": self.encoding,
         }
@@ -327,6 +340,17 @@ class ArrowParserWrapper(ParserBase):
             table = table.cast(new_schema)
 
         multi_index_named = self._adjust_column_names(table)
+
+        if isinstance(self.dtype, defaultdict):
+            # GH#41574 materialize the factory default over the actual columns
+            # so missing keys get the default, matching the other engines
+            if self.header is None:
+                # set by _adjust_column_names above
+                assert self.names is not None
+                columns = list(self.names)
+            else:
+                columns = table.column_names
+            self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
