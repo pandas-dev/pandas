@@ -2042,3 +2042,26 @@ def test_method_calls_on_binop():
     result = pd.eval("(x + y).dropna().reset_index(drop=True)")
     expected = (x + y).dropna().reset_index(drop=True)
     tm.assert_series_equal(result, expected)
+
+
+def test_eval_inplace_cow_alias_corruption(engine):
+    # https://github.com/pandas-dev/pandas/issues/65664
+    df = DataFrame({"old": [1, 2, 3]})
+    df.eval("new = old", inplace=True, engine=engine)
+
+    # Update the first row of the 'new' column (which is at index 1)
+    df.iloc[0, 1] = 99
+
+    expected = Series([1, 2, 3], name="old")
+    result = df["old"]
+    tm.assert_series_equal(result, expected)
+
+    # same but without inplace
+    df = DataFrame({"old": [1, 2, 3]})
+    df_orig = df.copy()
+
+    result = df.eval("new = old", engine=engine)
+
+    result.iloc[0, 1] = 99
+    tm.assert_series_equal(result["old"], expected)
+    tm.assert_series_equal(df_orig["old"], expected)
