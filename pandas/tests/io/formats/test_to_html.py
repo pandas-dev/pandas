@@ -15,6 +15,7 @@ from pandas import (
     get_option,
     option_context,
 )
+DataFrame = pd.DataFrame
 
 import pandas.io.formats.format as fmt
 
