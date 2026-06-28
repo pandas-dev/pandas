@@ -183,6 +183,7 @@ _pyarrow_unsupported = {
     "dayfirst",
     "skipinitialspace",
     "low_memory",
+    "na_filter",
 }
 
 
