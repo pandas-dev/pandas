@@ -14,6 +14,8 @@ from typing import (
 
 from pandas._config.config import _global_config as config
 
+import html
+
 from pandas._libs import lib
 
 from pandas import (
@@ -200,8 +202,10 @@ class HTMLFormatter:
 
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            start_tag += f'<a href="{rs_unescaped}" target="_blank">'
-            end_a = "</a>"
+            # FIX: Escape the URL so quotes don't break the href attribute
+            safe_href = html.escape(rs_unescaped, quote=True)
+            start_tag += f'<a href="{safe_href}" target="_blank">'
+            end_tag = f"</a></{kind}>"
         else:
             end_a = ""
 

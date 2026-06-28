@@ -1164,3 +1164,11 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
+def test_to_html_render_links_escaping():
+    value = 'http://example.com/search?q=a"b&lang=en'
+    df = pd.DataFrame({"url": [value]})
+    
+    html = df.to_html(render_links=True, escape=True)
+    
+    assert "http://example.com/search?q=a&quot;b&amp;lang=en" in html
+    assert 'href="http://example.com/search?q=a&quot;b&amp;lang=en"' in html    
