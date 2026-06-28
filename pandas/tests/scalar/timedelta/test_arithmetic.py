@@ -11,7 +11,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_gt2
+from pandas.compat.numpy import np_version_gt2_3
 from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
@@ -636,9 +636,10 @@ class TestTimedeltaMultiplicationDivision:
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
 
-        # NumPy reworded the unexpected-keyword error in 2.0; older NumPy instead
-        # reports the operands cannot be used (exact boundary confirmed on CI).
-        if np_version_gt2:
+        # NumPy reworded the unexpected-keyword error in 2.3; older NumPy instead
+        # reports the operands cannot be used (boundary confirmed on CI: 2.2 old,
+        # 2.3 new).
+        if np_version_gt2_3:
             msg = "this function got an unexpected keyword argument 'dtype'"
         else:
             msg = "|".join(

@@ -4,6 +4,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     DataFrame,
     Index,
@@ -150,8 +152,9 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        # str dtype routes through the pandas op; object dtype hits the Python operator
-        if using_infer_string:
+        # pyarrow-backed str routes through the pandas op; object dtype and the
+        # python-backed str fallback hit the Python operator instead
+        if using_infer_string and HAS_PYARROW:
             msg = "'rand_' not supported"
         else:
             msg = r"unsupported operand type\(s\) for &: 'int' and 'str'"
