@@ -23,7 +23,10 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    concat_range_indexes,
+    no_default,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -1187,81 +1190,28 @@ class RangeIndex(Index):
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
-        if not all(isinstance(x, RangeIndex) for x in indexes):
+        result = concat_range_indexes(indexes, RangeIndex)
+        tag = result[0]
+
+        if tag == 0:
             result = super()._concat(indexes, name)
             if result.dtype.kind == "i":
                 return self._shallow_copy(result._values)
             return result
 
-        elif len(indexes) == 1:
-            return indexes[0]
+        elif tag == 1:
+            values = np.concatenate([x._values for x in indexes])
+            return self._constructor(values, copy=False).rename(name)
 
-        rng_indexes = cast(list[RangeIndex], indexes)
+        elif tag == 2:
+            return result[1].rename(name)
 
-        start = step = next_ = None
+        elif tag == 4:
+            values = np.tile(result[1]._values, result[2])
+            return self._constructor(values, copy=False).rename(name)
 
-        # Filter the empty indexes
-        non_empty_indexes = []
-        all_same_index = True
-        prev: RangeIndex | None = None
-        for obj in rng_indexes:
-            if len(obj):
-                non_empty_indexes.append(obj)
-                if all_same_index:
-                    if prev is not None:
-                        all_same_index = prev.equals(obj)
-                    else:
-                        prev = obj
-
-        for obj in non_empty_indexes:
-            rng = obj._range
-
-            if start is None:
-                # This is set by the first non-empty index
-                start = rng.start
-                if step is None and len(rng) > 1:
-                    step = rng.step
-            elif step is None:
-                # First non-empty index had only one element
-                if rng.start == start:
-                    if all_same_index:
-                        values = np.tile(
-                            non_empty_indexes[0]._values, len(non_empty_indexes)
-                        )
-                    else:
-                        values = np.concatenate([x._values for x in rng_indexes])
-                    result = self._constructor(values, copy=False)
-                    return result.rename(name)
-
-                step = rng.start - start
-
-            non_consecutive = (step != rng.step and len(rng) > 1) or (
-                next_ is not None and rng.start != next_
-            )
-            if non_consecutive:
-                if all_same_index:
-                    values = np.tile(
-                        non_empty_indexes[0]._values, len(non_empty_indexes)
-                    )
-                else:
-                    values = np.concatenate([x._values for x in rng_indexes])
-                result = self._constructor(values, copy=False)
-                return result.rename(name)
-
-            if step is not None:
-                next_ = rng[-1] + step
-
-        if non_empty_indexes:
-            # Get the stop value from "next" or alternatively
-            # from the last non-empty index
-            stop = non_empty_indexes[-1].stop if next_ is None else next_
-            if len(non_empty_indexes) == 1:
-                step = non_empty_indexes[0].step
-            return RangeIndex(start, stop, step, name=name)
-
-        # Here all "indexes" had 0 length, i.e. were empty.
-        # In this case return an empty range index.
-        return RangeIndex(_empty_range, name=name)
+        start, stop, step = result[1], result[2], result[3]
+        return RangeIndex(start, stop, step, name=name)
 
     def __len__(self) -> int:
         """

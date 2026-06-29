@@ -3473,6 +3473,112 @@ def dtypes_all_equal(list types not None) -> bool:
         return True
 
 
+def concat_range_indexes(list indexes, object range_index_type):
+    """
+    Fast-path concat planning for RangeIndex.
+
+    Returns a tuple whose first item is a tag interpreted by RangeIndex._concat:
+    0: fallback to the parent implementation
+    1: concatenate index values
+    2: return the single index
+    3: construct RangeIndex(start, stop, step)
+    4: tile the repeated non-empty RangeIndex count times
+    """
+    cdef:
+        Py_ssize_t n = len(indexes)
+        Py_ssize_t i
+        Py_ssize_t rng_len
+        Py_ssize_t non_empty_count = 0
+        object idx
+        object prev = None
+        object rng
+        object last_rng = None
+        object start = None
+        object stop
+        object step = None
+        object next_val = None
+        object rng_start
+        object rng_step
+        bint first = True
+        bint all_same_index = True
+        bint force_values = False
+
+    if n == 0:
+        return (3, 0, 0, 1)
+
+    if n == 1:
+        idx = indexes[0]
+        if not isinstance(idx, range_index_type):
+            return (0, None, None, None)
+        return (2, idx, None, None)
+
+    for i in range(n):
+        if not isinstance(indexes[i], range_index_type):
+            return (0, None, None, None)
+
+    for i in range(n):
+        idx = indexes[i]
+        rng = idx._range
+        rng_len = len(rng)
+
+        if rng_len == 0:
+            continue
+
+        non_empty_count += 1
+        last_rng = rng
+
+        if all_same_index:
+            if prev is not None:
+                all_same_index = prev.equals(idx)
+            else:
+                prev = idx
+
+        rng_start = rng.start
+        rng_step = rng.step
+
+        if force_values:
+            continue
+
+        if first:
+            start = rng_start
+            if rng_len > 1:
+                step = rng_step
+            first = False
+        elif step is None:
+            if rng_start == start:
+                force_values = True
+                continue
+
+            step = rng_start - start
+
+        if step is not None:
+            if rng_len > 1 and rng_step != step:
+                force_values = True
+                continue
+
+            if next_val is not None and rng_start != next_val:
+                force_values = True
+                continue
+
+            next_val = rng[-1] + step
+
+    if non_empty_count == 0:
+        return (3, 0, 0, 1)
+
+    if force_values:
+        if all_same_index:
+            return (4, prev, non_empty_count, None)
+        return (1, None, None, None)
+
+    if next_val is None:
+        stop = last_rng.stop
+        step = last_rng.step
+    else:
+        stop = next_val
+
+    return (3, start, stop, step)
+
+
 def is_np_dtype(object dtype, str kinds=None) -> bool:
     """
     Optimized check for `isinstance(dtype, np.dtype)` with

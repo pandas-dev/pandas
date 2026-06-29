@@ -366,3 +366,41 @@ Follow-up validation:
 - `python -m pytest pandas/tests/reshape/merge`
 - Run ASV for MultiIndex engine construction, duplicate monotonic
   lookup, and `groupsort_indexer` consumers.
+
+## Batch 8: RangeIndex concat planning
+
+Sources inspected:
+
+- Exported commit `1b285b9697`.
+- Prior pandas 3.0.3 port `79ba386d4a`.
+- pandas 3.0.1 `RangeIndex._concat` fallback and construction paths.
+
+Adaptation checks:
+
+- Non-RangeIndex input uses the unchanged parent fallback.
+- A single RangeIndex is returned with the requested name behavior.
+- Repeated identical non-empty ranges use `np.tile`.
+- Discontinuous ranges concatenate materialized values.
+- A single non-empty range preserves its original step.
+- All-empty input constructs the standard empty RangeIndex.
+- The `.pyi` declaration matches the four-item planning tuple.
+
+Executed:
+
+- `git diff --check`
+- `python -m py_compile pandas/core/indexes/range.py`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/indexes/ranges -q` stopped while
+  importing `pandas/conftest.py` because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/indexes/ranges`
+- Run RangeIndex concat ASV for consecutive, discontinuous, repeated,
+  singleton, empty, and mixed-index inputs.

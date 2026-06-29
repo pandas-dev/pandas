@@ -191,3 +191,19 @@ choosing an entire side.
   batch; it is not mixed into this index-engine commit.
 - Risk: generated Cython methods and MultiIndex code-width handling
   require a native build and focused index tests.
+
+## Batch 8: RangeIndex concat planning
+
+- Original private commit: `1b285b9697`.
+- Prior pandas 3.0.3 port: `79ba386d4a`.
+- pandas 3.0.1 result: adapted after a narrow conflict in
+  `RangeIndex._concat`; the conflict was caused by nearby upstream type
+  changes, not by different concat semantics.
+- `pandas._libs.lib.concat_range_indexes` now performs the all-RangeIndex
+  planning loop and returns a compact tag plus construction arguments.
+- The Python layer retains pandas 3.0.1 Index construction, integer
+  fallback, name propagation, repeated-range tiling, and empty-range
+  behavior.
+- Risk: the helper accepts Python objects and accesses `_range`
+  directly; native tests must cover mixed Index inputs, one-element
+  ranges, repeated ranges, empty ranges, and discontinuous ranges.
