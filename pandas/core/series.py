@@ -1282,6 +1282,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # set using a non-recursive method
                 self.loc[label] = value
                 return
+            except InvalidIndexError as ii_err:
+                # GH#51866: get_loc raises InvalidIndexError when label is not
+                #  a scalar (e.g. a boolean mask, array, or list). .at only
+                #  supports scalar label access.
+                raise InvalidIndexError(
+                    ".at-based indexing can only have scalar indexers; use .loc instead"
+                ) from ii_err
         else:
             loc = label
 
