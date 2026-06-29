@@ -25,16 +25,10 @@ from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
     PyObject,
-    PyObject_RichCompareBool,
-)
-from cpython.ref cimport (
-    Py_DECREF,
-    Py_INCREF,
 )
 from cpython.sequence cimport PySequence_Check
 from cpython.tuple cimport (
     PyTuple_New,
-    PyTuple_SET_ITEM,
 )
 from cython cimport (
     Py_ssize_t,
@@ -44,6 +38,10 @@ from cython cimport (
 cdef extern from "Python.h":
     PyObject *PySequence_Fast(PyObject *o, const char *m)
     PyObject **PySequence_Fast_ITEMS(PyObject *o)
+    void Py_INCREF(PyObject *o)
+    void Py_DECREF(PyObject *o)
+    int PyObject_RichCompareBool(PyObject *o1, PyObject *o2, int opid) except -1
+    void PyTuple_SET_ITEM(PyObject *p, Py_ssize_t pos, PyObject *o)
 
 from pandas._config import using_string_dtype
 
@@ -408,6 +406,7 @@ def fast_zip(list ndarrays) -> ndarray[object]:
         ndarray[object, ndim=1] result
         flatiter it
         object val, tup
+        PyObject **res_data
 
     k = len(ndarrays)
     n = len(ndarrays[0])
@@ -421,11 +420,12 @@ def fast_zip(list ndarrays) -> ndarray[object]:
         val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
         tup = PyTuple_New(k)
 
-        PyTuple_SET_ITEM(tup, 0, val)
-        Py_INCREF(val)
+        PyTuple_SET_ITEM(<PyObject *>tup, 0, <PyObject *>val)
+        Py_INCREF(<PyObject *>val)
         result[i] = tup
         PyArray_ITER_NEXT(it)
 
+    res_data = <PyObject **>result.data
     for j in range(1, k):
         arr = ndarrays[j]
         it = <flatiter>PyArray_IterNew(arr)
@@ -434,8 +434,8 @@ def fast_zip(list ndarrays) -> ndarray[object]:
 
         for i in range(n):
             val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-            PyTuple_SET_ITEM(result[i], j, val)
-            Py_INCREF(val)
+            PyTuple_SET_ITEM(res_data[i], j, <PyObject *>val)
+            Py_INCREF(<PyObject *>val)
             PyArray_ITER_NEXT(it)
 
     return result
@@ -592,9 +592,59 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
     cdef:
         Py_ssize_t i, n = left.size
         object x, y
+        PyObject **l_ptr
+        PyObject **r_ptr
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(left, right)
 
     # Caller is responsible for checking left.shape == right.shape
+
+    if (
+        cnp.PyArray_IS_C_CONTIGUOUS(left)
+        and cnp.PyArray_IS_C_CONTIGUOUS(right)
+        and left.size == right.size
+    ):
+        l_ptr = <PyObject **>cnp.PyArray_DATA(left)
+        r_ptr = <PyObject **>cnp.PyArray_DATA(right)
+
+        for i in range(n):
+            x = <object>l_ptr[i]
+            y = <object>r_ptr[i]
+
+            try:
+                if PyArray_Check(x) and PyArray_Check(y):
+                    if x.shape != y.shape:
+                        return False
+                    if x.dtype == y.dtype == object:
+                        if not array_equivalent_object(x, y):
+                            return False
+                    else:
+                        from pandas.core.dtypes.missing import array_equivalent
+
+                        if not array_equivalent(x, y):
+                            return False
+
+                elif PyArray_Check(x) or PyArray_Check(y):
+                    return False
+                elif (x is C_NA) ^ (y is C_NA):
+                    return False
+                elif not (
+                    PyObject_RichCompareBool(<PyObject *>x, <PyObject *>y, Py_EQ)
+                    or is_matching_na(x, y, nan_matches_none=True)
+                ):
+                    return False
+            except (ValueError, TypeError):
+                if cnp.PyArray_IsAnyScalar(x) != cnp.PyArray_IsAnyScalar(y):
+                    return False
+                elif (
+                    not (cnp.PyArray_IsPythonScalar(x) or cnp.PyArray_IsPythonScalar(y))
+                    and not (isinstance(x, type(y)) or isinstance(y, type(x)))
+                ):
+                    return False
+                elif check_na_tuples_nonequal(x, y):
+                    return False
+                raise
+
+        return True
 
     for i in range(n):
         # Analogous to: x = left[i]
@@ -623,7 +673,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
             elif (x is C_NA) ^ (y is C_NA):
                 return False
             elif not (
-                PyObject_RichCompareBool(x, y, Py_EQ)
+                PyObject_RichCompareBool(<PyObject *>x, <PyObject *>y, Py_EQ)
                 or is_matching_na(x, y, nan_matches_none=True)
             ):
                 return False
@@ -1086,8 +1136,8 @@ def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list ke
                     tup = PyTuple_New(k)
                     for j in range(k):
                         val = keys[j][sorted_labels[j][i - 1]]
-                        PyTuple_SET_ITEM(tup, j, val)
-                        Py_INCREF(val)
+                        PyTuple_SET_ITEM(<PyObject *>tup, j, <PyObject *>val)
+                        Py_INCREF(<PyObject *>val)
                 result[tup] = index[start:i]
             start = i
         cur = lab
@@ -1099,8 +1149,8 @@ def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list ke
         tup = PyTuple_New(k)
         for j in range(k):
             val = keys[j][sorted_labels[j][n - 1]]
-            PyTuple_SET_ITEM(tup, j, val)
-            Py_INCREF(val)
+            PyTuple_SET_ITEM(<PyObject *>tup, j, <PyObject *>val)
+            Py_INCREF(<PyObject *>val)
     result[tup] = index[start:]
 
     return result
@@ -3442,15 +3492,18 @@ cpdef ndarray eq_NA_compat(ndarray[object] arr, object key):
         ndarray[uint8_t, cast=True] result = cnp.PyArray_EMPTY(
             arr.ndim, arr.shape, cnp.NPY_BOOL, 0
         )
-        Py_ssize_t i
-        object item
+        Py_ssize_t i, n = arr.size, stride = arr.strides[0] // sizeof(PyObject*)
+        PyObject **data = <PyObject **>cnp.PyArray_DATA(arr)
+        PyObject *item
+        uint8_t *res = <uint8_t *>cnp.PyArray_DATA(result)
 
-    for i in range(len(arr)):
-        item = arr[i]
-        if item is C_NA:
-            result[i] = False
+    for i in range(n):
+        item = data[i * stride]
+
+        if item == <PyObject *>C_NA:
+            res[i] = 0
         else:
-            result[i] = item == key
+            res[i] = PyObject_RichCompareBool(item, <PyObject *>key, Py_EQ)
 
     return result
 
@@ -3635,9 +3688,9 @@ def construct_1d_object_array_from_listlike(object values):
     data = <PyObject **>arr.data
 
     for i in range(n):
-        Py_INCREF(<object>items[i])
-        Py_DECREF(<object>data[i])
+        Py_INCREF(items[i])
+        Py_DECREF(data[i])
         data[i] = items[i]
 
-    Py_DECREF(<object>seq)
+    Py_DECREF(seq)
     return arr

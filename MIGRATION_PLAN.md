@@ -264,3 +264,17 @@ choosing an entire side.
   sequence.
 - Risk: reference ownership, sequence subclasses, nested arrays, and
   exception paths require a native extension build.
+
+## Batch 13: lib object pointer helpers
+
+- Original private commits: `a60133b265`, `c064f8cd15`,
+  `defb42e92e`, and `454f5e27f1`.
+- Prior pandas 3.0.3 port: `5efbbfabd2`.
+- pandas 3.0.1 result: directly applied to compatible `_libs.lib`
+  functions and consolidated Python C-API declarations.
+- Contiguous object-array equivalence uses flat pointers; `fast_zip`
+  writes tuple items through result pointers; `eq_NA_compat` traverses
+  the one-dimensional IndexEngine values buffer using its stride.
+- Non-contiguous object equality retains the existing MultiIter path.
+- Risk: borrowed/new/stolen reference rules and non-contiguous object
+  arrays need native memory-safety and behavior tests.

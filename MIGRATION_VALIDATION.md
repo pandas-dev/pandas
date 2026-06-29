@@ -553,3 +553,47 @@ Follow-up validation:
   sequence subclasses, empty input, and object lifetimes.
 - Benchmark Series/DataFrame object construction from flat Python
   sequences.
+
+## Batch 13: lib object pointer helpers
+
+Sources inspected:
+
+- Exported commits `a60133b265`, `c064f8cd15`, `defb42e92e`, and
+  `454f5e27f1`.
+- Prior pandas 3.0.3 port `5efbbfabd2`.
+- pandas 3.0.1 callers in IndexEngine, MultiIndex, sparse construction,
+  and object-array equivalence.
+
+Static consistency checks:
+
+- Contiguous equality flattens equal-shaped arrays and recursively
+  preserves nested ndarray handling.
+- Non-contiguous equality retains the original broadcast iterator.
+- `eq_NA_compat` is called with the one-dimensional engine values
+  buffer and honors arbitrary first-axis stride.
+- `fast_zip` preserves `PyTuple_SET_ITEM` stolen-reference ownership by
+  incrementing each Python value before insertion.
+- Existing `.pxd` declaration for `eq_NA_compat` remains compatible.
+
+Executed:
+
+- `git diff --cached --check`
+- Static call-site and Python C-API ownership inspection.
+- `python -m compileall -q pandas`
+- Focused pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Cython/native compilation: Cython and a compiler are unavailable.
+- Runtime assertions and reference-leak checks.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run missing-value, index engine, object equivalence, MultiIndex, and
+  sparse construction tests after rebuilding extensions.
+- Add debug-build/refcount coverage for nested object arrays and tuple
+  construction.
+- Benchmark contiguous/non-contiguous object equality, NA lookup, and
+  MultiIndex tuple materialization.
