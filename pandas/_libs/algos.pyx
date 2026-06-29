@@ -344,8 +344,10 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         int64_t minpv
         float64_t[:, ::1] result
         uint8_t[:, :] mask
+        ndarray[uint8_t, ndim=1] col_all_valid
         int64_t nobs = 0
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        float64_t sumx, sumy, minx, maxx, miny, maxy
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -355,25 +357,77 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    col_all_valid = np.ones(K, dtype=np.uint8)
 
     with nogil:
+        # Precompute whether each column is fully finite so we can bypass
+        # per-row mask checks for column pairs that need no filtering.
+        for xi in range(K):
+            for i in range(N):
+                if not mask[i, xi]:
+                    col_all_valid[xi] = 0
+                    break
+
         for xi in range(K):
             for yi in range(xi + 1):
-                # Welford's method for the variance-calculation
-                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+                if N > 0 and col_all_valid[xi] and col_all_valid[yi]:
+                    # Both columns are fully valid, so no row mask checks are needed.
+                    nobs = N
+                    if nobs < minpv:
+                        result[xi, yi] = result[yi, xi] = NaN
+                        continue
+
+                    # Track extrema while calculating means so constant columns
+                    # can skip the centered second pass.
+                    vx = mat[0, xi]
+                    vy = mat[0, yi]
+                    sumx = minx = maxx = vx
+                    sumy = miny = maxy = vy
+                    for i in range(1, N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
+                        sumx += vx
+                        sumy += vy
+                        if vx < minx:
+                            minx = vx
+                        elif vx > maxx:
+                            maxx = vx
+                        if vy < miny:
+                            miny = vy
+                        elif vy > maxy:
+                            maxy = vy
+
+                    if maxx == minx or maxy == miny:
+                        result[xi, yi] = result[yi, xi] = NaN
+                        continue
+
+                    meanx = sumx / nobs
+                    meany = sumy / nobs
+                    ssqdmx = ssqdmy = covxy = 0
+                    for i in range(N):
+                        vx = mat[i, xi]
+                        vy = mat[i, yi]
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
-                        ssqdmx += (vx - meanx) * dx
-                        ssqdmy += (vy - meany) * dy
-                        covxy += (vx - meanx) * dy
+                        ssqdmx += dx * dx
+                        ssqdmy += dy * dy
+                        covxy += dx * dy
+                else:
+                    # Welford's method for pairs requiring row filtering.
+                    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                    nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                    for i in range(N):
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx += 1. / nobs * dx
+                            meany += 1. / nobs * dy
+                            ssqdmx += (vx - meanx) * dx
+                            ssqdmy += (vy - meany) * dy
+                            covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN

@@ -1,0 +1,75 @@
+# pandas 3.0.1 private optimization migration validation
+
+Full ASV is not available in this environment. No ASV result is claimed.
+
+## Repository protection checks
+
+Executed:
+
+- `git status --short --branch`
+- `git branch -a`
+- `git tag --list`
+- `git log --all --decorate --oneline --graph -100`
+- `git show --no-patch --decorate HEAD`
+- ancestry and first-parent commit-range checks for the protected 3.0.3
+  branches and tags
+
+Findings:
+
+- `HEAD` started at official `v3.0.1` on
+  `migration/pandas-3.0.1`.
+- The prior port and its backup refs remain untouched.
+- `AGENTS.md` was already modified and is excluded from every migration
+  commit.
+- The active Python is 3.14.5 with NumPy 2.5.0.
+- `python -m cython --version` fails because Cython is not installed.
+
+## Batch 1: nancorr
+
+Sources inspected:
+
+- Exported private commit `eba6d76f8cb5e66cc30a97d85569066302da8ec5`
+  in `all_commits_with_file_diffs.patch`.
+- Reconstructed pandas 2.x matching history.
+- Prior pandas 3.0.3 port `d978bd13ee`.
+- pandas 3.0.1 and pandas 3.0.3 `nancorr` implementations.
+- Existing DataFrame correlation tests for missing values, constant
+  columns, small numbers, and `min_periods`.
+
+Adaptation checks:
+
+- Column validity is computed once per column.
+- The two-pass path is used only when both columns are fully finite and
+  `N > 0`.
+- Missing-data pairs retain pandas 3.0.1's Welford loop and pairwise
+  finite mask.
+- Constant fully-valid columns return NaN without the centered pass.
+- Empty input cannot read `mat[0]`.
+- Covariance divisor and correlation clipping remain unchanged.
+
+Executed before commit:
+
+- `git diff --check`
+- conflict-marker scan
+- `python -m compileall -q pandas`
+- declaration/use inspection for the added Cython memory view and scalar
+  variables
+- `python -m pytest pandas/tests/frame/methods/test_cov_corr.py -q`
+  stopped while loading `pandas/conftest.py` because `dateutil` is not
+  installed; no tests were collected.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime pandas tests: blocked by the missing `dateutil` dependency and,
+  after that is resolved, may require a pandas extension build compatible
+  with this checkout.
+- ASV: unavailable in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/frame/methods/test_cov_corr.py`
+- `python -m pytest pandas/tests/test_nanops.py -k "nancorr or nancov"`
+- Build the Cython extensions before the runtime tests.
+- Run the DataFrame correlation ASV cases with fully valid columns,
+  sparse missing columns, constant columns, and varying `min_periods`.
