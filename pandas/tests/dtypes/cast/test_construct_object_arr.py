@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -18,3 +19,30 @@ def test_cast_1d_array(datum1, datum2):
 def test_cast_1d_array_invalid_scalar(val):
     with pytest.raises(TypeError, match="has no len()"):
         construct_1d_object_array_from_listlike(val)
+
+
+@pytest.mark.parametrize("data", [(1, 2), ("a", "b")])
+def test_cast_1d_array_tuple(data):
+    result = construct_1d_object_array_from_listlike(data)
+
+    assert result.dtype == "object"
+    assert list(result) == list(data)
+
+
+@pytest.mark.parametrize("data", [((1, 2), (3, 4)), [[1, 2], [3, 4]]])
+def test_cast_1d_array_nested_listlike(data):
+    result = construct_1d_object_array_from_listlike(data)
+
+    assert result.dtype == "object"
+    assert list(result) == list(data)
+
+
+def test_cast_1d_array_2d_ndarray():
+    data = np.array([[1, 2], [3, 4]])
+
+    result = construct_1d_object_array_from_listlike(data)
+
+    assert result.dtype == "object"
+    assert result.shape == (2,)
+    for res, expected in zip(result, data):
+        assert np.array_equal(res, expected)

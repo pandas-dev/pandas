@@ -512,3 +512,44 @@ Follow-up validation:
 - `python -m pytest pandas/tests/dtypes/test_missing.py -k checknull`
 - Run selection/groupby quantile tests for all fused numeric types.
 - Benchmark scalar missing checks and kth-selection workloads.
+
+## Batch 12: object array construction
+
+Sources inspected:
+
+- Exported commits `fefbc7b5a4` and `d72753640f`.
+- Prior pandas 3.0.3 port `0672469c2a`.
+- pandas 3.0.1 cast helper call sites and lib declarations.
+
+Adaptation checks:
+
+- Flat list/tuple input cannot be expanded into extra dimensions.
+- Nested list-like input remains a one-dimensional object array.
+- Two-dimensional ndarray rows remain top-level objects.
+- Empty input returns an empty object array.
+- `PySequence_Fast` ownership and item INCREF/object-slot DECREF are
+  paired, and the `.pyi` declaration matches the callable.
+
+Executed:
+
+- `git diff --cached --check`
+- `python -m py_compile pandas/core/dtypes/cast.py
+  pandas/tests/dtypes/cast/test_construct_object_arr.py`
+- `python -m compileall -q pandas`
+- `python -m pytest
+  pandas/tests/dtypes/cast/test_construct_object_arr.py -q` stopped
+  during conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run the focused construction test file after rebuilding extensions.
+- Exercise lists, tuples, generators with length, nested arrays,
+  sequence subclasses, empty input, and object lifetimes.
+- Benchmark Series/DataFrame object construction from flat Python
+  sequences.

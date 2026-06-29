@@ -1483,9 +1483,13 @@ def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
     -------
     1-dimensional numpy array of dtype object
     """
-    # numpy will try to interpret nested lists as further dimensions in np.array(),
-    # hence explicitly making a 1D array using np.fromiter
-    return np.fromiter(values, dtype="object", count=len(values))
+    if isinstance(values, (list, tuple)) and (
+        not values
+        or not (is_list_like(values[0]) and not isinstance(values[0], (str, bytes)))
+    ):
+        return np.asarray(values, dtype="object")
+
+    return lib.construct_1d_object_array_from_listlike(values)
 
 
 def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.ndarray:

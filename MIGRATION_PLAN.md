@@ -249,3 +249,18 @@ choosing an entire side.
   remains non-missing in pandas 3.0.1.
 - Risk: quickselect pointer bounds and NumPy float scalar conversion
   require native compilation and runtime coverage.
+
+## Batch 12: object array construction
+
+- Original private commits: `fefbc7b5a4` and `d72753640f`.
+- Prior pandas 3.0.3 port: `0672469c2a`.
+- pandas 3.0.1 result: directly applied to compatible cast and lib
+  interfaces.
+- Flat list/tuple input uses NumPy's direct object-array construction;
+  nested list-like and ndarray input uses a Cython top-level copy helper
+  so the result remains one-dimensional.
+- The helper uses `PySequence_Fast`, explicitly transfers references
+  into NumPy's initialized object slots, and releases the temporary
+  sequence.
+- Risk: reference ownership, sequence subclasses, nested arrays, and
+  exception paths require a native extension build.

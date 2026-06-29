@@ -27,7 +27,10 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompareBool,
 )
-from cpython.ref cimport Py_INCREF
+from cpython.ref cimport (
+    Py_DECREF,
+    Py_INCREF,
+)
 from cpython.sequence cimport PySequence_Check
 from cpython.tuple cimport (
     PyTuple_New,
@@ -37,6 +40,10 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+
+cdef extern from "Python.h":
+    PyObject *PySequence_Fast(PyObject *o, const char *m)
+    PyObject **PySequence_Fast_ITEMS(PyObject *o)
 
 from pandas._config import using_string_dtype
 
@@ -3604,3 +3611,33 @@ def is_np_dtype(object dtype, str kinds=None) -> bool:
     if kinds is None:
         return True
     return dtype.kind in kinds
+
+
+def construct_1d_object_array_from_listlike(object values):
+    cdef:
+        Py_ssize_t n, i
+        ndarray[object, ndim=1] arr
+        PyObject **data
+        PyObject *seq
+        PyObject **items
+
+    n = len(values)
+    arr = np.empty(n, dtype=object)
+
+    if n == 0:
+        return arr
+
+    seq = PySequence_Fast(<PyObject *>values, "expected a sequence like")
+    if seq == NULL:
+        raise TypeError("values expected a sequence like")
+
+    items = <PyObject **>PySequence_Fast_ITEMS(seq)
+    data = <PyObject **>arr.data
+
+    for i in range(n):
+        Py_INCREF(<object>items[i])
+        Py_DECREF(<object>data[i])
+        data[i] = items[i]
+
+    Py_DECREF(<object>seq)
+    return arr
