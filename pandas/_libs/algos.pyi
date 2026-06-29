@@ -52,6 +52,10 @@ def nancorr_spearman(
     mat: npt.NDArray[np.float64],  # ndarray[float64_t, ndim=2]
     minp: int = ...,
 ) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
+def nancorr_kendall(
+    mat: npt.NDArray[np.float64],  # ndarray[float64_t, ndim=2]
+    minp: int = ...,
+) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 
 # ----------------------------------------------------------------------
 

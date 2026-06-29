@@ -676,7 +676,9 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "index 5 is out of bounds for axis 0 with size 4|index out of bounds"
+        msg = "|".join(
+            ["index 5 is out of bounds for axis 0 with size 4", "index out of bounds"]
+        )
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 

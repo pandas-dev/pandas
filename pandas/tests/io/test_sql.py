@@ -2307,6 +2307,30 @@ def test_api_escaped_table_name(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
+def test_api_table_name_quoted(conn, request):
+    # GH#65065 ADBCDatabase did not escape SQL identifiers in
+    # delete_rows, read_table, and to_sql (DROP TABLE path)
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        pytest.skip("sqlite_buildin connection does not implement read_sql_table")
+
+    conn = request.getfixturevalue(conn)
+
+    tricky_name = "my table"
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    # to_sql: adbc_ingest handles quoting internally — should pass
+    df.to_sql(tricky_name, conn, index=False, if_exists="replace")
+    # read_table: was interpolating name raw into f-string
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+    # delete_rows: was interpolating name raw into DELETE FROM f-string
+    df.to_sql(tricky_name, conn, index=False, if_exists="delete_rows")
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
     if "adbc" in conn:
@@ -4067,7 +4091,7 @@ def test_sqlite_test_dtype(sqlite_buildin):
     assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
 
     assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
-    msg = r"B \(<class 'bool'>\) not a string"
+    msg = r"Invalid type '<class 'bool'>' for dtype of column 'B': expected a string"
     with pytest.raises(ValueError, match=msg):
         df.to_sql(name="error", con=conn, dtype={"B": bool})
 

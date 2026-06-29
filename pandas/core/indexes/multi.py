@@ -4439,7 +4439,7 @@ class MultiIndex(Index):
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
-            if not lib.array_equivalent_bytes(self_codes, new_codes):
+            if not array_equivalent(self_codes, new_codes):
                 return False
             if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64
