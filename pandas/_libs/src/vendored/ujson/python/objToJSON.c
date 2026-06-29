@@ -181,59 +181,61 @@ static TypeContext *createTypeContext(void) {
 }
 
 static PyObject *get_values(PyObject *obj) {
+  PyObject *typ = NULL;
+  PyObject *arr = NULL;
   PyObject *values = NULL;
 
-  if (object_is_index_type(obj) || object_is_series_type(obj)) {
-    // The special cases to worry about are dt64tz and category[dt64tz].
-    //  In both cases we want the UTC-localized datetime64 ndarray,
-    //  without going through and object array of Timestamps.
-    if (PyObject_HasAttrString(obj, "tz")) {
-      PyObject *tz = PyObject_GetAttrString(obj, "tz");
-      if (tz != Py_None) {
-        // Go through object array if we have dt64tz, since tz info will
-        // be lost if values is used directly.
-        Py_DECREF(tz);
-        values = PyObject_CallMethod(obj, "__array__", NULL);
-        return values;
-      }
-      Py_DECREF(tz);
-    }
-    values = PyObject_GetAttrString(obj, "_values");
-    if (values == NULL) {
-      // Clear so we can subsequently try another method
-      PyErr_Clear();
-    } else if (PyObject_HasAttrString(values, "_values_for_json")) {
-      // We have gotten an ExtensionArray
-      PyObject *array_values =
-          PyObject_CallMethod(values, "_values_for_json", NULL);
-      Py_DECREF(values);
-      values = array_values;
-    } else if (!PyArray_CheckExact(values)) {
-      // Didn't get a numpy array, so keep trying
-      Py_DECREF(values);
-      values = NULL;
-    }
-  }
-
-  if (values == NULL) {
+  if (!(object_is_index_type(obj) || object_is_series_type(obj))) {
     PyObject *typeRepr = PyObject_Repr((PyObject *)Py_TYPE(obj));
-    PyObject *repr;
-    if (PyObject_HasAttrString(obj, "dtype")) {
-      PyObject *dtype = PyObject_GetAttrString(obj, "dtype");
-      repr = PyObject_Repr(dtype);
-      Py_DECREF(dtype);
-    } else {
-      repr = PyUnicode_FromString("<unknown dtype>");
-    }
-
-    PyErr_Format(PyExc_ValueError, "%R or %R are not JSON serializable yet",
-                 repr, typeRepr);
-    Py_DECREF(repr);
+    PyErr_Format(PyExc_ValueError, "get_values expected Series/Index, got %R",
+                 typeRepr);
     Py_DECREF(typeRepr);
-
     return NULL;
   }
 
+  // MultiIndex raises on .array -> go through .values to get numpy array
+  typ = PyObject_GetAttrString(obj, "_typ");
+  if (typ == NULL) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Error retrieving _typ from Index/Series object");
+    return NULL;
+  }
+  if (PyUnicode_Check(typ) &&
+      PyUnicode_CompareWithASCIIString(typ, "multiindex") == 0) {
+    Py_DECREF(typ);
+    values = PyObject_GetAttrString(obj, "values");
+    if (values == NULL) {
+      PyErr_SetString(PyExc_ValueError,
+                      "Error retrieving .values from MultiIndex object");
+      return NULL;
+    }
+    return values;
+  }
+  Py_DECREF(typ);
+
+  // For all other cases, call _values_for_json on the underlying array
+  arr = PyObject_GetAttrString(obj, "array");
+  if (arr == NULL) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Error retrieving .array from Index/Series object");
+    return NULL;
+  }
+
+  values = PyObject_CallMethod(arr, "_values_for_json", NULL);
+
+  if (values == NULL) {
+    Py_DECREF(arr);
+    PyErr_SetString(PyExc_ValueError, "Error calling _values_for_json");
+    return NULL;
+  }
+  if (!PyArray_CheckExact(values)) {
+    PyErr_Format(PyExc_ValueError,
+                 "_values_for_json should return a numpy array");
+    Py_DECREF(values);
+    Py_DECREF(arr);
+    return NULL;
+  }
+  Py_DECREF(arr);
   return values;
 }
 
@@ -267,6 +269,9 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
   // NB we are implicitly assuming that o is a Timedelta or Timestamp, or NaT
 
   PyObject *value = PyObject_GetAttrString(o, attr);
+  if (value == NULL) {
+    return -1;
+  }
   const npy_int64 long_val =
       (PyLong_Check(value) ? PyLong_AsLongLong(value) : PyLong_AsLong(value));
 
@@ -304,7 +309,10 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
 
 static npy_float64 total_seconds(PyObject *td) {
   PyObject *value = PyObject_CallMethod(td, "total_seconds", NULL);
-  const npy_float64 double_val = PyFloat_AS_DOUBLE(value);
+  if (value == NULL) {
+    return -1.0;
+  }
+  const npy_float64 double_val = PyFloat_AsDouble(value);
   Py_DECREF(value);
   return double_val;
 }
@@ -1302,13 +1310,25 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         // pd.Timestamp object or pd.NaT
         // see test_date_index_and_values for case with non-nano
         i8date = get_long_attr(item, "_value");
+        if (i8date == -1 && PyErr_Occurred()) {
+          Py_DECREF(item);
+          NpyArr_freeLabels(ret, num);
+          ret = 0;
+          break;
+        }
       } else {
         if (PyDelta_Check(item)) {
           // TODO(anyone): cast below loses precision if total_seconds return
           // value exceeds number of bits that significand can hold
           // also liable to overflow
-          i8date = (int64_t)(total_seconds(item) *
-                             1000000000LL); // nanoseconds per second
+          const npy_float64 sec = total_seconds(item);
+          if (sec == -1.0 && PyErr_Occurred()) {
+            Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
+          i8date = (int64_t)(sec * 1000000000LL); // nanoseconds per second
         } else {
           // datetime.* objects don't follow above rules
           i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
@@ -1569,9 +1589,19 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     // TODO(anyone): cast below loses precision if total_seconds return
     // value exceeds number of bits that significand can hold
     // also liable to overflow
-    int64_t value = PyObject_HasAttrString(obj, "_value")
-                        ? get_long_attr(obj, "_value")
-                        : (int64_t)(total_seconds(obj) * 1000000000LL);
+    int64_t value;
+    if (PyObject_HasAttrString(obj, "_value")) {
+      value = get_long_attr(obj, "_value");
+      if (value == -1 && PyErr_Occurred()) {
+        goto INVALID;
+      }
+    } else {
+      const npy_float64 sec = total_seconds(obj);
+      if (sec == -1.0 && PyErr_Occurred()) {
+        goto INVALID;
+      }
+      value = (int64_t)(sec * 1000000000LL);
+    }
 
     if (value == get_nat()) {
       tc->type = JT_NULL;

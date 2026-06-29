@@ -1456,10 +1456,6 @@ class Block(PandasObject, libinternals.Block):
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # error: Non-overlapping equality check [...]
-        if method == "asfreq":  # type: ignore[comparison-overlap]
-            # clean_fill_method used to allow this
-            missing.clean_fill_method(method)
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op

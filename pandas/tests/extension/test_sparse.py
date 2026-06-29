@@ -118,7 +118,7 @@ class TestSparseArray(base.ExtensionTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if (
-            all_numeric_reductions in ["sum", "max", "min", "mean"]
+            all_numeric_reductions in ["sum", "max", "min"]
             and data.dtype.kind == "f"
             and not skipna
         ):
@@ -143,7 +143,7 @@ class TestSparseArray(base.ExtensionTests):
             )
             request.node.add_marker(mark)
         elif (
-            all_numeric_reductions in ["sum", "max", "min", "mean"]
+            all_numeric_reductions in ["sum", "max", "min"]
             and data.dtype.kind == "f"
             and not skipna
         ):

@@ -126,7 +126,13 @@ class TestDatetime64ArrayLikeComparisons:
         result = dta != other
         tm.assert_numpy_array_equal(result, ~expected)
 
-        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        msg = "|".join(
+            [
+                "Invalid comparison between",
+                "Cannot compare type",
+                "not supported between",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             dta < other
         with pytest.raises(TypeError, match=msg):
@@ -1858,7 +1864,8 @@ class TestTimestampSeriesArithmetic:
         # did this for us.
         if op_str not in op_fail:
             with pytest.raises(
-                TypeError, match="operate|[cC]annot|unsupported operand"
+                TypeError,
+                match="|".join(["operate", "[cC]annot", "unsupported operand"]),
             ):
                 op(arg2)
         else:

@@ -546,7 +546,7 @@ class TestBase:
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
 
-        msg = "Lengths must match|could not be broadcast"
+        msg = "|".join(["Lengths must match", "could not be broadcast"])
         with pytest.raises(ValueError, match=msg):
             index_a == index_b
         expected1 = np.array([True] * n)
@@ -779,7 +779,7 @@ class TestBase:
         if isinstance(simple_index, IntervalIndex):
             pytest.skip("Tested elsewhere")
         idx = simple_index
-        msg = "Multi-dimensional indexing|too many|only"
+        msg = "|".join(["Multi-dimensional indexing", "too many", "only"])
         with pytest.raises((ValueError, IndexError), match=msg):
             idx[:, None]
 
@@ -870,7 +870,9 @@ class TestBase:
             if idx.dtype.kind == "f":
                 msg = "ufunc 'invert' not supported for the input types"
             else:
-                msg = "bad operand|__invert__ is not supported for string dtype"
+                msg = "|".join(
+                    ["bad operand", "__invert__ is not supported for string dtype"]
+                )
             with pytest.raises(TypeError, match=msg):
                 ~idx
 
@@ -924,9 +926,12 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = (
-            "Cannot change data-type for array of references.|"
-            "Cannot change data-type for object array.|"
+        msg = "|".join(
+            [
+                "Cannot change data-type for array of references.",
+                "Cannot change data-type for object array.",
+                "",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             # GH#55709

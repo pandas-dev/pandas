@@ -137,6 +137,7 @@ Deprecations
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
 - Deprecated the keyword ``by_blocks`` in :func:`testing.assert_frame_equal` (:issue:`65911`)
 - Deprecated the lossy behavior of :attr:`Series.values`, :attr:`Index.values`, :attr:`PeriodIndex.values`, and :attr:`DatetimeIndex.values` for :class:`DatetimeTZDtype` (drops timezone), :class:`PeriodDtype` (returns object-dtype ndarray), and :class:`IntervalDtype` (returns object-dtype ndarray) dtypes. In a future version, ``.values`` will return the underlying ExtensionArray. Use :meth:`~Series.to_numpy` or :attr:`~Series.array` instead (:issue:`54717`, :issue:`55128`).
+- The default ``date_format="epoch"`` deprecation warning in :meth:`DataFrame.to_json` and :meth:`Series.to_json` is now also emitted when the datetime-like values are in the index or column labels rather than in the column values (:issue:`65868`)
 - Deprecated passing a non-boolean value for ``numeric_only`` to :meth:`DataFrame.mean`,
   :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.median`,
   :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`DataFrame.std`,
@@ -267,6 +268,7 @@ Datetimelike
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``AssertionError`` instead of :class:`OutOfBoundsDatetime` when replacing with a ``datetime`` value outside the ``datetime64[ns]`` range (:issue:`61671`)
 - Bug in :meth:`DataFrame.to_string` and :meth:`Series.to_string` where ``na_rep`` was ignored for datetime and timedelta columns, always displaying ``NaT`` (:issue:`55426`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
+- Bug in :meth:`DatetimeIndex.intersection` returning incorrect results when the two indexes had matching ``freq`` but did not lie on the same grid, e.g. ranges with the same business-day frequency but different time-of-day components (:issue:`44025`)
 - Bug in :meth:`Series.dt.isocalendar` with a pyarrow-backed datetime or date dtype not preserving the original index, resetting it to a default :class:`RangeIndex` (:issue:`65894`)
 - Bug in adding non-nano :class:`DatetimeIndex` with non-vectorized offsets (e.g. :class:`CustomBusinessDay`, :class:`CustomBusinessMonthEnd`) having a sub-unit ``offset`` parameter incorrectly truncating the result or raising ``AttributeError`` (:issue:`56586`)
 - Bug in subtracting :class:`BusinessHour` (or :class:`CustomBusinessHour`) from a :class:`Timestamp` giving incorrect results when the subtraction would land exactly on the business-hour opening time (:issue:`33682`)
@@ -301,12 +303,14 @@ Conversion
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`)
+- Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 
 Strings
 ^^^^^^^
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
+- Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
 
 Interval
 ^^^^^^^^
@@ -360,8 +364,13 @@ MultiIndex
 
 I/O
 ^^^
+- :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
+- :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
 - :func:`read_sql_table` now raises an informative ``NotImplementedError`` (instead of one with no message) when passed a DBAPI connection such as ``sqlite3``, and reading from a URI string without a usable ``sqlalchemy`` install now raises a clearer ``ImportError`` (:issue:`41237`)
+- :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where a ``defaultdict`` passed as ``dtype`` did not apply its default to columns not explicitly listed (:issue:`41574`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where an empty ``usecols`` (e.g. ``usecols=[]``) was ignored and returned all columns instead of an empty frame, unlike the other engines (:issue:`66056`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where an embedded ``\r`` followed by a space in an unquoted field could cause an infinite re-parsing loop, producing spurious rows or a buffer overflow (:issue:`51141`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
@@ -372,6 +381,7 @@ I/O
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
 - Bug in :meth:`DataFrame.__repr__` raising ``TypeError`` for a column with a NumPy structured dtype (e.g. produced by :meth:`DataFrame.from_records` from a structured ``ndarray``) (:issue:`55011`)
 - Bug in :meth:`DataFrame.__repr__` where horizontally truncated output could exceed the terminal width by up to 4 characters (:issue:`32461`)
+- Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``orient="table"`` silently dropping the timezone of columns with a fixed-offset timezone (e.g. ``datetime.timezone(timedelta(hours=1))``), so the offset was lost on round-trip through :func:`read_json` (:issue:`39537`)
 - Bug in :meth:`DataFrame.to_stata` raising ``KeyError`` when column names require renaming and ``convert_dates`` is specified for a different column (:issue:`60536`)
 - Bug in :meth:`DataFrame.to_string` where ``formatters`` dict was applied to wrong columns when output was horizontally truncated via ``max_cols`` (:issue:`35410`)
 - Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` to return an empty DataFrame (:issue:`64025`)
@@ -392,6 +402,7 @@ I/O
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
 - Fixed :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` to round-trip a :class:`CategoricalIndex` in both ``"fixed"`` and ``"table"`` formats; previously raised ``AssertionError`` (:issue:`33909`, :issue:`16118`)
+- Bug in :meth:`Series.to_json` with ``date_format="iso"`` where a timezone-aware datetime :class:`Series` was serialized without the trailing ``Z`` marker, losing the timezone information that is retained for an equivalent :class:`DatetimeIndex` or :class:`DataFrame` column (:issue:`65744`)
 - Fixed bug in :meth:`DataFrame.to_parquet` (``pyarrow`` engine) where a local file path was opened twice, once by pandas and again by pyarrow, wasting a syscall and silently truncating output to 0 bytes on filesystems that finalize a file's contents on close (:issue:`65810`)
 - Fixed bug in :meth:`HDFStore.get_storer` where ``.shape`` reported a phantom row for a fixed-format :class:`Series` or :class:`DataFrame` stored with no rows (:issue:`37235`)
 - Fixed bug in :meth:`HDFStore.remove` where a ``where`` clause selecting on more than 31 values (e.g. ``"index in [...]"``) deleted every row in the table instead of only the matching rows (:issue:`17567`)
@@ -430,7 +441,9 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`concat` raising ``InvalidIndexError`` when ``keys`` or the concatenated objects' index was an overlapping :class:`IntervalIndex` (:issue:`64825`)
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
+- Bug in :meth:`DataFrame.melt` where ``var_name`` colliding with an ``id_vars`` column or ``value_name`` silently overwrote the affected column data instead of raising (:issue:`65654`)
 - Bug in :meth:`DataFrame.pivot_table` with ``margins=True`` raising ``TypeError`` when ``values`` has an :class:`ExtensionDtype` that cannot hold ``NA`` (e.g. :class:`IntervalDtype` with an integer subtype) and no ``columns`` were specified (:issue:`55484`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
@@ -439,9 +452,10 @@ Reshaping
 
 Sparse
 ^^^^^^
+- Bug in :meth:`Series.mean` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
 - Bug in :meth:`SparseArray.astype` where converting a datetime64 :class:`SparseArray` with ``NaT`` fill value to ``"Sparse[int64]"`` silently replaced the fill value with ``0`` instead of ``iNaT`` (:issue:`49631`)
+- Bug in :meth:`SparseArray.mean` raising a ``TypeError`` when called with the ``skipna`` argument (:issue:`65478`)
 - Bug in indexing a :class:`SparseArray` with an out-of-bounds integer with the value of the length of the array returning the fill value instead of raising an ``IndexError`` (:issue:`64183`).
--
 
 ExtensionArray
 ^^^^^^^^^^^^^^
