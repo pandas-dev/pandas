@@ -1221,6 +1221,8 @@ def assert_series_equal(
 # This could be refactored to use the NDFrame.equals method
 @set_module("pandas.testing")
 @deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
+# stacklevel=3 to account for the extra frame from the stacked decorator above
+@deprecate_kwarg(Pandas4Warning, "by_blocks", new_arg_name=None, stacklevel=3)
 def assert_frame_equal(
     left: DataFrame,
     right: DataFrame,
@@ -1271,6 +1273,8 @@ def assert_frame_equal(
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
+
+        .. deprecated:: 3.1
     check_exact : bool, default False
         Whether to compare number exactly. If False, the comparison uses the
         relative tolerance (``rtol``) and absolute tolerance (``atol``)

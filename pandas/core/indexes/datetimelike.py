@@ -1429,9 +1429,24 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             and obj.freq is not None
             and all(idx.freq == obj.freq for idx in to_concat_nonempty)
         ):
-            pairs = pairwise(to_concat_nonempty)
-            if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                result._freq = obj.freq
+            freq = obj.freq
+            tz = getattr(self.dtype, "tz", None)
+            if (
+                isinstance(freq, Tick) or (tz is None and isinstance(freq, Day))
+            ) and all(idx.unit == self.unit for idx in to_concat_nonempty):
+                # freq is a fixed delta in the stored i8 representation, so we
+                # can check boundary continuity without boxing endpoints to
+                # Timestamps and doing per-pair offset arithmetic.
+                step = Timedelta(freq).as_unit(self.unit)._value
+                i8s = [idx._data._ndarray.view("i8") for idx in to_concat_nonempty]
+                evenly_spaced = all(a[-1] + step == b[0] for a, b in pairwise(i8s))
+            else:
+                evenly_spaced = all(
+                    pair[0][-1] + freq == pair[1][0]
+                    for pair in pairwise(to_concat_nonempty)
+                )
+            if evenly_spaced:
+                result._freq = freq
 
         return result
 

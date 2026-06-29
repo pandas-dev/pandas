@@ -151,7 +151,8 @@ class TestSeriesLogicalOps:
 
         s_abNd = Series(["a", "b", np.nan, "d"])
         with pytest.raises(
-            TypeError, match="unsupported.* 'int' and 'str'|'rand_' not supported"
+            TypeError,
+            match="|".join(["unsupported.* 'int' and 'str'", "'rand_' not supported"]),
         ):
             s_0123 & s_abNd
 
@@ -413,7 +414,10 @@ class TestSeriesLogicalOps:
                 # TODO(infer_string) should this behave differently?
                 # -> https://github.com/pandas-dev/pandas/issues/60234
                 with pytest.raises(
-                    TypeError, match="not supported for dtype|unsupported operand type"
+                    TypeError,
+                    match="|".join(
+                        ["not supported for dtype", "unsupported operand type"]
+                    ),
                 ):
                     result = a[a | e]
             else:
