@@ -165,6 +165,18 @@ class TestTake:
         result = algos.take_nd(arr, [0, 2, -1])
         assert result.dtype == np.object_
 
+        result = algos.take_nd(arr, [0, 2, -1], axis=0)
+        expected = np.empty((3, 3), dtype=object)
+        expected[:2, :] = arr[[0, 2], :]
+        expected[2, :] = np.nan
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.take_nd(arr, [0, 2, -1], axis=1)
+        expected = np.empty((3, 3), dtype=object)
+        expected[:, :2] = arr[:, [0, 2]]
+        expected[:, 2] = np.nan
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_2d_float32(self):
         arr = np.random.default_rng(2).standard_normal((4, 3)).astype(np.float32)
         indexer = [0, 2, -1, 1, -1]

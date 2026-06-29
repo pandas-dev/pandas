@@ -73,6 +73,10 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
+    if not is_list_like(new):
+        np.putmask(values, mask, new)
+        return
+
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 

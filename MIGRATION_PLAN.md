@@ -469,3 +469,17 @@ choosing an entire side.
 - Stable count sorting preserves first-appearance order for ties.
 - Risk: Python/NumPy integer subclasses, extreme bounds, tie ordering,
   and object Index dtype require native runtime tests.
+
+## Batch 26: scalar putmask and bool-object take
+
+- Original private commit: the putmask and bool-to-object take subsets
+  of `1246018d48`.
+- Prior pandas 3.0.3 port: `999c26f3c5`.
+- pandas 3.0.1 result: putmask applies directly; take is adapted to the
+  target's pre-3.0.3 four-argument dispatch wrappers.
+- Scalar `putmask_without_repeat` delegates immediately to NumPy.
+- Two-dimensional bool input with object output and NaN fill uses
+  vectorized row/column assignment; every other dtype, dimension, fill
+  value, and output mode retains existing dispatch.
+- Risk: F-order axis flipping, all/partial/no fill masks, `allow_fill`,
+  shape, and object output ownership need runtime tests.

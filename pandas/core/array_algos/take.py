@@ -154,10 +154,13 @@ def _take_nd_ndarray(
     else:
         out = np.empty(out_shape, dtype=dtype)
 
-    func = _get_take_nd_function(
-        arr.ndim, arr.dtype, out.dtype, axis=axis, mask_info=mask_info
-    )
-    func(arr, indexer, out, fill_value)
+    if _can_take_nd_bool_object_fastpath(arr, out, fill_value):
+        _take_nd_bool_object(arr, indexer, out, axis, fill_value, mask_info)
+    else:
+        func = _get_take_nd_function(
+            arr.ndim, arr.dtype, out.dtype, axis=axis, mask_info=mask_info
+        )
+        func(arr, indexer, out, fill_value)
 
     if flip_order:
         out = out.T
@@ -482,6 +485,47 @@ def _take_nd_object(
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
         out[tuple(outindexer)] = fill_value
+
+
+def _can_take_nd_bool_object_fastpath(
+    arr: np.ndarray, out: np.ndarray, fill_value
+) -> bool:
+    return (
+        arr.ndim == 2
+        and arr.dtype == np.dtype(bool)
+        and out.dtype == np.dtype(object)
+        and isinstance(fill_value, (float, np.floating))
+        and np.isnan(fill_value)
+    )
+
+
+def _take_nd_bool_object(
+    arr: np.ndarray,
+    indexer: npt.NDArray[np.intp],
+    out: np.ndarray,
+    axis: AxisInt,
+    fill_value,
+    mask_info,
+) -> None:
+    if mask_info is not None:
+        mask, needs_masking = mask_info
+    else:
+        mask = indexer == -1
+        needs_masking = mask.any()
+
+    if needs_masking and mask.all():
+        out[...] = fill_value
+        return
+
+    if needs_masking:
+        out[...] = fill_value
+
+    valid = ~mask if needs_masking else slice(None)
+    valid_indexer = indexer[valid] if needs_masking else indexer
+    if axis == 0:
+        out[valid, :] = arr[valid_indexer, :]
+    else:
+        out[:, valid] = arr[:, valid_indexer]
 
 
 def _take_2d_multi_object(

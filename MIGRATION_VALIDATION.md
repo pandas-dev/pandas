@@ -1081,3 +1081,45 @@ Follow-up validation:
   out-of-range ints, ties, sparse/dense ranges, all sort/ascending/
   normalize/dropna combinations.
 - Benchmark large dense-range object integer value_counts.
+
+## Batch 26: scalar putmask and bool-object take
+
+Sources inspected:
+
+- Putmask and bool-take subsets of exported `1246018d48`.
+- Prior pandas 3.0.3 port `999c26f3c5`.
+- pandas 3.0.1 take dispatch/wrapper API and prior migrated take batch.
+
+Adaptation checks:
+
+- Scalar putmask exits before list-like length/repetition logic.
+- Bool take requires 2-D bool input, object output, and floating NaN
+  fill.
+- All-mask, partial-mask, and no-mask paths initialize every output
+  position.
+- Axis 0 and axis 1 assignments preserve output shape.
+- F-contiguous transpose/axis restoration remains outside the helper.
+- Generic fallback keeps the pandas 3.0.1 four-argument wrapper
+  signature; no 3.0.3 `allow_fill` API is imported.
+
+Executed:
+
+- `git diff --cached --check`
+- Conflict-marker and dispatch inspection.
+- `python -m py_compile` on implementation and test files.
+- `python -m compileall -q pandas`
+- Focused putmask/take pytest invocation stopped during conftest import
+  because `dateutil` is missing.
+
+Not executed:
+
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run array-algorithm putmask and take suites.
+- Cover C/F order, both axes, all/partial/no `-1`, `allow_fill`
+  true/false, empty dimensions, scalar/list-like new values, and CoW
+  callers.
+- Benchmark scalar putmask and 2-D bool-to-object take.
