@@ -729,31 +729,74 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     """
     cdef:
         Py_ssize_t N = left.size
+        Py_ssize_t i
         int64_t lval, rval, res_value
+        int64_t* lptr
+        int64_t* rptr
+        int64_t* resptr
         ndarray iresult = cnp.PyArray_EMPTY(
             left.ndim, left.shape, cnp.NPY_INT64, 0
         )
-        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+        cnp.broadcast mi
+        bint left_c_contig = cnp.PyArray_IS_C_CONTIGUOUS(left)
+        bint right_c_contig = cnp.PyArray_IS_C_CONTIGUOUS(right)
 
-    # Note: doing this try/except outside the loop improves performance over
-    #  doing it inside the loop.
     try:
-        for i in range(N):
-            # Analogous to: lval = lvalues[i]
-            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        if left_c_contig and right.ndim == 0:
+            lptr = <int64_t*>cnp.PyArray_DATA(left)
+            resptr = <int64_t*>cnp.PyArray_DATA(iresult)
+            rval = (<int64_t*>cnp.PyArray_DATA(right))[0]
 
-            # Analogous to: rval = rvalues[i]
-            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+            for i in range(N):
+                lval = lptr[i]
 
-            if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
-                res_value = NPY_DATETIME_NAT
-            else:
-                res_value = lval + rval
+                if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                    res_value = NPY_DATETIME_NAT
+                else:
+                    res_value = lval + rval
 
-            # Analogous to: result[i] = res_value
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+                resptr[i] = res_value
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+        elif (
+            left_c_contig
+            and right_c_contig
+            and right.ndim == left.ndim
+            and left.size == right.size
+            and (<object>left).shape == (<object>right).shape
+        ):
+            lptr = <int64_t*>cnp.PyArray_DATA(left)
+            rptr = <int64_t*>cnp.PyArray_DATA(right)
+            resptr = <int64_t*>cnp.PyArray_DATA(iresult)
+
+            for i in range(N):
+                lval = lptr[i]
+                rval = rptr[i]
+
+                if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                    res_value = NPY_DATETIME_NAT
+                else:
+                    res_value = lval + rval
+
+                resptr[i] = res_value
+
+        else:
+            mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+            for i in range(N):
+                # Analogous to: lval = lvalues[i]
+                lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+                # Analogous to: rval = rvalues[i]
+                rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+                if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                    res_value = NPY_DATETIME_NAT
+                else:
+                    res_value = lval + rval
+
+                # Analogous to: result[i] = res_value
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+                cnp.PyArray_MultiIter_NEXT(mi)
     except OverflowError as err:
         raise OverflowError("Overflow in int64 addition") from err
 

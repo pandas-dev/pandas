@@ -831,3 +831,43 @@ Follow-up validation:
 - Run `asv run -b xiecheng` or the repository-supported equivalent.
 - Start with the smallest parameter case, then run the full rows/users/
   categories matrix while monitoring memory.
+
+## Batch 20: add_overflowsafe fast paths
+
+Sources inspected:
+
+- Exported commits `9e640a5d2c`, `3f77b3b691`, and `82081460b3`.
+- Prior pandas 3.0.3 port `e48041d9cc`.
+- pandas 3.0.1 overflow decorator, shape contract, and MultiIter path.
+
+Adaptation checks:
+
+- Pointer paths require C-contiguous storage.
+- Array/array path also requires identical ndim, size, and shape.
+- Scalar right reads one int64 value.
+- NaT on either side produces NaT before addition.
+- Cython overflow checking wraps all three addition loops.
+- Non-contiguous/broadcast inputs retain MultiIter.
+- Tests cover scalar, same-shape NaT, non-contiguous, and overflow.
+
+Executed:
+
+- `git diff --cached --check`
+- Conflict-marker scan.
+- `python -m py_compile pandas/tests/tslibs/test_np_datetime.py`
+- `python -m compileall -q pandas`
+- Focused pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run `TestAddOverflowSafe` after rebuilding extensions.
+- Cover 0-D/1-D/N-D, C/F/non-contiguous, broadcast, empty, NaT, positive
+  and negative overflow.
+- Benchmark datetime/timedelta scalar and equal-shape arithmetic.

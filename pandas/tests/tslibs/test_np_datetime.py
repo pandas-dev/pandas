@@ -5,6 +5,7 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    add_overflowsafe,
     astype_overflowsafe,
     is_unitless,
     py_get_unit_from_dtype,
@@ -12,6 +13,9 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 import pandas._testing as tm
+
+
+I8_MIN = np.iinfo(np.int64).min
 
 
 def test_is_unitless():
@@ -220,3 +224,39 @@ class TestAstypeOverflowSafe:
         result = astype_overflowsafe(arr, dtype, round_ok=True)
         expected = arr.astype(dtype)
         tm.assert_numpy_array_equal(result, expected)
+
+
+class TestAddOverflowSafe:
+    def test_add_overflowsafe_scalar(self):
+        left = np.array([1, 2, 3], dtype="i8")
+        right = np.array(4, dtype="i8")
+
+        result = add_overflowsafe(left, right)
+        expected = np.array([5, 6, 7], dtype="i8")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_add_overflowsafe_same_shape_with_nat(self):
+        left = np.array([I8_MIN, 2, 3], dtype="i8")
+        right = np.array([1, I8_MIN, 4], dtype="i8")
+
+        result = add_overflowsafe(left, right)
+        expected = np.array([I8_MIN, I8_MIN, 7], dtype="i8")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_add_overflowsafe_non_contiguous(self):
+        left = np.arange(8, dtype="i8")[::2]
+        right = np.array([10, 20, 30, 40], dtype="i8")
+
+        result = add_overflowsafe(left, right)
+        expected = np.array([10, 22, 34, 46], dtype="i8")
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_add_overflowsafe_overflow_raises(self):
+        left = np.array([np.iinfo(np.int64).max], dtype="i8")
+        right = np.array([1], dtype="i8")
+
+        with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+            add_overflowsafe(left, right)

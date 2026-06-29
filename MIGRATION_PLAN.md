@@ -372,3 +372,18 @@ choosing an entire side.
   benchmark method naming is resolved.
 - Risk: parameter sizes are large and require an appropriately
   provisioned ASV machine.
+
+## Batch 20: add_overflowsafe fast paths
+
+- Original private commits: `9e640a5d2c`, `3f77b3b691`, and
+  `82081460b3`.
+- Prior pandas 3.0.3 port: `e48041d9cc`.
+- pandas 3.0.1 result: implementation applies directly; test conflict
+  was resolved without importing an unrelated 3.0.3 warning filter.
+- Raw pointers cover C-contiguous left plus scalar right and equal-shape
+  C-contiguous operands. Broadcast and non-contiguous inputs retain
+  `PyArray_MultiIter`.
+- Existing `@cython.overflowcheck(True)` and NaT sentinel propagation
+  remain active.
+- Risk: signed-overflow translation, scalar broadcasting, shape checks,
+  NaT, and arbitrary strides need a native build.
