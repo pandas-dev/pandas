@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import operator
+import re
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -23,6 +24,8 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.timedeltas import parse_timedelta_unit
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -78,6 +81,110 @@ def _new_TimedeltaIndex(cls, d):
             warnings.simplefilter("ignore")
             result = cls.__new__(cls, **d)
     return result
+
+
+def _td_abbrev_to_reso(abbrev: str) -> Resolution:
+    """
+    Convert a timedelta unit abbreviation (as returned by parse_timedelta_unit)
+    to a Resolution object.
+
+    parse_timedelta_unit returns "m" for minutes, but Resolution expects "min".
+    """
+    # parse_timedelta_unit returns "m" for minutes;
+    # Resolution.get_reso_from_freqstr expects "min"
+    if abbrev == "m":
+        abbrev = "min"
+    elif abbrev in ("W", "Y", "M"):
+        abbrev = "D"
+    return Resolution.get_reso_from_freqstr(abbrev)
+
+
+def _get_timedelta_string_reso(label: str) -> Resolution:
+    """
+    Determine the finest resolution unit explicitly specified in a timedelta string.
+
+    This analyzes the string text, not the computed value. For example,
+    "720s" returns RESO_SEC even though 720 seconds equals 12 minutes.
+
+    Parameters
+    ----------
+    label : str
+        A valid timedelta string.
+
+    Returns
+    -------
+    Resolution
+    """
+    label = label.strip()
+
+    # Handle hh:mm:ss format (contains colons)
+    if ":" in label:
+        # hh:mm:ss always has seconds, so at least second resolution.
+        dot_pos = label.rfind(".")
+        last_colon = label.rfind(":")
+        if dot_pos > last_colon:
+            # Has fractional seconds: determine sub-second resolution
+            frac_digits = 0
+            for char in label[dot_pos + 1 :]:
+                if char.isdigit():
+                    frac_digits += 1
+                else:
+                    break
+            if frac_digits <= 3:
+                return Resolution.RESO_MS
+            elif frac_digits <= 6:
+                return Resolution.RESO_US
+            else:
+                return Resolution.RESO_NS
+        return Resolution.RESO_SEC
+
+    # Handle ISO 8601 duration format (e.g., "P1DT1H30M45S")
+    stripped = label.lstrip("-+ ")
+    if stripped.startswith("P"):
+        time_pos = stripped.find("T")
+        if time_pos >= 0:
+            time_part = stripped[time_pos + 1 :]
+            if "S" in time_part:
+                if "." in time_part:
+                    dot_pos = time_part.find(".")
+                    s_pos = time_part.find("S")
+                    frac_digits = s_pos - dot_pos - 1
+                    if frac_digits <= 3:
+                        return Resolution.RESO_MS
+                    elif frac_digits <= 6:
+                        return Resolution.RESO_US
+                    else:
+                        return Resolution.RESO_NS
+                return Resolution.RESO_SEC
+            elif "M" in time_part:
+                return Resolution.RESO_MIN
+            elif "H" in time_part:
+                return Resolution.RESO_HR
+        return Resolution.RESO_DAY
+
+    # Unit-based format: extract unit tokens and find the finest
+    units = re.findall(r"[a-zA-Zµ]+", label)
+    if not units:
+        return Resolution.RESO_NS  # bare number defaults to nanoseconds
+
+    finest = Resolution.RESO_DAY
+
+    # parse_timedelta_unit re-parses tokens Timedelta(label) already handled,
+    #  so any deprecation warning has already reached the user; suppress the dup.
+    # TODO(4.0): Remove once deprecated unit aliases in parse_timedelta_unit
+    #  are enforced (e.g. "S" -> "s", "H" -> "h").
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", Pandas4Warning)
+        for unit_str in units:
+            try:
+                canonical = parse_timedelta_unit(unit_str)
+            except ValueError:
+                continue
+            reso = _td_abbrev_to_reso(canonical)
+            if reso < finest:
+                finest = reso
+
+    return finest
 
 
 @inherit_names(
@@ -385,21 +492,31 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
         parsed = Timedelta(label)
         if isinstance(parsed, Timedelta):
-            reso = Resolution.get_reso_from_freqstr(parsed.unit)
+            # Get resolution from the string text (GH#33603), not from
+            # the value's components. E.g., "720s" should have resolution "s",
+            # not "min" (even though 720s = 12 minutes).
+            string_reso = _get_timedelta_string_reso(label)
+            # Also consider value-based resolution for sub-unit precision.
+            # E.g., "3.5s" has string resolution "s" but value resolution "ms".
+            value_reso = Resolution.get_reso_from_freqstr(parsed.resolution_string)
+            # Use the finer (more specific) of the two.
+            reso = min(string_reso, value_reso)
         else:
             # i.e. pd.NaT
-            reso = Resolution.get_reso_from_freqstr("s")
+            reso = Resolution.RESO_SEC
         return parsed, reso
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
-        # reso is unused, included to match signature of DTI/PI
-        lbound = parsed.round(parsed.resolution_string)
+        reso_str = reso.attr_abbrev
+        lbound = parsed.floor(reso_str)
         rbound = (
             lbound
-            + to_offset(parsed.resolution_string)
+            + to_offset(reso_str)
             - Timedelta(1, unit=self.unit).as_unit(self.unit)
         )
-        return lbound, rbound
+        # If reso is finer than the index unit, the window [lbound, rbound]
+        # collapses to lbound alone; without the clamp rbound < lbound.
+        return lbound, max(lbound, rbound)
 
     # -------------------------------------------------------------------
 

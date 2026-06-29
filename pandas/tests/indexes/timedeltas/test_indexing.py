@@ -7,8 +7,10 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 from pandas import (
+    DataFrame,
     Index,
     NaT,
+    Series,
     Timedelta,
     TimedeltaIndex,
     Timestamp,
@@ -330,6 +332,129 @@ class TestMaybeCastSliceBound:
             indexer_sl(obj)[:"foo"]
         with pytest.raises(TypeError, match=msg):
             indexer_sl(obj)[tdi[0] : "foo"]
+
+
+class TestStringSliceResolution:
+    """Tests for GH#33603 - string resolution for TimedeltaIndex slicing."""
+
+    def test_string_slice_reso_seconds_not_minutes(self):
+        # GH#33603 - "720s" should have second resolution, not minute,
+        #  even though 720s = 12 minutes exactly
+        tdi = timedelta_range("710s", "721s", freq="s")
+        df = DataFrame({"dummy": np.arange(len(tdi))}, index=tdi)
+
+        result = df["710s":"720s"]
+        expected = df[(df.index >= Timedelta("710s")) & (df.index < Timedelta("721s"))]
+        tm.assert_frame_equal(result, expected)
+
+    def test_string_slice_reso_value_not_elevated(self):
+        # GH#33603 - "60s" should have second resolution, not minute;
+        #  "3600s" should have second resolution, not hour
+        tdi = timedelta_range("0s", "7200s", freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser["59s":"60s"]
+        expected = ser[(ser.index >= Timedelta("59s")) & (ser.index < Timedelta("61s"))]
+        tm.assert_series_equal(result, expected)
+
+        result = ser["3599s":"3600s"]
+        expected = ser[
+            (ser.index >= Timedelta("3599s")) & (ser.index < Timedelta("3601s"))
+        ]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_day_with_zero_hours(self):
+        # GH#33603 - "2D 0 hours" should have hour resolution, not day
+        ser = Series(
+            np.arange(100),
+            index=timedelta_range("1 days", periods=100, freq="h"),
+        )
+        result = ser[:"2D 0 hours"]
+        expected = ser[ser.index < Timedelta("2D 1h")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_120s_not_minutes(self):
+        # GH#33603 - "120s" should have second resolution, not minute,
+        #  even though 120s = 2 minutes exactly
+        tdi = timedelta_range("115s", "125s", freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"120s"]
+        expected = ser[ser.index < Timedelta("121s")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_units_out_of_order(self):
+        # GH#33603 - the finest unit in the string determines the resolution,
+        #  regardless of the order the units appear in
+        tdi = timedelta_range("115s", "200s", freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"120s 0 days"]
+        expected = ser[ser.index < Timedelta("121s")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_2000ms_not_seconds(self):
+        # GH#33603 - "2000ms" should have millisecond resolution, not second,
+        #  even though 2000ms = 2s exactly
+        tdi = timedelta_range("1900ms", "2100ms", freq="100us")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"2000ms"]
+        expected = ser[ser.index < Timedelta("2001ms")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_hh_mm_ss_exact_hour(self):
+        # GH#33603 - "1:00:00" should have second resolution, not hour,
+        #  even though it is exactly 1 hour
+        tdi = timedelta_range("0:59:55", periods=200, freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"1:00:00"]
+        expected = ser[ser.index < Timedelta("1:00:01")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_hh_mm_ss_exact_minute(self):
+        # GH#33603 - "1:01:00" should have second resolution, not minute,
+        #  even though the seconds component is zero
+        tdi = timedelta_range("1:00:55", periods=200, freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"1:01:00"]
+        expected = ser[ser.index < Timedelta("1:01:01")]
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "index_unit, label",
+        [("s", "2000ms"), ("ms", "2000us"), ("us", "2000ns")],
+    )
+    def test_string_slice_non_nano_finer_reso(self, index_unit, label):
+        # GH#33603 - a string in a finer unit than the index must not
+        #  invert the bounds; e.g. "2000ms" == 2s should match on a m8[s] index
+        tdi = timedelta_range("0s", periods=5, freq="s", unit=index_unit)
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:label]
+        expected = ser[ser.index <= Timedelta(label)]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_non_nano_finer_reso_non_monotonic(self):
+        # GH#33603 - inverted bounds raised a bogus "non-monotonic index"
+        #  KeyError even though 2000ms == 2s is present in the index
+        tdi = TimedeltaIndex(["5s", "2s", "7s"], dtype="m8[s]")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"2000ms"]
+        expected = ser.iloc[:2]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_non_nano_unrepresentable(self):
+        # GH#33603 - a string not representable in the index unit
+        #  matches nothing
+        tdi = timedelta_range("0s", periods=5, freq="s", unit="s")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc["1500ms":"1500ms"]
+        tm.assert_series_equal(result, ser.iloc[:0])
 
 
 class TestContains:

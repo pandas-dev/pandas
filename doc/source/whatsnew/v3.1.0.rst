@@ -321,6 +321,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :class:`TimedeltaIndex` string indexing using the resolution of the parsed value rather than the string, so keys like ``"720s"`` (an exact multiple of a minute) matched a minute-sized window instead of a second-sized one (:issue:`33603`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` replacing the index name with the key's name when indexing with an :class:`Index` (:issue:`17110`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row on a :class:`DataFrame` with no columns and the label is not in the index (:issue:`17895`)
 - Bug in :meth:`DataFrame.loc` returning incorrect dtype when the column key is a ``slice`` (:issue:`63071`)
