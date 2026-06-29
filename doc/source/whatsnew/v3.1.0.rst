@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`ExtensionScalarOpsMixin` no longer overwrites operator methods already defined on a subclass, allowing custom and fallback operators to coexist (:issue:`50767`)
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - :meth:`DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`GroupBy.agg`, and supports :class:`NamedFunc` (:issue:`58318`)
