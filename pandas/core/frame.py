@@ -14190,7 +14190,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). However, by default (``by_row="compat"``), if ``func``
+        (``axis=1``), and whose ``name`` attribute is the label of the column
+        (``axis=0``) or row (``axis=1``) being processed. For instance, with
+        ``axis=1`` a passed ``row`` has ``row.index`` equal to the DataFrame's
+        columns and ``row.name`` equal to that row's index label.
+        However, by default (``by_row="compat"``), if ``func``
         is a list-like or dict-like of functions, each function is first
         applied to the individual values of the Series rather than the Series
         itself; if this fails, pandas retries by passing the entire Series.
@@ -14349,6 +14353,16 @@ class DataFrame(NDFrame, OpsMixin):
         1    13
         2    13
         dtype: int64
+
+        The Series passed to ``func`` is named for the row or column being
+        processed and indexed by the other axis, which can be used to access
+        labels within ``func``:
+
+        >>> df.apply(lambda row: (row.name, list(row.index)), axis=1)
+        0    (0, [A, B])
+        1    (1, [A, B])
+        2    (2, [A, B])
+        dtype: object
 
         Returning a list-like will result in a Series
 
