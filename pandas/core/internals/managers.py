@@ -48,6 +48,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
     is_list_like,
+    is_scalar,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -444,6 +445,51 @@ class BaseBlockManager(PandasObject):
 
         out = type(self).from_blocks(result_blocks, [ax.view() for ax in self.axes])
         return out
+
+    def fillna_dict_object(
+        self, value, limit: int | None, inplace: bool
+    ) -> Self | None:
+        if limit is not None:
+            limit = libalgos.validate_limit(None, limit=limit)
+
+        if len(self.blocks) != 1:
+            return None
+
+        block = self.blocks[0]
+        if not isinstance(block, NumpyBlock) or block.dtype != np.dtype(object):
+            return None
+        if len(block.mgr_locs) != len(self.items):
+            return None
+
+        values_by_loc: dict[int, Any] = {}
+        for key, fill_value in value.items():
+            if key not in self.items:
+                continue
+            if not is_scalar(fill_value):
+                return None
+
+            loc = self.items.get_loc(key)
+            if not isinstance(loc, (int, np.integer)):
+                return None
+            loc = int(loc)
+            if loc in values_by_loc:
+                return None
+            values_by_loc[loc] = fill_value
+
+        if not values_by_loc:
+            return self.copy(deep=False)
+
+        applied = block.fillna_dict_object(
+            values_by_loc=values_by_loc,
+            limit=limit,
+            inplace=inplace,
+        )
+        if applied is None:
+            return None
+
+        return type(self).from_blocks(
+            extend_blocks(applied, []), [axis.view() for axis in self.axes]
+        )
 
     @final
     def isna(self, func) -> Self:

@@ -597,3 +597,21 @@ choosing an entire side.
   it does not restore pandas 2.x public `copy` branching.
 - Risk: CoW isolation, nullable masks, duplicate columns, subclasses,
   error modes, Arrow casts, and empty/mixed frames need runtime tests.
+
+## Batch 34: object-block dict fillna
+
+- Original private commit: the dict-object fillna subset of
+  `1246018d48`.
+- Prior pandas 3.0.3 port: `8d730e0d0f`.
+- pandas 3.0.1 result: the narrow manager/block implementation applies
+  directly and completes the safe subset deferred by Batch 30.
+- A single all-column object NumpyBlock can fill selected scalar-mapped
+  columns with one mask/broadcast operation and per-column limit.
+- Block `_get_refs_and_copy` enforces always-on CoW isolation for
+  inplace and non-inplace calls.
+- Duplicate/MultiIndex columns, multiple/non-object blocks, non-scalar
+  mappings, unsupported locations, and axis=1 retain the existing
+  Series/manager path and warning behavior.
+- Risk: inplace/view refs, limit orientation, no-op mappings, dtype
+  preservation, subclass finalization, and fallback warnings need
+  runtime tests.

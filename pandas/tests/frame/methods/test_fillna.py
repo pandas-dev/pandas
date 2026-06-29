@@ -20,6 +20,71 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
+    @pytest.mark.parametrize("inplace", [False, True])
+    def test_fillna_dict_object_avoids_series_fillna(
+        self, monkeypatch, inplace
+    ):
+        df = DataFrame(
+            [[np.nan, "x"], [1.0, np.nan]],
+            columns=["a", "b"],
+            dtype=object,
+        )
+        expected = DataFrame(
+            [[0.0, "x"], [1.0, "missing"]],
+            columns=["a", "b"],
+            dtype=object,
+        )
+
+        def fail_fillna(self, *args, **kwargs):
+            raise AssertionError("Series.fillna should not be used")
+
+        monkeypatch.setattr(Series, "fillna", fail_fillna)
+
+        result = df.fillna({"a": 0.0, "b": "missing"}, inplace=inplace)
+        if inplace:
+            assert result is df
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_dict_object_limit(self):
+        df = DataFrame(
+            [[np.nan, np.nan], [np.nan, 2.0], [1.0, np.nan]],
+            columns=["a", "b"],
+            dtype=object,
+        )
+
+        result = df.fillna({"a": 0.0, "b": 9.0}, limit=1)
+
+        expected = DataFrame(
+            [[0.0, 9.0], [np.nan, 2.0], [1.0, np.nan]],
+            columns=["a", "b"],
+            dtype=object,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_dict_object_duplicate_series_index_falls_back(self):
+        df = DataFrame({"a": Series([np.nan, 2.0], dtype=object)})
+        values = Series([0.0, 1.0], index=["a", "a"])
+
+        result = df.fillna(values)
+
+        expected = DataFrame({"a": Series([0.0, 2.0], dtype=object)})
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_dict_object_inplace_preserves_cow(self):
+        df = DataFrame(
+            [[np.nan, "x"], [1.0, np.nan]],
+            columns=["a", "b"],
+            dtype=object,
+        )
+        view = df[:]
+
+        result = df.fillna({"a": 0.0, "b": "missing"}, inplace=True)
+
+        assert result is df
+        assert np.isnan(view.iloc[0, 0])
+        assert np.isnan(view.iloc[1, 1])
+
     def test_fillna_dict_inplace_nonunique_columns(self):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}

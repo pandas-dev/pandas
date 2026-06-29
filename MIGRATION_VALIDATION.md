@@ -1433,3 +1433,50 @@ Follow-up validation:
   duplicate/MultiIndex columns, empty/mixed frames, subclasses,
   errors-ignore, mutation both directions, and public copy arguments.
 - Benchmark `frame_methods.AsType` homogeneous workloads.
+
+## Batch 34: object-block dict fillna
+
+Sources inspected:
+
+- Dict-object fillna subset of exported `1246018d48`.
+- Prior pandas 3.0.3 port `8d730e0d0f`.
+- pandas 3.0.1 fillna return contract, manager axes, block orientation,
+  CoW ref helper, limits, and fallback flow.
+
+Adaptation checks:
+
+- Entry requires axis 0, unique non-MultiIndex columns, BlockManager,
+  one all-column object NumpyBlock, and scalar mapped values.
+- Unknown mapping keys are ignored; empty effective mappings return a
+  shallow manager copy.
+- Mask rows correspond to selected columns and cumsum applies limit
+  down each DataFrame column.
+- Inplace mutation copies when refs exist and may reuse storage only
+  when CoW permits.
+- Unsupported cases return `None` before mutation and use the existing
+  generic path.
+- Tests cover fast-path selection, per-column limit, duplicate-Series
+  fallback, inplace return, and view isolation.
+
+Executed:
+
+- `git diff --cached --check`
+- Static entry/fallback/mask/limit/CoW inspection.
+- `python -m py_compile` on all implementation and test files.
+- `python -m compileall -q pandas`
+- Focused fillna pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Runtime CoW/warning assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run DataFrame fillna and CoW suites.
+- Cover inplace/non-inplace, referenced/unreferenced/no-op, limits,
+  missing keys, duplicate/MultiIndex columns, multiple blocks,
+  non-scalar values, axis=1, subclasses, warnings, and mutation both
+  directions.
+- Benchmark object-block dict fillna with narrow/wide mappings.

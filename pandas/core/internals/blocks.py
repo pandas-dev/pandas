@@ -1344,6 +1344,40 @@ class Block(PandasObject, libinternals.Block):
             nbs = self.where(value, ~mask.T)
         return extend_blocks(nbs)
 
+    def fillna_dict_object(
+        self,
+        values_by_loc: dict[int, Any],
+        limit: int | None = None,
+        inplace: bool = False,
+    ) -> list[Block] | None:
+        if self.ndim != 2 or not values_by_loc:
+            return None
+
+        values = self.values
+        if not isinstance(values, np.ndarray) or values.dtype != _dtype_obj:
+            return None
+
+        locs = np.array(sorted(values_by_loc), dtype=np.intp)
+        fill_values = np.array(
+            [values_by_loc[loc] for loc in locs], dtype=object
+        )
+        subset = values[locs]
+        mask = isna(subset)
+        mask, noop = validate_putmask(subset, mask)
+
+        if noop:
+            return [self.copy(deep=False)]
+
+        if limit is not None:
+            mask[mask.cumsum(subset.ndim - 1) > limit] = False
+
+        copy, refs = self._get_refs_and_copy(inplace)
+        new_values = values.copy() if copy else values
+        fill_values = np.broadcast_to(fill_values[:, None], subset.shape)
+        new_values[locs] = expressions.where(~mask, subset, fill_values)
+
+        return [self.make_block_same_class(new_values, refs=refs)]
+
     def pad_or_backfill(
         self,
         *,
