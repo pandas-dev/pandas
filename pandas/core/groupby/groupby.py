@@ -165,7 +165,7 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self , key):
+        def f(self, key):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
@@ -185,7 +185,6 @@ class GroupByPlot(PandasObject):
             return self._groupby._python_apply_plot(f)
 
         return attr
-
 
 
 _KeysArgType: TypeAlias = (
@@ -877,7 +876,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
 
-        def curried(x , key = None):
+        def curried(x, key=None):
             return f(x, *args, **kwargs)
 
         # preserve the name so we can detect it when calling plot methods,
@@ -1463,7 +1462,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         for key, group in self._grouper.get_iterator(data):
             if group.ndim == 1:
                 group.name = key
-            values.append(f(group , key))
+            values.append(f(group, key))
         # plotting functions return matplotlib objects, never something
         #  indexed like the group, so this is always not_indexed_same
         return self._wrap_applied_output(data, values, not_indexed_same=True)
