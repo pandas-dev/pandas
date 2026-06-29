@@ -475,6 +475,7 @@ Other
 
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+- Fixed the "See Also" section of the API reference where references to top-level objects (such as :class:`Series` and :class:`DataFrame` methods) from :class:`.DataFrameGroupBy`, :class:`.Resampler`, and rolling/expanding/ewm documentation rendered as plain text instead of clickable links (:issue:`31661`)
 
 .. ***DO NOT USE THIS SECTION***
 

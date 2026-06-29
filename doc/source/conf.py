@@ -1100,11 +1100,42 @@ def rstjinja(app, docname, source) -> None:
     source[0] = rendered
 
 
+def resolve_pandas_toplevel_xref(app, env, node, contnode):
+    """
+    Resolve cross-references to top-level ``pandas`` objects that are written
+    without the ``pandas.`` prefix.
+
+    numpydoc emits "See Also" entries such as ``DataFrame.pipe`` as
+    non-module-qualified ``:py:obj:`` references. For methods documented under a
+    non-``pandas`` module (e.g. ``pandas.api.typing.DataFrameGroupBy``), Sphinx
+    prepends the current module and never falls back to the top-level ``pandas``
+    namespace, so these links silently render as plain text (GH#31661). This
+    fires only on otherwise-unresolved references; we retry the lookup with a
+    ``pandas.`` prefix and return the resolved node if one is found.
+    """
+    if node.get("refdomain") != "py":
+        return None
+    target = node.get("reftarget", "")
+    if not target or target.startswith("pandas."):
+        return None
+    py_domain = env.get_domain("py")
+    return py_domain.resolve_xref(
+        env,
+        node.get("refdoc"),
+        app.builder,
+        node.get("reftype", "obj"),
+        f"pandas.{target}",
+        node,
+        contnode,
+    )
+
+
 def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.connect("autodoc-process-docstring", process_business_alias_docstrings)
+    app.connect("missing-reference", resolve_pandas_toplevel_xref)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
