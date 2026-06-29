@@ -580,3 +580,20 @@ choosing an entire side.
   without conflating unseen and poisoned state.
 - Risk: object/numeric/datetimelike fused paths, masks, NA poisoning,
   min_count, negative labels, and tie-first behavior need native tests.
+
+## Batch 33: homogeneous numeric astype
+
+- Original private commit: the astype subset of `1246018d48`.
+- Prior pandas 3.0.3 port: `fb67599b4d`.
+- pandas 3.0.1 result: narrow CoW-aware helpers apply after resolving a
+  shared-document insertion conflict.
+- Homogeneous NumPy/BaseMasked numeric conversions build arrays directly
+  without Series concat. All-Arrow numeric frames cast each immutable
+  ChunkedArray directly.
+- Every NumPy/masked conversion requests new storage; Arrow conversion
+  returns immutable cast arrays. Existing same-dtype lazy-copy shortcut
+  and all mixed/non-numeric/errors-ignore fallbacks remain.
+- This supersedes only the narrow astype part of Batch 30's broad audit;
+  it does not restore pandas 2.x public `copy` branching.
+- Risk: CoW isolation, nullable masks, duplicate columns, subclasses,
+  error modes, Arrow casts, and empty/mixed frames need runtime tests.

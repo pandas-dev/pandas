@@ -1386,3 +1386,50 @@ Follow-up validation:
   mask, skipna, min_count, negative labels, empty/all-NA, infinities,
   and ties.
 - Benchmark GroupBy sum, idxmin, and idxmax matrices.
+
+## Batch 33: homogeneous numeric astype
+
+Sources inspected:
+
+- Astype subset of exported `1246018d48`.
+- Prior pandas 3.0.3 port `fb67599b4d`.
+- pandas 3.0.1 astype dispatch, manager dtypes, BaseMasked arrays,
+  Arrow arrays, and CoW documentation.
+
+Adaptation checks:
+
+- Fast path requires `errors="raise"` and homogeneous supported numeric
+  source/target families.
+- Same-dtype extension conversion returns the existing lazy shallow
+  copy before helpers run.
+- NumPy/masked conversions use `copy=True` and reconstruct columns with
+  original index/columns.
+- Arrow casts operate on immutable ChunkedArrays.
+- Mixed, non-numeric, unsupported EA, empty, and errors-ignore inputs
+  fall back.
+- Duplicate columns are reconstructed positionally.
+- Tests assert bypassed slow paths and mutation isolation.
+
+Executed:
+
+- `git diff --cached --check`
+- Conflict-marker and dispatch/CoW inspection.
+- `python -m py_compile pandas/core/generic.py
+  pandas/tests/frame/methods/test_astype.py`
+- `python -m compileall -q pandas`
+- Focused astype pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Runtime CoW assertions: pytest did not reach collection.
+- Arrow test: PyArrow is not installed.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run DataFrame astype and CoW suites.
+- Cover NumPy/masked/Arrow numeric matrices, masks/NA, same dtype,
+  duplicate/MultiIndex columns, empty/mixed frames, subclasses,
+  errors-ignore, mutation both directions, and public copy arguments.
+- Benchmark `frame_methods.AsType` homogeneous workloads.

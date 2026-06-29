@@ -368,6 +368,83 @@ class TestAstype:
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
+    @pytest.mark.parametrize(
+        "from_dtype,to_dtype",
+        [("float64", "Float64"), ("Int64", "Float64")],
+    )
+    def test_astype_homogeneous_numeric_to_masked_avoids_items(
+        self, monkeypatch, from_dtype, to_dtype
+    ):
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype=from_dtype)
+        expected = DataFrame(
+            {column: df[column].astype(to_dtype) for column in df.columns}
+        )
+
+        def fail_items(self):
+            raise AssertionError("DataFrame.items should not be used")
+
+        monkeypatch.setattr(DataFrame, "items", fail_items)
+
+        result = df.astype(to_dtype)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_homogeneous_masked_to_numpy_avoids_manager(
+        self, monkeypatch
+    ):
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
+        expected = DataFrame(
+            {column: df[column].astype("float64") for column in df.columns}
+        )
+
+        def fail_astype(self, dtype, errors="raise"):
+            raise AssertionError("BlockManager.astype should not be used")
+
+        monkeypatch.setattr(type(df._mgr), "astype", fail_astype)
+
+        result = df.astype("float64")
+
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_astype_homogeneous_arrow_to_arrow_avoids_items(self, monkeypatch):
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).astype(
+            "int64[pyarrow]"
+        )
+        expected = DataFrame(
+            {
+                column: df[column].astype("float64[pyarrow]")
+                for column in df.columns
+            }
+        )
+
+        def fail_items(self):
+            raise AssertionError("DataFrame.items should not be used")
+
+        monkeypatch.setattr(DataFrame, "items", fail_items)
+
+        result = df.astype("float64[pyarrow]")
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "from_dtype,to_dtype",
+        [
+            ("float64", "Float64"),
+            ("Float64", "float64"),
+            ("Int64", "Float64"),
+        ],
+    )
+    def test_astype_homogeneous_numeric_preserves_cow(
+        self, from_dtype, to_dtype
+    ):
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype=from_dtype)
+
+        result = df.astype(to_dtype)
+        result.iloc[0, 0] = 99
+
+        assert df.iloc[0, 0] == 1
+
     @pytest.mark.parametrize("dtype", ["category", "Int64"])
     def test_astype_extension_dtypes_duplicate_col(self, dtype, using_nan_is_na):
         # GH#24704
