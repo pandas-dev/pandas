@@ -397,7 +397,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         rbound = (
             lbound
             + to_offset(parsed.resolution_string)
-            - Timedelta(1, unit=self.unit).as_unit(self.unit)
+            - Timedelta(1, input_unit=self.unit).as_unit(self.unit)
         )
         return lbound, rbound
 
