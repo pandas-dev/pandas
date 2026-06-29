@@ -802,3 +802,32 @@ Follow-up validation:
 - Run rolling quantile/median and ranking tests for empty, singleton,
   duplicate-heavy, NaN, insert/remove, and allocation-failure cases.
 - Benchmark skiplist-heavy rolling quantile/median and rank workloads.
+
+## Batch 19: Xiecheng ASV workloads
+
+Sources inspected:
+
+- Exported commits `a3739ab1e4`, `42b376312f`, `baca9d6de2`, and
+  `fcdd01e0a4`.
+- Prior pandas 3.0.3 port `473b0e68ff`.
+- Final benchmark method names and setup mutations.
+
+Executed:
+
+- `git diff --cached --check`
+- `python -m py_compile asv_bench/benchmarks/xiecheng.py`
+- Static check that benchmark method names are unique and categorical
+  conversion does not overwrite source object columns.
+
+Not executed:
+
+- ASV was not run in this environment.
+- Product runtime validation is not applicable to this benchmark-only
+  batch.
+
+Follow-up validation:
+
+- Build pandas 3.0.1 in the ASV environment.
+- Run `asv run -b xiecheng` or the repository-supported equivalent.
+- Start with the smallest parameter case, then run the full rows/users/
+  categories matrix while monitoring memory.

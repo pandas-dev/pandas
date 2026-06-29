@@ -356,3 +356,19 @@ choosing an entire side.
   importing the 3.0.3 C17 `NAN/log2` cleanup.
 - Risk: recursive ref-counted destruction, allocation failure, duplicate
   ranks, and prefetch safety need native/debug builds.
+
+## Batch 19: Xiecheng ASV workloads
+
+- Original private commits: `a3739ab1e4`, `42b376312f`,
+  `baca9d6de2`, and `fcdd01e0a4`.
+- Prior pandas 3.0.3 port: `473b0e68ff`.
+- pandas 3.0.1 result: benchmark-only suite applies without product-code
+  dependencies.
+- The final workload state covers construction, GroupBy, merge/join,
+  time-series, strings/categoricals, pivot/crosstab, row apply, and
+  vectorized operations.
+- Later fixes for constructor input reuse, object-string columns, and
+  categorical conversion into new columns are retained; duplicate
+  benchmark method naming is resolved.
+- Risk: parameter sizes are large and require an appropriately
+  provisioned ASV machine.
