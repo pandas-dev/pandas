@@ -122,7 +122,7 @@ from the standard Python library which defines a time duration.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 The various time concepts supported by pandas are explained in the user guide section on :ref:`time related concepts <timeseries.overview>`.
 
@@ -155,7 +155,7 @@ accessible by the ``dt`` accessor.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 An overview of the existing date properties is given in the
 :ref:`time and date components overview table <timeseries.components>`. More details about the ``dt`` accessor
@@ -275,7 +275,7 @@ By providing a **string that parses to a datetime**, a specific subset of the da
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 More information on the ``DatetimeIndex`` and the slicing by using strings is provided in the section on :ref:`time series indexing <timeseries.datetimeindex>`.
 
@@ -316,7 +316,7 @@ The :meth:`~Series.resample` method is similar to a groupby operation:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 An overview of the aliases used to define time series frequencies is given in the :ref:`offset aliases overview table <timeseries.offset_aliases>`.
 
@@ -352,7 +352,7 @@ Make a plot of the daily mean :math:`NO_2` value in each of the stations.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 More details on the power of time series ``resampling`` is provided in the user guide section on :ref:`resampling <timeseries.resampling>`.
 
@@ -381,7 +381,7 @@ More details on the power of time series ``resampling`` is provided in the user 
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full overview on time series is given on the pages on :ref:`time series and date functionality <timeseries>`.
 

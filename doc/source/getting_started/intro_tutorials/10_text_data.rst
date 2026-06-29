@@ -93,7 +93,7 @@ concatenated to combine multiple functions at once!
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 More information on extracting parts of strings is available in the user guide section on :ref:`splitting and replacing strings <text.split>`.
 
@@ -140,7 +140,7 @@ only one countess on the Titanic, we get one row as a result.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 More information on extracting parts of strings is available in the user guide section on :ref:`string matching and extracting <text.extract>`.
 
@@ -239,7 +239,7 @@ a ``dictionary`` to define the mapping ``{from: to}``.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full overview is provided in the user guide pages on :ref:`working with text data <text>`.
 

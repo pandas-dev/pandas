@@ -172,7 +172,7 @@ index. For example:
     .. raw:: html
 
         <div class="d-flex flex-row  gs-torefguide">
-            <span class="badge badge-info">To user guide</span>
+            <span class="badge badge-info">Want more information?</span>
 
     Feel free to dive into the world of multi-indexing at the user guide section on :ref:`advanced indexing <advanced>`.
 
@@ -183,7 +183,7 @@ index. For example:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 More options on table concatenation (row and column
 wise) and how ``concat`` can be used to define the logic (union or
@@ -284,7 +284,7 @@ between the two tables.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 pandas also supports inner, outer, and right joins.
 More information on join/merge of tables is provided in the user guide section on
@@ -312,7 +312,7 @@ More information on join/merge of tables is provided in the user guide section o
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 See the user guide for a full description of the various :ref:`facilities to combine data tables <merging>`.
 

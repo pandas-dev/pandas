@@ -147,7 +147,7 @@ method is applicable on the air quality example data:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 For an introduction to plots other than the default line plot, see the user guide section about :ref:`supported plot styles <visualization.other>`.
 
@@ -181,7 +181,7 @@ functions are worth reviewing.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 Some more formatting options are explained in the user guide section on :ref:`plot formatting <visualization.formatting>`.
 
@@ -250,7 +250,7 @@ This strategy is applied in the previous example:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full overview of plotting in pandas is provided in the :ref:`visualization pages <visualization>`.
 

@@ -104,7 +104,7 @@ aggregating statistics for given columns can be defined using the
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 Details about descriptive statistics are provided in the user guide section on :ref:`descriptive statistics <basics.stats>`.
 
@@ -202,7 +202,7 @@ column names as a list to the :meth:`~DataFrame.groupby` method.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full description on the split-apply-combine approach is provided in the user guide section on :ref:`groupby operations <groupby>`.
 
@@ -252,7 +252,7 @@ within each group:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 The user guide has a dedicated section on ``value_counts`` , see the page on :ref:`discretization <basics.discretization>`.
 
@@ -277,7 +277,7 @@ The user guide has a dedicated section on ``value_counts`` , see the page on :re
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full description on the split-apply-combine approach is provided in the user guide pages about :ref:`groupby operations <groupby>`.
 

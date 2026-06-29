@@ -122,7 +122,7 @@ The selection returned a ``DataFrame`` with 891 rows and 2 columns. Remember, a
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 For basic information on indexing, see the user guide section on :ref:`indexing and selecting data <indexing.basics>`.
 
@@ -223,7 +223,7 @@ operator:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 See the dedicated section in the user guide about :ref:`boolean indexing <indexing.boolean>` or about the :ref:`isin function <indexing.basics.indexing_isin>`.
 
@@ -262,7 +262,7 @@ the same values. One way to verify is to check if the shape has changed:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 For more dedicated functions on missing values, see the user guide section about :ref:`handling missing data <missing_data>`.
 
@@ -342,7 +342,7 @@ the name ``anonymous`` to the first 3 elements of the fourth column:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight into the usage of ``loc`` and ``iloc``.
 
@@ -370,7 +370,7 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full overview of indexing is provided in the user guide pages on :ref:`indexing and selecting data <indexing>`.
 

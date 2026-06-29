@@ -27,7 +27,8 @@ Quick reference
 
 We'll start off with a quick reference guide pairing some common R
 operations using `dplyr
-<https://cran.r-project.org/web/packages/dplyr/index.html>`__ with
+<https://cran.r-project.org/web/packages/dplyr/index.html>`__, one of the
+core packages of the `tidyverse <https://www.tidyverse.org/>`__, with
 pandas equivalents.
 
 

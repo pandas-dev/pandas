@@ -128,7 +128,7 @@ defined column(s). The index will follow the row order.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 More details about sorting of tables is provided in the user guide section on :ref:`sorting data <basics.sorting>`.
 
@@ -197,7 +197,7 @@ series at the same time:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 For more information about :meth:`~DataFrame.pivot`, see the user guide section on :ref:`pivoting DataFrame objects <reshaping.reshaping>`.
 
@@ -251,7 +251,7 @@ the ``margins`` parameter to ``True``:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 For more information about :meth:`~DataFrame.pivot_table`, see the user guide section on :ref:`pivot tables <reshaping.pivot>`.
 
@@ -271,7 +271,7 @@ For more information about :meth:`~DataFrame.pivot_table`, see the user guide se
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 .. raw:: html
 
@@ -345,7 +345,7 @@ are defined by ``id_vars`` and ``value_vars``.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 Conversion from wide to long format with :func:`pandas.melt` is explained in the user guide section on :ref:`reshaping by melt <reshaping.melt>`.
 
@@ -371,7 +371,7 @@ Conversion from wide to long format with :func:`pandas.melt` is explained in the
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A full overview is available in the user guide on the pages about :ref:`reshaping and pivoting <reshaping>`.
 

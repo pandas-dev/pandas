@@ -183,7 +183,7 @@ pandas ``Series`` or a pandas ``DataFrame``.
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 Check more options on ``describe`` in the user guide section about :ref:`aggregations with describe <basics.describe>`
 
@@ -215,7 +215,7 @@ Check more options on ``describe`` in the user guide section about :ref:`aggrega
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 A more extended explanation of ``DataFrame`` and ``Series`` is provided in the :ref:`introduction to data structures <dsintro>` page.
 

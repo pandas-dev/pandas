@@ -138,7 +138,7 @@ lowercase letters can be done using a function as well:
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 Details about column or row label renaming is provided in the user guide section on :ref:`renaming labels <basics.rename>`.
 
@@ -164,7 +164,7 @@ Details about column or row label renaming is provided in the user guide section
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
-        <span class="badge badge-info">To user guide</span>
+        <span class="badge badge-info">Want more information?</span>
 
 The user guide contains a separate section on :ref:`column addition and deletion <basics.dataframe.sel_add_del>`.
 
