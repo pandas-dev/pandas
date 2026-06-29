@@ -41,7 +41,7 @@ class TestTimedeltaIndex:
 
         result = left.union(right, sort=False)
         expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
     def test_union_coverage(self):
         # GH#59051
@@ -203,10 +203,12 @@ class TestTimedeltaIndex:
         result = base.intersection(rng, sort=sort)
         if sort is None:
             expected = expected.sort_values()
+            # if reversed order, frequency is still the same
+            if all(base == rng[::-1]):
+                expected = expected._with_freq("infer")
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        # if reversed order, frequency is still the same
         if all(base == rng[::-1]) and sort is None:
             assert isinstance(result.freq, Hour)
         else:

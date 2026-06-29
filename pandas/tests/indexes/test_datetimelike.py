@@ -102,7 +102,7 @@ class TestDatetimeLike:
         index = simple_index
         expected = index + index.freq
         result = index.map(lambda x: x + index.freq)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, check_freq=False)
 
         # map to NaT
         result = index.map(lambda x: pd.NaT if x == index[0] else x)

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     NA,
     Categorical,
@@ -9,6 +11,8 @@ from pandas import (
     MultiIndex,
     NaT,
     RangeIndex,
+    date_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
@@ -325,3 +329,46 @@ def test_assert_index_equal_categorical_incomparable_categories():
     right = Index([1, 2, 6], name="a", dtype="category")
     with pytest.raises(AssertionError, match="types are not comparable"):
         tm.assert_index_equal(left, right, check_categorical=True, exact=False)
+
+
+@pytest.mark.parametrize(
+    "box,start", [(date_range, "2016-01-01"), (timedelta_range, "1 Day")]
+)
+def test_assert_index_equal_check_freq_default_mismatch_warns(box, start):
+    # GH#51920
+    idx = box(start, periods=3)
+    msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        tm.assert_index_equal(idx, idx._with_freq(None))
+
+
+@pytest.mark.parametrize(
+    "box,start", [(date_range, "2016-01-01"), (timedelta_range, "1 Day")]
+)
+def test_assert_index_equal_check_freq_default_match_no_warning(box, start):
+    # GH#51920
+    idx = box(start, periods=3)
+    with tm.assert_produces_warning(None):
+        tm.assert_index_equal(idx, idx.copy())
+
+
+@pytest.mark.parametrize(
+    "box,start", [(date_range, "2016-01-01"), (timedelta_range, "1 Day")]
+)
+def test_assert_index_equal_check_freq_true(box, start):
+    # GH#51920
+    idx = box(start, periods=3)
+    msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_index_equal(idx, idx._with_freq(None), check_freq=True)
+    tm.assert_index_equal(idx, idx.copy(), check_freq=True)
+
+
+@pytest.mark.parametrize(
+    "box,start", [(date_range, "2016-01-01"), (timedelta_range, "1 Day")]
+)
+def test_assert_index_equal_check_freq_false(box, start):
+    # GH#51920
+    idx = box(start, periods=3)
+    with tm.assert_produces_warning(None):
+        tm.assert_index_equal(idx, idx._with_freq(None), check_freq=False)
