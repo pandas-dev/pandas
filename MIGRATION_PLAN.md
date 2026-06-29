@@ -168,3 +168,26 @@ choosing an entire side.
     blocks.
   - The pandas 3.0.1 pad adaptation intentionally remains GIL-held, so
     the Cython return restriction does not exist.
+
+## Batch 7: index search primitives and groupsort
+
+- Original private commits: `0744c0555f`, duplicate export
+  `df0c75b9fd`, `53b373262d`, and the groupsort portion of
+  `403df2a143`.
+- Prior pandas 3.0.3 port: `2f489b472c`.
+- pandas 3.0.1 result: directly adapted because the affected engine and
+  generated-template APIs are unchanged from the target baseline.
+- The port vectorizes `BaseMultiIndexCodesEngine` code preparation,
+  adds typed left/right binary-search hooks for non-complex unmasked
+  engines, and unrolls the two `groupsort_indexer` row loops.
+- pandas 3.0.1 compatibility:
+  - `ObjectEngine` keeps its tuple-aware `_bin_search` implementation;
+  - complex and masked engines retain NumPy search behavior;
+  - generated numeric methods rely on the existing `_check_type`
+    contract before converting the lookup key;
+  - empty input remains valid because all unrolled loops use a
+    four-element-aligned limit.
+- The join take-helper portion of `403df2a143` remains for the join
+  batch; it is not mixed into this index-engine commit.
+- Risk: generated Cython methods and MultiIndex code-width handling
+  require a native build and focused index tests.

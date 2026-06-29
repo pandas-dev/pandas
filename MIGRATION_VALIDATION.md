@@ -320,3 +320,49 @@ Validation:
 
 - Compared both prior diffs with the current 3.0.1 files.
 - ASV was not run.
+
+## Batch 7: index search primitives and groupsort
+
+Sources inspected:
+
+- Exported commits `0744c0555f`, `df0c75b9fd`, `53b373262d`, and the
+  groupsort portion of `403df2a143`.
+- Prior pandas 3.0.3 port `2f489b472c`.
+- pandas 3.0.1 index engine, generated engine template, and
+  `groupsort_indexer` implementations.
+
+Static consistency checks:
+
+- `_searchsorted_left` and `_searchsorted_right` share the same
+  caller-side `_check_type` contract.
+- Generated binary search is excluded for complex and masked engines.
+- `ObjectEngine` retains tuple-key-safe search behavior.
+- `level_has_nans` remains a one-dimensional per-level boolean
+  container and has one indexed consumer.
+- MultiIndex codes are shifted as signed `int64` before being viewed as
+  `uint64`, preserving the missing-code representation.
+- Four-way groupsort loops handle empty and non-multiple-of-four input
+  through the scalar tail.
+- The template imports match every generated Cython scalar type.
+
+Executed:
+
+- `git diff --cached --check`
+- Static call-site and declaration inspection with `rg`.
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/indexes/test_engines.py -q` stopped
+  while importing `pandas/conftest.py` because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime index assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/indexes/multi`
+- `python -m pytest pandas/tests/indexes/test_engines.py`
+- `python -m pytest pandas/tests/reshape/merge`
+- Run ASV for MultiIndex engine construction, duplicate monotonic
+  lookup, and `groupsort_indexer` consumers.

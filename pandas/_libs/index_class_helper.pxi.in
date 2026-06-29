@@ -27,6 +27,8 @@ dtypes = [('Float64', 'float64'),
 
 engines = [('', 'IndexEngine'), ('Masked', 'MaskedIndexEngine')]
 
+search_cmp_sides = [('<', 'left'), ('<=', 'right')]
+
 }}
 
 {{for name, dtype in dtypes}}
@@ -72,6 +74,28 @@ cdef class {{prefix}}{{name}}Engine({{engine}}):
             raise KeyError(val)
     {{endif}}
         return val
+
+    {{if name not in {'Complex64', 'Complex128'} and engine != 'MaskedIndexEngine' }}
+    {{for cmp, side in search_cmp_sides}}
+    cdef Py_ssize_t _searchsorted_{{side}}(self, val) except? -1:
+        cdef:
+            Py_ssize_t lo = 0
+            Py_ssize_t hi = self.values.shape[0]
+            Py_ssize_t mid
+            {{dtype}}_t[:] values = self.values
+            {{dtype}}_t cv = val
+
+        while lo < hi:
+            mid = lo + ((hi - lo) >> 1)
+
+            if values[mid] {{cmp}} cv:
+                lo = mid + 1
+            else:
+                hi = mid
+
+        return lo
+    {{endfor}}
+    {{endif}}
 
 {{endfor}}
 

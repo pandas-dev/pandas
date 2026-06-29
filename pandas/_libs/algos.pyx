@@ -228,18 +228,24 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     This is a reverse of the label factorization process.
     """
     cdef:
-        Py_ssize_t i, label, n
+        Py_ssize_t i, label, n, limit
         intp_t[::1] indexer, where, counts
 
     counts = np.zeros(ngroups + 1, dtype=np.intp)
     n = len(index)
     indexer = np.zeros(n, dtype=np.intp)
     where = np.zeros(ngroups + 1, dtype=np.intp)
+    limit = n & ~3
 
     with nogil:
-
         # count group sizes, location 0 for NA
-        for i in range(n):
+        for i in range(0, limit, 4):
+            counts[index[i] + 1] += 1
+            counts[index[i + 1] + 1] += 1
+            counts[index[i + 2] + 1] += 1
+            counts[index[i + 3] + 1] += 1
+
+        for i in range(limit, n):
             counts[index[i] + 1] += 1
 
         # mark the start of each contiguous group of like-indexed data
@@ -247,7 +253,24 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
             where[i] = where[i - 1] + counts[i - 1]
 
         # this is our indexer
-        for i in range(n):
+        for i in range(0, limit, 4):
+            label = index[i] + 1
+            indexer[where[label]] = i
+            where[label] += 1
+
+            label = index[i + 1] + 1
+            indexer[where[label]] = i + 1
+            where[label] += 1
+
+            label = index[i + 2] + 1
+            indexer[where[label]] = i + 2
+            where[label] += 1
+
+            label = index[i + 3] + 1
+            indexer[where[label]] = i + 3
+            where[label] += 1
+
+        for i in range(limit, n):
             label = index[i] + 1
             indexer[where[label]] = i
             where[label] += 1

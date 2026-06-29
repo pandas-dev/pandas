@@ -5,9 +5,19 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    complex128_t,
+    complex64_t,
+    float32_t,
+    float64_t,
+    int16_t,
+    int32_t,
     int64_t,
+    int8_t,
     intp_t,
     ndarray,
+    uint16_t,
+    uint32_t,
+    uint64_t,
     uint8_t,
 )
 
@@ -209,16 +219,20 @@ cdef class IndexEngine:
         loc = self.values.searchsorted(self._np_type(val), side="left")
         return loc
 
+    cdef Py_ssize_t _searchsorted_right(self, val) except? -1:
+        # Caller is responsible for ensuring _check_type has already been called
+        loc = self.values.searchsorted(self._np_type(val), side="right")
+        return loc
+
     cdef _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff, left, right
 
         if self.is_monotonic_increasing:
-            values = self.values
             try:
-                left = values.searchsorted(val, side="left")
-                right = values.searchsorted(val, side="right")
+                left = self._searchsorted_left(val)
+                right = self._searchsorted_right(val)
             except TypeError:
                 # e.g. GH#29189 get_loc(None) with a Float64Index
                 #  2021-09-29 Now only reached for object-dtype
@@ -751,10 +765,11 @@ cdef class BaseMultiIndexCodesEngine:
         # with positive integers (-1 for NaN becomes 1). This enables us to
         # differentiate between values that are missing in other and matching
         # NaNs. We will set values that are not found to 0 later:
-        codes = np.array(labels).T
-        codes += multiindex_nulls_shift  # inplace sum optimisation
-
-        self.level_has_nans = [-1 in lab for lab in labels]
+        labels_arr = np.array(labels, dtype="int64").T + multiindex_nulls_shift
+        codes = labels_arr.view("uint64")
+        self.level_has_nans = np.any(
+            codes == (multiindex_nulls_shift - 1), axis=0
+        )
 
         # Map each codes combination in the index to an integer unambiguously
         # (no collisions possible), based on the "offsets", which describe the
@@ -1037,6 +1052,14 @@ cdef class SharedEngine:
         """
         try:
             loc = self.values.searchsorted(val, side="left")
+        except TypeError as err:
+            # GH#35788 e.g. val=None with float64 values
+            raise KeyError(val)
+        return loc
+
+    cdef Py_ssize_t _searchsorted_right(self, val) except? -1:
+        try:
+            loc = self.values.searchsorted(val, side="right")
         except TypeError as err:
             # GH#35788 e.g. val=None with float64 values
             raise KeyError(val)
