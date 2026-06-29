@@ -1237,6 +1237,7 @@ def test_transform_agg_by_name(request, reduction_func, frame_or_series):
 
 def test_transform_lambda_with_datetimetz():
     # GH 27496
+    # GH#41090 - name pinning is deprecated
     df = DataFrame(
         {
             "time": [
@@ -1246,9 +1247,11 @@ def test_transform_lambda_with_datetimetz():
             "timezone": ["Etc/GMT+4", "US/Eastern"],
         }
     )
-    result = df.groupby(["timezone"])["time"].transform(
-        lambda x: x.dt.tz_localize(x.name)
-    )
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby(["timezone"])["time"].transform(
+            lambda x: x.dt.tz_localize(x.name)
+        )
     expected = Series(
         [
             Timestamp("2010-07-15 03:14:45", tz="Etc/GMT+4"),

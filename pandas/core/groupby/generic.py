@@ -281,7 +281,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         The resulting dtype will reflect the return value of the passed ``func``.
 
-        >>> g1.apply(lambda x: x * 2 if x.name == "a" else x / 2)
+        >>> g1.apply(lambda x: x * 2 if x.index[0] == "a" else x / 2)
         a    0.0
         a    2.0
         b    1.0
@@ -290,7 +290,7 @@ class SeriesGroupBy(GroupBy[Series]):
         In the above, the groups are not part of the index. We can have them included
         by using ``g2`` where ``group_keys=True``:
 
-        >>> g2.apply(lambda x: x * 2 if x.name == "a" else x / 2)
+        >>> g2.apply(lambda x: x * 2 if x.index[0] == "a" else x / 2)
         a  a    0.0
            a    2.0
         b  b    1.0
@@ -792,8 +792,8 @@ class SeriesGroupBy(GroupBy[Series]):
         for name, group in self._grouper.get_iterator(
             self._obj_with_exclusions,
         ):
-            # this setattr is needed for test_transform_lambda_with_datetimetz
-            object.__setattr__(group, "name", name)
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(name)
             res = func(group, *args, **kwargs)
 
             results.append(klass(res, index=group.index))
@@ -2492,8 +2492,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         except StopIteration:
             pass
         else:
-            # 2023-02-27 No tests broken by disabling this pinning
-            object.__setattr__(group, "name", name)
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(name)
             try:
                 path, res = self._choose_path(fast_path, slow_path, group)
             except ValueError as err:
@@ -2508,8 +2508,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for name, group in gen:
             if group.size == 0:
                 continue
-            # 2023-02-27 No tests broken by disabling this pinning
-            object.__setattr__(group, "name", name)
+            group._pin_deprecated_group_name(name)
             res = path(group)
 
             res = _wrap_transform_general_frame(self.obj, group, res)
@@ -2937,9 +2936,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
-        Each subframe is endowed the attribute 'name' in case you need to know
-        which group you are working on.
-
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
@@ -2966,10 +2962,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self._grouper.get_iterator(obj)
 
         for name, group in gen:
-            # 2023-02-27 no tests are broken this pinning, but it is documented in the
-            #  docstring above.
-            object.__setattr__(group, "name", name)
-
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(name)
             res = func(group, *args, **kwargs)
 
             try:
