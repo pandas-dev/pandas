@@ -473,3 +473,42 @@ Follow-up validation:
   "safe_sort or factorize"`
 - Benchmark sorted factorization for numeric, object, mixed, duplicate,
   and missing-value inputs.
+
+## Batch 11: scalar Cython algorithm hot paths
+
+Sources inspected:
+
+- Exported commits `4c4a5096dc` and `0e2677777a`.
+- Prior pandas 3.0.3 port `28f873ba8e`.
+- pandas 3.0.1 quickselect and missing-value signatures.
+
+Adaptation checks:
+
+- Pointer quickselect preserves pivot, partition, and target movement.
+- Existing callers provide non-empty arrays and valid `k`.
+- Float `checknull` calls C `isnan` after one `float64_t` conversion.
+- Complex, decimal, datetime64, timedelta64, `None`, `NaT`, and `pd.NA`
+  paths are unchanged.
+- NumPy float scalar regression coverage includes NaN, finite, and
+  infinity values.
+
+Executed:
+
+- `git diff --cached --check`
+- `python -m py_compile pandas/tests/dtypes/test_missing.py`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/dtypes/test_missing.py -q -k
+  checknull` stopped during conftest import because `dateutil` is
+  missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/dtypes/test_missing.py -k checknull`
+- Run selection/groupby quantile tests for all fused numeric types.
+- Benchmark scalar missing checks and kth-selection workloads.

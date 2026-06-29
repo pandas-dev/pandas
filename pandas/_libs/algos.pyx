@@ -297,35 +297,36 @@ cdef numeric_t kth_smallest_c(numeric_t* arr,
     in groupby.pyx
     """
     cdef:
-        Py_ssize_t i, j, left, m
+        numeric_t *left_ptr = arr
+        numeric_t *right_ptr = arr + n - 1
+        numeric_t *target_ptr = arr + k
+        numeric_t *pi
+        numeric_t *pj
         numeric_t x
 
-    left = 0
-    m = n - 1
-
-    while left < m:
-        x = arr[k]
-        i = left
-        j = m
+    while left_ptr < right_ptr:
+        x = target_ptr[0]
+        pi = left_ptr
+        pj = right_ptr
 
         while 1:
-            while arr[i] < x:
-                i += 1
-            while x < arr[j]:
-                j -= 1
-            if i <= j:
-                swap(&arr[i], &arr[j])
-                i += 1
-                j -= 1
+            while pi[0] < x:
+                pi += 1
+            while x < pj[0]:
+                pj -= 1
+            if pi <= pj:
+                swap(pi, pj)
+                pi += 1
+                pj -= 1
 
-            if i > j:
+            if pi > pj:
                 break
 
-        if j < k:
-            left = i
-        if k < i:
-            m = j
-    return arr[k]
+        if pj < target_ptr:
+            left_ptr = pi
+        if target_ptr < pi:
+            right_ptr = pj
+    return target_ptr[0]
 
 
 @cython.boundscheck(False)

@@ -235,3 +235,17 @@ choosing an entire side.
   unchanged.
 - Risk: stable remapping must preserve NA sentinels, mixed integer/string
   ordering, tuple fallback, and ExtensionArray behavior.
+
+## Batch 11: scalar Cython algorithm hot paths
+
+- Original private commits: `4c4a5096dc` and `0e2677777a`.
+- Prior pandas 3.0.3 port: `28f873ba8e`.
+- pandas 3.0.1 result: directly applied to the matching Cython
+  implementations.
+- `kth_smallest_c` advances typed pointers instead of repeatedly
+  indexing from the array base. `checknull` converts exact float objects
+  once and calls C `isnan`, while complex values retain self-comparison.
+- The removed pandas 2.x `inf_as_na` signature is not restored; infinity
+  remains non-missing in pandas 3.0.1.
+- Risk: quickselect pointer bounds and NumPy float scalar conversion
+  require native compilation and runtime coverage.

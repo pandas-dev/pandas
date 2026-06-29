@@ -3,6 +3,7 @@ import numbers
 from sys import maxsize
 
 cimport cython
+from libc.math cimport isnan
 from cpython.datetime cimport (
     date,
     time,
@@ -157,9 +158,14 @@ cpdef bint checknull(object val):
     -------
     bool
     """
+    cdef float64_t fval
+
     if val is None or val is NaT or val is C_NA:
         return True
-    elif util.is_float_object(val) or util.is_complex_object(val):
+    elif util.is_float_object(val):
+        fval = val
+        return isnan(fval)
+    elif util.is_complex_object(val):
         if val != val:
             return True
         return False

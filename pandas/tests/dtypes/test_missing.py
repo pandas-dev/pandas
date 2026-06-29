@@ -241,6 +241,11 @@ class TestIsNA:
         tm.assert_numpy_array_equal(isna(idx.values), exp)
         tm.assert_numpy_array_equal(notna(idx.values), ~exp)
 
+    def test_checknull_numpy_float_scalar(self):
+        assert libmissing.checknull(np.float64(np.nan))
+        assert not libmissing.checknull(np.float64(1.5))
+        assert not libmissing.checknull(np.float64(np.inf))
+
     @pytest.mark.parametrize(
         "dtype",
         [
