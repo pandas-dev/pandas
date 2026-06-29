@@ -483,3 +483,17 @@ choosing an entire side.
   value, and output mode retains existing dispatch.
 - Risk: F-order axis flipping, all/partial/no fill masks, `allow_fill`,
   shape, and object output ownership need runtime tests.
+
+## Batch 27: Arrow integer scalar fillna
+
+- Original private commit: the Arrow fillna subset of `1246018d48`.
+- Prior pandas 3.0.3 port: `9ea1009920`.
+- pandas 3.0.1 result: narrowly reimplemented after rejecting a conflict
+  side that included unrelated 3.0.3 duration helpers.
+- Valid scalar fills on single-chunk integer arrays copy primitive data,
+  replace invalid positions from the Arrow validity mask, and rebuild a
+  null-free Arrow array.
+- Invalid scalar, multi-chunk, non-integer, missing-buffer, limit, and
+  unsupported cases retain existing `_safe_fill_null`/EA fallback.
+- Risk: sliced chunks, signed/unsigned widths, scalar overflow, buffer
+  lifetime, Arrow version behavior, and CoW need PyArrow runtime tests.

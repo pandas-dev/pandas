@@ -96,6 +96,9 @@ if HAS_PYARROW:
     import pyarrow.compute as pc
 
     from pandas.compat.pyarrow import _safe_fill_null
+    from pandas.core.arrays.arrow._arrow_utils import (
+        pyarrow_array_to_numpy_and_mask,
+    )
 
     from pandas.core.dtypes.dtypes import ArrowDtype
 
@@ -173,6 +176,35 @@ if HAS_PYARROW:
             divided = pc.divide(left, right)
             result = pc.floor(divided)
         return result
+
+    def _fill_null_with_single_chunk_integer_scalar(
+        arrow_array: pa.ChunkedArray, fill_value: pa.Scalar
+    ) -> pa.ChunkedArray | None:
+        if (
+            not fill_value.is_valid
+            or arrow_array.num_chunks != 1
+            or not pa.types.is_integer(arrow_array.type)
+        ):
+            return None
+
+        chunk = arrow_array.chunk(0)
+        if chunk.null_count == 0:
+            return arrow_array
+
+        validity_buffer, data_buffer = chunk.buffers()
+        if validity_buffer is None or data_buffer is None:
+            return None
+
+        np_dtype = pa.array([], type=chunk.type).to_numpy(zero_copy_only=False).dtype
+        data, mask = pyarrow_array_to_numpy_and_mask(chunk, np_dtype)
+        data = data.copy()
+        data[~mask] = fill_value.as_py()
+        filled = pa.Array.from_buffers(
+            type=chunk.type,
+            length=len(chunk),
+            buffers=[None, pa.py_buffer(data)],
+        )
+        return pa.chunked_array([filled], type=arrow_array.type)
 
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
@@ -1403,6 +1435,12 @@ class ArrowExtensionArray(
         except pa.ArrowTypeError as err:
             msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
+
+        result = _fill_null_with_single_chunk_integer_scalar(
+            self._pa_array, fill_value
+        )
+        if result is not None:
+            return self._from_pyarrow_array(result)
 
         try:
             return self._from_pyarrow_array(

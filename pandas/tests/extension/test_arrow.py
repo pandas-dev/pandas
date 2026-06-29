@@ -1280,6 +1280,18 @@ def test_bitwise(pa_type):
     tm.assert_series_equal(result, expected)
 
 
+def test_fillna_single_chunk_integer_scalar():
+    pa_array = pa.chunked_array([pa.array([1, None, 3], type=pa.int64())])
+    arr = ArrowExtensionArray(pa_array)
+
+    result = arr.fillna(2)
+
+    expected = ArrowExtensionArray(
+        pa.chunked_array([pa.array([1, 2, 3], type=pa.int64())])
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
     with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")

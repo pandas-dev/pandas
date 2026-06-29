@@ -1123,3 +1123,46 @@ Follow-up validation:
   true/false, empty dimensions, scalar/list-like new values, and CoW
   callers.
 - Benchmark scalar putmask and 2-D bool-to-object take.
+
+## Batch 27: Arrow integer scalar fillna
+
+Sources inspected:
+
+- Arrow fillna subset of exported `1246018d48`.
+- Prior pandas 3.0.3 port `9ea1009920`.
+- pandas 3.0.1 Arrow mask utility, boxing, and fill fallback.
+
+Adaptation checks:
+
+- Fast path requires one chunk, integer type, and a valid boxed scalar.
+- Existing `limit` and array-like value handling occur before the helper.
+- Null-free input returns the existing Arrow array.
+- Primitive data is copied before replacement.
+- Arrow validity uses `False` for missing positions.
+- Rebuilt array has no validity buffer and retains the exact Arrow type.
+- Every unsupported case returns `None` to the existing safe kernel.
+- Unrelated duration helpers from the conflict were not imported.
+
+Executed:
+
+- `git diff --cached --check`
+- Conflict-marker and narrow-diff inspection.
+- `python -m py_compile` on implementation and test.
+- `python -m compileall -q pandas`
+- PyArrow availability check: PyArrow is not installed.
+- Focused pytest invocation stopped earlier at conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- PyArrow runtime test: PyArrow is unavailable.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run Arrow extension fillna tests with supported minimum/current
+  PyArrow versions.
+- Cover all integer widths/signs, slices/offsets, null-free/all-null,
+  multi-chunk, invalid/overflowing scalar, limit, non-integer types, and
+  buffer lifetime.
+- Benchmark single-chunk integer scalar fillna.
