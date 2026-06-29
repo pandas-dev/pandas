@@ -490,15 +490,15 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     return str(ts)
 
 
-cdef enum BoundaryError:
-    BE_OK
-    BE_UNDERFLOW
-    BE_OVERFLOW
+cdef enum BoundaryStatus:
+    BS_OK
+    BS_UNDERFLOW
+    BS_OVERFLOW
 
 
 cdef void raise_out_of_bounds(
     int64_t val,
-    BoundaryError err,
+    BoundaryStatus err,
     NPY_DATETIMEUNIT creso
 ) except *:
     cdef:
@@ -511,7 +511,7 @@ cdef void raise_out_of_bounds(
     pandas_datetime_to_datetimestruct(val, creso, &dts)
     fmt = dts_to_iso_string(&dts)
 
-    if err == BE_OVERFLOW:
+    if err == BS_OVERFLOW:
         limit_ts = (<_Timestamp>Timestamp(0))._as_creso(creso).max
         raise OutOfBoundsDatetime(
             f"Converting {fmt} overflows past {limit_ts}"
@@ -542,7 +542,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         int64_t delta_l, delta_r
         Py_ssize_t isl, isr, pos_left, pos_right
         int64_t ppd = periods_per_day(creso)
-        BoundaryError v_l_err, v_r_err
+        BoundaryStatus v_l_err, v_r_err
 
     result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
     result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
@@ -589,11 +589,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
 
         delta_l = deltas[isl]
         if delta_l > 0 and val < NPY_NAT + 1 + delta_l:
-            v_l_err = BE_UNDERFLOW
+            v_l_err = BS_UNDERFLOW
         elif delta_l < 0 and val > INT64_MAX + delta_l:
-            v_l_err = BE_OVERFLOW
+            v_l_err = BS_OVERFLOW
         else:
-            v_l_err = BE_OK
+            v_l_err = BS_OK
             v_left = val - delta_l
             pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
             # timestamp falls to the left side of the DST transition
@@ -609,11 +609,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
 
         delta_r = deltas[isr]
         if delta_r > 0 and val < NPY_NAT + 1 + delta_r:
-            v_r_err = BE_UNDERFLOW
+            v_r_err = BS_UNDERFLOW
         elif delta_r < 0 and val > INT64_MAX + delta_r:
-            v_r_err = BE_OVERFLOW
+            v_r_err = BS_OVERFLOW
         else:
-            v_r_err = BE_OK
+            v_r_err = BS_OK
             v_right = val - delta_r
             pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
             # timestamp falls to the right side of the DST transition
@@ -621,7 +621,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 result_b[i] = v_right
 
         if result_a[i] == NPY_NAT and result_b[i] == NPY_NAT:
-            if v_l_err != BE_OK and v_r_err != BE_OK:
+            if v_l_err != BS_OK and v_r_err != BS_OK:
                 raise_out_of_bounds(val, v_l_err, creso)
 
     return result_a, result_b
