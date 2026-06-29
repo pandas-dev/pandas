@@ -73,3 +73,42 @@ Follow-up validation:
 - Build the Cython extensions before the runtime tests.
 - Run the DataFrame correlation ASV cases with fully valid columns,
   sparse missing columns, constant columns, and varying `min_periods`.
+
+## Batch 2a: pad inplace loops
+
+Sources inspected:
+
+- Exported commits `706991b28f`, `38f97b58aa`, and `6fd0359851`.
+- Prior pandas 3.0.3 port `28df2030b5`.
+- pandas 3.0.1 `pad_inplace` and `pad_2d_inplace`.
+
+Adaptation checks:
+
+- Leading missing prefixes remain missing because there is no prior
+  value to propagate.
+- The no-limit 1-D path clears masks only after the first valid value.
+- The four-way unroll updates the carried value in source order.
+- Limited fills reset their count after every valid value.
+- The 2-D no-limit path applies the same rules independently per row.
+- The pandas 3.0.3-only surrounding `nogil` and scalar-fill helpers are
+  not imported.
+
+Executed:
+
+- `git diff --check`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/libs/test_libalgos.py -q` stopped
+  during conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime pad/backfill tests: pytest is blocked by missing `dateutil`.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/libs/test_libalgos.py -k "pad or backfill"`
+- `python -m pytest pandas/tests/frame/methods/test_fillna.py -k "pad or backfill"`
+- Run pad/backfill ASV cases for unlimited and limited 1-D/2-D inputs,
+  including leading, trailing, and all-missing masks.

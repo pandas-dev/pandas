@@ -25,7 +25,7 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | Order | Prior pandas 3.0.3 commit | Theme | pandas 3.0.1 disposition |
 | ---: | --- | --- | --- |
 | 1 | `d978bd13ee` | nancorr | adapted |
-| 2 | `28df2030b5` | take helpers | pending |
+| 2 | `28df2030b5` | pad and take helpers | pad split and adapted; take pending |
 | 3 | `f6d861f8a6` | SwissTable | pending |
 | 4 | `8e0304f403` | maybe_convert_objects | pending |
 | 5 | `f39ba34d1d` | groupby loops | pending |
@@ -68,3 +68,17 @@ choosing an entire side.
 - Risk: the two-pass path trades Welford's incremental arithmetic for
   fewer divisions and mask branches. Numerical behavior needs the
   existing corr suite and performance workloads on a built extension.
+
+## Batch 2a: pad inplace loops
+
+- Original private commits: `706991b28f`, `38f97b58aa`, and
+  `6fd0359851`.
+- Prior pandas 3.0.3 port: bundled into `28df2030b5` despite that
+  commit's take-only subject.
+- pandas 3.0.1 result: split into a dedicated batch and adapted without
+  importing unrelated pandas 3.0.2/3.0.3 Cython changes.
+- Compatibility change: retain the 3.0.1 GIL structure while adding
+  no-limit paths, leading-missing-prefix handling, and the four-way 1-D
+  loop unroll.
+- Risk: mask mutation for leading missing values and limited fills must
+  remain identical to the original implementation.

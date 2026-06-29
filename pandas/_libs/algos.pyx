@@ -683,8 +683,9 @@ def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
     cdef:
         Py_ssize_t i, N
         numeric_object_t val
-        uint8_t prev_mask
+        uint8_t m0, m1, m2, m3
         int lim, fill_count = 0
+        bint no_limit
 
     N = len(values)
 
@@ -692,30 +693,81 @@ def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
     if N == 0:
         return
 
-    lim = validate_limit(N, limit)
+    no_limit = limit is None
+    if not no_limit:
+        lim = validate_limit(N, limit)
 
-    val = values[0]
-    prev_mask = mask[0]
-    for i in range(N):
+    i = 0
+    while i < N and mask[i]:
+        i += 1
+
+    if i >= N:
+        return
+
+    val = values[i]
+    i += 1
+
+    if no_limit:
+        while i + 4 <= N:
+            m0 = mask[i]
+            if m0:
+                values[i] = val
+                mask[i] = 0
+            else:
+                val = values[i]
+
+            m1 = mask[i + 1]
+            if m1:
+                values[i + 1] = val
+                mask[i + 1] = 0
+            else:
+                val = values[i + 1]
+
+            m2 = mask[i + 2]
+            if m2:
+                values[i + 2] = val
+                mask[i + 2] = 0
+            else:
+                val = values[i + 2]
+
+            m3 = mask[i + 3]
+            if m3:
+                values[i + 3] = val
+                mask[i + 3] = 0
+            else:
+                val = values[i + 3]
+
+            i += 4
+
+        while i < N:
+            if mask[i]:
+                values[i] = val
+                mask[i] = 0
+            else:
+                val = values[i]
+            i += 1
+        return
+
+    while i < N:
         if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-            mask[i] = prev_mask
+            if fill_count < lim:
+                values[i] = val
+                mask[i] = 0
+                fill_count += 1
         else:
             fill_count = 0
             val = values[i]
-            prev_mask = mask[i]
+        i += 1
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None):
     cdef:
-        Py_ssize_t i, j, N, K
+        Py_ssize_t i, j, N, K, start
         numeric_object_t val
         int lim, fill_count = 0
+        bint no_limit
 
     K, N = (<object>values).shape
 
@@ -723,9 +775,28 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
     if N == 0:
         return
 
-    lim = validate_limit(N, limit)
+    no_limit = limit is None
+    if not no_limit:
+        lim = validate_limit(N, limit)
 
     for j in range(K):
+        if no_limit:
+            start = 0
+            while start < N and mask[j, start]:
+                start += 1
+
+            if start == N:
+                continue
+
+            val = values[j, start]
+            for i in range(start + 1, N):
+                if mask[j, i]:
+                    values[j, i] = val
+                    mask[j, i] = False
+                else:
+                    val = values[j, i]
+            continue
+
         fill_count = 0
         val = values[j, 0]
         for i in range(N):
