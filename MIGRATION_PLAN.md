@@ -297,3 +297,17 @@ choosing an entire side.
   `new_mask`.
 - Risk: fused-type specialization, Fortran buffer indexing, NA codes,
   and object-reference writes require a native build.
+
+## Batch 15: rolling sum loop structure
+
+- Original private commit: `66863407cc`.
+- Prior pandas 3.0.3 port: `e7b5a3234a`.
+- pandas 3.0.1 result: directly applied to the matching
+  `roll_sum` implementation.
+- Monotonic windows initialize once, cache prior bounds, and update by
+  removing/adding only changed ranges. Non-monotonic windows use a
+  separate full-recomputation loop without redundant cleanup stores.
+- Kahan add/remove compensation and consecutive-identical-value
+  handling are preserved.
+- Risk: empty/disjoint/overlapping windows, non-monotonic bounds,
+  infinities, NaNs, and minimum-period behavior need native tests.

@@ -643,3 +643,41 @@ Follow-up validation:
   drop-first, dummy-NA, object values, and empty shapes.
 - Benchmark wide dense get_dummies and numeric unstack mask-heavy and
   mask-light workloads.
+
+## Batch 15: rolling sum loop structure
+
+Sources inspected:
+
+- Exported commit `66863407cc`.
+- Prior pandas 3.0.3 port `e7b5a3234a`.
+- pandas 3.0.1 rolling sum state and bounds handling.
+
+Static consistency checks:
+
+- The monotonic branch is entered only for non-empty bounds arrays.
+- Prior start/end bounds are updated after every output.
+- Disjoint windows reset all rolling state before recomputation.
+- Overlapping windows remove expired values and add new values.
+- Non-monotonic windows recompute every output from an empty state.
+- Kahan add/remove compensation and `calc_sum` inputs are unchanged.
+
+Executed:
+
+- `git diff --cached --check`
+- Static control-flow inspection.
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/window/test_rolling.py -q -k sum`
+  stopped during conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run rolling/window sum tests after rebuilding extensions.
+- Cover expanding, fixed, variable, empty, disjoint, overlapping, and
+  non-monotonic bounds with NaN/inf and different `min_periods`.
+- Run rolling sum ASV for monotonic and variable-window workloads.

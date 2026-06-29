@@ -145,6 +145,7 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
         int64_t nobs = 0, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
+        int64_t prev_s, prev_e
 
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
@@ -153,40 +154,71 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 
     with nogil:
 
-        for i in range(0, N):
-            s = start[i]
-            e = end[i]
+        if is_monotonic_increasing_bounds and N > 0:
+            s = start[0]
+            e = end[0]
+            prev_value = values[s]
+            num_consecutive_same_value = 0
+            sum_x = compensation_add = compensation_remove = 0
+            nobs = 0
 
-            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
+            for j in range(s, e):
+                add_sum(values[j], &nobs, &sum_x, &compensation_add,
+                        &num_consecutive_same_value, &prev_value)
 
-                # setup
+            output[0] = calc_sum(
+                minp, nobs, sum_x, num_consecutive_same_value, prev_value
+            )
+
+            prev_s = s
+            prev_e = e
+
+            for i in range(1, N):
+                s = start[i]
+                e = end[i]
+
+                if s >= prev_e:
+                    prev_value = values[s]
+                    num_consecutive_same_value = 0
+                    sum_x = compensation_add = compensation_remove = 0
+                    nobs = 0
+
+                    for j in range(s, e):
+                        add_sum(values[j], &nobs, &sum_x, &compensation_add,
+                                &num_consecutive_same_value, &prev_value)
+                else:
+                    for j in range(prev_s, s):
+                        remove_sum(values[j], &nobs, &sum_x,
+                                   &compensation_remove)
+
+                    for j in range(prev_e, e):
+                        add_sum(values[j], &nobs, &sum_x, &compensation_add,
+                                &num_consecutive_same_value, &prev_value)
+
+                output[i] = calc_sum(
+                    minp, nobs, sum_x, num_consecutive_same_value, prev_value
+                )
+
+                prev_s = s
+                prev_e = e
+
+        else:
+            for i in range(N):
+                s = start[i]
+                e = end[i]
+
                 prev_value = values[s]
                 num_consecutive_same_value = 0
-                sum_x = compensation_add = compensation_remove = 0
+                sum_x = compensation_add = 0
                 nobs = 0
+
                 for j in range(s, e):
                     add_sum(values[j], &nobs, &sum_x, &compensation_add,
                             &num_consecutive_same_value, &prev_value)
 
-            else:
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    remove_sum(values[j], &nobs, &sum_x, &compensation_remove)
-
-                # calculate adds
-                for j in range(end[i - 1], e):
-                    add_sum(values[j], &nobs, &sum_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value)
-
-            output[i] = calc_sum(
-                minp, nobs, sum_x, num_consecutive_same_value, prev_value
-            )
-
-            if not is_monotonic_increasing_bounds:
-                nobs = 0
-                sum_x = 0.0
-                compensation_remove = 0.0
+                output[i] = calc_sum(
+                    minp, nobs, sum_x, num_consecutive_same_value, prev_value
+                )
 
     return output
 
