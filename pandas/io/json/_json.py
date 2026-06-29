@@ -218,6 +218,22 @@ def to_json(
                 obj = obj.copy(deep=False)
                 obj.index = Series(obj.index).dt.as_unit(date_unit)
 
+    if orient != "table":
+        # GH#55490 Period data cannot be serialized by the C JSON encoder, so
+        # render it as ISO-8601 strings up front. The "table" orient handles
+        # this in JSONTableWriter so that the Table Schema can still record the
+        # period dtype/frequency for round-tripping.
+        if isinstance(obj, DataFrame):
+            cols = np.nonzero(
+                obj.dtypes.map(lambda dt: isinstance(dt, PeriodDtype)).to_numpy()
+            )[0]
+            if len(cols):
+                obj = obj.copy(deep=False)
+                for col in cols:
+                    obj.isetitem(col, obj.iloc[:, col].array._values_for_json())
+        elif isinstance(obj, Series) and isinstance(obj.dtype, PeriodDtype):
+            obj = Series(obj.array._values_for_json(), index=obj.index, name=obj.name)
+
     writer: type[Writer]
     if orient == "table" and isinstance(obj, DataFrame):
         writer = JSONTableWriter
@@ -415,6 +431,19 @@ class JSONTableWriter(FrameWriter):
             obj = obj.copy()
             copied = True
             obj[timedeltas] = obj[timedeltas].map(lambda x: x.isoformat())
+
+        # GH#55490 Period columns cannot be serialized by the C JSON encoder.
+        # Render them as ISO-8601 strings; the dtype/frequency is preserved in
+        # the Table Schema (built above) so the round-trip is lossless.
+        periods = [
+            col for col, dtype in obj.dtypes.items() if isinstance(dtype, PeriodDtype)
+        ]
+        if periods:
+            if not copied:
+                obj = obj.copy(deep=False)
+                copied = True
+            for col in periods:
+                obj[col] = obj[col].array._values_for_json()
 
         # exclude index from obj if index=False
         if not self.index:
