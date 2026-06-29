@@ -410,6 +410,46 @@ def test_apply_mixed_dtype_corner_indexing():
     tm.assert_series_equal(result, expected)
 
 
+def test_apply_axis1_label_lookup_uses_row_values_cache():
+    df = DataFrame({"A": [1, 2], "B": [10, 20]})
+
+    result = df.apply(lambda row: row["A"] + row["B"], axis=1)
+
+    expected = Series([11, 22])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_axis1_string_label_lookup_bypasses_apply_if_callable(monkeypatch):
+    def raise_if_called(key, obj):
+        raise AssertionError("cached string labels should avoid apply_if_callable")
+
+    df = DataFrame({"a": [1, 2], "b": [10, 20]})
+    monkeypatch.setattr("pandas.core.series.com.apply_if_callable", raise_if_called)
+
+    result = df.apply(lambda row: row["a"] + row["b"], axis=1)
+
+    expected = Series([11, 22])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_axis1_callable_key_still_respected():
+    df = DataFrame({"A": [1, 2], "B": [10, 20]})
+
+    result = df.apply(lambda row: row[lambda obj: "A"], axis=1)
+
+    expected = Series([1, 2])
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_axis1_duplicate_columns_keep_series_lookup_semantics():
+    df = DataFrame([[1, 10], [2, 20]], columns=["A", "A"])
+
+    result = df.apply(lambda row: row["A"].sum(), axis=1)
+
+    expected = Series([11, 22])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("ax", ["index", "columns"])
 @pytest.mark.parametrize(

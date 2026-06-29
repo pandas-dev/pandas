@@ -350,6 +350,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _hidden_attrs = (
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
+    _row_apply_label_to_pos: dict[Hashable, int] | None = None
+    _row_apply_label_to_pos_index: Index | None = None
+    _row_apply_values: ArrayLike | None = None
+    _row_apply_needs_ref_reset = False
 
     # similar to __array_priority__, positions Series after DataFrame
     #  but before Index and ExtensionArray.  Should NOT be overridden by subclasses.
@@ -934,6 +938,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self._values[i]
 
+    def _get_row_apply_cached_value(self, key):
+        positions = self._row_apply_label_to_pos
+        if positions is None or self._row_apply_label_to_pos_index is not self.index:
+            return lib.no_default
+
+        try:
+            loc = positions[key]
+        except (KeyError, TypeError):
+            return lib.no_default
+
+        values = self._row_apply_values
+        if values is None:
+            values = self._values
+        return values[loc]
+
     def _slice(self, slobj: slice, axis: AxisInt = 0) -> Series:
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
@@ -944,6 +963,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
+        if not callable(key):
+            result = self._get_row_apply_cached_value(key)
+            if result is not lib.no_default:
+                return result
+
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:

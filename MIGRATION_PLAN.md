@@ -433,3 +433,23 @@ choosing an entire side.
   path and its regression tests.
 - Risk: scalar/array parity across anchors, signs, leap years, month
   ends, NaT, and intraday components requires native tests.
+
+## Batch 24: row-wise apply label cache
+
+- Original private commits: `7d7fb8bf02` and the row-apply subset of
+  `1246018d48`.
+- Prior pandas 3.0.3 port: `f4f5eeb92c`.
+- pandas 3.0.1 result: adapted around the earlier
+  `FrameColumnApply.series_generator` while excluding later EA row
+  builder changes.
+- Unique columns get a label-to-position cache on the reused row Series;
+  duplicate columns retain normal Series lookup. Callable keys still go
+  through `apply_if_callable`.
+- The current row values are cached after manager replacement, and CoW
+  refs are reset only after an applied function returned a Series that
+  required a shallow copy.
+- `SingleBlockManager.set_values` avoids rebuilding unchanged
+  `BlockPlacement`.
+- Risk: Series subclass attributes, returned views, mutation inside
+  apply, duplicate labels, EA rows, and CoW reference state need runtime
+  tests.

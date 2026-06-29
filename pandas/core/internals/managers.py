@@ -2255,7 +2255,6 @@ class SingleBlockManager(BaseBlockManager):
         # NOTE(CoW) Currently this is only used for FrameColumnApply.series_generator
         # which handles CoW by setting the refs manually if necessary
         self.blocks[0].values = values
-        self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
     def _equal_values(self, other: Self) -> bool:
         """

@@ -997,3 +997,44 @@ Follow-up validation:
 - Cover every valid anchor, positive/zero/negative n, leap/century
   years, all month lengths, NaT, resolutions, and intraday timestamps.
 - Benchmark SemiMonthBegin/SemiMonthEnd array application.
+
+## Batch 24: row-wise apply label cache
+
+Sources inspected:
+
+- Exported `7d7fb8bf02` and the row-apply subset of `1246018d48`.
+- Prior pandas 3.0.3 port `f4f5eeb92c`.
+- pandas 3.0.1 Series lookup, FrameColumnApply generator, CoW refs, and
+  manager set-values call sites.
+
+Adaptation checks:
+
+- Cache is enabled only when columns are unique.
+- Cache identity is tied to the exact row Series index.
+- Missing/unhashable/callable keys fall back to normal Series behavior.
+- Every reused ndarray row updates `_row_apply_values`.
+- Ref reset is requested only after a Series result is shallow-copied
+  and consumed on the next reused row.
+- EA rows continue through `_ixs` and do not use the ndarray cache.
+- `SingleBlockManager.set_values` remains documented as apply-only.
+
+Executed:
+
+- `git diff --cached --check`
+- Conflict-marker and cache-protocol inspection.
+- `python -m py_compile` on all four modified Python/test files.
+- `python -m compileall -q pandas`
+- Focused apply pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Runtime apply/CoW assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run frame apply and Copy-on-Write test suites.
+- Cover unique/duplicate/unhashable/callable labels, mutation, returned
+  scalar/Series/view, EA rows, mixed dtype, and Series subclasses.
+- Benchmark `DataFrame.apply(axis=1)` label-heavy workloads.
