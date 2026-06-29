@@ -1274,7 +1274,7 @@ class TestPandasContainer:
         )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
-        tm.assert_series_equal(result, ser.astype("m8[ms]"))
+        tm.assert_series_equal(result, ser.astype("m8[us]"))
 
         ser = Series(
             [timedelta(23), timedelta(seconds=5)], index=Index([0, 1]), dtype="m8[ns]"
@@ -1282,7 +1282,7 @@ class TestPandasContainer:
         assert ser.dtype == "timedelta64[ns]"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
-        tm.assert_series_equal(result, ser.astype("m8[ms]"))
+        tm.assert_series_equal(result, ser.astype("m8[us]"))
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)], dtype="m8[ns]")
         assert frame[0].dtype == "timedelta64[ns]"
@@ -1290,7 +1290,7 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = frame.to_json()
         result = read_json(StringIO(json)).apply(converter)
-        tm.assert_frame_equal(frame.astype("m8[ms]"), result)
+        tm.assert_frame_equal(frame.astype("m8[us]"), result)
 
     def test_timedelta2(self):
         frame = DataFrame(

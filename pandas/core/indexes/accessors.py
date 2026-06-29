@@ -484,7 +484,7 @@ class TimedeltaProperties(Properties):
         2   2 days
         3   3 days
         4   4 days
-        dtype: timedelta64[s]
+        dtype: timedelta64[us]
 
         >>> s.dt.to_pytimedelta()
         array([datetime.timedelta(0), datetime.timedelta(days=1),
@@ -530,7 +530,7 @@ class TimedeltaProperties(Properties):
         2   0 days 00:00:02
         3   0 days 00:00:03
         4   0 days 00:00:04
-        dtype: timedelta64[s]
+        dtype: timedelta64[us]
         >>> s.dt.components
            days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
         0     0      0        0        0             0             0            0

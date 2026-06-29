@@ -1001,8 +1001,6 @@ class TestDataFrameSetItemWithExpansion:
             index=Index([0]),
             columns=(["a", "b", "c"]),
         )
-        expected["a"] = expected["a"].astype("m8[s]")
-        expected["b"] = expected["b"].astype("m8[s]")
         tm.assert_frame_equal(result, expected)
 
     def test_setitem_tuple_key_in_empty_frame(self):

@@ -127,7 +127,7 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = to_timedelta(arr, unit=unit)
-        exp_dtype = "m8[s]"
+        exp_dtype = "m8[us]" if dtype == "int64" else "m8[s]"
         expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
@@ -281,7 +281,7 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = Series([timedelta(days=1), expected_val], dtype="m8[s]")
+        expected = Series([timedelta(days=1), expected_val], dtype="m8[us]")
         result = to_timedelta(Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)

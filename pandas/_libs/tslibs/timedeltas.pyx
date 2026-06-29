@@ -47,7 +47,6 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    abbrev_to_npy_unit,
     c_DEPR_UNITS,
     get_supported_reso,
     is_supported_unit,
@@ -62,6 +61,7 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    NPY_FR_us,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -363,15 +363,15 @@ def array_to_timedelta64(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
-        NPY_DATETIMEUNIT item_reso, int_reso
+        NPY_DATETIMEUNIT item_reso
         ResoState state = ResoState(creso)
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
 
-    if unit is None:
+    if unit is None or unit == "ns":
         int_reso = NPY_FR_ns
     else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(parsed_unit))
+        int_reso = NPY_FR_us
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -2342,21 +2342,30 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
                 unit = parse_timedelta_unit(unit)
-                if unit != "ns":
-                    # Return with the closest-to-supported unit by going through
-                    #  the timedelta64 path
-                    td = np.timedelta64(value, unit)
-                    return cls(td)
-                value = _numeric_to_td64ns(value, unit)
+                out_reso = (
+                    NPY_DATETIMEUNIT.NPY_FR_ns
+                    if unit == "ns"
+                    else NPY_DATETIMEUNIT.NPY_FR_us
+                )
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
 
         elif is_float_object(value):
-            int_item = int(value)
-            if value == int_item:
-                # round float -> treat like an int, try to preserve unit
-                return cls(int_item, unit=unit)
-
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
+
+            int_item = int(value)
+            if value == int_item:
+                # round float -> treat like an int
+                out_reso = (
+                    NPY_DATETIMEUNIT.NPY_FR_ns
+                    if unit == "ns"
+                    else NPY_DATETIMEUNIT.NPY_FR_us
+                )
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
+
+            # with fractional parts -> still default to nanoseconds
             value = _numeric_to_td64ns(value, unit)
 
         else:
