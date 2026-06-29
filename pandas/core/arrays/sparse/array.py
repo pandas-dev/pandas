@@ -1560,12 +1560,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if method is None:
             raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-        if skipna:
-            arr = self
+        if name == "mean":
+            # mean handles skipna itself; dropping NAs beforehand would hide
+            # the NA from its skipna=False short-circuit
+            result = method(skipna=skipna, **kwargs)
         else:
-            arr = self.dropna()
-
-        result = getattr(arr, name)(**kwargs)
+            if skipna:
+                arr = self
+            else:
+                arr = self.dropna()
+            result = getattr(arr, name)(**kwargs)
 
         if keepdims:
             return type(self)([result], dtype=self.dtype)
@@ -1690,24 +1694,42 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fill_value=self.fill_value,
         )
 
-    def mean(self, axis: Axis = 0, *args, **kwargs):
+    def mean(self, axis: Axis = 0, *args, skipna: bool = True, **kwargs):
         """
-        Mean of non-NA/null values
+        Mean of non-NA/null values.
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------
         mean : float
         """
         nv.validate_mean(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
         ct = len(valid_vals)
 
+        # Compute the reduction before the skipna=False NA short-circuit so
+        # unsupported dtypes still raise during the operation validation.
+
         if self._null_fill_value:
-            return sp_sum / ct
+            mean = sp_sum / ct
         else:
             nsparse = self.sp_index.ngaps
-            return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+            mean = (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+
+        if not skipna and self._hasna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+        return mean
 
     def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """

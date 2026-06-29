@@ -2248,7 +2248,8 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match="^$"):
+        msg = "read_sql_table not supported for a DBAPI connection"
+        with pytest.raises(NotImplementedError, match=msg):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -2327,6 +2328,30 @@ def test_api_escaped_table_name(conn, request):
     res = sql.read_sql_query(query, conn)
 
     tm.assert_frame_equal(res, df)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_api_table_name_quoted(conn, request):
+    # GH#65065 ADBCDatabase did not escape SQL identifiers in
+    # delete_rows, read_table, and to_sql (DROP TABLE path)
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        pytest.skip("sqlite_buildin connection does not implement read_sql_table")
+
+    conn = request.getfixturevalue(conn)
+
+    tricky_name = "my table"
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    # to_sql: adbc_ingest handles quoting internally — should pass
+    df.to_sql(tricky_name, conn, index=False, if_exists="replace")
+    # read_table: was interpolating name raw into f-string
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
+    # delete_rows: was interpolating name raw into DELETE FROM f-string
+    df.to_sql(tricky_name, conn, index=False, if_exists="delete_rows")
+    result = read_sql_table(tricky_name, conn)
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2619,7 +2644,7 @@ def test_sql_open_close(temp_file, test_frame3):
 @td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
-    msg = "Using URI string without sqlalchemy installed"
+    msg = "Using a URI string requires 'sqlalchemy'"
     with pytest.raises(ImportError, match=msg):
         sql.read_sql("SELECT * FROM iris", conn)
 
@@ -4090,7 +4115,7 @@ def test_sqlite_test_dtype(sqlite_buildin):
     assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
 
     assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
-    msg = r"B \(<class 'bool'>\) not a string"
+    msg = r"Invalid type '<class 'bool'>' for dtype of column 'B': expected a string"
     with pytest.raises(ValueError, match=msg):
         df.to_sql(name="error", con=conn, dtype={"B": bool})
 

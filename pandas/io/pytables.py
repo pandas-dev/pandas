@@ -77,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -2394,8 +2395,30 @@ class HDFStore:
 
         # remove the node if we are not appending
         if group is not None and not append:
-            self._handle.remove_node(group, recursive=True)
-            group = None
+            assert _table_mod is not None  # for mypy
+            children = list(group._v_children.values())
+            # a "meta" subgroup of a stored object holds its metadata (e.g.
+            # categories for table-format categoricals), not a nested key
+            is_stored_object = getattr(group._v_attrs, "pandas_type", None) is not None
+            nested_keys = [
+                child
+                for child in children
+                if isinstance(child, _table_mod.group.Group)
+                and not (is_stored_object and child._v_name == "meta")
+            ]
+            if nested_keys:
+                # GH#17267: the group has child keys nested underneath it, so a
+                # recursive removal would silently delete them.  Remove only the
+                # nodes of the object stored at this key and reset its
+                # attributes, leaving the nested keys intact.
+                for child in children:
+                    if child not in nested_keys:
+                        self._handle.remove_node(child, recursive=True)
+                for attr_name in group._v_attrs._f_list("user"):
+                    delattr(group._v_attrs, attr_name)
+            else:
+                self._handle.remove_node(group, recursive=True)
+                group = None
 
         if group is None:
             group = self._create_nodes_and_group(key)
@@ -2571,7 +2594,7 @@ class IndexCol:
 
     is_an_indexable: bool = True
     is_data_indexable: bool = True
-    _info_fields = ["freq", "tz", "index_name"]
+    _info_fields = ["freq", "tz", "index_name", "ordered"]
 
     def __init__(
         self,
@@ -2675,6 +2698,18 @@ class IndexCol:
             # Copy, otherwise values will be a view
             # preventing the original recarry from being free'ed
             values = values[self.cname].copy()
+
+        if self.meta == "category":
+            # GH#33909, GH#16118: reconstruct a CategoricalIndex from the
+            # stored integer codes and the categories saved as metadata.
+            cat = Categorical.from_codes(
+                values,
+                categories=self.metadata,
+                ordered=bool(self.ordered),
+                validate=False,
+            )
+            cat_index = CategoricalIndex._simple_new(cat, name=self.index_name)
+            return cat_index, cat_index
 
         val_kind = self.kind
         values = _maybe_convert(values, val_kind, encoding, errors)
@@ -3592,6 +3627,19 @@ class GenericFixed(Fixed):
         if isinstance(index, MultiIndex):
             setattr(self.attrs, f"{key}_variety", "multi")
             self.write_multi_index(key, index)
+        elif isinstance(index, CategoricalIndex):
+            # GH#33909: round-trip a CategoricalIndex by storing its integer
+            # codes at this key and the categories at a sibling node. This
+            # also avoids _convert_index, which has no fixed-format support
+            # for the "category" dtype.
+            setattr(self.attrs, f"{key}_variety", "regular")
+            cat = index._values
+            self.write_array(key, np.asarray(cat.codes))
+            self.write_index(f"{key}_categories", Index(cat.categories))
+            node = getattr(self.group, key)
+            node._v_attrs.kind = "category"
+            node._v_attrs.name = index.name
+            node._v_attrs.ordered = bool(cat.ordered)
         else:
             setattr(self.attrs, f"{key}_variety", "regular")
             converted = _convert_index("index", index, self.encoding, self.errors)
@@ -3674,6 +3722,16 @@ class GenericFixed(Fixed):
 
         if "name" in node._v_attrs:
             name = _ensure_str(node._v_attrs.name)
+
+        if kind == "category":
+            # GH#33909: reconstruct CategoricalIndex from sliced codes plus
+            # categories saved at a sibling node by write_index.
+            categories = self.read_index(f"{node._v_name}_categories")
+            ordered = bool(getattr(node._v_attrs, "ordered", False))
+            cat = Categorical.from_codes(
+                data, categories=categories, ordered=ordered, validate=False
+            )
+            return CategoricalIndex._simple_new(cat, name=name)
 
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
@@ -5673,9 +5731,8 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
     # (DatetimeTZ/Period via i8 conversion, BooleanDtype via is_bool_dtype,
     # StringDtype, CategoricalDtype) and reject everything else early before
     # _dtype_to_kind / _get_atom choke with a low-level error.
-    # CategoricalDtype is intentionally not caught here; that is handled in
-    # a separate effort. BooleanDtype round-trips lossily but does not error
-    # on main, so it remains carved out here.
+    # BooleanDtype round-trips lossily but does not error on main, so it
+    # remains carved out here.
     if (
         isinstance(index.dtype, ExtensionDtype)
         and not needs_i8_conversion(index.dtype)
@@ -5687,6 +5744,26 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             "HDFStore supports NumPy dtypes, datetime64 with timezone, "
             "categorical, and string extension types."
         )
+
+    if isinstance(index.dtype, CategoricalDtype):
+        # GH#33909, GH#16118: round-trip a CategoricalIndex by storing its
+        # integer codes as the column data and the categories as metadata,
+        # mirroring how a CategoricalDtype data column is persisted.
+        cat = cast("Categorical", index._values)
+        converted, dtype_name = _get_data_and_dtype_name(cat)
+        kind = _dtype_to_kind(dtype_name)
+        atom = DataIndexableCol._get_atom(converted)
+        return IndexCol(
+            name,
+            values=converted,
+            kind=kind,
+            typ=atom,
+            index_name=index_name,
+            meta="category",
+            metadata=np.asarray(cat.categories).ravel(),
+            ordered=cat.ordered,
+        )
+
     # error: Argument 1 to "_get_data_and_dtype_name" has incompatible type "Index";
     # expected "Union[ExtensionArray, ndarray]"
     converted, dtype_name = _get_data_and_dtype_name(index)  # type: ignore[arg-type]
