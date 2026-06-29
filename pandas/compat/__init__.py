@@ -38,6 +38,7 @@ from pandas.compat.pyarrow import (
     pa_version_under21p0,
     pa_version_under22p0,
     pa_version_under23p0,
+    pa_version_under25p0,
 )
 
 if TYPE_CHECKING:
@@ -162,4 +163,5 @@ __all__ = [
     "pa_version_under21p0",
     "pa_version_under22p0",
     "pa_version_under23p0",
+    "pa_version_under25p0",
 ]

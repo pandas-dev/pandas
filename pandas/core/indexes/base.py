@@ -5496,7 +5496,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False, dtype=self.dtype)
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
@@ -5506,9 +5508,7 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype == self.dtype:
                 raise
             return self.astype(dtype).where(cond, other)
-        return Index(
-            result_ser._values, dtype=result_ser.dtype, name=self.name, copy=False
-        )
+        return Index(result_ser, dtype=result_ser.dtype, name=self.name, copy=False)
 
     # construction helpers
     @final

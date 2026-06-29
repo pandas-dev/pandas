@@ -147,6 +147,19 @@ def test_index_to_frame():
     tm.assert_index_equal(idx, expected)
 
 
+def test_index_where_noop():
+    # GH#65265 CoW references should be tracked through Index.where
+    idx = Index([1, 2, 3])
+    result = idx.where([True] * 3, 100)
+    assert np.shares_memory(get_array(idx), get_array(result))
+    assert result._references.has_reference()
+
+    expected = idx.copy(deep=True)
+    result = Series(result)
+    result.iloc[0] = 100
+    tm.assert_index_equal(idx, expected)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [
