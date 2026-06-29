@@ -70,7 +70,13 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) noexcept nogil:
     Assumes that the arguments are valid.  Passing a month not between 1 and 12
     risks a segfault.
     """
-    return days_per_month_array[12 * is_leapyear(year) + month - 1]
+    cdef:
+        int32_t days = days_per_month_array[month - 1]
+        int32_t leap = (
+            ((year & 0x3) == 0)
+            & (((year % 100) != 0) | ((year % 400) == 0))
+        )
+    return days + ((month == 2) & leap)
 
 
 @cython.wraparound(False)

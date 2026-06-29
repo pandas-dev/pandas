@@ -418,3 +418,18 @@ choosing an entire side.
 - Risk: negative epochs, weekend roll rules, negative periods,
   sub-day resolutions, leap/month ends, NaT, and non-contiguous arrays
   require native tests.
+
+## Batch 23: SemiMonth offset fast paths
+
+- Original private commit: `d1f4ed4720`.
+- Prior pandas 3.0.3 port: `de87482916`.
+- pandas 3.0.1 result: applicable ccalendar/offsets portions apply
+  directly.
+- Branch-light days-in-month helpers avoid a second leap-year table
+  lookup. SemiMonthBegin avoids month-end checks; SemiMonthEnd computes
+  them only for source month-end detection or a destination day of 31.
+- The export's unrelated `cast.py` rollback is intentionally excluded
+  because it would undo the migrated object-array construction fast
+  path and its regression tests.
+- Risk: scalar/array parity across anchors, signs, leap years, month
+  ends, NaT, and intraday components requires native tests.

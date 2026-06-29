@@ -955,3 +955,45 @@ Follow-up validation:
   NaT, normalization, strides, and N-D arrays.
 - Benchmark `shift_months` contiguous/fallback and BusinessDay array
   application.
+
+## Batch 23: SemiMonth offset fast paths
+
+Sources inspected:
+
+- Exported commit `d1f4ed4720`.
+- Prior pandas 3.0.3 port `de87482916`.
+- pandas 3.0.1 SemiMonth shared array path and calendar helper.
+
+Adaptation checks:
+
+- Gregorian leap-year calculation matches the existing helper.
+- SemiMonthBegin never needs source/destination month-end lookup.
+- SemiMonthEnd checks source month end for positive roll convention and
+  clamps only destination day 31.
+- NaT and datetime resolution conversion remain unchanged.
+- Array/scalar regression cases cover begin/end, positive/negative,
+  January/February month ends, and intraday values.
+- The object-construction `cast.py` rollback from the export is omitted
+  and documented.
+
+Executed:
+
+- `git diff --cached --check`
+- Static branch and calendar arithmetic inspection.
+- `python -m py_compile pandas/tests/tseries/offsets/test_month.py`
+- `python -m compileall -q pandas`
+- Focused SemiMonth pytest invocation stopped during conftest import
+  because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run SemiMonth and calendar tests after rebuilding extensions.
+- Cover every valid anchor, positive/zero/negative n, leap/century
+  years, all month lengths, NaT, resolutions, and intraday timestamps.
+- Benchmark SemiMonthBegin/SemiMonthEnd array application.

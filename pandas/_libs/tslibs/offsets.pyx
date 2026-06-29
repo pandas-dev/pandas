@@ -4379,54 +4379,91 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
-        with nogil:
-            for i in range(count):
-                # Analogous to: val = i8other[i]
-                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        if is_start:
+            with nogil:
+                for i in range(count):
+                    # Analogous to: val = i8other[i]
+                    val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                if val == NPY_NAT:
-                    res_val = NPY_NAT
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
 
-                else:
-                    pandas_datetime_to_datetimestruct(val, reso, &dts)
-                    day = dts.day
+                    else:
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        day = dts.day
 
-                    # Adjust so that we are always looking at self._day_of_month,
-                    #  incrementing/decrementing n if necessary.
-                    nadj = roll_convention(day, n, anchor_dom)
+                        # Adjust so that we are always looking at
+                        # self._day_of_month, incrementing/decrementing n if
+                        # necessary.
+                        nadj = roll_convention(day, n, anchor_dom)
 
-                    days_in_month = get_days_in_month(dts.year, dts.month)
-                    # For SemiMonthBegin on other.day == 1 and
-                    #  SemiMonthEnd on other.day == days_in_month,
-                    #  shifting `other` to `self._day_of_month` _always_ requires
-                    #  incrementing/decrementing `n`, regardless of whether it is
-                    #  initially positive.
-                    if is_start and (n <= 0 and day == 1):
-                        nadj -= 1
-                    elif (not is_start) and (n > 0 and day == days_in_month):
-                        nadj += 1
+                        # For SemiMonthBegin on other.day == 1, shifting
+                        # `other` to `self._day_of_month` always requires
+                        # incrementing/decrementing `n`, regardless of whether
+                        # it is initially positive.
+                        if n <= 0 and day == 1:
+                            nadj -= 1
 
-                    if is_start:
                         # See also: SemiMonthBegin._apply
                         months = nadj // 2 + nadj % 2
                         to_day = 1 if nadj % 2 else anchor_dom
 
+                        dts.year = year_add_months(dts, months)
+                        dts.month = month_add_months(dts, months)
+                        dts.day = to_day
+
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
+
+                    # Analogous to: out[i] = res_val
+                    (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                    cnp.PyArray_MultiIter_NEXT(mi)
+
+        else:
+            with nogil:
+                for i in range(count):
+                    # Analogous to: val = i8other[i]
+                    val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
+
                     else:
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        day = dts.day
+
+                        # Adjust so that we are always looking at
+                        # self._day_of_month, incrementing/decrementing n if
+                        # necessary.
+                        nadj = roll_convention(day, n, anchor_dom)
+
+                        days_in_month = fast_days_in_month(dts.year, dts.month)
+                        # For SemiMonthEnd on other.day == days_in_month,
+                        # shifting `other` to `self._day_of_month` always
+                        # requires incrementing/decrementing `n`, regardless of
+                        # whether it is initially positive.
+                        if n > 0 and day == days_in_month:
+                            nadj += 1
+
                         # See also: SemiMonthEnd._apply
                         months = nadj // 2
                         to_day = 31 if nadj % 2 else anchor_dom
 
-                    dts.year = year_add_months(dts, months)
-                    dts.month = month_add_months(dts, months)
-                    days_in_month = get_days_in_month(dts.year, dts.month)
-                    dts.day = min(to_day, days_in_month)
+                        dts.year = year_add_months(dts, months)
+                        dts.month = month_add_months(dts, months)
+                        if to_day == 31:
+                            dts.day = min(
+                                to_day, fast_days_in_month(dts.year, dts.month)
+                            )
+                        else:
+                            dts.day = to_day
 
-                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
-                # Analogous to: out[i] = res_val
-                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    # Analogous to: out[i] = res_val
+                    (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-                cnp.PyArray_MultiIter_NEXT(mi)
+                    cnp.PyArray_MultiIter_NEXT(mi)
 
         return out
 
@@ -6443,6 +6480,17 @@ cdef int month_add_months(npy_datetimestruct dts, int months) noexcept nogil:
     cdef:
         int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
+
+
+cdef inline int fast_days_in_month(int year, int month) noexcept nogil:
+    cdef:
+        int leap = (
+            ((year & 0x3) == 0)
+            & (((year % 100) != 0) | ((year % 400) == 0))
+        )
+        int non_feb_days = 30 + ((month + (month > 7)) & 1)
+
+    return (month != 2) * non_feb_days + (month == 2) * (28 + leap)
 
 
 @cython.wraparound(False)

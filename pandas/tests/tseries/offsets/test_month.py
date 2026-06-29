@@ -31,6 +31,31 @@ from pandas.tests.tseries.offsets.common import (
 )
 
 
+@pytest.mark.parametrize(
+    "offset",
+    [
+        SemiMonthEnd(),
+        SemiMonthEnd(-1),
+        SemiMonthBegin(),
+        SemiMonthBegin(-1),
+    ],
+)
+def test_semimonth_array_matches_scalar(offset):
+    dti = DatetimeIndex(
+        [
+            Timestamp("2008-01-01 09:30"),
+            Timestamp("2008-01-15 09:30"),
+            Timestamp("2008-01-31 09:30"),
+            Timestamp("2008-02-29 09:30"),
+        ]
+    )
+
+    result = offset + dti
+    expected = DatetimeIndex([offset + ts for ts in dti])
+
+    tm.assert_index_equal(result, expected)
+
+
 class TestSemiMonthEnd:
     def test_offset_whole_year(self):
         dates = (
