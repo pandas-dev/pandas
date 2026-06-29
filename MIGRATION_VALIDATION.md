@@ -209,3 +209,44 @@ Follow-up validation:
 - Run `asv_bench/benchmarks/swisstable.py` with the option enabled and
   disabled, including strided arrays, masks, NaN/NA, complex values,
   and all merge factorizer dtypes.
+
+## Batch 4: maybe_convert_objects
+
+Sources inspected:
+
+- Exported commits `844af97539` and `aae84a43d5`.
+- Prior pandas 3.0.3 port `8e0304f403`.
+- pandas 3.0.1 `maybe_convert_objects` signature and return contract.
+
+Static consistency checks:
+
+- Fast-path entry conditions preserve `safe` and non-numeric conversion
+  behavior.
+- Missing bool values require nullable conversion; otherwise the
+  general path remains responsible.
+- Missing integer values produce nullable integer arrays only when
+  requested and float64 otherwise.
+- Mixed negative and greater-than-int64 positive integers fall back.
+- Values outside int64/uint64 bounds fall back.
+- The general path retains all datetime, timedelta, period, string, and
+  object detection.
+
+Executed:
+
+- `git diff --check`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/dtypes/test_inference.py -q -k
+  maybe_convert_objects` stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime inference tests: pytest is blocked by missing `dateutil`.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/dtypes/test_inference.py -k maybe_convert_objects`
+- Run object-conversion ASV for homogeneous numeric blocks, nullable
+  results, mixed numeric families, and fallback-heavy object arrays.

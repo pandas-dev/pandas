@@ -27,7 +27,7 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | 1 | `d978bd13ee` | nancorr | adapted |
 | 2 | `28df2030b5` | pad and take helpers | split and adapted |
 | 3 | `f6d861f8a6` | SwissTable | directly applied and audited |
-| 4 | `8e0304f403` | maybe_convert_objects | pending |
+| 4 | `8e0304f403` | maybe_convert_objects | directly applied and audited |
 | 5 | `f39ba34d1d` | groupby loops | pending |
 | 6 | `3fa2758641` | ASV configuration | pending |
 | 7 | `ee85531203` | duplicated nogil repair | pending |
@@ -117,3 +117,17 @@ choosing an entire side.
   retained a GIL-held pad implementation, so that fix is inapplicable.
 - Risk: this is the largest native-code batch and requires full Cython,
   C++ compiler, ABI, dtype, NA/mask, and merge correctness validation.
+
+## Batch 4: maybe_convert_objects
+
+- Original private commits: `844af97539` and `aae84a43d5`.
+- Prior pandas 3.0.3 port: `8e0304f403`.
+- pandas 3.0.1 result: directly applied; pandas 3.0.1 already uses the
+  same single-array return contract as the prior port.
+- The exact-builtin helper handles homogeneous bool, float, or int
+  families and falls back for mixed families, `pd.NA`, unsafe mode,
+  empty/all-missing input, and integers outside uint64/int64 bounds.
+- The integer general path computes one complex conversion and reuses
+  its real component for the float scratch array.
+- Risk: nullable uint selection, mixed signed/large-unsigned fallback,
+  and object subclasses require runtime inference tests.

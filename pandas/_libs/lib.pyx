@@ -2567,6 +2567,171 @@ def maybe_convert_numeric(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef object _maybe_convert_objects_exact_numeric_fastpath(
+    ndarray[object] objects,
+    bint safe,
+    bint convert_to_nullable_dtype,
+):
+    """
+    Fast path for exact builtin numeric families in 1-D object arrays.
+
+    When all elements belong to the same Python builtin type family
+    (bool, float, or int), we can directly produce the converted array
+    without allocating the full set of parallel arrays (floats, complexes,
+    ints, uints, bools, mask) that the general two-pass path requires.
+
+    Returns None if the fast path cannot be applied, in which case the
+    caller falls through to the general maybe_convert_objects logic.
+    """
+    cdef:
+        Py_ssize_t i, n = objects.size
+        int family = 0
+        bint saw_missing = False
+        bint saw_negative = False
+        bint saw_large_uint = False
+        object val
+        ndarray[float64_t] floats
+        ndarray[int64_t] ints
+        ndarray[uint64_t] uints
+        ndarray[uint8_t] bools
+        ndarray[uint8_t] mask
+
+    if safe or n == 0:
+        return None
+
+    for i in range(n):
+        val = objects[i]
+
+        if val is None:
+            saw_missing = True
+            continue
+
+        if val is C_NA:
+            return None
+
+        if type(val) is bool:
+            if family == 0:
+                family = 1
+            elif family != 1:
+                return None
+        elif type(val) is float:
+            if util.is_nan(val):
+                saw_missing = True
+            if family == 0:
+                family = 2
+            elif family != 2:
+                return None
+        elif type(val) is int:
+            if family == 0:
+                family = 3
+            elif family != 3:
+                return None
+
+            if val < 0:
+                if val < oINT64_MIN:
+                    return None
+                saw_negative = True
+            else:
+                if val > oUINT64_MAX:
+                    return None
+                if val > oINT64_MAX:
+                    saw_large_uint = True
+
+            if saw_negative and saw_large_uint:
+                return None
+        else:
+            return None
+
+    if family == 0:
+        return None
+
+    if family == 1:
+        # bool family
+        if saw_missing and not convert_to_nullable_dtype:
+            return None
+
+        bools = np.empty(n, dtype="u1")
+        mask = np.zeros(n, dtype="u1")
+        for i in range(n):
+            val = objects[i]
+            if val is None or (type(val) is float and util.is_nan(val)):
+                mask[i] = 1
+                bools[i] = 0
+            else:
+                bools[i] = val
+
+        if saw_missing:
+            from pandas.core.arrays import BooleanArray
+
+            return BooleanArray(bools.view(np.bool_), mask.view(np.bool_))
+        return bools.view(np.bool_)
+
+    if family == 2:
+        # float family
+        floats = np.empty(n, dtype="f8")
+        for i in range(n):
+            val = objects[i]
+            if val is None or (type(val) is float and util.is_nan(val)):
+                floats[i] = NaN
+            else:
+                floats[i] = val
+        return floats
+
+    # family == 3: int family
+    if saw_missing:
+        if convert_to_nullable_dtype:
+            mask = np.zeros(n, dtype="u1")
+            if saw_large_uint:
+                uints = np.empty(n, dtype="u8")
+                for i in range(n):
+                    val = objects[i]
+                    if val is None or (type(val) is float and util.is_nan(val)):
+                        mask[i] = 1
+                        uints[i] = 0
+                    else:
+                        uints[i] = val
+
+                from pandas.core.arrays import IntegerArray
+
+                return IntegerArray(uints, mask.view(np.bool_))
+
+            ints = np.empty(n, dtype="i8")
+            for i in range(n):
+                val = objects[i]
+                if val is None or (type(val) is float and util.is_nan(val)):
+                    mask[i] = 1
+                    ints[i] = 0
+                else:
+                    ints[i] = val
+
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(ints, mask.view(np.bool_))
+
+        # missing values without nullable dtype -> fall back to float
+        floats = np.empty(n, dtype="f8")
+        for i in range(n):
+            val = objects[i]
+            if val is None or (type(val) is float and util.is_nan(val)):
+                floats[i] = NaN
+            else:
+                floats[i] = val
+        return floats
+
+    if saw_large_uint:
+        uints = np.empty(n, dtype="u8")
+        for i in range(n):
+            uints[i] = objects[i]
+        return uints
+
+    ints = np.empty(n, dtype="i8")
+    for i in range(n):
+        ints[i] = objects[i]
+    return ints
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def maybe_convert_objects(ndarray[object] objects,
                           *,
                           bint try_float=False,
@@ -2613,6 +2778,8 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[uint8_t] mask
         Seen seen = Seen()
         object val
+        object result
+        complex128_t zval
         float64_t fnan = NaN
 
     if dtype_if_all_nat is not None:
@@ -2625,6 +2792,13 @@ def maybe_convert_objects(ndarray[object] objects,
             )
 
     n = len(objects)
+
+    if convert_numeric and not convert_non_numeric:
+        result = _maybe_convert_objects_exact_numeric_fastpath(
+            objects, safe, convert_to_nullable_dtype
+        )
+        if result is not None:
+            return result
 
     floats = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_FLOAT64, 0)
     complexes = cnp.PyArray_EMPTY(1, objects.shape, cnp.NPY_COMPLEX128, 0)
@@ -2679,8 +2853,9 @@ def maybe_convert_objects(ndarray[object] objects,
                 break
         elif util.is_integer_object(val):
             seen.int_ = True
-            floats[i] = <float64_t>val
-            complexes[i] = <double complex>val
+            zval = <double complex>val
+            complexes[i] = zval
+            floats[i] = zval.real
             if not seen.null_ or convert_to_nullable_dtype:
                 seen.saw_int(val)
 

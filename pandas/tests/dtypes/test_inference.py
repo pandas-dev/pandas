@@ -840,6 +840,41 @@ class TestInference:
         exp = np.array(value, dtype=expected_dtype)
         tm.assert_numpy_array_equal(lib.maybe_convert_objects(arr), exp)
 
+    @pytest.mark.parametrize(
+        "values, kwargs, expected",
+        [
+            ([1, 2, 3], {}, np.array([1, 2, 3], dtype=np.int64)),
+            ([1, None, 3], {}, np.array([1.0, np.nan, 3.0], dtype=np.float64)),
+            ([1.5, np.nan], {}, np.array([1.5, np.nan], dtype=np.float64)),
+            ([True, False, True], {}, np.array([True, False, True], dtype=np.bool_)),
+            (
+                [1, None, 3],
+                {"convert_to_nullable_dtype": True},
+                IntegerArray(
+                    np.array([1, 0, 3], dtype=np.int64),
+                    np.array([False, True, False]),
+                ),
+            ),
+            (
+                [True, None, False],
+                {"convert_to_nullable_dtype": True},
+                BooleanArray(
+                    np.array([True, False, False]),
+                    np.array([False, True, False]),
+                ),
+            ),
+        ],
+    )
+    def test_maybe_convert_objects_exact_numeric_fastpath(
+        self, values, kwargs, expected
+    ):
+        arr = np.array(values, dtype=object)
+        result = lib.maybe_convert_objects(arr, **kwargs)
+        if isinstance(expected, (BooleanArray, IntegerArray)):
+            tm.assert_extension_array_equal(result, expected)
+        else:
+            tm.assert_numpy_array_equal(result, expected)
+
     def test_maybe_convert_objects_datetime(self):
         # GH27438
         arr = np.array(
