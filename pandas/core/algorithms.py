@@ -517,6 +517,7 @@ unique1d = unique
 
 
 _MINIMUM_COMP_ARR_LEN = 1_000_000
+_VALUE_COUNTS_OBJECT_INT64_SORTED_MIN_LEN = 50_000
 
 
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
@@ -888,6 +889,7 @@ def value_counts_internal(
 
     index_name = getattr(values, "name", None)
     name = "proportion" if normalize else "count"
+    result_already_sorted = False
 
     if bins is not None:
         from pandas.core.reshape.tile import cut
@@ -934,7 +936,18 @@ def value_counts_internal(
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
-            keys, counts, _ = value_counts_arraylike(values, dropna)
+            result = _value_counts_object_int64_dense_sorted(
+                values,
+                sort=sort,
+                ascending=ascending,
+                normalize=normalize,
+                dropna=dropna,
+            )
+            if result is None:
+                keys, counts, _ = value_counts_arraylike(values, dropna)
+            else:
+                keys, counts = result
+                result_already_sorted = True
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
@@ -953,7 +966,7 @@ def value_counts_internal(
 
             result = Series(counts, index=idx, name=name, copy=False)
 
-    if sort:
+    if sort and not result_already_sorted:
         result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
@@ -963,6 +976,34 @@ def value_counts_internal(
             result = result / result.sum()
 
     return result
+
+
+def _value_counts_object_int64_dense_sorted(
+    values: np.ndarray,
+    *,
+    sort: bool,
+    ascending: bool,
+    normalize: bool,
+    dropna: bool,
+) -> tuple[ArrayLike, npt.NDArray[np.int64]] | None:
+    if (
+        not sort
+        or ascending
+        or normalize
+        or dropna
+        or not is_object_dtype(values.dtype)
+        or len(values) < _VALUE_COUNTS_OBJECT_INT64_SORTED_MIN_LEN
+    ):
+        return None
+
+    values = ensure_object(np.asarray(values))
+    result = lib.value_counts_object_int64_dense_sorted(values)
+    if result is None:
+        return None
+
+    keys, counts = result
+    res_keys = _reconstruct_data(keys, values.dtype, values)
+    return res_keys, counts
 
 
 # Called once from SparseArray, otherwise could be private

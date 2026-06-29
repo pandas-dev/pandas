@@ -21,6 +21,10 @@ from cpython.datetime cimport (
     timedelta,
 )
 from cpython.iterator cimport PyIter_Check
+from cpython.long cimport (
+    PyLong_AsLongLongAndOverflow,
+    PyLong_CheckExact,
+)
 from cpython.number cimport PyNumber_Check
 from cpython.object cimport (
     Py_EQ,
@@ -3267,6 +3271,79 @@ def map_infer_mask(
         return maybe_convert_objects(result)
     else:
         return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def value_counts_object_int64_dense_sorted(ndarray[object] objects):
+    cdef:
+        Py_ssize_t i, n = len(objects)
+        Py_ssize_t offset, range_size
+        object range_size_obj
+        ndarray[int64_t] counts, keys
+        ndarray[intp_t] present, present_offsets
+        object val
+        int64_t item
+        int64_t min_value = 0
+        int64_t max_value = 0
+        int overflow = 0
+        Py_ssize_t present_count = 0
+
+    if n == 0:
+        return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
+
+    for i in range(n):
+        val = objects[i]
+
+        if PyLong_CheckExact(val):
+            item = PyLong_AsLongLongAndOverflow(val, &overflow)
+            if overflow != 0:
+                return None
+        else:
+            if checknull(val) or util.is_bool_object(val) or not util.is_integer_object(val):
+                return None
+
+            if val < oINT64_MIN or val > oINT64_MAX:
+                return None
+
+            item = val
+
+        if i == 0:
+            min_value = item
+            max_value = item
+        elif item < min_value:
+            min_value = item
+        elif item > max_value:
+            max_value = item
+
+    range_size_obj = <object>max_value - <object>min_value + 1
+    if range_size_obj > n:
+        return None
+    range_size = <Py_ssize_t>range_size_obj
+
+    counts = np.zeros(range_size, dtype=np.int64)
+    present_offsets = np.empty(range_size, dtype=np.intp)
+
+    for i in range(n):
+        val = objects[i]
+        if PyLong_CheckExact(val):
+            item = PyLong_AsLongLongAndOverflow(val, &overflow)
+        else:
+            item = val
+        offset = item - min_value
+        if counts[offset] == 0:
+            present_offsets[present_count] = offset
+            present_count += 1
+        counts[offset] += 1
+
+    present = present_offsets[:present_count]
+    counts = counts[present].astype(np.int64, copy=False)
+    order = np.argsort(-counts, kind="stable")
+    present = present[order]
+    keys = present.astype(np.int64, copy=False) + min_value
+    counts = counts[order]
+
+    return keys, counts
 
 
 @cython.boundscheck(False)

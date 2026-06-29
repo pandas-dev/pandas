@@ -1038,3 +1038,46 @@ Follow-up validation:
 - Cover unique/duplicate/unhashable/callable labels, mutation, returned
   scalar/Series/view, EA rows, mixed dtype, and Series subclasses.
 - Benchmark `DataFrame.apply(axis=1)` label-heavy workloads.
+
+## Batch 25: dense object-integer value_counts
+
+Sources inspected:
+
+- Object-integer value_counts subset of exported `1246018d48`.
+- Prior pandas 3.0.3 port `01e840cd05`.
+- pandas 3.0.1 value_counts construction, sorting, and fallback paths.
+
+Adaptation checks:
+
+- Fast-path guards constrain semantics to one existing default result
+  mode.
+- Exact Python ints use overflow-aware conversion.
+- Bool, NA, non-integer, and out-of-int64 values force fallback.
+- Dense range allocation is bounded by input length.
+- First-seen key offsets plus stable count sort preserve tie order.
+- Fast-path result bypasses the second Series sort.
+- Tests cover selected path and sparse-range fallback.
+
+Executed:
+
+- `git diff --cached --check`
+- Static type/range/sort/fallback inspection.
+- `python -m py_compile pandas/core/algorithms.py
+  pandas/tests/base/test_value_counts.py`
+- `python -m compileall -q pandas`
+- Focused value_counts pytest invocation stopped during conftest import
+  because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run base/Series/Index value_counts tests after rebuilding extensions.
+- Cover bool, missing, NumPy ints, subclasses, min/max int64,
+  out-of-range ints, ties, sparse/dense ranges, all sort/ascending/
+  normalize/dropna combinations.
+- Benchmark large dense-range object integer value_counts.

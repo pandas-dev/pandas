@@ -18,6 +18,7 @@ from pandas import (
     array,
 )
 import pandas._testing as tm
+from pandas.core import algorithms as algos
 from pandas.tests.base.common import allow_na_ops
 
 
@@ -418,3 +419,64 @@ def test_value_counts_object_inference_deprecated():
 def test_value_counts_index_datetimelike(index, expected_index):
     vc = index.value_counts(sort=False, dropna=False)
     tm.assert_index_equal(vc.index, expected_index)
+
+
+def test_value_counts_object_integer_large_sorted_fastpath(index_or_series):
+    values = np.tile(np.array([2, 0, 1, 2, 1, 0, 2], dtype=object), 40_000)
+    obj = index_or_series(values, dtype=object)
+
+    result = obj.value_counts(dropna=False)
+
+    expected = Series(
+        [120_000, 80_000, 80_000],
+        index=Index([2, 0, 1], dtype=object),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_object_integer_large_sorted_avoids_value_counts_arraylike(
+    monkeypatch, index_or_series
+):
+    values = np.tile(np.array([2, 0, 1, 2, 1, 0, 2], dtype=object), 40_000)
+    obj = index_or_series(values, dtype=object)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("value_counts_arraylike should not be called")
+
+    monkeypatch.setattr(algos, "value_counts_arraylike", forbidden)
+
+    result = obj.value_counts(dropna=False)
+
+    expected = Series(
+        [120_000, 80_000, 80_000],
+        index=Index([2, 0, 1], dtype=object),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_object_integer_large_sorted_falls_back_for_sparse_range(
+    monkeypatch, index_or_series
+):
+    values = np.tile(np.array([0, 1_000_000], dtype=object), 30_000)
+    obj = index_or_series(values, dtype=object)
+    calls = 0
+    original = algos.value_counts_arraylike
+
+    def wrapped(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(algos, "value_counts_arraylike", wrapped)
+
+    result = obj.value_counts(dropna=False)
+
+    expected = Series(
+        [30_000, 30_000],
+        index=Index([0, 1_000_000], dtype=object),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+    assert calls == 1

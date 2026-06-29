@@ -453,3 +453,19 @@ choosing an entire side.
 - Risk: Series subclass attributes, returned views, mutation inside
   apply, duplicate labels, EA rows, and CoW reference state need runtime
   tests.
+
+## Batch 25: dense object-integer value_counts
+
+- Original private commit: the object-int64 value_counts subset of
+  `1246018d48`.
+- Prior pandas 3.0.3 port: `01e840cd05`.
+- pandas 3.0.1 result: directly applied while retaining target Index
+  reconstruction and the migrated stable-sort controls.
+- Large object arrays use dense int64 counting only for descending,
+  sorted, non-normalized, `dropna=False` requests and only when the
+  integer range is no larger than the input length.
+- Bool, missing, non-integer, int64-overflow, sparse-range, other sort
+  modes, and short inputs fall back to the existing hashtable path.
+- Stable count sorting preserves first-appearance order for ties.
+- Risk: Python/NumPy integer subclasses, extreme bounds, tie ordering,
+  and object Index dtype require native runtime tests.
