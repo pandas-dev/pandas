@@ -910,3 +910,48 @@ Follow-up validation:
 - Cover timezone-naive/aware, fold 0/1, date/time boxing, all supported
   resolutions, NaT, default locale, and non-English locales.
 - Benchmark DatetimeAccessor day/month names and object conversion.
+
+## Batch 22: month and business-day shifts
+
+Sources inspected:
+
+- Exported commits `9686250639` and `42c76d772f`.
+- Reconstructed commits `cd5c272` and `1ab19b1`.
+- Prior pandas 3.0.3 port `4d00dfadf4`.
+- pandas 3.0.1/3.0.3 offsets architecture delta.
+
+Adaptation checks:
+
+- Direct month shifting is limited to contiguous one-dimensional input.
+- Days up to 28 avoid month-length lookup; later days still clamp.
+- NaT and all datetime resolutions retain conversion behavior.
+- MultiIter remains for non-contiguous/N-D/named-day inputs.
+- BusinessDay uses floor epoch days, corrects negative modulo, and adds
+  only a whole-day delta to preserve time-of-day.
+- Positive/negative periods and weekend adjustment reproduce
+  `_adjust_ndays`.
+- Added tests cover early/late days, NaT, non-contiguous/N-D input,
+  negative epoch, positive/negative BusinessDay, and intraday values.
+
+Executed:
+
+- `git diff --cached --check`
+- Conflict-marker and reconstructed-export comparison.
+- `python -m py_compile` on both modified test files.
+- `python -m compileall -q pandas`
+- Focused pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run datetime arithmetic and BusinessDay offset tests after rebuild.
+- Cover all resolutions, pre/post epoch, weekend, leap day, month end,
+  NaT, normalization, strides, and N-D arrays.
+- Benchmark `shift_months` contiguous/fallback and BusinessDay array
+  application.

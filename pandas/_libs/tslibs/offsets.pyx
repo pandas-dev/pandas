@@ -2354,31 +2354,47 @@ cdef class BusinessDay(BusinessMixin):
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
-            int64_t val, res_val
-            int wday, days
-            npy_datetimestruct dts
+            int64_t val, res_val, epoch_days
+            int wday, days, weeks, adj_n
             int64_t DAY_PERIODS = periods_per_day(reso)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, i8other)
 
-        for i in range(n):
-            # Analogous to: val = i8other[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        with nogil:
+            for i in range(n):
+                # Analogous to: val = i8other[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-            else:
-                # The rest of this is effectively a copy of BusinessDay.apply
-                weeks = periods // 5
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                wday = dayofweek(dts.year, dts.month, dts.day)
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    epoch_days = val // DAY_PERIODS
+                    wday = <int>((epoch_days + 3) % 7)
+                    if wday < 0:
+                        wday += 7
 
-                days = self._adjust_ndays(wday, weeks)
-                res_val = val + (7 * weeks + days) * DAY_PERIODS
+                    weeks = periods // 5
+                    adj_n = periods
+                    if adj_n <= 0 and wday > 4:
+                        # roll forward
+                        adj_n += 1
+                    adj_n -= 5 * weeks
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    if adj_n == 0 and wday > 4:
+                        # roll back
+                        days = 4 - wday
+                    elif wday > 4:
+                        # roll forward
+                        days = (7 - wday) + (adj_n - 1)
+                    elif wday + adj_n <= 4:
+                        days = adj_n
+                    else:
+                        days = adj_n + 2
+                    res_val = val + (7 * weeks + days) * DAY_PERIODS
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                cnp.PyArray_MultiIter_NEXT(mi)
 
         return result
 
@@ -6521,8 +6537,11 @@ def shift_months(
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
         int months_to_roll
         int64_t val, res_val
+        int64_t* in_data
+        int64_t* out_data
+        bint use_direct_1d
 
-        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
+        cnp.broadcast mi
 
     if day_opt is not None and day_opt not in {
             "start", "end", "business_start", "business_end"
@@ -6531,28 +6550,56 @@ def shift_months(
                          "'business_start', or 'business_end'")
 
     if day_opt is None:
-        # TODO: can we combine this with the non-None case?
-        with nogil:
-            for i in range(count):
-                # Analogous to: val = i8other[i]
-                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        use_direct_1d = dtindex.ndim == 1 and cnp.PyArray_ISCONTIGUOUS(dtindex)
+        if use_direct_1d:
+            in_data = <int64_t*>cnp.PyArray_DATA(dtindex)
+            out_data = <int64_t*>cnp.PyArray_DATA(out)
+            with nogil:
+                for i in range(count):
+                    val = in_data[i]
 
-                if val == NPY_NAT:
-                    res_val = NPY_NAT
-                else:
-                    pandas_datetime_to_datetimestruct(val, reso, &dts)
-                    dts.year = year_add_months(dts, months)
-                    dts.month = month_add_months(dts, months)
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
+                    else:
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        dts.year = year_add_months(dts, months)
+                        dts.month = month_add_months(dts, months)
 
-                    dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
-                    res_val = npy_datetimestruct_to_datetime(reso, &dts)
+                        if dts.day > 28:
+                            dts.day = min(
+                                dts.day, get_days_in_month(dts.year, dts.month)
+                            )
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
-                # Analogous to: out[i] = res_val
-                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                    out_data[i] = res_val
+        else:
+            # TODO: can we combine this with the non-None case?
+            mi = cnp.PyArray_MultiIterNew2(out, dtindex)
+            with nogil:
+                for i in range(count):
+                    # Analogous to: val = i8other[i]
+                    val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-                cnp.PyArray_MultiIter_NEXT(mi)
+                    if val == NPY_NAT:
+                        res_val = NPY_NAT
+                    else:
+                        pandas_datetime_to_datetimestruct(val, reso, &dts)
+                        dts.year = year_add_months(dts, months)
+                        dts.month = month_add_months(dts, months)
+
+                        if dts.day > 28:
+                            dts.day = min(
+                                dts.day, get_days_in_month(dts.year, dts.month)
+                            )
+                        res_val = npy_datetimestruct_to_datetime(reso, &dts)
+
+                    # Analogous to: out[i] = res_val
+                    (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+
+                    cnp.PyArray_MultiIter_NEXT(mi)
 
     else:
+        mi = cnp.PyArray_MultiIterNew2(out, dtindex)
         with nogil:
             for i in range(count):
 

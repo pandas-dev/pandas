@@ -22,6 +22,7 @@ from pandas._libs.tslibs.offsets import (
 from pandas import (
     DatetimeIndex,
     Timedelta,
+    Timestamp,
     _testing as tm,
 )
 from pandas.tests.tseries.offsets.common import (
@@ -235,3 +236,32 @@ class TestBusinessDay:
             )
         with pytest.raises(ApplyTypeError, match=msg):
             _offset()._apply(BMonthEnd())
+
+    @pytest.mark.parametrize(
+        "base, offset, expected",
+        [
+            (
+                Timestamp("2008-01-04 11:22:33"),
+                BDay(1),
+                Timestamp("2008-01-07 11:22:33"),
+            ),
+            (
+                Timestamp("1969-12-31 11:22:33"),
+                BDay(1),
+                Timestamp("1970-01-01 11:22:33"),
+            ),
+            (
+                Timestamp("2008-01-07 11:22:33"),
+                BDay(-1),
+                Timestamp("2008-01-04 11:22:33"),
+            ),
+            (
+                Timestamp("1969-12-31 11:22:33"),
+                BDay(-1),
+                Timestamp("1969-12-30 11:22:33"),
+            ),
+        ],
+    )
+    def test_apply_preserves_intraday_remainder(self, base, offset, expected):
+        result = DatetimeIndex([base]) + offset
+        tm.assert_index_equal(result, DatetimeIndex([expected]))

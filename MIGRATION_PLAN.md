@@ -403,3 +403,18 @@ choosing an entire side.
   the authoritative export diff.
 - Risk: timezone/fold semantics, resolution conversion, locale casing,
   NaT, and CPython C-API initialization need native tests.
+
+## Batch 22: month and business-day shifts
+
+- Original private commits: `9686250639` and `42c76d772f`.
+- Prior pandas 3.0.3 port: `4d00dfadf4`.
+- pandas 3.0.1 result: re-adapted around the pre-`_DayOpt` offsets
+  architecture rather than taking the 3.0.3 conflict side.
+- `shift_months(day_opt=None)` uses a direct contiguous 1-D pointer loop
+  and skips month-length lookup for days at most 28; arbitrary shapes,
+  strides, and named day options retain MultiIter/string-helper paths.
+- BusinessDay derives weekday from whole epoch days and adds whole-day
+  periods to the original value, preserving the intraday remainder.
+- Risk: negative epochs, weekend roll rules, negative periods,
+  sub-day resolutions, leap/month ends, NaT, and non-contiguous arrays
+  require native tests.

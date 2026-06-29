@@ -2439,6 +2439,55 @@ def test_shift_months(years, months, unit):
     tm.assert_index_equal(actual, expected)
 
 
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_shift_months_early_day_fastpath_and_nat(unit):
+    dti = DatetimeIndex(
+        [
+            Timestamp("2000-01-15 12:34:56"),
+            Timestamp("2000-01-28 23:59:59"),
+            Timestamp("2000-01-29 00:00:00"),
+            NaT,
+        ]
+    ).as_unit(unit)
+
+    shifted = shift_months(dti.asi8, 2, reso=dti._data._creso)
+    actual = DatetimeIndex(shifted.view(f"M8[{dti.unit}]"))
+
+    expected = DatetimeIndex([x + pd.offsets.DateOffset(months=2) for x in dti])
+    expected = expected.as_unit(dti.unit)
+    tm.assert_index_equal(actual, expected)
+
+
+def test_shift_months_non_contiguous_and_2d_fallback():
+    dti = DatetimeIndex(
+        [
+            Timestamp("2000-01-15"),
+            Timestamp("2000-02-29"),
+            Timestamp("2000-03-31"),
+            Timestamp("2000-04-01"),
+        ]
+    )
+
+    non_contiguous = dti.asi8[::2]
+    shifted = shift_months(non_contiguous, 1, reso=dti._data._creso)
+    actual = DatetimeIndex(shifted.view(f"M8[{dti.unit}]"))
+    expected = DatetimeIndex([Timestamp("2000-02-15"), Timestamp("2000-04-30")])
+    tm.assert_index_equal(actual, expected)
+
+    arr2d = dti.asi8.reshape(2, 2)
+    shifted2d = shift_months(arr2d, -1, reso=dti._data._creso)
+    actual2d = DatetimeIndex(shifted2d.ravel().view(f"M8[{dti.unit}]"))
+    expected2d = DatetimeIndex(
+        [
+            Timestamp("1999-12-15"),
+            Timestamp("2000-01-29"),
+            Timestamp("2000-02-29"),
+            Timestamp("2000-03-01"),
+        ]
+    )
+    tm.assert_index_equal(actual2d, expected2d)
+
+
 def test_dt64arr_addsub_object_dtype_2d(performance_warning):
     # block-wise DataFrame operations will require operating on 2D
     #  DatetimeArray/TimedeltaArray, so check that specifically.
