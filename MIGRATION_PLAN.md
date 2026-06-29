@@ -220,3 +220,18 @@ choosing an entire side.
   to pre-resize storage.
 - Risk: this vendored header is expanded across many generated hash
   tables and needs compiler coverage on GCC/Clang and MSVC.
+
+## Batch 10: stable safe_sort controls
+
+- Original private commits: `51a2b98159`, `31a63abb20`, and
+  `1c4c300a36`.
+- Prior pandas 3.0.3 port: `dded84d01c`.
+- pandas 3.0.1 result: adapted with only the local `SortKind` type
+  import; the broader 3.0.3 typing-import reorganization was excluded.
+- `safe_sort` threads an explicit NumPy sort kind through normal,
+  mixed, and reverse-code sorting. `factorize(sort=True)` selects
+  stable ordering to preserve equal-value order.
+- The existing pandas 3.0.1 SwissTable-aware factorization path remains
+  unchanged.
+- Risk: stable remapping must preserve NA sentinels, mixed integer/string
+  ordering, tuple fallback, and ExtensionArray behavior.

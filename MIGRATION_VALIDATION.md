@@ -436,3 +436,40 @@ Follow-up validation:
 - Build generated hash tables with GCC/Clang and MSVC.
 - Run hashtable, factorize, unique, merge, and SwissTable-off tests.
 - Benchmark collision-heavy and mostly-new-key insertion workloads.
+
+## Batch 10: stable safe_sort controls
+
+Sources inspected:
+
+- Exported commits `51a2b98159`, `31a63abb20`, and `1c4c300a36`.
+- Prior pandas 3.0.3 port `dded84d01c`.
+- pandas 3.0.1 `factorize`, `safe_sort`, and `_sort_mixed`.
+
+Adaptation checks:
+
+- Only `SortKind` is added to the 3.0.1 `TYPE_CHECKING` imports.
+- Stable sort reaches values, mixed numeric/string subsets, and reverse
+  code remapping.
+- Default callers retain quicksort behavior.
+- `factorize(sort=True)` explicitly requests stable ordering.
+- NA sentinel verification and tuple fallback are unchanged.
+
+Executed:
+
+- `git diff --cached --check`
+- `python -m py_compile pandas/core/algorithms.py`
+- `python -m pytest pandas/tests/test_algos.py -q -k
+  'safe_sort or factorize'` stopped while importing
+  `pandas/conftest.py` because `dateutil` is missing.
+
+Not executed:
+
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/test_algos.py -k
+  "safe_sort or factorize"`
+- Benchmark sorted factorization for numeric, object, mixed, duplicate,
+  and missing-value inputs.

@@ -94,6 +94,7 @@ if TYPE_CHECKING:
         ListLike,
         NumpySorter,
         NumpyValueArrayLike,
+        SortKind,
     )
 
     from pandas import (
@@ -862,6 +863,7 @@ def factorize(
             use_na_sentinel=use_na_sentinel,
             assume_unique=True,
             verify=False,
+            kind="stable",
         )
 
     uniques = _reconstruct_data(uniques, original.dtype, original)
@@ -1467,6 +1469,7 @@ def safe_sort(
     use_na_sentinel: bool = True,
     assume_unique: bool = False,
     verify: bool = True,
+    kind: SortKind = "quicksort",
 ) -> AnyArrayLike | tuple[AnyArrayLike, np.ndarray]:
     """
     Sort ``values`` and reorder corresponding ``codes``.
@@ -1522,10 +1525,10 @@ def safe_sort(
         not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
-        ordered = _sort_mixed(values)
+        ordered = _sort_mixed(values, kind=kind)
     else:
         try:
-            sorter = values.argsort()
+            sorter = values.argsort(kind=kind)
             ordered = values.take(sorter)
         except (TypeError, decimal.InvalidOperation):
             # Previous sorters failed or were not applicable, try `_sort_mixed`
@@ -1537,7 +1540,7 @@ def safe_sort(
                 # "ndarray[Any, Any]"
                 ordered = _sort_tuples(values)  # type: ignore[arg-type]
             else:
-                ordered = _sort_mixed(values)
+                ordered = _sort_mixed(values, kind=kind)
 
     # codes:
 
@@ -1573,7 +1576,7 @@ def safe_sort(
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
-        order2 = sorter.argsort()
+        order2 = sorter.argsort(kind=kind)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
             codes[mask] = -1
@@ -1588,13 +1591,13 @@ def safe_sort(
     return ordered, ensure_platform_int(new_codes)
 
 
-def _sort_mixed(values) -> AnyArrayLike:
+def _sort_mixed(values, kind: SortKind) -> AnyArrayLike:
     """order ints before strings before nulls in 1d arrays"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     null_pos = np.array([isna(x) for x in values], dtype=bool)
     num_pos = ~str_pos & ~null_pos
-    str_argsort = np.argsort(values[str_pos])
-    num_argsort = np.argsort(values[num_pos])
+    str_argsort = np.argsort(values[str_pos], kind=kind)
+    num_argsort = np.argsort(values[num_pos], kind=kind)
     # convert boolean arrays to positional indices, then order by underlying values
     str_locs = str_pos.nonzero()[0].take(str_argsort)
     num_locs = num_pos.nonzero()[0].take(num_argsort)
