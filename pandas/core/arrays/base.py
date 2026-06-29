@@ -154,6 +154,7 @@ class ExtensionArray:
     repeat
     searchsorted
     shift
+    sort
     take
     tolist
     unique
@@ -1069,6 +1070,53 @@ class ExtensionArray:
             na_position=na_position,
             mask=np.asarray(self.isna()),
         )
+
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        """
+        Sort the array in-place.
+
+        Reorders the elements of the array using :meth:`argsort` and writes the
+        sorted result back through ``self[:]``. Subclasses backed by immutable
+        storage may override this method to raise ``NotImplementedError``.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether to sort in ascending order.
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+            Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If 'first', put NaN values at the beginning.
+            If 'last', put NaN values at the end.
+
+        Returns
+        -------
+        None
+            This method mutates the array in place and does not return a value.
+
+        See Also
+        --------
+        ExtensionArray.argsort : Return the indices that would sort this array.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.sort()
+        >>> arr
+        <IntegerArray>
+        [1, 2, 3, 4, 5]
+        Length: 5, dtype: Int64
+        """
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        self[:] = self.take(sort_indices)
 
     def argmin(self, skipna: bool = True) -> int:
         """

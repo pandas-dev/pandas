@@ -447,11 +447,21 @@ class TestArrowArray(base.ExtensionTests):
                 pass
             else:
                 return False
-        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew"]:
+        elif pa.types.is_binary(pa_dtype) and op_name in ["sum", "skew", "any", "all"]:
             return False
         elif (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and op_name in ["mean", "median", "prod", "std", "sem", "var", "skew"]:
+        ) and op_name in [
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "any",
+            "all",
+        ]:
             return False
 
         if (
@@ -496,25 +506,6 @@ class TestArrowArray(base.ExtensionTests):
             result = getattr(ser, op_name)(skipna=skipna)
             expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
-        pa_dtype = data.dtype.pyarrow_dtype
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_boolean_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-            # We *might* want to make this behave like the non-pyarrow cases,
-            #  but have not yet decided.
-            request.applymarker(xfail_mark)
-
-        return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         pa_type = arr._pa_array.type
@@ -1111,15 +1102,14 @@ class TestArrowArray(base.ExtensionTests):
                     )
                 # timestamp with s unit and US/Pacific or US/Eastern tz
                 elif (
-                    "toordinal not yet supported on Timestamps which are "
-                    "outside the range of Python's standard library."
+                    "Localizing Timestamps which are outside the range of Python"
                 ) in str(err):
                     request.applymarker(
                         pytest.mark.xfail(
                             raises=NotImplementedError,
                             reason=(
-                                "toordinal not yet supported on Timestamps which are "
-                                "outside the range of Python's standard library."
+                                "Localizing Timestamps which are outside the range of "
+                                "Python's standard library datetime is not supported"
                             ),
                         )
                     )
@@ -2760,6 +2750,23 @@ def test_dt_isocalendar():
     tm.assert_frame_equal(result, expected)
 
 
+def test_dt_isocalendar_preserves_index():
+    # GH#65894
+    ser = pd.Series(
+        [datetime(year=2023, month=1, day=2, hour=3), None],
+        dtype=ArrowDtype(pa.timestamp("ns")),
+        index=["a", "b"],
+    )
+    result = ser.dt.isocalendar()
+    expected = pd.DataFrame(
+        [[2023, 1, 1], [0, 0, 0]],
+        columns=["year", "week", "day"],
+        index=["a", "b"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method, exp", [["day_name", "Sunday"], ["month_name", "January"]]
 )
@@ -3096,6 +3103,168 @@ def test_dt_timedelta_total_seconds():
     tm.assert_series_equal(result, expected)
 
 
+def test_dt_timedelta_components():
+    # Test that .dt.components returns correct values for Arrow duration arrays
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=5, hours=3, minutes=2, seconds=1, milliseconds=4),
+            pd.Timedelta(days=0, hours=23, minutes=59, seconds=59),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        {
+            "days": pd.array([5, 0, None], dtype="Int32[pyarrow]"),
+            "hours": pd.array([3, 23, None], dtype="Int32[pyarrow]"),
+            "minutes": pd.array([2, 59, None], dtype="Int32[pyarrow]"),
+            "seconds": pd.array([1, 59, None], dtype="Int32[pyarrow]"),
+            "milliseconds": pd.array([4, 0, None], dtype="Int32[pyarrow]"),
+            "microseconds": pd.array([0, 0, None], dtype="Int32[pyarrow]"),
+            "nanoseconds": pd.array([0, 0, None], dtype="Int32[pyarrow]"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_components_preserves_index():
+    # Test that .dt.components preserves the parent Series index
+    idx = pd.Index(["a", "b", "c"])
+    ser = pd.Series(
+        [
+            pd.Timedelta(days=1, hours=2),
+            pd.Timedelta(days=3, hours=4),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+        index=idx,
+    )
+    result = ser.dt.components
+    tm.assert_index_equal(result.index, idx)
+
+
+def test_dt_timedelta_components_negative_and_nulls():
+    # Negative durations, unit boundaries, and interspersed nulls should all
+    # match the NumPy-backed result. pandas normalizes negatives so that the
+    # sub-day components stay non-negative (e.g. -22h57m57s -> -1 day + 1h2m3s).
+    values = [
+        pd.Timedelta(days=1, hours=2, minutes=3),  # ordinary positive
+        pd.Timedelta(days=0),  # zero
+        pd.NaT,  # null interspersed
+        pd.Timedelta(hours=-22, minutes=-57, seconds=-57),  # -1 day + 1h2m3s
+        pd.Timedelta(days=-2, hours=5),  # multi-day negative
+        pd.Timedelta(days=-1),  # exactly -1 day, sub-day fields all 0
+        pd.Timedelta(days=-100, hours=12),  # large negative
+        pd.Timedelta(nanoseconds=-1),  # -1 day + 23:59:59.999999999
+        pd.Timedelta(microseconds=-1),  # -1 of each unit below exercises borrow
+        pd.Timedelta(milliseconds=-1),
+        pd.Timedelta(seconds=-1),
+        pd.Timedelta(minutes=-1),
+        pd.Timedelta(hours=-1),
+        pd.Timedelta(days=-1, nanoseconds=-1),  # -1 day - 1ns
+        pd.NaT,
+    ]
+    ser_arrow = pd.Series(values, dtype=ArrowDtype(pa.duration("ns")))
+    ser_numpy = pd.Series(values)
+
+    # The direct .dt.<component> accessors should match the NumPy-backed result
+    for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
+        expected = pd.Series(
+            getattr(ser_numpy.dt, attr).values, dtype="Int32[pyarrow]"
+        ).where(ser_arrow.notna(), pd.NA)
+        tm.assert_series_equal(getattr(ser_arrow.dt, attr), expected)
+
+    # .dt.components
+    result = ser_arrow.dt.components
+    expected = ser_numpy.dt.components.astype("Int32[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dt_timedelta_accessors_match_python_timedelta():
+    # GH 63470: .dt.seconds/.dt.microseconds previously returned the
+    # .dt.components field values (0-59 / 0-999) instead of Python timedelta
+    # semantics (total sub-day seconds, total sub-second microseconds)
+    td = timedelta(
+        days=1, hours=2, minutes=3, seconds=45, milliseconds=678, microseconds=123
+    )
+    ser = pd.Series([pd.Timedelta(td), None], dtype=ArrowDtype(pa.duration("ns")))
+
+    # .dt.days should match Python timedelta.days
+    assert ser.dt.days.iloc[0] == td.days
+
+    # .dt.seconds should be total seconds in sub-day portion (0-86399)
+    # = hours*3600 + minutes*60 + seconds = 2*3600 + 3*60 + 45 = 7425
+    assert ser.dt.seconds.iloc[0] == td.seconds
+
+    # .dt.microseconds should be total microseconds in sub-second portion (0-999999)
+    # = milliseconds*1000 + microseconds = 678*1000 + 123 = 678123
+    assert ser.dt.microseconds.iloc[0] == td.microseconds
+
+    # Null handling
+    assert pd.isna(ser.dt.days.iloc[1])
+    assert pd.isna(ser.dt.seconds.iloc[1])
+    assert pd.isna(ser.dt.microseconds.iloc[1])
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_dt_timedelta_components_different_units(unit):
+    # Test that components work correctly across all duration units,
+    # including coarser units where finer components should be zero.
+    td = pd.Timedelta(days=1, hours=2, minutes=3, seconds=4, milliseconds=5)
+    ser_arrow = pd.Series([td, None], dtype=ArrowDtype(pa.duration(unit)))
+
+    result = ser_arrow.dt.components
+
+    # Days, hours, minutes, seconds are representable at every unit
+    assert result["days"].iloc[0] == 1
+    assert result["hours"].iloc[0] == 2
+    assert result["minutes"].iloc[0] == 3
+    assert result["seconds"].iloc[0] == 4
+    # Milliseconds are 0 for the coarser "s" unit, otherwise the stored value.
+    # Micro/nanoseconds are 0 here regardless of unit (td has none).
+    assert result["milliseconds"].iloc[0] == (5 if unit != "s" else 0)
+    assert result["microseconds"].iloc[0] == 0
+    assert result["nanoseconds"].iloc[0] == 0
+
+    # Null handling across all units
+    for col in result.columns:
+        assert pd.isna(result[col].iloc[1])
+
+    # GH 63470: the direct .dt.<component> accessors must match the NumPy-backed
+    # result at every unit. In particular .dt.microseconds on a coarser unit
+    # (e.g. "ms") must scale up the sub-second portion rather than returning 0.
+    ser_numpy = pd.Series([td.as_unit(unit), None])
+    for attr in ["days", "seconds", "microseconds", "nanoseconds"]:
+        expected = pd.Series(
+            getattr(ser_numpy.dt, attr).values, dtype="Int32[pyarrow]"
+        ).where(ser_arrow.notna(), pd.NA)
+        tm.assert_series_equal(getattr(ser_arrow.dt, attr), expected)
+
+
+def test_dt_timedelta_components_all_null():
+    # Test all-null array hits the min_scalar.is_valid fast path
+    ser = pd.Series(
+        [None, None, None],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    for col in result.columns:
+        assert result[col].isna().all()
+
+
+@pytest.mark.parametrize("attr", ["days", "seconds", "microseconds", "nanoseconds"])
+def test_dt_duration_components_reject_timestamp(attr):
+    # GH 63470: the duration component accessors must not silently treat a
+    # timestamp's underlying int64 as a duration; they should raise like the
+    # NumPy-backed datetime accessors do.
+    ser = pd.Series(
+        pd.to_datetime(["2020-01-01 01:02:03"]), dtype="timestamp[ns][pyarrow]"
+    )
+    with pytest.raises(NotImplementedError, match=f"dt.{attr} is not supported"):
+        getattr(ser.dt, attr)
+
+
 def test_dt_to_pytimedelta():
     # GH 52284
     data = [timedelta(1, 2, 3), timedelta(1, 2, 4)]
@@ -3171,6 +3340,72 @@ def test_dt_components_large_values():
         dtype="int32[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dt_day_remainder_cache_invalidation():
+    # Test that _dt_day_remainder cache is invalidated after __setitem__
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+
+    # Access to cache the day remainder and verify initial values
+    result_before = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_before = pd.Series(
+        [1 * 3600 + 2 * 60 + 3, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_before, expected_before)
+    assert "_dt_day_remainder" in arr._cache
+
+    # Modify the array
+    arr[0] = pd.Timedelta("3 days 7:08:09")
+
+    # Cache should be invalidated
+    assert "_dt_day_remainder" not in arr._cache
+
+    # Accessing again should give correct (recomputed) values, not stale cached values
+    result_after = pd.Series(arr._dt_seconds, dtype="int32[pyarrow]")
+    expected_after = pd.Series(
+        [7 * 3600 + 8 * 60 + 9, 4 * 3600 + 5 * 60 + 6], dtype="int32[pyarrow]"
+    )
+    tm.assert_series_equal(result_after, expected_after)
+
+    # Verify the first value actually changed (not returning stale cache)
+    assert result_after.iloc[0] != result_before.iloc[0]
+
+
+def test_dt_day_remainder_cache_not_pickled(tmp_path):
+    # The _dt_day_remainder cache can be recomputed, so it should not be
+    # serialized with the array
+    ser = pd.Series(
+        [pd.Timedelta("1 days 1:02:03"), pd.Timedelta("2 days 4:05:06")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr = ser.array
+    arr._dt_day_remainder  # populate the cache
+    assert "_dt_day_remainder" in arr._cache
+
+    result = tm.round_trip_pickle(arr, tmp_path / "cache.pkl")
+    assert result._cache == {}
+    tm.assert_extension_array_equal(result, arr)
+
+
+def test_dt_day_remainder_cache_invalidated_on_sort():
+    # GH 63470: sort() mutates _pa_array in place, so the _dt_day_remainder
+    # cache must be cleared or the duration components would be stale
+    arr = pd.array(
+        [pd.Timedelta("2 days 4:05:06"), pd.Timedelta("1 days 1:02:03")],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    arr._dt_day_remainder  # populate the cache
+    assert "_dt_day_remainder" in arr._cache
+
+    arr.sort()
+    assert arr._cache == {}
+
+    # Components reflect the sorted order, not the pre-sort cache
+    assert arr._dt_seconds.tolist() == [3723, 14706]
 
 
 @pytest.mark.parametrize("skipna", [True, False])
@@ -3701,7 +3936,8 @@ def test_arrow_floordiv_integral_invalid(pa_type):
     # GH 56676
     min_value = np.iinfo(pa_type.to_pandas_dtype()).min
     a = pd.Series([min_value], dtype=ArrowDtype(pa_type))
-    with pytest.raises(pa.lib.ArrowInvalid, match="overflow|not in range"):
+    msg = "|".join(["overflow", "not in range"])
+    with pytest.raises(pa.lib.ArrowInvalid, match=msg):
         a // -1
     with pytest.raises(pa.lib.ArrowInvalid, match="divide by zero"):
         a // 0
@@ -4159,6 +4395,15 @@ def test_fillna_zero():
     tm.assert_series_equal(result, expected)
 
 
+def test_sort_readonly():
+    arr = pd.array([3, 1, 2], dtype="int64[pyarrow]")
+    arr._readonly = True
+    with pytest.raises(ValueError, match="Cannot modify read-only array"):
+        arr.sort()
+    # the array must be left unchanged
+    tm.assert_extension_array_equal(arr, pd.array([3, 1, 2], dtype="int64[pyarrow]"))
+
+
 @pytest.mark.parametrize(
     "offset",
     [
@@ -4219,3 +4464,31 @@ def test_date32_pyarrow_dateoffset_with_nulls(dtype):
     result = ser + pd.offsets.MonthEnd()
     assert result[0] == date(2022, 12, 31)
     assert pd.isna(result[1])  # handles NA, NaT, None uniformly
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [0, None, -1])
+def test_reduction_axis_valid(method, axis):
+    # axis equivalent to 0 (the only axis of a 1-D array) or None is accepted
+    if method == "skew" and pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    result = getattr(arr, method)(axis=axis)
+    expected = getattr(arr, method)()
+    assert result == expected or (pd.isna(result) and pd.isna(expected))
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
+)
+@pytest.mark.parametrize("axis", [1, 2])
+def test_reduction_axis_out_of_bounds(method, axis):
+    # axis beyond the array's dimensions is rejected rather than silently ignored
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    msg = "`axis` must be fewer than the number of dimensions"
+    with pytest.raises(ValueError, match=msg):
+        getattr(arr, method)(axis=axis)

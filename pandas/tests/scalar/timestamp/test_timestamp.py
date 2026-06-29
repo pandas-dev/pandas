@@ -521,6 +521,16 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
+    def test_to_period_unsupported_freq(self):
+        # GH#38914 unsupported freqs should raise a helpful error, not AttributeError
+        ts = Timestamp("2018-12-01")
+        msg = "for Period, please use 'M' instead of 'MS'"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period("MS")
+        msg = "<MonthBegin> is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period(offsets.MonthBegin())
+
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
         ts = Timestamp(datetime.now())
