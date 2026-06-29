@@ -920,9 +920,46 @@ def value_counts_internal(
         normalize_denominator = None
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
+            extension_values = Series(values, copy=False)._values
+            dense_counts = None
+            if (
+                sort
+                and not ascending
+                and not normalize
+                and isinstance(extension_values.dtype, BaseMaskedDtype)
+                and is_integer_dtype(extension_values.dtype)
+                and len(extension_values) >= _MASKED_DENSE_COUNT_MIN_SIZE
+            ):
+                extension_values = cast("BaseMaskedArray", extension_values)
+                keys, counts, na_counter = value_counts_arraylike(
+                    extension_values._data,
+                    dropna=dropna,
+                    mask=extension_values._mask,
+                    use_masked_dense_integer=True,
+                )
+                dense_counts = counts
+
+                mask_index = np.zeros((len(counts),), dtype=np.bool_)
+                count_mask = mask_index.copy()
+                if na_counter > 0:
+                    mask_index[-1] = True
+
+                arr_type = extension_values.dtype.construct_array_type()
+                key_data = keys.astype(extension_values.dtype.numpy_dtype, copy=False)
+                values_arr = arr_type(key_data, mask_index)  # type: ignore[call-arg]
+                count_arr = arr_type(counts, count_mask)  # type: ignore[call-arg]
+                index = Index(values_arr)
+                result = Series(count_arr, index=index, name=name, copy=False)
+            else:
+                result = extension_values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
+            if dense_counts is None:
+                counts = result._values
+                if not isinstance(counts, np.ndarray):
+                    counts = np.asarray(counts)
+            else:
+                counts = dense_counts
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -1006,9 +1043,87 @@ def _value_counts_object_int64_dense_sorted(
     return res_keys, counts
 
 
+_MASKED_DENSE_COUNT_MIN_SIZE = 1 << 18
+
+
+def _value_counts_masked_dense_integer(
+    values: np.ndarray,
+    dropna: bool,
+    mask: npt.NDArray[np.bool_] | None = None,
+    *,
+    preserve_order: bool = True,
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], int] | None:
+    if mask is None or values.ndim != 1 or not is_integer_dtype(values.dtype):
+        return None
+
+    has_na = bool(mask.any())
+    na_counter = 0
+    if has_na:
+        na_counter = int(mask.sum())
+        if na_counter * 64 > len(values):
+            return None
+        valid_values = values[~mask]
+    else:
+        valid_values = values
+
+    valid_count = len(valid_values)
+    if valid_count == 0:
+        if dropna or not has_na:
+            return (
+                np.array([], dtype=np.int64),
+                np.array([], dtype=np.int64),
+                0,
+            )
+
+        return (
+            np.array([0], dtype=np.int64),
+            np.array([na_counter], dtype=np.int64),
+            na_counter,
+        )
+
+    if valid_count < _MASKED_DENSE_COUNT_MIN_SIZE or (valid_values < 0).any():
+        return None
+
+    max_value = valid_values.max()
+    if max_value > np.iinfo(np.intp).max:
+        return None
+
+    range_size = int(max_value) + 1
+    if range_size <= 0 or range_size * 8 > valid_count:
+        return None
+
+    dense_values = valid_values.astype(np.intp, copy=False)
+    dense_counts = np.bincount(dense_values, minlength=range_size)
+    present = np.flatnonzero(dense_counts)
+
+    if preserve_order:
+        first_positions = np.full(range_size, valid_count, dtype=np.intp)
+        np.minimum.at(
+            first_positions,
+            dense_values,
+            np.arange(valid_count, dtype=np.intp),
+        )
+        present = present[np.argsort(first_positions[present], kind="stable")]
+
+    keys = present.astype(np.int64, copy=False)
+    counts = dense_counts[present].astype(np.int64, copy=False)
+
+    if dropna or not has_na:
+        return keys, counts, 0
+
+    keys = np.concatenate([keys, np.array([0], dtype=np.int64)])
+    counts = np.concatenate([counts, np.array([na_counter], dtype=np.int64)])
+    return keys, counts, na_counter
+
+
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
-    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
+    values: np.ndarray,
+    dropna: bool,
+    mask: npt.NDArray[np.bool_] | None = None,
+    *,
+    preserve_order: bool = True,
+    use_masked_dense_integer: bool = False,
 ) -> tuple[ArrayLike, npt.NDArray[np.int64], int]:
     """
     Parameters
@@ -1025,7 +1140,20 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    if use_masked_dense_integer:
+        result = _value_counts_masked_dense_integer(
+            values,
+            dropna,
+            mask=mask,
+            preserve_order=preserve_order,
+        )
+    else:
+        result = None
+
+    if result is None:
+        keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    else:
+        keys, counts, na_counter = result
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period

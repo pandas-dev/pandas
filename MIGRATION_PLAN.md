@@ -497,3 +497,20 @@ choosing an entire side.
   unsupported cases retain existing `_safe_fill_null`/EA fallback.
 - Risk: sliced chunks, signed/unsigned widths, scalar overflow, buffer
   lifetime, Arrow version behavior, and CoW need PyArrow runtime tests.
+
+## Batch 28: nullable integer value_counts
+
+- Original private commit: the masked nullable-integer value_counts
+  subset of `1246018d48`.
+- Prior pandas 3.0.3 port: `d108e65555`.
+- pandas 3.0.1 result: adapted with additional dtype and stable tie-order
+  corrections found during review.
+- Large one-dimensional nonnegative masked integer arrays use bounded
+  `bincount` only when range density and NA density are acceptable.
+- Keys are cast back to the original nullable integer storage dtype;
+  counts remain nullable Int64. First-appearance order is preserved
+  before the existing stable count sort.
+- Negative, sparse, high-NA, small, non-integer, alternate sort, and
+  normalized requests retain existing EA/hashtable behavior.
+- Risk: all nullable widths/signs, NA placement, tie ordering, and range
+  thresholds need runtime and performance validation.

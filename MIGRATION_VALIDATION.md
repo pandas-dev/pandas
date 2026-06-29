@@ -1166,3 +1166,47 @@ Follow-up validation:
   multi-chunk, invalid/overflowing scalar, limit, non-integer types, and
   buffer lifetime.
 - Benchmark single-chunk integer scalar fillna.
+
+## Batch 28: nullable integer value_counts
+
+Sources inspected:
+
+- Masked integer value_counts subset of exported `1246018d48`.
+- Prior pandas 3.0.3 port `d108e65555`.
+- pandas 3.0.1 BaseMaskedArray dtype construction and stable sorting.
+
+Adaptation checks:
+
+- Fast path requires large BaseMasked integer arrays and default
+  descending, non-normalized sorting.
+- Negative values, sparse ranges, high NA density, and short inputs
+  return to the hashtable.
+- Dense allocation is bounded relative to valid count and intp range.
+- NA is appended with a masked key only when `dropna=False`.
+- Keys are cast to the original dtype's NumPy storage before nullable
+  Index construction.
+- Counts remain int64-backed nullable integers.
+- First occurrence is retained for equal counts before stable sorting.
+- Added regression coverage for Int8 dtype and tie order.
+
+Executed:
+
+- `git diff --cached --check`
+- Static mask/range/dtype/order inspection.
+- `python -m py_compile` on implementation and test.
+- `python -m compileall -q pandas`
+- Focused nullable integer pytest invocation stopped during conftest
+  import because `dateutil` is missing.
+
+Not executed:
+
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run nullable integer function/value_counts tests.
+- Cover all signed/unsigned widths, min/max values, negative fallback,
+  empty/all-NA/high-NA, sparse/dense ranges, ties, dropna, ascending,
+  sort=False, and normalize.
+- Benchmark dense nullable integer value_counts at threshold boundaries.
