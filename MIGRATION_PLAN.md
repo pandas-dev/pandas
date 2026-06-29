@@ -341,3 +341,18 @@ choosing an entire side.
   order using its grouped join logic and groupsort indexer.
 - Risk: Python rich-comparison exceptions, duplicate-run advancement,
   empty sides, and result reference ownership need native tests.
+
+## Batch 18: skiplist allocation and traversal
+
+- Original private commit: `91019df988`.
+- Prior pandas 3.0.3 port: `8ece4c5407`.
+- pandas 3.0.1 result: adapted after a header conflict caused by the
+  target's older math compatibility helpers.
+- Each node, next-pointer array, and width array now share one aligned
+  allocation; node destruction therefore frees one block.
+- Portable likely/unlikely/prefetch macros and cached traversal state
+  reduce branch and member-load overhead in get/rank/insert/remove.
+- pandas 3.0.1 `PANDAS_NAN` and `Log2` helpers are retained instead of
+  importing the 3.0.3 C17 `NAN/log2` cleanup.
+- Risk: recursive ref-counted destruction, allocation failure, duplicate
+  ranks, and prefetch safety need native/debug builds.

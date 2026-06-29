@@ -761,3 +761,44 @@ Follow-up validation:
   tuple, and missing object values.
 - Benchmark monotonic object indexers and many-to-many `sort=False`
   grouped joins.
+
+## Batch 18: skiplist allocation and traversal
+
+Sources inspected:
+
+- Exported commit `91019df988`.
+- Prior pandas 3.0.3 port `8ece4c5407`.
+- pandas 3.0.1 and 3.0.3 skiplist header differences.
+
+Adaptation checks:
+
+- Flexible storage offsets follow `node_t`, pointer-array, then
+  int-array alignment requirements.
+- Zero-level NIL nodes use null next/width pointers.
+- Destruction recursively follows levels and frees each node block once
+  according to the existing reference count.
+- Allocation-failure cleanup still accepts partially initialized
+  structures.
+- Width/rank updates and duplicate ordering are preserved.
+- Prefetch calls use reachable NIL/node pointers and compile to no-ops
+  outside GCC/Clang.
+- No conflict markers remain.
+
+Executed:
+
+- `git diff --cached --check`
+- Allocation/free, reference-count, traversal, and conflict-marker
+  inspection.
+
+Not executed:
+
+- C syntax/native build: no C compiler is available.
+- Rolling quantile/median and rank runtime tests.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Build with GCC/Clang and MSVC, including debug allocators/sanitizers.
+- Run rolling quantile/median and ranking tests for empty, singleton,
+  duplicate-heavy, NaN, insert/remove, and allocation-failure cases.
+- Benchmark skiplist-heavy rolling quantile/median and rank workloads.

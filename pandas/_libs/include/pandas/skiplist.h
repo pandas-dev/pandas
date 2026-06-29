@@ -31,15 +31,26 @@ static inline float __skiplist_nanf(void) {
 
 static inline double Log2(double val) { return log(val) / log(2.); }
 
+#if defined(__GNUC__) || defined(__clang__)
+#define SL_LIKELY(x) __builtin_expect(!!(x), 1)
+#define SL_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define SL_PREFETCH_R(addr) __builtin_prefetch((const void *)(addr), 0, 3)
+#else
+#define SL_LIKELY(x) (x)
+#define SL_UNLIKELY(x) (x)
+#define SL_PREFETCH_R(addr) ((void)0)
+#endif
+
 typedef struct node_t node_t;
 
 struct node_t {
-  node_t **next;
-  int *width;
   double value;
   int is_nil;
   int levels;
   int ref_count;
+  int _pad;
+  node_t **next;
+  int *width;
 };
 
 typedef struct {
@@ -57,22 +68,29 @@ static inline double urand(void) {
 static inline int int_min(int a, int b) { return a < b ? a : b; }
 
 static inline node_t *node_init(double value, int levels) {
-  node_t *result;
-  result = (node_t *)malloc(sizeof(node_t));
-  if (result) {
-    result->value = value;
-    result->levels = levels;
-    result->is_nil = 0;
-    result->ref_count = 0;
-    result->next = (node_t **)malloc(levels * sizeof(node_t *));
-    result->width = (int *)malloc(levels * sizeof(int));
-    if (!(result->next && result->width) && (levels != 0)) {
-      free(result->next);
-      free(result->width);
-      free(result);
-      return NULL;
-    }
+  size_t next_off = sizeof(node_t);
+  size_t width_off = next_off + (size_t)levels * sizeof(node_t *);
+  size_t total = width_off + (size_t)levels * sizeof(int);
+
+  char *mem = (char *)malloc(total);
+  if (SL_UNLIKELY(!mem)) {
+    return NULL;
   }
+
+  node_t *result = (node_t *)mem;
+  result->value = value;
+  result->levels = levels;
+  result->is_nil = 0;
+  result->ref_count = 0;
+
+  if (levels > 0) {
+    result->next = (node_t **)(mem + next_off);
+    result->width = (int *)(mem + width_off);
+  } else {
+    result->next = NULL;
+    result->width = NULL;
+  }
+
   return result;
 }
 
@@ -88,14 +106,10 @@ static void node_destroy(node_t *node) {
       for (i = 0; i < node->levels; ++i) {
         node_destroy(node->next[i]);
       }
-      free(node->next);
-      free(node->width);
-      // printf("Reference count was 1, freeing\n");
       free(node);
     } else {
       node_decref(node);
     }
-    // pretty sure that freeing the struct above will be enough
   }
 }
 
@@ -115,7 +129,7 @@ static inline skiplist_t *skiplist_init(int expected_size) {
 
   maxlevels = 1 + Log2((double)expected_size);
   result = (skiplist_t *)malloc(sizeof(skiplist_t));
-  if (!result) {
+  if (SL_UNLIKELY(!result)) {
     return NULL;
   }
   result->tmp_chain = (node_t **)malloc(maxlevels * sizeof(node_t *));
@@ -160,7 +174,7 @@ static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
   node_t *node;
   int level;
 
-  if (i < 0 || i >= skp->size) {
+  if (SL_UNLIKELY(i < 0 || i >= skp->size)) {
     *ret = 0;
     return 0;
   }
@@ -171,6 +185,12 @@ static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
     while (node->width[level] <= i) {
       i -= node->width[level];
       node = node->next[level];
+      if (i > 1) {
+        SL_PREFETCH_R(node->next[level]);
+      }
+    }
+    if (SL_LIKELY(level > 0)) {
+      SL_PREFETCH_R(node->next[level - 1]);
     }
   }
 
@@ -181,14 +201,18 @@ static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
 // Returns the lowest rank of all elements with value `value`, as opposed to the
 // highest rank returned by `skiplist_insert`.
 static inline int skiplist_min_rank(skiplist_t *skp, double value) {
-  node_t *node;
+  node_t *node, *next_at_level;
   int level, rank = 0;
 
   node = skp->head;
   for (level = skp->maxlevels - 1; level >= 0; --level) {
-    while (_node_cmp(node->next[level], value) > 0) {
+    next_at_level = node->next[level];
+    SL_PREFETCH_R(next_at_level);
+    while (_node_cmp(next_at_level, value) > 0) {
       rank += node->width[level];
-      node = node->next[level];
+      node = next_at_level;
+      next_at_level = node->next[level];
+      SL_PREFETCH_R(next_at_level);
     }
   }
 
@@ -213,38 +237,75 @@ static inline int skiplist_insert(skiplist_t *skp, double value) {
 
   for (level = skp->maxlevels - 1; level >= 0; --level) {
     next_at_level = node->next[level];
-    while (_node_cmp(next_at_level, value) >= 0) {
-      steps_at_level[level] += node->width[level];
-      rank += node->width[level];
+    SL_PREFETCH_R(next_at_level);
+
+    while (1) {
+      int nil = next_at_level->is_nil;
+      double nval = next_at_level->value;
+
+      if (nil) {
+        break;
+      }
+      if (nval < value) {
+        break;
+      }
+
+      {
+        int w = node->width[level];
+        steps_at_level[level] += w;
+        rank += w;
+      }
       node = next_at_level;
       next_at_level = node->next[level];
+      SL_PREFETCH_R(next_at_level);
     }
     chain[level] = node;
+
+    if (SL_LIKELY(level > 0)) {
+      SL_PREFETCH_R(node->next[level - 1]);
+    }
   }
 
   size = int_min(skp->maxlevels, 1 - ((int)Log2(urand())));
 
   newnode = node_init(value, size);
-  if (!newnode) {
+  if (SL_UNLIKELY(!newnode)) {
     return -1;
   }
   steps = 0;
 
   for (level = 0; level < size; ++level) {
     prevnode = chain[level];
+
+    if (level + 1 < size) {
+      SL_PREFETCH_R(chain[level + 1]);
+    }
+
     newnode->next[level] = prevnode->next[level];
 
     prevnode->next[level] = newnode;
     node_incref(newnode); // increment the reference count
 
-    newnode->width[level] = prevnode->width[level] - steps;
-    prevnode->width[level] = steps + 1;
-
-    steps += steps_at_level[level];
+    {
+      int pw = prevnode->width[level];
+      newnode->width[level] = pw - steps;
+      prevnode->width[level] = steps + 1;
+      steps += steps_at_level[level];
+    }
   }
 
-  for (level = size; level < skp->maxlevels; ++level) {
-    chain[level]->width[level] += 1;
+  {
+    int lv = size;
+    int ml = skp->maxlevels;
+    for (; lv + 3 < ml; lv += 4) {
+      chain[lv]->width[lv] += 1;
+      chain[lv + 1]->width[lv + 1] += 1;
+      chain[lv + 2]->width[lv + 2] += 1;
+      chain[lv + 3]->width[lv + 3] += 1;
+    }
+    for (; lv < ml; ++lv) {
+      chain[lv]->width[lv] += 1;
+    }
   }
 
   ++(skp->size);
@@ -262,14 +323,31 @@ static inline int skiplist_remove(skiplist_t *skp, double value) {
 
   for (level = skp->maxlevels - 1; level >= 0; --level) {
     next_at_level = node->next[level];
-    while (_node_cmp(next_at_level, value) > 0) {
+    SL_PREFETCH_R(next_at_level);
+
+    while (1) {
+      int nil = next_at_level->is_nil;
+      double nval = next_at_level->value;
+
+      if (nil) {
+        break;
+      }
+      if (nval <= value) {
+        break;
+      }
+
       node = next_at_level;
       next_at_level = node->next[level];
+      SL_PREFETCH_R(next_at_level);
     }
     chain[level] = node;
+
+    if (SL_LIKELY(level > 0)) {
+      SL_PREFETCH_R(node->next[level - 1]);
+    }
   }
 
-  if (value != chain[0]->next[0]->value) {
+  if (SL_UNLIKELY(value != chain[0]->next[0]->value)) {
     return 0;
   }
 
@@ -280,15 +358,32 @@ static inline int skiplist_remove(skiplist_t *skp, double value) {
 
     tmpnode = prevnode->next[level];
 
-    prevnode->width[level] += tmpnode->width[level] - 1;
+    if (level + 1 < size) {
+      SL_PREFETCH_R(chain[level + 1]);
+    }
+
+    {
+      int tw = tmpnode->width[level];
+      prevnode->width[level] += tw - 1;
+    }
     prevnode->next[level] = tmpnode->next[level];
 
     tmpnode->next[level] = NULL;
     node_destroy(tmpnode); // decrement refcount or free
   }
 
-  for (level = size; level < skp->maxlevels; ++level) {
-    --(chain[level]->width[level]);
+  {
+    int lv = size;
+    int ml = skp->maxlevels;
+    for (; lv + 3 < ml; lv += 4) {
+      chain[lv]->width[lv] -= 1;
+      chain[lv + 1]->width[lv + 1] -= 1;
+      chain[lv + 2]->width[lv + 2] -= 1;
+      chain[lv + 3]->width[lv + 3] -= 1;
+    }
+    for (; lv < ml; ++lv) {
+      chain[lv]->width[lv] -= 1;
+    }
   }
 
   --(skp->size);
