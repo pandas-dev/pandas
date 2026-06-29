@@ -299,3 +299,24 @@ Follow-up validation:
 - Run the corresponding GroupBy ASV matrix for mask/no-mask,
   skipna true/false, datetime, nullable, negative labels, and empty
   groups.
+
+## Batch 6: environment-only follow-ups
+
+Inspected:
+
+- Prior ASV config commit `3fa2758641`.
+- Current pandas 3.0.1 `asv_bench/asv.conf.json`.
+- Prior repair `ee85531203` and its full `algos.pyx` diff.
+
+Decision:
+
+- No ASV config file change. The prior commit is machine-specific and
+  contains a duplicate matrix key; retaining the 3.0.1 config avoids
+  changing benchmark environment policy as part of a code port.
+- No `ee85531203` code change. Its `nogil` return fix targets a later
+  implementation structure absent from this branch.
+
+Validation:
+
+- Compared both prior diffs with the current 3.0.1 files.
+- ASV was not run.

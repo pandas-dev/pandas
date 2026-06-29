@@ -29,8 +29,8 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | 3 | `f6d861f8a6` | SwissTable | directly applied and audited |
 | 4 | `8e0304f403` | maybe_convert_objects | directly applied and audited |
 | 5 | `f39ba34d1d` | groupby loops | reimplemented from exported commits |
-| 6 | `3fa2758641` | ASV configuration | pending |
-| 7 | `ee85531203` | duplicated nogil repair | pending |
+| 6 | `3fa2758641` | ASV configuration | no direct migration |
+| 7 | `ee85531203` | pandas 3.0.3 nogil repair | not applicable |
 | 8 | `2bfbc167cb` | migration inventory | folded into these documents |
 | 9-38 | `2f489b472c` through `4ceff7983d` | remaining audited batches | pending |
 
@@ -153,3 +153,18 @@ choosing an entire side.
   - empty/all-NA shift inputs avoid zero-length pointer extraction.
 - Risk: duplicated loop bodies increase review surface; every
   mask/skipna/datetime/min_count branch needs native runtime coverage.
+
+## Batch 6: environment-only follow-ups
+
+- Prior ASV commit `3fa2758641`: no direct migration.
+  - It is an environment-specific change rather than a private pandas
+    optimization.
+  - It hard-codes `HEAD` and Python 3.14, removes the documented config
+    form, and contains a duplicate `versioneer[toml]` matrix key.
+  - pandas 3.0.1's existing ASV configuration is retained.
+- Prior repair `ee85531203`: not applicable.
+  - Its subject mentions duplicated, but its actual diff only moves
+    returns inside pandas 3.0.3 `pad_inplace`/`pad_2d_inplace` `nogil`
+    blocks.
+  - The pandas 3.0.1 pad adaptation intentionally remains GIL-held, so
+    the Cython return restriction does not exist.
