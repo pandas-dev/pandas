@@ -429,6 +429,8 @@ numpydoc_validation_exclude = {
     r"pandas\.Period\.weekday$",
     r"pandas\.PeriodIndex\.weekday$",
     r"pandas\.Series\.dt\.weekday$",
+    # PeriodIndex.unit has a minimal docstring (EX01, SS06, SA01)
+    r"pandas\.PeriodIndex\.unit$",
 }
 
 # matplotlib plot directive
