@@ -28,7 +28,7 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | 2 | `28df2030b5` | pad and take helpers | split and adapted |
 | 3 | `f6d861f8a6` | SwissTable | directly applied and audited |
 | 4 | `8e0304f403` | maybe_convert_objects | directly applied and audited |
-| 5 | `f39ba34d1d` | groupby loops | pending |
+| 5 | `f39ba34d1d` | groupby loops | reimplemented from exported commits |
 | 6 | `3fa2758641` | ASV configuration | pending |
 | 7 | `ee85531203` | duplicated nogil repair | pending |
 | 8 | `2bfbc167cb` | migration inventory | folded into these documents |
@@ -131,3 +131,25 @@ choosing an entire side.
   its real component for the float scratch array.
 - Risk: nullable uint selection, mixed signed/large-unsigned fallback,
   and object subclasses require runtime inference tests.
+
+## Batch 5: GroupBy hot loops
+
+- Original private commits: `598e709a9b`, `e38ed47c0e`,
+  `d019bc4d8e`, `63b8520f8c`, `82d3f0d7c5`, `eaa0ec8472`,
+  `c60600ce36`, and `829e42a602`.
+- Prior pandas 3.0.3 port: `f39ba34d1d`.
+- pandas 3.0.1 result: reimplemented function by function from the
+  exported patches because a whole-commit cherry-pick crossed later
+  upstream GroupBy behavior fixes.
+- The port covers `group_cummin_max`, `group_any_all`,
+  `group_cumprod`, `group_shift_indexer`, `group_last`,
+  `group_mean`, `group_min_max`, and `group_prod`.
+- pandas 3.0.1 compatibility:
+  - arbitrary-stride `values` and masks remain accepted;
+  - `skipna=False` poisoning is retained for mean/min/max/prod;
+  - Kahan compensation is retained for mean;
+  - `lab < 0` cumulative handling stays at pandas 3.0.1 behavior
+    instead of importing the later 3.0.2 nullable-dtype bug fix;
+  - empty/all-NA shift inputs avoid zero-length pointer extraction.
+- Risk: duplicated loop bodies increase review surface; every
+  mask/skipna/datetime/min_count branch needs native runtime coverage.

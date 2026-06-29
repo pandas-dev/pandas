@@ -250,3 +250,52 @@ Follow-up validation:
 - `python -m pytest pandas/tests/dtypes/test_inference.py -k maybe_convert_objects`
 - Run object-conversion ASV for homogeneous numeric blocks, nullable
   results, mixed numeric families, and fallback-heavy object arrays.
+
+## Batch 5: GroupBy hot loops
+
+Sources inspected:
+
+- Eight authoritative export commits and reconstructed commits
+  `41e01ce`, `c742f34`, `e942322`, `7adf4d5`, `292604f`,
+  `1e905a4`, `7f0119c`, and `9740cc5`.
+- Prior pandas 3.0.3 port `f39ba34d1d`.
+- pandas 3.0.1 implementations and the pandas 3.0.2/3.0.3 GroupBy
+  changes touching the same functions.
+
+Adaptation checks:
+
+- Loop-invariant mask, skipna, direction, and min/max branches move
+  outside inner column loops.
+- Pointer row caches are used only for internally allocated contiguous
+  outputs/accumulators; input values and masks keep arbitrary strides.
+- Mean retains Kahan compensation and resets non-finite compensation.
+- Mean, min/max, and prod preserve `skipna=False` poisoned results.
+- Cumulative min/max and prod retain pandas 3.0.1 negative-label
+  behavior rather than importing later upstream fixes.
+- Shift handles positive/negative periods without `sign * i`, and
+  returns safely for zero rows or zero groups.
+- Source-only non-ASCII and decorative comments were removed.
+- No conflict markers remain.
+
+Executed:
+
+- `git diff --check`
+- conflict-marker and non-ASCII scan on `groupby.pyx`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/groupby/test_reductions.py -q`
+  stopped during conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime GroupBy tests: pytest is blocked by missing `dateutil`.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/groupby/test_groupby.py`
+- `python -m pytest pandas/tests/groupby/test_reductions.py`
+- `python -m pytest pandas/tests/groupby -k "cummin or cummax or cumprod or shift or first or last or mean or min or max or prod"`
+- Run the corresponding GroupBy ASV matrix for mask/no-mask,
+  skipna true/false, datetime, nullable, negative labels, and empty
+  groups.
