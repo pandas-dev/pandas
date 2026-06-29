@@ -15,7 +15,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -3766,3 +3769,32 @@ def test_loc_setitem_extension_array_into_object_series():
     ser.loc[:] = arr
     expected = Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+def test_loc_setitem_expansion_incompatible_dtype_warns():
+    # GH#62369 silent dtype change during setitem-with-expansion
+    df = DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[2] = ["x", "y"]
+    assert df["a"].dtype == object
+    assert df["b"].dtype == object
+
+
+def test_loc_setitem_expansion_empty_frame_warns(using_infer_string):
+    # GH#62369 an explicitly-typed empty column is a meaningful dtype, so a
+    #  zero-row frame warns on an incompatible expansion just like a Series
+    df = DataFrame({"a": Series([], dtype=np.float64)})
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        df.loc[0] = "x"
+    expected_dtype = "str" if using_infer_string else object
+    assert df["a"].dtype == expected_dtype
+
+
+def test_loc_setitem_expansion_placeholder_column_no_warning():
+    # GH#62369 a column materialized during indexer preprocessing carries a
+    #  np.void NA-proxy placeholder dtype, which is not meaningful to retain,
+    #  so creating it via expansion does not warn
+    df = DataFrame()
+    with tm.assert_produces_warning(None):
+        df.loc[0, "a"] = 5
+    assert df["a"].dtype == np.float64

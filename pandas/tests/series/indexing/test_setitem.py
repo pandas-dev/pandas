@@ -10,7 +10,10 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import is_list_like
 
@@ -501,7 +504,10 @@ class TestSetitemWithExpansion:
 
         series = Series([], dtype=object)
         series["anything"] = 300.0
-        series["timestamp"] = timestamp
+        # the existing dtype is float64 here, so inserting a Timestamp
+        #  changes it to object
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            series["timestamp"] = timestamp
         result = series["timestamp"]
         assert result == expected
 
@@ -517,13 +523,19 @@ class TestSetitemWithExpansion:
         # GH#22717 inserting a Timedelta should _not_ cast to int64
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
+        # With infer_string, dtype changes from str -> object; without it,
+        # the Series is already object so no dtype change occurs.
+        warn = Pandas4Warning if using_infer_string else None
+
         ser = Series(["x"])
-        ser["td"] = td
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            ser["td"] = td
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
         ser = Series(["x"])
-        ser.loc["td"] = Timedelta("9 days")
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            ser.loc["td"] = Timedelta("9 days")
         tm.assert_series_equal(ser, expected)
         assert isinstance(ser["td"], Timedelta)
 
@@ -531,7 +543,10 @@ class TestSetitemWithExpansion:
         # GH#12599
         ser = Series(dtype=object)
         ser["a"] = Timestamp("2016-01-01")
-        ser["b"] = 3.0
+        # After the first insert ser has datetime64 dtype; inserting a float
+        # is incompatible with that.
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser["b"] = 3.0
         ser["c"] = "foo"
         expected = Series([Timestamp("2016-01-01"), 3.0, "foo"], index=["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
@@ -579,7 +594,10 @@ class TestSetitemWithExpansion:
             with pytest.raises(TypeError, match="Invalid value"):
                 ser[indexer] = na
         else:
-            ser[indexer] = na
+            # GH#62369 enlargement silently changing int64 -> object warns
+            warn = Pandas4Warning if indexer == 2 and target_dtype == "object" else None
+            with tm.assert_produces_warning(warn, match="incompatible dtype"):
+                ser[indexer] = na
             expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
             expected = Series(expected_values, dtype=target_dtype)
             tm.assert_series_equal(ser, expected)
@@ -587,7 +605,6 @@ class TestSetitemWithExpansion:
     def test_setitem_enlargement_object_none(self, nulls_fixture, using_infer_string):
         # GH#48665
         ser = Series(["a", "b"])
-        ser[3] = nulls_fixture
 
         dtype = (
             "str"
@@ -595,6 +612,12 @@ class TestSetitemWithExpansion:
             and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
             else object
         )
+
+        # Warn when the dtype changes (str -> object for Decimal without
+        # pyarrow); no warning when the dtype is preserved.
+        warn = Pandas4Warning if ser.dtype != dtype else None
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            ser[3] = nulls_fixture
 
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
@@ -1743,7 +1766,8 @@ def test_setitem_positional_with_casting():
     #  setitem-with-expansion
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
-    ser[0] = "X"
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser[0] = "X"
     expected = Series([1, 2, 3, "X"], index=["a", "b", "c", 0], dtype=object)
     tm.assert_series_equal(ser, expected)
 
@@ -1755,7 +1779,8 @@ def test_setitem_positional_float_into_int_coerces():
     #  setitem-with-expansion
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
-    ser[0] = 1.5
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser[0] = 1.5
     expected = Series([1, 2, 3, 1.5], index=["a", "b", "c", 0])
     tm.assert_series_equal(ser, expected)
 
@@ -1867,3 +1892,66 @@ def test_setitem_bool_dtype_with_boolean_indexer():
     s1[condition] = s2[condition]
     expected = Series([True, False, True], dtype=bool)
     tm.assert_series_equal(s1, expected)
+
+
+@pytest.mark.parametrize(
+    "value, expected_dtype",
+    [
+        ("foo", object),
+        (3.5, np.float64),
+        (Timestamp("2025-01-01"), object),
+    ],
+)
+def test_setitem_expansion_incompatible_dtype_warns(value, expected_dtype):
+    # GH#62369 silent dtype change during setitem-with-expansion
+    ser = Series([1, 2], dtype=np.int64)
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = value
+    assert ser.dtype == expected_dtype
+
+
+@pytest.mark.parametrize(
+    "value, expected_dtype",
+    [
+        # compatible value, dtype unchanged
+        (3, np.int64),
+        # float losslessly downcast back to int64
+        (3.0, np.int64),
+        # PDEP-6 exception: int -> float when the value introduces NaN
+        (np.nan, np.float64),
+    ],
+)
+def test_setitem_expansion_compatible_dtype_no_warning(value, expected_dtype):
+    # GH#62369
+    ser = Series([1, 2], dtype=np.int64)
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = value
+    assert ser.dtype == expected_dtype
+
+
+def test_setitem_expansion_float64_holds_int_no_warning():
+    # GH#62369 float64 can hold an int value losslessly, dtype is retained
+    ser = Series([1.5, 2.5])
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = 3
+    assert ser.dtype == np.float64
+
+
+def test_setitem_expansion_complex_into_float_warns():
+    # GH#62369 complex is numeric but float64 cannot hold it losslessly,
+    #  so the dtype changes (with a warning) and the value is preserved
+    ser = Series([1.0, 2.0])
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = 1 + 2j
+    expected = Series([1.0, 2.0, 1 + 2j], dtype=np.complex128)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_expansion_float64_value_into_float32_warns():
+    # GH#62369 value does not fit in float32, so the dtype changes
+    #  (with a warning) and the value is preserved
+    ser = Series([1.0, 2.0], dtype=np.float32)
+    with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+        ser.loc[2] = 1e300
+    expected = Series([1.0, 2.0, 1e300], dtype=np.float64)
+    tm.assert_series_equal(ser, expected)
