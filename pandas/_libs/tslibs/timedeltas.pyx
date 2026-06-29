@@ -17,6 +17,7 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
+from libc.math cimport nextafter
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
@@ -1390,7 +1391,8 @@ cdef class _Timedelta(timedelta):
         Total seconds in the duration.
 
         This method calculates the total duration in seconds by combining
-        the days, seconds, and microseconds of the `Timedelta` object.
+        the days, seconds, microseconds, and nanoseconds of the `Timedelta`
+        object.
 
         See Also
         --------
@@ -1408,13 +1410,28 @@ cdef class _Timedelta(timedelta):
         60.0
         """
         # We need to override bc we overrode days/seconds/microseconds
-        # TODO: add nanos/1e9?
         self._ensure_components()
-        return (
-            self._d * 86400
-            + self._h * 3600 + self._m * 60 + self._s
-            + (self._ms * 1000 + self._us) / 1_000_000
-        )
+        cdef:
+            int64_t int_seconds = (
+                self._d * 86400 + self._h * 3600 + self._m * 60 + self._s
+            )
+            int64_t sub_ns
+            double result
+        if self._ns == 0:
+            # Without a sub-microsecond residual, sub-second contributions are
+            # large enough relative to ulp(int_seconds) that float rounding
+            # cannot collapse the result onto an integer-second boundary.
+            return int_seconds + (self._ms * 1000 + self._us) / 1_000_000
+        sub_ns = self._ms * 1_000_000 + self._us * 1_000 + self._ns
+        result = int_seconds + sub_ns / 1e9
+        # sub_ns puts the true value strictly inside (int_seconds, int_seconds + 1),
+        # so guard against float rounding collapsing onto the boundary; otherwise
+        # bisect-style lookups treat us as exactly on a transition.
+        if result == int_seconds + 1:
+            result = nextafter(result, <double>int_seconds)
+        elif result == int_seconds:
+            result = nextafter(result, <double>(int_seconds + 1))
+        return result
 
     @property
     def unit(self) -> str:

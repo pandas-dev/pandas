@@ -54,10 +54,19 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_310.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_310.notable_bug_fixes.timedelta_total_seconds_nanoseconds:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+``Timedelta.total_seconds`` now includes the nanosecond component
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously :meth:`Timedelta.total_seconds` mirrored the stdlib
+:meth:`datetime.timedelta.total_seconds` formula and silently dropped the
+sub-microsecond nanosecond residual — e.g. ``Timedelta(nanoseconds=999).total_seconds()``
+returned ``0.0`` instead of ``9.99e-7``. The result now includes the
+nanosecond component. The vectorized :meth:`TimedeltaIndex.total_seconds` and
+:meth:`Series.dt.total_seconds` already included the nanosecond component;
+they now match the scalar result exactly, including at large magnitudes
+where floating-point rounding previously differed (:issue:`46819`).
 
 .. _whatsnew_310.notable_bug_fixes.notable_bug_fix2:
 

@@ -652,6 +652,33 @@ class TestTimedeltas:
         assert (Timedelta("30s").total_seconds() - 30.0) < 1e-20
         assert (30.0 - Timedelta("30s").total_seconds()) < 1e-20
 
+    def test_total_seconds_includes_nanoseconds(self):
+        # GH#46819 nanosecond component was silently dropped
+        assert Timedelta(nanoseconds=999).total_seconds() == 999e-9
+        assert Timedelta("1us 500ns").total_seconds() == 1.5e-6
+        # negative timedelta with nanosecond residual: previously the
+        # nanos were dropped entirely, so result was off by ~1us
+        result = Timedelta(nanoseconds=-1).total_seconds()
+        assert abs(result - (-1e-9)) < 1e-15
+
+    def test_total_seconds_stays_strictly_inside_integer_seconds(self):
+        # Sub-second components mean the true value is strictly inside
+        # (floor, floor + 1); float rounding must not collapse onto either
+        # boundary, otherwise bisect-based lookups (e.g. dateutil DST,
+        # GH#31043) misclassify the timestamp as on a transition.
+        # 1 ns below 1552212000 s; naive float rounds up to 1552212000.0
+        below = Timedelta(1_552_211_999_999_999_999).total_seconds()
+        assert below < 1_552_212_000
+        # 1 ns above 1552212000 s; sub_ns is below the float ulp at this
+        # magnitude (~238 ns), so naive float rounds down to 1552212000.0
+        above = Timedelta(1_552_212_000_000_000_001).total_seconds()
+        assert above > 1_552_212_000
+        # symmetric negative cases
+        neg_above = Timedelta(-1_552_211_999_999_999_999).total_seconds()
+        assert neg_above > -1_552_212_000
+        neg_below = Timedelta(-1_552_212_000_000_000_001).total_seconds()
+        assert neg_below < -1_552_212_000
+
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"
         assert Timedelta(days=1, hours=6).resolution_string == "h"

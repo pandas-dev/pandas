@@ -79,6 +79,48 @@ class TestNonNano:
         assert result == expected
 
     @pytest.mark.parametrize(
+        "value, boundary, direction",
+        [
+            (1_552_211_999_999_999_999, 1_552_212_000, "below"),
+            (1_552_212_000_000_000_001, 1_552_212_000, "above"),
+            (-1_552_211_999_999_999_999, -1_552_212_000, "above"),
+            (-1_552_212_000_000_000_001, -1_552_212_000, "below"),
+        ],
+    )
+    def test_total_seconds_stays_strictly_inside_integer_seconds(
+        self, value, boundary, direction
+    ):
+        # Vectorized analogue of the scalar boundary fix: sub-second
+        # residuals must keep the result strictly off integer-second
+        # boundaries, otherwise bisect-style lookups (e.g. dateutil DST,
+        # GH#31043) misclassify the timestamp as on a transition.
+        tdi = pd.to_timedelta([value, pd.NaT], unit="ns")
+        result = tdi.total_seconds()
+        assert np.isnan(result[1])
+        if direction == "below":
+            assert result[0] < boundary
+        else:
+            assert result[0] > boundary
+        # Vectorized result agrees with the scalar Timedelta path
+        assert result[0] == Timedelta(value).total_seconds()
+
+    def test_total_seconds_matches_scalar_at_large_ns(self):
+        # The vectorized result must match Timedelta.total_seconds bit-for-bit,
+        # not just at integer-second boundaries: large ns values lose precision
+        # under a single asi8 / pps division, so we mirror the scalar's
+        # `int_seconds + sub_ns / 1e9` split (GH#46819).
+        values = [
+            256_790_988_018_092_305,
+            2_530_160_323_573_146_516,
+            4_847_449_854_178_473_008,
+            9_223_372_036_854_775_807,  # int64 ns max
+        ]
+        values = values + [-val for val in values]
+        result = pd.to_timedelta(values, unit="ns").total_seconds()
+        expected = [Timedelta(val).total_seconds() for val in values]
+        assert list(result) == expected
+
+    @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )
     def test_add_nat_datetimelike_scalar(self, nat, tda):

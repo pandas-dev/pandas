@@ -758,7 +758,37 @@ class TimedeltaArray(dtl.TimelikeOps):
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
         """
         pps = periods_per_second(self._creso)
-        return self._maybe_mask_results(self.asi8 / pps, fill_value=None)
+        asi8 = self.asi8
+        if self.unit == "ns":
+            # Divide the integer-second part and the sub-second residual
+            # separately, mirroring the scalar's `int_seconds + sub_ns / 1e9`,
+            # so the result matches Timedelta.total_seconds bit-for-bit. A
+            # single asi8 / pps division rounds at the nanosecond magnitude and
+            # loses precision relative to the scalar for ns values above 2**53.
+            floor_s, residual = np.divmod(asi8, pps)
+            result = floor_s + residual / pps
+            if (asi8 > 2**53).any() or (asi8 < -(2**53)).any():
+                # Only above 2**53 ns can the float result round onto an
+                # integer-second boundary. A sub-second residual puts the true
+                # value strictly inside (floor, floor + 1), so nudge off either
+                # boundary, otherwise bisect-style lookups (e.g. dateutil DST,
+                # GH#31043) misclassify the timestamp as on a transition. This
+                # mirrors the scalar guard in `_Timedelta.total_seconds`.
+                has_residual = residual != 0
+                floor_f = floor_s.astype(np.float64)
+                on_floor = has_residual & (result == floor_f)
+                on_ceil = has_residual & (result == floor_f + 1.0)
+                if on_floor.any():
+                    result = np.where(
+                        on_floor, np.nextafter(result, result + 1.0), result
+                    )
+                if on_ceil.any():
+                    result = np.where(
+                        on_ceil, np.nextafter(result, result - 1.0), result
+                    )
+        else:
+            result = asi8 / pps
+        return self._maybe_mask_results(result, fill_value=None)
 
     def to_pytimedelta(self) -> npt.NDArray[np.object_]:
         """
