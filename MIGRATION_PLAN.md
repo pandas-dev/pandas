@@ -514,3 +514,18 @@ choosing an entire side.
   normalized requests retain existing EA/hashtable behavior.
 - Risk: all nullable widths/signs, NA placement, tie ordering, and range
   thresholds need runtime and performance validation.
+
+## Batch 29: FrameRowApply Series reuse
+
+- Original private commit: the axis=0 FrameRowApply subset of
+  `1246018d48`.
+- Prior pandas 3.0.3 port: `8afaf5bca6`.
+- pandas 3.0.1 result: directly applied on top of the shared conditional
+  CoW reset protocol from Batch 24.
+- Homogeneous non-extension blocks reuse one column Series and replace
+  its values/name. Mixed-block and ExtensionArray frames retain `_ixs`
+  per column.
+- Same-index Series results use a values dictionary construction path;
+  all other result forms retain existing wrapping and error behavior.
+- Risk: returned views, mutation, index identity/equality, subclasses,
+  zero columns, mixed/EA blocks, and CoW refs need runtime tests.

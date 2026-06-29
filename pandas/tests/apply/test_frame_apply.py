@@ -390,6 +390,31 @@ def test_apply_axis1(float_frame):
     assert result == expected
 
 
+def test_apply_axis0_series_result_preserves_index_and_columns():
+    df = DataFrame(
+        np.arange(9.0).reshape(3, 3),
+        index=Index(["x", "y", "z"], name="rows"),
+        columns=Index(["A", "B", "C"], name="cols"),
+    )
+
+    result = df.apply(lambda col: col + 1, axis=0)
+
+    expected = df + 1
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_axis0_returned_series_not_overwritten_by_reuse():
+    df = DataFrame(
+        np.arange(9.0).reshape(3, 3),
+        index=Index(["x", "y", "z"]),
+        columns=Index(["A", "B", "C"]),
+    )
+
+    result = df.apply(lambda col: col, axis=0)
+
+    tm.assert_frame_equal(result, df)
+
+
 def test_apply_mixed_dtype_corner():
     df = DataFrame({"A": ["foo"], "B": [1.0]})
     result = df[:0].apply(np.mean, axis=1)

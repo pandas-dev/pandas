@@ -1210,3 +1210,47 @@ Follow-up validation:
   empty/all-NA/high-NA, sparse/dense ranges, ties, dropna, ascending,
   sort=False, and normalize.
 - Benchmark dense nullable integer value_counts at threshold boundaries.
+
+## Batch 29: FrameRowApply Series reuse
+
+Sources inspected:
+
+- Axis=0 apply subset of exported `1246018d48`.
+- Prior pandas 3.0.3 port `8afaf5bca6`.
+- pandas 3.0.1 block layout, Series generator, result wrapping, and the
+  Batch 24 CoW reset protocol.
+
+Adaptation checks:
+
+- Reuse requires exactly one non-extension block.
+- Column values and name are replaced before every yield.
+- Shallow Series results request a ref reset before the next reuse.
+- Mixed and EA inputs remain on per-column `_ixs`.
+- Fast result construction requires every Series result to share the
+  exact original index object.
+- Result columns are replaced by the existing result index only when
+  lengths match.
+- Tests cover Series-valued axis=0 output and reuse overwrite safety.
+
+Executed:
+
+- `git diff --cached --check`
+- Static generator/result/CoW inspection.
+- `python -m py_compile pandas/core/apply.py
+  pandas/tests/apply/test_frame_apply.py`
+- `python -m compileall -q pandas`
+- Focused apply pytest invocation stopped during conftest import because
+  `dateutil` is missing.
+
+Not executed:
+
+- Runtime apply/CoW assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run frame apply and CoW tests.
+- Cover scalar/Series/view returns, mutation, same/equal/different
+  indexes, empty frames, mixed blocks, EA blocks, subclasses, and
+  duplicate labels.
+- Benchmark homogeneous `DataFrame.apply(axis=0)`.
