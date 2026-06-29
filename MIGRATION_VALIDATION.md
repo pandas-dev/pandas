@@ -1254,3 +1254,41 @@ Follow-up validation:
   indexes, empty frames, mixed blocks, EA blocks, subclasses, and
   duplicate labels.
 - Benchmark homogeneous `DataFrame.apply(axis=0)`.
+
+## Batch 30: broad astype/fillna audit
+
+Sources inspected:
+
+- Remaining astype/fillna portions of exported `1246018d48`.
+- Prior pandas 3.0.3 audit `429781002a`.
+- pandas 3.0.1 generic astype, Block.fillna, manager apply, CoW, and
+  warning paths.
+
+Decision:
+
+- Do not port the broad pandas 2.x DataFrame astype helper with stale
+  `copy=True/False` branching.
+- Do not bypass BlockManager apply/warning handling with the broad dict
+  fillna helper.
+- Retain existing scalar Block.fillna coverage.
+- Evaluate later narrow 3.0.3 astype/fillna ports independently with
+  focused CoW tests.
+
+Executed:
+
+- Static source and API comparison.
+- `git diff --check`
+
+Not executed:
+
+- Runtime CoW/warning tests: pytest is blocked by missing `dateutil`.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Before accepting narrow implementations, run CoW tests for
+  `astype(copy=True/False)`, referenced blocks, mutation isolation,
+  duplicate/MultiIndex columns, dict/Series fill values, inplace mode,
+  and warnings.
+- Benchmark homogeneous numeric astype and object-block dict fillna only
+  after correctness validation.

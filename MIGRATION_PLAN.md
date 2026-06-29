@@ -529,3 +529,19 @@ choosing an entire side.
   all other result forms retain existing wrapping and error behavior.
 - Risk: returned views, mutation, index identity/equality, subclasses,
   zero columns, mixed/EA blocks, and CoW refs need runtime tests.
+
+## Batch 30: broad astype/fillna audit
+
+- Original private commit: remaining DataFrame astype/fillna portions of
+  `1246018d48`.
+- Prior pandas 3.0.3 audit: `429781002a`.
+- No mechanical port of the broad pandas 2.x helpers: their explicit
+  copy branching conflicts with pandas 3 Copy-on-Write lazy-copy
+  semantics, and dict fillna bypasses current manager/warning flow.
+- pandas 3.0.1 already has scalar `Block.fillna` Cython coverage for
+  relevant float/object paths.
+- Later, narrower 3.0.3 migration commits for homogeneous astype and
+  object-dict fillna remain separate batches and will be re-audited
+  against 3.0.1 rather than treating this decision as a permanent block.
+- Risk: any implementation must prove CoW isolation, duplicate/MultiIndex
+  column behavior, warning semantics, and referenced-block handling.
