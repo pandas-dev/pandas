@@ -164,6 +164,9 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_weekday", locale),
                              dtype=np.object_)
+            for i in range(len(names)):
+                names[i] = names[i].capitalize()
+
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -171,7 +174,7 @@ def get_date_name_field(
 
             pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
-            out[i] = names[dow].capitalize()
+            out[i] = names[dow]
 
     elif field == "month_name":
         if locale is None:
@@ -179,13 +182,16 @@ def get_date_name_field(
         else:
             names = np.array(_get_locale_names("f_month", locale),
                              dtype=np.object_)
+            for i in range(len(names)):
+                names[i] = names[i].capitalize()
+
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
                 continue
 
             pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
-            out[i] = names[dts.month].capitalize()
+            out[i] = names[dts.month]
 
     else:
         raise ValueError(f"Field {field} not supported")

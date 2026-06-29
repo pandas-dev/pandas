@@ -1,9 +1,10 @@
 cimport cython
 cimport numpy as cnp
 from cpython.datetime cimport (
-    date,
-    datetime,
-    time,
+    date_new,
+    datetime_new,
+    import_datetime,
+    time_new,
     tzinfo,
 )
 from numpy cimport (
@@ -12,6 +13,7 @@ from numpy cimport (
 )
 
 cnp.import_array()
+import_datetime()
 
 from .dtypes import Resolution
 
@@ -175,14 +177,16 @@ def ints_to_pydatetime(
                     utc_val, dts, new_tz, fold, reso=reso
                 )
             elif use_pydt:
-                res_val = datetime(
+                res_val = datetime_new(
                     dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us,
                     new_tz, fold=fold,
                 )
             elif use_date:
-                res_val = date(dts.year, dts.month, dts.day)
+                res_val = date_new(dts.year, dts.month, dts.day)
             else:
-                res_val = time(dts.hour, dts.min, dts.sec, dts.us, new_tz, fold=fold)
+                res_val = time_new(
+                    dts.hour, dts.min, dts.sec, dts.us, new_tz, fold=fold
+                )
 
         # Note: we can index result directly instead of using PyArray_MultiIter_DATA
         #  like we do for the other functions because result is known C-contiguous

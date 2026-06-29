@@ -387,3 +387,19 @@ choosing an entire side.
   remain active.
 - Risk: signed-overflow translation, scalar broadcasting, shape checks,
   NaT, and arbitrary strides need a native build.
+
+## Batch 21: datetime object and name construction
+
+- Original private commits: `e951e5f721` and `a22b61a327`.
+- Prior pandas 3.0.3 port: `766dc263de`.
+- pandas 3.0.1 result: CPython datetime constructors apply directly;
+  date-name caching required an additional target-specific migration.
+- `ints_to_pydatetime` initializes the datetime C API and calls
+  `datetime_new`, `date_new`, and `time_new`.
+- pandas 3.0.3 already contained upstream equivalent date-name caching,
+  but pandas 3.0.1 does not. Locale names are now capitalized once when
+  the names array is built, not once per result element.
+- This is a documented expansion beyond the prior 3.0.3 port, based on
+  the authoritative export diff.
+- Risk: timezone/fold semantics, resolution conversion, locale casing,
+  NaT, and CPython C-API initialization need native tests.

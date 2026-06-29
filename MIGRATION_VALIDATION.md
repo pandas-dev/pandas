@@ -871,3 +871,42 @@ Follow-up validation:
 - Cover 0-D/1-D/N-D, C/F/non-contiguous, broadcast, empty, NaT, positive
   and negative overflow.
 - Benchmark datetime/timedelta scalar and equal-shape arithmetic.
+
+## Batch 21: datetime object and name construction
+
+Sources inspected:
+
+- Exported commits `e951e5f721` and `a22b61a327`.
+- Prior pandas 3.0.3 port `766dc263de`.
+- pandas 3.0.1/3.0.3 `fields.pyx` difference and upstream commits.
+
+Adaptation checks:
+
+- `import_datetime()` is called during module initialization.
+- C constructors receive the same year/month/day/time/tz/fold fields as
+  the previous Python constructors.
+- Existing timezone conversion branches remain unchanged.
+- Default day/month constants are already correctly cased.
+- Locale-provided names are capitalized once before the output loop.
+- NaT output remains `np.nan`.
+
+Executed:
+
+- `git diff --cached --check`
+- Static C-constructor argument and locale-loop inspection.
+- `python -m compileall -q pandas`
+- Focused datetime pytest invocation stopped during conftest import
+  because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime datetime/locale assertions.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run datetime accessor, `to_pydatetime`, day-name, and month-name tests.
+- Cover timezone-naive/aware, fold 0/1, date/time boxing, all supported
+  resolutions, NaT, default locale, and non-English locales.
+- Benchmark DatetimeAccessor day/month names and object conversion.
