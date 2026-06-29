@@ -404,3 +404,35 @@ Follow-up validation:
 - `python -m pytest pandas/tests/indexes/ranges`
 - Run RangeIndex concat ASV for consecutive, discontinuous, repeated,
   singleton, empty, and mixed-index inputs.
+
+## Batch 9: khash insertion macros
+
+Sources inspected:
+
+- Exported commits `2777612697` and `42dc387d2c`.
+- Prior pandas 3.0.3 port `e23914d92f`.
+- pandas 3.0.1 vendored `kh_put` macro expansion.
+
+Static consistency checks:
+
+- GNU/Clang branch prediction builtins have a portable fallback.
+- Key and flag pointers are cached only after possible table resize.
+- Probe, deleted-slot, occupancy, and return-code behavior is unchanged.
+- Every subsequent insertion access uses the cached pointers.
+
+Executed:
+
+- `git diff --cached --check`
+- Static macro expansion inspection.
+
+Not executed:
+
+- C/C++ compilation: no native compiler toolchain is available.
+- Runtime hash-table tests: edited extensions cannot be rebuilt.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Build generated hash tables with GCC/Clang and MSVC.
+- Run hashtable, factorize, unique, merge, and SwissTable-off tests.
+- Benchmark collision-heavy and mostly-new-key insertion workloads.

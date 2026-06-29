@@ -141,6 +141,16 @@ typedef float khfloat32_t;
 typedef khuint32_t khuint_t;
 typedef khuint_t khiter_t;
 
+#ifndef __LIKELY
+#if defined(__GNUC__) || defined(__clang__)
+#define __LIKELY(x) __builtin_expect(!!(x), 1)
+#define __UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#define __LIKELY(x) (x)
+#define __UNLIKELY(x) (x)
+#endif
+#endif
+
 #define __ac_isempty(flag, i) ((flag[i >> 5] >> (i & 0x1fU)) & 1)
 #define __ac_isdel(flag, i) (0)
 #define __ac_iseither(flag, i) __ac_isempty(flag, i)
@@ -392,19 +402,21 @@ static const double __ac_HASH_UPPER = 0.77;
         kh_resize_##name(h, h->n_buckets + 1); /* expand the hash table */     \
     } /* TODO: to implement automatically shrinking; resize() already support  \
          shrinking */                                                          \
+    khkey_t *hkeys = h->keys;                                                  \
+    khuint32_t *hflags = h->flags;                                             \
     {                                                                          \
       khuint_t inc, k, i, site, last, mask = h->n_buckets - 1;                 \
       x = site = h->n_buckets;                                                 \
       k = __hash_func(key);                                                    \
       i = k & mask;                                                            \
-      if (__ac_isempty(h->flags, i))                                           \
+      if (__LIKELY(__ac_isempty(hflags, i)))                                   \
         x = i; /* for speed up */                                              \
       else {                                                                   \
         inc = __ac_inc(k, mask);                                               \
         last = i;                                                              \
-        while (!__ac_isempty(h->flags, i) &&                                   \
-               (__ac_isdel(h->flags, i) || !__hash_equal(h->keys[i], key))) {  \
-          if (__ac_isdel(h->flags, i))                                         \
+        while (!__ac_isempty(hflags, i) &&                                     \
+               (__ac_isdel(hflags, i) || !__hash_equal(hkeys[i], key))) {      \
+          if (__ac_isdel(hflags, i))                                           \
             site = i;                                                          \
           i = (i + inc) & mask;                                                \
           if (i == last) {                                                     \
@@ -413,22 +425,22 @@ static const double __ac_HASH_UPPER = 0.77;
           }                                                                    \
         }                                                                      \
         if (x == h->n_buckets) {                                               \
-          if (__ac_isempty(h->flags, i) && site != h->n_buckets)               \
+          if (__ac_isempty(hflags, i) && site != h->n_buckets)                 \
             x = site;                                                          \
           else                                                                 \
             x = i;                                                             \
         }                                                                      \
       }                                                                        \
     }                                                                          \
-    if (__ac_isempty(h->flags, x)) { /* not present at all */                  \
-      h->keys[x] = key;                                                        \
-      __ac_set_isboth_false(h->flags, x);                                      \
+    if (__LIKELY(__ac_isempty(hflags, x))) { /* not present at all */          \
+      hkeys[x] = key;                                                          \
+      __ac_set_isboth_false(hflags, x);                                        \
       ++h->size;                                                               \
       ++h->n_occupied;                                                         \
       *ret = 1;                                                                \
-    } else if (__ac_isdel(h->flags, x)) { /* deleted */                        \
-      h->keys[x] = key;                                                        \
-      __ac_set_isboth_false(h->flags, x);                                      \
+    } else if (__ac_isdel(hflags, x)) { /* deleted */                          \
+      hkeys[x] = key;                                                          \
+      __ac_set_isboth_false(hflags, x);                                        \
       ++h->size;                                                               \
       *ret = 2;                                                                \
     } else                                                                     \

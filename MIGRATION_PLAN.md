@@ -207,3 +207,16 @@ choosing an entire side.
 - Risk: the helper accepts Python objects and accesses `_range`
   directly; native tests must cover mixed Index inputs, one-element
   ranges, repeated ranges, empty ranges, and discontinuous ranges.
+
+## Batch 9: khash insertion macros
+
+- Original private commits: `2777612697` and `42dc387d2c`.
+- Prior pandas 3.0.3 port: `e23914d92f`.
+- pandas 3.0.1 result: directly applied to the unchanged vendored khash
+  insertion macro.
+- Portable likely/unlikely macros annotate the common empty-slot path,
+  and local key/flag pointers avoid repeated structure member loads.
+- Pointer caches are initialized after any resize, so they cannot refer
+  to pre-resize storage.
+- Risk: this vendored header is expanded across many generated hash
+  tables and needs compiler coverage on GCC/Clang and MSVC.
