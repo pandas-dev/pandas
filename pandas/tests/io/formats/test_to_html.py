@@ -92,10 +92,7 @@ def test_to_html_with_column_specific_col_space_raises():
         np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
     )
 
-    msg = (
-        "Col_space length\\(\\d+\\) should match pd.DataFrame"
-        "number of columns\\(\\d+\\)"
-    )
+    msg = "Col_space length\\(\\d+\\) should match DataFramenumber of columns\\(\\d+\\)"
 
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space=[30, 40])
@@ -310,7 +307,7 @@ def test_to_html_truncate(datapath):
 def test_html_invalid_formatters_arg_raises(size):
     # issue-28469
     df = pd.DataFrame(columns=["a", "b", "c"])
-    msg = "Formatters length({}) should match pd.DataFrame number of columns(3)"
+    msg = "Formatters length({}) should match DataFrame number of columns(3)"
     with pytest.raises(ValueError, match=re.escape(msg.format(size))):
         df.to_html(formatters=["{}".format] * size)
 
@@ -873,8 +870,8 @@ class TestReprHTML:
     def test_repr_html_ipython_config(self, ip):
         code = textwrap.dedent(
             """\
-        from pandas import pd.DataFrame
-        df = pd.DataFrame({"A": [1, 2]})
+        from pandas import DataFrame
+        df = DataFrame({"A": [1, 2]})
         df._repr_html_()
 
         cfg = get_ipython().config
@@ -1102,7 +1099,7 @@ def test_to_html_multiindex_col_with_colspace():
     df.columns = MultiIndex.from_tuples([(1, 1), (2, 1)])
     result = df.to_html(col_space=100)
     expected = (
-        '<table border="1" class="pd.DataFrame">\n'
+        '<table border="1" class="DataFrame">\n'
         "  <thead>\n"
         "    <tr>\n"
         '      <th style="min-width: 100px;"></th>\n'
@@ -1132,7 +1129,7 @@ def test_to_html_tuple_col_with_colspace():
     df = pd.DataFrame({("a", "b"): [1], "b": [2]})
     result = df.to_html(col_space=100)
     expected = (
-        '<table border="1" class="pd.DataFrame">\n'
+        '<table border="1" class="DataFrame">\n'
         "  <thead>\n"
         '    <tr style="text-align: right;">\n'
         '      <th style="min-width: 100px;"></th>\n'
@@ -1157,7 +1154,7 @@ def test_to_html_empty_complex_array():
     df = pd.DataFrame({"x": np.array([], dtype="complex")})
     result = df.to_html(col_space=100)
     expected = (
-        '<table border="1" class="pd.DataFrame">\n'
+        '<table border="1" class="DataFrame">\n'
         "  <thead>\n"
         '    <tr style="text-align: right;">\n'
         '      <th style="min-width: 100px;"></th>\n'
