@@ -619,8 +619,8 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
-        double i64_min = INT64_MIN
-        double i64_max = INT64_MAX
+        double i64_min = <double>INT64_MIN
+        double i64_max = <double>INT64_MAX
 
     for i in range(len(arr)):
         val = arr[i]
