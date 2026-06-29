@@ -566,3 +566,17 @@ choosing an entire side.
   migrations define the final state.
 - Risk: quantile interpolation/NA/datetimelike behavior and duplicate
   join ordering/cardinality need native tests.
+
+## Batch 32: remaining GroupBy reductions
+
+- Original private commits: `a041e1e5b3` and `286eba1dc7`.
+- Prior pandas 3.0.3 port: `4d716d4cec`.
+- pandas 3.0.1 result: directly applied around the now-retained
+  quickselect quantile implementation.
+- `group_sum` specializes mask and skipna loop modes while retaining
+  Kahan compensation, object handling, min_count, and result masks.
+- idxmin/idxmax specialize operation/mask/skipna combinations and use a
+  separate poison bitmap so `skipna=False` keeps `-1` after any NA
+  without conflating unseen and poisoned state.
+- Risk: object/numeric/datetimelike fused paths, masks, NA poisoning,
+  min_count, negative labels, and tie-first behavior need native tests.

@@ -805,7 +805,7 @@ ctypedef fused sum_t:
 def group_sum(
     sum_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[sum_t, ndim=2] values,
+    const sum_t[:, :] values,
     const intp_t[::1] labels,
     const uint8_t[:, :] mask,
     uint8_t[:, ::1] result_mask=None,
@@ -822,11 +822,9 @@ def group_sum(
         sum_t val, t, y, nan_val
         sum_t[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
-        Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint uses_mask = mask is not None
-        bint isna_entry, isna_result
 
-    if len_values != len_labels:
+    if values.shape[0] != len(labels):
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
@@ -840,7 +838,8 @@ def group_sum(
         sumx = np.full((<object>out).shape, initial, dtype=object)
         # object code path does not use `compensation`
 
-    N, K = (<object>values).shape
+    N = values.shape[0]
+    K = values.shape[1]
     if uses_mask:
         nan_val = 0
     elif is_datetimelike:
@@ -852,80 +851,158 @@ def group_sum(
         nan_val = NAN
 
     with nogil(sum_t is not object):
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            counts[lab] += 1
-
-            for j in range(K):
-                val = values[i, j]
-
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
-
-                if not skipna:
-                    if uses_mask:
-                        isna_result = result_mask[lab, j]
-                    else:
-                        isna_result = _treat_as_na(sumx[lab, j], is_datetimelike)
-
-                    if isna_result:
-                        # If sum is already NA, don't add to it. This is important for
-                        # datetimelikebecause adding a value to NPY_NAT may not result
-                        # in a NPY_NAT
+        if uses_mask:
+            if skipna:
+                for i in range(N):
+                    lab = labels[i]
+                    if lab < 0:
                         continue
 
-                if not isna_entry:
-                    nobs[lab, j] += 1
+                    counts[lab] += 1
+                    for j in range(K):
+                        if mask[i, j]:
+                            continue
 
+                        val = values[i, j]
+                        nobs[lab, j] += 1
+                        if sum_t is object or sum_t is int64_t or sum_t is uint64_t:
+                            if nobs[lab, j] == 1:
+                                t = val
+                            else:
+                                t = sumx[lab, j] + val
+                            sumx[lab, j] = t
+                        else:
+                            y = val - compensation[lab, j]
+                            t = sumx[lab, j] + y
+                            compensation[lab, j] = t - sumx[lab, j] - y
+                            if (
+                                sum_t is float32_t or sum_t is float64_t
+                            ) and not isfinite(compensation[lab, j]):
+                                compensation[lab, j] = 0
+                            if (
+                                sum_t is complex64_t or sum_t is complex128_t
+                            ) and not isfinite(compensation[lab, j].real):
+                                compensation[lab, j].real = 0
+                            if (
+                                sum_t is complex64_t or sum_t is complex128_t
+                            ) and not isfinite(compensation[lab, j].imag):
+                                compensation[lab, j].imag = 0
+                            sumx[lab, j] = t
+            else:
+                for i in range(N):
+                    lab = labels[i]
+                    if lab < 0:
+                        continue
+
+                    counts[lab] += 1
+                    for j in range(K):
+                        if result_mask[lab, j]:
+                            continue
+                        if mask[i, j]:
+                            result_mask[lab, j] = True
+                            continue
+
+                        val = values[i, j]
+                        nobs[lab, j] += 1
+                        if sum_t is object or sum_t is int64_t or sum_t is uint64_t:
+                            if nobs[lab, j] == 1:
+                                t = val
+                            else:
+                                t = sumx[lab, j] + val
+                            sumx[lab, j] = t
+                        else:
+                            y = val - compensation[lab, j]
+                            t = sumx[lab, j] + y
+                            compensation[lab, j] = t - sumx[lab, j] - y
+                            if (
+                                sum_t is float32_t or sum_t is float64_t
+                            ) and not isfinite(compensation[lab, j]):
+                                compensation[lab, j] = 0
+                            if (
+                                sum_t is complex64_t or sum_t is complex128_t
+                            ) and not isfinite(compensation[lab, j].real):
+                                compensation[lab, j].real = 0
+                            if (
+                                sum_t is complex64_t or sum_t is complex128_t
+                            ) and not isfinite(compensation[lab, j].imag):
+                                compensation[lab, j].imag = 0
+                            sumx[lab, j] = t
+        elif skipna:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+                    if _treat_as_na(val, is_datetimelike):
+                        continue
+
+                    nobs[lab, j] += 1
                     if sum_t is object or sum_t is int64_t or sum_t is uint64_t:
-                        # NB: this does not use 'compensation' like the non-object
-                        #  and non-integer track does.
                         if nobs[lab, j] == 1:
-                            # i.e. we haven't added anything yet; avoid TypeError
-                            #  if e.g. val is a str and sumx[lab, j] is 0
                             t = val
                         else:
                             t = sumx[lab, j] + val
                         sumx[lab, j] = t
-
                     else:
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
                         compensation[lab, j] = t - sumx[lab, j] - y
-
-                        # Handle float overflow
                         if (
                             sum_t is float32_t or sum_t is float64_t
                         ) and not isfinite(compensation[lab, j]):
-                            # GH#53606; GH#60303
-                            # If val is +/- infinity compensation is NaN
-                            # which would lead to results being NaN instead
-                            # of +/- infinity. We cannot use util.is_nan
-                            # because of no gil
                             compensation[lab, j] = 0
-
-                        # Handle complex overflow
                         if (
                             sum_t is complex64_t or sum_t is complex128_t
                         ) and not isfinite(compensation[lab, j].real):
                             compensation[lab, j].real = 0
-
                         if (
                             sum_t is complex64_t or sum_t is complex128_t
                         ) and not isfinite(compensation[lab, j].imag):
                             compensation[lab, j].imag = 0
-
                         sumx[lab, j] = t
-                elif not skipna:
-                    if uses_mask:
-                        result_mask[lab, j] = True
-                    else:
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    if _treat_as_na(sumx[lab, j], is_datetimelike):
+                        continue
+
+                    val = values[i, j]
+                    if _treat_as_na(val, is_datetimelike):
                         sumx[lab, j] = nan_val
+                        continue
+
+                    nobs[lab, j] += 1
+                    if sum_t is object or sum_t is int64_t or sum_t is uint64_t:
+                        if nobs[lab, j] == 1:
+                            t = val
+                        else:
+                            t = sumx[lab, j] + val
+                        sumx[lab, j] = t
+                    else:
+                        y = val - compensation[lab, j]
+                        t = sumx[lab, j] + y
+                        compensation[lab, j] = t - sumx[lab, j] - y
+                        if (
+                            sum_t is float32_t or sum_t is float64_t
+                        ) and not isfinite(compensation[lab, j]):
+                            compensation[lab, j] = 0
+                        if (
+                            sum_t is complex64_t or sum_t is complex128_t
+                        ) and not isfinite(compensation[lab, j].real):
+                            compensation[lab, j].real = 0
+                        if (
+                            sum_t is complex64_t or sum_t is complex128_t
+                        ) and not isfinite(compensation[lab, j].imag):
+                            compensation[lab, j].imag = 0
+                        sumx[lab, j] = t
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, sumx
@@ -2268,7 +2345,7 @@ cdef group_min_max(
 def group_idxmin_idxmax(
     intp_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_object_t, ndim=2] values,
+    const numeric_object_t[:, :] values,
     const intp_t[::1] labels,
     Py_ssize_t min_count=-1,
     bint is_datetimelike=False,
@@ -2318,62 +2395,179 @@ def group_idxmin_idxmax(
         Py_ssize_t i, j, N, K, lab
         numeric_object_t val
         numeric_object_t[:, ::1] group_min_or_max
-        uint8_t[:, ::1] seen
+        uint8_t[:, ::1] seen, poisoned
         bint uses_mask = mask is not None
-        bint isna_entry
         bint compute_max = name == "idxmax"
 
     assert name == "idxmin" or name == "idxmax"
 
-    if not len(values) == len(labels):
+    if values.shape[0] != len(labels):
         raise AssertionError("len(index) != len(labels)")
 
-    N, K = (<object>values).shape
+    N = values.shape[0]
+    K = values.shape[1]
 
     if numeric_object_t is object:
-        group_min_or_max = np.empty((<object>out).shape, dtype=object)
-        seen = np.zeros((<object>out).shape, dtype=np.uint8)
+        group_min_or_max = np.empty((out.shape[0], K), dtype=object)
     else:
-        group_min_or_max = np.empty_like(out, dtype=values.dtype)
-        seen = np.zeros_like(out, dtype=np.uint8)
+        group_min_or_max = np.empty_like(out, dtype=np.asarray(values).dtype)
+    seen = np.zeros_like(out, dtype=np.uint8)
+    if skipna:
+        poisoned = seen
+    else:
+        poisoned = np.zeros_like(out, dtype=np.uint8)
 
     # Sentinel for no valid values.
     out[:] = -1
 
     with nogil(numeric_object_t is not object):
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-
-            for j in range(K):
-                if not skipna and out[lab, j] == -1:
-                    # Once we've hit NA there is no going back
+        if compute_max:
+            if uses_mask:
+                if skipna:
+                    for i in range(N):
+                        lab = labels[i]
+                        if lab < 0:
+                            continue
+                        for j in range(K):
+                            if mask[i, j]:
+                                continue
+                            val = values[i, j]
+                            if not seen[lab, j]:
+                                seen[lab, j] = True
+                                group_min_or_max[lab, j] = val
+                                out[lab, j] = i
+                            elif val > group_min_or_max[lab, j]:
+                                group_min_or_max[lab, j] = val
+                                out[lab, j] = i
+                else:
+                    for i in range(N):
+                        lab = labels[i]
+                        if lab < 0:
+                            continue
+                        for j in range(K):
+                            if poisoned[lab, j]:
+                                continue
+                            if mask[i, j]:
+                                poisoned[lab, j] = True
+                                out[lab, j] = -1
+                                continue
+                            val = values[i, j]
+                            if not seen[lab, j]:
+                                seen[lab, j] = True
+                                group_min_or_max[lab, j] = val
+                                out[lab, j] = i
+                            elif val > group_min_or_max[lab, j]:
+                                group_min_or_max[lab, j] = val
+                                out[lab, j] = i
+            elif skipna:
+                for i in range(N):
+                    lab = labels[i]
+                    if lab < 0:
+                        continue
+                    for j in range(K):
+                        val = values[i, j]
+                        if _treat_as_na(val, is_datetimelike):
+                            continue
+                        if not seen[lab, j]:
+                            seen[lab, j] = True
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+                        elif val > group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+            else:
+                for i in range(N):
+                    lab = labels[i]
+                    if lab < 0:
+                        continue
+                    for j in range(K):
+                        if poisoned[lab, j]:
+                            continue
+                        val = values[i, j]
+                        if _treat_as_na(val, is_datetimelike):
+                            poisoned[lab, j] = True
+                            out[lab, j] = -1
+                            continue
+                        if not seen[lab, j]:
+                            seen[lab, j] = True
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+                        elif val > group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+        elif uses_mask:
+            if skipna:
+                for i in range(N):
+                    lab = labels[i]
+                    if lab < 0:
+                        continue
+                    for j in range(K):
+                        if mask[i, j]:
+                            continue
+                        val = values[i, j]
+                        if not seen[lab, j]:
+                            seen[lab, j] = True
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+                        elif val < group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+            else:
+                for i in range(N):
+                    lab = labels[i]
+                    if lab < 0:
+                        continue
+                    for j in range(K):
+                        if poisoned[lab, j]:
+                            continue
+                        if mask[i, j]:
+                            poisoned[lab, j] = True
+                            out[lab, j] = -1
+                            continue
+                        val = values[i, j]
+                        if not seen[lab, j]:
+                            seen[lab, j] = True
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+                        elif val < group_min_or_max[lab, j]:
+                            group_min_or_max[lab, j] = val
+                            out[lab, j] = i
+        elif skipna:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
                     continue
-
-                val = values[i, j]
-
-                if uses_mask:
-                    isna_entry = mask[i, j]
-                else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
-
-                if isna_entry:
-                    if not skipna or not seen[lab, j]:
-                        out[lab, j] = -1
-                else:
+                for j in range(K):
+                    val = values[i, j]
+                    if _treat_as_na(val, is_datetimelike):
+                        continue
                     if not seen[lab, j]:
                         seen[lab, j] = True
                         group_min_or_max[lab, j] = val
                         out[lab, j] = i
-                    elif compute_max:
-                        if val > group_min_or_max[lab, j]:
-                            group_min_or_max[lab, j] = val
-                            out[lab, j] = i
-                    else:
-                        if val < group_min_or_max[lab, j]:
-                            group_min_or_max[lab, j] = val
-                            out[lab, j] = i
+                    elif val < group_min_or_max[lab, j]:
+                        group_min_or_max[lab, j] = val
+                        out[lab, j] = i
+        else:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+                for j in range(K):
+                    if poisoned[lab, j]:
+                        continue
+                    val = values[i, j]
+                    if _treat_as_na(val, is_datetimelike):
+                        poisoned[lab, j] = True
+                        out[lab, j] = -1
+                        continue
+                    if not seen[lab, j]:
+                        seen[lab, j] = True
+                        group_min_or_max[lab, j] = val
+                        out[lab, j] = i
+                    elif val < group_min_or_max[lab, j]:
+                        group_min_or_max[lab, j] = val
+                        out[lab, j] = i
 
 
 @cython.wraparound(False)

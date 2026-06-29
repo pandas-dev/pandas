@@ -304,6 +304,23 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
 
 
 @pytest.mark.parametrize(
+    "how, expected_values",
+    [("idxmin", [1, 2]), ("idxmax", [0, 3])],
+)
+def test_idxmin_idxmax_skipna_false_without_na(how, expected_values):
+    df = DataFrame(
+        {"group": [1, 1, 2, 2], "value": [2.0, 1.0, 3.0, 4.0]}
+    )
+
+    result = getattr(df.groupby("group"), how)(skipna=False)
+
+    expected = DataFrame(
+        {"value": expected_values}, index=pd.Index([1, 2], name="group")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "func, values",
     [
         ("idxmin", {"c_int": [0, 2], "c_float": [1, 3], "c_date": [1, 2]}),

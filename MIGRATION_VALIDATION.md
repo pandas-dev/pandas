@@ -1342,3 +1342,47 @@ Follow-up validation:
   duplicate-heavy groups, and exact original-left ordering.
 - Benchmark monotonic DatetimeIndex lookup, group quantile, and
   many-to-many `sort=False` joins.
+
+## Batch 32: remaining GroupBy reductions
+
+Sources inspected:
+
+- Exported commits `a041e1e5b3` and `286eba1dc7`.
+- Prior pandas 3.0.3 port `4d716d4cec`.
+- pandas 3.0.1 sum and idxmin/idxmax contracts after prior GroupBy
+  batches.
+
+Adaptation checks:
+
+- Sum preserves Kahan compensation and reset behavior for non-finite
+  values.
+- Mask/no-mask and skipna true/false loops retain counts and min_count.
+- idxmin/idxmax initialize outputs to `-1`.
+- Unseen and poisoned state are separate when `skipna=False`.
+- Once poisoned, later valid values cannot replace the sentinel.
+- First occurrence wins equal min/max ties.
+- Added regression covers `skipna=False` with no NA for both operations.
+- Existing O(n) quantile code remains unchanged.
+
+Executed:
+
+- `git diff --cached --check`
+- Static specialization/poison/sentinel inspection.
+- `python -m py_compile pandas/tests/groupby/test_reductions.py`
+- `python -m compileall -q pandas`
+- Focused GroupBy pytest invocation stopped during conftest import
+  because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run GroupBy reduction tests after rebuilding extensions.
+- Cover sum/idxmin/idxmax across object/numeric/datetimelike, mask/no
+  mask, skipna, min_count, negative labels, empty/all-NA, infinities,
+  and ties.
+- Benchmark GroupBy sum, idxmin, and idxmax matrices.
