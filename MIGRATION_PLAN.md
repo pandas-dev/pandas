@@ -311,3 +311,17 @@ choosing an entire side.
   handling are preserved.
 - Risk: empty/disjoint/overlapping windows, non-monotonic bounds,
   infinities, NaNs, and minimum-period behavior need native tests.
+
+## Batch 16: index behavior no-port audit
+
+- Original private commits: `eaaffa04b4`, its corrective revert
+  `0b958ce8fd`, and `72efd58130`.
+- Prior pandas 3.0.3 audit commits: `f001d1bdb8` and `4c339e66c5`.
+- `is_monotonic`: no code migration. The later private commit reverted
+  the block optimization after a Xiecheng MergeJoin correctness failure;
+  pandas 3.0.1 already retains the restored scalar upstream loop.
+- `ObjectEngine._get_loc_duplicates`: no duplicate migration. pandas
+  3.0.1 already has a monotonic duplicate override using tuple-safe
+  `_bin_search` and `_bin_search_right`.
+- Risk: the original MergeJoin failure should be reproduced before any
+  future monotonic replacement is considered.

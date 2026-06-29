@@ -681,3 +681,40 @@ Follow-up validation:
 - Cover expanding, fixed, variable, empty, disjoint, overlapping, and
   non-monotonic bounds with NaN/inf and different `min_periods`.
 - Run rolling sum ASV for monotonic and variable-window workloads.
+
+## Batch 16: index behavior no-port audit
+
+Sources inspected:
+
+- Exported `is_monotonic` commits `eaaffa04b4` and `0b958ce8fd`.
+- Exported ObjectEngine commit `72efd58130`.
+- Prior audit commits `f001d1bdb8` and `4c339e66c5`.
+- pandas 3.0.1 scalar monotonic loop and ObjectEngine duplicate lookup.
+
+Decision:
+
+- Do not restore the reverted block-based monotonic implementation; the
+  export history records a correctness regression.
+- Do not duplicate ObjectEngine code; the target already contains the
+  tuple-safe equivalent optimization.
+
+Executed:
+
+- Static comparison of export history and target implementations.
+- `git diff --check`
+
+Not executed:
+
+- Runtime regression tests: pytest remains blocked by missing
+  `dateutil`.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/indexes/test_monotonic.py`
+- Run object-index `get_loc` tests for monotonic duplicates and tuple
+  keys.
+- Reproduce the Xiecheng MergeJoin failure before designing another
+  monotonic fast path.
+- Benchmark ObjectEngine duplicate lookup; no monotonic benchmark claim
+  is made for the reverted optimization.
