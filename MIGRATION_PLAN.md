@@ -278,3 +278,22 @@ choosing an entire side.
 - Non-contiguous object equality retains the existing MultiIter path.
 - Risk: borrowed/new/stolen reference rules and non-contiguous object
   arrays need native memory-safety and behavior tests.
+
+## Batch 14: reshape writers
+
+- Original private commits: `15dba60291` and `8232deb8a0`.
+- Prior pandas 3.0.3 port: `b545a39fc2`.
+- pandas 3.0.1 result: dense get_dummies applies directly; numeric
+  unstack required a target-specific reimplementation.
+- Wide dense dummies use a fused Cython writer over the Fortran-order
+  buffer, with column-wise comparison for small cardinality and the
+  original NumPy fallback for unsupported output/code dtypes.
+- Unlike pandas 3.0.3, pandas 3.0.1 still passes `new_mask` to
+  `_libs.reshape.unstack`, so exported commit `8232deb8a0` is applicable.
+  Numeric specializations write the mask in a separate pass; object
+  specialization retains the original single pass and reference writes.
+- This is a documented divergence from the prior 3.0.3 audit, which
+  correctly skipped the optimization only because 3.0.3 removed
+  `new_mask`.
+- Risk: fused-type specialization, Fortran buffer indexing, NA codes,
+  and object-reference writes require a native build.

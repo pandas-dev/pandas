@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas._libs import missing as libmissing
+from pandas._libs.reshape import _get_dummies_dense_from_codes
 from pandas._libs.sparse import IntIndex
 from pandas.util._decorators import set_module
 
@@ -355,11 +356,22 @@ def _get_dummies_1d(
         else:
             dummy_dtype = np.bool_
         dummy_mat = np.zeros(shape=shape, dtype=dummy_dtype, order="F")
-        dummy_mat[np.arange(len(codes)), codes] = 1
 
-        if not dummy_na:
-            # reset NaN GH4446
-            dummy_mat[codes == -1] = 0
+        if number_of_cols <= 16:
+            for col in range(number_of_cols):
+                dummy_mat[:, col] = codes == col
+        else:
+            dummy_buffer = dummy_mat.ravel(order="F")
+            if dummy_buffer.dtype == np.bool_:
+                dummy_buffer = dummy_buffer.view(np.uint8)
+
+            try:
+                _get_dummies_dense_from_codes(dummy_buffer, codes, len(codes))
+            except TypeError:
+                dummy_mat[np.arange(len(codes)), codes] = 1
+
+                if not dummy_na:
+                    dummy_mat[codes == -1] = 0
 
         if drop_first:
             # remove first GH12042

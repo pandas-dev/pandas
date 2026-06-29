@@ -195,6 +195,36 @@ class TestGetDummies:
             exp = exp.apply(SparseArray, fill_value=False)
         tm.assert_frame_equal(res, exp)
 
+    def test_get_dummies_dense_many_levels(self):
+        values = [f"val_{i}" for i in range(20)]
+        columns = sorted(values)
+
+        result = get_dummies(values, sparse=False)
+        expected = DataFrame(False, index=range(len(values)), columns=columns, dtype=bool)
+        for i, value in enumerate(values):
+            expected.loc[i, value] = True
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_get_dummies_dense_many_levels_dummy_na_drop_first_uint8(self):
+        values = [f"val_{i}" for i in range(18)] + [np.nan, "val_1"]
+
+        result = get_dummies(
+            values, sparse=False, dummy_na=True, drop_first=True, dtype=np.uint8
+        )
+
+        columns = sorted(f"val_{i}" for i in range(1, 18)) + [np.nan]
+        expected = DataFrame(0, index=range(len(values)), columns=columns, dtype=np.uint8)
+        for i, value in enumerate(values):
+            if value == "val_0":
+                continue
+            if value is np.nan:
+                expected.loc[i, np.nan] = 1
+            else:
+                expected.loc[i, value] = 1
+
+        tm.assert_frame_equal(result, expected)
+
     def test_dataframe_dummies_all_obj(self, df, sparse):
         df = df[["A", "B"]]
         result = get_dummies(df, sparse=sparse)

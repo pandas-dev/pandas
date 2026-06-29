@@ -597,3 +597,49 @@ Follow-up validation:
   construction.
 - Benchmark contiguous/non-contiguous object equality, NA lookup, and
   MultiIndex tuple materialization.
+
+## Batch 14: reshape writers
+
+Sources inspected:
+
+- Exported commits `15dba60291` and `8232deb8a0`.
+- Prior pandas 3.0.3 port `b545a39fc2`.
+- pandas 2.x numeric/object unstack branches and pandas 3.0.1/3.0.3
+  unstack signatures.
+
+Adaptation checks:
+
+- Dense dummy writes use `code * n_rows + row` against a Fortran-order
+  flattened buffer.
+- Bool output is viewed as uint8; uint8, int64, and float64 have fused
+  writers; unsupported dtypes use the original NumPy fallback.
+- Negative codes are skipped, preserving non-dummy-NA behavior.
+- Small-cardinality column comparisons preserve all dtype behavior.
+- Numeric unstack pre-materializes every mask position, then writes only
+  valid values.
+- Object unstack retains the original single-pass assignment and mask
+  write, avoiding an extra reference traversal.
+- `.pyi` helper declaration matches the Python-visible Cython function.
+
+Executed:
+
+- `git diff --cached --check`
+- `python -m py_compile pandas/core/reshape/encoding.py
+  pandas/tests/reshape/test_get_dummies.py`
+- `python -m compileall -q pandas`
+- Focused get_dummies/unstack pytest invocation stopped during conftest
+  import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run get_dummies and unstack test suites after rebuilding extensions.
+- Cover bool/uint8/int64/float64/unsupported dtypes, NA codes,
+  drop-first, dummy-NA, object values, and empty shapes.
+- Benchmark wide dense get_dummies and numeric unstack mask-heavy and
+  mask-light workloads.

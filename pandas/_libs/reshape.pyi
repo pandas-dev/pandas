@@ -14,3 +14,8 @@ def unstack(
 def explode(
     values: npt.NDArray[np.object_],
 ) -> tuple[npt.NDArray[np.object_], npt.NDArray[np.int64]]: ...
+def _get_dummies_dense_from_codes(
+    dummy_mat: np.ndarray,
+    codes: npt.NDArray[np.intp],
+    n_rows: int,
+) -> None: ...
