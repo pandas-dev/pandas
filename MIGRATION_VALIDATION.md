@@ -736,8 +736,9 @@ Adaptation checks:
 - Empty left/right paths allocate correctly sized output/indexers.
 - Python comparisons use exception-aware `PyObject_RichCompareBool`.
 - Added tests cover unique, left, inner, and outer object indexers.
-- Existing `sort=False` grouped join logic already covers
-  `07ccc6e28e`.
+- Correction: the 3.0.1 code inspected here still used post-hoc
+  reordering. Batch 31 ports direct original-left-order output and
+  supersedes this initial audit conclusion.
 
 Executed:
 
@@ -1292,3 +1293,52 @@ Follow-up validation:
   and warnings.
 - Benchmark homogeneous numeric astype and object-block dict fillna only
   after correctness validation.
+
+## Batch 31: complete index, join, and quantile hot paths
+
+Sources inspected:
+
+- Exported commits `53b373262d`, `02d2113331`, `403df2a143`,
+  `07ccc6e28e`, and `09c956697b`.
+- Prior pandas 3.0.3 completion commit `77aa7184b3`.
+- pandas 3.0.1/3.0.3 diffs and upstream commits `8352ab938e` and
+  `b8692948be`.
+
+Adaptation checks:
+
+- DatetimeEngine calls the generated Int64 left-search hook only after
+  timestamp unboxing/type validation.
+- Quantile pre-filters masked values into a mutable buffer, preserving
+  NaN/NaT exclusion.
+- Quickselect retains all interpolation modes and NumPy nearest-even
+  behavior, and frees the temporary buffer.
+- Direct `sort=False` join output preserves original left order,
+  duplicate cardinality, right-group order, and unmatched left rows.
+- Sorted join path retains grouped sorted behavior.
+- The old join take-helper is obsolete only after this direct-output
+  port; Batch 17's earlier audit statement is explicitly corrected.
+
+Executed:
+
+- `git diff --cached --check`
+- Static target/tag/export comparison.
+- `python -m compileall -q pandas`
+- Focused group quantile, join, and DatetimeIndex pytest invocation
+  stopped during conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run group quantile, low-level join, merge, and DatetimeIndex engine
+  suites after rebuilding extensions.
+- Quantile matrix: all interpolation modes, masks, all-NA, NaN/NaT,
+  datetime/timedelta, one/multiple q, and numeric fused dtypes.
+- Join matrix: inner/left, sort true/false, NA group, empty sides,
+  duplicate-heavy groups, and exact original-left ordering.
+- Benchmark monotonic DatetimeIndex lookup, group quantile, and
+  many-to-many `sort=False` joins.

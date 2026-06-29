@@ -660,7 +660,7 @@ cdef class DatetimeEngine(Int64Engine):
                 return self._get_loc_duplicates(conv)
             values = self.values
 
-            loc = values.searchsorted(conv, side="left")
+            loc = self._searchsorted_left(conv)
 
             if loc == len(values) or PySequence_GetItem(values, loc) != conv:
                 raise KeyError(val)

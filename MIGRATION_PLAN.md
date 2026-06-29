@@ -336,9 +336,9 @@ choosing an entire side.
 - Fast paths require the object fused specialization and C-contiguous
   arrays; all numeric and non-contiguous inputs retain generic pandas
   3.0.1 loops.
-- The many-to-many `sort=False` change from `07ccc6e28e` needs no
-  duplicate migration: pandas 3.0.1 already restores original left
-  order using its grouped join logic and groupsort indexer.
+- Initial audit incorrectly treated the existing post-hoc
+  `sort=False` reorder as equivalent to the direct-output optimization.
+  Batch 31 corrects this by porting the stronger 3.0.3 implementation.
 - Risk: Python rich-comparison exceptions, duplicate-run advancement,
   empty sides, and result reference ownership need native tests.
 
@@ -545,3 +545,24 @@ choosing an entire side.
   against 3.0.1 rather than treating this decision as a permanent block.
 - Risk: any implementation must prove CoW isolation, duplicate/MultiIndex
   column behavior, warning semantics, and referenced-block handling.
+
+## Batch 31: complete index, join, and quantile hot paths
+
+- Original private commits: `53b373262d`, superseded revert
+  `02d2113331`, join/groupsort `403df2a143`, many-to-many
+  `07ccc6e28e`, and quantile `09c956697b`.
+- Prior pandas 3.0.3 completion commit: `77aa7184b3`.
+- DatetimeEngine now routes monotonic lookup through the typed
+  Int64Engine binary search migrated in Batch 7.
+- pandas 3.0.1 lacked two optimizations that the prior completion commit
+  considered upstream in 3.0.3:
+  - Group quantile now uses the 3.0.3 O(n) quickselect implementation
+    from upstream `8352ab938e`, which is stronger and more semantically
+    robust than the private O(n log n) pointer/argsort rewrite.
+  - Many-to-many `sort=False` joins now generate indexers directly in
+    original left order using upstream `b8692948be`, eliminating the
+    post-hoc take/reorder targeted by the private join helper.
+- `02d2113331` remains a superseded revert; later take and typed index
+  migrations define the final state.
+- Risk: quantile interpolation/NA/datetimelike behavior and duplicate
+  join ordering/cardinality need native tests.
