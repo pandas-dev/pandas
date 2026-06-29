@@ -2277,3 +2277,19 @@ def test_constructor_from_series_with_incompatible_dtype_raises():
     ser = Series([1, 2, "x", 4, 5])
     with pytest.raises(ValueError, match="invalid literal"):
         Series(ser, dtype=int)
+
+
+def test_constructor_preserves_byteorder():
+    # GH#43042 non-native byteorder (and the values) must be preserved
+    arr = np.array([0, 256, 2**40], dtype=">i8")
+    expected = [0, 256, 2**40]
+
+    # inferred from a big-endian ndarray
+    result = Series(arr)
+    assert result.dtype == np.dtype(">i8")
+    assert result.tolist() == expected
+
+    # explicit big-endian dtype from a python list
+    result = Series([0, 256, 2**40], dtype=">i8")
+    assert result.dtype == np.dtype(">i8")
+    assert result.tolist() == expected

@@ -14,6 +14,7 @@ tslibs_sources = {
             'parsing.pyx',
             '../src/parser/tokenizer.c',
             '../src/parser/fast_float_strtod.cpp',
+            '../src/parser/pd_strtoi.cpp',
         ],
         'deps': [fast_float_dep],
     },

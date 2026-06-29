@@ -63,9 +63,11 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            msg = (
-                "'>' not supported between instances of 'str' and 'int'"
-                "|Invalid comparison"
+            msg = "|".join(
+                [
+                    "'>' not supported between instances of 'str' and 'int'",
+                    "Invalid comparison",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 df > 0
@@ -130,9 +132,11 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = (
-                "'>' not supported between instances of 'str' and 'int'"
-                "|Invalid comparison"
+            msg = "|".join(
+                [
+                    "'>' not supported between instances of 'str' and 'int'",
+                    "Invalid comparison",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 df > 0
@@ -197,9 +201,11 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = (
-                "'>' not supported between instances of 'str' and 'int'"
-                "|Invalid comparison"
+            msg = "|".join(
+                [
+                    "'>' not supported between instances of 'str' and 'int'",
+                    "Invalid comparison",
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 df > 0
