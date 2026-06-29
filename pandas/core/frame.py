@@ -15378,11 +15378,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         All columns regardless of dtype.
 
-        >>> df.describe(include="all")  # doctest: +SKIP
+        >>> df.describe(include="all")
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      a
+        top              d      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -15403,11 +15403,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Exclude a specific dtype.
 
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])
                categorical object
         count            3      3
         unique           3      3
-        top              f      a
+        top              d      a
         freq             1      1
         """
         return super().describe(
