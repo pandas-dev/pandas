@@ -1480,3 +1480,159 @@ Follow-up validation:
   non-scalar values, axis=1, subclasses, warnings, and mutation both
   directions.
 - Benchmark object-block dict fillna with narrow/wide mappings.
+
+## Final completion audit
+
+Disposition:
+
+- Candidate rows parsed from `MIGRATION_PLAN.md`: 89.
+- Migrated/adapted: 81.
+- No direct migration: 8.
+- Partial: 0.
+- Blocked: 0.
+
+Repository protection:
+
+- Branch: `migration/pandas-3.0.1`.
+- `HEAD` before the final documentation commit: `a88ecc892ca3`.
+- `merge-base HEAD v3.0.1`: `e04b26f375035e5106cb913e47b6db612f4ebb11`.
+- `v3.0.1^{commit}`: `e04b26f375035e5106cb913e47b6db612f4ebb11`.
+- Protected 3.0.3 backup: `08f4d0eedb6308dc18751231ad555424bb4bd733`.
+- Protected prior migration tip:
+  `4ceff7983dd38f323b62cb0a5c4f8e7b827816f2`.
+- No reset, rebase, amend, force push, or protected-ref update was used.
+- The only unrelated worktree change remains unstaged `AGENTS.md`.
+
+Final checks executed:
+
+- `git diff --check`: passed.
+- `python -m compileall -q pandas asv_bench/benchmarks`: passed.
+- Source conflict-marker scan: no markers found.
+- `.rej`/`.orig` scan: no files found.
+- Candidate inventory parser: 89 rows, 8 `no direct migration` rows.
+- Python syntax checks were run for each modified Python/test batch.
+- Focused pytest commands were attempted for each batch but stopped
+  while importing `pandas/conftest.py` because `dateutil` is missing.
+
+Checks not executed:
+
+- Cython compilation: Cython is not installed.
+- C/C++ compilation: no supported compiler/Meson/Ninja toolchain is
+  available in the active environment.
+- Runtime pytest assertions: collection never started.
+- PyArrow tests: PyArrow is not installed.
+- ASV: not run in this environment.
+
+High-risk review areas:
+
+- SwissTable C++17 ABI, generated maps/factorizers, masks, strides, and
+  merge integration.
+- Object pointer/reference ownership in take, lib helpers, construction,
+  and join indexers.
+- GroupBy mask/skipna/min_count/negative-label and quickselect behavior.
+- Join duplicate cardinality and exact `sort=False` ordering.
+- Datetime overflow, timezone/fold, locale, offset, negative epoch, and
+  resolution behavior.
+- Skiplist allocation/reference lifecycle and rolling window state.
+- CoW isolation for apply reuse, astype, and dict fillna.
+- Nullable/Arrow dtype, mask, buffer lifetime, and stable-order behavior.
+
+Recommended validation order:
+
+1. Create the repository-supported pandas 3.0.1 Meson/Cython build
+   environment without changing this branch's dependencies.
+2. Build all Cython/C/C++ extensions.
+3. Run low-level index, join, groupby, window, tslib, offset, reshape,
+   lib, hashtable, and SwissTable tests.
+4. Run apply, astype, fillna, value_counts, putmask, take, CoW, nullable,
+   and Arrow tests.
+5. Run the broader pandas test suite.
+6. Run focused ASV continuous comparisons from official `v3.0.1` to
+   this branch, then the Xiecheng suite.
+
+### Prior pandas 3.0.3 reference commits
+
+38 non-merge commits were inspected; the preserved merge commit was not replayed.
+
+```text
+d978bd13ee PERF: nancorr per-column-pair fast path for high-efficiency mask common case
+28df2030b5 PERF: migrate KPandas take operation optimizations to pandas3
+f6d861f8a6 PERF: migrate swisstable from pandas2 private branch
+8e0304f403 PERF: migrate maybe_convert_objects homogeneous-block fast path and zval optimization from KPandas
+f39ba34d1d PERF: migrate groupby loop optimizations from KPandas to pandas3
+3fa2758641 Update ASV configuration for branches and environment
+ee85531203 BUG: Fix nogil return type in duplicated algorithm migration
+2bfbc167cb DOC: add pandas2 optimization migration inventory
+2f489b472c PERF: port index search primitives from pandas2
+79ba386d4a PERF: port RangeIndex concat planning helper
+e23914d92f PERF: port khash put micro-optimizations
+dded84d01c PERF: port stable sort controls for safe_sort
+28f873ba8e PERF: port algos Cython scalar hot paths
+0672469c2a PERF: port object array construction helpers
+5efbbfabd2 PERF: port lib object pointer helpers
+b545a39fc2 PERF: port dense get_dummies writer
+e7b5a3234a PERF: port rolling sum loop optimization
+f001d1bdb8 DOC: record is_monotonic rollback decision
+4c339e66c5 DOC: record ObjectEngine lookup coverage
+6e766c4650 PERF: port object join indexer optimizations
+8ece4c5407 PERF: port skiplist allocation optimizations
+473b0e68ff PERF: add Xiecheng ASV benchmarks
+e48041d9cc PERF: port add_overflowsafe fast paths
+766dc263de PERF: port datetime object construction fast path
+4d00dfadf4 PERF: port offsets shift fast paths
+de87482916 PERF: port SemiMonth offset fast paths
+f4f5eeb92c PERF: port row-wise apply label cache
+01e840cd05 PERF: port object integer value_counts fast path
+999c26f3c5 PERF: port putmask and bool take fast paths
+9ea1009920 PERF: port Arrow integer fillna fast path
+d108e65555 PERF: port nullable integer value_counts fast path
+8afaf5bca6 PERF: port FrameRowApply reuse fast path
+429781002a DOC: record pandas3 astype fillna migration audit
+77aa7184b3 PERF: complete index search migration
+4d716d4cec PERF: port remaining groupby loop optimizations
+fb67599b4d PERF: port homogeneous DataFrame astype paths
+8d730e0d0f PERF: port object DataFrame dict fillna path
+4ceff7983d DOC: finalize private optimization migration audit
+```
+
+### pandas 3.0.1 migration commits before final audit
+
+35 non-merge commits were created before this final documentation commit.
+
+```text
+6b97d96896 PERF: port nancorr optimization to pandas 3.0.1
+b264f0072b PERF: port pad inplace optimizations to pandas 3.0.1
+04e4d1c287 PERF: port take optimizations to pandas 3.0.1
+01e19fd632 PERF: port SwissTable optimizations to pandas 3.0.1
+d223016e42 PERF: port object conversion optimizations to pandas 3.0.1
+d515600112 PERF: port GroupBy loop optimizations to pandas 3.0.1
+7652bfd538 DOC: record pandas 3.0.1 environment port decisions
+4c1682c9a9 PERF: port index search optimizations to pandas 3.0.1
+33af74b7c5 PERF: port RangeIndex concat optimization to pandas 3.0.1
+3385d58ee0 PERF: port khash insertion optimizations to pandas 3.0.1
+56a29b3538 PERF: port stable sort controls to pandas 3.0.1
+57c43766cc PERF: port scalar Cython optimizations to pandas 3.0.1
+40ce457ddc PERF: port object array construction to pandas 3.0.1
+1e8589be21 PERF: port lib object pointer helpers to pandas 3.0.1
+a421ab371b PERF: port reshape writers to pandas 3.0.1
+205adbc94f PERF: port rolling sum optimization to pandas 3.0.1
+67d7a3fc27 DOC: record pandas 3.0.1 index no-port decisions
+063f59642c PERF: port object join indexers to pandas 3.0.1
+a79bb55c53 PERF: port skiplist optimizations to pandas 3.0.1
+a989f2f37a PERF: add Xiecheng benchmarks for pandas 3.0.1
+7b1252834f PERF: port add_overflowsafe fast paths to pandas 3.0.1
+6cc613ed7b PERF: port datetime object optimizations to pandas 3.0.1
+af9b851f5e PERF: port offset shift optimizations to pandas 3.0.1
+eb6902150b PERF: port SemiMonth optimizations to pandas 3.0.1
+dadc36a135 PERF: port row-wise apply cache to pandas 3.0.1
+763d2805bb PERF: port object integer value_counts to pandas 3.0.1
+70e6f3fb52 PERF: port putmask and bool take paths to pandas 3.0.1
+e32385e9f4 PERF: port Arrow integer fillna to pandas 3.0.1
+d8b98e38c1 PERF: port nullable integer value_counts to pandas 3.0.1
+86639b87fc PERF: port FrameRowApply reuse to pandas 3.0.1
+22c81c4918 DOC: record pandas 3.0.1 astype fillna audit
+805a84aff1 PERF: complete index and join paths for pandas 3.0.1
+2e48d769b3 PERF: port remaining GroupBy reductions to pandas 3.0.1
+c65341b162 PERF: port homogeneous astype paths to pandas 3.0.1
+a88ecc892c PERF: port object dict fillna to pandas 3.0.1
+```
