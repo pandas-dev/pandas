@@ -325,3 +325,19 @@ choosing an entire side.
   `_bin_search` and `_bin_search_right`.
 - Risk: the original MergeJoin failure should be reproduced before any
   future monotonic replacement is considered.
+
+## Batch 17: object join indexers
+
+- Original private commits: `52f9c792ec` and audited
+  `07ccc6e28e`.
+- Prior pandas 3.0.3 port: `6e766c4650`.
+- pandas 3.0.1 result: object-specific monotonic unique/left/inner/outer
+  indexer helpers apply directly.
+- Fast paths require the object fused specialization and C-contiguous
+  arrays; all numeric and non-contiguous inputs retain generic pandas
+  3.0.1 loops.
+- The many-to-many `sort=False` change from `07ccc6e28e` needs no
+  duplicate migration: pandas 3.0.1 already restores original left
+  order using its grouped join logic and groupsort indexer.
+- Risk: Python rich-comparison exceptions, duplicate-run advancement,
+  empty sides, and result reference ownership need native tests.

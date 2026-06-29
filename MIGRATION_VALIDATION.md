@@ -718,3 +718,46 @@ Follow-up validation:
   monotonic fast path.
 - Benchmark ObjectEngine duplicate lookup; no monotonic benchmark claim
   is made for the reverted optimization.
+
+## Batch 17: object join indexers
+
+Sources inspected:
+
+- Exported object-indexer commit `52f9c792ec`.
+- Exported many-to-many commit `07ccc6e28e`.
+- Prior pandas 3.0.3 port `6e766c4650`.
+- pandas 3.0.1 grouped joins and all four monotonic indexer loops.
+
+Adaptation checks:
+
+- Raw pointers are entered only for C-contiguous object ndarrays.
+- Generic fused loops remain the fallback for every other input.
+- Count and fill passes use the same duplicate-run advancement.
+- Empty left/right paths allocate correctly sized output/indexers.
+- Python comparisons use exception-aware `PyObject_RichCompareBool`.
+- Added tests cover unique, left, inner, and outer object indexers.
+- Existing `sort=False` grouped join logic already covers
+  `07ccc6e28e`.
+
+Executed:
+
+- `git diff --cached --check`
+- Static loop/count/fill and call-guard inspection.
+- `python -m py_compile pandas/tests/libs/test_join.py`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/libs/test_join.py -q -k object`
+  stopped during conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime assertions: pytest did not reach collection.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- Run low-level join and merge test suites after rebuilding extensions.
+- Cover empty, duplicate-heavy, non-contiguous, mixed-comparison-error,
+  tuple, and missing object values.
+- Benchmark monotonic object indexers and many-to-many `sort=False`
+  grouped joins.

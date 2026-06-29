@@ -150,6 +150,16 @@ def test_left_join_indexer_unique(writable):
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_object_left_join_indexer_unique():
+    right = np.array(["a", "c", "e"], dtype=object)
+    left = np.array(["a", "a", "b", "e"], dtype=object)
+
+    result = libjoin.left_join_indexer_unique(left, right)
+
+    expected = np.array([0, 0, -1, 2], dtype=np.intp)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_left_outer_join_bug():
     left = np.array(
         [
@@ -356,6 +366,22 @@ def test_left_join_indexer2():
     tm.assert_almost_equal(ridx, exp_ridx)
 
 
+def test_object_left_join_indexer():
+    idx = np.array(["a", "a", "b", "e"], dtype=object)
+    idx2 = np.array(["a", "b", "e", "g", "i"], dtype=object)
+
+    res, lidx, ridx = libjoin.left_join_indexer(idx2, idx)
+
+    exp_res = np.array(["a", "a", "b", "e", "g", "i"], dtype=object)
+    tm.assert_numpy_array_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
+    tm.assert_numpy_array_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+
 def test_outer_join_indexer2():
     idx = np.array([1, 1, 2, 5], dtype=np.int64)
     idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
@@ -372,6 +398,22 @@ def test_outer_join_indexer2():
     tm.assert_almost_equal(ridx, exp_ridx)
 
 
+def test_object_outer_join_indexer():
+    idx = np.array(["a", "a", "b", "e"], dtype=object)
+    idx2 = np.array(["a", "b", "e", "g", "i"], dtype=object)
+
+    res, lidx, ridx = libjoin.outer_join_indexer(idx2, idx)
+
+    exp_res = np.array(["a", "a", "b", "e", "g", "i"], dtype=object)
+    tm.assert_numpy_array_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2, 3, 4], dtype=np.intp)
+    tm.assert_numpy_array_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3, -1, -1], dtype=np.intp)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+
 def test_inner_join_indexer2():
     idx = np.array([1, 1, 2, 5], dtype=np.int64)
     idx2 = np.array([1, 2, 5, 7, 9], dtype=np.int64)
@@ -386,3 +428,19 @@ def test_inner_join_indexer2():
 
     exp_ridx = np.array([0, 1, 2, 3], dtype=np.intp)
     tm.assert_almost_equal(ridx, exp_ridx)
+
+
+def test_object_inner_join_indexer():
+    idx = np.array(["a", "a", "b", "e"], dtype=object)
+    idx2 = np.array(["a", "b", "e", "g", "i"], dtype=object)
+
+    res, lidx, ridx = libjoin.inner_join_indexer(idx2, idx)
+
+    exp_res = np.array(["a", "a", "b", "e"], dtype=object)
+    tm.assert_numpy_array_equal(res, exp_res)
+
+    exp_lidx = np.array([0, 0, 1, 2], dtype=np.intp)
+    tm.assert_numpy_array_equal(lidx, exp_lidx)
+
+    exp_ridx = np.array([0, 1, 2, 3], dtype=np.intp)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)

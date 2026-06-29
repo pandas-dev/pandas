@@ -1,4 +1,10 @@
 cimport cython
+from cpython.object cimport (
+    Py_EQ,
+    Py_GT,
+    Py_LT,
+    PyObject,
+)
 from cython cimport Py_ssize_t
 import numpy as np
 
@@ -17,6 +23,9 @@ from pandas._libs.dtypes cimport (
     numeric_object_t,
     numeric_t,
 )
+
+cdef extern from "Python.h":
+    int PyObject_RichCompareBool(PyObject *o1, PyObject *o2, int opid) except -1
 
 
 @cython.wraparound(False)
@@ -280,6 +289,62 @@ def ffill_indexer(const intp_t[:] indexer) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+cdef ndarray[intp_t] _left_join_indexer_unique_object(
+    ndarray[object] left,
+    ndarray[object] right,
+):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[intp_t] indexer
+        PyObject **left_data = <PyObject**>left.data
+        PyObject **right_data = <PyObject**>right.data
+        PyObject *rval
+
+    i = 0
+    j = 0
+    nleft = len(left)
+    nright = len(right)
+
+    indexer = np.empty(nleft, dtype=np.intp)
+    while True:
+        if i == nleft:
+            break
+
+        if j == nright:
+            indexer[i] = -1
+            i += 1
+            continue
+
+        rval = right_data[j]
+
+        while (
+            i < nleft - 1
+            and PyObject_RichCompareBool(left_data[i], rval, Py_EQ)
+        ):
+            indexer[i] = j
+            i += 1
+
+        if PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+            indexer[i] = j
+            i += 1
+            while (
+                i < nleft - 1
+                and PyObject_RichCompareBool(left_data[i], rval, Py_EQ)
+            ):
+                indexer[i] = j
+                i += 1
+            j += 1
+        elif PyObject_RichCompareBool(left_data[i], rval, Py_GT):
+            indexer[i] = -1
+            j += 1
+        else:
+            indexer[i] = -1
+            i += 1
+    return indexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def left_join_indexer_unique(
     ndarray[numeric_object_t] left,
     ndarray[numeric_object_t] right
@@ -291,6 +356,10 @@ def left_join_indexer_unique(
         Py_ssize_t i, j, nleft, nright
         ndarray[intp_t] indexer
         numeric_object_t rval
+
+    if numeric_object_t is object:
+        if left.flags["C_CONTIGUOUS"] and right.flags["C_CONTIGUOUS"]:
+            return _left_join_indexer_unique_object(left, right)
 
     i = 0
     j = 0
@@ -331,6 +400,114 @@ def left_join_indexer_unique(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+cdef tuple _left_join_indexer_object(
+    ndarray[object] left,
+    ndarray[object] right,
+):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        PyObject **left_data = <PyObject**>left.data
+        PyObject **right_data = <PyObject**>right.data
+        PyObject *lval
+        PyObject *rval
+        ndarray[intp_t] lindexer, rindexer
+        ndarray[object] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left_data[i]
+            rval = right_data[j]
+
+            if PyObject_RichCompareBool(lval, rval, Py_EQ):
+                count += 1
+                if i < nleft - 1:
+                    if (
+                        j < nright - 1
+                        and PyObject_RichCompareBool(right_data[j + 1], rval, Py_EQ)
+                    ):
+                        j += 1
+                    else:
+                        i += 1
+                        if not PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if not PyObject_RichCompareBool(lval, right_data[j], Py_EQ):
+                        i += 1
+                else:
+                    break
+            elif PyObject_RichCompareBool(lval, rval, Py_LT):
+                count += 1
+                i += 1
+            else:
+                j += 1
+
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
+    result = np.empty(count, dtype=left.dtype)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0:
+        while i < nleft:
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = <object>left_data[i]
+                    i += 1
+                    count += 1
+                break
+
+            lval = left_data[i]
+            rval = right_data[j]
+
+            if PyObject_RichCompareBool(lval, rval, Py_EQ):
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = <object>lval
+                count += 1
+                if i < nleft - 1:
+                    if (
+                        j < nright - 1
+                        and PyObject_RichCompareBool(right_data[j + 1], rval, Py_EQ)
+                    ):
+                        j += 1
+                    else:
+                        i += 1
+                        if not PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if not PyObject_RichCompareBool(lval, right_data[j], Py_EQ):
+                        i += 1
+                else:
+                    break
+            elif PyObject_RichCompareBool(lval, rval, Py_LT):
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = <object>lval
+                count += 1
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
     """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges.
@@ -343,6 +520,10 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
         numeric_object_t lval, rval
         ndarray[intp_t] lindexer, rindexer
         ndarray[numeric_object_t] result
+
+    if numeric_object_t is object:
+        if left.flags["C_CONTIGUOUS"] and right.flags["C_CONTIGUOUS"]:
+            return _left_join_indexer_object(left, right)
 
     nleft = len(left)
     nright = len(right)
@@ -442,6 +623,104 @@ def left_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+cdef tuple _inner_join_indexer_object(
+    ndarray[object] left,
+    ndarray[object] right,
+):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        PyObject **left_data = <PyObject**>left.data
+        PyObject **right_data = <PyObject**>right.data
+        PyObject *lval
+        PyObject *rval
+        ndarray[intp_t] lindexer, rindexer
+        ndarray[object] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0 and nright > 0:
+        while True:
+            if i == nleft:
+                break
+            if j == nright:
+                break
+
+            lval = left_data[i]
+            rval = right_data[j]
+            if PyObject_RichCompareBool(lval, rval, Py_EQ):
+                count += 1
+                if i < nleft - 1:
+                    if (
+                        j < nright - 1
+                        and PyObject_RichCompareBool(right_data[j + 1], rval, Py_EQ)
+                    ):
+                        j += 1
+                    else:
+                        i += 1
+                        if not PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if not PyObject_RichCompareBool(lval, right_data[j], Py_EQ):
+                        i += 1
+                else:
+                    break
+            elif PyObject_RichCompareBool(lval, rval, Py_LT):
+                i += 1
+            else:
+                j += 1
+
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
+    result = np.empty(count, dtype=left.dtype)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft > 0 and nright > 0:
+        while True:
+            if i == nleft:
+                break
+            if j == nright:
+                break
+
+            lval = left_data[i]
+            rval = right_data[j]
+            if PyObject_RichCompareBool(lval, rval, Py_EQ):
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = <object>lval
+                count += 1
+                if i < nleft - 1:
+                    if (
+                        j < nright - 1
+                        and PyObject_RichCompareBool(right_data[j + 1], rval, Py_EQ)
+                    ):
+                        j += 1
+                    else:
+                        i += 1
+                        if not PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if not PyObject_RichCompareBool(lval, right_data[j], Py_EQ):
+                        i += 1
+                else:
+                    break
+            elif PyObject_RichCompareBool(lval, rval, Py_LT):
+                i += 1
+            else:
+                j += 1
+
+    return result, lindexer, rindexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
     """
     Two-pass algorithm for monotonic indexes. Handles many-to-one merges.
@@ -453,6 +732,10 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
         numeric_object_t lval, rval
         ndarray[intp_t] lindexer, rindexer
         ndarray[numeric_object_t] result
+
+    if numeric_object_t is object:
+        if left.flags["C_CONTIGUOUS"] and right.flags["C_CONTIGUOUS"]:
+            return _inner_join_indexer_object(left, right)
 
     nleft = len(left)
     nright = len(right)
@@ -542,6 +825,143 @@ def inner_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+cdef tuple _outer_join_indexer_object(
+    ndarray[object] left,
+    ndarray[object] right,
+):
+    cdef:
+        Py_ssize_t i, j, nright, nleft, count
+        PyObject **left_data = <PyObject**>left.data
+        PyObject **right_data = <PyObject**>right.data
+        PyObject *lval
+        PyObject *rval
+        ndarray[intp_t] lindexer, rindexer
+        ndarray[object] result
+
+    nleft = len(left)
+    nright = len(right)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft == 0:
+        count = nright
+    elif nright == 0:
+        count = nleft
+    else:
+        while True:
+            if i == nleft:
+                count += nright - j
+                break
+            if j == nright:
+                count += nleft - i
+                break
+
+            lval = left_data[i]
+            rval = right_data[j]
+            if PyObject_RichCompareBool(lval, rval, Py_EQ):
+                count += 1
+                if i < nleft - 1:
+                    if (
+                        j < nright - 1
+                        and PyObject_RichCompareBool(right_data[j + 1], rval, Py_EQ)
+                    ):
+                        j += 1
+                    else:
+                        i += 1
+                        if not PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if not PyObject_RichCompareBool(lval, right_data[j], Py_EQ):
+                        i += 1
+                else:
+                    break
+            elif PyObject_RichCompareBool(lval, rval, Py_LT):
+                count += 1
+                i += 1
+            else:
+                count += 1
+                j += 1
+
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
+    result = np.empty(count, dtype=left.dtype)
+
+    i = 0
+    j = 0
+    count = 0
+    if nleft == 0:
+        for j in range(nright):
+            lindexer[j] = -1
+            rindexer[j] = j
+            result[j] = <object>right_data[j]
+    elif nright == 0:
+        for i in range(nleft):
+            lindexer[i] = i
+            rindexer[i] = -1
+            result[i] = <object>left_data[i]
+    else:
+        while True:
+            if i == nleft:
+                while j < nright:
+                    lindexer[count] = -1
+                    rindexer[count] = j
+                    result[count] = <object>right_data[j]
+                    count += 1
+                    j += 1
+                break
+            if j == nright:
+                while i < nleft:
+                    lindexer[count] = i
+                    rindexer[count] = -1
+                    result[count] = <object>left_data[i]
+                    count += 1
+                    i += 1
+                break
+
+            lval = left_data[i]
+            rval = right_data[j]
+
+            if PyObject_RichCompareBool(lval, rval, Py_EQ):
+                lindexer[count] = i
+                rindexer[count] = j
+                result[count] = <object>lval
+                count += 1
+                if i < nleft - 1:
+                    if (
+                        j < nright - 1
+                        and PyObject_RichCompareBool(right_data[j + 1], rval, Py_EQ)
+                    ):
+                        j += 1
+                    else:
+                        i += 1
+                        if not PyObject_RichCompareBool(left_data[i], rval, Py_EQ):
+                            j += 1
+                elif j < nright - 1:
+                    j += 1
+                    if not PyObject_RichCompareBool(lval, right_data[j], Py_EQ):
+                        i += 1
+                else:
+                    break
+            elif PyObject_RichCompareBool(lval, rval, Py_LT):
+                lindexer[count] = i
+                rindexer[count] = -1
+                result[count] = <object>lval
+                count += 1
+                i += 1
+            else:
+                lindexer[count] = -1
+                rindexer[count] = j
+                result[count] = <object>rval
+                count += 1
+                j += 1
+
+    return result, lindexer, rindexer
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t] right):
     """
     Both left and right are monotonic increasing but not necessarily unique.
@@ -551,6 +971,10 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
         numeric_object_t lval, rval
         ndarray[intp_t] lindexer, rindexer
         ndarray[numeric_object_t] result
+
+    if numeric_object_t is object:
+        if left.flags["C_CONTIGUOUS"] and right.flags["C_CONTIGUOUS"]:
+            return _outer_join_indexer_object(left, right)
 
     nleft = len(left)
     nright = len(right)
