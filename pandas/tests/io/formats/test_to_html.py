@@ -92,7 +92,11 @@ def test_to_html_with_column_specific_col_space_raises():
         np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
     )
 
-    msg = "Col_space length\\(\\d+\\) should match pd.DataFrame number of columns\\(\\d+\\)"
+    msg = (
+        "Col_space length\\(\\d+\\) should match pd.DataFrame"
+        "number of columns\\(\\d+\\)"
+    )
+
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space=[30, 40])
 
