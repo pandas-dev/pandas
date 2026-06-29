@@ -7163,6 +7163,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._construct_result(res_values, name=res_name, other=other)
 
     def _arith_method(self, other, op) -> Series:
+        if isinstance(other, Series):
+            if isinstance(self.index, MultiIndex) and isinstance(
+                other.index, MultiIndex
+            ):
+                self_names = set(self.index.names)
+                other_names = set(other.index.names)
+                if self.index.equals(other.index) and not (self_names & other_names):
+                    # GH#25891
+                    warnings.warn(
+                        "The silent alignment on arithmetic operations between "
+                        "'Series' with incomparable MultiIndexes is deprecated "
+                        "and will be removed in a future version. Please align "
+                        "MultiIndexes manually.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+
         self, other = self._align_for_op(other)
         return base.IndexOpsMixin._arith_method(self, other, op)
 
@@ -7294,6 +7311,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         res_name = ops.get_op_result_name(self, other)
 
         if isinstance(other, Series):
+            if isinstance(self.index, MultiIndex) and isinstance(
+                other.index, MultiIndex
+            ):
+                self_names = set(self.index.names)
+                other_names = set(other.index.names)
+                if self.index.equals(other.index) and not (self_names & other_names):
+                    # GH#25891
+                    warnings.warn(
+                        "The silent alignment on arithmetic operations between "
+                        "'Series' with incomparable MultiIndexes is deprecated "
+                        "and will be removed in a future version. Please align "
+                        "MultiIndexes manually.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+
+        if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif (isinstance(other, np.ndarray) and other.ndim > 0) or isinstance(
             other, (list, tuple, ExtensionArray)
@@ -7336,6 +7370,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Return Equal to of series and other, element-wise (binary operator `eq`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``series == other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7401,6 +7440,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Not equal to of series and other, element-wise (binary operator `ne`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series != other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -7465,6 +7509,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Less than or equal to of series and other, \
         element-wise (binary operator `le`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``series <= other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7532,6 +7581,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def lt(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
         Return Less than of series and other, element-wise (binary operator `lt`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``series < other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7601,6 +7655,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Greater than or equal to of series and other, \
         element-wise (binary operator `ge`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series >= other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -7669,6 +7728,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Greater than of series and other, element-wise (binary operator `gt`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series > other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -7736,6 +7800,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Addition of series and other, element-wise (binary operator `add`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series + other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -7797,6 +7866,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def radd(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
         Return Addition of series and other, element-wise (binary operator `radd`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``other + series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7861,6 +7935,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def sub(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
         Return Subtraction of series and other, element-wise (binary operator `sub`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``series - other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7927,6 +8006,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def rsub(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         """
         Return Subtraction of series and other, element-wise (binary operator `rsub`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``other - series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -7997,6 +8081,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> Series:
         """
         Return Multiplication of series and other, element-wise (binary operator `mul`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``series * other``, but with support to substitute
         a fill_value for missing data in either one of the inputs.
@@ -8069,6 +8158,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Multiplication of series and other, \
         element-wise (binary operator `rmul`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other * series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -8133,6 +8227,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Floating division of series and other, \
         element-wise (binary operator `truediv`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``series / other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8199,6 +8298,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Floating division of series and other, \
         element-wise (binary operator `rtruediv`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``other / series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8267,6 +8371,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Integer division of series and other, \
         element-wise (binary operator `floordiv`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series // other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -8332,6 +8441,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Integer division of series and other, \
         element-wise (binary operator `rfloordiv`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other // series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -8396,6 +8510,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Modulo of series and other, element-wise (binary operator `mod`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series % other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -8458,6 +8577,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Modulo of series and other, \
         element-wise (binary operator `rmod`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``other % series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8524,6 +8648,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Exponential power of series and other, \
         element-wise (binary operator `pow`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``series ** other``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -8589,6 +8718,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Return Exponential power of series and other, \
         element-wise (binary operator `rpow`).
 
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
+
         Equivalent to ``other ** series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
 
@@ -8653,6 +8787,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Integer division and modulo of series and other, \
         element-wise (binary operator `divmod`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``divmod(series, other)``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
@@ -8724,6 +8863,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return Integer division and modulo of series and other, \
         element-wise (binary operator `rdivmod`).
+
+        .. deprecated:: 3.1.0
+            The silent alignment on arithmetic operations between 'Series'
+            with incomparable MultiIndexes is deprecated and will be removed
+            in a future version. Please align MultiIndexes manually.
 
         Equivalent to ``other divmod series``, but with support to substitute a
         fill_value for missing data in either one of the inputs.
