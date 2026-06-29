@@ -1478,7 +1478,19 @@ def dt64arr_to_periodarr(
         if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
-            data, freq = data._values, data.dt.freq
+            # freq is always None for DatetimeArray inside a Series;
+            # data.dt.freq uses inferred_freq, which we are deprecating.
+            inferred_freq = data.dt.freq
+            if inferred_freq is not None:
+                warnings.warn(
+                    "Constructing PeriodArray from a Series of datetime64 data "
+                    "will stop inferring the frequency in a future version. "
+                    "Pass `freq` explicitly instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                freq = inferred_freq
+            data = data._values
 
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values

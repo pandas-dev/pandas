@@ -103,6 +103,20 @@ class TestPeriodIndexDisallowedFreqs:
         tm.assert_index_equal(result, expected)
 
 
+def test_period_index_from_series_inferred_freq_deprecated():
+    # GH#64241
+    data = np.arange(5, dtype=np.int64).view("M8[D]").astype("M8[ns]")
+    dti = Index(data)
+    assert dti.freq is None
+    ser = Series(dti)
+
+    msg = "Constructing PeriodArray from a Series of datetime64 data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodIndex(ser)
+    expected = PeriodIndex(dti, freq="D")
+    tm.assert_index_equal(result, expected)
+
+
 class TestPeriodIndex:
     def test_from_ordinals(self):
         Period(ordinal=-1000, freq="Y")
