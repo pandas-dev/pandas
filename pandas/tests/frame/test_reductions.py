@@ -531,7 +531,10 @@ class TestDataFrameAnalytics:
         df = DataFrame(d)
 
         with pytest.raises(
-            TypeError, match="unsupported operand type|does not support|Cannot perform"
+            TypeError,
+            match="|".join(
+                ["unsupported operand type", "does not support", "Cannot perform"]
+            ),
         ):
             df.mean()
         result = df[["A", "C"]].mean()
@@ -1002,7 +1005,7 @@ class TestDataFrameAnalytics:
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        msg = "Could not convert|does not support|Cannot perform"
+        msg = "|".join(["Could not convert", "does not support", "Cannot perform"])
         with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
@@ -1587,6 +1590,54 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(res, expected)
 
         assert df.any(bool_only=True, axis=None)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "boolean",
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "UInt8",
+            "UInt16",
+            "UInt32",
+            "UInt64",
+            "Float32",
+            "Float64",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data, op, expected_value",
+        [
+            ([False, None], "any", pd.NA),
+            ([True, None], "all", pd.NA),
+            ([None, None], "any", pd.NA),
+            ([None, None], "all", pd.NA),
+            ([True, None], "any", True),
+        ],
+    )
+    def test_any_all_skipna_false_nullable(self, dtype, data, op, expected_value):
+        # GH#65710
+        if dtype != "boolean":
+            data = [(0 if v is False else 1 if v is True else None) for v in data]
+        arr = pd.array(data, dtype=dtype)
+        df = DataFrame({"a": arr})
+
+        result = getattr(df, op)(skipna=False)
+        expected = Series([expected_value], index=["a"], dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+        ser_result = getattr(Series(arr), op)(skipna=False)
+        if expected_value is pd.NA:
+            assert ser_result is pd.NA
+        else:
+            assert ser_result == expected_value
+
+    def test_any_skipna_false_axis_none_nullable(self):
+        # GH#65710
+        df = DataFrame({"a": pd.array([False, None], dtype="boolean")})
+        assert df.any(skipna=False, axis=None) is pd.NA
 
     # ---------------------------------------------------------------------
     # Unsorted
@@ -2340,7 +2391,8 @@ def test_minmax_extensionarray(method, numeric_only):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with pytest.raises(TypeError, match="does not support operation|Cannot perform"):
+    msg = "|".join(["does not support operation", "Cannot perform"])
+    with pytest.raises(TypeError, match=msg):
         df.sum()
 
 
@@ -2509,6 +2561,9 @@ def test_numeric_ea_axis_1(
             expected[mask] = 0
             expected = expected.astype(expected_dtype)
             expected[mask] = pd.NA
+        if not skipna and method == "all":
+            # GH#65710 Kleene "all" on (truthy, NA) row returns NA
+            expected.iloc[2] = pd.NA
     tm.assert_series_equal(result, expected)
 
 
