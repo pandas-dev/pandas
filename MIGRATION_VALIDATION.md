@@ -157,3 +157,55 @@ Follow-up validation:
 - `python -m pytest pandas/tests/frame/methods/test_reindex.py`
 - Run ASV for numeric `take_2d_axis1` contiguous slices, irregular
   indexers, fill indexers, and object 1-D/2-D take variants.
+
+## Batch 3: SwissTable
+
+Sources inspected:
+
+- All 24 SwissTable export commits identified by the 89-row inventory.
+- Prior pandas 3.0.3 port `f6d861f8a6`.
+- Follow-up commit `ee85531203`, which does not touch SwissTable.
+- pandas 3.0.1 Meson, algorithms, config, and merge integration points.
+
+Static consistency checks:
+
+- `swisstable.pyx` includes the generated
+  `swisstable_class_helper.pxi`.
+- The `.pxd` declares all integer, float, and complex Map types used by
+  Python integration.
+- The helper generates integer Map, membership, value-count,
+  duplicated, and Factorizer implementations.
+- Explicit float/complex implementations expose the same operations.
+- Empty contiguous duplicated inputs are guarded by `n > 0` before
+  taking `&values[0]` or `&result[0]`.
+- Meson generates the helper, builds the extension as C++17, includes
+  pandas/NumPy headers, and adds ARM CRC flags only on AArch64.
+- `algorithms.py` and `merge.py` fall back to khash for unsupported
+  dtypes and object keys.
+- Masked and Arrow numeric merge keys select their NumPy dtype before
+  choosing a Swiss Factorizer.
+
+Executed:
+
+- `git diff --check`
+- `python -m compileall -q pandas asv_bench/benchmarks/swisstable.py`
+- `python -m pytest pandas/tests/libs/test_swisstable.py -q` stopped
+  during conftest import because `dateutil` is missing.
+- Native tool probes found no `g++`, Meson, or Ninja executables.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime SwissTable tests: pytest is blocked by missing `dateutil`.
+- Full Meson/native build and ABI validation: Cython, a C++ compiler,
+  Meson, and Ninja are unavailable.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/libs/test_swisstable.py`
+- `python -m pytest pandas/tests/test_algorithms.py -k "unique or factorize or safe_sort"`
+- `python -m pytest pandas/tests/reshape/merge`
+- Run `asv_bench/benchmarks/swisstable.py` with the option enabled and
+  disabled, including strided arrays, masks, NaN/NA, complex values,
+  and all merge factorizer dtypes.

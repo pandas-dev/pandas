@@ -1,0 +1,733 @@
+"""
+Template for wrapping swisstables for each primitive `dtype`
+
+WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
+"""
+
+{{py:
+
+# name, dtype, c_type
+int_primitive_types = [('Int64', 'int64', 'int64_t'),
+                   ('UInt64', 'uint64', 'uint64_t'),
+                   ('Int32', 'int32', 'int32_t'),
+                   ('UInt32', 'uint32', 'uint32_t'),
+                   ('Int16', 'int16', 'int16_t'),
+                   ('UInt16', 'uint16', 'uint16_t'),
+                   ('Int8', 'int8', 'int8_t'),
+                   ('UInt8', 'uint8', 'uint8_t'),
+                  ]
+}}
+
+
+# =============================================================================
+# Swisstable Map
+# =============================================================================
+{{for name, dtype, c_type in int_primitive_types}}
+cdef class Swiss{{name}}Map(HashTable):
+    """Swiss Table hash map: {{dtype}} -> size_t"""
+
+    def __cinit__(self, size_t size_hint=0):
+        self.uses_mask = False
+        if size_hint > 0:
+            self.table.reserve(size_hint)
+
+    def insert(self, {{c_type}} key, size_t value):
+        cdef int ret = self.table.insert(key, value)
+        return ret == 1
+
+    def get(self, {{c_type}} key, default=None):
+        cdef size_t val
+        if self.table.get(key, &val):
+            return val
+        return default
+
+    def __getitem__(self, {{c_type}} key):
+        cdef size_t val
+        if self.table.get(key, &val):
+            return val
+        raise KeyError(key)
+
+    def __setitem__(self, {{c_type}} key, size_t value):
+        cdef int ret = self.table.insert(key, value)
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+    cpdef get_item(self, {{c_type}} key):
+        cdef size_t val
+        if self.table.get(key, &val):
+            return val
+        raise KeyError(key)
+
+    cpdef set_item(self, {{c_type}} key, Py_ssize_t value):
+        cdef int ret = self.table.insert(key, value)
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+    cpdef get_na(self):
+        """Extracts the position of na_value from the hashtable.
+
+        Returns
+        -------
+        The position of the last na value.
+        """
+        raise NotImplementedError("not implement for get_na")
+
+    cpdef set_na(self, Py_ssize_t val):
+        # Caller is responsible for checking for pd.NA
+        raise NotImplementedError("not implement for set_na")
+
+    def __contains__(self, {{c_type}} key):
+        return self.table.contains(key)
+
+    def __len__(self):
+        return self.table.size()
+
+    def __iter__(self):
+        cdef size_t index = 0
+        while index < self.table.capacity():
+            index = self.table.iter_next(index)
+            if index < self.table.capacity():
+                yield self.table.key_at(index)
+                index += 1
+
+    def items(self):
+        cdef size_t index = 0
+        while index < self.table.capacity():
+            index = self.table.iter_next(index)
+            if index < self.table.capacity():
+                yield (self.table.key_at(index),
+                       self.table.val_at(index))
+                index += 1
+
+    @property
+    def size(self):
+        return self.table.size()
+
+    @property
+    def capacity(self):
+        return self.table.capacity()
+
+    def __repr__(self):
+        return f"Swiss{{name}}Map(size={self.size}, capacity={self.capacity})"
+
+    def map_locations(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> None:
+        """Build table mapping values to their array positions."""
+        cdef:
+            Py_ssize_t i, n = len(values)
+            {{c_type}} val
+            int ret = 0
+
+        if self.uses_mask and mask is not None:
+            raise NotImplementedError("mask not implement for swisstable")  # pragma: no cover
+
+        with nogil:
+            if n > 0 and values.strides[0] == sizeof({{c_type}}):
+                ret = self.table.map_locations(&values[0], <size_t>n)
+            else:
+                for i in range(n):
+                    val = values[i]
+                    ret = self.table.insert(val, <size_t>i)
+                    if ret == -1:
+                        break
+
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+    def lookup(self, const {{c_type}}[:] values) -> ndarray:
+        """Look up array values in table, returning positions (-1 if not found)."""
+        cdef:
+            Py_ssize_t i, n = len(values)
+            {{c_type}} val
+            size_t loc
+            intp_t[::1] locs = np.empty(n, dtype=np.intp)
+
+        with nogil:
+            if n > 0 and values.strides[0] == sizeof({{c_type}}):
+                self.table.lookup_batch(&values[0], <size_t>n, &locs[0])
+            else:
+                for i in range(n):
+                    val = values[i]
+                    if self.table.get(val, &loc):
+                        locs[i] = <intp_t>loc
+                    else:
+                        locs[i] = -1
+
+        return np.asarray(locs)
+
+    def unique(self, const {{c_type}}[:] values, bint return_inverse=False,
+               object mask=None):
+        """Calculate unique values and optionally their inverse mapping."""
+        cdef:
+            Py_ssize_t i, n = len(values), count = 0
+            {{c_type}} val
+            size_t idx
+            int ret = 0
+            {{c_type}}[::1] uniques_arr = np.empty(n, dtype=np.{{dtype}})
+            intp_t[::1] labels
+            bint uses_mask = mask is not None
+            bint seen_na = False
+            const uint8_t[:] mask_view
+            np_uint8_t[::1] result_mask_arr
+
+        if not uses_mask and n > 0 and values.strides[0] == sizeof({{c_type}}):
+            if return_inverse:
+                labels = np.empty(n, dtype=np.intp)
+                with nogil:
+                    count = self.table.unique_with_inverse(
+                        &values[0], <size_t>n,
+                        &uniques_arr[0], &labels[0]
+                    )
+                if count == -1:
+                    raise MemoryError("Failed to insert into Swiss table")
+                uniques = np.asarray(uniques_arr)[:count].copy()
+                return uniques, np.asarray(labels)
+            else:
+                with nogil:
+                    count = self.table.unique_batch(&values[0], <size_t>n, &uniques_arr[0])
+                if count == -1:
+                    raise MemoryError("Failed to insert into Swiss table")
+                uniques = np.asarray(uniques_arr)[:count].copy()
+                return uniques
+
+        if uses_mask:
+            mask_view = mask if mask.dtype == np.uint8 else mask.view(np.uint8)
+            result_mask_arr = np.empty(n, dtype=np.uint8)
+
+        if return_inverse:
+            labels = np.empty(n, dtype=np.intp)
+            with nogil:
+                for i in range(n):
+                    if uses_mask and mask_view[i]:
+                        if not seen_na:
+                            uniques_arr[count] = values[i]
+                            result_mask_arr[count] = 1
+                            labels[i] = count
+                            seen_na = True
+                            count += 1
+                        else:
+                            for idx in range(<size_t>count):
+                                if result_mask_arr[idx] == 1:
+                                    labels[i] = <intp_t>idx
+                                    break
+                    else:
+                        val = values[i]
+                        ret = self.table.insert_if_absent(val, <size_t>count, &idx)  # noqa: E501
+                        if ret == 1:
+                            uniques_arr[count] = val
+                            if uses_mask:
+                                result_mask_arr[count] = 0
+                            labels[i] = count
+                            count += 1
+                        elif ret == 0:
+                            labels[i] = <intp_t>idx
+                        else:
+                            break
+
+            if ret == -1:
+                raise MemoryError("Failed to insert into Swiss table")
+
+            uniques = np.asarray(uniques_arr)[:count].copy()
+            if uses_mask:
+                result_mask = np.asarray(result_mask_arr)[:count].copy()
+                return uniques, np.asarray(labels), result_mask
+            return uniques, np.asarray(labels)
+        else:
+            with nogil:
+                for i in range(n):
+                    if uses_mask and mask_view[i]:
+                        if not seen_na:
+                            uniques_arr[count] = values[i]
+                            result_mask_arr[count] = 1
+                            seen_na = True
+                            count += 1
+                    else:
+                        val = values[i]
+                        ret = self.table.insert_key_only(val)
+                        if ret == 1:
+                            uniques_arr[count] = val
+                            if uses_mask:
+                                result_mask_arr[count] = 0
+                            count += 1
+                        elif ret == -1:
+                            break
+
+            if ret == -1:
+                raise MemoryError("Failed to insert into Swiss table")
+
+            uniques = np.asarray(uniques_arr)[:count].copy()
+            if uses_mask:
+                return uniques, np.asarray(result_mask_arr)[:count].copy()
+            return uniques
+
+    def factorize(self, const {{c_type}}[:] values, Py_ssize_t na_sentinel=-1,
+                  object na_value=None, object mask=None, bint ignore_na=True):
+        """Calculate unique values and labels for categorical encoding."""
+        cdef:
+            Py_ssize_t i, n = len(values), count = 0, na_idx = -1
+            {{c_type}} val
+            size_t idx
+            int ret = 0
+            {{c_type}}[::1] uniques_arr = np.empty(n, dtype=np.{{dtype}})
+            intp_t[::1] labels = np.empty(n, dtype=np.intp)
+            bint uses_na_value = na_value is not None
+            bint uses_mask = mask is not None
+            bint seen_na = False
+            const uint8_t[:] mask_view
+            {{c_type}} na_val = na_value if uses_na_value else 0
+
+        # Fast path: no mask - use C batch function for maximum performance
+        if not uses_mask and n > 0 and values.strides[0] == sizeof({{c_type}}):
+            with nogil:
+                if ignore_na and uses_na_value:
+                    count = self.table.factorize_batch(
+                        &values[0], <size_t>n,
+                        &uniques_arr[0], &labels[0],
+                        na_sentinel, na_val
+                    )
+                else:
+                    count = self.table.unique_with_inverse(
+                        &values[0], <size_t>n,
+                        &uniques_arr[0], &labels[0]
+                    )
+            if count == -1:
+                raise MemoryError("Failed to insert into Swiss table")
+            uniques = np.asarray(uniques_arr)[:count].copy()
+            return uniques, np.asarray(labels)
+
+        if uses_mask:
+            mask_view = mask if mask.dtype == np.uint8 else mask.view(np.uint8)
+
+        # Pre-reserve capacity to avoid resize checks in hot loop
+        self.table.reserve(<size_t>n)
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                if uses_mask and mask_view[i]:
+                    if ignore_na:
+                        labels[i] = na_sentinel
+                    else:
+                        if not seen_na:
+                            uniques_arr[count] = val
+                            na_idx = count
+                            labels[i] = count
+                            seen_na = True
+                            count += 1
+                        else:
+                            labels[i] = na_idx
+                elif (ignore_na and uses_na_value) and val == na_val:
+                    labels[i] = na_sentinel
+                else:
+                    if not self.table.get(val, &idx):
+                        ret = self.table.insert(val, <size_t>count)
+                        if ret == -1:
+                            break
+                        uniques_arr[count] = val
+                        labels[i] = count
+                        count += 1
+                    else:
+                        labels[i] = <intp_t>idx
+
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+        uniques = np.asarray(uniques_arr)[:count].copy()
+        return uniques, np.asarray(labels)
+
+    def get_labels(self, const {{c_type}}[:] values, ndarray uniques, bint uniques_view_exits,
+        Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+        object na_value=None, object mask=None):
+        """Calculate unique values and labels for categorical encoding."""
+        cdef:
+            Py_ssize_t i, n = len(values), count = count_prior
+            {{c_type}} val
+            size_t idx
+            int ret = 0
+            {{c_type}}[::1] uniques_arr = uniques
+            intp_t[::1] labels = np.empty(n, dtype=np.intp)
+            bint uses_na_value = na_value is not None
+            bint uses_mask = mask is not None
+            bint seen_na = False
+            const uint8_t[:] mask_view
+            {{c_type}} na_val = na_value if uses_na_value else 0
+
+        # Fast path: no mask - use C batch function for maximum performance
+        if not uses_mask and (count_prior + n <= uniques_arr.shape[0]) and (
+            n > 0 and values.strides[0] == sizeof({{c_type}})):
+            with nogil:
+                if uses_na_value:
+                    count = self.table.factorize_batch(
+                        &values[0], <size_t>n,
+                        &uniques_arr[0], &labels[0],
+                        na_sentinel, na_val, count_prior
+                    )
+                else:
+                    count = self.table.unique_with_inverse(
+                        &values[0], <size_t>n,
+                        &uniques_arr[0], &labels[0], count_prior
+                    )
+            if count == -1:
+                raise MemoryError("Failed to insert into Swiss table")
+            return count, np.asarray(labels)
+
+        if uses_mask:
+            mask_view = mask if mask.dtype == np.uint8 else mask.view(np.uint8)
+
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                if (uses_mask and mask_view[i]) or (uses_na_value and val == na_val):
+                    labels[i] = na_sentinel
+                else:
+                    if not self.table.get(val, &idx):
+                        ret = self.table.insert(val, <size_t>count)
+                        if ret == -1:
+                            break
+                        if count >= uniques_arr.shape[0]:
+                            with gil:
+                                uniques.resize(count * 2, refcheck=uniques_view_exits)
+                                uniques_arr = uniques
+                        uniques_arr[count] = val
+                        labels[i] = count
+                        count += 1
+                    else:
+                        labels[i] = <intp_t>idx
+
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+        return count, np.asarray(labels)
+
+
+def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values) -> ndarray:
+    """
+    Return boolean array indicating membership of arr elements in values.
+
+    This is the Swiss Table version of isin() for {{dtype}} arrays.
+    Swiss Tables excel at lookup-miss-heavy operations like this.
+
+    Parameters
+    ----------
+    arr : ndarray[{{dtype}}]
+        Array to check for membership
+    values : ndarray[{{dtype}}]
+        Set of values to check against
+
+    Returns
+    -------
+    ndarray[bool]
+        Boolean array of same length as arr
+    """
+    cdef:
+        Py_ssize_t n_arr = len(arr), n_values = len(values)
+        SwissTable[{{c_type}}, size_t] table
+        int ret = 0
+        np_uint8_t[::1] result_view
+
+    # Build the lookup table from values
+    table.reserve(<size_t>n_values)
+
+    # Pre-allocate result array
+    result = np.empty(n_arr, dtype=np.uint8)
+    result_view = result
+
+    # Build set from values (key-only, no value storage needed)
+    with nogil:
+        ret = table.build_set(&values[0], <size_t>n_values)
+    if ret == -1:
+        raise MemoryError("Failed to insert into Swiss table")
+
+    # Check membership using batch contains
+    with nogil:
+        table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+
+    return result.view(np.bool_)
+
+
+def value_count_{{dtype}}(const {{c_type}}[:] values, bint dropna=True, const uint8_t[:] mask=None):
+    """
+    Count occurrences of each unique value.
+
+    Parameters
+    ----------
+    values : ndarray[{{dtype}}]
+        Array to count values in
+    dropna : bool, default True
+        Whether to exclude NA values from count (not applicable for {{dtype}})
+
+    Returns
+    -------
+    keys : ndarray[{{dtype}}]
+        Unique values in order of first appearance
+    counts : ndarray[{{dtype}}]
+        Count for each unique value
+    na_count : Py_ssize_t
+        Na count for mask
+    """
+    cdef:
+        Py_ssize_t i, n = len(values), n_unique = 0, na_count = 0, na_add = 0
+        SwissTable[{{c_type}}, size_t] table
+        {{c_type}} val
+        size_t idx
+        int ret = 0
+        {{c_type}}[::1] keys_arr = np.empty(n, dtype=np.{{dtype}})
+        size_t[::1] indices_arr = np.empty(n, dtype=np.uintp)
+        int64_t[::1] counts_arr
+        bint uses_mask = mask is not None
+
+    table.reserve(<size_t>n)
+
+    # Use batch value_count which stores indices for direct access
+    if not uses_mask and n > 0 and values.strides[0] == sizeof({{c_type}}):
+        with nogil:
+            n_unique = table.value_count_batch(
+                &values[0], <size_t>n,
+                &keys_arr[0], &indices_arr[0], dropna
+            )
+    else:
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                if uses_mask and mask[i]:
+                    if not dropna:
+                        na_count += 1
+                    continue
+
+                ret = table.increment(val, &idx)
+                if ret == 1:
+                    keys_arr[n_unique] = val
+                    indices_arr[n_unique] = idx
+                    n_unique += 1
+                elif ret == -1:
+                    break
+
+    if ret == -1:
+        raise MemoryError("Failed to insert into Swiss table")
+
+    if na_count > 0:
+        na_add = 1
+
+    # Extract counts using stored indices (direct access, no lookup)
+    counts_arr = np.empty(n_unique + na_add, dtype=np.int64)
+    with nogil:
+        for i in range(n_unique):
+            counts_arr[i] = <int64_t>table.vals()[indices_arr[i]]
+
+    if na_count > 0:
+        keys_arr[n_unique] = val
+        counts_arr[n_unique] = na_count
+
+    keys = np.asarray(keys_arr)[:n_unique + na_add].copy()
+    counts = np.asarray(counts_arr)
+    return keys, counts, na_count
+
+
+def duplicated_{{dtype}}(const {{c_type}}[:] values, object keep="first",
+                     const uint8_t[:] mask=None):
+    """
+    Return boolean array indicating duplicated values.
+
+    Parameters
+    ----------
+    values : ndarray[{{dtype}}]
+        Array to check for duplicates
+    keep : {'first', 'last', False}, default 'first'
+        - 'first': Mark duplicates as True except for first occurrence
+        - 'last': Mark duplicates as True except for last occurrence
+        - False: Mark all duplicates as True
+    mask : ndarray[uint8], optional
+        If provided, mask[i] == 1 indicates that values[i] is NA/missing.
+        NA values are treated as a single group for duplicate detection.
+
+    Returns
+    -------
+    ndarray[bool]
+        Boolean array indicating duplicates
+    """
+    cdef:
+        Py_ssize_t i, n = len(values), first_na = -1
+        SwissTable[{{c_type}}, size_t] table
+        {{c_type}} val
+        size_t idx
+        int ret = 0
+        np_uint8_t[::1] result
+        bint keep_first = keep == "first"
+        bint keep_last = keep == "last"
+        bint _keep_none = keep is False
+        bint uses_mask = mask is not None
+        bint seen_na = False
+        bint seen_multiple_na = False
+
+    if keep not in ("first", "last", False):
+        raise ValueError('keep must be either "first", "last" or False')
+
+    table.reserve(<size_t>n)
+
+    if not uses_mask and n > 0 and values.strides[0] == sizeof({{c_type}}):
+        result = np.empty(n, dtype=np.uint8)
+        with nogil:
+            if keep_first or keep_last:
+                ret = table.duplicated_keep_batch(&values[0], n, keep_first, &result[0])
+            else:  # keep == False
+                ret = table.duplicated_false_batch(&values[0], n, &result[0])
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+        return np.asarray(result).view(np.bool_)
+
+    result = np.zeros(n, dtype=np.uint8)
+
+    if keep_first:
+        # Use insert_key_only: no value storage needed
+        # ret == 1: newly inserted (not duplicate)
+        # ret == 0: already exists (duplicate)
+        with nogil:
+            for i in range(n):
+                if uses_mask and mask[i]:
+                    # Handle NA values
+                    if seen_na:
+                        result[i] = 1  # Duplicate NA
+                    else:
+                        seen_na = True
+                        result[i] = 0  # First NA
+                else:
+                    val = values[i]
+                    ret = table.insert_key_only(val)
+                    if ret == 0:
+                        result[i] = 1  # Duplicate
+                    elif ret == -1:
+                        break
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+    elif keep_last:
+        # Use insert_key_only: no value storage needed
+        with nogil:
+            for i in range(n - 1, -1, -1):
+                if uses_mask and mask[i]:
+                    # Handle NA values
+                    if seen_na:
+                        result[i] = 1  # Duplicate NA
+                    else:
+                        seen_na = True
+                        result[i] = 0  # First NA (from the end)
+                else:
+                    val = values[i]
+                    ret = table.insert_key_only(val)
+                    if ret == 0:
+                        result[i] = 1  # Duplicate
+                    elif ret == -1:
+                        break
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+    else:  # keep == False
+        # Need insert_if_absent: must store index to mark first occurrence
+        with nogil:
+            for i in range(n):
+                if uses_mask and mask[i]:
+                    # Handle NA values - mark all as duplicates if multiple
+                    if not seen_na:
+                        first_na = i
+                        seen_na = True
+                        result[i] = 0
+                    elif not seen_multiple_na:
+                        result[i] = 1
+                        result[first_na] = 1
+                        seen_multiple_na = True
+                    else:
+                        result[i] = 1
+                else:
+                    val = values[i]
+                    ret = table.insert_if_absent(val, <size_t>i, &idx)
+                    if ret == 0:
+                        # Already exists - mark both first occurrence and current
+                        result[idx] = 1
+                        result[i] = 1
+                    elif ret == -1:
+                        break
+        if ret == -1:
+            raise MemoryError("Failed to insert into Swiss table")
+
+    return np.asarray(result).view(np.bool_)
+
+{{endfor}}
+
+{{py:
+
+# name, dtype, c_type
+primitive_types = [('Int64', 'int64', 'int64_t'),
+                   ('UInt64', 'uint64', 'uint64_t'),
+                   ('Int32', 'int32', 'int32_t'),
+                   ('UInt32', 'uint32', 'uint32_t'),
+                   ('Int16', 'int16', 'int16_t'),
+                   ('UInt16', 'uint16', 'uint16_t'),
+                   ('Int8', 'int8', 'int8_t'),
+                   ('UInt8', 'uint8', 'uint8_t'),
+                   ('Complex128', 'complex128', 'double complex'),
+                   ('Complex64', 'complex64', 'float complex'),
+                   ('Float64', 'float64', 'float64_t'),
+                   ('Float32', 'float32', 'float32_t'),
+                  ]
+}}
+
+
+# =============================================================================
+# Swisstable Factorizer
+# =============================================================================
+{{for name, dtype, c_type in primitive_types}}
+cdef class Swiss{{name}}Factorizer:
+    cdef public:
+        Swiss{{name}}Map table
+        ndarray uniques
+        Py_ssize_t count
+        bint external_view_exists
+
+    def __cinit__(self, size_hint: int):
+        self.table = Swiss{{name}}Map(size_hint)
+        self.uniques = np.empty(size_hint, dtype="{{dtype}}")
+        self.external_view_exists = False
+
+    def get_count(self) -> int:
+        return self.count
+
+    def factorize(self, const {{c_type}}[:] values,
+                  na_sentinel=-1, na_value=None, object mask=None) -> np.ndarray:
+        """
+        Returns
+        -------
+        ndarray[intp_t]
+
+        Examples
+        --------
+        Factorize values with nans replaced by na_sentinel
+
+        >>> fac = {{name}}Factorizer(3)
+        >>> fac.factorize(np.array([1,2,3], dtype="{{dtype}}"), na_sentinel=20)
+        array([0, 1, 2])
+        """
+        cdef:
+            ndarray[intp_t] labels
+            Py_ssize_t ext_size = self.count + values.shape[0]
+            ndarray ext_uniques
+
+        if self.external_view_exists or self.uniques.shape[0] < ext_size:
+            ext_size = max(ext_size, len(self.uniques))
+            ext_uniques = np.empty(ext_size, dtype=self.uniques.dtype)
+            ext_uniques[:self.count] = self.uniques[:self.count]
+            self.uniques = ext_uniques
+            self.external_view_exists = False
+
+        count, labels = self.table.get_labels(values, self.uniques, self.external_view_exists,
+                                       self.count, na_sentinel,
+                                       na_value=na_value, mask=mask)
+        self.count = count
+        return labels
+
+    def uniques_array(self) -> np.ndarray:
+        if self.count != len(self.uniques):
+            self.uniques.resize(self.count, refcheck=self.external_view_exists)
+        self.external_view_exists = True
+        return self.uniques
+
+{{endfor}}

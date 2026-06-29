@@ -27,6 +27,7 @@ from pandas._libs import (
     hashtable as libhashtable,
     join as libjoin,
     lib,
+    swisstable,
 )
 from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
@@ -137,6 +138,27 @@ if np.uintc is not np.uint32:
         _factorizers[np.uintc] = libhashtable.UInt32Factorizer
     else:
         _factorizers[np.uintc] = libhashtable.UInt64Factorizer
+
+_swiss_factorizers = {
+    np.int64: swisstable.SwissInt64Factorizer,
+    np.longlong: swisstable.SwissInt64Factorizer,
+    np.int32: swisstable.SwissInt32Factorizer,
+    np.int16: swisstable.SwissInt16Factorizer,
+    np.int8: swisstable.SwissInt8Factorizer,
+    np.uint64: swisstable.SwissUInt64Factorizer,
+    np.uint32: swisstable.SwissUInt32Factorizer,
+    np.uint16: swisstable.SwissUInt16Factorizer,
+    np.uint8: swisstable.SwissUInt8Factorizer,
+    np.bool_: swisstable.SwissUInt8Factorizer,
+    np.float64: swisstable.SwissFloat64Factorizer,
+    np.float32: swisstable.SwissFloat32Factorizer,
+    np.complex64: swisstable.SwissComplex64Factorizer,
+    np.complex128: swisstable.SwissComplex128Factorizer,
+}
+
+# See https://github.com/pandas-dev/pandas/issues/52451
+if np.intc is not np.int32:
+    _swiss_factorizers[np.intc] = swisstable.SwissInt64Factorizer
 
 
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
@@ -2962,6 +2984,8 @@ def _convert_arrays_and_get_rizer_klass(
     lk: ArrayLike, rk: ArrayLike
 ) -> tuple[type[libhashtable.Factorizer], ArrayLike, ArrayLike]:
     klass: type[libhashtable.Factorizer]
+    from pandas.core.config_init import get_use_swisstable
+
     if is_numeric_dtype(lk.dtype):
         if lk.dtype != rk.dtype:
             dtype = find_common_type([lk.dtype, rk.dtype])
@@ -2979,12 +3003,18 @@ def _convert_arrays_and_get_rizer_klass(
             else:
                 lk = lk.astype(dtype, copy=False)
                 rk = rk.astype(dtype, copy=False)
+
         if isinstance(lk, BaseMaskedArray):
-            klass = _factorizers[lk.dtype.type]
+            ndtype = lk.dtype.type
         elif isinstance(lk.dtype, ArrowDtype):
-            klass = _factorizers[lk.dtype.numpy_dtype.type]
+            ndtype = lk.dtype.numpy_dtype.type
         else:
-            klass = _factorizers[lk.dtype.type]
+            ndtype = lk.dtype.type
+
+        if get_use_swisstable() and ndtype in _swiss_factorizers:
+            klass = _swiss_factorizers[ndtype]  # type: ignore[index]
+        else:
+            klass = _factorizers[ndtype]  # type: ignore[index]
 
     else:
         klass = libhashtable.ObjectFactorizer

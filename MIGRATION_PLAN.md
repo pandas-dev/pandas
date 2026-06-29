@@ -26,7 +26,7 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | ---: | --- | --- | --- |
 | 1 | `d978bd13ee` | nancorr | adapted |
 | 2 | `28df2030b5` | pad and take helpers | split and adapted |
-| 3 | `f6d861f8a6` | SwissTable | pending |
+| 3 | `f6d861f8a6` | SwissTable | directly applied and audited |
 | 4 | `8e0304f403` | maybe_convert_objects | pending |
 | 5 | `f39ba34d1d` | groupby loops | pending |
 | 6 | `3fa2758641` | ASV configuration | pending |
@@ -96,3 +96,24 @@ choosing an entire side.
 - The unused exported `Py_DECREF` cimport is omitted.
 - Risk: object reference ownership and arbitrary row/column strides
   require a Cython build plus object take/reindex tests.
+
+## Batch 3: SwissTable
+
+- Original private commits: the 24-commit SwissTable series from
+  `26f530f608` through the final integration commits
+  `12c293f745`, `8c1c10d14f`, `7d2d23951e`, `4423bd227e`,
+  `a985978612`, `56996122c8`, and `108a06f167`.
+- Prior pandas 3.0.3 port: `f6d861f8a6`.
+- pandas 3.0.1 result: the prior port applies cleanly because the
+  extension is additive and its four Python integration files retain
+  compatible APIs.
+- Compatibility checks cover the generated integer maps/factorizers,
+  explicit float/complex implementations, `.pxd` declarations, C++17
+  Meson target, `compute.use_swisstable`, factorize/unique/safe_sort,
+  and merge factorizer selection.
+- The later `ee85531203` change is not part of this batch: despite its
+  subject, its diff only restructures `pad_inplace` returns inside a
+  pandas 3.0.3 `nogil` block. The pandas 3.0.1 adaptation deliberately
+  retained a GIL-held pad implementation, so that fix is inapplicable.
+- Risk: this is the largest native-code batch and requires full Cython,
+  C++ compiler, ABI, dtype, NA/mask, and merge correctness validation.

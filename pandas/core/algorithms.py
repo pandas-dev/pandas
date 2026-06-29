@@ -23,6 +23,7 @@ from pandas._libs import (
     hashtable as htable,
     iNaT,
     lib,
+    swisstable,
 )
 from pandas._libs.missing import NA
 from pandas._typing import (
@@ -270,14 +271,33 @@ _hashtables = {
     "object": htable.PyObjectHashTable,
 }
 
+# Swiss Table implementations for supported types
+_swisstables = {
+    "float64": swisstable.SwissFloat64Map,
+    "float32": swisstable.SwissFloat32Map,
+    "uint64": swisstable.SwissUInt64Map,
+    "uint32": swisstable.SwissUInt32Map,
+    "uint16": swisstable.SwissUInt16Map,
+    "uint8": swisstable.SwissUInt8Map,
+    "int64": swisstable.SwissInt64Map,
+    "int32": swisstable.SwissInt32Map,
+    "int16": swisstable.SwissInt16Map,
+    "int8": swisstable.SwissInt8Map,
+    "complex128": swisstable.SwissComplex128Map,
+    "complex64": swisstable.SwissComplex64Map,
+}
+
 
 def _get_hashtable_algo(
     values: np.ndarray,
+    use_swisstable: bool = False,
 ) -> tuple[type[htable.HashTable], np.ndarray]:
     """
     Parameters
     ----------
     values : np.ndarray
+    use_swisstable : bool, default False
+        If True and dtype is supported, return Swiss Table class instead of khash.
 
     Returns
     -------
@@ -287,6 +307,11 @@ def _get_hashtable_algo(
     values = _ensure_data(values)
 
     ndtype = _check_object_for_strings(values)
+
+    # Try Swiss Table if enabled and dtype is supported
+    if use_swisstable and ndtype in _swisstables:
+        return _swisstables[ndtype], values
+
     hashtable = _hashtables[ndtype]
     return hashtable, values
 
@@ -469,7 +494,10 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return values.unique()
 
     original = values
-    hashtable, values = _get_hashtable_algo(values)
+    from pandas.core.config_init import get_use_swisstable
+
+    use_swiss = get_use_swisstable()
+    hashtable, values = _get_hashtable_algo(values, use_swisstable=use_swiss)
 
     table = hashtable(len(values))
     if mask is None:
@@ -631,7 +659,10 @@ def factorize_array(
         # e.g. test_where_datetimelike_categorical
         na_value = iNaT
 
-    hash_klass, values = _get_hashtable_algo(values)
+    from pandas.core.config_init import get_use_swisstable
+
+    use_swiss = get_use_swisstable()
+    hash_klass, values = _get_hashtable_algo(values, use_swisstable=use_swiss)
 
     table = hash_klass(size_hint or len(values))
     uniques, codes = table.factorize(
@@ -1528,7 +1559,12 @@ def safe_sort(
         # error: Argument 1 to "_get_hashtable_algo" has incompatible type
         # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
         # "ndarray[Any, Any]"
-        hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
+        from pandas.core.config_init import get_use_swisstable
+
+        use_swiss = get_use_swisstable()
+        hash_klass, values = _get_hashtable_algo(
+            values, use_swisstable=use_swiss
+        )  # type: ignore[arg-type]
         t = hash_klass(len(values))
         t.map_locations(values)
         # error: Argument 1 to "lookup" of "HashTable" has incompatible type
