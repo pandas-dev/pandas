@@ -9,13 +9,12 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DataFrame,
     Index,
     MultiIndex,
     get_option,
     option_context,
 )
-DataFrame = pd.DataFrame
+from pandas.core.frame import DataFrame
 
 import pandas.io.formats.format as fmt
 
