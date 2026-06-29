@@ -34,7 +34,7 @@ dtypes = [
     ('float32_t', 'float32_t'),
     ('float32_t', 'float64_t'),
     ('float64_t', 'float64_t'),
-    ('object', 'object'),
+    # ('object', 'object'),
 ]
 
 
@@ -176,8 +176,13 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                                     fill_value=np.nan):
 
     cdef:
-        Py_ssize_t i, j, k, n, idx
+        Py_ssize_t i, j, k, n, idx, idx0, idx1, idx2, idx3, start
         {{c_type_out}} fv
+        bint contiguous_indexer
+        {{if c_type_in == c_type_out != "object"}}
+        const {{c_type_out}} *v
+        {{c_type_out}} *o
+        {{endif}}
 
     n = len(values)
     k = len(indexer)
@@ -189,13 +194,99 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
     {{if c_type_in == c_type_out != "object"}}
     with nogil:
-        for i in range(n):
-            for j in range(k):
-                idx = indexer[j]
-                if idx == -1:
-                    out[i, j] = fv
-                else:
-                    out[i, j] = values[i, idx]
+        if (values.strides[1] == sizeof({{c_type_out}}) and
+                out.strides[1] == sizeof({{c_type_out}})):
+            contiguous_indexer = False
+            start = indexer[0]
+            if start != -1:
+                contiguous_indexer = True
+                for j in range(1, k):
+                    if indexer[j] != start + j:
+                        contiguous_indexer = False
+                        break
+
+            for i in range(n):
+                v = &values[i, 0]
+                o = &out[i, 0]
+                if contiguous_indexer:
+                    memmove(o, v + start,
+                            <size_t>(sizeof({{c_type_out}}) * k))
+                    continue
+
+                j = 0
+                while j <= k - 4:
+                    idx0 = indexer[j]
+                    idx1 = indexer[j + 1]
+                    idx2 = indexer[j + 2]
+                    idx3 = indexer[j + 3]
+
+                    if idx0 == -1:
+                        o[j] = fv
+                    else:
+                        o[j] = v[idx0]
+
+                    if idx1 == -1:
+                        o[j + 1] = fv
+                    else:
+                        o[j + 1] = v[idx1]
+
+                    if idx2 == -1:
+                        o[j + 2] = fv
+                    else:
+                        o[j + 2] = v[idx2]
+
+                    if idx3 == -1:
+                        o[j + 3] = fv
+                    else:
+                        o[j + 3] = v[idx3]
+
+                    j += 4
+
+                while j < k:
+                    idx = indexer[j]
+                    if idx == -1:
+                        o[j] = fv
+                    else:
+                        o[j] = v[idx]
+                    j += 1
+        else:
+            for i in range(n):
+                j = 0
+                while j <= k - 4:
+                    idx0 = indexer[j]
+                    idx1 = indexer[j + 1]
+                    idx2 = indexer[j + 2]
+                    idx3 = indexer[j + 3]
+
+                    if idx0 == -1:
+                        out[i, j] = fv
+                    else:
+                        out[i, j] = values[i, idx0]
+
+                    if idx1 == -1:
+                        out[i, j + 1] = fv
+                    else:
+                        out[i, j + 1] = values[i, idx1]
+
+                    if idx2 == -1:
+                        out[i, j + 2] = fv
+                    else:
+                        out[i, j + 2] = values[i, idx2]
+
+                    if idx3 == -1:
+                        out[i, j + 3] = fv
+                    else:
+                        out[i, j + 3] = values[i, idx3]
+
+                    j += 4
+
+                while j < k:
+                    idx = indexer[j]
+                    if idx == -1:
+                        out[i, j] = fv
+                    else:
+                        out[i, j] = values[i, idx]
+                    j += 1
 
     {{else}}
     for i in range(n):
@@ -245,3 +336,241 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                     {{endif}}
 
 {{endfor}}
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_1d_object_object(
+        ndarray[object, ndim=1] values,
+        const intp_t[:] indexer,
+        ndarray[object, ndim=1] out,
+        fill_value=np.nan):
+
+    cdef:
+        Py_ssize_t i, n, n4
+        Py_ssize_t idx0, idx1, idx2, idx3, idx
+        object fv
+        PyObject **values_ptr
+        PyObject **out_ptr
+        Py_ssize_t vs0 = values.strides[0] // sizeof(PyObject*)
+        Py_ssize_t os0 = out.strides[0] // sizeof(PyObject*)
+        PyObject *src
+        PyObject *dst
+
+    n = indexer.shape[0]
+    n4 = n & ~3
+
+    values_ptr = <PyObject**> values.data
+    out_ptr = <PyObject**> out.data
+    fv = fill_value
+
+    # 4-way unrolled loop
+    for i in range(0, n4, 4):
+
+        # ---- 0 ----
+        idx0 = indexer[i]
+        if idx0 == -1:
+            src = <PyObject*>fv
+        else:
+            src = values_ptr[idx0 * vs0]
+
+        Py_INCREF(<object>src)
+        dst = out_ptr[i * os0]
+        Py_XDECREF(dst)
+        out_ptr[i * os0] = src
+
+        # ---- 1 ----
+        idx1 = indexer[i + 1]
+        if idx1 == -1:
+            src = <PyObject*>fv
+        else:
+            src = values_ptr[idx1 * vs0]
+
+        Py_INCREF(<object>src)
+        dst = out_ptr[(i + 1) * os0]
+        Py_XDECREF(dst)
+        out_ptr[(i + 1) * os0] = src
+
+        # ---- 2 ----
+        idx2 = indexer[i + 2]
+        if idx2 == -1:
+            src = <PyObject*>fv
+        else:
+            src = values_ptr[idx2 * vs0]
+
+        Py_INCREF(<object>src)
+        dst = out_ptr[(i + 2) * os0]
+        Py_XDECREF(dst)
+        out_ptr[(i + 2) * os0] = src
+
+        # ---- 3 ----
+        idx3 = indexer[i + 3]
+        if idx3 == -1:
+            src = <PyObject*>fv
+        else:
+            src = values_ptr[idx3 * vs0]
+
+        Py_INCREF(<object>src)
+        dst = out_ptr[(i + 3) * os0]
+        Py_XDECREF(dst)
+        out_ptr[(i + 3) * os0] = src
+
+    # tail
+    for i in range(n4, n):
+        idx = indexer[i]
+
+        if idx == -1:
+            src = <PyObject*>fv
+        else:
+            src = values_ptr[idx * vs0]
+
+        Py_INCREF(<object>src)
+        dst = out_ptr[i * os0]
+        Py_XDECREF(dst)
+        out_ptr[i * os0] = src
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis0_object_object(ndarray[object, ndim=2] values,
+                                    ndarray[intp_t, ndim=1] indexer,
+                                    ndarray[object, ndim=2] out,
+                                    fill_value=np.nan):
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        object fv
+        PyObject** values_ptr
+        PyObject** out_ptr
+        Py_ssize_t values_stride0 = values.strides[0] // sizeof(PyObject*), values_stride1 = values.strides[1]  // sizeof(PyObject*)
+        Py_ssize_t out_stride0 = out.strides[0] // sizeof(PyObject*), out_stride1 = out.strides[1]  // sizeof(PyObject*)
+        PyObject *src
+        PyObject *dst
+
+    n = len(indexer)
+    k = values.shape[1]
+    values_ptr = <PyObject**>values.data
+    out_ptr = <PyObject**>out.data
+
+    fv = fill_value
+
+    for i in range(n):
+        idx = indexer[i]
+        if idx == -1:
+            for j in range(k):
+                out[i, j] = fv
+        else:
+            for j in range(k):
+                src = values_ptr[idx * values_stride0 + j * values_stride1]
+                Py_INCREF(<object>src)
+                dst = out_ptr[i * out_stride0 + j * out_stride1]
+                Py_XDECREF(dst)
+                out_ptr[i * out_stride0 + j * out_stride1] = src
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_axis1_object_object(
+        ndarray[object, ndim=2] values,
+        ndarray[intp_t, ndim=1] indexer,
+        ndarray[object, ndim=2] out,
+        fill_value=np.nan):
+
+    cdef:
+        Py_ssize_t i, j, k, n, idx
+        object fv
+        PyObject **values_ptr
+        PyObject **out_ptr
+        Py_ssize_t vs0 = values.strides[0] // sizeof(PyObject*)
+        Py_ssize_t vs1 = values.strides[1] // sizeof(PyObject*)
+        Py_ssize_t os0 = out.strides[0] // sizeof(PyObject*)
+        Py_ssize_t os1 = out.strides[1] // sizeof(PyObject*)
+        PyObject *src
+        PyObject *dst
+        PyObject **row_src
+        PyObject **row_dst
+
+    n = values.shape[0]
+    k = indexer.shape[0]
+
+    if n == 0 or k == 0:
+        return
+
+    values_ptr = <PyObject**> values.data
+    out_ptr = <PyObject**> out.data
+    fv = fill_value
+
+    for i in range(n):
+        row_src = values_ptr + i * vs0
+        row_dst = out_ptr + i * os0
+
+        for j in range(k):
+            idx = indexer[j]
+
+            if idx == -1:
+                src = <PyObject*>fv
+            else:
+                src = row_src[idx * vs1]
+
+            Py_INCREF(<object>src)
+            dst = row_dst[j * os1]
+            Py_XDECREF(dst)
+            row_dst[j * os1] = src
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def take_2d_multi_object_object(
+        ndarray[object, ndim=2] values,
+        indexer,
+        ndarray[object, ndim=2] out,
+        fill_value=np.nan):
+
+    cdef:
+        Py_ssize_t i, j, k, n
+        ndarray[intp_t, ndim=1] idx0 = indexer[0]
+        ndarray[intp_t, ndim=1] idx1 = indexer[1]
+        object fv
+        PyObject **values_ptr
+        PyObject **out_ptr
+        Py_ssize_t vs0 = values.strides[0] // sizeof(PyObject*)
+        Py_ssize_t vs1 = values.strides[1] // sizeof(PyObject*)
+        Py_ssize_t os0 = out.strides[0] // sizeof(PyObject*)
+        Py_ssize_t os1 = out.strides[1] // sizeof(PyObject*)
+        PyObject *src
+        PyObject *dst
+        PyObject **row_src
+        PyObject **row_dst
+        Py_ssize_t id0, id1
+
+    n = idx0.shape[0]
+    k = idx1.shape[0]
+
+    values_ptr = <PyObject**> values.data
+    out_ptr = <PyObject**> out.data
+    fv = fill_value
+
+    for i in range(n):
+        id0 = idx0[i]
+        row_dst = out_ptr + i * os0
+
+        if id0 == -1:
+            for j in range(k):
+                Py_INCREF(fv)
+                dst = row_dst[j * os1]
+                Py_XDECREF(dst)
+                row_dst[j * os1] = <PyObject*>fv
+        else:
+            row_src = values_ptr + id0 * vs0
+
+            for j in range(k):
+                id1 = idx1[j]
+
+                if id1 == -1:
+                    src = <PyObject*>fv
+                else:
+                    src = row_src[id1 * vs1]
+
+                Py_INCREF(<object>src)
+                dst = row_dst[j * os1]
+                Py_XDECREF(dst)
+                row_dst[j * os1] = src

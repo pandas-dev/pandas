@@ -1,5 +1,7 @@
 cimport cython
 from cython cimport Py_ssize_t
+from cpython.object cimport PyObject
+from cpython.ref cimport Py_INCREF, Py_XDECREF
 from libc.math cimport (
     sqrt,
 )

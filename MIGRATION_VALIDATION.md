@@ -112,3 +112,48 @@ Follow-up validation:
 - `python -m pytest pandas/tests/frame/methods/test_fillna.py -k "pad or backfill"`
 - Run pad/backfill ASV cases for unlimited and limited 1-D/2-D inputs,
   including leading, trailing, and all-missing masks.
+
+## Batch 2b: take helpers
+
+Sources inspected:
+
+- Exported commits `2e964bd967` and `171fe464a6`.
+- Reconstructed commits `f0fd052` and `529be9b`.
+- Prior pandas 3.0.3 port `28df2030b5`.
+- pandas 3.0.1 take template signatures and generated dispatch list.
+
+Adaptation checks:
+
+- The pandas 3.0.3-only `allow_fill` parameter is not introduced.
+- Numeric contiguous-slice copying requires matching input/output
+  element types and unit inner strides.
+- Non-contiguous numeric paths retain `-1` fill handling in both the
+  unrolled body and tail.
+- Object helpers honor source and output strides in pointer units.
+- Every raw object store increments the incoming reference before
+  decrementing the replaced output reference.
+- Empty 2-D axis-1 inputs return before taking row pointers.
+- The generated object/object variants are disabled exactly once.
+
+Executed:
+
+- Applied the reconstructed commits' exact diffs with Git's patch
+  machinery after confirming they match the export.
+- `git diff --check`
+- declaration/use scan for `PyObject`, `Py_INCREF`, and `Py_XDECREF`
+- `python -m compileall -q pandas`
+- `python -m pytest pandas/tests/test_take.py -q` stopped during
+  conftest import because `dateutil` is missing.
+
+Not executed:
+
+- Cython compilation: Cython is not installed.
+- Runtime take tests: pytest is blocked by missing `dateutil`.
+- ASV: not run in this environment.
+
+Follow-up validation:
+
+- `python -m pytest pandas/tests/test_take.py`
+- `python -m pytest pandas/tests/frame/methods/test_reindex.py`
+- Run ASV for numeric `take_2d_axis1` contiguous slices, irregular
+  indexers, fill indexers, and object 1-D/2-D take variants.

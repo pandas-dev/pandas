@@ -25,7 +25,7 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | Order | Prior pandas 3.0.3 commit | Theme | pandas 3.0.1 disposition |
 | ---: | --- | --- | --- |
 | 1 | `d978bd13ee` | nancorr | adapted |
-| 2 | `28df2030b5` | pad and take helpers | pad split and adapted; take pending |
+| 2 | `28df2030b5` | pad and take helpers | split and adapted |
 | 3 | `f6d861f8a6` | SwissTable | pending |
 | 4 | `8e0304f403` | maybe_convert_objects | pending |
 | 5 | `f39ba34d1d` | groupby loops | pending |
@@ -82,3 +82,17 @@ choosing an entire side.
   loop unroll.
 - Risk: mask mutation for leading missing values and limited fills must
   remain identical to the original implementation.
+
+## Batch 2b: take helpers
+
+- Original private commits: `2e964bd967` and `171fe464a6`.
+- Prior pandas 3.0.3 port: `28df2030b5`.
+- pandas 3.0.1 result: replayed from the authoritative exported API
+  shape rather than the pandas 3.0.3 `allow_fill` adaptation.
+- Compatibility change: pandas 3.0.1 take helpers always interpret `-1`
+  as a fill position, so no later `allow_fill` parameter is introduced.
+- Object helpers replace the generated object/object variants and use
+  explicit INCREF/XDECREF around raw `PyObject **` assignments.
+- The unused exported `Py_DECREF` cimport is omitted.
+- Risk: object reference ownership and arbitrary row/column strides
+  require a Cython build plus object take/reindex tests.
