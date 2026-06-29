@@ -1407,6 +1407,21 @@ class Block(PandasObject, libinternals.Block):
         if noop:
             return [self.copy(deep=False)]
 
+        if not self._can_hold_element(value) and not is_valid_na_for_dtype(
+            value, self.dtype
+        ):
+            # GH#45153 fillna with incompatible value requiring any
+            #  dtype casting is deprecated.
+            warnings.warn(
+                f"'{type(value).__name__}' is not supported as a "
+                f"fill value for {self.dtype} dtype. In a future "
+                f"version, calling fillna with an incompatible "
+                f"value will raise. Explicitly cast to a common "
+                f"dtype before filling.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         if limit is not None:
             mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 

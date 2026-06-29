@@ -2873,6 +2873,19 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
+            if not can_hold_element(self._values, value) and not is_valid_na_for_dtype(
+                value, self.dtype
+            ):
+                # GH#45153 fillna with incompatible value requiring any
+                #  dtype casting is deprecated.
+                warnings.warn(
+                    f"'{type(value).__name__}' is not supported as a fill "
+                    f"value for {self.dtype} dtype. In a future version, "
+                    f"calling fillna with an incompatible value will raise. "
+                    f"Explicitly cast to a common dtype before filling.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             result = self.putmask(self._isnan, value)
             # no need to care metadata other than name
             # because it can't have freq if it has NaTs
