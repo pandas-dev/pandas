@@ -372,6 +372,55 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-mingw
       cancel-in-progress: true
 
+  Linux-Sanitizers:
+    name: "Clang (ASAN/UBSAN)"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    concurrency:
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-sanitizers
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+
+      - name: Create virtual environment with Pixi
+        uses: ./.github/actions/setup-pixi
+        with:
+          environment: sanitizers
+
+      - name: Build pandas
+        id: build
+        run: |
+          pixi run \
+            --environment sanitizers \
+            build-pandas \
+            --editable \
+            -Csetup-args="--werror" \
+            -- \
+            -Csetup-args="-Dbuildtype=debugoptimized" \
+            -Csetup-args="-Db_sanitize=address,undefined" \
+            -Csetup-args="-Db_lundef=false"
+
+      - name: Get Sanitizer Path
+        run: |
+          echo "ASAN_LIB_PATH=$(pixi run -e sanitizers clang -print-file-name=libclang_rt.asan-x86_64.so)" >> $GITHUB_ENV
+
+      - name: Test
+        uses: ./.github/actions/run-tests
+        env:
+          LD_PRELOAD: ${{ env.ASAN_LIB_PATH }}
+          ASAN_OPTIONS: detect_leaks=0
+          UBSAN_OPTIONS: halt_on_error=1:suppressions=${{ github.workspace }}/ci/suppressions/ubsan.txt
+        with:
+          environment: sanitizers
+          numprocesses: "auto"
+          pytest_marker_expression: "not slow and not db and not network and not single_cpu"
+          pytest_target: "pandas"
+
   python-dev:
     # This job may or may not run depending on the state of the next
     # unreleased Python version. DO NOT DELETE IT.
@@ -419,7 +468,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.15-dev'
 
@@ -463,7 +512,7 @@ jobs:
           node-version: 24
 
       - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
           pip-install: pyodide-build

@@ -24,12 +24,14 @@ cdef class Localizer:
     cdef:
         tzinfo tz
         NPY_DATETIMEUNIT _creso
-        bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz
+        bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz, use_zoneinfo
+        bint has_tz_rule
         ndarray trans
         Py_ssize_t ntrans
         const int64_t[::1] deltas
         int64_t delta
         int64_t* tdata
+        int64_t last_trans
 
     cdef int64_t utc_val_to_local_val(
         self,
