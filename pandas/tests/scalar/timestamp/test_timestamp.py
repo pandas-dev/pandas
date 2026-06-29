@@ -7,6 +7,7 @@ from datetime import (
     timezone,
 )
 import locale
+import re
 import time
 import unicodedata
 import zoneinfo
@@ -520,6 +521,16 @@ class TestTimestampConversion:
         with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
+    def test_to_period_unsupported_freq(self):
+        # GH#38914 unsupported freqs should raise a helpful error, not AttributeError
+        ts = Timestamp("2018-12-01")
+        msg = "for Period, please use 'M' instead of 'MS'"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period("MS")
+        msg = "<MonthBegin> is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
+            ts.to_period(offsets.MonthBegin())
+
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
         ts = Timestamp(datetime.now())
@@ -948,3 +959,32 @@ def test_negative_dates():
     func = "^toordinal"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.toordinal()
+
+
+@pytest.mark.parametrize(
+    "date_string,expected_year",
+    [
+        ("-111-01-01", -111),
+        ("-12-01-01", -12),
+        ("-9-1-1", -9),
+        ("-0111-01-01", -111),
+        ("-1234-01-01", -1234),
+    ],
+)
+def test_negative_year_iso8601(date_string, expected_year):
+    # GH#55954 a leading "-" used to be silently dropped by dateutil for
+    # years with fewer than 4 digits (e.g. "-111-01-01" parsed as year 111);
+    # the iso8601 path now accepts 1-4 digit BC years like NumPy does.
+    ts = Timestamp(date_string)
+    assert ts.year == expected_year
+    assert ts.month == 1
+    assert ts.day == 1
+
+
+@pytest.mark.parametrize("date_string", ["-12:30", "--12-01-01", "- 12", "-"])
+def test_negative_prefix_non_iso_raises(date_string):
+    # GH#55954 strings starting with "-" that aren't valid iso8601 dates
+    # used to be silently mishandled by dateutil (which strips the "-").
+    msg = f"Unknown datetime string format, unable to parse: {date_string}"
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        Timestamp(date_string)

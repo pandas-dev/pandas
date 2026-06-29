@@ -573,6 +573,10 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
+                    # Block.delete in _iset_split_block requires sorted unique
+                    # locs; inverse maps the requested column order onto the
+                    # new block (GH#65446)
+                    blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
                     self._iset_split_block(  # type: ignore[attr-defined]
@@ -583,14 +587,23 @@ class BaseBlockManager(PandasObject):
                     # first block equals values we are setting to -> set to all columns
                     if lib.is_integer(indexer[1]):
                         col_indexer = 0
-                    elif len(blk_loc) > 1:
+                    elif len(inverse) > 1 and lib.is_range_indexer(
+                        inverse, len(blk_loc)
+                    ):
                         col_indexer = slice(None)  # type: ignore[assignment]
                     else:
-                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
+                        col_indexer = inverse  # type: ignore[assignment]
                     indexer[1] = col_indexer
 
                     row_indexer = indexer[0]
-                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                    if isinstance(col_indexer, np.ndarray):
+                        if (
+                            isinstance(row_indexer, np.ndarray)
+                            and row_indexer.ndim == 1
+                        ):
+                            # GH#65446: Make the row indexer 2d to take a cross product
+                            row_indexer = row_indexer[:, None]
+                    elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
                         # numpy cannot handle a 2d indexer in combo with a slice
                         row_indexer = np.squeeze(row_indexer, axis=1)
                     if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
@@ -701,7 +714,6 @@ class BaseBlockManager(PandasObject):
                 return self.make_empty(axes)
             return self.make_empty()
 
-        # FIXME: optimization potential
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
@@ -1280,9 +1292,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-
-        # FIXME: refactor, clearly separate broadcasting & zip-like assignment
-        #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
             self._rebuild_blknos_and_blklocs()
 
@@ -2177,7 +2186,9 @@ class SingleBlockManager(BaseBlockManager):
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)
 
-    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> SingleBlockManager:
+    def get_slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> SingleBlockManager:
         # Assertion disabled for performance
         # assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
@@ -2189,7 +2200,8 @@ class SingleBlockManager(BaseBlockManager):
         # TODO this method is only used in groupby SeriesSplitter at the moment,
         # so passing refs is not yet covered by the tests
         block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
-        new_index = self.index._getitem_slice(slobj)
+        if new_index is None:
+            new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
     @property
@@ -2289,9 +2301,6 @@ class SingleBlockManager(BaseBlockManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        # For SingleBlockManager (i.e.Series)
-        if other.ndim != 1:
-            return False
         left = self.blocks[0].values
         right = other.blocks[0].values
         return array_equals(left, right)
@@ -2391,20 +2400,6 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_key(tup: tuple[int, ArrayLike]) -> Hashable:
-    dtype = tup[1].dtype
-
-    if isinstance(dtype, np.dtype):
-        # Only numpy dtypes get stacked into 2D blocks in _form_blocks,
-        # so only they need real grouping by dtype.
-        return dtype.name
-    else:
-        # Extension dtypes each get their own block regardless, so grouping
-        # doesn't matter. Use id() to avoid potentially expensive __hash__
-        # (e.g. CategoricalDtype hashes all categories).
-        return id(dtype)
-
-
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
     tuples = enumerate(arrays)
 
@@ -2414,14 +2409,17 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
 
-    # group by dtype using a dict faster than old itertools.groupby
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
-    for tup in tuples:
-        key = _grouping_key(tup)
+    for i, arr in tuples:
+        dtype = arr.dtype
+        # Extension dtypes each get their own block regardless, so use id()
+        # to avoid a potentially expensive __hash__ (e.g. CategoricalDtype
+        # hashes all categories).
+        key = dtype if isinstance(dtype, np.dtype) else id(dtype)
         try:
-            groups[key].append(tup)
+            groups[key].append((i, arr))
         except KeyError:
-            groups[key] = [tup]
+            groups[key] = [(i, arr)]
 
     nbs: list[Block] = []
     for tup_block in groups.values():

@@ -998,6 +998,9 @@ class NaTType(_NaT):
         format string, using the same directives as the standard library's
         :meth:`datetime.datetime.strftime`.
 
+        In addition to the standard directives, ``%N`` is supported to format
+        the nanoseconds as a 9-digit zero-padded number.
+
         Parameters
         ----------
         format : str
@@ -1016,6 +1019,11 @@ class NaTType(_NaT):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
+
+        Use ``%N`` to format nanoseconds:
+
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
+        '2020-03-14T15:32:52.192548651'
         """,
     )
 
@@ -1851,16 +1859,18 @@ timedelta}, default 'raise'
     tz_localize = _make_nat_func(
         "tz_localize",
         """
-        Localize the Timestamp to a timezone.
+        Attach or detach a time zone on a Timestamp.
 
-        Convert naive Timestamp to local time zone or remove
-        timezone from timezone-aware Timestamp.
+        This method does not shift the date/time values. It attaches a time
+        zone to a tz-naive Timestamp, or detaches the time zone from a
+        tz-aware Timestamp. In both cases the wall time is preserved.
 
         Parameters
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time which Timestamp will be converted to.
-            None will remove timezone holding local time.
+            Time zone to attach to the tz-naive Timestamp; the wall time is
+            preserved. ``None`` detaches the time zone from a tz-aware
+            Timestamp, returning a tz-naive Timestamp with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.

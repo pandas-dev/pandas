@@ -122,12 +122,18 @@ def test_split_n(any_string_dtype, method, n):
 
 
 def test_rsplit(any_string_dtype):
-    # regex split is not supported by rsplit
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.rsplit("[,_]")
     exp = Series([["a,b_c"], ["c_d,e"], np.nan, ["f,g,h"]])
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
+
+
+def test_rsplit_with_regex(any_string_dtype):
+    # regex split is not supported by rsplit
+    values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
+    with pytest.raises(TypeError, match="expected a string object, not Pattern"):
+        values.str.rsplit(re.compile("[,_]"))
 
 
 def test_rsplit_max_number(any_string_dtype):
@@ -452,16 +458,13 @@ def test_split_with_name_series(any_string_dtype):
     tm.assert_frame_equal(res, exp)
 
 
-@pytest.mark.xfail(
-    reason="GH#20285 str.split on Index returns unhashable list elements"
-)
 def test_split_with_name_index():
     # GH 12617
     idx = Index(["a,b", "c,d"], name="xxx")
     res = idx.str.split(",")
+    exp = Index([["a", "b"], ["c", "d"]], name="xxx")
     assert res.nlevels == 1
-    assert list(res) == [["a", "b"], ["c", "d"]]
-    assert res.name == "xxx"
+    tm.assert_index_equal(res, exp)
 
     res = idx.str.split(",", expand=True)
     exp = MultiIndex.from_tuples([("a", "b"), ("c", "d")])

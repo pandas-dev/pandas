@@ -4,6 +4,7 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -22,7 +23,6 @@ from pandas.core.arrays import (
         (["2017"], "D", [17167]),
         ([pd.Period("2017", "D")], pd.tseries.offsets.Day(), [17167]),
         ([pd.Period("2017", "D"), None], None, [17167, iNaT]),
-        (pd.Series(pd.date_range("2017", periods=3)), None, [17167, 17168, 17169]),
         (pd.date_range("2017", periods=3), None, [17167, 17168, 17169]),
         (pd.period_range("2017", periods=4, freq="Q"), None, [188, 189, 190, 191]),
     ],
@@ -40,6 +40,21 @@ def test_period_array_ok(data, freq, expected):
     tm.assert_numpy_array_equal(result.asi8, expected)
 
     result = pd.PeriodIndex(data, freq=freq)
+    tm.assert_numpy_array_equal(result.asi8, expected)
+
+
+def test_period_array_from_datetime_series_inferred_freq():
+    # GH#64241
+    data = pd.Series(pd.date_range("2017", periods=3))
+    expected = np.asarray([17167, 17168, 17169], dtype=np.int64)
+
+    msg = "Constructing PeriodArray from a Series of datetime64 data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.PeriodIndex(data, freq=None).array.asi8
+    tm.assert_numpy_array_equal(result, expected)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = PeriodArray._from_sequence(data, dtype=None)
     tm.assert_numpy_array_equal(result.asi8, expected)
 
 
