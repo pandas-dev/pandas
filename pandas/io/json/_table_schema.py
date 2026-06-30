@@ -377,12 +377,17 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
-    col_order = [field["name"] for field in table["schema"]["fields"]]
+
+    table_fields = table["schema"]["fields"]
+    if not all(isinstance(field["name"], str) for field in table_fields):
+        raise ValueError("All column names must be strings when using orient='table'.")
+
+    col_order = [field["name"] for field in table_fields]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 
     dtypes = {
         field["name"]: convert_json_field_to_pandas_type(field)
-        for field in table["schema"]["fields"]
+        for field in table_fields
     }
 
     # No ISO constructor for Timedelta as of yet, so need to raise

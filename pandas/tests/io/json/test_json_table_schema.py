@@ -764,6 +764,15 @@ class TestTableOrientReader:
         with pytest.raises(NotImplementedError, match="can not yet read "):
             pd.read_json(out, orient="table")
 
+    def test_read_json_table_orient_non_string_column_names(self):
+        # added this testcase for GH#19129
+        df = DataFrame([[1, 2, 3, 4]], columns=[5, 6, 7, 8])
+        out = StringIO(df.to_json(orient="table"))
+
+        msg = r"All column names must be strings when using orient='table'\."
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
+
     @pytest.mark.parametrize(
         "index_nm",
         [None, "idx", pytest.param("index", marks=pytest.mark.xfail), "level_0"],

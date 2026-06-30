@@ -241,6 +241,8 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fix bug in :func:`read_json` with ``orient="table"`` now raises a ValueError when any of the table fields are not string (:issue:`19129`).
+- Fix bug in :func:`to_datetime` that could give an unnecessary ``RuntimeWarning`` when converting DataFrame containing missing values (:issue:`64141`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
