@@ -445,7 +445,6 @@ def test_dtypes_defaultdict(all_parsers, default):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     # GH#41574
     data = """a,b,a,b,b.1
