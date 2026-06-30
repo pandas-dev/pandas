@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -2599,9 +2600,12 @@ def test_merge_multiindex_columns():
     index = MultiIndex.from_product((letters, numbers), names=["outer", "inner"])
 
     frame_x = DataFrame(columns=index)
-    frame_x["id"] = ""
     frame_y = DataFrame(columns=index)
-    frame_y["id"] = ""
+    msg = "Setting a new column"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_x["id"] = ""
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_y["id"] = ""
 
     l_suf = "_x"
     r_suf = "_y"
