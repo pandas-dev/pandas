@@ -715,6 +715,10 @@ JSOBJ FASTCALL_MSVC decode_string(struct DecoderState *ds) {
   if ((size_t)(ds->end - ds->start) > escLen) {
     size_t newSize = (ds->end - ds->start);
 
+    if (escLen > newSize) {
+      return SetError(ds, -1, "Internal string buffer size invariant violated");
+    }
+
     if (ds->escHeap) {
       if (newSize > (SIZE_MAX / sizeof(wchar_t))) {
         return SetError(ds, -1, "Could not reserve memory block");
