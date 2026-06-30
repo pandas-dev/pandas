@@ -290,7 +290,6 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected, reques
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # mismatched shape
 def test_empty_usecols(all_parsers):
     data = "a,b,c\n1,2,3\n4,5,6"
     expected = DataFrame(columns=Index([]))

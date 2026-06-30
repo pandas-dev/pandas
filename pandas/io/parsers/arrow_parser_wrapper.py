@@ -324,6 +324,11 @@ class ArrowParserWrapper(ParserBase):
         except pa.ArrowInvalid as e:
             raise ParserError(e) from e
 
+        if self.usecols_dtype == "empty":
+            # GH#66056 pyarrow ignores an empty ``include_columns`` and returns
+            # every column; match the other engines by returning an empty frame.
+            table = table.select([]).slice(0, 0)
+
         dtype_backend = self.kwds["dtype_backend"]
 
         # Convert all pa.null() cols -> float64 (non nullable)
