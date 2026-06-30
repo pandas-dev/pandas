@@ -5428,14 +5428,16 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        # Convert the myriad valid dtype specs into a numpy-scalar set plus an
-        # ExtensionDtype-request bucket. An EA spec is matched by identity --
-        # an instance by equality, a class (or bare class-name string) as a
-        # "kind" matching any instance of it -- rather than being collapsed to
-        # the numpy scalar type it shares with numpy columns. This fixes GH#40234
-        # ("Int64"/Int64Dtype no longer also match numpy int64) and the EA-class
-        # half of GH#59888 (e.g. ArrowDtype/DatetimeTZDtype). The kind-string
-        # cross-backend bucket and the numpy-type tightening remain in GH#65366.
+        # Convert user-facing dtype specs into two buckets:
+        #  * numpy scalar types (matched via issubclass on dtype.type) -- both
+        #    explicit numpy types like np.int64 and kind strings like
+        #    "int64"/"datetime", which still resolve to numpy scalars here;
+        #  * ExtensionDtype requests (matched via isinstance for classes and
+        #    bare class-name strings, by equality for instances).
+        # This fixes GH#40234 (Int64Dtype no longer matches int64 by class
+        # identity) and the ExtensionDtype-spec part of GH#59888; the
+        # (kind char, itemsize) cross-backend kind-string bucket and the
+        # numpy-type tightening remain in GH#65366.
         def check_int_infer_dtype(dtypes):
             converted_dtypes: list[type] = []
             ea_requests: list = []
@@ -5449,10 +5451,12 @@ class DataFrame(NDFrame, OpsMixin):
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
                     converted_dtypes.extend([np.float64, np.float32])
                 elif isinstance(dtype, ExtensionDtype):
-                    # an EA instance matches by equality
+                    # GH#40234: EA instances match by equality
                     ea_requests.append(dtype)
                 elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
-                    # an EA class names a kind -> match any instance of it
+                    # EA subclass (possibly parameterized like ArrowDtype) matches
+                    # by isinstance. Avoid calling pandas_dtype(cls) which emits
+                    # "Instantiating X without any arguments" for parameterized EAs.
                     ea_requests.append(dtype)
                 elif isinstance(dtype, str):
                     # a bare EA class-name ("Int64", "string", "category") is a
@@ -5531,11 +5535,19 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        blk_dtypes = self._mgr.get_unique_dtypes()
+
+        def _requests_string_dtype(reqs: tuple) -> bool:
+            return any(
+                req is StringDtype or isinstance(req, StringDtype) for req in reqs
+            )
+
         if (
             np.object_ in include_np
             and str not in include_np
             and str not in exclude_np
+            and not _requests_string_dtype(include_ea)
+            and not _requests_string_dtype(exclude_ea)
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes

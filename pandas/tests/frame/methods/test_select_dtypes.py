@@ -712,3 +712,19 @@ def test_select_dtypes_category_kind_matches_arrow_dictionary():
     )
     expected = df[["cat", "arrow"]]
     tm.assert_frame_equal(df.select_dtypes(include="category"), expected)
+
+
+@pytest.mark.parametrize(
+    "string_spec", ["string", "str", str, pd.StringDtype, pd.StringDtype()]
+)
+def test_select_dtypes_object_with_explicit_string_does_not_warn(string_spec):
+    # GH#61916: requesting "object" alongside an explicit string spec must not
+    # emit the str-backcompat warning -- the user asked for the string columns
+    df = DataFrame(
+        {
+            "s": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            "n": [1, 2],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        df.select_dtypes(include=["object", string_spec])
