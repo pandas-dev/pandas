@@ -104,6 +104,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -260,6 +261,26 @@ if TYPE_CHECKING:
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
     from pandas.io.formats.style import Styler
+
+
+def _select_dtypes_arrow_kind_match(dtype: ArrowDtype, req: type) -> bool:
+    # An ExtensionDtype class request names a kind, and Arrow string/dictionary
+    # columns belong to the string/categorical kinds, so e.g.
+    # select_dtypes(StringDtype) also selects ArrowDtype(pa.string()) columns
+    # and select_dtypes(CategoricalDtype) selects ArrowDtype(pa.dictionary())
+    # columns (as on main, where the numpy_dtype unwrap provided this).
+    import pyarrow as pa
+
+    pa_type = dtype.pyarrow_dtype
+    if req is StringDtype:
+        return (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_string_view(pa_type)
+        )
+    if req is CategoricalDtype:
+        return pa.types.is_dictionary(pa_type)
+    return False
 
 
 # -----------------------------------------------------------------------
@@ -5411,8 +5432,9 @@ class DataFrame(NDFrame, OpsMixin):
         # ExtensionDtype-request bucket. GH#40234: a nullable masked request --
         # "Int64", Int64Dtype, or Int64Dtype() -- selects only columns of that
         # masked dtype, rather than collapsing to the numpy scalar type it
-        # shares with numpy columns. (The broader ExtensionDtype and kind-string
-        # handling lives in GH#59888.)
+        # shares with numpy columns. GH#59888: an ExtensionDtype *class* names a
+        # kind and matches any column of that class. (EA instances and
+        # kind-string cross-backend matching remain in GH#65366.)
         def check_int_infer_dtype(dtypes):
             converted_dtypes: list[type] = []
             ea_requests: list = []
@@ -5428,8 +5450,10 @@ class DataFrame(NDFrame, OpsMixin):
                 elif isinstance(dtype, BaseMaskedDtype):
                     # masked instance -> match by equality
                     ea_requests.append(dtype)
-                elif isinstance(dtype, type) and issubclass(dtype, BaseMaskedDtype):
-                    # masked class -> match any instance of that class
+                elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+                    # GH#59888: an EA class (e.g. ArrowDtype, DatetimeTZDtype,
+                    # CategoricalDtype) names a kind -> match any instance of it,
+                    # rather than the pandas_dtype round-trip that warns
                     ea_requests.append(dtype)
                 elif isinstance(dtype, str):
                     # a bare masked class-name like "Int64"/"boolean" is a class
@@ -5467,6 +5491,9 @@ class DataFrame(NDFrame, OpsMixin):
                     # class -> "any dtype of this class"
                     if isinstance(dtype, req):
                         return True
+                    if isinstance(dtype, ArrowDtype):
+                        if _select_dtypes_arrow_kind_match(dtype, req):
+                            return True
                 # instance -> exact-dtype match
                 elif dtype == req:
                     return True
