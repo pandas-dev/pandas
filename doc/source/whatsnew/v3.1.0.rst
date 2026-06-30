@@ -313,6 +313,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` not preserving explicit ``None`` values when replacing ``NaN`` values in ``str`` dtype data (:issue:`65892`)
 - Bug in :meth:`DataFrame.replace` with ``regex=True`` mutating the underlying :class:`StringArray` when the replacement value was not a string (:issue:`57733`)
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 - Bug in :meth:`Series.str.rsplit` and :meth:`Index.str.rsplit` silently accepting a compiled regex and returning incorrect results (:issue:`29633`)
