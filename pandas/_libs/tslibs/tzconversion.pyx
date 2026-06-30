@@ -542,7 +542,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         int64_t delta_l, delta_r
         Py_ssize_t isl, isr, pos_left, pos_right
         int64_t ppd = periods_per_day(creso)
-        BoundaryStatus v_l_err, v_r_err
+        BoundaryStatus status_left, status_right
 
     result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
     result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
@@ -589,11 +589,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
 
         delta_l = deltas[isl]
         if delta_l > 0 and val < NPY_NAT + 1 + delta_l:
-            v_l_err = BS_UNDERFLOW
+            status_left = BS_UNDERFLOW
         elif delta_l < 0 and val > INT64_MAX + delta_l:
-            v_l_err = BS_OVERFLOW
+            status_left = BS_OVERFLOW
         else:
-            v_l_err = BS_OK
+            status_left = BS_OK
             v_left = val - delta_l
             pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
             # timestamp falls to the left side of the DST transition
@@ -609,11 +609,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
 
         delta_r = deltas[isr]
         if delta_r > 0 and val < NPY_NAT + 1 + delta_r:
-            v_r_err = BS_UNDERFLOW
+            status_right = BS_UNDERFLOW
         elif delta_r < 0 and val > INT64_MAX + delta_r:
-            v_r_err = BS_OVERFLOW
+            status_right = BS_OVERFLOW
         else:
-            v_r_err = BS_OK
+            status_right = BS_OK
             v_right = val - delta_r
             pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
             # timestamp falls to the right side of the DST transition
@@ -621,8 +621,8 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 result_b[i] = v_right
 
         if result_a[i] == NPY_NAT and result_b[i] == NPY_NAT:
-            if v_l_err != BS_OK and v_r_err != BS_OK:
-                raise_out_of_bounds(val, v_l_err, creso)
+            if status_left != BS_OK and status_right != BS_OK:
+                raise_out_of_bounds(val, status_left, creso)
 
     return result_a, result_b
 
