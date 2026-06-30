@@ -4,7 +4,6 @@ Module for formatting output data in HTML.
 
 from __future__ import annotations
 
-import html
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -202,7 +201,8 @@ class HTMLFormatter:
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
             # FIX: Escape the URL so quotes don't break the href attribute
-            safe_href = html.escape(rs_unescaped, quote=True)
+            # Replaces line 205
+            safe_href = rs_unescaped.replace('"', '&quot;')
             start_tag += f'<a href="{safe_href}" target="_blank">'
             end_a = f"</a></{kind}>"
         else:
