@@ -405,7 +405,7 @@ def __internal_pivot_table(
                 key_cols.extend(index)
             if columns:
                 key_cols.extend(columns)
-                
+
             if key_cols:
                 data = data[data[key_cols].notna().all(axis=1)]
         table = _add_margins(
