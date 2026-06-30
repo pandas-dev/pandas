@@ -12,12 +12,15 @@ from typing import (
     cast,
 )
 
+from pandas._config.config import _global_config as config
+
+from pandas._libs import lib
+
 from pandas import (
     MultiIndex,
     option_context,
 )
-from pandas._config.config import _global_config as config
-from pandas._libs import lib
+
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
