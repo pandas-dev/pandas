@@ -20,7 +20,7 @@ add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language: 'cpp')
 # Enables settings __module__ on cdef classes
 # https://github.com/cython/cython/issues/7231
-add_project_arguments('-DCYTHON_USE_TYPE_SPECS=1', language: 'c')
+add_project_arguments('-DCYTHON_USE_TYPE_SPECS=1', language: ['c', 'cpp'])
 
 # Allow supporting older numpys than the version compiled against
 # Set the define to the min supported version of numpy for pandas

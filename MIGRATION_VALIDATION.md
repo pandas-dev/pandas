@@ -1636,3 +1636,32 @@ d8b98e38c1 PERF: port nullable integer value_counts to pandas 3.0.1
 c65341b162 PERF: port homogeneous astype paths to pandas 3.0.1
 a88ecc892c PERF: port object dict fillna to pandas 3.0.1
 ```
+
+## Post-migration validation: SwissTable on Python 3.14
+
+- Reported ASV failure: importing `pandas._libs.swisstable` raised
+  `TypeError` because `SwissUInt64Map` was static while its `HashTable`
+  base was dynamically allocated.
+- Root cause: the global `CYTHON_USE_TYPE_SPECS=1` compiler definition
+  was passed to C but not to the separately compiled C++ SwissTable
+  extension.
+- Red test:
+  `python -m pytest scripts/tests/test_meson_build.py -q` failed before
+  the Meson change (`1 failed`).
+- Green test: the same command passed after applying the definition to
+  both C and C++ (`1 passed`).
+- Toggle proof on CPython 3.14.5 / Cython 3.3.0:
+  - a wheel built with the original C-only definition reproduced the
+    exact reported `TypeError`;
+  - a wheel built with the C/C++ definition imported successfully, and
+    both `HashTable` and `SwissUInt64Map` had `Py_TPFLAGS_HEAPTYPE`.
+- The local MSVC build required temporary `<algorithm>` and `<cmath>`
+  includes for an independent pre-existing header portability issue;
+  those temporary changes were removed and are not part of this fix.
+- The focused build-config tests passed (`6 passed`). The broader
+  `scripts/tests` suite was not clean in this environment: collection
+  requires unavailable `matplotlib`; excluding that file produced
+  `84 passed, 9 failed` from unavailable `tokenize_rt` and existing
+  Python 3.14 tokenizer expectation differences.
+- Full ASV was not run. Re-run `asv run HEAD^..HEAD` on the affected
+  Linux server after clearing or recreating its ASV environment.

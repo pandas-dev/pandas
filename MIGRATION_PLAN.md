@@ -741,3 +741,17 @@ Important pandas 3.0.1 differences from the prior 3.0.3 audit:
 
 No ASV result is recorded. Native extension builds and runtime tests
 remain required before performance or release acceptance.
+
+## Post-migration fix: SwissTable Cython type allocation
+
+- Affected migration: `01e19fd632` (prior pandas 3.0.3 reference
+  `f6d861f8a6`).
+- pandas 3.0.1 enables `CYTHON_USE_TYPE_SPECS=1` only for C targets,
+  while the migrated SwissTable extension is compiled as C++.
+- This makes `HashTable` a heap type and Swiss map subclasses static
+  types, which CPython 3.14 rejects during `pandas._libs.swisstable`
+  initialization.
+- Resolution: apply the Cython type-spec macro consistently to C and
+  C++ targets and retain the existing class hierarchy and algorithms.
+- Risk: low and build-scoped. The change affects Cython extension type
+  creation but does not change SwissTable data structures or behavior.
