@@ -456,6 +456,7 @@ Reshaping
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
+- Bug in :meth:`concat` where concatenating MultiIndex DataFrames would not match the order of level names (:issue:`10187`, :issue:`28311`, :issue:`40849`)
 -
 
 Sparse
