@@ -26,13 +26,38 @@ batch. The final PR merge `08f4d0eedb` is also excluded.
 | ---: | --- | --- | --- |
 | 1 | `d978bd13ee` | nancorr | adapted |
 | 2 | `28df2030b5` | pad and take helpers | split and adapted |
-| 3 | `f6d861f8a6` | SwissTable | directly applied and audited |
+| 3 | `f6d861f8a6` | SwissTable | applied, then repaired by runtime audit |
 | 4 | `8e0304f403` | maybe_convert_objects | directly applied and audited |
 | 5 | `f39ba34d1d` | groupby loops | reimplemented from exported commits |
 | 6 | `3fa2758641` | ASV configuration | no direct migration |
 | 7 | `ee85531203` | pandas 3.0.3 nogil repair | not applicable |
 | 8 | `2bfbc167cb` | migration inventory | folded into these documents |
 | 9-38 | `2f489b472c` through `4ceff7983d` | remaining audited batches | completed with pandas 3.0.1 adaptations |
+
+## Runtime reachability re-audit
+
+The source-level migration audit was not sufficient: it confirmed that
+optimized implementations existed, but did not always prove that a
+public operation selected them. A CPython 3.14 wheel audit found and
+repaired two disabled integrations:
+
+- SwissTable public dispatch and pandas 3.0.1 merge Factorizer
+  compatibility, fixed in `7491a86de8`.
+- Row-wise apply label caching bound to the wrong Index object, fixed in
+  `ec7114740d`.
+
+The remaining migrated Python helpers were instrumented through their
+public entry points. RangeIndex concat, dense get_dummies, object and
+nullable integer value_counts, bool-to-object take, homogeneous astype,
+object-dict fillna, and FrameRowApply reuse all reached their optimized
+paths. Generated object take functions and object join indexers are
+present in their dispatch tables; focused take/join tests reached those
+tables successfully.
+
+Native inline optimizations do not expose replaceable Python call
+targets. They were checked through focused behavior tests and public API
+smoke tests for nancorr, GroupBy reductions, rolling sum/median, index
+search, unstack, add_overflowsafe, and shift_months.
 
 ## Original private commit inventory
 

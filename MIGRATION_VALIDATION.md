@@ -1746,3 +1746,55 @@ Follow-up ASV:
 - `swisstable.SwissTableComplex`
 - Numeric inner/left merge benchmarks with `sort=False` and
   `sort=True`, including nullable integer keys.
+
+## Post-migration validation: remaining runtime reachability
+
+Instrumented public-entry probes confirmed calls to:
+
+- `concat_range_indexes` from RangeIndex append/concat.
+- `_get_dummies_dense_from_codes` for more than 16 dense levels.
+- `_value_counts_object_int64_dense_sorted` and
+  `_value_counts_masked_dense_integer` at their documented thresholds.
+- `_take_nd_bool_object` for two-dimensional bool input with object/NaN
+  output.
+- `_maybe_astype_homogeneous_numeric_frame`.
+- `BlockManager.fillna_dict_object`.
+- `Series._get_row_apply_cached_value`.
+- FrameRowApply's one-`_ixs` homogeneous column-Series reuse path.
+
+Focused migrated tests executed against the built wheel:
+
+- Object join indexers: `4 passed`.
+- Dense get_dummies: `2 passed`.
+- Putmask: `2 passed`.
+- Object array construction: `44 passed`.
+- Exact numeric object conversion: `6 passed`.
+- Homogeneous astype: `6 passed`.
+- Object-dict fillna: `5 passed`.
+- Nullable integer value_counts: `2 passed`.
+- Object/numeric take: `71 passed` before the unrelated datetime test
+  triggered the CPython 3.14 baseline access violation.
+- `add_overflowsafe`: `4 passed`.
+- Public nancorr, GroupBy reduction, rolling sum/median, object Index,
+  RangeIndex, unstack, and get_dummies smoke checks passed.
+- Low-level non-contiguous and two-dimensional `shift_months` checks
+  passed using raw NumPy datetime storage.
+
+Static dispatch checks:
+
+- All four generated object take implementations are registered in the
+  corresponding `take.py` dispatch maps.
+- All four object join indexers are selected explicitly by the fused
+  public join wrappers.
+- `fast_days_in_month` is called by both SemiMonth array branches.
+- The Arrow integer fillna helper has a production call site, but
+  PyArrow is not installed for runtime validation.
+
+Remaining limitations:
+
+- Full packaged pandas tests require unavailable `hypothesis`.
+- Broad datetime, merge, GroupBy, and take test modules trigger an
+  unrelated native access violation in official pandas 3.0.1 paths on
+  this CPython 3.14 Windows runtime.
+- ASV was not run. Performance confirmation remains required for every
+  benchmark listed in the batch-specific sections.
