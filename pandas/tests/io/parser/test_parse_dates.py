@@ -303,11 +303,35 @@ def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), parse_dates=["Date"], na_filter=False)
+        return
+
     result = parser.read_csv(StringIO(data), parse_dates=["Date"], na_filter=False)
 
     expected = DataFrame(
         [[datetime(2012, 1, 1), 1], [pd.NaT, 2]], columns=["Date", "test"]
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_missing_value(all_parsers):
+    # GH#47950 a missing value in a parse_dates column should become NaT,
+    # not be left as the string "None" (which the pyarrow engine used to do)
+    parser = all_parsers
+    data = "idx,date\n2,2000-01-01\n,\n"
+    result = parser.read_csv(StringIO(data), parse_dates=["date"])
+
+    expected = DataFrame(
+        {
+            "idx": [2.0, np.nan],
+            "date": [Timestamp("2000-01-01"), pd.NaT],
+        }
+    )
+    expected["date"] = expected["date"].astype("M8[us]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -571,12 +595,16 @@ def test_date_parser_and_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_date_parser_multiindex_columns(all_parsers):
     parser = all_parsers
     data = """a,b
 1,2
 2019-12-31,6"""
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
+        return
+
     result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
     expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
     tm.assert_frame_equal(result, expected)

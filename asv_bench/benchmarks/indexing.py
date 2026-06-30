@@ -319,6 +319,10 @@ class MultiIndexing:
         target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.xs(target)
 
+    def time_xs_partial_key(self, unique_levels):
+        # partial key -> contiguous slice of rows (non-unique levels)
+        self.df.xs(self.tgt_scalar)
+
 
 class IntervalIndexing:
     def setup_cache(self):

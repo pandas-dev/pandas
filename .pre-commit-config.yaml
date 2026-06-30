@@ -262,6 +262,12 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="doesnt_use_pandas_warnings"
         types: [ python ]
+    -   id: unwanted-patterns-bare-pipe-alternation-in-message
+        name: Check that message regexes use '|'.join([...]) instead of a bare | alternation
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pipe_alternation_in_message"
+        types: [python]
+        files: ^pandas/tests/
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
