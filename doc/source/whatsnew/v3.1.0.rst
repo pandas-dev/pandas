@@ -101,6 +101,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- :attr:`Index.values` and :attr:`Index.array` now return read-only arrays for all dtypes, so an :class:`Index` can no longer be silently corrupted by mutating the returned array in place (previously this left the Index displaying the new value while lookups still used the old one) (:issue:`38547`)
 - :meth:`.DataFrameGroupBy.sum` and :meth:`.DataFrameGroupBy.mean` on float dtypes with sorted grouping keys may differ from prior versions in the last few floating-point digits, due to a faster summation algorithm that does not use Kahan compensation (:issue:`65103`)
 - :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file. The value was hardcoded to ``"0.15.2"`` and was only used internally to detect files written by pandas versions older than 0.10.1 (:issue:`62792`)
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).

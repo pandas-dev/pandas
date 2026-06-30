@@ -160,10 +160,59 @@ def test_index_where_noop():
     tm.assert_index_equal(idx, expected)
 
 
-def test_index_values():
-    idx = Index([1, 2, 3])
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, 2, 3], None),
+        (["a", "b", "c"], None),
+        ([1, 2, 3], "Int64"),
+        (["a", "b", "c"], "category"),
+    ],
+)
+def test_index_values(data, dtype):
+    # GH#38547 mutating the array returned by Index.values must not be able
+    #  to silently corrupt the (immutable) Index
+    idx = Index(data, dtype=dtype)
     result = idx.values
-    assert result.flags.writeable is False
+    if isinstance(result, np.ndarray):
+        assert result.flags.writeable is False
+    else:
+        assert result._readonly is True
+    with pytest.raises(ValueError, match="read-only"):
+        result[0] = data[1]
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, 2, 3], None),
+        (["a", "b", "c"], None),
+        ([1, 2, 3], "Int64"),
+        (["a", "b", "c"], "category"),
+    ],
+)
+def test_index_array_readonly(data, dtype):
+    # GH#38547 Index.array is read-only so the immutable Index cannot be
+    #  mutated through it
+    idx = Index(data, dtype=dtype)
+    result = idx.array
+    assert result._readonly is True
+    with pytest.raises(ValueError, match="read-only"):
+        result[0] = data[1]
+
+
+def test_columns_values_setitem_raises():
+    # GH#38547 directly mutating df.columns.values used to silently corrupt
+    #  the columns Index (it appeared renamed but lookups failed)
+    df = DataFrame(np.eye(2), columns=["a", "b"])
+    msg = "read-only"
+    with pytest.raises(ValueError, match=msg):
+        df.columns.values[0] = "x"
+    with pytest.raises(ValueError, match=msg):
+        df.columns.array[0] = "x"
+    # the Index is left intact and still usable under its original labels
+    tm.assert_index_equal(df.columns, Index(["a", "b"]))
+    tm.assert_series_equal(df["a"], Series([1.0, 0.0], name="a"))
 
 
 def test_constructor_copy_input_ndarray_default():
