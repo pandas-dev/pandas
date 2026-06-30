@@ -264,11 +264,9 @@ if TYPE_CHECKING:
 
 
 def _select_dtypes_arrow_kind_match(dtype: ArrowDtype, req: type) -> bool:
-    # An ExtensionDtype class request names a kind, and Arrow string/dictionary
-    # columns belong to the string/categorical kinds, so e.g.
-    # select_dtypes(StringDtype) also selects ArrowDtype(pa.string()) columns
-    # and select_dtypes(CategoricalDtype) selects ArrowDtype(pa.dictionary())
-    # columns (as on main, where the numpy_dtype unwrap provided this).
+    # An EA class request names a kind, and Arrow string/dictionary columns
+    # belong to the string/categorical kinds, so e.g. select_dtypes("string")
+    # selects ArrowDtype(pa.string()) columns.
     import pyarrow as pa
 
     pa_type = dtype.pyarrow_dtype
