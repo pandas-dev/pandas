@@ -37,6 +37,7 @@ license-files = [
   "LICENSES/PYPERCLIP_LICENSE", # BSD-3-Clause
   "LICENSES/PYUPGRADE_LICENSE", # MIT
   "LICENSES/SAS7BDAT_LICENSE", # MIT
+  "LICENSES/STATSBASE_JL_LICENSE", # MIT
   "LICENSES/ULTRAJSON_LICENSE", # BSD-3-Clause AND TCL
   "subprojects/fast_float-*/LICENSE-APACHE", # Apache-2.0
   "subprojects/fast_float-*/LICENSE-BOOST", # BSL
@@ -157,6 +158,7 @@ dist = ['--include-subprojects']
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
+enable = ["pyodide-eol"]
 build-verbosity = 1
 build-frontend = "pip"
 config-settings = { compile-args = ["-v"] }
@@ -171,14 +173,12 @@ test-command = """
 [tool.cibuildwheel.windows]
 config-settings = { setup-args = ["--vsenv"] }
 environment = {}
-before-build = "python -m pip install delvewheel"
 # powershell needs to swap quotes?
 test-command = """
   python -c "import pandas as pd; \
   pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '--numprocesses=2', '--dist=worksteal', '--no-strict-data-files']); \
   pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db', '--no-strict-data-files']);" \
   """
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
@@ -197,9 +197,10 @@ build-verbosity = 1
 build-frontend = "build"
 # pytest-xdist cannot be used on Pyodide
 # OSError: [Errno 138] emscripten does not support processes
+# nocacheprovider is needed to avoid cleaning up pytest cache failing with PermissionError
 test-command = """
   python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files", "-p no:cacheprovider"]);' \
   """
 
 [tool.ruff]
@@ -531,13 +532,19 @@ module = [
   "pandas._libs.hashtable",
   "pandas._libs.index",
   "pandas._libs.internals",
-  "pandas._libs.interval",
   "pandas._libs.lib",
   "pandas._libs.missing",
   "pandas._libs.ops_dispatch",
   "pandas._libs.properties",
   "pandas._libs.sparse",
   "pandas._libs.testing",
+  "pandas._libs.tslibs.fields",
+  "pandas._libs.tslibs.nattype",
+  "pandas._libs.tslibs.np_datetime",
+  "pandas._libs.tslibs.offsets",
+  "pandas._libs.tslibs.parsing",
+  "pandas._libs.tslibs.period",
+  "pandas._libs.tslibs.timedeltas",
   "pandas._libs.window.indexers",
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.replace", # TODO

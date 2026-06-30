@@ -21,6 +21,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_infer_freq_offset
+
 from pandas._libs import (
     NaT,
     lib,
@@ -38,7 +40,11 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import FY5253Mixin
+from pandas._libs.tslibs.offsets import (
+    FY5253Mixin,
+    RelativeDeltaOffset,
+    Week,
+)
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -307,13 +313,24 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return False
         elif not isinstance(other, type(self)):
             if other.dtype == object:
+                # Use the cached inferred_type as a cheap pre-filter
+                inferred = other.inferred_type
+                compatible: tuple[str, ...]
+                if self.dtype.kind == "M":
+                    compatible = ("datetime", "datetime64", "date")
+                elif self.dtype.kind == "m":
+                    compatible = ("timedelta", "timedelta64")
+                else:
+                    compatible = ("period",)
+                if inferred not in compatible:
+                    return False
                 converted = lib.maybe_convert_objects(
                     np.asarray(other), convert_non_numeric=True
                 )
                 converted = ensure_wrapped_if_datetimelike(converted)
                 if isinstance(converted, type(self._data)):
                     other = type(self)._simple_new(converted)
-                elif self.dtype.kind == "M" and lib.infer_dtype(other) == "date":
+                elif self.dtype.kind == "M" and inferred == "date":
                     # GH#65056
                     warnings.warn(
                         "Inferring datetime64 from data containing "
@@ -490,7 +507,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             if self.freq is None or hasattr(self.freq, "rule_code"):
                 freq = self.freq
         except NotImplementedError:
-            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
+            freq = getattr(self, "freqstr", getattr(self, "_inferred_freq_str", None))
 
         freqstr: str | None
         if freq is not None and not isinstance(freq, str):
@@ -758,7 +775,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             else:
                 # Set _freq directly to bypass duplicative _validate_frequency
                 # check.
-                self._freq = to_offset(self.inferred_freq)
+                self._freq = to_offset(self._inferred_freq_str)
         elif freq is lib.no_default:
             # user did not specify anything, keep inferred freq if the original
             #  data had one, otherwise leave as None (class default)
@@ -975,7 +992,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
         elif freq == "infer":
-            freq = to_offset(self.inferred_freq)
+            freq = to_offset(self._inferred_freq_str)
         else:
             raise ValueError(f"Invalid frequency: {freq!r}")
 
@@ -1045,9 +1062,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return result
 
     @cache_readonly
-    def inferred_freq(self) -> str | None:
+    def _inferred_freq_str(self) -> str | None:
+        """
+        Internal version of inferred_freq without deprecation warning.
+        """
+        return self._data._inferred_freq_str
+
+    @cache_readonly
+    def inferred_freq(self) -> str | BaseOffset | None:
         """
         Return the inferred frequency of the index.
+
+        .. deprecated:: 3.1.0
+            A future version of pandas will return a :class:`BaseOffset` instead of
+            a string. Use
+            ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt
+            in to the future behavior.
 
         Attempts to determine the frequency of the index by analyzing the
         differences between consecutive values using ``infer_freq``.
@@ -1068,7 +1098,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         For ``DatetimeIndex``:
 
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
-        >>> idx.inferred_freq
+        >>> idx.inferred_freq  # doctest: +SKIP
         '2D'
 
         For ``TimedeltaIndex``:
@@ -1077,10 +1107,27 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> tdelta_idx
         TimedeltaIndex(['0 days', '10 days', '20 days'],
                        dtype='timedelta64[us]', freq=None)
-        >>> tdelta_idx.inferred_freq
+        >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        return self._data.inferred_freq
+        result = self._inferred_freq_str
+        if result is not None:
+            opt = using_infer_freq_offset()
+            if opt is True:
+                return to_offset(result)
+            if opt is None:
+                warnings.warn(
+                    "A future version of pandas will return a BaseOffset "
+                    "object instead of a string from inferred_freq. "
+                    "Use pd.set_option("
+                    "'future.infer_freq_returns_offset', True) "
+                    "to get the future behavior, or set to False to keep the "
+                    "old behavior and silence this warning. To preserve the "
+                    "string representation, use ``inferred_freq.freqstr``.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+        return result
 
     # --------------------------------------------------------------------
     # Set Operation Methods
@@ -1194,11 +1241,44 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
-        # this along with matching freqs ensure that we "line up",
-        #  so intersection will preserve freq
-        # Note we are assuming away Ticks, as those go through _range_intersect
-        # GH#42104
-        return self.freq.n == 1
+        freq = self.freq
+
+        # GH#44025 DateOffset (RelativeDeltaOffset) has no fixed stride,
+        #  so matching freq alone doesn't guarantee alignment.
+        if isinstance(freq, RelativeDeltaOffset):
+            return False
+
+        # Note we are assuming away Ticks, as those go through _range_intersect.
+        # For |n| != 1 two same-freq ranges can be offset by a non-multiple of
+        #  n (e.g. "2ME" starting in different months), so they need not line
+        #  up.  Rather than verify the phase, fall back to the general (slower)
+        #  intersection.  GH#42104, GH#44025
+        if freq.n != 1:
+            return False
+
+        # Below here we need actual timestamp values; cache them once
+        #  since __getitem__ is relatively expensive on DatetimeIndex.
+        left_start = self[0]
+        right_start = other[0]
+
+        # GH#44025 For DatetimeIndex, both indices must share the same
+        #  wall-clock time-of-day to guarantee alignment, as non-Tick
+        #  offsets preserve wall time.  (TimedeltaIndex elements are
+        #  Timedelta, which have no time-of-day concept.)
+        if isinstance(left_start, Timestamp):
+            if (left_start.time(), left_start.nanosecond) != (
+                right_start.time(),
+                right_start.nanosecond,
+            ):
+                return False
+
+        # GH#44025 Week(weekday=None) generates dates that depend on the
+        #  start date: check that both indexes fall on the same day-of-week.
+        if isinstance(freq, Week) and freq.weekday is None:
+            if (left_start.toordinal() - right_start.toordinal()) % 7 != 0:
+                return False
+
+        return True
 
     def _can_fast_union(self, other: Self) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
@@ -1386,9 +1466,24 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             and obj.freq is not None
             and all(idx.freq == obj.freq for idx in to_concat_nonempty)
         ):
-            pairs = pairwise(to_concat_nonempty)
-            if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
-                result._freq = obj.freq
+            freq = obj.freq
+            tz = getattr(self.dtype, "tz", None)
+            if (
+                isinstance(freq, Tick) or (tz is None and isinstance(freq, Day))
+            ) and all(idx.unit == self.unit for idx in to_concat_nonempty):
+                # freq is a fixed delta in the stored i8 representation, so we
+                # can check boundary continuity without boxing endpoints to
+                # Timestamps and doing per-pair offset arithmetic.
+                step = Timedelta(freq).as_unit(self.unit)._value
+                i8s = [idx._data._ndarray.view("i8") for idx in to_concat_nonempty]
+                evenly_spaced = all(a[-1] + step == b[0] for a, b in pairwise(i8s))
+            else:
+                evenly_spaced = all(
+                    pair[0][-1] + freq == pair[1][0]
+                    for pair in pairwise(to_concat_nonempty)
+                )
+            if evenly_spaced:
+                result._freq = freq
 
         return result
 

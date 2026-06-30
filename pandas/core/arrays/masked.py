@@ -1679,17 +1679,33 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: int | None = 0,
+        **kwargs,
     ):
-        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
-            result = getattr(self, name)(skipna=skipna, **kwargs)
+        result: Any
+        if name == "count":
+            result = self.count()
+        elif name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
+            result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
         else:
             # median, skew, kurt, sem
             data = self._data
             mask = self._mask
             op = getattr(nanops, f"nan{name}")
-            axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
+
+        if self.ndim == 2 and axis is not None:
+            if keepdims:
+                raise NotImplementedError(
+                    "keepdims=True is not implemented for 2D MaskedArray "
+                    "reductions with axis"
+                )
+            return result
 
         if keepdims:
             if isna(result):
@@ -1722,7 +1738,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
+        if name in ("any", "all"):
+            np_dtype = "bool"
+        elif name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
@@ -1795,6 +1813,26 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("mean", result, skipna=skipna, axis=axis)
+
+    def median(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_median((), kwargs)
+        result = self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("median", result, skipna=skipna, axis=axis)
+
+    def kurt(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="kurt")
+        result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
+
+    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
+
+    def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        result = self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("skew", result, skipna=skipna, axis=axis)
 
     def var(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1877,7 +1915,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -1971,7 +2009,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

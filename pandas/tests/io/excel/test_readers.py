@@ -30,6 +30,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.excel._base as _excel_base
+
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
     # Add any engines to test here
@@ -932,7 +934,9 @@ class TestReaders:
     )
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
-        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        msg = "|".join(
+            ["Worksheet index 3 is invalid", "Worksheet named 'Sheet4' not found"]
+        )
         with pytest.raises(ValueError, match=msg):
             pd.read_excel("blank" + read_ext, sheet_name=sheet_name)
 
@@ -1372,9 +1376,11 @@ class TestReaders:
         expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
-    def test_read_excel_skiprows_callable_all(self, read_ext):
+    def test_read_excel_skiprows_callable_all(self, read_ext, monkeypatch):
         # GH 64027
-        actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
+        with monkeypatch.context() as m:
+            m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
+            actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
         expected = DataFrame()
         tm.assert_frame_equal(actual, expected)
 
@@ -1678,7 +1684,9 @@ class TestExcelFileRead:
     )
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
-        msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
+        msg = "|".join(
+            ["Worksheet index 3 is invalid", "Worksheet named 'Sheet4' not found"]
+        )
         depr_msg = "ExcelFile.parse is deprecated"
         with pytest.raises(ValueError, match=msg):
             with pd.ExcelFile("blank" + read_ext) as excel:
