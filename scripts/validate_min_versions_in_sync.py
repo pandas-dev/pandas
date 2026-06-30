@@ -71,7 +71,7 @@ def pin_min_versions_to_environment_yml() -> int:
     if yaml_result_data != yaml_start_data:
         with open(ENV_PATH, "w", encoding="utf-8") as f:
             f.write(yaml_result_data)
-            ret |= 1
+        ret |= 1
     return ret
 
 
