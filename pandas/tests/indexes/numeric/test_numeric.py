@@ -312,9 +312,12 @@ class TestNumericInt:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = (
-            "Cannot change data-type for array of references.|"
-            "Cannot change data-type for object array.|"
+        msg = "|".join(
+            [
+                "Cannot change data-type for array of references.",
+                "Cannot change data-type for object array.",
+                "",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             index.view(Index)
