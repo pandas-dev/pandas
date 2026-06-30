@@ -17945,7 +17945,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/versioneer-0.29-pyhd8ed1ab_0.conda
-      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-manylinux_2_28_x86_64.whl
+      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-manylinux_2_28_x86_64.whl
       linux-aarch64:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/_openmp_mutex-4.5-20_gnu.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/binutils-2.45.1-default_hf1166c9_102.conda
@@ -18020,7 +18020,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/versioneer-0.29-pyhd8ed1ab_0.conda
-      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-manylinux_2_28_aarch64.whl
+      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-manylinux_2_28_aarch64.whl
       osx-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/attrs-26.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.6.17-hbd8a1cb_0.conda
@@ -18105,7 +18105,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tapi-1600.0.11.8-h8d8e812_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tk-8.6.13-h7142dee_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
-      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-macosx_12_0_x86_64.whl
+      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-macosx_12_0_x86_64.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/attrs-26.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.6.17-hbd8a1cb_0.conda
@@ -18190,7 +18190,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tapi-1600.0.11.8-h997e182_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-h010d191_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
-      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-macosx_12_0_arm64.whl
+      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-macosx_12_0_arm64.whl
       win-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/attrs-26.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.6.17-h4c7d964_0.conda
@@ -18253,7 +18253,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/vc14_runtime-14.51.36231-h1b9f54f_39.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/vcomp14-14.51.36231-h1b9f54f_39.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/vs2022_win-64-19.44.35207-ha74f236_39.conda
-      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-win_amd64.whl
+      - pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-win_amd64.whl
   sanitizers:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -73479,28 +73479,28 @@ packages:
   version: 2.6.0.dev0
   index: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
   requires_python: '>=3.12'
-- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-macosx_12_0_arm64.whl
+- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-macosx_12_0_arm64.whl
   name: pyarrow
-  version: 25.0.0.dev169
+  version: 25.0.0.dev186
   index: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
   requires_python: '>=3.10'
-- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-macosx_12_0_x86_64.whl
+- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-macosx_12_0_x86_64.whl
   name: pyarrow
-  version: 25.0.0.dev169
+  version: 25.0.0.dev186
   index: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
   requires_python: '>=3.10'
-- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-manylinux_2_28_aarch64.whl
+- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-manylinux_2_28_aarch64.whl
   name: pyarrow
-  version: 25.0.0.dev169
+  version: 25.0.0.dev186
   index: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
   requires_python: '>=3.10'
-- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-manylinux_2_28_x86_64.whl
+- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-manylinux_2_28_x86_64.whl
   name: pyarrow
-  version: 25.0.0.dev169
+  version: 25.0.0.dev186
   index: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
   requires_python: '>=3.10'
-- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev169/pyarrow-25.0.0.dev169-cp313-cp313-win_amd64.whl
+- pypi: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple/pyarrow/25.0.0.dev186/pyarrow-25.0.0.dev186-cp313-cp313-win_amd64.whl
   name: pyarrow
-  version: 25.0.0.dev169
+  version: 25.0.0.dev186
   index: https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
   requires_python: '>=3.10'

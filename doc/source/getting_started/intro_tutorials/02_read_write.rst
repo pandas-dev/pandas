@@ -172,7 +172,7 @@ The method :meth:`~DataFrame.info` provides technical information about a
 -  The table has 12 columns. Most columns have a value for each of the
    rows (all 891 values are ``non-null``). Some columns do have missing
    values and less than 891 ``non-null`` values.
--  The columns ``Name``, ``Sex``, ``Cabin`` and ``Embarked`` consist of
+-  The columns ``Name``, ``Sex``, ``Ticket``, ``Cabin`` and ``Embarked`` consist of
    textual data (strings, aka ``object``). The other columns are
    numerical data, some of them are whole numbers (``integer``) and
    others are real numbers (``float``).
