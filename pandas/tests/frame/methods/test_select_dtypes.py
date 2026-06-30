@@ -526,3 +526,122 @@ class TestSelectDtypes:
         else:
             expected = df[["c"]]
         tm.assert_frame_equal(result, expected)
+
+
+def test_select_dtypes_datetimetz_instance_matches_exact_tz():
+    # GH#59888: a DatetimeTZDtype instance selects only columns of exactly that
+    # dtype (tz and unit), not every tz-aware column
+    idx = pd.to_datetime(["2020-01-01"]).as_unit("ns")
+    df = DataFrame(
+        {
+            "utc": idx.tz_localize("UTC"),
+            "est": idx.tz_localize("US/Eastern"),
+            "naive": idx,
+        }
+    )
+    result = df.select_dtypes(include=pd.DatetimeTZDtype(unit="ns", tz="UTC"))
+    tm.assert_frame_equal(result, df[["utc"]])
+
+
+def test_select_dtypes_arrow_instance_matches_exact():
+    # GH#59888: an ArrowDtype instance selects only the matching Arrow column,
+    # not the numpy or masked column sharing its scalar type
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "np": np.array([1, 2], dtype="int64"),
+            "ea": pd.array([1, 2], dtype="Int64"),
+            "arrow": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+            "arrow32": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int32())),
+        }
+    )
+    result = df.select_dtypes(include=pd.ArrowDtype(pa.int64()))
+    tm.assert_frame_equal(result, df[["arrow"]])
+
+
+def test_select_dtypes_arrow_timestamp_instance_matches_exact():
+    # GH#59888: an ArrowDtype timestamp instance does not cross-match numpy
+    # datetime64 columns
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "naive": pd.to_datetime(["2020-01-01", "2020-01-02"]),
+            "arrow": pd.array(
+                pd.to_datetime(["2020-01-01", "2020-01-02"]),
+                dtype=pd.ArrowDtype(pa.timestamp("ns")),
+            ),
+        }
+    )
+    result = df.select_dtypes(include=pd.ArrowDtype(pa.timestamp("ns")))
+    tm.assert_frame_equal(result, df[["arrow"]])
+
+
+def test_select_dtypes_categorical_instance_matches_exact_categories():
+    # GH#59888: a parametrized CategoricalDtype instance matches only columns
+    # with exactly those categories
+    df = DataFrame(
+        {
+            "ab": pd.Categorical(["a", "b"], categories=["a", "b"]),
+            "abc": pd.Categorical(["a", "b"], categories=["a", "b", "c"]),
+            "num": [1, 2],
+        }
+    )
+    result = df.select_dtypes(include=pd.CategoricalDtype(["a", "b"]))
+    tm.assert_frame_equal(result, df[["ab"]])
+
+
+def test_select_dtypes_arrow_bracketed_string_matches_arrow():
+    # GH#59888: the string form of an Arrow dtype matches the Arrow column
+    # (previously returned no/wrong columns)
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "naive": pd.to_datetime(["2020-01-01", "2020-01-02"]),
+            "ts": pd.array(
+                pd.to_datetime(["2020-01-01", "2020-01-02"]),
+                dtype=pd.ArrowDtype(pa.timestamp("ns")),
+            ),
+            "np_int": np.array([1, 2], dtype="int64"),
+            "arrow_int": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+        }
+    )
+    tm.assert_frame_equal(
+        df.select_dtypes(include=["timestamp[ns][pyarrow]"]), df[["ts"]]
+    )
+    tm.assert_frame_equal(
+        df.select_dtypes(include=["int64[pyarrow]"]), df[["arrow_int"]]
+    )
+
+
+def test_select_dtypes_datetimetz_bracketed_string_matches_exact_tz():
+    # GH#59888: the bracketed numpy-style tz string names a specific tz (and unit)
+    idx = pd.to_datetime(["2020-01-01"]).as_unit("ns")
+    df = DataFrame(
+        {
+            "utc": idx.tz_localize("UTC"),
+            "est": idx.tz_localize("US/Eastern"),
+        }
+    )
+    result = df.select_dtypes(include=["datetime64[ns, UTC]"])
+    tm.assert_frame_equal(result, df[["utc"]])
+
+
+def test_select_dtypes_ea_instance_exclude():
+    # GH#59888: equality matching also drives exclude
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "np": np.array([1, 2], dtype="int64"),
+            "arrow": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+        }
+    )
+    result = df.select_dtypes(exclude=pd.ArrowDtype(pa.int64()))
+    tm.assert_frame_equal(result, df[["np"]])
+
+
+def test_select_dtypes_ea_instance_include_exclude_overlap_raises():
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame({"arrow": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64()))})
+    arrow_int = pd.ArrowDtype(pa.int64())
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=arrow_int, exclude=arrow_int)

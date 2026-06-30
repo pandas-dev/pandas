@@ -262,6 +262,35 @@ if TYPE_CHECKING:
     from pandas.io.formats.style import Styler
 
 
+def _select_dtypes_ea_instance(dtype) -> ExtensionDtype | None:
+    """
+    Return the ExtensionDtype instance named by a ``select_dtypes`` spec that
+    should be matched by exact dtype equality.
+
+    A non-masked :class:`ExtensionDtype` instance (e.g. ``DatetimeTZDtype("UTC")``,
+    ``ArrowDtype(pa.int64())``) or a bracketed extension string (e.g.
+    ``"datetime64[ns, UTC]"``, ``"timestamp[ns][pyarrow]"``) names one specific
+    parametrization, so it selects only columns of exactly that dtype (GH#59888)
+    rather than being collapsed to the scalar type it shares with columns of
+    other backends. Masked instances are handled separately (GH#40234); classes
+    and bracket-free kind strings return ``None``.
+    """
+    if isinstance(dtype, BaseMaskedDtype):
+        return None
+    if isinstance(dtype, ExtensionDtype):
+        return dtype
+    if isinstance(dtype, str) and "[" in dtype:
+        try:
+            parsed = pandas_dtype(dtype)
+        except TypeError:
+            return None
+        if isinstance(parsed, ExtensionDtype) and not isinstance(
+            parsed, BaseMaskedDtype
+        ):
+            return parsed
+    return None
+
+
 # -----------------------------------------------------------------------
 # DataFrame class
 
@@ -5410,6 +5439,11 @@ class DataFrame(NDFrame, OpsMixin):
         # convert the myriad valid dtypes object to a single representation
         def check_int_infer_dtype(dtypes):
             converted_dtypes: list[type] = []
+            # GH#59888: a non-masked EA *instance* or a bracketed extension
+            # string names one specific parametrization and is matched by exact
+            # dtype equality, rather than collapsed to the scalar type it shares
+            # with columns of other backends.
+            ea_instance_requests: list[ExtensionDtype] = []
             for dtype in dtypes:
                 # Numpy maps int to different types (int32, in64) on Windows and Linux
                 # see https://github.com/numpy/numpy/issues/9464
@@ -5419,12 +5453,14 @@ class DataFrame(NDFrame, OpsMixin):
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
                     converted_dtypes.extend([np.float64, np.float32])
+                elif (ea_inst := _select_dtypes_ea_instance(dtype)) is not None:
+                    ea_instance_requests.append(ea_inst)
                 else:
                     converted_dtypes.append(infer_dtype_from_object(dtype))
-            return frozenset(converted_dtypes)
+            return frozenset(converted_dtypes), tuple(ea_instance_requests)
 
-        include = check_int_infer_dtype(include)
-        exclude = check_int_infer_dtype(exclude)
+        include, include_ea = check_int_infer_dtype(include)
+        exclude, exclude_ea = check_int_infer_dtype(exclude)
 
         for dtypes in (include, exclude):
             invalidate_string_dtypes(dtypes)
@@ -5432,8 +5468,15 @@ class DataFrame(NDFrame, OpsMixin):
         # can't both include AND exclude!
         if not include.isdisjoint(exclude):
             raise ValueError(f"include and exclude overlap on {(include & exclude)}")
+        ea_overlap = set(include_ea) & set(exclude_ea)
+        if ea_overlap:
+            raise ValueError(f"include and exclude overlap on {ea_overlap}")
 
-        def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
+        def dtype_predicate(dtype: DtypeObj, dtypes_set, ea_reqs) -> bool:
+            # GH#59888: an EA-instance / bracketed-string request matches a
+            # column only when its dtype is exactly equal.
+            if ea_reqs and any(dtype == req for req in ea_reqs):
+                return True
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
             return (
@@ -5453,12 +5496,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         def predicate(arr: ArrayLike) -> bool:
             dtype = arr.dtype
-            if include:
-                if not dtype_predicate(dtype, include):
+            if include or include_ea:
+                if not dtype_predicate(dtype, include, include_ea):
                     return False
 
-            if exclude:
-                if dtype_predicate(dtype, exclude):
+            if exclude or exclude_ea:
+                if dtype_predicate(dtype, exclude, exclude_ea):
                     return False
 
             return True
