@@ -397,8 +397,6 @@ def __internal_pivot_table(
             table = table.astype(np.int64)
 
     if margins:
-        if dropna:
-            data = data[data.notna().all(axis=1)]
         table = _add_margins(
             table,
             data,
