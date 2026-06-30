@@ -526,3 +526,31 @@ class TestSelectDtypes:
         else:
             expected = df[["c"]]
         tm.assert_frame_equal(result, expected)
+
+
+# GH#40234
+@pytest.mark.parametrize("spec", ["Int64", pd.Int64Dtype, pd.Int64Dtype()])
+def test_select_dtypes_int64_ea_does_not_match_numpy_int64(spec):
+    df = DataFrame({"A": [1, 2], "B": pd.array([1, 2], dtype="Int64")})
+    result = df.select_dtypes(spec)
+    tm.assert_frame_equal(result, df[["B"]])
+
+
+def test_select_dtypes_include_exclude_overlap_raises():
+    df = DataFrame({"a": [1, 2], "b": pd.array([1, 2], dtype="Int64")})
+
+    # numpy-set overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=[np.int64], exclude=[np.int64])
+
+    # EA-class overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=pd.Int64Dtype, exclude=pd.Int64Dtype)
+
+    # EA-instance overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include=pd.Int64Dtype(), exclude=pd.Int64Dtype())
+
+    # kind-string overlap
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(include="int64", exclude="int64")
