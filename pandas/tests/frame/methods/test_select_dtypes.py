@@ -716,9 +716,8 @@ def test_select_dtypes_include_exclude_overlap_raises():
         df.select_dtypes(include="int64", exclude="int64")
 
 
-@pytest.mark.parametrize("spec", ["string", pd.StringDtype])
-def test_select_dtypes_string_spec_matches_arrow_strings(spec):
-    # GH#59888: "string"/StringDtype name the string kind and also match
+def test_select_dtypes_string_class_matches_arrow_strings():
+    # GH#59888: the StringDtype class names the string kind and also matches
     # Arrow-backed string columns
     pa = pytest.importorskip("pyarrow")
     data = {
@@ -739,14 +738,58 @@ def test_select_dtypes_string_spec_matches_arrow_strings(spec):
     df = DataFrame(data)
     # compare columns, not frames: assert_frame_equal raises for string_view
     # columns (ArrowDtype.type is not implemented for string_view)
-    result = df.select_dtypes(include=spec)
+    result = df.select_dtypes(include=pd.StringDtype)
     assert list(result.columns) == string_cols
-    result = df.select_dtypes(exclude=spec)
+    result = df.select_dtypes(exclude=pd.StringDtype)
     assert list(result.columns) == ["num"]
 
 
-def test_select_dtypes_category_matches_arrow_dictionary():
-    # GH#59888: "category"/CategoricalDtype also match Arrow dictionary columns
+def test_select_dtypes_string_kind_matches_arrow_strings():
+    # GH#59888: the "string" kind name also matches Arrow-backed string columns
+    pa = pytest.importorskip("pyarrow")
+    data = {
+        # NaN-variant StringDtype (the default "str" dtype under the future
+        # string option); construct explicitly so the test does not depend on
+        # PANDAS_FUTURE_INFER_STRING (with which off, dtype="str" is object)
+        "default": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+        "nullable": pd.array(["x", "y"], dtype="string"),
+        "arrow": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
+        "large": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.large_string())),
+        "num": [1, 2],
+    }
+    string_cols = ["default", "nullable", "arrow", "large"]
+    if not pa_version_under16p0:
+        # pa.string_view requires pyarrow>=16
+        data["view"] = pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string_view()))
+        string_cols.append("view")
+    df = DataFrame(data)
+    # compare columns, not frames: assert_frame_equal raises for string_view
+    # columns (ArrowDtype.type is not implemented for string_view)
+    result = df.select_dtypes(include="string")
+    assert list(result.columns) == string_cols
+    result = df.select_dtypes(exclude="string")
+    assert list(result.columns) == ["num"]
+
+
+def test_select_dtypes_category_class_matches_arrow_dictionary():
+    # GH#59888: the CategoricalDtype class also matches Arrow dictionary columns
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "cat": pd.Categorical(["a", "b"]),
+            "arrow": pd.array(
+                ["a", "b"],
+                dtype=pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+            ),
+            "num": [1, 2],
+        }
+    )
+    expected = df[["cat", "arrow"]]
+    tm.assert_frame_equal(df.select_dtypes(include=pd.CategoricalDtype), expected)
+
+
+def test_select_dtypes_category_kind_matches_arrow_dictionary():
+    # GH#59888: the "category" kind name also matches Arrow dictionary columns
     pa = pytest.importorskip("pyarrow")
     df = DataFrame(
         {
@@ -760,4 +803,3 @@ def test_select_dtypes_category_matches_arrow_dictionary():
     )
     expected = df[["cat", "arrow"]]
     tm.assert_frame_equal(df.select_dtypes(include="category"), expected)
-    tm.assert_frame_equal(df.select_dtypes(include=pd.CategoricalDtype), expected)
