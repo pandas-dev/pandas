@@ -19,8 +19,8 @@ This module supports the following requirements:
   so that accessing a deprecated option reroutes to a differently
   named option.
 - options can be reset to their default value.
-- all option can be reset to their default value at once.
-- all options in a certain sub - namespace can be reset at once.
+- all options can be reset to their default value at once.
+- all options in a certain sub-namespace can be reset at once.
 - the user can set / get / reset or ask for the description of an option.
 - a developer can register and mark an option as deprecated.
 - you can register a callback to be invoked when the option value
@@ -129,7 +129,7 @@ def _get_single_key(pat: str) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
         _warn_if_deprecated(pat)
-        raise OptionError(f"No such keys(s): {pat!r}")
+        raise OptionError(f"No such key(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
@@ -386,7 +386,7 @@ def reset_option(pat: str) -> None:
     keys = _select_options(pat)
 
     if len(keys) == 0:
-        raise OptionError(f"No such keys(s) for {pat=}")
+        raise OptionError(f"No such key(s) for {pat=}")
 
     if len(keys) > 1 and len(pat) < 4 and pat != "all":
         raise ValueError(
