@@ -615,7 +615,20 @@ def test_select_dtypes_arrow_timestamp_string_roundtrip():
     assert result.shape[1] == 0
 
 
-def test_select_dtypes_arrow_int_not_matched_by_numpy_int_type():
+def test_select_dtypes_arrow_int_instance_matches_exact():
+    # GH#59888: an Arrow dtype instance matches that exact dtype
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "np": [1, 2],
+            "arrow": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+        }
+    )
+    result = df.select_dtypes(include=[pd.ArrowDtype(pa.int64())])
+    tm.assert_frame_equal(result, df[["arrow"]])
+
+
+def test_select_dtypes_numpy_int_type_does_not_match_arrow():
     # GH#59888 (symmetric case): the numpy *type* targets numpy storage
     pa = pytest.importorskip("pyarrow")
     df = DataFrame(
@@ -626,9 +639,6 @@ def test_select_dtypes_arrow_int_not_matched_by_numpy_int_type():
     )
     result = df.select_dtypes(include=[np.int64])
     tm.assert_frame_equal(result, df[["np"]])
-
-    result = df.select_dtypes(include=[pd.ArrowDtype(pa.int64())])
-    tm.assert_frame_equal(result, df[["arrow"]])
 
 
 def test_select_dtypes_arrow_dtype_class_matches_all_arrow():
