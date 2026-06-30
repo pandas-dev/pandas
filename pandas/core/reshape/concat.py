@@ -1008,7 +1008,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel_index)
+        # GH#64825 get_indexer_for (not get_indexer) so that an overlapping
+        #  IntervalIndex level, which is not unique-as-index, still resolves.
+        mapped = level.get_indexer_for(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
@@ -1022,8 +1024,10 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
-        new_levels.append(new_index.unique())
-        single_codes = new_index.unique().get_indexer(new_index)
+        unique_index = new_index.unique()
+        new_levels.append(unique_index)
+        # GH#64825 get_indexer_for so an overlapping IntervalIndex resolves
+        single_codes = unique_index.get_indexer_for(new_index)
         new_codes.append(np.tile(single_codes, kpieces))
 
     if len(new_names) < len(new_levels):
