@@ -54,7 +54,10 @@ def _is_nonempty(x: ArrayLike, axis: AxisInt) -> bool:
 
 
 def concat_compat(
-    to_concat: Sequence[ArrayLike], axis: AxisInt = 0, ea_compat_axis: bool = False
+    to_concat: Sequence[ArrayLike],
+    axis: AxisInt = 0,
+    ea_compat_axis: bool = False,
+    union_categories: bool = False,
 ) -> ArrayLike:
     """
     provide concatenation of an array of arrays each of which is a single
@@ -69,11 +72,29 @@ def concat_compat(
     ea_compat_axis : bool, default False
         For ExtensionArray compat, behave as if axis == 1 when determining
         whether to drop empty arrays.
+    union_categories : bool, default False
+        If True and all arrays are Categorical, union the categories
+        instead of casting to the underlying dtype.
 
     Returns
     -------
     a single array, preserving the combined dtypes
     """
+    if (
+        union_categories
+        and len(to_concat)
+        and all(isinstance(x.dtype, CategoricalDtype) for x in to_concat)
+    ):
+        cats = cast("Sequence[Categorical]", to_concat)
+        if lib.dtypes_all_equal([x.categories.dtype for x in cats]):
+            # GH#14177 When all inputs share a dtype, preserve dtypes[0].ordered.
+            #  Otherwise union the categories and drop any orderedness instead
+            #  of raising, matching union_categoricals(ignore_order=True).
+            ignore_order = not lib.dtypes_all_equal([x.dtype for x in cats])
+            return union_categoricals(cats, ignore_order=ignore_order)
+        # categories themselves have differing dtypes (e.g. str vs int): fall
+        #  through to the common-dtype (object) concat below rather than raising.
+
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
         obj = to_concat[0]

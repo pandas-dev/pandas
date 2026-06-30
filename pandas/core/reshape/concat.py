@@ -87,6 +87,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame: ...
 
 
@@ -103,6 +104,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> Series: ...
 
 
@@ -119,6 +121,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame | Series: ...
 
 
@@ -135,6 +138,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame: ...
 
 
@@ -151,6 +155,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | lib.NoDefault = ...,
+    union_categories: bool = ...,
 ) -> DataFrame | Series: ...
 
 
@@ -167,6 +172,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool | lib.NoDefault = lib.no_default,
     copy: bool | lib.NoDefault = lib.no_default,
+    union_categories: bool = False,
 ) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis.
@@ -222,6 +228,17 @@ def concat(
             (Copy-on-Write). See the `user guide on Copy-on-Write
             <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
             for more details.
+
+    union_categories : bool, default False
+        If True and all values for a given column have categorical dtype,
+        the resulting column will preserve categorical dtype with the
+        union of the categories, rather than casting to the underlying
+        dtype. The result is unordered unless every input shares the same
+        dtype, in which case it inherits that dtype's ``ordered`` attribute.
+        Has no effect when concatenating mixed categorical and
+        non-categorical data.
+
+        .. versionadded:: 3.1.0
 
     Returns
     -------
@@ -475,6 +492,7 @@ def concat(
         verify_integrity,
         names,
         axis,
+        union_categories,
     )
 
     # When result is a Series, there is no other axis to sort.
@@ -563,6 +581,7 @@ def _get_result(
     verify_integrity: bool,
     names: list[HashableT] | None,
     axis: AxisInt,
+    union_categories: bool = False,
 ):
     cons: Callable[..., DataFrame | Series]
     sample: DataFrame | Series
@@ -578,7 +597,7 @@ def _get_result(
 
             arrs = [ser._values for ser in objs]
 
-            res = concat_compat(arrs, axis=0)
+            res = concat_compat(arrs, axis=0, union_categories=union_categories)
 
             if ignore_index:
                 new_index: Index = default_index(len(res))
@@ -656,7 +675,11 @@ def _get_result(
             mgrs_indexers.append((obj._mgr, indexers))
 
         new_data = concatenate_managers(
-            mgrs_indexers, result_axes, concat_axis=bm_axis, copy=False
+            mgrs_indexers,
+            result_axes,
+            concat_axis=bm_axis,
+            copy=False,
+            union_categories=union_categories,
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)

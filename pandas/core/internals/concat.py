@@ -50,7 +50,11 @@ if TYPE_CHECKING:
 
 
 def concatenate_managers(
-    mgrs_indexers, axes: list[Index], concat_axis: AxisInt, copy: bool
+    mgrs_indexers,
+    axes: list[Index],
+    concat_axis: AxisInt,
+    copy: bool,
+    union_categories: bool = False,
 ) -> BlockManager:
     """
     Concatenate block managers into one.
@@ -61,6 +65,9 @@ def concatenate_managers(
     axes : list of Index
     concat_axis : int
     copy : bool
+    union_categories : bool, default False
+        If True, union the categories of categorical blocks being concatenated
+        rather than falling back to a non-categorical dtype.
 
     Returns
     -------
@@ -124,16 +131,23 @@ def concatenate_managers(
                 values = np.concatenate(vals, axis=1)  # type: ignore[arg-type]
             elif is_1d_only_ea_dtype(blk.dtype):
                 # TODO(EA2D): special-casing not needed with 2D EAs
-                values = concat_compat(vals, axis=0, ea_compat_axis=True)
+                values = concat_compat(
+                    vals,
+                    axis=0,
+                    ea_compat_axis=True,
+                    union_categories=union_categories,
+                )
                 values = ensure_block_shape(values, ndim=2)
             else:
-                values = concat_compat(vals, axis=1)
+                values = concat_compat(vals, axis=1, union_categories=union_categories)
 
             values = ensure_wrapped_if_datetimelike(values)
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, copy=copy)
+            values = _concatenate_join_units(
+                join_units, copy=copy, union_categories=union_categories
+            )
             fastpath = False
 
         if fastpath:
@@ -306,7 +320,11 @@ class JoinUnit:
         return self.block.values
 
 
-def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
+def _concatenate_join_units(
+    join_units: list[JoinUnit],
+    copy: bool,
+    union_categories: bool = False,
+) -> ArrayLike:
     """
     Concatenate values from several join units along axis=1.
     """
@@ -329,11 +347,15 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
             t if is_1d_only_ea_dtype(t.dtype) else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
-        concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)
+        concat_values = concat_compat(
+            to_concat, axis=0, ea_compat_axis=True, union_categories=union_categories
+        )
         concat_values = ensure_block_shape(concat_values, 2)
 
     else:
-        concat_values = concat_compat(to_concat, axis=1)
+        concat_values = concat_compat(
+            to_concat, axis=1, union_categories=union_categories
+        )
 
     return concat_values
 
