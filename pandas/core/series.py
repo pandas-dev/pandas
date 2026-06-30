@@ -2567,8 +2567,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Indicate duplicate Series values.
 
         Duplicated values are indicated as ``True`` values in the resulting
-        Series. Either all duplicates, all except the first or all except the
-        last occurrence of duplicates can be indicated.
+        Series. Values are considered duplicated when the same value appears
+        more than once. Either all duplicated values, all except the first, or
+        all except the last occurrence of duplicated values can be indicated.
 
         Parameters
         ----------
@@ -2584,8 +2585,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series[bool]
-            Series indicating whether each value has occurred in the
-            preceding values.
+            Series indicating whether each value is a duplicated value
+            according to ``keep``.
 
         See Also
         --------
