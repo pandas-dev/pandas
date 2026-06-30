@@ -1410,7 +1410,7 @@ class FrameColumnApply(FrameApply):
             "_row_apply_label_to_pos",
             label_to_pos,
         )
-        object.__setattr__(ser, "_row_apply_label_to_pos_index", self.columns)
+        object.__setattr__(ser, "_row_apply_label_to_pos_index", ser.index)
         object.__setattr__(ser, "_row_apply_needs_ref_reset", False)
 
         is_view = mgr.blocks[0].refs.has_reference()

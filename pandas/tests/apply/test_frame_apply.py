@@ -11,6 +11,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,

@@ -1025,12 +1025,17 @@ Executed:
 - Conflict-marker and cache-protocol inspection.
 - `python -m py_compile` on all four modified Python/test files.
 - `python -m compileall -q pandas`
-- Focused apply pytest invocation stopped during conftest import because
-  `dateutil` is missing.
+- Pre-fix extracted-wheel test:
+  `test_apply_axis1_string_label_lookup_bypasses_apply_if_callable`
+  failed because the cache guard compared `ser.index` with
+  `self.columns` by identity.
+- Focused post-fix apply tests outside the unavailable full conftest:
+  `6 passed, 294 deselected`.
 
 Not executed:
 
-- Runtime apply/CoW assertions: pytest did not reach collection.
+- Full apply/CoW suite: packaged conftest requires unavailable
+  `hypothesis`.
 - ASV: not run in this environment.
 
 Follow-up validation:
@@ -1232,6 +1237,8 @@ Adaptation checks:
 - Result columns are replaced by the existing result index only when
   lengths match.
 - Tests cover Series-valued axis=0 output and reuse overwrite safety.
+- The two axis=0 tests now import `Index` explicitly; the prior migrated
+  tests otherwise failed with `NameError` before exercising reuse.
 
 Executed:
 
@@ -1240,12 +1247,13 @@ Executed:
 - `python -m py_compile pandas/core/apply.py
   pandas/tests/apply/test_frame_apply.py`
 - `python -m compileall -q pandas`
-- Focused apply pytest invocation stopped during conftest import because
-  `dateutil` is missing.
+- Focused axis=0/axis=1 apply tests outside the unavailable full
+  conftest: `6 passed, 294 deselected`.
 
 Not executed:
 
-- Runtime apply/CoW assertions: pytest did not reach collection.
+- Full apply/CoW suite: packaged conftest requires unavailable
+  `hypothesis`.
 - ASV: not run in this environment.
 
 Follow-up validation:

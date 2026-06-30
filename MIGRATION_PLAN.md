@@ -555,6 +555,12 @@ choosing an entire side.
 - Unique columns get a label-to-position cache on the reused row Series;
   duplicate columns retain normal Series lookup. Callable keys still go
   through `apply_if_callable`.
+- Runtime audit correction: pandas 3.0.1 does not preserve object
+  identity between `self.columns` and the reused row `Series.index`.
+  Binding the cache guard to `self.columns` therefore disabled every
+  cached lookup. The guard now records the actual row Series index, so
+  normal access is fast while an index replacement still invalidates
+  the cache.
 - The current row values are cached after manager replacement, and CoW
   refs are reset only after an applied function returned a Series that
   required a shallow copy.
