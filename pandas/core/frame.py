@@ -104,6 +104,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -260,6 +261,26 @@ if TYPE_CHECKING:
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
     from pandas.io.formats.style import Styler
+
+
+def _select_dtypes_arrow_kind_match(dtype: ArrowDtype, req: type) -> bool:
+    # An ExtensionDtype class request names a kind, and Arrow string/dictionary
+    # columns belong to the string/categorical kinds, so e.g.
+    # select_dtypes(StringDtype) also selects ArrowDtype(pa.string()) columns
+    # and select_dtypes(CategoricalDtype) selects ArrowDtype(pa.dictionary())
+    # columns (as on main, where the numpy_dtype unwrap provided this).
+    import pyarrow as pa
+
+    pa_type = dtype.pyarrow_dtype
+    if req is StringDtype:
+        return (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_string_view(pa_type)
+        )
+    if req is CategoricalDtype:
+        return pa.types.is_dictionary(pa_type)
+    return False
 
 
 # -----------------------------------------------------------------------
@@ -5407,9 +5428,17 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        # convert the myriad valid dtypes object to a single representation
+        # Convert the myriad valid dtype specs into a numpy-scalar set plus an
+        # ExtensionDtype-request bucket. An EA spec is matched by identity --
+        # an instance by equality, a class (or bare class-name string) as a
+        # "kind" matching any instance of it -- rather than being collapsed to
+        # the numpy scalar type it shares with numpy columns. This fixes GH#40234
+        # ("Int64"/Int64Dtype no longer also match numpy int64) and the EA-class
+        # half of GH#59888 (e.g. ArrowDtype/DatetimeTZDtype). The kind-string
+        # cross-backend bucket and the numpy-type tightening remain in GH#65366.
         def check_int_infer_dtype(dtypes):
             converted_dtypes: list[type] = []
+            ea_requests: list = []
             for dtype in dtypes:
                 # Numpy maps int to different types (int32, in64) on Windows and Linux
                 # see https://github.com/numpy/numpy/issues/9464
@@ -5419,27 +5448,66 @@ class DataFrame(NDFrame, OpsMixin):
                 elif dtype == "float" or dtype is float:
                     # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
                     converted_dtypes.extend([np.float64, np.float32])
+                elif isinstance(dtype, ExtensionDtype):
+                    # an EA instance matches by equality
+                    ea_requests.append(dtype)
+                elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+                    # an EA class names a kind -> match any instance of it
+                    ea_requests.append(dtype)
+                elif isinstance(dtype, str):
+                    # a bare EA class-name ("Int64", "string", "category") is a
+                    # class (kind) request; bracketed strings (a specific
+                    # parametrization) and non-EA strings stay on the numpy path
+                    try:
+                        parsed = pandas_dtype(dtype)
+                    except TypeError:
+                        parsed = None
+                    if isinstance(parsed, ExtensionDtype) and "[" not in dtype:
+                        ea_requests.append(type(parsed))
+                    else:
+                        converted_dtypes.append(infer_dtype_from_object(dtype))
                 else:
                     converted_dtypes.append(infer_dtype_from_object(dtype))
-            return frozenset(converted_dtypes)
+            return frozenset(converted_dtypes), tuple(ea_requests)
 
-        include = check_int_infer_dtype(include)
-        exclude = check_int_infer_dtype(exclude)
+        include_np, include_ea = check_int_infer_dtype(include)
+        exclude_np, exclude_ea = check_int_infer_dtype(exclude)
 
-        for dtypes in (include, exclude):
+        for dtypes in (include_np, exclude_np):
             invalidate_string_dtypes(dtypes)
 
         # can't both include AND exclude!
-        if not include.isdisjoint(exclude):
-            raise ValueError(f"include and exclude overlap on {(include & exclude)}")
+        if not include_np.isdisjoint(exclude_np):
+            raise ValueError(
+                f"include and exclude overlap on {(include_np & exclude_np)}"
+            )
+        ea_overlap = set(include_ea) & set(exclude_ea)
+        if ea_overlap:
+            raise ValueError(f"include and exclude overlap on {ea_overlap}")
 
-        def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
+        def _matches_ea(dtype: DtypeObj, ea_reqs: tuple) -> bool:
+            for req in ea_reqs:
+                if isinstance(req, type):
+                    # class -> "any dtype of this class"
+                    if isinstance(dtype, req):
+                        return True
+                    if isinstance(dtype, ArrowDtype):
+                        if _select_dtypes_arrow_kind_match(dtype, req):
+                            return True
+                # instance -> exact-dtype match
+                elif dtype == req:
+                    return True
+            return False
+
+        def dtype_predicate(dtype: DtypeObj, numpy_set, ea_reqs) -> bool:
+            if _matches_ea(dtype, ea_reqs):
+                return True
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
             return (
-                issubclass(dtype.type, tuple(dtypes_set))
+                issubclass(dtype.type, tuple(numpy_set))
                 or (
-                    np.number in dtypes_set
+                    np.number in numpy_set
                     and getattr(dtype, "_is_numeric", False)
                     and not is_bool_dtype(dtype)
                 )
@@ -5447,27 +5515,27 @@ class DataFrame(NDFrame, OpsMixin):
                 or (
                     isinstance(dtype, StringDtype)
                     and dtype.na_value is np.nan
-                    and np.object_ in dtypes_set
+                    and np.object_ in numpy_set
                 )
             )
 
         def predicate(arr: ArrayLike) -> bool:
             dtype = arr.dtype
-            if include:
-                if not dtype_predicate(dtype, include):
+            if include_np or include_ea:
+                if not dtype_predicate(dtype, include_np, include_ea):
                     return False
 
-            if exclude:
-                if dtype_predicate(dtype, exclude):
+            if exclude_np or exclude_ea:
+                if dtype_predicate(dtype, exclude_np, exclude_ea):
                     return False
 
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
         if (
-            np.object_ in include
-            and str not in include
-            and str not in exclude
+            np.object_ in include_np
+            and str not in include_np
+            and str not in exclude_np
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes
