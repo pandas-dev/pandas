@@ -11,7 +11,6 @@ from cpython.datetime cimport (
     tzinfo,
 )
 from cython cimport Py_ssize_t
-from libc.stdint cimport INT64_MAX
 
 import_datetime()
 
@@ -50,6 +49,11 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     is_zoneinfo,
 )
+
+
+cdef extern from "pandas/portable.h":
+    int checked_add(int64_t a, int64_t b, int64_t *res)
+    int checked_sub(int64_t a, int64_t b, int64_t *res)
 
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
@@ -541,6 +545,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         int64_t val, v_left, v_right, delta0, delta1, local0, local1
         int64_t delta_l, delta_r
         Py_ssize_t isl, isr, pos_left, pos_right
+        int64_t search_value
         int64_t ppd = periods_per_day(creso)
         BoundaryStatus status_left, status_right
 
@@ -580,41 +585,35 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 result_b[i] = v_right
             continue
 
-        if val < NPY_NAT + 1 + ppd:
+        if checked_sub(val, ppd, &search_value):
             isl = 0
         else:
-            isl = bisect_right_i8(tdata, val - ppd, ntrans) - 1
+            isl = bisect_right_i8(tdata, search_value, ntrans) - 1
             if isl < 0:
                 isl = 0
 
         delta_l = deltas[isl]
-        if delta_l > 0 and val < NPY_NAT + 1 + delta_l:
-            status_left = BS_UNDERFLOW
-        elif delta_l < 0 and val > INT64_MAX + delta_l:
-            status_left = BS_OVERFLOW
+        if checked_sub(val, delta_l, &v_left):
+            status_left = BS_UNDERFLOW if delta_l > 0 else BS_OVERFLOW
         else:
             status_left = BS_OK
-            v_left = val - delta_l
             pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
             # timestamp falls to the left side of the DST transition
             if v_left + deltas[pos_left] == val:
                 result_a[i] = v_left
 
-        if val > INT64_MAX - ppd:
+        if checked_add(val, ppd, &search_value):
             isr = ntrans - 1
         else:
-            isr = bisect_right_i8(tdata, val + ppd, ntrans) - 1
+            isr = bisect_right_i8(tdata, search_value, ntrans) - 1
             if isr < 0:
                 isr = 0
 
         delta_r = deltas[isr]
-        if delta_r > 0 and val < NPY_NAT + 1 + delta_r:
-            status_right = BS_UNDERFLOW
-        elif delta_r < 0 and val > INT64_MAX + delta_r:
-            status_right = BS_OVERFLOW
+        if checked_sub(val, delta_r, &v_right):
+            status_right = BS_UNDERFLOW if delta_r > 0 else BS_OVERFLOW
         else:
             status_right = BS_OK
-            v_right = val - delta_r
             pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
             # timestamp falls to the right side of the DST transition
             if v_right + deltas[pos_right] == val:
