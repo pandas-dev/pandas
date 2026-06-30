@@ -154,18 +154,11 @@ class UnstackCartesian:
     param_names = ["shape"]
 
     def setup(self, shape):
-        if len(shape) == 2:
-            n_outer, n_inner = shape
-            x0 = np.tile(np.arange(n_inner, dtype=float), n_outer)
-            x1 = np.repeat(np.arange(n_outer, dtype=float), n_inner)
-            idx = MultiIndex.from_arrays([x0, x1], names=["x0", "x1"])
-            self._last_level = "x0"
-        else:
-            idx = MultiIndex.from_product(
-                [np.arange(n) for n in shape],
-                names=[f"x{i}" for i in range(len(shape))],
-            )
-            self._last_level = f"x{len(shape) - 1}"
+        idx = MultiIndex.from_product(
+            [np.arange(n) for n in shape],
+            names=[f"x{i}" for i in range(len(shape))],
+        )
+        self._last_level = f"x{len(shape) - 1}"
         self.s = pd.Series(np.random.rand(len(idx)), index=idx)
 
     def time_unstack(self, shape):
