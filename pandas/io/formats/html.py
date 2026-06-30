@@ -12,15 +12,12 @@ from typing import (
     cast,
 )
 
-from pandas._config.config import _global_config as config
-
-from pandas._libs import lib
-
 from pandas import (
     MultiIndex,
     option_context,
 )
-
+from pandas._config.config import _global_config as config
+from pandas._libs import lib
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
@@ -202,7 +199,7 @@ class HTMLFormatter:
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
             # FIX: Escape the URL so quotes don't break the href attribute
             # Replaces line 205
-            safe_href = rs_unescaped.replace('"', '&quot;')
+            safe_href = rs_unescaped.replace('"', "&quot;")
             start_tag += f'<a href="{safe_href}" target="_blank">'
             end_a = f"</a></{kind}>"
         else:
