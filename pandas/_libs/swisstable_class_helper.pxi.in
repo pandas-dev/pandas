@@ -41,14 +41,18 @@ cdef class Swiss{{name}}Map(HashTable):
             return val
         return default
 
-    def __getitem__(self, {{c_type}} key):
-        cdef size_t val
-        if self.table.get(key, &val):
+    def __getitem__(self, key):
+        cdef:
+            {{c_type}} c_key = key
+            size_t val
+        if self.table.get(c_key, &val):
             return val
         raise KeyError(key)
 
-    def __setitem__(self, {{c_type}} key, size_t value):
-        cdef int ret = self.table.insert(key, value)
+    def __setitem__(self, key, size_t value):
+        cdef:
+            {{c_type}} c_key = key
+            int ret = self.table.insert(c_key, value)
         if ret == -1:
             raise MemoryError("Failed to insert into Swiss table")
 
@@ -419,7 +423,7 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values) -> n
         Boolean array of same length as arr
     """
     cdef:
-        Py_ssize_t n_arr = len(arr), n_values = len(values)
+        Py_ssize_t i, n_arr = len(arr), n_values = len(values)
         SwissTable[{{c_type}}, size_t] table
         int ret = 0
         np_uint8_t[::1] result_view
@@ -433,13 +437,23 @@ def ismember_{{dtype}}(const {{c_type}}[:] arr, const {{c_type}}[:] values) -> n
 
     # Build set from values (key-only, no value storage needed)
     with nogil:
-        ret = table.build_set(&values[0], <size_t>n_values)
+        if n_values > 0 and values.strides[0] == sizeof({{c_type}}):
+            ret = table.build_set(&values[0], <size_t>n_values)
+        else:
+            for i in range(n_values):
+                ret = table.insert_key_only(values[i])
+                if ret == -1:
+                    break
     if ret == -1:
         raise MemoryError("Failed to insert into Swiss table")
 
     # Check membership using batch contains
     with nogil:
-        table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+        if n_arr > 0 and arr.strides[0] == sizeof({{c_type}}):
+            table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+        else:
+            for i in range(n_arr):
+                result_view[i] = table.contains(arr[i])
 
     return result.view(np.bool_)
 
@@ -683,7 +697,7 @@ cdef class Swiss{{name}}Factorizer:
         Py_ssize_t count
         bint external_view_exists
 
-    def __cinit__(self, size_hint: int):
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
         self.table = Swiss{{name}}Map(size_hint)
         self.uniques = np.empty(size_hint, dtype="{{dtype}}")
         self.external_view_exists = False
@@ -723,6 +737,13 @@ cdef class Swiss{{name}}Factorizer:
                                        na_value=na_value, mask=mask)
         self.count = count
         return labels
+
+    def hash_inner_join(self, const {{c_type}}[:] values, object mask=None):
+        locs = self.table.lookup(values)
+        matches = locs != -1
+        if mask is not None:
+            matches &= ~np.asarray(mask, dtype=np.bool_)
+        return locs[matches], np.nonzero(matches)[0].astype(np.intp, copy=False)
 
     def uniques_array(self) -> np.ndarray:
         if self.count != len(self.uniques):

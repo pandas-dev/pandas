@@ -288,6 +288,51 @@ _swisstables = {
     "complex64": swisstable.SwissComplex64Map,
 }
 
+_swiss_ismember = {
+    "complex128": swisstable.ismember_complex128,
+    "complex64": swisstable.ismember_complex64,
+    "float64": swisstable.ismember_float64,
+    "float32": swisstable.ismember_float32,
+    "uint64": swisstable.ismember_uint64,
+    "uint32": swisstable.ismember_uint32,
+    "uint16": swisstable.ismember_uint16,
+    "uint8": swisstable.ismember_uint8,
+    "int64": swisstable.ismember_int64,
+    "int32": swisstable.ismember_int32,
+    "int16": swisstable.ismember_int16,
+    "int8": swisstable.ismember_int8,
+}
+
+_swiss_value_count = {
+    "complex128": swisstable.value_count_complex128,
+    "complex64": swisstable.value_count_complex64,
+    "float64": swisstable.value_count_float64,
+    "float32": swisstable.value_count_float32,
+    "uint64": swisstable.value_count_uint64,
+    "uint32": swisstable.value_count_uint32,
+    "uint16": swisstable.value_count_uint16,
+    "uint8": swisstable.value_count_uint8,
+    "int64": swisstable.value_count_int64,
+    "int32": swisstable.value_count_int32,
+    "int16": swisstable.value_count_int16,
+    "int8": swisstable.value_count_int8,
+}
+
+_swiss_duplicated = {
+    "complex128": swisstable.duplicated_complex128,
+    "complex64": swisstable.duplicated_complex64,
+    "float64": swisstable.duplicated_float64,
+    "float32": swisstable.duplicated_float32,
+    "uint64": swisstable.duplicated_uint64,
+    "uint32": swisstable.duplicated_uint32,
+    "uint16": swisstable.duplicated_uint16,
+    "uint8": swisstable.duplicated_uint8,
+    "int64": swisstable.duplicated_int64,
+    "int32": swisstable.duplicated_int32,
+    "int16": swisstable.duplicated_int16,
+    "int8": swisstable.duplicated_int8,
+}
+
 
 def _get_hashtable_algo(
     values: np.ndarray,
@@ -612,7 +657,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
-        f = htable.ismember
+        from pandas.core.config_init import get_use_swisstable
+
+        if get_use_swisstable():
+            f = _swiss_ismember.get(common.name, htable.ismember)
+        else:
+            f = htable.ismember
 
     return f(comps_array, values)
 
@@ -1151,7 +1201,14 @@ def value_counts_arraylike(
         result = None
 
     if result is None:
-        keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+        from pandas.core.config_init import get_use_swisstable
+
+        value_count = None
+        if get_use_swisstable():
+            value_count = _swiss_value_count.get(values.dtype.name)
+        if value_count is None:
+            value_count = htable.value_count
+        keys, counts, na_counter = value_count(values, dropna, mask=mask)
     else:
         keys, counts, na_counter = result
 
@@ -1192,7 +1249,14 @@ def duplicated(
     duplicated : ndarray[bool]
     """
     values = _ensure_data(values)
-    return htable.duplicated(values, keep=keep, mask=mask)
+    from pandas.core.config_init import get_use_swisstable
+
+    duplicated_func = None
+    if get_use_swisstable():
+        duplicated_func = _swiss_duplicated.get(values.dtype.name)
+    if duplicated_func is None:
+        duplicated_func = htable.duplicated
+    return duplicated_func(values, keep=keep, mask=mask)
 
 
 def mode(

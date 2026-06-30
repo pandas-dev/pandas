@@ -126,3 +126,6 @@ cdef class ObjectFactorizer(Factorizer):
                                        self.count, na_sentinel, na_value)
         self.count = len(self.uniques)
         return labels
+
+    def uniques_array(self) -> np.ndarray:
+        return self.uniques.to_array()

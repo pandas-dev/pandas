@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <new>

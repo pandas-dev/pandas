@@ -451,7 +451,7 @@ cdef class SwissFloat64Map(HashTable):
 def ismember_float64(const double[:] arr, const double[:] values) -> ndarray:
     """Return boolean array indicating membership of arr elements in values."""
     cdef:
-        Py_ssize_t n_arr = len(arr), n_values = len(values)
+        Py_ssize_t i, n_arr = len(arr), n_values = len(values)
         SwissTable[float64_t, size_t] table
         int ret = 0
         np_uint8_t[::1] result_view
@@ -465,13 +465,23 @@ def ismember_float64(const double[:] arr, const double[:] values) -> ndarray:
 
     # Build set from values (key-only, no value storage needed)
     with nogil:
-        ret = table.build_set(&values[0], <size_t>n_values)
+        if n_values > 0 and values.strides[0] == sizeof(float64_t):
+            ret = table.build_set(&values[0], <size_t>n_values)
+        else:
+            for i in range(n_values):
+                ret = table.insert_key_only(values[i])
+                if ret == -1:
+                    break
     if ret == -1:
         raise MemoryError("Failed to insert into Swiss table")
 
     # Check membership using batch contains
     with nogil:
-        table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+        if n_arr > 0 and arr.strides[0] == sizeof(float64_t):
+            table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+        else:
+            for i in range(n_arr):
+                result_view[i] = table.contains(arr[i])
 
     return result.view(np.bool_)
 
@@ -1048,7 +1058,7 @@ cdef class SwissFloat32Map(HashTable):
 def ismember_float32(const float[:] arr, const float[:] values) -> ndarray:
     """Return boolean array indicating membership of arr elements in values."""
     cdef:
-        Py_ssize_t n_arr = len(arr), n_values = len(values)
+        Py_ssize_t i, n_arr = len(arr), n_values = len(values)
         SwissTable[float32_t, size_t] table
         int ret = 0
         np_uint8_t[::1] result_view
@@ -1062,13 +1072,23 @@ def ismember_float32(const float[:] arr, const float[:] values) -> ndarray:
 
     # Build set from values (key-only, no value storage needed)
     with nogil:
-        ret = table.build_set(&values[0], <size_t>n_values)
+        if n_values > 0 and values.strides[0] == sizeof(float32_t):
+            ret = table.build_set(&values[0], <size_t>n_values)
+        else:
+            for i in range(n_values):
+                ret = table.insert_key_only(values[i])
+                if ret == -1:
+                    break
     if ret == -1:
         raise MemoryError("Failed to insert into Swiss table")
 
     # Check membership using batch contains
     with nogil:
-        table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+        if n_arr > 0 and arr.strides[0] == sizeof(float32_t):
+            table.contains_batch(&arr[0], <size_t>n_arr, &result_view[0])
+        else:
+            for i in range(n_arr):
+                result_view[i] = table.contains(arr[i])
 
     return result.view(np.bool_)
 
@@ -1674,8 +1694,9 @@ def ismember_complex64(
 ) -> ndarray:
     """Return boolean array indicating membership of arr elements in values."""
     cdef:
-        Py_ssize_t n_arr = len(arr), n_values = len(values)
+        Py_ssize_t i, n_arr = len(arr), n_values = len(values)
         SwissTable[swiss_complex64_t, size_t] table
+        swiss_complex64_t val
         int ret = 0
         np_uint8_t[::1] result_view
 
@@ -1688,13 +1709,31 @@ def ismember_complex64(
 
     # Build set from values (key-only, no value storage needed)
     with nogil:
-        ret = table.build_set(<swiss_complex64_t*>&values[0], <size_t>n_values)
+        if n_values > 0 and values.strides[0] == sizeof(swiss_complex64_t):
+            ret = table.build_set(
+                <swiss_complex64_t*>&values[0], <size_t>n_values
+            )
+        else:
+            for i in range(n_values):
+                val.real = values[i].real
+                val.imag = values[i].imag
+                ret = table.insert_key_only(val)
+                if ret == -1:
+                    break
     if ret == -1:
         raise MemoryError("Failed to insert into Swiss table")
 
     # Check membership using batch contains
     with nogil:
-        table.contains_batch(<swiss_complex64_t*>&arr[0], <size_t>n_arr, &result_view[0])
+        if n_arr > 0 and arr.strides[0] == sizeof(swiss_complex64_t):
+            table.contains_batch(
+                <swiss_complex64_t*>&arr[0], <size_t>n_arr, &result_view[0]
+            )
+        else:
+            for i in range(n_arr):
+                val.real = arr[i].real
+                val.imag = arr[i].imag
+                result_view[i] = table.contains(val)
 
     return result.view(np.bool_)
 
@@ -2300,8 +2339,9 @@ def ismember_complex128(
 ) -> ndarray:
     """Return boolean array indicating membership of arr elements in values."""
     cdef:
-        Py_ssize_t n_arr = len(arr), n_values = len(values)
+        Py_ssize_t i, n_arr = len(arr), n_values = len(values)
         SwissTable[swiss_complex128_t, size_t] table
+        swiss_complex128_t val
         int ret = 0
         np_uint8_t[::1] result_view
 
@@ -2314,13 +2354,31 @@ def ismember_complex128(
 
     # Build set from values (key-only, no value storage needed)
     with nogil:
-        ret = table.build_set(<swiss_complex128_t*>&values[0], <size_t>n_values)
+        if n_values > 0 and values.strides[0] == sizeof(swiss_complex128_t):
+            ret = table.build_set(
+                <swiss_complex128_t*>&values[0], <size_t>n_values
+            )
+        else:
+            for i in range(n_values):
+                val.real = values[i].real
+                val.imag = values[i].imag
+                ret = table.insert_key_only(val)
+                if ret == -1:
+                    break
     if ret == -1:
         raise MemoryError("Failed to insert into Swiss table")
 
     # Check membership using batch contains
     with nogil:
-        table.contains_batch(<swiss_complex128_t*>&arr[0], <size_t>n_arr, &result_view[0])
+        if n_arr > 0 and arr.strides[0] == sizeof(swiss_complex128_t):
+            table.contains_batch(
+                <swiss_complex128_t*>&arr[0], <size_t>n_arr, &result_view[0]
+            )
+        else:
+            for i in range(n_arr):
+                val.real = arr[i].real
+                val.imag = arr[i].imag
+                result_view[i] = table.contains(val)
 
     return result.view(np.bool_)
 

@@ -953,6 +953,9 @@ cdef class {{name}}Factorizer(Factorizer):
         self.count = len(self.uniques)
         return labels
 
+    def uniques_array(self) -> np.ndarray:
+        return self.uniques.to_array()
+
     def hash_inner_join(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> tuple[np.ndarray, np.ndarray]:
         return self.table.hash_inner_join(values, mask)
 

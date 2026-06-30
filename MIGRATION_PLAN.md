@@ -194,13 +194,33 @@ choosing an entire side.
   `12c293f745`, `8c1c10d14f`, `7d2d23951e`, `4423bd227e`,
   `a985978612`, `56996122c8`, and `108a06f167`.
 - Prior pandas 3.0.3 port: `f6d861f8a6`.
-- pandas 3.0.1 result: the prior port applies cleanly because the
-  extension is additive and its four Python integration files retain
-  compatible APIs.
+- Initial pandas 3.0.1 result: the prior port applied without textual
+  conflicts, but a runtime reachability audit found that this was not
+  sufficient to complete the migration.
 - Compatibility checks cover the generated integer maps/factorizers,
   explicit float/complex implementations, `.pxd` declarations, C++17
   Meson target, `compute.use_swisstable`, factorize/unique/safe_sort,
   and merge factorizer selection.
+- Runtime audit result:
+  - `isin`, `duplicated`, and `value_counts_arraylike` still called
+    khash even when `compute.use_swisstable=True`; they now dispatch to
+    the matching numeric SwissTable helpers.
+  - pandas 3.0.1 merge passes `uses_mask` to Factorizers and requires
+    `hash_inner_join`; both interfaces were absent from the prior port.
+  - the original `uniques_array` abstraction was omitted from the
+    normal pandas Factorizers and merge still accessed
+    `rizer.uniques.to_array()` directly; the exported abstraction is
+    now restored for both khash and SwissTable Factorizers.
+  - integer, float, and complex `ismember` helpers now handle empty and
+    non-contiguous arrays without passing strided storage to contiguous
+    batch routines.
+  - the C++ header now includes the standard headers required by MSVC,
+    and integer special methods accept the full `uint64` key range.
+- Export discrepancy: the final C++ implementation removed the early C
+  prototype's `delete`, `clear`, and `load_factor` Python APIs, but
+  `test_swisstable.py` retained assertions for them. These stale tests
+  are strict xfails; no incomplete tombstone deletion support is
+  reintroduced.
 - The later `ee85531203` change is not part of this batch: despite its
   subject, its diff only restructures `pad_inplace` returns inside a
   pandas 3.0.3 `nogil` block. The pandas 3.0.1 adaptation deliberately

@@ -2,6 +2,13 @@ from pathlib import Path
 
 
 ROOT_MESON_BUILD = Path(__file__).parents[2] / "meson.build"
+SWISSTABLE_HEADER = (
+    Path(__file__).parents[2]
+    / "pandas"
+    / "_libs"
+    / "swisstable"
+    / "swisstable_class.hpp"
+)
 
 
 def test_cython_type_specs_enabled_for_c_and_cpp() -> None:
@@ -12,3 +19,10 @@ def test_cython_type_specs_enabled_for_c_and_cpp() -> None:
         "'-DCYTHON_USE_TYPE_SPECS=1', language: ['c', 'cpp'])"
     )
     assert expected in meson_build
+
+
+def test_swisstable_header_includes_standard_algorithms() -> None:
+    header = SWISSTABLE_HEADER.read_text(encoding="utf-8")
+
+    assert "#include <algorithm>" in header
+    assert "#include <cmath>" in header

@@ -1655,9 +1655,9 @@ a88ecc892c PERF: port object dict fillna to pandas 3.0.1
     exact reported `TypeError`;
   - a wheel built with the C/C++ definition imported successfully, and
     both `HashTable` and `SwissUInt64Map` had `Py_TPFLAGS_HEAPTYPE`.
-- The local MSVC build required temporary `<algorithm>` and `<cmath>`
-  includes for an independent pre-existing header portability issue;
-  those temporary changes were removed and are not part of this fix.
+- The local MSVC build exposed missing direct `<algorithm>` and
+  `<cmath>` includes in the SwissTable header. They are now part of the
+  portability fix and guarded by a Meson source check.
 - The focused build-config tests passed (`6 passed`). The broader
   `scripts/tests` suite was not clean in this environment: collection
   requires unavailable `matplotlib`; excluding that file produced
@@ -1665,3 +1665,76 @@ a88ecc892c PERF: port object dict fillna to pandas 3.0.1
   Python 3.14 tokenizer expectation differences.
 - Full ASV was not run. Re-run `asv run HEAD^..HEAD` on the affected
   Linux server after clearing or recreating its ASV environment.
+
+## Post-migration validation: SwissTable runtime reachability
+
+The earlier Batch 3 audit verified source presence but did not verify
+that public pandas operations reached the optimized helpers.
+
+Confirmed pre-fix failures:
+
+- Fresh-wheel probes showed `Series.isin`, `Series.duplicated`, and
+  `Series.value_counts` reaching khash with
+  `compute.use_swisstable=True`.
+- Numeric merge raised
+  `TypeError: __cinit__() got an unexpected keyword argument
+  'uses_mask'`.
+- After constructor compatibility, pandas 3.0.1 also required the
+  missing `hash_inner_join` method and a common `uniques_array`
+  Factorizer interface.
+- Non-contiguous integer, float, and complex membership inputs produced
+  incorrect results because batch helpers treated strided memory as
+  contiguous.
+
+Source reconciliation:
+
+- Export commit `56996122c8` added `uniques_array` to khash
+  Factorizers and changed merge to consume it. Those changes were
+  present in the final pandas 2.x private tree but absent from the
+  pandas 3.0.1 port.
+- Export commit `a985978612` guarded most strided SwissTable batch
+  paths, but did not cover the standalone membership helpers now
+  reached by public dispatch.
+- The final exported C++ source has no tombstone deletion method,
+  despite retained tests from the earlier C prototype. Eleven mutation
+  API assertions are strict xfails rather than unsupported production
+  code.
+
+Executed:
+
+- Built a CPython 3.14 wheel through isolated PEP 517 compilation with
+  Cython 3.3.0 and MSVC.
+- Focused red tests before the fix:
+  `5 failed` for public dispatch/merge and `4 failed, 1 passed` for
+  representative non-contiguous membership helpers.
+- Focused green tests after the fix:
+  `25 passed` in `test_swisstable_dispatch.py`.
+- Combined low-level and dispatch tests:
+  `116 passed, 11 xfailed`.
+- Selected existing pandas numeric `isin`, `duplicated`, and
+  `value_counts` tests:
+  `13 passed`.
+- `python -m compileall -q pandas/core/algorithms.py
+  pandas/core/reshape/merge.py`.
+- `git diff --check`.
+
+Not executed or incomplete:
+
+- Full ASV was not run in this environment.
+- Running packaged pandas test files with their conftest is blocked by
+  missing `hypothesis`.
+- Copying broad test files outside conftest exposed an unrelated
+  CPython 3.14 access violation in pandas 3.0.1 datetime range
+  construction, so the full merge and Series method files were not
+  completed.
+
+Follow-up ASV:
+
+- `swisstable.SwissTableIsin`
+- `swisstable.SwissTableIsinMisses`
+- `swisstable.SwissTableDuplicated`
+- `swisstable.SwissTableValueCounts`
+- `swisstable.SwissTableFloat64NaN`
+- `swisstable.SwissTableComplex`
+- Numeric inner/left merge benchmarks with `sort=False` and
+  `sort=True`, including nullable integer keys.
