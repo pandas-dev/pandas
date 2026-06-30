@@ -26,10 +26,14 @@ from pandas._libs.tslibs import (
     Timestamp,
     astype_overflowsafe,
     get_supported_dtype,
+    iNaT,
     is_supported_dtype,
     timezones as libtimezones,
 )
-from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas._libs.tslibs.conversion import (
+    cast_from_unit_vectorized,
+    datetime_from_fields,
+)
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -1265,17 +1269,121 @@ def _assemble_from_unit_mappings(
             values = values.astype("int64")
         return values
 
-    values = (
-        coerce(arg[unit_rev["year"]]) * 10000
-        + coerce(arg[unit_rev["month"]]) * 100
-        + coerce(arg[unit_rev["day"]])
-    )
-    try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
-    except (TypeError, ValueError) as err:
-        raise ValueError(f"cannot assemble the datetimes: {err}") from err
+    # Convert field values to int64 arrays, tracking NaN positions
+    # (NaN arises when errors="coerce" and a value can't be parsed)
+    nan_mask = np.zeros(len(arg), dtype=bool)
 
-    units: list[UnitChoices] = ["h", "m", "s", "ms", "us", "ns"]
+    field_spec = [
+        ("year", 2000),
+        ("month", 1),
+        ("day", 1),
+        ("h", 0),
+        ("m", 0),
+        ("s", 0),
+    ]
+    field_arrs = []
+    # hour/minute/second columns with fractional values; added via
+    #  to_timedelta below
+    frac_units: list[tuple[UnitChoices, AnyArrayLike]] = []
+    for field, default in field_spec:
+        col_name = unit_rev.get(field)
+        if col_name is None:
+            field_arrs.append(np.zeros(len(arg), dtype=np.int64))
+            continue
+        vals = coerce(arg[col_name])
+        arr = np.asarray(vals)
+        if not is_float_dtype(arr.dtype):
+            field_arrs.append(arr.astype(np.int64, copy=False))
+            continue
+        isnan = np.isnan(arr)
+        fractional = (~isnan) & (arr != np.floor(arr))
+        if fractional.any():
+            if field in ("h", "m", "s"):
+                # Fractional hours/minutes/seconds are meaningful
+                #  (e.g. hour=1.5 -> 01:30); handle through to_timedelta
+                frac_units.append((cast("UnitChoices", field), vals))
+                field_arrs.append(np.zeros(len(arg), dtype=np.int64))
+                continue
+            if errors == "raise":
+                raise ValueError(
+                    f"cannot assemble the datetimes: column {col_name!r} "
+                    f"contains fractional values"
+                )
+        # +/-inf and values beyond int64 range cannot be cast meaningfully
+        out_of_range = (arr >= 2**63) | (arr < -(2**63))
+        if out_of_range.any() and errors == "raise":
+            raise ValueError(
+                f"cannot assemble the datetimes: column {col_name!r} "
+                f"contains out-of-bounds values"
+            )
+        bad = isnan | fractional | out_of_range
+        if bad.any():
+            nan_mask[bad] = True
+            arr = np.where(bad, default, arr)
+        field_arrs.append(arr.astype(np.int64))
+
+    # Construct datetime64[us] directly from fields, avoiding the
+    # object-dtype round-trip through format="%Y%m%d" string parsing.
+    # Replace NaN-masked entries with valid placeholders; the Cython
+    # function writes iNaT for invalid or out-of-bounds dates.
+    if nan_mask.any():
+        for idx, (_, default) in enumerate(field_spec):
+            field_arrs[idx] = np.where(nan_mask, default, field_arrs[idx])
+
+    year_arr, month_arr, day_arr, hour_arr, minute_arr, second_arr = field_arrs
+
+    usecs, first_invalid = datetime_from_fields(
+        year_arr,
+        month_arr,
+        day_arr,
+        hour_arr,
+        minute_arr,
+        second_arr,
+    )
+    if first_invalid >= 0 and errors == "raise":
+        bad_val = (
+            f"{year_arr[first_invalid]}-{month_arr[first_invalid]:02d}"
+            f"-{day_arr[first_invalid]:02d}"
+        )
+        if (
+            hour_arr[first_invalid]
+            or minute_arr[first_invalid]
+            or second_arr[first_invalid]
+        ):
+            bad_val += (
+                f" {hour_arr[first_invalid]:02d}:{minute_arr[first_invalid]:02d}"
+                f":{second_arr[first_invalid]:02d}"
+            )
+        raise ValueError(
+            f'cannot assemble the datetimes: invalid or out-of-bounds date "{bad_val}"'
+        )
+    # errors="coerce": invalid entries already have iNaT from Cython
+    if nan_mask.any():
+        usecs[nan_mask] = iNaT
+
+    dt64_values = usecs.view("M8[us]")
+
+    from pandas import Series
+
+    if utc:
+        dta = DatetimeArray._simple_new(
+            dt64_values, dtype=DatetimeTZDtype(tz="UTC", unit="us")
+        )
+        values = Series(dta, index=arg.index, copy=False)
+    else:
+        values = Series(dt64_values, index=arg.index, copy=False)
+
+    # Add fractional hour/minute/second columns as timedeltas
+    for u, vals in frac_units:
+        try:
+            values += to_timedelta(vals, unit=u, errors=errors)
+        except (TypeError, ValueError) as err:
+            raise ValueError(
+                f"cannot assemble the datetimes [{unit_rev[u]}]: {err}"
+            ) from err
+
+    # Add sub-second components as timedeltas
+    units: list[UnitChoices] = ["ms", "us", "ns"]
     for u in units:
         value = unit_rev.get(u)
         if value is not None and value in arg:

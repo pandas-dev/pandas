@@ -40,6 +40,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
@@ -2222,8 +2223,8 @@ class TestToDatetimeDataFrame:
         df2 = DataFrame({"year": [2015, 2016], "month": [2, 20], "day": [4, 5]})
 
         msg = (
-            r'^cannot assemble the datetimes: time data ".+" doesn\'t '
-            r'match format "%Y%m%d"\.'
+            "^cannot assemble the datetimes: "
+            'invalid or out-of-bounds date "2016-20-05"$'
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df2, cache=cache)
@@ -2300,8 +2301,8 @@ class TestToDatetimeDataFrame:
         # float
         df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
         msg = (
-            r"^cannot assemble the datetimes: unconverted data remains when parsing "
-            r'with format ".*": "1".'
+            r"^cannot assemble the datetimes: column 'month' contains "
+            r"fractional values$"
         )
         with pytest.raises(ValueError, match=msg):
             to_datetime(df, cache=cache)
@@ -2313,6 +2314,153 @@ class TestToDatetimeDataFrame:
         expected = Series(
             np.array(["2015-02-04", "2016-03-05"], dtype="datetime64[us]")
         ).dt.tz_localize("UTC")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,expected_ts",
+        [
+            # Feb 29 in leap year (valid)
+            (
+                {"year": [2000], "month": [2], "day": [29]},
+                [Timestamp("2000-02-29")],
+            ),
+            # Feb 28 in non-leap year (valid)
+            (
+                {"year": [2001], "month": [2], "day": [28]},
+                [Timestamp("2001-02-28")],
+            ),
+        ],
+    )
+    def test_dataframe_leap_year_valid(self, data, expected_ts):
+        result = to_datetime(DataFrame(data))
+        expected = Series(expected_ts)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"year": [2001], "month": [2], "day": [29]},  # Feb 29 non-leap
+            {"year": [2020], "month": [4], "day": [31]},  # Apr 31
+            {"year": [2020], "month": [1], "day": [0]},  # day 0
+        ],
+    )
+    def test_dataframe_invalid_day_raises(self, data):
+        msg = r"cannot assemble the datetimes: invalid or out-of-bounds date"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(DataFrame(data))
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"year": [2001], "month": [2], "day": [29]},  # Feb 29 non-leap
+            {"year": [2020], "month": [4], "day": [31]},  # Apr 31
+        ],
+    )
+    def test_dataframe_invalid_day_coerce(self, data):
+        result = to_datetime(DataFrame(data), errors="coerce")
+        expected = Series([NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_fractional_float_coerce(self):
+        # Fractional float with errors="coerce" should produce NaT
+        df = DataFrame({"year": [2000, 2001], "month": [1.5, 1], "day": [1, 1]})
+        result = to_datetime(df, errors="coerce")
+        expected = Series([NaT, Timestamp("2001-01-01")])
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_empty(self):
+        # Empty DataFrame should produce empty Series
+        df = DataFrame({"year": [], "month": [], "day": []})
+        result = to_datetime(df)
+        expected = Series([], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_utc_with_time_fields(self):
+        df = DataFrame(
+            {
+                "year": [2020],
+                "month": [6],
+                "day": [15],
+                "hour": [12],
+                "minute": [30],
+                "second": [45],
+            }
+        )
+        result = to_datetime(df, utc=True)
+        expected = Series(
+            [Timestamp("2020-06-15 12:30:45")], dtype="datetime64[us, UTC]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "field,unit", [("hour", "h"), ("minute", "m"), ("second", "s")]
+    )
+    def test_dataframe_fractional_time_fields(self, field, unit):
+        # fractional hours/minutes/seconds are valid and interpreted as
+        #  timedeltas, e.g. hour=1.5 -> 01:30:00
+        df = DataFrame({"year": [2000, 2000], "month": [1, 1], "day": [1, 1]})
+        df[field] = [1.5, np.nan]
+        result = to_datetime(df)
+        expected = Series(
+            [Timestamp("2000-01-01") + Timedelta(1.5, unit=unit), NaT],
+            dtype="datetime64[ns]",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_year_outside_4_digits(self):
+        # years outside the range 1000-9999 previously raised because the
+        #  fields went through "%Y%m%d" string parsing
+        df = DataFrame({"year": [99, 12345], "month": [1, 6], "day": [2, 15]})
+        result = to_datetime(df)
+        expected = Series(
+            np.array(["0099-01-02", "12345-06-15"], dtype="datetime64[us]")
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_year_out_of_bounds_raises(self):
+        # year too large for datetime64[us]
+        df = DataFrame({"year": [2000, 3_000_000], "month": [1, 1], "day": [1, 1]})
+        msg = (
+            "cannot assemble the datetimes: "
+            'invalid or out-of-bounds date "3000000-01-01"'
+        )
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+    def test_dataframe_year_out_of_bounds_coerce(self):
+        df = DataFrame({"year": [2000, 3_000_000], "month": [1, 1], "day": [1, 1]})
+        result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
+        tm.assert_series_equal(result, expected)
+
+    def test_dataframe_hour_outside_int32(self):
+        # hour values outside int32 range must not wrap silently
+        df = DataFrame(
+            {"year": [2000, 2000], "month": [1, 1], "day": [1, 1], "hour": [1, 2**32]}
+        )
+        msg = "cannot assemble the datetimes: invalid or out-of-bounds date"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(df)
+
+        result = to_datetime(df, errors="coerce")
+        expected = Series(
+            [Timestamp("2000-01-01 01:00:00"), NaT], dtype="datetime64[us]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("col,base_val", [("year", 2000.0), ("hour", 0.0)])
+    def test_dataframe_infinite_float(self, col, base_val):
+        # +/-inf cannot be cast to int64; previously produced garbage values
+        df = DataFrame({"year": [2000.0, 2000.0], "month": [1, 1], "day": [1, 1]})
+        df[col] = [base_val, np.inf]
+        msg = f"cannot assemble the datetimes: column '{col}' contains out-of-bounds"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(None):
+                to_datetime(df)
+
+        with tm.assert_produces_warning(None):
+            result = to_datetime(df, errors="coerce")
+        expected = Series([Timestamp("2000-01-01"), NaT], dtype="datetime64[us]")
         tm.assert_series_equal(result, expected)
 
 
@@ -3327,7 +3475,7 @@ class TestOrigin:
             max(reso_order.index(origin_unit), reso_order.index(unit_reso))
         ]
         expected = Series(
-            [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
+            [Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
             dtype=f"M8[{exp_unit}]",
         )
 

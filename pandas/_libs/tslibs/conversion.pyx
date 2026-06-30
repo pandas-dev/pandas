@@ -4,6 +4,11 @@ import numpy as np
 
 cimport numpy as cnp
 from libc.math cimport log10
+from libc.stdint cimport (
+    INT32_MAX,
+    INT32_MIN,
+)
+from libc.string cimport memset
 from numpy cimport (
     PyDatetimeScalarObject,
     int32_t,
@@ -29,6 +34,7 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
+from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
@@ -310,6 +316,81 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
             ) from err
 
     return ival
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def datetime_from_fields(
+    const int64_t[:] years,
+    const int64_t[:] months,
+    const int64_t[:] days,
+    const int64_t[:] hours,
+    const int64_t[:] minutes,
+    const int64_t[:] seconds,
+):
+    """
+    Construct datetime64[us] values from arrays of date/time fields.
+
+    Entries with an invalid month/day, an hour/minute/second outside int32
+    range, or an out-of-bounds datetime get NPY_NAT.
+
+    Parameters
+    ----------
+    years, months, days, hours, minutes, seconds : int64 arrays
+
+    Returns
+    -------
+    (ndarray[int64], int)
+        The datetime64[us] values (as int64), and the index of the first
+        invalid entry (-1 if all entries are valid).
+    """
+    cdef:
+        Py_ssize_t i, n = len(years)
+        int64_t[::1] result = np.empty(n, dtype="i8")
+        npy_datetimestruct dts
+        int64_t month, day, hour, minute, second
+        Py_ssize_t first_invalid = -1
+
+    memset(&dts, 0, sizeof(npy_datetimestruct))
+
+    for i in range(n):
+        month = months[i]
+        day = days[i]
+        hour = hours[i]
+        minute = minutes[i]
+        second = seconds[i]
+        # The cast to C int can wrap for |year| > 2**31, but any such year
+        #  raises OverflowError below regardless of the leap-year check.
+        # hour/min/sec land in int32 npy_datetimestruct fields, so values
+        #  outside int32 range would silently wrap; treat them as invalid.
+        if (
+            month < 1
+            or month > 12
+            or day < 1
+            or day > get_days_in_month(<int>years[i], month)
+            or not (INT32_MIN <= hour <= INT32_MAX)
+            or not (INT32_MIN <= minute <= INT32_MAX)
+            or not (INT32_MIN <= second <= INT32_MAX)
+        ):
+            result[i] = NPY_NAT
+            if first_invalid == -1:
+                first_invalid = i
+            continue
+
+        dts.year = years[i]
+        dts.month = month
+        dts.day = day
+        dts.hour = hour
+        dts.min = minute
+        dts.sec = second
+        try:
+            result[i] = npy_datetimestruct_to_datetime(NPY_FR_us, &dts)
+        except OverflowError:
+            result[i] = NPY_NAT
+            if first_invalid == -1:
+                first_invalid = i
+
+    return result.base, first_invalid
 
 
 # ----------------------------------------------------------------------
