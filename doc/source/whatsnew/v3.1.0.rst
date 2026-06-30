@@ -302,12 +302,14 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :class:`DataFrame` constructor raising ``TypeError`` when given a list whose first element is a list-like dataclass (e.g. a :class:`collections.UserList` subclass); such elements are now treated as list-like rows (:issue:`41682`)
 - Bug in :class:`DataFrame` constructor where ``NaT`` in a :class:`TimedeltaIndex` row was incorrectly inferred as ``datetime64`` instead of ``timedelta64`` (:issue:`23985`)
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`)
 - Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
+- Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 
 Strings
 ^^^^^^^
@@ -364,6 +366,7 @@ MultiIndex
 - Bug in :class:`MultiIndex` where pickling a :class:`DataFrame` with a ``datetime64[ns]`` level raised ``NotImplementedError`` (:issue:`63078`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`MultiIndex.get_loc` where looking up a tuple key containing a scalar inside an :class:`IntervalIndex` level with overlapping intervals raised ``KeyError`` or returned incorrect results (:issue:`27456`)
+- Bug in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` raising ``IndexError`` instead of a clear ``ValueError`` when passing an empty sequence with ``level=None`` or a list-like ``level`` (:issue:`16147`)
 - Bug in :meth:`MultiIndex.sortlevel` not raising ``TypeError`` when sorting a level with incomparable types (e.g., ``Timestamp`` and ``str``) (:issue:`21136`)
 
 I/O
@@ -441,6 +444,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.sum`, :meth:`.Rolling.mean`, :meth:`.Rolling.median`, :meth:`.Rolling.min`, and :meth:`.Rolling.max` with ``method="table"``, ``engine="numba"``, and ``engine_kwargs={"parallel": True}`` could cause a segfault (:issue:`40454`)
 - Bug in :meth:`.SeriesGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`65140`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
+- Bug in :meth:`DataFrame.resample` dropping the result index name when resampling ``on`` a column with a pyarrow-backed datetime or duration dtype (:issue:`59823`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` where same-frequency resampling with monthly, quarterly, or annual frequencies bypassed aggregation, returning the original values instead of the aggregation result (:issue:`18553`)
 
 Reshaping
@@ -459,8 +463,10 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.mean` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
+- Bug in :meth:`Series.sum`, :meth:`Series.min`, and :meth:`Series.max` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
 - Bug in :meth:`SparseArray.astype` where converting a datetime64 :class:`SparseArray` with ``NaT`` fill value to ``"Sparse[int64]"`` silently replaced the fill value with ``0`` instead of ``iNaT`` (:issue:`49631`)
 - Bug in :meth:`SparseArray.mean` raising a ``TypeError`` when called with the ``skipna`` argument (:issue:`65478`)
+- Bug in :meth:`SparseArray.sum` with ``skipna=False`` returning ``NA`` for a non-null ``fill_value`` and ignoring missing values under a null ``fill_value`` (:issue:`65478`)
 - Bug in indexing a :class:`SparseArray` with an out-of-bounds integer with the value of the length of the array returning the fill value instead of raising an ``IndexError`` (:issue:`64183`).
 
 ExtensionArray

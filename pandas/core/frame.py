@@ -599,7 +599,9 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     data = list(data)
             if len(data) > 0:
-                if is_dataclass(data[0]):
+                if is_dataclass(data[0]) and not is_list_like(data[0]):
+                    # GH#41682 a list-like dataclass (e.g. a UserList subclass)
+                    # is treated as list-like, not converted to a dict of fields
                     data = dataclasses_to_dicts(data)
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
@@ -8029,7 +8031,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting duplicate rows.
 
-        Considering certain columns is optional.
+        Rows are considered duplicated when the same values appear more than
+        once across the requested columns. Considering certain columns is
+        optional.
 
         Parameters
         ----------
@@ -8046,7 +8050,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Boolean series for each duplicated rows.
+            Boolean Series indicating whether each row is a duplicated row
+            according to ``keep``.
 
         See Also
         --------
@@ -15447,11 +15452,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         All columns regardless of dtype.
 
-        >>> df.describe(include="all")  # doctest: +SKIP
+        >>> df.describe(include="all")
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      a
+        top              d      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -15472,11 +15477,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Exclude a specific dtype.
 
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])
                categorical object
         count            3      3
         unique           3      3
-        top              f      a
+        top              d      a
         freq             1      1
         """
         return super().describe(

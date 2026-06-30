@@ -7825,6 +7825,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if not (
             is_scalar(to_replace)
+            or to_replace is Ellipsis  # GH#50373
             or is_re_compilable(to_replace)
             or is_list_like(to_replace)
         ):
