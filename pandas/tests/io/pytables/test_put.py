@@ -7,6 +7,7 @@ from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
 from pandas import (
+    Categorical,
     DataFrame,
     HDFStore,
     Index,
@@ -124,6 +125,57 @@ def test_put(temp_hdfstore):
     tm.assert_frame_equal(df[:10], store["c"])
 
 
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_put_preserves_nested_keys(temp_hdfstore, format):
+    # GH#17267 writing to a key must not delete keys nested beneath it
+    store = temp_hdfstore
+    child = Series(np.arange(20, dtype=np.float64))
+    parent = Series(np.arange(10, dtype=np.float64))
+
+    store.put("All/atest", child, format=format, track_times=False)
+    store.put("All", parent, format=format, track_times=False)
+
+    assert sorted(store.keys()) == ["/All", "/All/atest"]
+    tm.assert_series_equal(store["All"], parent)
+    tm.assert_series_equal(store["All/atest"], child)
+
+    # overwriting the parent again (now a real object with a nested key, and
+    # changing dtype/shape) still leaves the nested key untouched
+    new_parent = DataFrame({"a": range(3), "b": list("xyz")})
+    store.put("All", new_parent, format=format, track_times=False)
+
+    assert sorted(store.keys()) == ["/All", "/All/atest"]
+    tm.assert_frame_equal(store["All"], new_parent)
+    tm.assert_series_equal(store["All/atest"], child)
+
+
+@pytest.mark.parametrize("nested_key", [True, False])
+def test_put_overwrite_categorical_table(temp_hdfstore, nested_key):
+    # GH#17267 a table-format categorical stores its categories in a "meta"
+    # subgroup; overwriting must replace it, not preserve it as a nested key
+    store = temp_hdfstore
+    child = Series(np.arange(3, dtype=np.float64))
+    if nested_key:
+        store.put("All/atest", child, format="table", track_times=False)
+
+    df1 = DataFrame({"a": Categorical(["x", "y", "x"])})
+    store.put("All", df1, format="table", track_times=False)
+    df2 = DataFrame({"a": Categorical(["p", "q", "p"])})
+    store.put("All", df2, format="table", track_times=False)
+
+    tm.assert_frame_equal(store["All"], df2)
+    if nested_key:
+        tm.assert_series_equal(store["All/atest"], child)
+
+    # overwriting with a non-categorical object removes the stale metadata
+    df3 = DataFrame({"b": range(3)})
+    store.put("All", df3, format="table", track_times=False)
+
+    tm.assert_frame_equal(store["All"], df3)
+    expected = ["/All", "/All/atest"] if nested_key else ["/All"]
+    assert sorted(store.keys()) == expected
+
+
 def test_put_string_index(temp_hdfstore):
     store = temp_hdfstore
     index = Index([f"I am a very long string index: {i}" for i in range(20)])
@@ -217,6 +269,20 @@ def test_put_mixed_type(temp_hdfstore, performance_warning, using_infer_string):
 
     expected = temp_hdfstore.get("df")
     tm.assert_frame_equal(expected, df)
+
+
+def test_put_mixed_object_block_warns_only_non_string_columns(temp_hdfstore):
+    # GH#28460 when several object columns are consolidated into one block,
+    #  the PerformanceWarning must name only the columns that are not plain
+    #  strings; a string-only column would not warn on its own.
+    df = DataFrame(
+        {"string": ["a", "b"], "number": [1.0, 2.0], "mix": ["a", 2.0]}
+    ).astype({"string": object, "mix": object})
+
+    with tm.assert_produces_warning(
+        pd.errors.PerformanceWarning, match=r"items->Index\(\['mix'\]"
+    ):
+        temp_hdfstore.put("df", df, track_times=False)
 
 
 def test_put_str_frame(temp_hdfstore, performance_warning, string_dtype_arguments):
@@ -407,3 +473,45 @@ def test_store_periodindex(temp_h5_path, format):
     df.to_hdf(temp_h5_path, key="df", mode="w", format=format)
     expected = pd.read_hdf(temp_h5_path, "df")
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_period_values_series(temp_hdfstore, format):
+    # GH#41978 storing a Series whose values are a PeriodArray
+    series = Series(
+        pd.period_range("2020-01", periods=12, freq="M"),
+        name="p",
+    )
+    temp_hdfstore.put("s", series, format=format, track_times=False)
+    result = temp_hdfstore.select("s")
+    tm.assert_series_equal(result, series)
+
+
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_period_values_with_nat(temp_hdfstore, format):
+    # GH#41978 NaT round-trips for PeriodArray values
+    arr = pd.array(["2020-01", "NaT", "2020-03"], dtype="period[M]")
+    series = Series(arr, name="p")
+    temp_hdfstore.put("s", series, format=format, track_times=False)
+    result = temp_hdfstore.select("s")
+    tm.assert_series_equal(result, series)
+
+
+@pytest.mark.parametrize("format", ["fixed", "table"])
+def test_store_period_values_dataframe_mixed_freq(temp_hdfstore, format):
+    # GH#41978 multiple Period columns with different freqs
+    pi = pd.period_range("2020-01", periods=6, freq="M")
+    df = DataFrame({"a": pi, "b": pi.asfreq("D")})
+    temp_hdfstore.put("df", df, format=format, track_times=False)
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, df)
+
+
+def test_append_period_values_table(temp_hdfstore):
+    # GH#41978 appending PeriodArray-valued frames to table format
+    series = Series(pd.period_range("2020-01", periods=4, freq="M"), name="p")
+    temp_hdfstore.append("s", series, format="table")
+    temp_hdfstore.append("s", series, format="table")
+    result = temp_hdfstore.select("s")
+    expected = concat([series, series], ignore_index=True)
+    tm.assert_series_equal(result.reset_index(drop=True), expected)

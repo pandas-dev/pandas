@@ -16,7 +16,7 @@ from pandas.util.version import Version
 if TYPE_CHECKING:
     import types
 
-# Update install.rst, actions-311-minimum_versions.yaml,
+# Update install.rst, pixi.toml,
 # deps_minimum.toml & pyproject.toml when updating versions!
 
 VERSIONS = {
@@ -152,7 +152,8 @@ def import_optional_dependency(
 
     msg = (
         f"`Import {install_name}` failed. {extra} "
-        f"Use pip or conda to install the {install_name} package."
+        f"Use pip, conda, or your preferred package management tool "
+        f"to install the {install_name} package."
     )
     try:
         module = importlib.import_module(name)

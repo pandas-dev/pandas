@@ -115,13 +115,16 @@ def _test_parse_iso8601(ts: str):
 
 
 _STRFTIME_FORMAT_MAP = {
-    "%Y": "{0}",
+    # %Y is zero-padded to a minimum of 4 digits to match datetime.strftime
+    #  (and Timestamp.strftime) for years < 1000; see GH#58179.
+    "%Y": "{0:04d}",
     "%m": "{1:02d}",
     "%d": "{2:02d}",
     "%H": "{3:02d}",
     "%M": "{4:02d}",
     "%S": "{5:02d}",
     "%f": "{6:06d}",
+    "%N": "{7:09d}",
     "%%": "%",
 }
 
@@ -229,6 +232,11 @@ def format_array_from_datetime(
             basic_format = show_us = True
             show_ns = show_ms = False
 
+        elif format == "%Y-%m-%d %H:%M:%S.%N":
+            # Same format as default, but with hardcoded precision (ns)
+            basic_format = show_ns = True
+            show_us = show_ms = False
+
         elif format == "%Y-%m-%d":
             # Default format for dates
             basic_format_day = True
@@ -275,6 +283,7 @@ def format_array_from_datetime(
             res = fmt_template.format(
                 dts.year, dts.month, dts.day,
                 dts.hour, dts.min, dts.sec, dts.us,
+                dts.us * 1000 + dts.ps // 1000,
             )
 
         else:

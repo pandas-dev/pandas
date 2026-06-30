@@ -463,7 +463,7 @@ class _Unstacker:
         # construct the new index
         if len(self.new_index_levels) == 1:
             level, level_codes = self.new_index_levels[0], result_codes[0]
-            if (level_codes == -1).any():
+            if lib.has_sentinel(level_codes, -1):
                 level = level.insert(len(level), level._na_value)
             return level.take(level_codes).rename(self.new_index_names[0])
 

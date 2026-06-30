@@ -138,6 +138,20 @@ class TestDataFrameDescribe:
         assert np.isnan(result.iloc[2, 0])
         assert np.isnan(result.iloc[3, 0])
 
+    def test_describe_categorical_object_tie_is_deterministic(self):
+        # GH#32528 when every value is unique, "top" must be deterministic
+        # (first occurrence) rather than depend on hashtable iteration order
+        df = DataFrame(
+            {
+                "categorical": Categorical(["d", "e", "f"]),
+                "numeric": [1, 2, 3],
+                "object": ["a", "b", "c"],
+            }
+        )
+        result = df.describe(include="all")
+        assert result.loc["top", "categorical"] == "d"
+        assert result.loc["top", "object"] == "a"
+
     def test_describe_categorical_columns(self):
         # GH#11558
         columns = pd.CategoricalIndex(["int1", "int2", "obj"], ordered=True, name="XXX")
@@ -352,12 +366,14 @@ class TestDataFrameDescribe:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_describe_raises_for_dictlike_elements(self):
+    def test_describe_does_not_raise_error_for_dictlike_elements(self):
         # GH#32409
-        # GH#20285 - unhashable elements in Index are rejected
         df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
-        with pytest.raises(TypeError, match="unhashable type"):
-            df.describe()
+        expected = DataFrame(
+            {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
+        )
+        result = df.describe()
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])
     def test_describe_when_include_all_exclude_not_allowed(self, exclude):

@@ -2305,6 +2305,9 @@ class Timestamp(_Timestamp):
         format string, using the same directives as the standard library's
         :meth:`datetime.datetime.strftime`.
 
+        In addition to the standard directives, ``%N`` is supported to format
+        the nanoseconds as a 9-digit zero-padded number.
+
         Parameters
         ----------
         format : str
@@ -2323,7 +2326,22 @@ class Timestamp(_Timestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> ts.strftime('%Y-%m-%d %X')
         '2020-03-14 15:32:52'
+
+        Use ``%N`` to format nanoseconds:
+
+        >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
+        '2020-03-14T15:32:52.192548651'
         """
+        # Handle %N (nanoseconds) before delegating to datetime.strftime.
+        # Replace %% with a placeholder first so that %%N is not misidentified.
+        nano_placeholder = "^`NS`^"
+        pct_placeholder = "^`PC`^"
+        fmt = format.replace("%%", pct_placeholder)
+        has_nano = "%N" in fmt
+        if has_nano:
+            fmt = fmt.replace("%N", nano_placeholder)
+        fmt = fmt.replace(pct_placeholder, "%%")
+
         try:
             _dt = datetime(self._year, self.month, self.day,
                            self.hour, self.minute, self.second,
@@ -2335,7 +2353,13 @@ class Timestamp(_Timestamp):
                 "For now, please call the components you need (such as `.year` "
                 "and `.month`) and construct your string from there."
             ) from err
-        return _dt.strftime(format)
+        result = _dt.strftime(fmt)
+
+        if has_nano:
+            nanos = self.microsecond * 1000 + self._nanosecond
+            result = result.replace(nano_placeholder, f"{nanos:09d}")
+
+        return result
 
     def ctime(self):
         """
@@ -3715,11 +3739,32 @@ default 'raise'
         >>> ts.to_julian_date()
         2458923.147824074
         """
+        cdef:
+            npy_datetimestruct dts
+            int64_t year
+            int month, day, hour, minute, second, microsecond
+
         from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 
-        year = self._year
-        month = self.month
-        day = self.day
+        if self.tzinfo is not None:
+            # GH#54763 JD is absolute-time, so use the UTC instant
+            pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
+            year = dts.year
+            month = dts.month
+            day = dts.day
+            hour = dts.hour
+            minute = dts.min
+            second = dts.sec
+            microsecond = dts.us
+        else:
+            year = self._year
+            month = self.month
+            day = self.day
+            hour = self.hour
+            minute = self.minute
+            second = self.second
+            microsecond = self.microsecond
+
         if month <= 2:
             year -= 1
             month += 12
@@ -3731,10 +3776,10 @@ default 'raise'
             np.floor(year / 100) +
             np.floor(year / 400) +
             1721118.5 +
-            (self.hour +
-             self.minute / 60.0 +
-             self.second / 3600.0 +
-             self.microsecond / 3600.0 / 1e+6 +
+            (hour +
+             minute / 60.0 +
+             second / 3600.0 +
+             microsecond / 3600.0 / 1e+6 +
              self._nanosecond / 3600.0 / 1e+9
              ) / 24.0
         )

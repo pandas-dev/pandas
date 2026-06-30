@@ -117,7 +117,7 @@ def test_numba_unsupported_dtypes(apply_axis):
 
     with pytest.raises(
         ValueError,
-        match="Column b must have a numeric dtype. Found 'object|str' instead",
+        match="Column b must have a numeric dtype. Found '(object|str)' instead",
     ):
         df.apply(f, engine="numba", axis=apply_axis)
 

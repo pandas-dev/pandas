@@ -814,7 +814,7 @@ class TestMerge:
 
         # #2649, #10639
         df2.columns = ["key1", "foo", "foo"]
-        msg = r"Data columns not unique: Index\(\['foo'\], dtype='object|str'\)"
+        msg = r"Data columns not unique: Index\(\['foo'\], dtype='(object|str)'\)"
         with pytest.raises(MergeError, match=msg):
             merge(df, df2)
 
@@ -1094,10 +1094,14 @@ class TestMerge:
         for i in ["_right_indicator", "_left_indicator", "_merge"]:
             df_badcolumn = DataFrame({"col1": [1, 2], i: [2, 2]})
 
-            msg = (
-                "Cannot use `indicator=True` option when data contains a "
-                f"column named {i}|"
-                "Cannot use name of an existing column for indicator column"
+            msg = "|".join(
+                [
+                    (
+                        "Cannot use `indicator=True` option when data contains a "
+                        f"column named {i}"
+                    ),
+                    "Cannot use name of an existing column for indicator column",
+                ]
             )
             with pytest.raises(ValueError, match=msg):
                 merge(df1, df_badcolumn, on="col1", how="outer", indicator=True)

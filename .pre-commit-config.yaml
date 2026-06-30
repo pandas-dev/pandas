@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.12
+    rev: v0.15.15
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -92,7 +92,7 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.4
+    rev: v22.1.5
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
@@ -119,7 +119,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.404
+        - pyright@1.1.409
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -180,19 +180,12 @@ repos:
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
-    -   id: seed-check-asv
-        name: Check for unnecessary random seeds in asv benchmarks
-        language: pygrep
-        entry: 'np\.random\.seed'
-        files: ^asv_bench/benchmarks
-        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep
@@ -269,6 +262,12 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="doesnt_use_pandas_warnings"
         types: [ python ]
+    -   id: unwanted-patterns-bare-pipe-alternation-in-message
+        name: Check that message regexes use '|'.join([...]) instead of a bare | alternation
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pipe_alternation_in_message"
+        types: [python]
+        files: ^pandas/tests/
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
@@ -285,13 +284,13 @@ repos:
         name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
         language: pygrep
         entry: 'pg8000'
-        files: ^ci/deps
-        types: [yaml]
+        files: pixi\.toml
+        types: [toml]
     -   id: validate-min-versions-in-sync
         name: Check minimum version of dependencies are aligned
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
-        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        files: ^(pixi\.toml|pandas/compat/_optional\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations

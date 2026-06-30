@@ -570,6 +570,9 @@ def read_sql(
         for engine disposal and connection closure for the ADBC connection and
         SQLAlchemy connectable; str connections are closed automatically. See
         `here <https://docs.sqlalchemy.org/en/20/core/connections.html>`_.
+
+        .. versionadded:: 2.2.0
+            Support for ADBC drivers.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
@@ -680,9 +683,7 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
-    .. versionadded:: 2.2.0
-
-       pandas now supports reading via ADBC drivers
+    pandas supports reading via ADBC drivers:
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
     >>> with dbapi.connect("postgres:///db_name") as conn:  # doctest:+SKIP
@@ -900,8 +901,8 @@ def pandasSQL_builder(
 
     if isinstance(con, str) and sqlalchemy is None:
         raise ImportError(
-            f"Using URI string without version '{VERSIONS['sqlalchemy']}' or newer "
-            "of 'sqlalchemy' installed."
+            "Using a URI string requires 'sqlalchemy' version "
+            f"'{VERSIONS['sqlalchemy']}' or newer."
         )
 
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Connectable)):
@@ -1476,7 +1477,10 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
-        raise NotImplementedError
+        raise NotImplementedError(
+            "read_sql_table not supported for a DBAPI connection. Use "
+            "read_sql_query, or pass a SQLAlchemy connectable."
+        )
 
     @abstractmethod
     def read_query(
@@ -2233,13 +2237,15 @@ class ADBCDatabase(PandasSQL):
             else:
                 index_select = []
             to_select = index_select + columns
-            select_list = ", ".join(f'"{x}"' for x in to_select)
+            select_list = ", ".join(_quote_identifier(x) for x in to_select)
         else:
             select_list = "*"
+        quoted_table_name = _quote_identifier(table_name)
         if schema:
-            stmt = f"SELECT {select_list} FROM {schema}.{table_name}"
+            quoted_schema = _quote_identifier(schema)
+            stmt = f"SELECT {select_list} FROM {quoted_schema}.{quoted_table_name}"
         else:
-            stmt = f"SELECT {select_list} FROM {table_name}"
+            stmt = f"SELECT {select_list} FROM {quoted_table_name}"
 
         with self.execute(stmt) as cur:
             pa_table = cur.fetch_arrow_table()
@@ -2384,10 +2390,12 @@ class ADBCDatabase(PandasSQL):
                 "engine != 'auto' not implemented for ADBC drivers"
             )
 
+        quoted_name = _quote_identifier(name)
         if schema:
-            table_name = f"{schema}.{name}"
+            quoted_schema = _quote_identifier(schema)
+            quoted_table_name = f"{quoted_schema}.{quoted_name}"
         else:
-            table_name = name
+            quoted_table_name = quoted_name
 
         # pandas if_exists="append" will still create the
         # table if it does not exist; ADBC is more explicit with append/create
@@ -2396,9 +2404,9 @@ class ADBCDatabase(PandasSQL):
         mode = "create"
         if self.has_table(name, schema):
             if if_exists == "fail":
-                raise ValueError(f"Table '{table_name}' already exists.")
+                raise ValueError(f"Table '{name}' already exists.")
             elif if_exists == "replace":
-                sql_statement = f"DROP TABLE {table_name}"
+                sql_statement = f"DROP TABLE {quoted_table_name}"
                 self.execute(sql_statement).close()
             elif if_exists == "append":
                 mode = "append"
@@ -2426,7 +2434,7 @@ class ADBCDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         meta = self.con.adbc_get_objects(
-            db_schema_filter=schema, table_name_filter=name
+            depth="tables", db_schema_filter=schema, table_name_filter=name
         ).read_all()
 
         for catalog_schema in meta["catalog_db_schemas"].to_pylist():
@@ -2443,9 +2451,13 @@ class ADBCDatabase(PandasSQL):
         return False
 
     def delete_rows(self, name: str, schema: str | None = None) -> None:
-        table_name = f"{schema}.{name}" if schema else name
+        quoted_table_name = _quote_identifier(name)
+        if schema:
+            quoted_schema = _quote_identifier(schema)
+            quoted_table_name = f"{quoted_schema}.{quoted_table_name}"
+
         if self.has_table(name, schema):
-            self.execute(f"DELETE FROM {table_name}").close()
+            self.execute(f"DELETE FROM {quoted_table_name}").close()
 
     def _create_sql_schema(
         self,
@@ -2494,6 +2506,41 @@ def _get_valid_sqlite_name(name: object) -> str:
     nul_index = uname.find("\x00")
     if nul_index >= 0:
         raise ValueError("SQLite identifier cannot contain NULs")
+    return '"' + uname.replace('"', '""') + '"'
+
+
+def _quote_identifier(name: object) -> str:
+    """
+    Escape a SQL identifier (table name or schema name) for safe use in
+    ADBC-generated SQL statements.
+
+    Uses ANSI SQL double-quote escaping, which is supported by PostgreSQL,
+    DuckDB, SQLite, and other databases targeted by ADBC drivers.
+
+    Parameters
+    ----------
+    name : object
+        Identifier to escape.
+
+    Returns
+    -------
+    str
+        The identifier wrapped in double quotes with any internal double
+        quotes doubled, e.g. ``my"table`` becomes ``"my""table"``.
+
+    Raises
+    ------
+    ValueError
+        If *name* is empty or contains a NUL character.
+    """
+    uname = _get_unicode_name(name)
+    if not len(uname):
+        raise ValueError("Empty table or column name specified")
+
+    nul_index = uname.find("\x00")
+    if nul_index >= 0:
+        raise ValueError("SQL identifier cannot contain NUL characters")
+
     return '"' + uname.replace('"', '""') + '"'
 
 
@@ -2866,7 +2913,12 @@ class SQLiteDatabase(PandasSQL):
 
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
-                    raise ValueError(f"{col} ({my_type}) not a string")
+                    raise ValueError(
+                        f"Invalid type '{my_type}' for dtype of column '{col}': "
+                        "expected a string. When using a DB-API connection "
+                        "(e.g. sqlite3), dtype values must be SQL type "
+                        "strings (e.g. 'TEXT', 'FLOAT')."
+                    )
 
         table = SQLiteTable(
             name,
