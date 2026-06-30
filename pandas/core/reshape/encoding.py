@@ -160,6 +160,9 @@ def get_dummies(
     from pandas.core.reshape.concat import concat
 
     def _is_encodable(arr) -> bool:
+        # The columns get_dummies encodes by default: object, string (any
+        # storage), categorical, and the Arrow-backed string/dictionary
+        # equivalents (GH#56273).
         dtype = arr.dtype
         if isinstance(dtype, (StringDtype, CategoricalDtype)):
             return True
