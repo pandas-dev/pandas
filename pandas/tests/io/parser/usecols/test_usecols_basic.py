@@ -133,8 +133,6 @@ def test_usecols_relative_to_names2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# regex mismatch: "Length mismatch: Expected axis has 1 elements"
-@xfail_pyarrow
 def test_usecols_name_length_conflict(all_parsers):
     data = """\
 1,2,3

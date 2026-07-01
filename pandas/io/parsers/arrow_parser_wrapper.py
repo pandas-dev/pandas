@@ -142,7 +142,7 @@ class ArrowParserWrapper(ParserBase):
 
         header = self.header
         if isinstance(header, list):
-            # GH#65862 pyarrow.csv cannot produce multi-row/MultiIndex headers
+            # GH#66059 pyarrow.csv cannot produce multi-row/MultiIndex headers
             if len(header) == 1:
                 header = header[0]
             else:
@@ -152,9 +152,17 @@ class ArrowParserWrapper(ParserBase):
                     "supported)."
                 )
 
+        if header is None:
+            skip_rows = self.kwds["skiprows"]
+        elif self.names is not None:
+            # GH#65862 names replace the header row, which is discarded as
+            # the other engines do
+            skip_rows = header + 1
+        else:
+            skip_rows = header
         self.read_options = {
-            "autogenerate_column_names": header is None,
-            "skip_rows": header if header is not None else self.kwds["skiprows"],
+            "autogenerate_column_names": header is None or self.names is not None,
+            "skip_rows": skip_rows,
             "encoding": self.encoding,
         }
 
@@ -183,20 +191,34 @@ class ArrowParserWrapper(ParserBase):
     def _adjust_column_names(self, table: pa.Table) -> bool:
         num_cols = len(table.columns)
         multi_index_named = True
-        if self.header is None:
-            if self.names is None:
-                self.names = range(num_cols)
-            if len(self.names) != num_cols:
-                # usecols is passed through to pyarrow, we only handle index col here
-                # The only way self.names is not the same length as number of cols is
-                # if we have int index_col. We should just pad the names(they will get
-                # removed anyways) to expected length then.
-                columns_prefix = [str(x) for x in range(num_cols - len(self.names))]
-                self.names = columns_prefix + self.names
+        self._implicit_index_count = 0
+        if self.header is None and self.names is None:
+            self.names = range(num_cols)
+        if self.names is not None and len(self.names) != num_cols:
+            # usecols is passed through to pyarrow, so num_cols here already
+            # reflects it
+            usecols = self.kwds.get("include_columns")
+            if (self.header is not None and len(self.names) > num_cols) or (
+                usecols is not None and len(self.names) != len(usecols)
+            ):
+                # GH#5156, GH#65862
+                raise ValueError(
+                    "Number of passed names did not match number of "
+                    "header fields in the file"
+                )
+            if len(self.names) < num_cols:
+                # GH#65862 Leading columns not covered by names form the index,
+                # as with other engines. Pad the names to the expected length;
+                # the padded columns are moved to the index in _finalize_index.
+                self._implicit_index_count = num_cols - len(self.names)
+                columns_prefix = [str(x) for x in range(self._implicit_index_count)]
+                self.names = columns_prefix + list(self.names)
                 multi_index_named = False
         return multi_index_named
 
     def _finalize_index(self, frame: DataFrame, multi_index_named: bool) -> DataFrame:
+        if self.index_col is None and self._implicit_index_count:
+            self.index_col = list(range(self._implicit_index_count))
         if self.index_col is not None:
             index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
@@ -218,8 +240,8 @@ class ArrowParserWrapper(ParserBase):
                         del self.dtype[key]
 
             frame.set_index(index_to_set, drop=True, inplace=True)
-            # Clear names if headerless and no name given
-            if self.header is None and not multi_index_named:
+            # Clear names if no name given for the padded leading columns
+            if not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
 
         return frame
@@ -349,7 +371,7 @@ class ArrowParserWrapper(ParserBase):
                 names=self.names,
             )
 
-        if self.header is None:
+        if self.names is not None:
             frame.columns = self.names
 
         return self._finalize_pandas_output(frame, multi_index_named)
