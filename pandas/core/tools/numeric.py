@@ -336,10 +336,12 @@ def to_numeric(
         from pandas.core.construction import array as pd_array
 
         if dtype_backend == "numpy_nullable":
+            from pandas.core.dtypes.missing import isna
+
             # Sanitize np.nan to pd.NA before passing to the array constructor
             values = ensure_object(values)
-            values[pd.isna(values)] = libmissing.NA
-            
+            values[isna(values)] = libmissing.NA
+
             values = pd_array(values)
             if getattr(values, "dtype", None) == np.float64:
                 from pandas.core.arrays.floating import Float64Dtype
@@ -353,7 +355,6 @@ def to_numeric(
                 values = ArrowExtensionArray(
                     values.__arrow_array__()  # type: ignore[attr-defined]
                 )
-                
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
