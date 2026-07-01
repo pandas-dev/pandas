@@ -1599,3 +1599,17 @@ def test_diff():
     ser = Series([1, 2, 3])
     result = ser.diff()
     assert result.index is not ser.index
+
+
+def test_where_inplace_cow_semantics():
+    # GH 65676: Explicitly validate CoW reference tracking when inplace=True
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    view = df[:]
+
+    # Execute inplace operation
+    df.where(df > 1, 0, inplace=True)
+
+    # Modifying the evaluated result must NOT corrupt the original view
+    df.iloc[0, 0] = 99
+    tm.assert_frame_equal(view, df_orig)
