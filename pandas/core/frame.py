@@ -12301,8 +12301,8 @@ class DataFrame(NDFrame, OpsMixin):
                 new_dtype = other_dtype
                 try:
                     series = series.astype(new_dtype)
-                except ValueError:
-                    # e.g. new_dtype is integer types
+                except (ValueError, TypeError):
+                    # e.g. new_dtype is integer types, or datetime vs timedelta
                     pass
             else:
                 # if we have different dtypes, possibly promote
