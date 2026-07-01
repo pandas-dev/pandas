@@ -298,24 +298,11 @@ def length_of_indexer(indexer, target=None) -> int:
     int
     """
     if target is not None and isinstance(indexer, slice):
-        target_len = len(target)
-        start = indexer.start
-        stop = indexer.stop
-        step = indexer.step
-        if start is None:
-            start = 0
-        elif start < 0:
-            start += target_len
-        if stop is None or stop > target_len:
-            stop = target_len
-        elif stop < 0:
-            stop += target_len
-        if step is None:
-            step = 1
-        elif step < 0:
-            start, stop = stop + 1, start + 1
-            step = -step
-        return (stop - start + step - 1) // step
+        # GH#66100: Use slice.indices() which correctly handles all edge cases
+        # including negative steps, out-of-bounds, and None start/stop/step.
+        # The previous manual implementation mis-computed length for negative
+        # steps (e.g. [::-2] on length-5 returned -2 instead of 3).
+        return len(range(*indexer.indices(len(target))))
     elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
         if isinstance(indexer, list):
             indexer = np.array(indexer)

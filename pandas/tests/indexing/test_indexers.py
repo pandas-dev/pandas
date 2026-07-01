@@ -73,3 +73,22 @@ class TestValidateIndices:
     def test_validate_indices_empty(self):
         with pytest.raises(IndexError, match="indices are out"):
             validate_indices(np.array([0, 1]), 0)
+
+
+@pytest.mark.parametrize(
+    "slc, target_len, expected",
+    [
+        (slice(None, None, -1), 5, 5),   # full reverse
+        (slice(None, None, -2), 5, 3),   # every other, reversed - GH#66100
+        (slice(None, None, -3), 5, 2),
+        (slice(None, None, 2), 5, 3),    # positive step
+        (slice(1, 4), 5, 3),             # normal slice
+        (slice(None, None, -1), 0, 0),   # empty target
+        (slice(None, None, -2), 1, 1),   # single element
+    ],
+)
+def test_length_of_indexer_slice(slc, target_len, expected):
+    # GH#66100 - length_of_indexer was incorrect for negative-step slices
+    target = np.zeros(target_len)
+    result = length_of_indexer(slc, target)
+    assert result == expected

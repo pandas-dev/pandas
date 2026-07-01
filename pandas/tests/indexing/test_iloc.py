@@ -1603,3 +1603,18 @@ class TestILocSeries:
 
         expected = Series([7, 8, 3], dtype="int64[pyarrow]")
         tm.assert_series_equal(ser, expected)
+
+    def test_iloc_setitem_negative_step_slice(self):
+        # GH#66100 - iloc setitem with negative step slice was raising
+        # ValueError due to length_of_indexer computing wrong length
+        ser = Series([2, 13, 7, 9, 3], index=list("abcde"))
+        ser.iloc[::-2] = [11, 5, 15]
+        expected = Series([15, 13, 5, 9, 11], index=list("abcde"))
+        tm.assert_series_equal(ser, expected)
+
+    def test_iloc_setitem_negative_step_slice_step_minus1(self):
+        # GH#66100 - full reverse assignment
+        ser = Series([1, 2, 3])
+        ser.iloc[::-1] = [10, 20, 30]
+        expected = Series([30, 20, 10])
+        tm.assert_series_equal(ser, expected)
