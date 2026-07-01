@@ -1600,6 +1600,7 @@ def test_diff():
     result = ser.diff()
     assert result.index is not ser.index
 
+
 def test_where_inplace_cow_semantics():
     # GH 65676: Explicitly validate CoW reference tracking when inplace=True
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
