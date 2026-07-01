@@ -78,13 +78,13 @@ class TestValidateIndices:
 @pytest.mark.parametrize(
     "slc, target_len, expected",
     [
-        (slice(None, None, -1), 5, 5),   # full reverse
-        (slice(None, None, -2), 5, 3),   # every other, reversed - GH#66100
+        (slice(None, None, -1), 5, 5),  # full reverse
+        (slice(None, None, -2), 5, 3),  # every other, reversed - GH#66100
         (slice(None, None, -3), 5, 2),
-        (slice(None, None, 2), 5, 3),    # positive step
-        (slice(1, 4), 5, 3),             # normal slice
-        (slice(None, None, -1), 0, 0),   # empty target
-        (slice(None, None, -2), 1, 1),   # single element
+        (slice(None, None, 2), 5, 3),  # positive step
+        (slice(1, 4), 5, 3),  # normal slice
+        (slice(None, None, -1), 0, 0),  # empty target
+        (slice(None, None, -2), 1, 1),  # single element
     ],
 )
 def test_length_of_indexer_slice(slc, target_len, expected):
