@@ -37,6 +37,7 @@ add_project_arguments(
 )
 
 cc = meson.get_compiler('c')
+cxx = meson.get_compiler('cpp')
 if cc.get_id() == 'msvc'
     # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
     # Ignore some MSVC specific warnings:
@@ -44,8 +45,9 @@ if cc.get_id() == 'msvc'
     # C4267: conversion from `size_t` to smaller type.
     # C4551: occurs due to Cython generating code with (void)func.
     #        https://github.com/cython/cython/issues/3579
+    # C4146: unary minus operator applied to unsigned type. Occurs in xsimd.
     add_project_arguments(
-        ['/wd4244', '/wd4267', '/wd4551'],
+        ['/wd4244', '/wd4267', '/wd4551', '/wd4146'],
         language: ['c', 'cpp'],
     )
 endif
