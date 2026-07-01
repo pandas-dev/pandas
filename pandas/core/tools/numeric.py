@@ -329,8 +329,23 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if dtype_backend == "pyarrow" or isinstance(values_dtype, ArrowDtype):
+        if isinstance(values_dtype, ArrowDtype):
             values = ArrowExtensionArray(values.__arrow_array__())
+
+    if dtype_backend is not lib.no_default:
+        from pandas.core.construction import array
+
+        if dtype_backend == "numpy_nullable":
+            values = array(values, dtype=values.dtype)
+            if getattr(values, "dtype", None) == np.float64:
+                from pandas.core.dtypes.dtypes import Float64Dtype
+                values = array(values, dtype=Float64Dtype())
+        elif dtype_backend == "pyarrow":
+            import pyarrow as pa
+
+            values = array(values)
+            if is_numeric_dtype(values.dtype):
+                values = array(values, dtype=ArrowDtype(pa.from_numpy_dtype(values.dtype.numpy_dtype)))
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
