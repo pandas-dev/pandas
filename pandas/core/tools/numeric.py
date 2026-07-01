@@ -333,19 +333,27 @@ def to_numeric(
             values = ArrowExtensionArray(values.__arrow_array__())
 
     if dtype_backend is not lib.no_default:
-        from pandas.core.construction import array
+        from pandas.core.construction import array as pd_array
 
         if dtype_backend == "numpy_nullable":
-            values = array(values, dtype=values.dtype)
+            # Sanitize np.nan to pd.NA before passing to the array constructor
+            values = ensure_object(values)
+            values[pd.isna(values)] = libmissing.NA
+            
+            values = pd_array(values)
             if getattr(values, "dtype", None) == np.float64:
                 from pandas.core.arrays.floating import Float64Dtype
-                values = array(values, dtype=Float64Dtype())
+
+                values = pd_array(values, dtype=Float64Dtype())
         elif dtype_backend == "pyarrow":
             from pandas.core.arrays import ArrowExtensionArray
 
-            values = array(values)
+            values = pd_array(values)
             if is_numeric_dtype(values.dtype):
-                values = ArrowExtensionArray(values.__arrow_array__())
+                values = ArrowExtensionArray(
+                    values.__arrow_array__()  # type: ignore[attr-defined]
+                )
+                
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
