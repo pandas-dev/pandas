@@ -1,7 +1,7 @@
 """
 Module for formatting output data in HTML.
 """
-
+import html
 from __future__ import annotations
 
 from textwrap import dedent
@@ -200,7 +200,8 @@ class HTMLFormatter:
 
         if self.render_links and is_url(rs):
             rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            start_tag += f'<a href="{rs_unescaped}" target="_blank">'
+            href = html.escape(rs_unescaped)
+            start_tag += f'<a href="{href}" target="_blank">'
             end_a = "</a>"
         else:
             end_a = ""
