@@ -11,8 +11,6 @@ from typing import (
 )
 import warnings
 
-import numpy as np
-
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -428,13 +426,6 @@ def eval(
             # get IndexError if you try to do this assignment on np.ndarray.
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
-            # Prevent CoW alias corruption for raw numpy arrays
-            if inplace and isinstance(ret, np.ndarray) and isinstance(target, NDFrame):
-                # Safely check memory sharing for both DataFrames and Series
-                arrays_to_check = target._iter_column_arrays() if target.ndim == 2 else [target]
-                if any(np.shares_memory(ret, getattr(col, "values", col)) for col in arrays_to_check):
-                    ret = ret.copy()
-
             try:
                 if inplace and isinstance(target, NDFrame):
                     target.loc[:, assigner] = ret
@@ -442,7 +433,6 @@ def eval(
                     target[assigner] = ret  # pyright: ignore[reportIndexIssue]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
-            
 
             if not resolvers:
                 resolvers = ({assigner: ret},)
