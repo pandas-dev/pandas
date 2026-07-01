@@ -338,14 +338,14 @@ def to_numeric(
         if dtype_backend == "numpy_nullable":
             values = array(values, dtype=values.dtype)
             if getattr(values, "dtype", None) == np.float64:
-                from pandas.core.dtypes.dtypes import Float64Dtype
+                from pandas.core.arrays.floating import Float64Dtype
                 values = array(values, dtype=Float64Dtype())
         elif dtype_backend == "pyarrow":
-            import pyarrow as pa
+            from pandas.core.arrays import ArrowExtensionArray
 
             values = array(values)
             if is_numeric_dtype(values.dtype):
-                values = array(values, dtype=ArrowDtype(pa.from_numpy_dtype(values.dtype.numpy_dtype)))
+                values = ArrowExtensionArray(values.__arrow_array__())
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
