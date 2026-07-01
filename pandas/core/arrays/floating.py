@@ -131,12 +131,15 @@ class FloatingArray(NumericArray):
     """
 
     _dtype_cls = FloatingDtype
+
     def __init__(self, data: np.ndarray, mask: np.ndarray, copy: bool = False) -> None:
         # Before calling the parent, sync the NaN mask (only if data is floating-point)
-        if not mask.any() and np.issubdtype(data.dtype, np.floating) and np.isnan(data).any():
-            mask = mask.copy()
-            mask |= np.isnan(data)
+        if not mask.any() and np.issubdtype(data.dtype, np.floating):
+            if np.isnan(data).any():
+                mask = mask.copy()
+                mask |= np.isnan(data)
         super().__init__(data, mask, copy=copy)
+
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} data.
