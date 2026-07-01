@@ -1,6 +1,7 @@
 from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
+from itertools import product
 import re
 import struct
 import tracemalloc
@@ -847,3 +848,124 @@ def test_float_complex_int_are_equal_as_objects():
     result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
+
+
+class hash_eq_raiser:
+    # GH 57052
+    def __init__(self, value, raise_hash=False, raise_eq=False):
+        self.value = value
+        self.raise_hash = raise_hash
+        self.raise_eq = raise_eq
+
+    def __hash__(self):
+        if self.raise_hash:
+            raise RuntimeError(f"exception in {self!r}.__hash__")
+        return hash(self.value)
+
+    def __eq__(self, other):
+        if self.raise_eq:
+            raise RuntimeError(f"exception in {self!r}.__eq__")
+        return self.value == other.value
+
+    def __repr__(self):
+        return f"hash_eq_raiser({self.value}, {self.raise_hash}, {self.raise_eq})"
+
+
+@pytest.mark.parametrize("raise1, raise2", list(product([True, False], repeat=2)))
+def test_error_raised_from_hash_method_in_set_item(raise1, raise2):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello1", raise_hash=raise1)
+    key2 = hash_eq_raiser(value="hello2", raise_hash=raise2)
+
+    if raise1:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            table.set_item(key1, 123)
+    else:
+        table.set_item(key1, 123)
+        assert table.get_item(key1) == 123
+
+    if raise2:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key2!r}.__hash__")
+        ):
+            table.set_item(key2, 456)
+    else:
+        table.set_item(key2, 456)
+        assert table.get_item(key2) == 456
+
+
+@pytest.mark.parametrize("raise1, raise2", list(product([True, False], repeat=2)))
+def test_error_raised_from_hash_method_in_get_item(raise1, raise2):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello1")
+    key2 = hash_eq_raiser(value="hello2")
+
+    table.set_item(key1, 123)
+    table.set_item(key2, 456)
+
+    key1.raise_hash = raise1
+    key2.raise_hash = raise2
+
+    if raise1:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            table.get_item(key1)
+    else:
+        assert table.get_item(key1) == 123
+
+    if raise2:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key2!r}.__hash__")
+        ):
+            table.get_item(key2)
+    else:
+        assert table.get_item(key2) == 456
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_set_item(do_raise):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello", raise_eq=do_raise)
+    key2 = hash_eq_raiser(value=key1.value)
+
+    if do_raise:
+        table.set_item(key1, 123)
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            table.set_item(key2, 456)
+    else:
+        table.set_item(key2, 456)
+        assert table.get_item(key2) == 456
+
+
+@pytest.mark.parametrize("do_raise", [True, False])
+def test_error_raised_from_eq_method_in_get_item(do_raise):
+    # GH 57052
+    table = ht.PyObjectHashTable()
+
+    key1 = hash_eq_raiser(value="hello")
+    key2 = hash_eq_raiser(value=key1.value)
+
+    table.set_item(key1, 123)
+    table.set_item(key2, 456)
+
+    if do_raise:
+        key1.raise_eq = True
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            table.get_item(key2)
+    else:
+        # this looks odd but it is because key1.value == key2.value
+        assert table.get_item(key1) == 456
+        assert table.get_item(key2) == 456
