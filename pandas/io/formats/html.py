@@ -1,9 +1,10 @@
 """
 Module for formatting output data in HTML.
 """
-import html
+
 from __future__ import annotations
 
+import html
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
