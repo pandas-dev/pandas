@@ -1165,18 +1165,19 @@ def test_to_html_empty_complex_array():
     )
     assert result == expected
 
+
 def test_to_html_render_links_escape():
     # GH 66080: Prevent HTML injection vulnerability in href attribute
     value = 'http://example.com/search?q=a"b&lang=en'
     df = DataFrame({"url": [value]})
-    
+
     result = df.to_html(render_links=True, escape=True)
-    
+
     # Both the visible text AND the href attribute must be properly sanitized
-    expected_escaped = 'http://example.com/search?q=a&quot;b&amp;lang=en'
-    
+    expected_escaped = "http://example.com/search?q=a&quot;b&amp;lang=en"
+
     # Verify the visible text is escaped
     assert expected_escaped in result
-    
+
     # Verify the href injection is sealed
     assert f'href="{expected_escaped}"' in result
