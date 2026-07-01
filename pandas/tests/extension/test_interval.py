@@ -148,3 +148,7 @@ class TestIntervalArray(base.ExtensionTests):
         # IntervalArray does not support roundtrip as Interval cannot be created from
         # dictionary created in JSON serialization
         super().test_json_roundtrip(data)
+
+    @pytest.mark.skip(reason="IntervalArray cannot be plotted on y-axis")
+    def test_plot_on_y_axis(self, data):
+        super().test_plot_on_y_axis(data)

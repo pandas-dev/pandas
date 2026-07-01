@@ -28,6 +28,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    import matplotlib.units
+
     from pandas._typing import (
         DtypeObj,
         Shape,
@@ -86,6 +88,7 @@ class ExtensionDtype:
 
     * _is_numeric
     * _is_boolean
+    * _is_plottable
     * _get_common_dtype
 
     The `na_value` class attribute can be used to set the default NA value
@@ -463,6 +466,22 @@ class ExtensionDtype:
         Only relevant for cases where _supports_2d is True.
         """
         return False
+
+    @classmethod
+    def _get_plot_converter(
+        cls,
+    ) -> tuple[type_t, type_t[matplotlib.units.ConversionInterface]] | None:
+        """
+        If dtype is plottable, return the type and converter to use for plotting.
+
+        By default only numeric ExtensionDtypes are plottable. In other cases, this
+        function just returns None and ExtensionArrays of this dtype are filtered out
+        during plotting.
+        If the dtype is plottable, this function shall return a tuple of the type and a
+        converter. The returned type is likely the same as ``cls._type``. The returned
+        converter should be a subclass of ``matplotlib.units.ConversionInterface``.
+        """
+        return None
 
 
 class StorageExtensionDtype(ExtensionDtype):
