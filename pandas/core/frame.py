@@ -5447,14 +5447,7 @@ class DataFrame(NDFrame, OpsMixin):
                 def new_func(x: DtypeObj, dtype=dtype):
                     x = x if not isinstance(x, ArrowDtype) else x.numpy_dtype
 
-                    if dtype == np.dtype(np.object_):
-                        # backwards compat for the default `str` dtype being
-                        # selected by object
-                        return x == dtype or (
-                            isinstance(x, StringDtype) and x.na_value is np.nan
-                        )
-
-                    elif dtype is np.number or (
+                    if dtype is np.number or (
                         isinstance(dtype, str) and dtype == "number"
                     ):
                         # Include all numeric dtypes, exclude bool dtypes
@@ -5474,9 +5467,17 @@ class DataFrame(NDFrame, OpsMixin):
                     elif dtype == "float" or dtype is float:
                         return issubclass(x.type, (np.float64, np.float32))
 
-                    else:
-                        dtype_type = infer_dtype_from_object(dtype)
-                        return issubclass(x.type, dtype_type)
+                    # Comparing the raw user input against np.dtype(object) would
+                    # trigger numpy's abstract-type conversion DeprecationWarning
+                    # for entries like np.floating, so normalize first.
+                    dtype_type = infer_dtype_from_object(dtype)
+                    if dtype_type is np.object_:
+                        # backwards compat for the default `str` dtype being
+                        # selected by object
+                        return x == dtype_type or (
+                            isinstance(x, StringDtype) and x.na_value is np.nan
+                        )
+                    return issubclass(x.type, dtype_type)
 
                 funcs.append(new_func)
 
