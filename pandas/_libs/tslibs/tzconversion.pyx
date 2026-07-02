@@ -33,6 +33,7 @@ from pandas._libs.tslibs.dtypes cimport (
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    dts_to_iso_string,
     import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
@@ -40,6 +41,7 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
+from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     is_fixed_offset,
@@ -47,6 +49,11 @@ from pandas._libs.tslibs.timezones cimport (
     is_utc,
     is_zoneinfo,
 )
+
+
+cdef extern from "pandas/portable.h":
+    int checked_add(int64_t a, int64_t b, int64_t *res)
+    int checked_sub(int64_t a, int64_t b, int64_t *res)
 
 
 cdef const int64_t[::1] _deltas_placeholder = np.array([], dtype=np.int64)
@@ -487,6 +494,39 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
     return str(ts)
 
 
+cdef enum BoundaryStatus:
+    BS_OK
+    BS_UNDERFLOW
+    BS_OVERFLOW
+
+
+cdef void raise_out_of_bounds(
+    int64_t val,
+    BoundaryStatus err,
+    NPY_DATETIMEUNIT creso
+) except *:
+    cdef:
+        npy_datetimestruct dts
+    # Tries to match the error reported by [check_overflows]
+
+    from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+    from pandas._libs.tslibs.timestamps import Timestamp
+
+    pandas_datetime_to_datetimestruct(val, creso, &dts)
+    fmt = dts_to_iso_string(&dts)
+
+    if err == BS_OVERFLOW:
+        limit_ts = (<_Timestamp>Timestamp(0))._as_creso(creso).max
+        raise OutOfBoundsDatetime(
+            f"Converting {fmt} overflows past {limit_ts}"
+        )
+    else:
+        limit_ts = (<_Timestamp>Timestamp(0))._as_creso(creso).min
+        raise OutOfBoundsDatetime(
+            f"Converting {fmt} underflows past {limit_ts}"
+        )
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
@@ -503,8 +543,11 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
         bint use_zoneinfo = info.use_zoneinfo
         tzinfo tz = info.tz
         int64_t val, v_left, v_right, delta0, delta1, local0, local1
+        int64_t delta_l, delta_r
         Py_ssize_t isl, isr, pos_left, pos_right
+        int64_t search_value
         int64_t ppd = periods_per_day(creso)
+        BoundaryStatus status_left, status_right
 
     result_a = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
     result_b = cnp.PyArray_EMPTY(vals.ndim, vals.shape, cnp.NPY_INT64, 0)
@@ -542,27 +585,43 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 result_b[i] = v_right
             continue
 
-        # TODO: be careful of overflow in val-ppd
-        isl = bisect_right_i8(tdata, val - ppd, ntrans) - 1
-        if isl < 0:
+        if checked_sub(val, ppd, &search_value):
             isl = 0
+        else:
+            isl = bisect_right_i8(tdata, search_value, ntrans) - 1
+            if isl < 0:
+                isl = 0
 
-        v_left = val - deltas[isl]
-        pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
-        # timestamp falls to the left side of the DST transition
-        if v_left + deltas[pos_left] == val:
-            result_a[i] = v_left
+        delta_l = deltas[isl]
+        if checked_sub(val, delta_l, &v_left):
+            status_left = BS_UNDERFLOW if delta_l > 0 else BS_OVERFLOW
+        else:
+            status_left = BS_OK
+            pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
+            # timestamp falls to the left side of the DST transition
+            if v_left + deltas[pos_left] == val:
+                result_a[i] = v_left
 
-        # TODO: be careful of overflow in val+ppd
-        isr = bisect_right_i8(tdata, val + ppd, ntrans) - 1
-        if isr < 0:
-            isr = 0
+        if checked_add(val, ppd, &search_value):
+            isr = ntrans - 1
+        else:
+            isr = bisect_right_i8(tdata, search_value, ntrans) - 1
+            if isr < 0:
+                isr = 0
 
-        v_right = val - deltas[isr]
-        pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
-        # timestamp falls to the right side of the DST transition
-        if v_right + deltas[pos_right] == val:
-            result_b[i] = v_right
+        delta_r = deltas[isr]
+        if checked_sub(val, delta_r, &v_right):
+            status_right = BS_UNDERFLOW if delta_r > 0 else BS_OVERFLOW
+        else:
+            status_right = BS_OK
+            pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
+            # timestamp falls to the right side of the DST transition
+            if v_right + deltas[pos_right] == val:
+                result_b[i] = v_right
+
+        if result_a[i] == NPY_NAT and result_b[i] == NPY_NAT:
+            if status_left != BS_OK and status_right != BS_OK:
+                raise_out_of_bounds(val, status_left, creso)
 
     return result_a, result_b
 

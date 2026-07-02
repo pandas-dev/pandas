@@ -619,13 +619,17 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     cdef:
         floating val
         intp_t i
+        double i64_min = <double>INT64_MIN
+        double i64_max = <double>INT64_MAX
 
     for i in range(len(arr)):
         val = arr[i]
-        if (val != val) or (val == <int64_t>val):
+        if val != val:
             continue
-        else:
-            return False
+        # Check if val is integral and fits within int64_t
+        if i64_min <= val < i64_max and val == <int64_t>val:
+            continue
+        return False
     return True
 
 
@@ -958,7 +962,6 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
-        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -1022,9 +1025,8 @@ cpdef ndarray[object] ensure_string_array(
 
         return result
 
-    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = newarr[i]
+        val = arr[i]
 
         if isinstance(val, str):
             continue

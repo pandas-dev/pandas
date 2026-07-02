@@ -337,7 +337,12 @@ def group_cumprod(
                             result_mask[i, j] = True
 
                     else:
-                        accum[lab, j] *= val
+                        if int64float_t is int64_t:
+                            # Use uint64_t to avoid UB on signed integer overflow.
+                            accum[lab, j] = <int64_t>(<uint64_t>accum[lab, j] *
+                                                      <uint64_t>val)
+                        else:
+                            accum[lab, j] *= val
                         out[i, j] = accum[lab, j]
 
                 else:
