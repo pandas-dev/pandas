@@ -13,6 +13,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -63,7 +64,7 @@ class TestAstypeAPI:
 
         msg = (
             r"Expected value of kwarg 'errors' to be one of \['raise', "
-            r"'ignore'\]\. Supplied value is 'False'"
+            r"'ignore'\, 'coerce']\. Supplied value is 'False'"
         )
         with pytest.raises(ValueError, match=msg):
             ser.astype(np.float64, errors=False)
@@ -707,3 +708,34 @@ def test_astype_to_datetimelike_unit(arr_dtype, kind, unit):
         assert expected.dtype == f"{kind}8[s]"
 
     tm.assert_series_equal(result, expected)
+
+
+class TestSeriesAstypeCoerce:
+    """Tests for errors='coerce' in Series.astype (GH#48781)."""
+
+    def test_coerce_object_to_float(self):
+        ser = Series([1, 2, "bad", None], dtype=object)
+        result = ser.astype(float, errors="coerce")
+        expected = Series([1.0, 2.0, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+    def test_coerce_object_to_Float64(self):
+        ser = Series(["1.1", "2.2", "oops", None], dtype=object)
+        result = ser.astype("Float64", errors="coerce")
+        expected = Series(pd.array([1.1, 2.2, NA, NA], dtype="Float64"))
+        tm.assert_series_equal(result, expected)
+
+    def test_coerce_object_to_datetime(self):
+        ser = Series(["2021-01-01", "not-a-date", "2021-06-15"])
+        result = ser.astype("datetime64[us]", errors="coerce")
+        expected = to_datetime(["2021-01-01", NaT, "2021-06-15"]).astype(
+            "datetime64[us]"
+        )
+        tm.assert_series_equal(result, Series(expected))
+
+    def test_coerce_no_errors_same_as_raise(self):
+        ser = Series([1, 2, 3])
+        tm.assert_series_equal(
+            ser.astype(float, errors="coerce"),
+            ser.astype(float, errors="raise"),
+        )
