@@ -5425,51 +5425,85 @@ class DataFrame(NDFrame, OpsMixin):
                     converted_dtypes.append(infer_dtype_from_object(dtype))
             return frozenset(converted_dtypes)
 
-        include = check_int_infer_dtype(include)
-        exclude = check_int_infer_dtype(exclude)
-
-        for dtypes in (include, exclude):
+        include_set = check_int_infer_dtype(include)
+        exclude_set = check_int_infer_dtype(exclude)
+        for dtypes in (include_set, exclude_set):
             invalidate_string_dtypes(dtypes)
-
-        # can't both include AND exclude!
-        if not include.isdisjoint(exclude):
-            raise ValueError(f"include and exclude overlap on {(include & exclude)}")
-
-        def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
-            # GH 46870: BooleanDtype._is_numeric == True but should be excluded
-            dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return (
-                issubclass(dtype.type, tuple(dtypes_set))
-                or (
-                    np.number in dtypes_set
-                    and getattr(dtype, "_is_numeric", False)
-                    and not is_bool_dtype(dtype)
-                )
-                # backwards compat for the default `str` dtype being selected by object
-                or (
-                    isinstance(dtype, StringDtype)
-                    and dtype.na_value is np.nan
-                    and np.object_ in dtypes_set
-                )
+        if not include_set.isdisjoint(exclude_set):
+            # can't both include AND exclude!
+            raise ValueError(
+                f"include and exclude overlap on {(include_set & exclude_set)}"
             )
+
+        def to_callable(dtypes):
+            # We convert the user-provided dtypes (which may be dtype instances,
+            # dtype classes, dtype.types, or strings) into our dtype predicate
+
+            funcs = []
+            for dtype in dtypes:
+                # dtype=dtype binds the current loop value as a default so each
+                # closure captures its own dtype rather than sharing the loop
+                # variable (which would leave every func using the last dtype).
+                def new_func(x: DtypeObj, dtype=dtype):
+                    x = x if not isinstance(x, ArrowDtype) else x.numpy_dtype
+
+                    if dtype is np.number or (
+                        isinstance(dtype, str) and dtype == "number"
+                    ):
+                        # Include all numeric dtypes, exclude bool dtypes
+                        # GH#46870: BooleanDtype._is_numeric == True but should
+                        # be excluded
+                        return not is_bool_dtype(x) and (
+                            (isinstance(x, np.dtype) and issubclass(x.type, np.number))
+                            or (isinstance(x, ExtensionDtype) and x._is_numeric)
+                        )
+
+                    elif (isinstance(dtype, str) and dtype == "int") or (dtype is int):
+                        # Numpy maps int to different types (int32, in64)
+                        # on Windows and Linux
+                        # see https://github.com/numpy/numpy/issues/9464
+                        return issubclass(x.type, (np.int32, np.int64))
+
+                    elif dtype == "float" or dtype is float:
+                        return issubclass(x.type, (np.float64, np.float32))
+
+                    # Comparing the raw user input against np.dtype(object) would
+                    # trigger numpy's abstract-type conversion DeprecationWarning
+                    # for entries like np.floating, so normalize first.
+                    dtype_type = infer_dtype_from_object(dtype)
+                    if dtype_type is np.object_:
+                        # backwards compat for the default `str` dtype being
+                        # selected by object
+                        return x == dtype_type or (
+                            isinstance(x, StringDtype) and x.na_value is np.nan
+                        )
+                    return issubclass(x.type, dtype_type)
+
+                funcs.append(new_func)
+
+            func = lambda x: any(func(x) for func in funcs)
+            return func
+
+        include_func = to_callable(include)
+        exclude_func = to_callable(exclude)
 
         def predicate(arr: ArrayLike) -> bool:
             dtype = arr.dtype
             if include:
-                if not dtype_predicate(dtype, include):
+                if not include_func(dtype):
                     return False
 
             if exclude:
-                if dtype_predicate(dtype, exclude):
+                if exclude_func(dtype):
                     return False
 
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
         if (
-            np.object_ in include
-            and str not in include
-            and str not in exclude
+            np.object_ in include_set
+            and str not in include_set
+            and str not in exclude_set
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes
