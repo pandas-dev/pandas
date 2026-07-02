@@ -2115,6 +2115,48 @@ class TestDataFrameReductions:
                     check_names=False,
                 )
 
+    @pytest.mark.parametrize("method", ["sum", "prod", "mean"])
+    @pytest.mark.parametrize("dtype", ["float64", "int64"])
+    @pytest.mark.parametrize("with_nan", [False, True])
+    def test_reduce_axis1_wide_few_rows(self, method, dtype, with_nan):
+        # GH#51474 - a wide single-block frame (few rows, many columns) reduces
+        # summation ops (sum/prod/mean) over a contiguous transpose rather than
+        # the strided block axis; result must still match the transpose path.
+        if with_nan and dtype != "float64":
+            pytest.skip("only float can hold NaN")
+        rng = np.random.default_rng(0)
+        nrows, ncols = 3, 50
+        if dtype == "float64":
+            values = rng.standard_normal((nrows, ncols))
+            if with_nan:
+                values[values > 0.5] = np.nan
+        else:
+            values = rng.integers(0, 100, (nrows, ncols))
+        df = DataFrame(values)
+        assert len(df._mgr.blocks) == 1
+        # the fastpath gate keys on the block being (ncols, nrows) with nrows < 6
+        assert df._mgr.blocks[0].values.shape[1] == nrows
+
+        result = getattr(df, method)(axis=1)
+        expected = getattr(df.T, method)()
+        tm.assert_series_equal(result, expected, check_names=False, check_dtype=False)
+
+    def test_reduce_axis1_wide_few_rows_min_count(self):
+        # GH#51474 - min_count still applies per row on the contiguous-transpose
+        # path for wide single-block frames.
+        rng = np.random.default_rng(1)
+        values = rng.standard_normal((2, 40))
+        values[values > 0.0] = np.nan  # roughly half NaN per row
+        df = DataFrame(values)
+        assert df._mgr.blocks[0].values.shape[1] == 2
+
+        # more non-null values required than any row has -> all NaN
+        assert df.sum(axis=1, min_count=100).isna().all()
+
+        result = df.sum(axis=1, min_count=1)
+        expected = df.T.sum(min_count=1)
+        tm.assert_series_equal(result, expected, check_names=False)
+
     def test_frame_any_with_timedelta(self):
         # GH#17667
         df = DataFrame(
