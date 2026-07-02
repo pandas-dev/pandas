@@ -230,6 +230,8 @@ cdef extern from "pandas/parser/tokenizer.h":
 
         int64_t skip_empty_lines
 
+        int preloaded
+
     ctypedef struct coliter_t:
         char **words
         int64_t *line_start
@@ -571,7 +573,7 @@ cdef class TextReader:
     def close(self):
         _close(self)
 
-    def load_buffer(self, const unsigned char[::1] data):
+    def load_buffer(self, const unsigned char[::1] data, bint strip_bom=False):
         """Pre-load all chunk bytes into the parser's internal buffer.
 
         After this call the tokeniser reads directly from the supplied *data*
@@ -589,6 +591,10 @@ cdef class TextReader:
         data : contiguous buffer
             Raw CSV bytes for one chunk (no header line).  Accepts any object
             implementing the buffer protocol (bytes, memoryview, mmap, etc.).
+        strip_bom : bool, default False
+            Skip a leading UTF-8 byte-order mark.  Pass True only when *data*
+            starts at byte 0 of the underlying file; a BOM byte sequence
+            anywhere else is real data and is preserved.
         """
         # Release the rd_source that was allocated for the dummy source passed
         # to __cinit__, balancing the Py_INCREF done by new_rd_source.
@@ -606,6 +612,19 @@ cdef class TextReader:
         self.parser.data = <char *>&data[0]
         self.parser.datalen = data.shape[0]
         self.parser.datapos = 0
+
+        # Disable the header/first-line special cases in tokenizer.c: the
+        # buffer holds plain data rows, so its first line must get regular
+        # bad-line handling and no BOM stripping (see parser_t.preloaded).
+        self.parser.preloaded = 1
+        if (
+            strip_bom
+            and data.shape[0] >= 3
+            and data[0] == 0xEF
+            and data[1] == 0xBB
+            and data[2] == 0xBF
+        ):
+            self.parser.datapos = 3
 
         # _get_header may have set state=FINISHED when it probed the empty
         # dummy source during __cinit__; reset so tokenisation actually runs.

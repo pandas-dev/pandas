@@ -20,7 +20,10 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -931,3 +934,73 @@ def test_parallel_multichar_sep_matches_serial(tmp_path, monkeypatch):
     with tm.assert_produces_warning(ParserWarning, match=warn_msg):
         expected = read_csv(io.BytesIO(raw), sep=";;")
     tm.assert_frame_equal(result, expected)
+
+
+def _write_with_line_at_chunk_start(path, replacement: bytes) -> None:
+    """Write a fixed-width CSV, then overwrite the line at the second chunk
+    boundary with *replacement* (same byte length, so offsets stay valid)."""
+    rows = [f"{i:06d},{i * 2:06d}" for i in range(4000)]
+    path.write_text("a,b\n" + "\n".join(rows) + "\n")
+    data_start = _find_data_start_offset(str(path), 0, 0)
+    offsets = _find_chunk_byte_offsets(str(path), 4, data_start)
+    boundary = offsets[1]
+    raw = path.read_bytes()
+    line_end = raw.index(b"\n", boundary)
+    assert line_end - boundary == len(replacement)
+    with open(path, "r+b") as fd:
+        fd.seek(boundary)
+        fd.write(replacement)
+
+
+def test_parallel_ragged_line_at_chunk_start_raises(tmp_path, monkeypatch):
+    # A line with extra fields sitting exactly at a chunk boundary: the chunk
+    # worker's first line used to be exempt from the field-count check, so
+    # parallel silently truncated the row while serial raised (GH#64347).
+    path = tmp_path / "ragged.csv"
+    _write_with_line_at_chunk_start(path, b"11,22,33,4444")
+
+    with pytest.raises(ParserError, match="Expected 2 fields"):
+        _read_forced_parallel(path, monkeypatch)
+
+
+def test_parallel_ragged_line_at_chunk_start_skip_matches_serial(tmp_path, monkeypatch):
+    # Same layout with on_bad_lines="skip": the chunk worker must skip the
+    # bad line just like serial, not keep a truncated version of it.
+    path = tmp_path / "ragged.csv"
+    _write_with_line_at_chunk_start(path, b"11,22,33,4444")
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, on_bad_lines="skip")
+    result = _read_forced_parallel(path, monkeypatch, on_bad_lines="skip")
+    tm.assert_frame_equal(result, expected)
+    assert len(result) == 3999
+
+
+def test_parallel_bom_bytes_mid_file_match_serial(tmp_path, monkeypatch):
+    # Data lines beginning with the UTF-8 BOM byte sequence: each chunk
+    # worker's fresh parser used to strip it from the chunk's first line,
+    # while serial strips only at byte 0 of the file (GH#64347).
+    lines = ["a,b"] + ["\ufeff" + f"x{i},{i}" for i in range(4000)]
+    path = tmp_path / "bom.csv"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path)
+    result = _read_forced_parallel(path, monkeypatch)
+    tm.assert_frame_equal(result, expected)
+    assert (result["a"].str[0] == "\ufeff").all()
+
+
+def test_parallel_bom_at_file_start_header_none(tmp_path, monkeypatch):
+    # With header=None and no skiprows the first chunk starts at byte 0 and
+    # must strip a leading BOM exactly like the serial parser does.
+    body = "".join(f"{i},{i * 2}\n" for i in range(4000))
+    path = tmp_path / "bom0.csv"
+    path.write_bytes(b"\xef\xbb\xbf" + body.encode())
+
+    with option_context("mode.max_threads", 1):
+        expected = read_csv(path, header=None, names=["a", "b"])
+    result = _read_forced_parallel(path, monkeypatch, header=None, names=["a", "b"])
+    tm.assert_frame_equal(result, expected)
+    # the stripped BOM means the first cell parses as an integer
+    assert result["a"].iloc[0] == 0

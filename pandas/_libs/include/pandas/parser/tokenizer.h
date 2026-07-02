@@ -150,6 +150,11 @@ typedef struct parser_t {
   char *error_msg;
 
   int skip_empty_lines;
+
+  // Boolean: 1 when the input was pre-loaded via TextReader.load_buffer.
+  // The buffer then never starts with a header row, so the first line gets
+  // no special treatment: no BOM strip, no exemption from field-count checks.
+  int preloaded;
 } parser_t;
 
 typedef struct coliter_t {

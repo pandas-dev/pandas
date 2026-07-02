@@ -718,7 +718,9 @@ def _read_csv_parallel(
         data = mv[start:end]
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
-        reader._engine._reader.load_buffer(data)
+        # The serial C parser strips a UTF-8 BOM at byte 0 of the file only;
+        # strip_bom mirrors that for the chunk that starts there.
+        reader._engine._reader.load_buffer(data, strip_bom=start == 0)
         try:
             return reader.read()
         finally:
