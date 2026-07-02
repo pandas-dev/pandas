@@ -170,7 +170,7 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :func:`merge` with ``how="left"`` and ``sort=False`` when joining on a right index with unique keys (:issue:`65160`)
 - Performance improvement in :func:`merge` with ``sort=False`` for single-key ``how="left"``/``how="right"`` joins when the opposite join key is sorted, unique, and range-like (:issue:`64146`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for columns containing values similar to the default NA spellings (e.g. negative numbers, which share a leading ``-`` with ``"-NaN"``) (:issue:`66114`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for columns containing values similar to the default NA spellings (e.g. negative numbers, which share a leading ``-`` with ``"-NaN"``) (:issue:`66132`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_hdf` for the fixed (default) format, especially on large frames (:issue:`47726`)
