@@ -41,6 +41,16 @@ struct chunk_t {
   size_t capacity;
 };
 
+// First arena chunk for large windows. Windows whose full node budget fits in
+// one chunk of this size are allocated exactly (identical to a single-chunk
+// arena); larger windows start here and grow geometrically, so a window that
+// never fills (sparse/NaN data) only commits what it touches instead of the
+// whole window up front.
+#ifndef SKIPLIST_INIT_CHUNK
+#  define SKIPLIST_INIT_CHUNK (128 * 1024)
+#endif
+#define SKIPLIST_MAX_CHUNK (4 << 20)
+
 typedef struct {
   node_t *head;
   node_t *nil;
@@ -118,6 +128,13 @@ static inline node_t *skiplist_alloc_node(skiplist_t *skp, int levels) {
     chunk->capacity = capacity;
     chunk->next = skp->chunks;
     skp->chunks = chunk;
+    // next chunk doubles (capped), so filling a full window costs O(log)
+    // allocations while an underfilled one stops early
+    if (skp->chunk_bytes < SKIPLIST_MAX_CHUNK) {
+      size_t grown = skp->chunk_bytes * 2;
+      skp->chunk_bytes =
+          grown > SKIPLIST_MAX_CHUNK ? SKIPLIST_MAX_CHUNK : grown;
+    }
   }
   node = (node_t *)((char *)chunk + sizeof(chunk_t) + chunk->used);
   chunk->used += nbytes;
@@ -194,14 +211,12 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   result->size = 0;
   result->chunks = NULL;
   result->rng_state = 0x9E3779B97F4A7C15ULL ^ (uint64_t)expected_size;
-  // size the first chunk so a full window (~64 bytes expected per node,
-  // plus free-list slack) normally fits in a single allocation; compute in
-  // 64 bits so a large expected_size cannot overflow a 32-bit size_t
+  // First chunk covers a full window's node budget (~96 B/node incl. free-list
+  // slack) but is capped at SKIPLIST_INIT_CHUNK; bigger windows grow from there
+  // geometrically. Computed in 64 bits so expected_size cannot overflow size_t.
   chunk_target = (uint64_t)expected_size * 96 + 64;
-  if (chunk_target < 4096) {
-    chunk_target = 4096;
-  } else if (chunk_target > (4 << 20)) {
-    chunk_target = 4 << 20;
+  if (chunk_target > SKIPLIST_INIT_CHUNK) {
+    chunk_target = SKIPLIST_INIT_CHUNK;
   }
   result->chunk_bytes = (size_t)chunk_target;
 
