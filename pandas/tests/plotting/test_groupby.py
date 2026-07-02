@@ -165,3 +165,21 @@ class TestDataFrameGroupByPlots:
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             g.hist(legend=True, label="d")
+
+    def test_plot_kwargs_scatter_legend_labels(self):
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5],
+                "y": [1, 2, 3, 2, 1],
+                "z": list("ababa"),
+            }
+        )
+
+        res = df.groupby("z").plot.scatter(
+            x="x",
+            y="y",
+            legend=True,
+        )
+
+        _check_legend_labels(res["a"], ["a"])
+        _check_legend_labels(res["b"], ["b"])
