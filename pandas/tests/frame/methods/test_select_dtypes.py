@@ -680,3 +680,117 @@ def test_select_dtypes_instance_overlap_raises():
     msg = "include and exclude overlap"
     with pytest.raises(ValueError, match=msg):
         df.select_dtypes(include=[np.dtype("int64")], exclude=[np.dtype("int64")])
+
+
+def test_select_dtypes_ea_class_categorical():
+    # GH#65366: an ExtensionDtype subclass matches every instance of that
+    # subclass, regardless of parametrization
+    df = DataFrame(
+        {
+            "a": pd.Categorical(["x", "y"]),
+            "b": pd.Categorical([1, 2], categories=[1, 2, 3], ordered=True),
+            "c": [1, 2],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=pd.CategoricalDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+    result = df.select_dtypes(exclude=pd.CategoricalDtype)
+    tm.assert_frame_equal(result, df[["c"]])
+
+
+def test_select_dtypes_ea_class_arrow():
+    # GH#65366
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2], dtype="int64[pyarrow]"),
+            "b": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
+            "c": [1, 2],
+            "d": pd.array([1, 2], dtype="Int64"),
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=pd.ArrowDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+    result = df.select_dtypes(exclude=pd.ArrowDtype)
+    tm.assert_frame_equal(result, df[["c", "d"]])
+
+
+def test_select_dtypes_ea_class_masked_does_not_match_numpy():
+    # GH#40234: Int64Dtype class matches only the masked dtype, not numpy int64
+    df = DataFrame({"a": pd.array([1, 2], dtype="Int64"), "b": [1, 2]})
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=pd.Int64Dtype)
+    tm.assert_frame_equal(result, df[["a"]])
+
+
+def test_select_dtypes_ea_class_datetimetz():
+    # GH#65366
+    df = DataFrame(
+        {
+            "a": pd.date_range("2016-01-01", periods=2, tz="US/Pacific"),
+            "b": pd.date_range("2016-01-01", periods=2, tz="UTC"),
+            "c": pd.date_range("2016-01-01", periods=2),
+            "d": [1, 2],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=pd.DatetimeTZDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+def test_select_dtypes_ea_class_string(using_infer_string):
+    # GH#65366
+    df = DataFrame(
+        {
+            "a": ["x", "y"],
+            "b": [1, 2],
+            "c": pd.array(["x", "y"], dtype="string"),
+        }
+    )
+    result = df.select_dtypes(include=pd.StringDtype)
+    if using_infer_string:
+        expected = df[["a", "c"]]
+    else:
+        expected = df[["c"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_dtypes_ea_class_string_with_object_no_warning():
+    # GH#61916: explicitly passing StringDtype alongside object counts as
+    # handling 'str' columns, so no deprecation warning is emitted
+    df = DataFrame({"a": ["x", "y"], "b": [1, 2]})
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=[object, pd.StringDtype])
+    tm.assert_frame_equal(result, df[["a"]])
+
+
+def test_select_dtypes_ea_base_class():
+    # GH#65366: the ExtensionDtype base class matches all extension dtypes
+    df = DataFrame(
+        {
+            "a": pd.Categorical(["x", "y"]),
+            "b": pd.array([1, 2], dtype="Int64"),
+            "c": [1, 2],
+        }
+    )
+    result = df.select_dtypes(include=ExtensionDtype)
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+def test_select_dtypes_ea_class_mixed_with_other_specs():
+    # GH#65366
+    df = DataFrame({"a": pd.Categorical(["x", "y"]), "b": [1, 2], "c": [1.5, 2.5]})
+    result = df.select_dtypes(include=[pd.CategoricalDtype, "int64"])
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+def test_select_dtypes_ea_class_include_exclude_overlap_raises():
+    # GH#65366
+    df = DataFrame({"a": pd.Categorical(["x"]), "b": [1]})
+    msg = "include and exclude overlap"
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(include=pd.CategoricalDtype, exclude=pd.CategoricalDtype)
