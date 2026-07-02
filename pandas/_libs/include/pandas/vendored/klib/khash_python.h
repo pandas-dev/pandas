@@ -385,6 +385,16 @@ KHASH_MAP_INIT_STR(strbox, kh_pyobject_t)
 typedef struct {
   kh_str_t *table;
   int starts[256];
+  // Pairwise (first byte, second byte) presence bitmap: bit ch2 of
+  // starts2[ch] marks a key starting with bytes ch, ch2. Tokens sharing
+  // only a first byte with a key (e.g. "-12" vs the "-NaN" NA spelling)
+  // then skip the full hash lookup.
+  uint8_t starts2[256][32];
+  // 8192-bit bloom filter over the first (up to) 4 bytes of each key.
+  // Two bytes are not enough for numeric tokens vs the default NA
+  // spellings ("1.23" vs "1.#IND", "-1.5" vs "-1.#QNAN"); four bytes
+  // are ("1.23" vs "1.#I", "-1.5" vs "-1.#").
+  uint8_t prefix4[1024];
 } kh_str_starts_t;
 
 typedef kh_str_starts_t *p_kh_str_starts_t;
@@ -396,21 +406,46 @@ static inline p_kh_str_starts_t kh_init_str_starts(void) {
   return result;
 }
 
+// Bloom-bit index for the first min(4, strlen) bytes of a NUL-terminated
+// key. Equal strings always map to the same bit, so the filter has no
+// false negatives.
+static inline uint32_t kh_str_starts_prefix4_bit(const char *key) {
+  uint32_t prefix = (unsigned char)key[0];
+  for (int i = 1; i < 4 && key[i] != '\0'; i++) {
+    prefix = (prefix << 8) | (unsigned char)key[i];
+  }
+  return (prefix * 2654435761u) >> 19;
+}
+
 static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
                                               int *ret) {
   khuint_t result = kh_put_str(table->table, key, ret);
   if (*ret != 0) {
-    table->starts[(unsigned char)key[0]] = 1;
+    const unsigned char ch = (unsigned char)key[0];
+    table->starts[ch] = 1;
+    if (ch != '\0') {
+      const unsigned char ch2 = (unsigned char)key[1];
+      table->starts2[ch][ch2 >> 3] |= (uint8_t)(1 << (ch2 & 7));
+      const uint32_t bit = kh_str_starts_prefix4_bit(key);
+      table->prefix4[bit >> 3] |= (uint8_t)(1 << (bit & 7));
+    }
   }
   return result;
 }
 
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
                                               const char *key) {
-  unsigned char ch = *key;
+  const unsigned char ch = (unsigned char)*key;
   if (table->starts[ch]) {
-    if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets)
+    if (ch == '\0')
       return 1;
+    const unsigned char ch2 = (unsigned char)key[1];
+    if (table->starts2[ch][ch2 >> 3] & (1 << (ch2 & 7))) {
+      const uint32_t bit = kh_str_starts_prefix4_bit(key);
+      if ((table->prefix4[bit >> 3] & (1 << (bit & 7))) &&
+          kh_get_str(table->table, key) != table->table->n_buckets)
+        return 1;
+    }
   }
   return 0;
 }
