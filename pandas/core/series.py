@@ -3290,8 +3290,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
         >>> s.autocorr()  # doctest: +ELLIPSIS
         0.10355...
-        >>> s.autocorr(lag=2)  # doctest: +ELLIPSIS
-        -0.99999...
+        >>> s.autocorr(lag=2)
+        -1.0
 
         If the Pearson correlation is not well defined, then 'NaN' is returned.
 

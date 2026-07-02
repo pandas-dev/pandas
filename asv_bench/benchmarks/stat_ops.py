@@ -153,6 +153,15 @@ class Correlation:
         self.df.corrwith(self.df2, axis=1, method=method)
 
 
+class PearsonCorrelation:
+    def setup(self):
+        self.s = pd.Series(np.random.randn(10**6))
+        self.s2 = pd.Series(np.random.randn(10**6))
+
+    def time_corr_series(self):
+        self.s.corr(self.s2, method="pearson")
+
+
 class Covariance:
     params = []
     param_names = []
