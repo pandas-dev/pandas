@@ -2036,6 +2036,127 @@ class TestDataFrameReductions:
                 check_names=False,
             )
 
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "any",
+            "all",
+            "median",
+            "std",
+            "var",
+            "sem",
+            "skew",
+            "kurt",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "kwargs",
+        [{}, {"min_count": 2}, {"min_count": 5}],
+        ids=["default", "min_count", "min_count_high"],
+    )
+    def test_reduce_axis1_single_block_exhaustive(
+        self, reduction_block_1, method, skipna, kwargs
+    ):
+        # GH#51474 - single-block frames reduce the block values directly
+        # along axis=1; the result must match the transpose path, whether
+        # that is a successful result or a raised exception.
+        if "min_count" in kwargs and method not in ("sum", "prod"):
+            pytest.skip("min_count only applies to sum/prod")
+        df = reduction_block_1
+        if len(df._mgr.blocks) != 1:
+            # 1D EA columns do not consolidate; those frames are covered
+            # by test_reduce_axis1_multiblock_exhaustive
+            pytest.skip("fixture frame is not single-block")
+        kw = {"skipna": skipna, **kwargs}
+
+        transpose_err = None
+        expected = None
+        try:
+            expected = getattr(df.T, method)(**kw)
+        except (TypeError, ValueError) as err:
+            transpose_err = err
+
+        if isinstance(df._mgr.blocks[0].values, np.ndarray):
+            # numpy block: the fastpath performs the identical computation,
+            # so the result (or exception) must match exactly, dtype included
+            if transpose_err is not None:
+                with pytest.raises(
+                    type(transpose_err), match=re.escape(str(transpose_err))
+                ):
+                    getattr(df, method)(axis=1, **kw)
+            else:
+                result = getattr(df, method)(axis=1, **kw)
+                tm.assert_series_equal(result, expected, check_names=False)
+        else:
+            # 2D EA block: paths differ more, so mirror the lax comparison
+            # of test_reduce_axis1_multiblock_exhaustive
+            axis1_err = None
+            result = None
+            try:
+                result = getattr(df, method)(axis=1, **kw)
+            except (TypeError, ValueError) as err:
+                axis1_err = err
+            if transpose_err is not None or axis1_err is not None:
+                return
+            result_na = isna(result)
+            expected_na = isna(expected)
+            assert (result_na == expected_na).all()
+            both_valid = ~result_na & ~expected_na
+            if both_valid.any():
+                tm.assert_series_equal(
+                    result[both_valid].reset_index(drop=True),
+                    expected[both_valid].reset_index(drop=True),
+                    check_dtype=False,
+                    check_names=False,
+                )
+
+    @pytest.mark.parametrize("method", ["sum", "prod", "mean"])
+    @pytest.mark.parametrize("dtype", ["float64", "int64"])
+    @pytest.mark.parametrize("with_nan", [False, True])
+    def test_reduce_axis1_wide_few_rows(self, method, dtype, with_nan):
+        # GH#51474 - a wide single-block frame (few rows, many columns) reduces
+        # summation ops (sum/prod/mean) over a contiguous transpose rather than
+        # the strided block axis; result must still match the transpose path.
+        if with_nan and dtype != "float64":
+            pytest.skip("only float can hold NaN")
+        rng = np.random.default_rng(0)
+        nrows, ncols = 3, 50
+        if dtype == "float64":
+            values = rng.standard_normal((nrows, ncols))
+            if with_nan:
+                values[values > 0.5] = np.nan
+        else:
+            values = rng.integers(0, 100, (nrows, ncols))
+        df = DataFrame(values)
+        assert len(df._mgr.blocks) == 1
+        # the fastpath gate keys on the block being (ncols, nrows) with nrows < 6
+        assert df._mgr.blocks[0].values.shape[1] == nrows
+
+        result = getattr(df, method)(axis=1)
+        expected = getattr(df.T, method)()
+        tm.assert_series_equal(result, expected, check_names=False, check_dtype=False)
+
+    def test_reduce_axis1_wide_few_rows_min_count(self):
+        # GH#51474 - min_count still applies per row on the contiguous-transpose
+        # path for wide single-block frames.
+        rng = np.random.default_rng(1)
+        values = rng.standard_normal((2, 40))
+        values[values > 0.0] = np.nan  # roughly half NaN per row
+        df = DataFrame(values)
+        assert df._mgr.blocks[0].values.shape[1] == 2
+
+        # more non-null values required than any row has -> all NaN
+        assert df.sum(axis=1, min_count=100).isna().all()
+
+        result = df.sum(axis=1, min_count=1)
+        expected = df.T.sum(min_count=1)
+        tm.assert_series_equal(result, expected, check_names=False)
+
     def test_frame_any_with_timedelta(self):
         # GH#17667
         df = DataFrame(
