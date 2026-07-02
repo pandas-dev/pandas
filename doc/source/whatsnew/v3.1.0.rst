@@ -37,6 +37,7 @@ Other enhancements
 - :meth:`ExtensionArray.map` now calls :meth:`ExtensionArray._cast_pointwise_result` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
 - :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
 - :func:`to_datetime` and ``strptime`` parsing now support the ``%N`` directive for matching exactly 9 digits representing nanoseconds, providing symmetry with ``strftime`` formatting (:issue:`65863`)
+- :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)
