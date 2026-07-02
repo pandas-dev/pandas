@@ -20,3 +20,78 @@ jobs:
         with:
           previewer-server: "https://pandas.pydata.org/preview"
           artifact-job: "Doc Build and Upload"
+
+  take:
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/take')
+    concurrency:
+      group: assign-${{ github.event.issue.number }}
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            if (context.payload.comment.body.trim() !== '/take') return;
+            const docsUrl = 'https://pandas.pydata.org/docs/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle';
+            const issue = context.payload.issue;
+            const user = context.payload.comment.user.login;
+            const labels = issue.labels.map(label => label.name);
+            const assignees = issue.assignees.map(assignee => assignee.login);
+            const blocking = ['Needs Triage', 'Needs Discussion'].find(label => labels.includes(label));
+            const comment = body => github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body,
+            });
+            if (blocking) {
+              await comment(`Thanks for your interest, @${user}! This issue is still labeled \`${blocking}\`, which means a maintainer needs to review it before work starts — so it isn't open to claim just yet. Please hold off on a PR until that label is removed. See the [contributing guide](${docsUrl}) for more.`);
+              return;
+            }
+            if (assignees.includes(user)) {
+              await comment(`You already have this one, @${user} — it's assigned to you and you're all set to work on it.`);
+              return;
+            }
+            if (assignees.length > 0) {
+              await comment(`Thanks @${user}! This issue is currently assigned to @${assignees[0]}, who's already on it — so to avoid two people doing the same work, please pick a different available issue for now. If @${assignees[0]} becomes inactive, the issue is released automatically and you'll be able to \`/take\` it then. See the [contributing guide](${docsUrl}) for more.`);
+              return;
+            }
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, assignees: [user],
+            });
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: context.payload.comment.id, content: '+1',
+            });
+
+  untake:
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/untake')
+    concurrency:
+      group: assign-${{ github.event.issue.number }}
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            if (context.payload.comment.body.trim() !== '/untake') return;
+            const issue = context.payload.issue;
+            const user = context.payload.comment.user.login;
+            const assignees = issue.assignees.map(assignee => assignee.login);
+            if (!assignees.includes(user)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number,
+                body: `@${user}, you're not currently assigned to this issue, so there's nothing to release. If you'd like to work on it, comment \`/take\` to claim it.`,
+              });
+              return;
+            }
+            await github.rest.issues.removeAssignees({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, assignees: [user],
+            });
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner, repo: context.repo.repo, comment_id: context.payload.comment.id, content: '+1',
+            });
