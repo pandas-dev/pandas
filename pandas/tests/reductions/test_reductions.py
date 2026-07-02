@@ -715,7 +715,6 @@ class TestSeriesReductions:
             msg = "|".join(
                 [
                     "operation 'var' not allowed",
-                    r"cannot perform var with type timedelta64\[ns\]",
                     "does not support operation 'var'",
                 ]
             )
