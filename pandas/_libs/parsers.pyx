@@ -1259,8 +1259,13 @@ cdef class TextReader:
                 target = "str_nan"
 
         if target:
-            return _string_pyarrow_utf8(self.parser, i, start, end, na_filter,
-                                        na_hashset, target)
+            try:
+                return _string_pyarrow_utf8(self.parser, i, start, end,
+                                            na_filter, na_hashset, target)
+            except OverflowError:
+                # >2GiB of string data does not fit the "arrow" target's
+                # int32 offsets; the object path below chunks as needed.
+                pass
 
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
