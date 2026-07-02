@@ -433,19 +433,51 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
   return result;
 }
 
+#if defined(_MSC_VER)
+#  define KH_NOINLINE __declspec(noinline)
+#else
+#  define KH_NOINLINE __attribute__((noinline))
+#endif
+
+// Slow path once the first-byte table hits: the starts2/prefix4 bloom
+// layers, then the full hash lookup. Kept out of line so the common
+// first-byte reject stays a tiny inline check in the parser's per-token
+// loops.
+static inline KH_NOINLINE khuint_t
+kh_get_str_starts_item_slow(const kh_str_starts_t *table, const char *key) {
+  const unsigned char ch2 = (unsigned char)key[1];
+  if (table->starts2[(unsigned char)key[0]][ch2 >> 3] & (1 << (ch2 & 7))) {
+    const uint32_t bit = kh_str_starts_prefix4_bit(key);
+    if ((table->prefix4[bit >> 3] & (1 << (bit & 7))) &&
+        kh_get_str(table->table, key) != table->table->n_buckets)
+      return 1;
+  }
+  return 0;
+}
+
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
                                               const char *key) {
   const unsigned char ch = (unsigned char)*key;
   if (table->starts[ch]) {
     if (ch == '\0')
       return 1;
-    const unsigned char ch2 = (unsigned char)key[1];
-    if (table->starts2[ch][ch2 >> 3] & (1 << (ch2 & 7))) {
-      const uint32_t bit = kh_str_starts_prefix4_bit(key);
-      if ((table->prefix4[bit >> 3] & (1 << (bit & 7))) &&
-          kh_get_str(table->table, key) != table->table->n_buckets)
-        return 1;
-    }
+    return kh_get_str_starts_item_slow(table, key);
+  }
+  return 0;
+}
+
+// First-byte-only variant for hit-dominated lookups (the parser's
+// true/false sets, where nearly every token is in one of the two sets):
+// the bloom layers above filter nothing on a hit and would be pure
+// overhead, while the first-byte table still rejects the opposite set
+// ("True" vs the false set) in one load.
+static inline khuint_t
+kh_get_str_starts_item_expect_hit(const kh_str_starts_t *table,
+                                  const char *key) {
+  const unsigned char ch = (unsigned char)*key;
+  if (table->starts[ch]) {
+    if (ch == '\0' || kh_get_str(table->table, key) != table->table->n_buckets)
+      return 1;
   }
   return 0;
 }
