@@ -57,6 +57,7 @@ from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -387,6 +388,7 @@ def array_strptime(
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit, item_reso
         int out_local = 0, out_tzoffset = 0
+        int64_t value, ival, nsecs
         bint string_to_dts_succeeded = 0
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
@@ -518,10 +520,9 @@ def array_strptime(
                     nsecs = out_tzoffset * 60
                     state.out_tzoffset_vals.add(nsecs)
                     state.found_aware_str = True
-                    tz = timezone(timedelta(minutes=out_tzoffset))
-                    value = tz_localize_to_utc_single(
-                        value, tz, ambiguous="raise", nonexistent=None, creso=creso
-                    )
+                    # Faster equivalent of localizing to the parsed fixed
+                    #  offset and converting to UTC
+                    value -= nsecs * periods_per_second(creso)
                 else:
                     tz = None
                     state.out_tzoffset_vals.add("naive")
@@ -567,16 +568,22 @@ def array_strptime(
 
             if tz is not None:
                 ival = iresult[i]
-                iresult[i] = tz_localize_to_utc_single(
-                    ival, tz, ambiguous="raise", nonexistent=None, creso=creso
-                )
-                nsecs = (ival - iresult[i])
-                if creso == NPY_FR_ns:
-                    nsecs = nsecs // 10**9
-                elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
-                    nsecs = nsecs // 10**6
-                elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
-                    nsecs = nsecs // 10**3
+                if type(tz) is timezone:
+                    # i.e. a fixed offset from the %z directive; faster
+                    #  equivalent of localizing and converting to UTC
+                    nsecs = int(tz.utcoffset(None).total_seconds())
+                    iresult[i] = ival - nsecs * periods_per_second(creso)
+                else:
+                    iresult[i] = tz_localize_to_utc_single(
+                        ival, tz, ambiguous="raise", nonexistent=None, creso=creso
+                    )
+                    nsecs = (ival - iresult[i])
+                    if creso == NPY_FR_ns:
+                        nsecs = nsecs // 10**9
+                    elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
+                        nsecs = nsecs // 10**6
+                    elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                        nsecs = nsecs // 10**3
 
                 state.out_tzoffset_vals.add(nsecs)
                 state.found_aware_str = True
