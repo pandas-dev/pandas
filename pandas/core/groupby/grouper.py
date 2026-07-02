@@ -982,6 +982,9 @@ def _factorize_monotonic(
         dtype = grouping_vector.dtype
         if not isinstance(dtype, np.dtype) or dtype.kind not in "iufmMb":
             return None
+        if getattr(grouping_vector, "freq", None) is not None:
+            # Fallback for DatetimeIndex/TimedeltaIndex/PeriodIndex is faster
+            return None
         ascending = grouping_vector.is_monotonic_increasing
         if not ascending and not grouping_vector.is_monotonic_decreasing:
             return None
