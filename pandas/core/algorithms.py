@@ -1538,8 +1538,17 @@ def safe_sort(
         ordered = _sort_mixed(values)
     else:
         try:
-            sorter = values.argsort()
-            ordered = values.take(sorter)
+            if (
+                codes is None
+                and isinstance(values, np.ndarray)
+                and values.dtype.kind in "iufb"
+            ):
+                # we only need the sorted values here, and a direct sort
+                #  is cheaper than argsort + take
+                ordered = np.sort(values)
+            else:
+                sorter = values.argsort()
+                ordered = values.take(sorter)
         except (TypeError, decimal.InvalidOperation):
             # Previous sorters failed or were not applicable, try `_sort_mixed`
             # which would work, but which fails for special case of 1d arrays
@@ -1567,31 +1576,35 @@ def safe_sort(
     if not assume_unique and not len(unique(values)) == len(values):
         raise ValueError("values should be unique if codes is not None")
 
-    if sorter is None:
+    # ranks[i] gives the position of values[i] in `ordered`
+    if sorter is not None:
+        # sorter is a permutation, so scatter is a faster equivalent to
+        #  `ranks = sorter.argsort()`
+        ranks = np.empty(len(sorter), dtype=np.intp)
+        ranks[sorter] = np.arange(len(sorter), dtype=np.intp)
+    else:
         # mixed types
         # error: Argument 1 to "_get_hashtable_algo" has incompatible type
         # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
         # "ndarray[Any, Any]"
         hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
         t = hash_klass(len(values))
-        t.map_locations(values)
-        # error: Argument 1 to "lookup" of "HashTable" has incompatible type
-        # "ExtensionArray | ndarray[Any, Any] | Index | Series"; expected "ndarray"
-        sorter = ensure_platform_int(t.lookup(ordered))  # type: ignore[arg-type]
+        # error: Argument 1 to "map_locations" of "HashTable" has incompatible
+        # type "ExtensionArray | ndarray[Any, Any] | Index | Series";
+        # expected "ndarray"
+        t.map_locations(ordered)  # type: ignore[arg-type]
+        ranks = ensure_platform_int(t.lookup(values))
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
-        order2 = sorter.argsort()
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
             codes[mask] = -1
-        new_codes = take_nd(order2, codes, fill_value=-1)
+        new_codes = take_nd(ranks, codes, fill_value=-1)
     else:
-        reverse_indexer = np.empty(len(sorter), dtype=int)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
-        new_codes = reverse_indexer.take(codes, mode="wrap")
+        new_codes = ranks.take(codes, mode="wrap")
 
     return ordered, ensure_platform_int(new_codes)
 
