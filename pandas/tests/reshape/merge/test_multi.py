@@ -981,7 +981,7 @@ class TestJoinMultiMulti:
 
 @pytest.mark.parametrize("dtype", [np.int64, np.int32, np.uint16])
 def test_merge_multi_int_keys_sort(dtype, join_type):
-    # GH#XXXXX exercise the fused multi-int-key path; result row order with
+    # GH#66124 exercise the fused multi-int-key path; result row order with
     #  sort=True must be lexicographic in the key tuples
     left = DataFrame(
         {
@@ -1013,7 +1013,7 @@ def test_merge_multi_int_keys_sort(dtype, join_type):
 
 
 def test_merge_multi_int64_extreme_values():
-    # GH#XXXXX values near the int64 boundaries within a small span
+    # GH#66124 values near the int64 boundaries within a small span
     imin = np.iinfo(np.int64).min
     left = DataFrame(
         {
@@ -1042,7 +1042,7 @@ def test_merge_multi_int64_extreme_values():
 
 
 def test_merge_multi_uint64_extreme_values():
-    # GH#XXXXX uint64 keys above the int64 boundary
+    # GH#66124 uint64 keys above the int64 boundary
     umax = np.iinfo(np.uint64).max
     left = DataFrame(
         {
@@ -1071,7 +1071,7 @@ def test_merge_multi_uint64_extreme_values():
 
 
 def test_merge_multi_int_keys_wide_span():
-    # GH#XXXXX combined key space exceeding int64 falls back to per-column
+    # GH#66124 combined key space exceeding int64 falls back to per-column
     #  factorization
     left = DataFrame(
         {
@@ -1100,7 +1100,7 @@ def test_merge_multi_int_keys_wide_span():
 
 
 def test_merge_multi_datetime_int_keys():
-    # GH#XXXXX datetime64 plus integer key columns
+    # GH#66124 datetime64 plus integer key columns
     dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-01"])
     left = DataFrame(
         {"k1": dti, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
@@ -1121,7 +1121,7 @@ def test_merge_multi_datetime_int_keys():
 
 
 def test_merge_multi_datetime_keys_with_nat():
-    # GH#XXXXX NaT keys match each other, same as with a single datetime key
+    # GH#66124 NaT keys match each other, same as with a single datetime key
     dti = pd.to_datetime(["2020-01-01", "NaT", "2020-01-02"])
     left = DataFrame(
         {"k1": dti, "k2": np.array([1, 2, 3], dtype=np.int64), "lval": [0, 1, 2]}
@@ -1142,7 +1142,7 @@ def test_merge_multi_datetime_keys_with_nat():
 
 
 def test_merge_multi_mixed_int_dtypes():
-    # GH#XXXXX int32/int64 key column pairs promote losslessly
+    # GH#66124 int32/int64 key column pairs promote losslessly
     left = DataFrame(
         {
             "k1": np.array([1, 2, 3, 2], dtype=np.int32),
@@ -1171,7 +1171,7 @@ def test_merge_multi_mixed_int_dtypes():
 
 
 def test_merge_multi_bool_int_keys():
-    # GH#XXXXX bool key column alongside an integer key column
+    # GH#66124 bool key column alongside an integer key column
     left = DataFrame(
         {
             "k1": np.array([True, False, True, False]),
