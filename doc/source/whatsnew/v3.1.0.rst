@@ -166,6 +166,7 @@ Performance improvements
 - Performance improvement in :func:`infer_freq` (:issue:`64463`)
 - Performance improvement in :func:`merge` and :meth:`DataFrame.join` for many-to-many joins with ``sort=False`` (:issue:`56564`)
 - Performance improvement in :func:`merge` for many-to-one joins with unique right keys (:issue:`38418`)
+- Performance improvement in :func:`merge` when joining on multiple integer, datetime, or timedelta key columns (:issue:`XXXXX`)
 - Performance improvement in :func:`merge` with ``how="cross"`` (:issue:`38082`)
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :func:`merge` with ``how="left"`` and ``sort=False`` when joining on a right index with unique keys (:issue:`65160`)
