@@ -444,6 +444,7 @@ class TestSafeSort:
         expected = np.array(exp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "object"])
     @pytest.mark.parametrize("verify", [True, False])
     @pytest.mark.parametrize(
         "codes, exp_codes",
@@ -452,9 +453,9 @@ class TestSafeSort:
             [[], []],
         ],
     )
-    def test_codes(self, verify, codes, exp_codes):
-        values = np.array([3, 1, 2, 0, 4])
-        expected = np.array([0, 1, 2, 3, 4])
+    def test_codes(self, verify, codes, exp_codes, dtype):
+        values = np.array([3, 1, 2, 0, 4], dtype=dtype)
+        expected = np.array([0, 1, 2, 3, 4], dtype=dtype)
 
         result, result_codes = safe_sort(
             values, codes, use_na_sentinel=True, verify=verify
@@ -463,9 +464,10 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
-    def test_codes_out_of_bound(self):
-        values = np.array([3, 1, 2, 0, 4])
-        expected = np.array([0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "object"])
+    def test_codes_out_of_bound(self, dtype):
+        values = np.array([3, 1, 2, 0, 4], dtype=dtype)
+        expected = np.array([0, 1, 2, 3, 4], dtype=dtype)
 
         # out of bound indices
         codes = [0, 101, 102, 2, 3, 0, 99, 4]

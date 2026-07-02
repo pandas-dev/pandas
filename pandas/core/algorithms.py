@@ -1531,7 +1531,29 @@ def safe_sort(
     sorter = None
     ordered: AnyArrayLike
 
-    if (
+    # For integer dtypes np.sort is much faster than the argsort+take below.
+    # When the range of values is modest, the codes remapping can also be
+    # done without the argsort, by ranking each value within the range
+    # (a counting sort).
+    use_counting = False
+    vmin = rng_size = 0
+    is_int_ndarray = isinstance(values, np.ndarray) and values.dtype.kind in "iu"
+    if is_int_ndarray and len(values):
+        int_values = cast("np.ndarray", values)
+        if codes is None:
+            # only the sorted values are needed
+            return np.sort(int_values)
+        # Only worth the counting machinery once argsort's n*log(n) exceeds
+        # the linear counting work; below a few thousand uniques the plain
+        # argsort path (with the O(n) inverse below) is faster.
+        if len(int_values) >= 5000:
+            vmin = int(int_values.min())
+            rng_size = int(int_values.max()) - vmin + 1
+            use_counting = rng_size <= 4 * len(int_values)
+
+    if use_counting:
+        ordered = np.sort(cast("np.ndarray", values))
+    elif (
         not isinstance(values.dtype, ExtensionDtype)
         and lib.infer_dtype(values, skipna=False) == "mixed-integer"
     ):
@@ -1564,34 +1586,56 @@ def safe_sort(
         )
     codes = ensure_platform_int(np.asarray(codes))
 
-    if not assume_unique and not len(unique(values)) == len(values):
-        raise ValueError("values should be unique if codes is not None")
+    # order2 maps each old code to the position of its value in `ordered`
+    if use_counting:
+        arr = cast("np.ndarray", values)
+        if arr.dtype.kind == "i":
+            # go through int64 so that differences don't overflow narrower
+            # signed dtypes; for int64 itself any wraparound is exact since
+            # the true differences are within rng_size
+            shifted = arr.astype(np.int64, copy=False) - vmin
+        else:
+            # unsigned: differences always fit the unsigned dtype
+            shifted = arr - vmin
+        present = np.zeros(rng_size, dtype=bool)
+        present[shifted] = True
+        ranks = present.cumsum(dtype=np.intp)
+        if not assume_unique and ranks[-1] != len(values):
+            raise ValueError("values should be unique if codes is not None")
+        order2 = ranks[shifted]
+        order2 -= 1
+    else:
+        if not assume_unique and not len(unique(values)) == len(values):
+            raise ValueError("values should be unique if codes is not None")
 
-    if sorter is None:
-        # mixed types
-        # error: Argument 1 to "_get_hashtable_algo" has incompatible type
-        # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
-        # "ndarray[Any, Any]"
-        hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
-        t = hash_klass(len(values))
-        t.map_locations(values)
-        # error: Argument 1 to "lookup" of "HashTable" has incompatible type
-        # "ExtensionArray | ndarray[Any, Any] | Index | Series"; expected "ndarray"
-        sorter = ensure_platform_int(t.lookup(ordered))  # type: ignore[arg-type]
+        if sorter is None:
+            # mixed types
+            # error: Argument 1 to "_get_hashtable_algo" has incompatible type
+            # "Union[Index, ExtensionArray, ndarray[Any, Any]]"; expected
+            # "ndarray[Any, Any]"
+            hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
+            t = hash_klass(len(values))
+            t.map_locations(values)
+            # error: Argument 1 to "lookup" of "HashTable" has incompatible
+            # type "ExtensionArray | ndarray[Any, Any] | Index | Series";
+            # expected "ndarray"
+            sorter = ensure_platform_int(t.lookup(ordered))  # type: ignore[arg-type]
+
+        # sorter is a permutation since values are unique, so invert it
+        # directly in O(n) rather than with sorter.argsort()
+        order2 = np.empty_like(sorter)
+        order2[sorter] = np.arange(len(sorter), dtype=np.intp)
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
-        order2 = sorter.argsort()
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
             codes[mask] = -1
         new_codes = take_nd(order2, codes, fill_value=-1)
     else:
-        reverse_indexer = np.empty(len(sorter), dtype=int)
-        reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
-        new_codes = reverse_indexer.take(codes, mode="wrap")
+        new_codes = order2.take(codes, mode="wrap")
 
     return ordered, ensure_platform_int(new_codes)
 
