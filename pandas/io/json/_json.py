@@ -32,8 +32,10 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
     OutOfBoundsDatetime,
+    Pandas4Warning,
 )
 from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -443,8 +445,8 @@ def read_json(
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -467,8 +469,8 @@ def read_json(
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -491,8 +493,8 @@ def read_json(
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -515,8 +517,8 @@ def read_json(
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
     convert_axes: bool | None = ...,
-    convert_dates: bool | list[str] = ...,
-    keep_default_dates: bool = ...,
+    convert_dates: bool | list[str] | lib.NoDefault = ...,
+    keep_default_dates: bool | lib.NoDefault = ...,
     precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
@@ -539,8 +541,8 @@ def read_json(
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
     convert_axes: bool | None = None,
-    convert_dates: bool | list[str] = True,
-    keep_default_dates: bool = True,
+    convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
+    keep_default_dates: bool | lib.NoDefault = lib.no_default,
     precise_float: bool = False,
     date_unit: str | None = None,
     encoding: str | None = None,
@@ -637,6 +639,9 @@ def read_json(
         default datelike columns may also be converted (depending on
         keep_default_dates).
 
+        .. deprecated:: 3.1.0
+            Use the ``dtype`` parameter instead to control type conversion.
+
     keep_default_dates : bool, default True
         If parsing dates (convert_dates is not False), then try to parse the
         default datelike columns.
@@ -651,6 +656,9 @@ def read_json(
         * it is ``'modified'``, or
 
         * it is ``'date'``.
+
+        .. deprecated:: 3.1.0
+            Use the ``dtype`` parameter instead to control type conversion.
 
     precise_float : bool, default False
         Set to enable usage of higher precision (strtod) function when
@@ -819,6 +827,28 @@ def read_json(
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
     check_dtype_backend(dtype_backend)
+
+    if convert_dates is not lib.no_default:
+        warnings.warn(
+            "The 'convert_dates' keyword in read_json is deprecated and will be "
+            "removed in a future version. Use the 'dtype' parameter instead to "
+            "control type conversion.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        convert_dates = True
+
+    if keep_default_dates is not lib.no_default:
+        warnings.warn(
+            "The 'keep_default_dates' keyword in read_json is deprecated and will "
+            "be removed in a future version. Use the 'dtype' parameter instead to "
+            "control type conversion.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        keep_default_dates = True
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
