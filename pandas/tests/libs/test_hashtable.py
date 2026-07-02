@@ -830,6 +830,43 @@ class TestHelpFunctionsWithNans:
         assert np.isnan(ht.mode(values, False)[0])
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64],
+)
+def test_ismember_dense_near_iinfo_bounds(dtype):
+    # GH#66130 small-range integer values take a dense-lookup fast path;
+    #  exercise it at both ends of the dtype's range
+    info = np.iinfo(dtype)
+    for anchor in [info.min, info.max - 4]:
+        values = np.array([anchor, anchor + 2, anchor + 4], dtype=dtype)
+        comps = np.array(
+            [anchor, anchor + 1, anchor + 2, anchor + 3, anchor + 4], dtype=dtype
+        )
+        result = ht.ismember(comps, values)
+        expected = np.array([True, False, True, False, True], dtype=np.bool_)
+        tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ismember_int64_full_range():
+    # GH#66130 values spanning the full int64 range stay on the hashtable path
+    info = np.iinfo(np.int64)
+    values = np.array([info.min, info.max], dtype=np.int64)
+    comps = np.array([info.min, -1, 0, 1, info.max], dtype=np.int64)
+    result = ht.ismember(comps, values)
+    expected = np.array([True, False, False, False, True], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_ismember_dense_comps_outside_values_range():
+    # GH#66130 comps far outside the small values range
+    values = np.arange(100, 200, dtype=np.int64)
+    comps = np.array([-(2**62), 50, 99, 100, 199, 200, 2**62], dtype=np.int64)
+    result = ht.ismember(comps, values)
+    expected = np.array([False, False, False, True, True, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_ismember_tuple_with_nans():
     # GH-41836
     values = np.empty(2, dtype=object)
