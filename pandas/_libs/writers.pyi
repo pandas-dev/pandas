@@ -2,6 +2,15 @@ import numpy as np
 
 from pandas._typing import ArrayLike
 
+CSV_KIND_OBJ: int
+CSV_KIND_FLOAT64: int
+CSV_KIND_FLOAT32: int
+CSV_KIND_INT64: int
+CSV_KIND_UINT64: int
+CSV_KIND_BOOL: int
+CSV_KIND_DT64: int
+FLOAT32_NATIVE: bool
+
 def write_csv_rows(
     data: list[ArrayLike],
     data_index: np.ndarray,
@@ -9,6 +18,14 @@ def write_csv_rows(
     cols: np.ndarray,
     writer: object,  # _csv.writer
 ) -> None: ...
+def write_csv_chunk(
+    cols: list[tuple[int, np.ndarray, int, int, bool]],
+    nrows: int,
+    sep: str,
+    quotechar: str,
+    lineterminator: str,
+    na_rep: str,
+) -> str: ...
 def convert_json_to_lines(arr: str) -> str: ...
 def max_len_string_array(
     arr: np.ndarray,  # pandas_string[:]
