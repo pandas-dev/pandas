@@ -8,6 +8,8 @@ from io import StringIO
 
 import pytest
 
+from pandas.errors import ParserError
+
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -17,14 +19,18 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
-
-@xfail_pyarrow
 def test_read_data_list(all_parsers):
     parser = all_parsers
     kwargs = {"index_col": 0}
     data = "A,B,C\nfoo,1,2,3\nbar,4,5,6"
+
+    if parser.engine == "pyarrow":
+        # pyarrow requires every row to match the number of header columns, so
+        # it rejects the implicit-index layout (3 headers, 4 fields per row).
+        with pytest.raises(ParserError, match="Expected 3 columns, got 4"):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
 
     data_list = [["A", "B", "C"], ["foo", "1", "2", "3"], ["bar", "4", "5", "6"]]
     expected = parser.read_csv(StringIO(data), **kwargs)

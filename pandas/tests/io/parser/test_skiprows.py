@@ -275,10 +275,14 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_skiprows_infield_quote(all_parsers):
     # see gh-14459
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        pytest.skip(
+            reason="pyarrow treats the in-field quotes as quoting, so skiprows "
+            "selects different rows"
+        )
     data = 'a"\nb"\na\n1'
     expected = DataFrame({"a": [1]})
 

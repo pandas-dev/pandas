@@ -93,7 +93,7 @@ def test_quote_char_various(all_parsers, quote_char):
 
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 @pytest.mark.parametrize("quote_char", ["", None])
-def test_null_quote_char(all_parsers, quoting, quote_char, request):
+def test_null_quote_char(all_parsers, quoting, quote_char):
     kwargs = {"quotechar": quote_char, "quoting": quoting}
     data = "a,b,c\n1,2,3"
     parser = all_parsers
@@ -105,8 +105,18 @@ def test_null_quote_char(all_parsers, quoting, quote_char, request):
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(StringIO(data), **kwargs)
             return
-        mark = pytest.mark.xfail(reason="pyarrow mishandles null/blank quote chars")
-        request.applymarker(mark)
+        if quote_char == "":
+            # pyarrow rejects a zero-length quotechar outright
+            msg = "only single character unicode strings can be converted to Py_UCS4"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), **kwargs)
+            return
+        # quote_char is None: pyarrow ignores it and parses successfully rather
+        # than requiring a quotechar like the C/python engines do.
+        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+        result = parser.read_csv(StringIO(data), **kwargs)
+        tm.assert_frame_equal(result, expected)
+        return
 
     if quoting != csv.QUOTE_NONE:
         # Sanity checking.
@@ -145,7 +155,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char, request):
         ({"quotechar": '"', "quoting": csv.QUOTE_NONNUMERIC}, [[1.0, 2.0, "foo"]]),
     ],
 )
-def test_quoting_various(all_parsers, kwargs, exp_data, request):
+def test_quoting_various(all_parsers, kwargs, exp_data):
     data = '1,2,"foo"'
     parser = all_parsers
     columns = ["a", "b", "c"]
@@ -157,8 +167,11 @@ def test_quoting_various(all_parsers, kwargs, exp_data, request):
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(StringIO(data), names=columns, **kwargs)
             return
-        mark = pytest.mark.xfail(reason="ParserError: Empty CSV file or block")
-        request.applymarker(mark)
+        # pyarrow cannot infer the columns from this single-row, names-only input
+        msg = "Empty CSV file or block: cannot infer number of columns"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), names=columns, **kwargs)
+        return
 
     result = parser.read_csv(StringIO(data), names=columns, **kwargs)
     expected = DataFrame(exp_data, columns=columns)
@@ -193,14 +206,16 @@ def test_quotechar_unicode(all_parsers, quotechar):
 
 
 @pytest.mark.parametrize("balanced", [True, False])
-def test_unbalanced_quoting(all_parsers, balanced, request):
+def test_unbalanced_quoting(all_parsers, balanced):
     # see gh-22789.
     parser = all_parsers
     data = 'a,b,c\n1,2,"3'
 
     if parser.engine == "pyarrow" and not balanced:
-        mark = pytest.mark.xfail(reason="Mismatched result")
-        request.applymarker(mark)
+        pytest.skip(
+            reason="pyarrow does not raise on an unterminated quote; it closes "
+            "the field at EOF"
+        )
 
     if balanced:
         # Re-balance the quoting and read in without errors.
