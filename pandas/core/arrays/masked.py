@@ -1039,6 +1039,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # once that's implemented.
             result = np.zeros(self._data.shape, dtype="bool")
             mask = np.ones(self._data.shape, dtype="bool")
+        elif (
+            self._mask.any()
+            or any(getattr(other, "_mask", [False]))
+            or (is_list_like(other) and libmissing.is_pdna(other).any())
+        ):
+            method = getattr(self._data, f"__{op.__name__}__")
+            if is_list_like(other):
+                other_mask = getattr(other, "_mask", None) or libmissing.is_pdna(other)
+            else:
+                other_mask = [False]
+            if mask is None:
+                mask = self._mask | other_mask
+            else:
+                mask = mask | self._mask | other_mask
+            other = np.where(mask, [False], other)
+            result = method(other)
         else:
             with warnings.catch_warnings():
                 # numpy may show a FutureWarning or DeprecationWarning:
