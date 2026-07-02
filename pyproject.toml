@@ -6,9 +6,17 @@ requires = [
     "meson>=1.2.3,<2",
     "wheel",
     "Cython>3.1.0,<4.0.0a0",  # Note: sync with environment.yml and asv.conf.json
-    # Force numpy higher than 2.0, so that built wheels are compatible
-    # with both numpy 1 and 2
-    "numpy>=2.0.0",
+    # Build against the OLDEST numpy that has wheels for every supported
+    # Python/platform, not the newest. numpy's C-ABI is forward- but not
+    # backward-compatible: a wheel built against a newer numpy is not guaranteed
+    # to run on an older one. numpy 2.5's header reorganization made that bite --
+    # wheels built against numpy 2.5 segfault on numpy 2.3.x/2.4.x
+    # (GH#66083/#66085/#66086/#66089; numpy GH#31804). 2.3.3 is the lowest numpy
+    # with cp314 + win_arm64 wheels; building against it keeps the wheels usable
+    # on every numpy >= the runtime floor, including numpy 1.26+.
+    # (Pyodide/Emscripten supplies its own numpy via the cross-build env.)
+    "numpy==2.3.3; sys_platform != 'emscripten'",
+    "numpy>=2.0.0; sys_platform == 'emscripten'",
     "versioneer[toml]"
 ]
 
@@ -165,6 +173,15 @@ build-frontend = "pip"
 config-settings = { compile-args = ["-v"] }
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
+# Test each wheel against the OLDEST supported numpy, not the (newest) numpy it
+# was built against. Without this the test venv resolves to the build numpy and
+# never exercises an older runtime -- which is exactly how the numpy 2.5 build
+# ABI break that segfaults on older numpy (GH#66083/#66085/#66086/#66089) shipped
+# green in 3.0.4. This guard catches that class of build/runtime mismatch in CI.
+# (Emscripten/pyodide supplies its own numpy, so it is left out.)
+test-requires = [
+  "numpy==2.3.3; sys_platform != 'emscripten'",
+]
 test-command = """
   python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--numprocesses=2", "--dist=worksteal", "--no-strict-data-files"]); \
