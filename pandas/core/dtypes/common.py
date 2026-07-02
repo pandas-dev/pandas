@@ -1730,93 +1730,6 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
     return condition(tipo)
 
 
-def infer_dtype_from_object(dtype) -> type:
-    """
-    Get a numpy dtype.type-style object for a dtype object.
-
-    This method also includes handling of the datetime64[ns] and
-    datetime64[ns, TZ] objects.
-
-    If no dtype can be found, we return ``object``.
-
-    Parameters
-    ----------
-    dtype : dtype, type
-        The dtype object whose numpy dtype.type-style
-        object we want to extract.
-
-    Returns
-    -------
-    type
-    """
-    if isinstance(dtype, type) and issubclass(dtype, np.generic):
-        # e.g. np.number, np.floating, np.int64. Return as-is instead of
-        # routing through np.dtype(...), which resolves abstract types such
-        # as np.number to a concrete dtype on older numpy (GH#51523).
-        return dtype
-
-    # A dtype passed as an instance (e.g. ArrowDtype) is resolved via its
-    # numpy_dtype, but the same dtype spelled as a string is resolved via
-    # .type (GH#52576).
-    is_dtype_instance = isinstance(dtype, (np.dtype, ExtensionDtype))
-    try:
-        dtype = pandas_dtype(dtype)
-    except TypeError:
-        if isinstance(dtype, str):
-            # TODO(jreback)
-            # should deprecate these
-            if dtype in ["datetimetz", "datetime64tz"]:
-                return DatetimeTZDtype.type
-            elif dtype == "period":
-                raise NotImplementedError from None
-            elif dtype == "datetime":
-                return np.datetime64
-            elif dtype == "timedelta":
-                return np.timedelta64
-            elif hasattr(np, dtype):
-                # e.g. number, floating, integer
-                maybe_dtype = getattr(np, dtype)
-                if isinstance(maybe_dtype, type) and issubclass(
-                    maybe_dtype, np.generic
-                ):
-                    return maybe_dtype
-        raise
-
-    if lib.is_np_dtype(dtype, "mM"):
-        _validate_date_like_dtype(dtype)
-    if is_dtype_instance and hasattr(dtype, "numpy_dtype"):
-        # TODO: Implement this properly
-        # https://github.com/pandas-dev/pandas/issues/52576
-        return dtype.numpy_dtype.type
-    return dtype.type
-
-
-def _validate_date_like_dtype(dtype) -> None:
-    """
-    Check whether the dtype is a date-like dtype. Raises an error if invalid.
-
-    Parameters
-    ----------
-    dtype : dtype, type
-        The dtype to check.
-
-    Raises
-    ------
-    TypeError : The dtype could not be casted to a date-like dtype.
-    ValueError : The dtype is an illegal date-like dtype (e.g. the
-                 frequency provided is too specific)
-    """
-    try:
-        typ = np.datetime_data(dtype)[0]
-    except ValueError as e:
-        raise TypeError(e) from e
-    if typ not in ["generic", "ns"]:
-        raise ValueError(
-            f"{dtype.name!r} is too specific of a frequency, "
-            f"try passing {dtype.type.__name__!r}"
-        )
-
-
 def validate_all_hashable(*args, error_name: str | None = None) -> None:
     """
     Return None if all args are hashable, else raise a TypeError.
@@ -1967,7 +1880,6 @@ __all__ = [
     "ensure_float64",
     "ensure_python_int",
     "ensure_str",
-    "infer_dtype_from_object",
     "is_1d_only_ea_dtype",
     "is_all_strings",
     "is_any_real_numeric_dtype",
