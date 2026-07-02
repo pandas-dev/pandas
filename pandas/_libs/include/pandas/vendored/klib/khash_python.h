@@ -442,8 +442,9 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
 // Slow path once the first-byte table hits: the starts2/prefix4 bloom
 // layers, then the full hash lookup. Kept out of line so the common
 // first-byte reject stays a tiny inline check in the parser's per-token
-// loops.
-static inline KH_NOINLINE khuint_t
+// loops. Marked KH_NOINLINE (not "inline") since GCC rejects an inline
+// function that also carries the noinline attribute under -Werror.
+static KH_NOINLINE khuint_t
 kh_get_str_starts_item_slow(const kh_str_starts_t *table, const char *key) {
   const unsigned char ch2 = (unsigned char)key[1];
   if (table->starts2[(unsigned char)key[0]][ch2 >> 3] & (1 << (ch2 & 7))) {
