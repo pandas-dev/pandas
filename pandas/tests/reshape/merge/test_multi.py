@@ -977,3 +977,222 @@ class TestJoinMultiMulti:
         )
 
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.int64, np.int32, np.uint16])
+def test_merge_multi_int_keys_sort(dtype, join_type):
+    # GH#66124 exercise the fused multi-int-key path; result row order with
+    #  sort=True must be lexicographic in the key tuples
+    left = DataFrame(
+        {
+            "k1": np.array([3, 1, 3, 2], dtype=dtype),
+            "k2": np.array([10, 20, 5, 20], dtype=dtype),
+            "lval": [0, 1, 2, 3],
+        }
+    )
+    right = DataFrame(
+        {
+            "k1": np.array([3, 2, 4], dtype=dtype),
+            "k2": np.array([5, 20, 1], dtype=dtype),
+            "rval": [0, 1, 2],
+        }
+    )
+    result = merge(left, right, on=["k1", "k2"], how=join_type, sort=True)
+    assert result.set_index(["k1", "k2"]).index.is_monotonic_increasing
+
+    result_inner = merge(left, right, on=["k1", "k2"], how="inner", sort=True)
+    expected_inner = DataFrame(
+        {
+            "k1": np.array([2, 3], dtype=dtype),
+            "k2": np.array([20, 5], dtype=dtype),
+            "lval": [3, 2],
+            "rval": [1, 0],
+        }
+    )
+    tm.assert_frame_equal(result_inner, expected_inner)
+
+
+def test_merge_multi_int64_extreme_values():
+    # GH#66124 values near the int64 boundaries within a small span
+    imin = np.iinfo(np.int64).min
+    left = DataFrame(
+        {
+            "k1": np.array([imin, imin + 5, imin + 3], dtype=np.int64),
+            "k2": np.array([-1, -2, -1], dtype=np.int64),
+            "lval": [0, 1, 2],
+        }
+    )
+    right = DataFrame(
+        {
+            "k1": np.array([imin + 5, imin], dtype=np.int64),
+            "k2": np.array([-2, -1], dtype=np.int64),
+            "rval": [0, 1],
+        }
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": np.array([imin, imin + 5], dtype=np.int64),
+            "k2": np.array([-1, -2], dtype=np.int64),
+            "lval": [0, 1],
+            "rval": [1, 0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_uint64_extreme_values():
+    # GH#66124 uint64 keys above the int64 boundary
+    umax = np.iinfo(np.uint64).max
+    left = DataFrame(
+        {
+            "k1": np.array([umax, umax - 5, umax - 3], dtype=np.uint64),
+            "k2": np.array([1, 2, 3], dtype=np.uint64),
+            "lval": [0, 1, 2],
+        }
+    )
+    right = DataFrame(
+        {
+            "k1": np.array([umax - 5, umax], dtype=np.uint64),
+            "k2": np.array([2, 1], dtype=np.uint64),
+            "rval": [0, 1],
+        }
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": np.array([umax, umax - 5], dtype=np.uint64),
+            "k2": np.array([1, 2], dtype=np.uint64),
+            "lval": [0, 1],
+            "rval": [1, 0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_int_keys_wide_span():
+    # GH#66124 combined key space exceeding int64 falls back to per-column
+    #  factorization
+    left = DataFrame(
+        {
+            "k1": np.array([0, 2**62, 5], dtype=np.int64),
+            "k2": np.array([0, 2**61, 7], dtype=np.int64),
+            "lval": [0, 1, 2],
+        }
+    )
+    right = DataFrame(
+        {
+            "k1": np.array([5, 0, 2**62], dtype=np.int64),
+            "k2": np.array([7, 0, 2**61], dtype=np.int64),
+            "rval": [0, 1, 2],
+        }
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": np.array([0, 2**62, 5], dtype=np.int64),
+            "k2": np.array([0, 2**61, 7], dtype=np.int64),
+            "lval": [0, 1, 2],
+            "rval": [1, 2, 0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_datetime_int_keys():
+    # GH#66124 datetime64 plus integer key columns
+    dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-01"])
+    left = DataFrame(
+        {"k1": dti, "k2": np.array([1, 2, 1], dtype=np.int64), "lval": [0, 1, 2]}
+    )
+    right = DataFrame(
+        {"k1": dti[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": dti,
+            "k2": np.array([1, 2, 1], dtype=np.int64),
+            "lval": [0, 1, 2],
+            "rval": [0, 1, 0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_datetime_keys_with_nat():
+    # GH#66124 NaT keys match each other, same as with a single datetime key
+    dti = pd.to_datetime(["2020-01-01", "NaT", "2020-01-02"])
+    left = DataFrame(
+        {"k1": dti, "k2": np.array([1, 2, 3], dtype=np.int64), "lval": [0, 1, 2]}
+    )
+    right = DataFrame(
+        {"k1": dti[:2], "k2": np.array([1, 2], dtype=np.int64), "rval": [0, 1]}
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": dti[:2],
+            "k2": np.array([1, 2], dtype=np.int64),
+            "lval": [0, 1],
+            "rval": [0, 1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_mixed_int_dtypes():
+    # GH#66124 int32/int64 key column pairs promote losslessly
+    left = DataFrame(
+        {
+            "k1": np.array([1, 2, 3, 2], dtype=np.int32),
+            "k2": np.array([1, 1, 2, 2], dtype=np.int64),
+            "lval": [0, 1, 2, 3],
+        }
+    )
+    right = DataFrame(
+        {
+            "k1": np.array([2, 3], dtype=np.int64),
+            "k2": np.array([1, 2], dtype=np.int32),
+            "rval": [0, 1],
+        }
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            # the result keys retain the left frame's dtypes
+            "k1": np.array([2, 3], dtype=np.int32),
+            "k2": np.array([1, 2], dtype=np.int64),
+            "lval": [1, 2],
+            "rval": [0, 1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multi_bool_int_keys():
+    # GH#66124 bool key column alongside an integer key column
+    left = DataFrame(
+        {
+            "k1": np.array([True, False, True, False]),
+            "k2": np.array([1, 1, 2, 2], dtype=np.int64),
+            "lval": [0, 1, 2, 3],
+        }
+    )
+    right = DataFrame(
+        {
+            "k1": np.array([True, False]),
+            "k2": np.array([2, 1], dtype=np.int64),
+            "rval": [0, 1],
+        }
+    )
+    result = merge(left, right, on=["k1", "k2"], how="inner")
+    expected = DataFrame(
+        {
+            "k1": np.array([False, True]),
+            "k2": np.array([1, 2], dtype=np.int64),
+            "lval": [1, 2],
+            "rval": [1, 0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
