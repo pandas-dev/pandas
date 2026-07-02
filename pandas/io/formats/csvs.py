@@ -426,9 +426,9 @@ class CSVFormatter:
                     # assigning into the '<U32' array from astype(str)
                     and len(str(self.na_rep)) <= 32
                 ):
-                    if dtype.itemsize == 8:
+                    if values.dtype.itemsize == 8:
                         return (libwriters.CSV_KIND_FLOAT64, values, 0, 0, False)
-                    if dtype.itemsize == 4 and libwriters.FLOAT32_NATIVE:
+                    if values.dtype.itemsize == 4 and libwriters.FLOAT32_NATIVE:
                         return (libwriters.CSV_KIND_FLOAT32, values, 0, 0, False)
             elif dtype.kind == "i":
                 return (

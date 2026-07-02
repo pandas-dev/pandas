@@ -198,6 +198,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.sort_values` with multiple numeric columns by avoiding unnecessary :class:`Categorical` conversion (:issue:`15389`)
 - Performance improvement in :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.mean`, :meth:`DataFrame.any`, and :meth:`DataFrame.all` with ``axis=1`` for multi-block DataFrames by avoiding a transpose (:issue:`51474`)
 - Performance improvement in :meth:`DataFrame.take`, :meth:`Series.take`, :meth:`DataFrame.reindex`, :meth:`Series.reindex`, and boolean-array indexing for NumPy-backed dtypes (:issue:`65295`)
+- Performance improvement in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with the default ``quoting``, ``doublequote``, and ``escapechar`` options, up to 10x faster on numeric, datetime, boolean, and string data (:issue:`XXXXX`)
 - Performance improvement in :meth:`DataFrame.to_excel` with the ``openpyxl`` engine when using ``engine_kwargs={"write_only": True}``, reducing memory consumption (:issue:`41681`)
 - Performance improvement in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.append` for table format when appending to an existing wide table with many ``data_columns`` (:issue:`25839`)
 - Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)

@@ -53,6 +53,34 @@ class ToCSV(BaseIO):
         self.df.to_csv(self.fname)
 
 
+class ToCSVDtypes(BaseIO):
+    fname = "__test__.csv"
+    params = ["float", "float32", "int", "string", "datetime", "bool"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 100_000
+        data = {
+            "float": DataFrame(np.random.randn(N, 3)),
+            "float32": DataFrame(np.random.randn(N, 3).astype(np.float32)),
+            "int": DataFrame(np.random.randint(-(10**9), 10**9, (N, 3))),
+            "string": DataFrame(
+                {i: [f"value-{i}-{j}" for j in range(N)] for i in range(3)}
+            ),
+            "datetime": DataFrame(
+                {i: date_range("2000", freq="37s", periods=N) for i in range(3)}
+            ),
+            "bool": DataFrame(np.random.randint(0, 2, (N, 3)).astype(bool)),
+        }
+        self.df = data[dtype]
+
+    def time_frame(self, dtype):
+        self.df.to_csv(self.fname)
+
+    def time_frame_no_index(self, dtype):
+        self.df.to_csv(self.fname, index=False)
+
+
 class ToCSVFloatFormatVariants(BaseIO):
     fname = "__test__.csv"
 
