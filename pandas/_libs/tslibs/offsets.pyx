@@ -3613,41 +3613,43 @@ cdef class YearOffset(SingleConstructorOffset):
         )
         return shifted
 
-
 cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
-    This offset moves dates to the last business day of the specified month
-    (default December), skipping weekends.
-
-    Attributes
-    ----------
-    n : int, default 1
-        The number of years represented.
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
-    month : int, default 12
-        A specific integer for the month of the year.
+    BYearEnd goes to the last business day of the given month in the
+    current or next year. By default the target month is December.
+    Use the ``month`` parameter to target a different month, and ``n``
+    to move multiple years forward or backward.
 
     See Also
     --------
-    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+    BYearBegin : DateOffset increments between the first business day
+        of the year.
+    YearEnd : DateOffset increments between calendar year ends,
+        not restricted to business days.
+    BMonthEnd : DateOffset increments between the last business day
+        of each month.
+    BusinessDay : DateOffset representing a single business day.
 
     Examples
     --------
-    >>> from pandas.tseries.offsets import BYearEnd
     >>> ts = pd.Timestamp('2020-05-24 05:01:15')
-    >>> ts - BYearEnd()
-    Timestamp('2019-12-31 05:01:15')
-    >>> ts + BYearEnd()
+    >>> ts + pd.offsets.BYearEnd()
     Timestamp('2020-12-31 05:01:15')
-    >>> ts + BYearEnd(3)
-    Timestamp('2022-12-30 05:01:15')
-    >>> ts + BYearEnd(-3)
-    Timestamp('2017-12-29 05:01:15')
-    >>> ts + BYearEnd(month=11)
-    Timestamp('2020-11-30 05:01:15')
+
+    >>> ts + pd.offsets.BYearEnd(month=6)
+    Timestamp('2020-06-30 05:01:15')
+
+    >>> ts + pd.offsets.BYearEnd(n=2)
+    Timestamp('2021-12-31 05:01:15')
+
+    >>> ts + pd.offsets.BYearEnd(n=-1)
+    Timestamp('2019-12-31 05:01:15')
+
+    >>> pd.date_range('2020-01-01', periods=4, freq='BYE')
+    DatetimeIndex(['2020-12-31', '2021-12-31', '2022-12-30', '2023-12-29'],
+                  dtype='datetime64[us]', freq='BYE-DEC')
     """
 
     _outputName = "BusinessYearEnd"
