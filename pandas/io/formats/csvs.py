@@ -389,7 +389,9 @@ class CSVFormatter:
                 # _initialize_quotechar only returns None for QUOTE_NONE
                 cast("str", self.quotechar),
                 self.lineterminator,
-                self.na_rep,
+                # na_rep is not necessarily a str, e.g. na_rep=999; the
+                # legacy paths stringify it downstream
+                str(self.na_rep),
             )
         except UnicodeEncodeError:
             # e.g. lone surrogates, which csv.writer passes through
@@ -422,7 +424,7 @@ class CSVFormatter:
                     and self.decimal == "."
                     # with a longer na_rep the legacy path truncates it when
                     # assigning into the '<U32' array from astype(str)
-                    and len(self.na_rep) <= 32
+                    and len(str(self.na_rep)) <= 32
                 ):
                     if dtype.itemsize == 8:
                         return (libwriters.CSV_KIND_FLOAT64, values, 0, 0, False)
