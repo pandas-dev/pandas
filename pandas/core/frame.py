@@ -15971,21 +15971,36 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
+                blocks = df._mgr.blocks
+                if len(blocks) == 1 and name not in ("argmax", "argmin"):
+                    # GH#51474: single homogeneous block; reducing its values
+                    # along axis=0 is exactly the computation the transpose
+                    # path below would do, without the per-column overhead of
+                    # wrapping the transposed frame.  argmax/argmin are
+                    # excluded since their positional results depend on
+                    # column order.
+                    bvalues = blocks[0].values
+                    result = None
+                    if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
+                        result = op(bvalues, axis=0, skipna=skipna, **kwds)
+                    elif isinstance(bvalues, ExtensionArray) and bvalues.ndim == 2:
+                        result = bvalues._reduce(name, axis=0, skipna=skipna, **kwds)
+                    if result is not None:
+                        out = df._constructor_sliced(result, index=df.index, copy=False)
+                        if out_dtype is not None and out.dtype != "boolean":
+                            out = out.astype(out_dtype)
+                        return out
                 # GH#51474: block-wise axis=1 reduction avoiding expensive
                 # transpose for numpy-backed and 2D EA blocks.
-                if (
-                    name in ("sum", "prod", "min", "max", "any", "all", "mean")
-                    and len(df._mgr.blocks) > 1
-                    and all(
-                        (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
-                        or (
-                            isinstance(bv, ExtensionArray)
-                            and bv.ndim == 2
-                            and name in ("min", "max")
-                            and skipna
-                        )
-                        for bv in (block.values for block in df._mgr.blocks)
+                if name in ("sum", "prod", "min", "max", "any", "all", "mean") and all(
+                    (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
+                    or (
+                        isinstance(bv, ExtensionArray)
+                        and bv.ndim == 2
+                        and name in ("min", "max")
+                        and skipna
                     )
+                    for bv in (block.values for block in blocks)
                 ):
                     return df._reduce_axis1(
                         name,
@@ -16023,7 +16038,9 @@ class DataFrame(NDFrame, OpsMixin):
         out.name = None
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
+        elif name not in ["any", "all"] and any(
+            blk.dtype == object for blk in df._mgr.blocks
+        ):
             out = out.astype(object)
 
         return out
