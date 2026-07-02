@@ -199,7 +199,11 @@ cdef object tz_cache_key(tzinfo tz):
     the same tz file). Also, pytz objects are not always hashable so we use
     str(tz) instead.
     """
-    if pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
+    if type(tz) is timezone:
+        # datetime.timezone fixed offset; the offset fully determines
+        #  the transition info, so ignore any custom name
+        return "pytimezone", tz.utcoffset(None)
+    elif pytz is not None and isinstance(tz, pytz.tzinfo.BaseTzInfo):
         return tz.zone
     elif isinstance(tz, _dateutil_tzfile):
         if ".tar.gz" in tz._filename:
