@@ -565,9 +565,13 @@ def assert_categorical_equal(
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
         assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
+        # Use ``allow_fill`` so that missing values (code ``-1``) map to NaN
+        # instead of wrapping around to the last category, which would otherwise
+        # be reported as a spurious difference when the two categoricals have
+        # their categories in a different order.
         assert_index_equal(
-            left.categories.take(left.codes),
-            right.categories.take(right.codes),
+            left.categories.take(left.codes, allow_fill=True, fill_value=np.nan),
+            right.categories.take(right.codes, allow_fill=True, fill_value=np.nan),
             obj=f"{obj}.values",
             exact=exact,
         )
