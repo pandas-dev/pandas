@@ -245,7 +245,12 @@ def to_numeric(
         values = values.dropna().to_numpy()
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
-        pass
+        if dtype_backend is not lib.no_default and not isinstance(
+            values_dtype, ArrowDtype
+        ):
+            from pandas.core.dtypes.missing import isna
+
+            new_mask = np.asarray(isna(values), dtype=np.bool_)
     elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
@@ -329,32 +334,8 @@ def to_numeric(
             klass = FloatingArray
         values = klass(data, mask)
 
-        if isinstance(values_dtype, ArrowDtype):
+        if dtype_backend == "pyarrow" or isinstance(values_dtype, ArrowDtype):
             values = ArrowExtensionArray(values.__arrow_array__())
-
-    if dtype_backend is not lib.no_default:
-        from pandas.core.construction import array as pd_array
-
-        if dtype_backend == "numpy_nullable":
-            from pandas.core.dtypes.missing import isna
-
-            # Sanitize np.nan to pd.NA before passing to the array constructor
-            values = ensure_object(values)
-            values[isna(values)] = libmissing.NA
-
-            values = pd_array(values)
-            if getattr(values, "dtype", None) == np.float64:
-                from pandas.core.arrays.floating import Float64Dtype
-
-                values = pd_array(values, dtype=Float64Dtype())
-        elif dtype_backend == "pyarrow":
-            from pandas.core.arrays import ArrowExtensionArray
-
-            values = pd_array(values)
-            if is_numeric_dtype(values.dtype):
-                values = ArrowExtensionArray(
-                    values.__arrow_array__()  # type: ignore[attr-defined]
-                )
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)
