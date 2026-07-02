@@ -1102,6 +1102,36 @@ def nansem(
 
 
 def _nanminmax(meth, fill_value_typ):
+    def _nanminmax_object(
+        values: np.ndarray,
+        mask: npt.NDArray[np.bool_],
+        axis: AxisInt | None,
+    ) -> Any:
+        if axis is None:
+            non_na = values.ravel()[~mask.ravel()]
+            if len(non_na) == 0:
+                return np.nan
+            return getattr(non_na, meth)()
+
+        if values.ndim == 1:
+            non_na = values[~mask]
+            if len(non_na) == 0:
+                return np.nan
+            return getattr(non_na, meth)()
+
+        moved_values = np.moveaxis(values, axis, -1)
+        moved_mask = np.moveaxis(mask, axis, -1)
+
+        result = np.empty(moved_values.shape[:-1], dtype=object)
+        for idx in np.ndindex(result.shape):
+            non_na = moved_values[idx][~moved_mask[idx]]
+            if len(non_na) == 0:
+                result[idx] = np.nan
+            else:
+                result[idx] = getattr(non_na, meth)()
+
+        return result
+
     @bottleneck_switch(name=f"nan{meth}")
     @_datetimelike_compat
     def reduction(
@@ -1115,6 +1145,18 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
+        if skipna and dtype == object:
+            mask = _maybe_get_mask(values, skipna, mask)
+            inferred = lib.infer_dtype(values, skipna=True)
+            if (
+                mask is not None
+                and mask.any()
+                and inferred
+                in {"datetime", "datetime64", "date", "timedelta", "timedelta64"}
+            ):
+                result = _nanminmax_object(values, mask, axis)
+                return _maybe_null_out(result, axis, mask, values.shape)
+
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
