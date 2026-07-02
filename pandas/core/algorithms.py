@@ -575,11 +575,21 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     # GH60678
     # Ensure values don't contain <NA>, otherwise it throws exception with np.in1d
 
+    common = np_find_common_type(values.dtype, comps_array.dtype)
+
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
         and not any(v is NA for v in values)
+        # Small-range integers are excluded since htable.ismember uses a
+        #  dense lookup table for them that beats np.isin here
+        and not (
+            common.kind in "iu"
+            and len(values) > 0
+            and int(values.max()) - int(values.min())
+            <= 6 * (len(comps_array) + len(values))
+        )
     ):
         # If the values include nan we need to check for nan explicitly
         # since np.nan it not equal to np.nan
@@ -592,7 +602,6 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f = lambda a, b: np.isin(a, b).ravel()
 
     else:
-        common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
