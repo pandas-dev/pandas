@@ -2,6 +2,8 @@
 timezone conversion
 """
 cimport cython
+from datetime import timezone
+
 from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
@@ -183,6 +185,12 @@ cdef int64_t tz_localize_to_utc_single(
 
     elif is_tzlocal(tz):
         return val - _tz_localize_using_tzinfo_api(val, tz, to_utc=True, creso=creso)
+
+    elif type(tz) is timezone:
+        # i.e. a datetime.timezone fixed offset; get the offset directly
+        #  instead of going through get_dst_info
+        delta = int(tz.utcoffset(None).total_seconds()) * periods_per_second(creso)
+        return val - delta
 
     elif is_fixed_offset(tz):
         _, deltas, _, _ = get_dst_info(tz)
