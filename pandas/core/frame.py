@@ -102,6 +102,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
@@ -5349,6 +5350,12 @@ class DataFrame(NDFrame, OpsMixin):
           work to select all string columns.
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
+        * A dtype instance (e.g. ``np.dtype("int32")`` or
+          ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
+          exactly that dtype, whereas a class or string selects a family
+          of dtypes. Under-specified instances like a unitless
+          ``np.dtype("datetime64")`` or a bare ``pd.CategoricalDtype()``
+          select their whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5408,11 +5415,13 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        def to_callable(dtypes) -> tuple[Callable[[DtypeObj], bool], frozenset[type]]:
+        def to_callable(
+            dtypes,
+        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
             # We convert the user-provided dtypes (which may be dtype instances,
             # dtype classes, dtype.types, or strings) into our dtype predicate,
-            # along with the set of dtype.type-style objects they resolve to
-            # (used for validation below).
+            # along with the set of dtype instances and dtype.type-style objects
+            # they resolve to (used for validation below).
 
             def matches_object(dtype_obj: DtypeObj) -> bool:
                 # backwards compat for the default `str` dtype being
@@ -5442,9 +5451,50 @@ class DataFrame(NDFrame, OpsMixin):
                 return func
 
             funcs: list[Callable[[DtypeObj], bool]] = []
-            resolved: set[type] = set()
+            instances: list[DtypeObj] = []
+            resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
-                if dtype is np.number or (isinstance(dtype, str) and dtype == "number"):
+                if isinstance(dtype, (np.dtype, ExtensionDtype)):
+                    # GH#40234: a dtype instance matches only columns with
+                    # exactly that dtype, whereas a class or string matches
+                    # a family of dtypes
+                    if isinstance(dtype, np.dtype) and issubclass(
+                        dtype.type, (np.str_, np.bytes_)
+                    ):
+                        raise TypeError(
+                            "numpy string dtypes are not allowed, "
+                            "use 'str' or 'object' instead"
+                        )
+                    if lib.is_np_dtype(dtype, "mM"):
+                        unit = np.datetime_data(dtype)[0]
+                        if unit == "generic":
+                            # unitless np.dtype("datetime64") is not a specific
+                            # dtype, so match the family, as with np.datetime64
+                            resolved.add(dtype.type)
+                            funcs.append(matches_type(dtype.type))
+                            continue
+                        if unit not in ("s", "ms", "us", "ns"):
+                            # no column can ever have this dtype
+                            raise ValueError(
+                                f"{dtype.name!r} is too specific of a "
+                                f"frequency, try passing "
+                                f"{dtype.type.__name__!r}"
+                            )
+                    elif isinstance(dtype, CategoricalDtype) and (
+                        dtype.categories is None
+                    ):
+                        # a bare CategoricalDtype() is not a specific dtype,
+                        # so match all categorical columns, as with the
+                        # "category" string
+                        resolved.add(dtype.type)
+                        funcs.append(matches_type(dtype.type))
+                        continue
+                    resolved.add(dtype)
+                    instances.append(dtype)
+
+                elif dtype is np.number or (
+                    isinstance(dtype, str) and dtype == "number"
+                ):
                     resolved.add(np.number)
                     funcs.append(matches_number)
 
@@ -5508,16 +5558,7 @@ class DataFrame(NDFrame, OpsMixin):
                                         f"frequency, try passing "
                                         f"{pdtype.type.__name__!r}"
                                     )
-                            if isinstance(
-                                dtype, (np.dtype, ExtensionDtype)
-                            ) and hasattr(pdtype, "numpy_dtype"):
-                                # A dtype passed as an instance (e.g. ArrowDtype)
-                                # is resolved via its numpy_dtype, but the same
-                                # dtype spelled as a string is resolved via .type
-                                # (GH#52576)
-                                dtype_type = pdtype.numpy_dtype.type
-                            else:
-                                dtype_type = pdtype.type
+                            dtype_type = pdtype.type
 
                     resolved.add(dtype_type)
                     if dtype_type is np.object_:
@@ -5526,7 +5567,11 @@ class DataFrame(NDFrame, OpsMixin):
                         funcs.append(matches_type(dtype_type))
 
             def matches_any(dtype_obj: DtypeObj) -> bool:
+                if any(dtype_obj == instance for instance in instances):
+                    return True
                 if isinstance(dtype_obj, ArrowDtype):
+                    # class- and string-based matching treats ArrowDtype
+                    # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
                 return any(func(dtype_obj) for func in funcs)
 

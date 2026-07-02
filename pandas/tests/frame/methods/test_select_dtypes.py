@@ -526,3 +526,157 @@ class TestSelectDtypes:
         else:
             expected = df[["c"]]
         tm.assert_frame_equal(result, expected)
+
+
+def test_select_dtypes_numpy_instance_exact():
+    # GH#40234: a dtype instance matches only columns with exactly that
+    # dtype, not everything with matching dtype.type
+    df = DataFrame(
+        {
+            "a": np.array([1, 2], dtype=np.int64),
+            "b": np.array([1, 2], dtype=np.int32),
+            "c": pd.array([1, 2], dtype="Int64"),
+            "d": [1.0, 2.0],
+        }
+    )
+    result = df.select_dtypes(include=np.dtype("int64"))
+    tm.assert_frame_equal(result, df[["a"]])
+
+    result = df.select_dtypes(exclude=np.dtype("int64"))
+    tm.assert_frame_equal(result, df[["b", "c", "d"]])
+
+
+def test_select_dtypes_masked_instance_exact():
+    # GH#40234
+    df = DataFrame(
+        {
+            "a": np.array([1, 2], dtype=np.int64),
+            "b": pd.array([1, 2], dtype="Int64"),
+            "c": pd.array([1.0, 2.0], dtype="Float64"),
+        }
+    )
+    result = df.select_dtypes(include=pd.Int64Dtype())
+    tm.assert_frame_equal(result, df[["b"]])
+
+    result = df.select_dtypes(exclude=pd.Int64Dtype())
+    tm.assert_frame_equal(result, df[["a", "c"]])
+
+
+def test_select_dtypes_arrow_instance_exact():
+    # GH#40234
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "a": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int64())),
+            "b": pd.array([1, 2], dtype=pd.ArrowDtype(pa.int32())),
+            "c": np.array([1, 2], dtype=np.int64),
+            "d": pd.array([1, 2], dtype="Int64"),
+        }
+    )
+    result = df.select_dtypes(include=pd.ArrowDtype(pa.int64()))
+    tm.assert_frame_equal(result, df[["a"]])
+
+    # nor does a numpy instance match ArrowDtype columns
+    result = df.select_dtypes(include=np.dtype("int64"))
+    tm.assert_frame_equal(result, df[["c"]])
+
+
+def test_select_dtypes_tz_instance_exact():
+    # GH#40234
+    df = DataFrame(
+        {
+            "a": pd.date_range("2016-01-01", periods=2, tz="US/Eastern", unit="ns"),
+            "b": pd.date_range("2016-01-01", periods=2, tz="UTC", unit="ns"),
+            "c": pd.date_range("2016-01-01", periods=2, unit="ns"),
+        }
+    )
+    result = df.select_dtypes(include=pd.DatetimeTZDtype(tz="UTC"))
+    tm.assert_frame_equal(result, df[["b"]])
+
+    result = df.select_dtypes(exclude=pd.DatetimeTZDtype(tz="UTC"))
+    tm.assert_frame_equal(result, df[["a", "c"]])
+
+    # the unit is part of the dtype
+    result = df.select_dtypes(include=pd.DatetimeTZDtype("us", tz="UTC"))
+    tm.assert_frame_equal(result, df[[]])
+
+
+def test_select_dtypes_datetime64_instance_unit():
+    # GH#40234: a specific-unit instance selects only that unit, while the
+    # unitless np.dtype("datetime64") selects the whole family
+    df = DataFrame(
+        {
+            "a": pd.date_range("2016-01-01", periods=2).as_unit("ns"),
+            "b": pd.date_range("2016-01-01", periods=2).as_unit("s"),
+        }
+    )
+    result = df.select_dtypes(include=np.dtype("datetime64[s]"))
+    tm.assert_frame_equal(result, df[["b"]])
+
+    result = df.select_dtypes(include=np.dtype("datetime64"))
+    tm.assert_frame_equal(result, df)
+
+    # a unit that no column can have still raises
+    with pytest.raises(ValueError, match="is too specific"):
+        df.select_dtypes(include=np.dtype("datetime64[D]"))
+
+
+def test_select_dtypes_categorical_instance_exact():
+    # GH#40234: matching follows CategoricalDtype equality semantics: an
+    # instance with specific categories matches only those, while the bare
+    # CategoricalDtype() compares equal to all categorical dtypes
+    df = DataFrame(
+        {
+            "a": pd.Categorical(["a", "b"]),
+            "b": pd.Categorical(["x", "y"]),
+            "c": [1, 2],
+        }
+    )
+    result = df.select_dtypes(include=pd.CategoricalDtype(["a", "b"]))
+    tm.assert_frame_equal(result, df[["a"]])
+
+    result = df.select_dtypes(include=pd.CategoricalDtype())
+    tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+def test_select_dtypes_period_instance_exact():
+    # GH#40234: a PeriodDtype instance works (the "period" string raises
+    # NotImplementedError) and matches only its own freq
+    df = DataFrame(
+        {
+            "a": pd.period_range("2016-01-01", periods=2, freq="D"),
+            "b": pd.period_range("2016-01-01", periods=2, freq="M"),
+        }
+    )
+    result = df.select_dtypes(include=pd.PeriodDtype("D"))
+    tm.assert_frame_equal(result, df[["a"]])
+
+
+def test_select_dtypes_object_instance_exact(using_infer_string):
+    # GH#40234: np.dtype(object) as an instance selects only object-dtype
+    # columns; the GH#61916 str-backcompat (and its deprecation warning)
+    # applies only to "object"/np.object_ specs
+    df = DataFrame({"a": ["x", "y"], "b": np.array([1, "y"], dtype=object)})
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=np.dtype(object))
+    if using_infer_string:
+        expected = df[["b"]]
+    else:
+        expected = df[["a", "b"]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [np.dtype("U5"), np.dtype("S5")])
+@pytest.mark.parametrize("arg", ["include", "exclude"])
+def test_select_dtypes_numpy_str_instance_raises(dtype, arg):
+    df = DataFrame({"a": [1, 2]})
+    msg = "string dtypes are not allowed"
+    with pytest.raises(TypeError, match=msg):
+        df.select_dtypes(**{arg: [dtype]})
+
+
+def test_select_dtypes_instance_overlap_raises():
+    df = DataFrame({"a": [1, 2]})
+    msg = "include and exclude overlap"
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(include=[np.dtype("int64")], exclude=[np.dtype("int64")])
