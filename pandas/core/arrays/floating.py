@@ -132,9 +132,6 @@ class FloatingArray(NumericArray):
 
     _dtype_cls = FloatingDtype
 
-    def __init__(self, data: np.ndarray, mask: np.ndarray, copy: bool = False) -> None:
-        super().__init__(data, mask, copy=copy)
-
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} data.
