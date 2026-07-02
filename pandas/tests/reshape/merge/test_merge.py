@@ -1524,6 +1524,16 @@ def _check_merge(x, y):
             # TODO check_names on merge?
             tm.assert_frame_equal(result, expected, check_names=False)
 
+    def test_merge_on_nan_label(self):
+        # GH#65899 - merge with NaN-labeled join key produces duplicate columns
+        left = DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+        right = DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+        result = merge(left, right, left_on=np.nan, right_on=np.nan)
+        expected = DataFrame(
+            {np.nan: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]}
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestMergeDtypes:
     @pytest.mark.parametrize("dtype", [object, "category"])
