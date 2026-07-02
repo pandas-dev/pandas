@@ -45,6 +45,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.inference import is_dict_like
 
+from pandas import get_option
 from pandas.core import algorithms
 from pandas.core.arrays import (
     Categorical,
@@ -483,6 +484,24 @@ class PythonParser(ParserBase):
                     if not is_ea and na_count > 0:
                         if is_bool_dtype(cast_type):
                             raise ValueError(f"Bool column has NA values in column {c}")
+                    # For Float64Dtype, we need to handle string "nan" specially
+                    # before casting, because it should become np.nan, not pd.NA
+                    if (
+                        (isinstance(cast_type, float))
+                        and not is_ea
+                        and get_option("future.distinguish_nan_and_na")
+                    ):
+                        # Convert string "nan" to np.nan before casting
+                        if is_object_dtype(cvals.dtype):
+                            # Create a copy to avoid modifying original
+                            cvals = cvals.copy()
+                            # Find indices where value is the string "nan"
+                            nan_mask = np.array(
+                                [x.toLower() in ["nan"] for x in cvals], dtype=bool
+                            )
+                            if nan_mask.any():
+                                # Set these to np.nan
+                                cvals[nan_mask] = np.nan
                     cvals = self._cast_types(cvals, cast_type, c)
 
             result[c] = cvals

@@ -690,3 +690,22 @@ def test_pyarrow_read_csv_datetime_dtype():
     expect = pd.DataFrame({"date": expect_data})
 
     tm.assert_frame_equal(expect, result)
+
+
+def test_read_csv_na_nan():
+    csv = """,x
+a,1.0
+b,
+c,nan"""
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.read_csv(
+            StringIO(csv),
+            index_col=0,
+            dtype={0: str, 1: pd.Float64Dtype()},
+            keep_default_na=False,
+            na_values=[""],
+        )["x"]
+        expect = pd.Series(
+            data=[1.0, pd.NA, np.nan], index=["a", "b", "c"], dtype="Float64", name="x"
+        )
+        tm.assert_series_equal(expect, result)
