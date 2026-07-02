@@ -57,6 +57,37 @@ xsimd_dep = dependency('xsimd', version: '>=14.2')
 
 subdir('simd')
 
+# Floating-point std::to_chars needs libc++ >= deployment-target ~13.3 on
+# macOS, and __cpp_lib_to_chars is unreliable on Apple clang, so try-compile
+# instead of checking the feature-test macro. Without it, double_repr.cpp
+# falls back to PyOS_double_to_string.
+cpp = meson.get_compiler('cpp')
+if cpp.get_argument_syntax() == 'msvc'
+    _fp_to_chars_std_args = ['/std:c++17']
+else
+    _fp_to_chars_std_args = ['-std=c++17']
+endif
+fp_to_chars_test = '''
+#include <charconv>
+int main() {
+    char buf[64];
+    auto res = std::to_chars(buf, buf + sizeof(buf), 1.5,
+                             std::chars_format::scientific);
+    auto res32 = std::to_chars(buf, buf + sizeof(buf), 1.5f,
+                               std::chars_format::scientific);
+    return (res.ec == std::errc() && res32.ec == std::errc()) ? 0 : 1;
+}
+'''
+if cpp.links(
+    fp_to_chars_test,
+    name: 'floating-point std::to_chars',
+    args: _fp_to_chars_std_args,
+)
+    double_repr_cpp_args = ['-DPD_HAVE_FP_TO_CHARS=1']
+else
+    double_repr_cpp_args = []
+endif
+
 subdir('tslibs')
 
 libs_sources = {
@@ -148,7 +179,10 @@ libs_sources = {
     'sparse': {'sources': ['sparse.pyx', _sparse_op_helper], 'deps': [m_dep]},
     'tslib': {'sources': ['tslib.pyx']},
     'testing': {'sources': ['testing.pyx']},
-    'writers': {'sources': ['writers.pyx']},
+    'writers': {
+        'sources': ['writers.pyx', 'src/writer/double_repr.cpp'],
+        'cpp_args': double_repr_cpp_args,
+    },
 }
 
 cython_args = [
@@ -171,6 +205,7 @@ foreach ext_name, ext_dict : libs_sources
         ext_name,
         ext_dict.get('sources'),
         cython_args: cython_args,
+        cpp_args: ext_dict.get('cpp_args', []),
         include_directories: [inc_np, inc_pd],
         dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs',

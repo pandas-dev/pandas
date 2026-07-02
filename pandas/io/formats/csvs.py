@@ -21,6 +21,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas._libs.tslibs import (
+    Resolution,
+    get_resolution,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -31,12 +35,15 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.indexes.api import Index
+from pandas.core.indexes.base import get_values_for_csv
 
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ArrayLike,
         CompressionOptions,
         FilePath,
         FloatFormatType,
@@ -268,6 +275,7 @@ class CSVFormatter:
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,
             )
+            self._handle = handles.handle
 
             self._save()
 
@@ -307,12 +315,15 @@ class CSVFormatter:
     def _save_body(self) -> None:
         nrows = len(self.data_index)
         chunks = (nrows // self.chunksize) + 1
+        save_chunk = (
+            self._save_chunk_fast if self._use_fast_writer else self._save_chunk
+        )
         for i in range(chunks):
             start_i = i * self.chunksize
             end_i = min(start_i + self.chunksize, nrows)
             if start_i >= end_i:
                 break
-            self._save_chunk(start_i, end_i)
+            save_chunk(start_i, end_i)
 
     def _save_chunk(self, start_i: int, end_i: int) -> None:
         # create the data for a chunk
@@ -334,3 +345,135 @@ class CSVFormatter:
             self.cols,
             self.writer,
         )
+
+    @cache_readonly
+    def _use_fast_writer(self) -> bool:
+        """
+        Whether the body can be rendered by libwriters.write_csv_chunk
+        instead of csv.writer. The fast writer replicates csv.writer output
+        byte for byte only for this combination of dialect options.
+        """
+        return (
+            self.quoting == csvlib.QUOTE_MINIMAL
+            and self.doublequote
+            and self.escapechar is None
+            and self.errors == "strict"
+            and isinstance(self.sep, str)
+            and len(self.sep) == 1
+            and ord(self.sep) < 128
+            and isinstance(self.quotechar, str)
+            and len(self.quotechar) == 1
+            and ord(self.quotechar) < 128
+            and isinstance(self.lineterminator, str)
+            and 1 <= len(self.lineterminator) <= 2
+            and all(ord(ch) < 128 for ch in self.lineterminator)
+            and self.nlevels <= 1
+        )
+
+    def _save_chunk_fast(self, start_i: int, end_i: int) -> None:
+        # render the chunk to a single str, bypassing csv.writer
+        slicer = slice(start_i, end_i)
+        df = self.obj.iloc[slicer]
+
+        prepared = []
+        if self.nlevels:
+            prepared.append(self._prepare_csv_index(self.data_index[slicer]))
+        prepared.extend(
+            self._prepare_csv_array(arr) for arr in df._iter_column_arrays()
+        )
+        try:
+            res = libwriters.write_csv_chunk(
+                prepared,
+                end_i - start_i,
+                self.sep,
+                # _initialize_quotechar only returns None for QUOTE_NONE
+                cast("str", self.quotechar),
+                self.lineterminator,
+                # na_rep is not necessarily a str, e.g. na_rep=999; the
+                # legacy paths stringify it downstream
+                str(self.na_rep),
+            )
+        except UnicodeEncodeError:
+            # e.g. lone surrogates, which csv.writer passes through
+            self._save_chunk(start_i, end_i)
+            return
+        self._handle.write(res)
+
+    def _prepare_csv_index(self, idx: Index) -> tuple[int, np.ndarray, int, int, bool]:
+        if isinstance(idx, ABCMultiIndex):
+            # single-level MultiIndex; matches the legacy path, which writes
+            # it as one field per row
+            values = idx._get_values_for_csv(**self._number_format)
+            return (libwriters.CSV_KIND_OBJ, np.asarray(values), 0, 0, False)
+        return self._prepare_csv_array(idx._values)
+
+    def _prepare_csv_array(
+        self, values: ArrayLike
+    ) -> tuple[int, np.ndarray, int, int, bool]:
+        """
+        Map a column's array to a (kind, values, creso, frac_digits,
+        dates_only) tuple for libwriters.write_csv_chunk. Columns the chunk
+        writer cannot render natively are converted with get_values_for_csv,
+        exactly like the legacy path, and only assembled natively.
+        """
+        dtype = values.dtype
+        if isinstance(values, np.ndarray):
+            if dtype.kind == "f":
+                if (
+                    self.float_format is None
+                    and self.decimal == "."
+                    # with a longer na_rep the legacy path truncates it when
+                    # assigning into the '<U32' array from astype(str)
+                    and len(str(self.na_rep)) <= 32
+                ):
+                    if values.dtype.itemsize == 8:
+                        return (libwriters.CSV_KIND_FLOAT64, values, 0, 0, False)
+                    if values.dtype.itemsize == 4 and libwriters.FLOAT32_NATIVE:
+                        return (libwriters.CSV_KIND_FLOAT32, values, 0, 0, False)
+            elif dtype.kind == "i":
+                return (
+                    libwriters.CSV_KIND_INT64,
+                    values.astype(np.int64, copy=False),
+                    0,
+                    0,
+                    False,
+                )
+            elif dtype.kind == "u":
+                return (
+                    libwriters.CSV_KIND_UINT64,
+                    values.astype(np.uint64, copy=False),
+                    0,
+                    0,
+                    False,
+                )
+            elif dtype.kind == "b":
+                return (libwriters.CSV_KIND_BOOL, values, 0, 0, False)
+
+        if (
+            dtype.kind == "M"
+            and isinstance(dtype, np.dtype)
+            and self.date_format is None
+        ):
+            # tz-naive datetime64; replicate the per-chunk formatting
+            # decisions DatetimeArray._format_native_types makes
+            dta = ensure_wrapped_if_datetimelike(values)  # type: ignore[no-untyped-call]
+            asi8 = dta.asi8
+            creso = dta._creso
+            if dta._is_dates_only:
+                return (libwriters.CSV_KIND_DT64, asi8, creso, 0, True)
+            reso_obj = get_resolution(asi8, None, creso)
+            if reso_obj == Resolution.RESO_NS:
+                frac_digits = 9
+            elif reso_obj == Resolution.RESO_US:
+                frac_digits = 6
+            elif reso_obj == Resolution.RESO_MS:
+                frac_digits = 3
+            else:
+                frac_digits = 0
+            return (libwriters.CSV_KIND_DT64, asi8, creso, frac_digits, False)
+
+        converted = get_values_for_csv(values, **self._number_format)
+        if converted.dtype != object:
+            # e.g. the IntervalArray path returns '<U…'
+            converted = converted.astype(object, copy=False)
+        return (libwriters.CSV_KIND_OBJ, converted, 0, 0, False)
