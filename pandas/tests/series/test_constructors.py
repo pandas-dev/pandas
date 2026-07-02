@@ -577,7 +577,7 @@ class TestSeriesConstructors:
         data[1] = 1
         result = Series(data, index=index)
         expected = Series([0, 1, 2], index=index, dtype=int)
-        with pytest.raises(AssertionError, match="Series classes are different"):
+        with pytest.raises(AssertionError, match="Series values classes are different"):
             # TODO should this be raising at all?
             # https://github.com/pandas-dev/pandas/issues/56131
             tm.assert_series_equal(result, expected)
@@ -597,7 +597,7 @@ class TestSeriesConstructors:
         data[1] = True
         result = Series(data, index=index)
         expected = Series([True, True, False], index=index, dtype=bool)
-        with pytest.raises(AssertionError, match="Series classes are different"):
+        with pytest.raises(AssertionError, match="Series values classes are different"):
             # TODO should this be raising at all?
             # https://github.com/pandas-dev/pandas/issues/56131
             tm.assert_series_equal(result, expected)
