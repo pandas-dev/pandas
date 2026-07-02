@@ -2676,19 +2676,30 @@ class _AsOfMerge(_OrderedMerge):
                 left_join_keys = self.left_join_keys[0:-1]
                 right_join_keys = self.right_join_keys[0:-1]
 
-            mapped = [
-                _factorize_keys(
-                    left_join_keys[n],
-                    right_join_keys[n],
-                    sort=False,
-                )
-                for n in range(len(left_join_keys))
-            ]
-
             if len(left_join_keys) == 1:
-                left_by_values = mapped[0][0]
-                right_by_values = mapped[0][1]
+                lby = left_join_keys[0]
+                rby = right_join_keys[0]
+                if isinstance(lby, np.ndarray) and lby.dtype.kind in "biumM":
+                    # Matching dtypes are enforced in
+                    #  _maybe_require_matching_dtypes, and the int64
+                    #  representation preserves equality, so these values
+                    #  can be used as group keys directly without
+                    #  factorizing.
+                    left_by_values = lby.astype(np.int64, copy=False)
+                    right_by_values = rby.astype(np.int64, copy=False)
+                else:
+                    left_by_values, right_by_values, _ = _factorize_keys(
+                        lby, rby, sort=False
+                    )
             else:
+                mapped = [
+                    _factorize_keys(
+                        left_join_keys[n],
+                        right_join_keys[n],
+                        sort=False,
+                    )
+                    for n in range(len(left_join_keys))
+                ]
                 arrs = [np.concatenate(m[:2]) for m in mapped]
                 shape = tuple(m[2] for m in mapped)
                 group_index = get_group_index(
