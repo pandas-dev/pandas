@@ -117,6 +117,19 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(compression="gzip"))
         assert not _can_parallelize_csv(path, self._kwds(compression="infer"))
 
+    def test_rejects_tar(self, tmp_path):
+        # .tar infers as compression="tar" in get_handle; the parallel path
+        # must not feed raw archive bytes to the tokenizer.
+        path = tmp_path / "data.tar"
+        path.write_bytes(b"fake")
+        assert not _can_parallelize_csv(path, self._kwds())
+
+    def test_rejects_dict_compression(self, tmp_path):
+        path = tmp_path / "data.csv"
+        path.write_bytes(b"fake")
+        kwds = self._kwds(compression={"method": "gzip"})
+        assert not _can_parallelize_csv(path, kwds)
+
     def test_rejects_iterator_mode(self, tmp_path):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")

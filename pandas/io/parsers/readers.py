@@ -41,6 +41,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 from pandas.util._decorators import (
@@ -64,6 +65,7 @@ from pandas.core.indexes.api import RangeIndex
 from pandas.io.common import (
     IOHandles,
     get_handle,
+    infer_compression,
     stringify_path,
     validate_header_arg,
 )
@@ -346,10 +348,11 @@ def _read(
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
             try:
                 result = _read_csv_parallel(_filepath, kwds, _n_workers)
-            except Exception:
+            except (ParserError, UnicodeDecodeError):
                 # e.g. a chunk boundary landed inside a quoted field containing
                 # an embedded newline.  The serial path below handles anything
-                # the parallel path cannot.
+                # the parallel path cannot.  Other exceptions propagate: they
+                # signal a parallel-path bug, not ineligible input.
                 result = None
             if result is not None:
                 return result
@@ -423,11 +426,14 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
 
     # Uncompressed files only (splitting is only meaningful for raw bytes).
     compression = kwds.get("compression", "infer")
-    if compression not in ("infer", None):
-        return False
-    if compression == "infer":
-        lower = filepath.lower()
-        if any(lower.endswith(ext) for ext in (".gz", ".bz2", ".zip", ".xz", ".zst")):
+    if isinstance(compression, dict):
+        compression = compression.get("method")
+    if compression is not None:
+        try:
+            if infer_compression(filepath, compression) is not None:
+                return False
+        except ValueError:
+            # unrecognized compression argument; let the serial path raise
             return False
 
     # Iterator / chunked mode: caller handles chunking themselves.
