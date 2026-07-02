@@ -11,6 +11,7 @@ import pytest
 
 from pandas.errors import (
     Pandas4Warning,
+    ParserError,
     ParserWarning,
 )
 
@@ -31,12 +32,19 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_all_columns(
-    all_parsers, dtype, check_orig, using_infer_string, temp_file
+    all_parsers, dtype, check_orig, using_infer_string, temp_file, request
 ):
     # see gh-3795, gh-6607
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and dtype is object and not check_orig:
+        # GH#58260 the pyarrow engine cannot disable type inference, so a scalar
+        # object dtype yields the inferred (e.g. float) values rather than the
+        # raw strings the other engines preserve
+        request.applymarker(
+            pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
+        )
 
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)).round(4),
@@ -238,9 +246,22 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
+    if all_parsers.engine == "pyarrow":
+        # pyarrow cannot parse this single-line input with these options
+        msg = "Empty CSV file or block: cannot infer number of columns"
+        with pytest.raises(ParserError, match=msg):
+            all_parsers.read_csv(
+                StringIO('"dump","-9,1","-9,1",20101010'),
+                engine="python",
+                names=["col", "col1", "col2", "col3"],
+                usecols=["col1", "col2", "col3"],
+                parse_dates=["col3"],
+                decimal=",",
+            )
+        return
+
     result = all_parsers.read_csv(
         StringIO('"dump","-9,1","-9,1",20101010'),
         engine="python",
@@ -350,7 +371,6 @@ no,yyy
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
 def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#35211
@@ -365,7 +385,6 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     # GH#42022
     parser = all_parsers
