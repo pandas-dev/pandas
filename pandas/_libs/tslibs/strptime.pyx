@@ -38,6 +38,7 @@ import_datetime()
 
 from _thread import allocate_lock as _thread_allocate_lock
 import re
+import warnings
 
 import numpy as np
 
@@ -84,6 +85,7 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslibs.timestamps import Timestamp
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.tzconversion cimport tz_localize_to_utc_single
 
@@ -388,6 +390,7 @@ def array_strptime(
         bint string_to_dts_succeeded = 0
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
+        bint warned_numeric = False
 
     assert is_raise or is_coerce
 
@@ -465,6 +468,23 @@ def array_strptime(
             ):
                 iresult[i] = NPY_NAT
                 continue
+            elif is_integer_object(val) or is_float_object(val):
+                if not warned_numeric:
+                    from pandas.errors import Pandas4Warning
+                    warnings.warn(
+                        "Passing integer or float values to to_datetime with "
+                        "a format argument is deprecated. In a future version, "
+                        "integers/floats will be treated the same as on other "
+                        "paths (i.e. interpreted via the 'unit' keyword) "
+                        "instead of being cast to strings and parsed with the "
+                        "given format. Cast numeric values to strings "
+                        "explicitly before calling to_datetime to retain the "
+                        "current behavior.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
+                    warned_numeric = True
+                val = str(val)
             else:
                 val = str(val)
 

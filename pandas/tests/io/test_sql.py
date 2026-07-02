@@ -1815,6 +1815,40 @@ def test_api_date_parsing(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable_types)
+def test_api_date_parsing_int_col_dict_format(conn, request):
+    # GH#55663 dict-form format on an integer column should not emit the
+    #  int-with-format deprecation warning from internal code
+    conn = request.getfixturevalue(conn)
+    # filterwarnings=error would turn any emitted deprecation into a failure
+    df = sql.read_sql_query(
+        "SELECT * FROM types",
+        conn,
+        parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
+    )
+    assert df["IntDateOnlyCol"].tolist() == [
+        Timestamp("2010-10-10"),
+        Timestamp("2010-12-12"),
+    ]
+
+
+@pytest.mark.parametrize("conn", all_connectable_types)
+def test_api_date_parsing_int_col_no_format_pyarrow_backend(conn, request):
+    # GH#55663 with no format given, numeric columns that don't have a
+    #  numpy dtype should retain epoch interpretation
+    pytest.importorskip("pyarrow")
+    conn = request.getfixturevalue(conn)
+    raw = sql.read_sql_query("SELECT * FROM types", conn, dtype_backend="pyarrow")
+    df = sql.read_sql_query(
+        "SELECT * FROM types",
+        conn,
+        parse_dates=["IntDateCol"],
+        dtype_backend="pyarrow",
+    )
+    expected = to_datetime(raw["IntDateCol"], errors="coerce")
+    tm.assert_series_equal(df["IntDateCol"], expected)
+
+
+@pytest.mark.parametrize("conn", all_connectable_types)
 @pytest.mark.parametrize("error", ["raise", "coerce"])
 @pytest.mark.parametrize(
     "read_sql, text, mode",

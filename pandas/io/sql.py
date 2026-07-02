@@ -67,7 +67,10 @@ from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
-from pandas.core.tools.datetimes import to_datetime
+from pandas.core.tools.datetimes import (
+    stringify_numeric_column,
+    to_datetime,
+)
 
 from pandas.io._util import arrow_table_to_pandas
 
@@ -117,6 +120,8 @@ def _handle_date_column(
         # read_sql like functions.
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
+        if format.get("format") is not None and col.dtype.kind in "iuf":
+            col = stringify_numeric_column(col)
         return to_datetime(col, **format)
     else:
         # Allow passing of formatting string for integers
@@ -133,6 +138,8 @@ def _handle_date_column(
             # GH11216
             return to_datetime(col, utc=True)
         else:
+            if format is not None and col.dtype.kind in "iuf":
+                col = stringify_numeric_column(col)
             return to_datetime(col, errors="coerce", format=format, utc=utc)
 
 

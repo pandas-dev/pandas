@@ -28,6 +28,7 @@ from pandas.compat import (
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    Pandas4Warning,
 )
 import pandas.util._test_decorators as td
 
@@ -122,7 +123,9 @@ class TestTimeConversionFormats:
         ser = Series([19801222, 19801222] + [19810105] * 5)
         expected = Series([Timestamp(x) for x in ser.apply(str)])
 
-        result = to_datetime(ser, format="%Y%m%d", cache=cache)
+        # GH#55663 - int with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
         result = to_datetime(ser.apply(str), format="%Y%m%d", cache=cache)
@@ -140,7 +143,9 @@ class TestTimeConversionFormats:
         expected[2] = np.nan
         ser[2] = np.nan
 
-        result = to_datetime(ser, format="%Y%m%d", cache=cache)
+        # GH#55663 - float with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", cache=cache)
         tm.assert_series_equal(result, expected)
 
         # string with NaT
@@ -166,14 +171,18 @@ class TestTimeConversionFormats:
         )
         expected[2] = np.nan
         ser[2] = np.nan
-        result = to_datetime(ser, format="%Y%m", cache=cache)
+        # GH#55663 - float with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m", cache=cache)
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_YYYYMMDD_oob_for_ns(self, cache):
         # coercion
         # GH 7930, GH 14487
         ser = Series([20121231, 20141231, 99991231])
-        result = to_datetime(ser, format="%Y%m%d", errors="raise", cache=cache)
+        # GH#55663 - int with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", errors="raise", cache=cache)
         expected = Series(
             np.array(["2012-12-31", "2014-12-31", "9999-12-31"], dtype="M8[s]"),
             dtype="M8[us]",
@@ -184,7 +193,9 @@ class TestTimeConversionFormats:
         # coercion
         # GH 7930
         ser = Series([20121231, 20141231, 999999999999999999999999999991231])
-        result = to_datetime(ser, format="%Y%m%d", errors="coerce", cache=cache)
+        # GH#55663 - int with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m%d", errors="coerce", cache=cache)
         expected = Series(["20121231", "20141231", "NaT"], dtype="M8[us]")
         tm.assert_series_equal(result, expected)
 
@@ -208,7 +219,13 @@ class TestTimeConversionFormats:
         # format='%Y%m%d'
         # with None
         expected = Series([Timestamp("19801222"), Timestamp("20010112"), NaT])
-        result = Series(to_datetime(input_s, format="%Y%m%d"))
+        # GH#55663 - int/float with format is deprecated (NaN doesn't count)
+        has_numeric = any(
+            isinstance(val, (int, float)) and val == val for val in input_s
+        )
+        warn = Pandas4Warning if has_numeric else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            result = Series(to_datetime(input_s, format="%Y%m%d"))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -239,8 +256,14 @@ class TestTimeConversionFormats:
     def test_to_datetime_format_YYYYMMDD_overflow(self, input_s, expected):
         # GH 25512
         # format='%Y%m%d', errors='coerce'
+        # GH#55663 - int/float with format is deprecated (NaN doesn't count)
+        has_numeric = any(
+            isinstance(val, (int, float)) and val == val for val in input_s
+        )
         input_s = Series(input_s)
-        result = to_datetime(input_s, format="%Y%m%d", errors="coerce")
+        warn = Pandas4Warning if has_numeric else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            result = to_datetime(input_s, format="%Y%m%d", errors="coerce")
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
@@ -274,16 +297,19 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_format_integer(self, cache):
         # GH 10178
+        # GH#55663 - int with format is deprecated
         ser = Series([2000, 2001, 2002])
         expected = Series([Timestamp(x) for x in ser.apply(str)])
 
-        result = to_datetime(ser, format="%Y", cache=cache)
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y", cache=cache)
         tm.assert_series_equal(result, expected)
 
         ser = Series([200001, 200105, 200206])
         expected = Series([Timestamp(x[:4] + "-" + x[4:]) for x in ser.apply(str)])
 
-        result = to_datetime(ser, format="%Y%m", cache=cache)
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            result = to_datetime(ser, format="%Y%m", cache=cache)
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_format_microsecond(self, cache):
@@ -2232,6 +2258,16 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("20150204 00:00:00"), NaT])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_dataframe_float_out_of_int64_range(self, errors, cache):
+        # GH#55663 a float too large to represent as int64 (e.g. an absurd
+        #  year) coerces to NaT instead of overflowing the int64 cast into a
+        #  meaningless sentinel; filterwarnings=error guards the no-warning path
+        df2 = DataFrame({"year": [10**16, np.nan], "month": [1, 1], "day": [1, 1]})
+        result = to_datetime(df2, errors=errors, cache=cache)
+        expected = Series([NaT, NaT], dtype="datetime64[s]")
+        tm.assert_series_equal(result, expected)
+
     def test_dataframe_extra_keys_raises(self, df, cache):
         # extra columns
         msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
@@ -2356,11 +2392,16 @@ class TestToDatetimeMisc:
     def test_to_datetime_iso8601_fails(self, input, format, exact):
         # https://github.com/pandas-dev/pandas/issues/12649
         # `format` is longer than the string, so this fails regardless of `exact`
-        with pytest.raises(
-            ValueError,
-            match=(rf"time data \"{input}\" doesn't match format " rf"\"{format}\""),
-        ):
-            to_datetime(input, format=format, exact=exact)
+        # GH#55663 - int with format is deprecated
+        warn = Pandas4Warning if isinstance(input, (int, float)) else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            with pytest.raises(
+                ValueError,
+                match=(
+                    rf"time data \"{input}\" doesn't match format " rf"\"{format}\""
+                ),
+            ):
+                to_datetime(input, format=format, exact=exact)
 
     @pytest.mark.parametrize(
         "input, format",
@@ -2382,11 +2423,14 @@ class TestToDatetimeMisc:
                 f'^time data ".*" doesn\'t match format ".*". {PARSING_ERR_MSG}$',
             ]
         )
-        with pytest.raises(
-            ValueError,
-            match=(msg),
-        ):
-            to_datetime(input, format=format)
+        # GH#55663 - int with format is deprecated
+        warn = Pandas4Warning if isinstance(input, (int, float)) else None
+        with tm.assert_produces_warning(warn, match="integer or float"):
+            with pytest.raises(
+                ValueError,
+                match=(msg),
+            ):
+                to_datetime(input, format=format)
 
     @pytest.mark.parametrize(
         "input, format",
@@ -3893,10 +3937,13 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
 
     elif has_numeric and vec.index(aware_val) < vec.index(naive_val):
         msg = "time data .* doesn't match format"
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(vec)
-        with pytest.raises(ValueError, match=msg):
-            to_datetime(vec, utc=True)
+        # GH#55663 - int/float with format is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec)
+        with tm.assert_produces_warning(Pandas4Warning, match="integer or float"):
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec, utc=True)
 
     elif both_strs and vec.index(aware_val) < vec.index(naive_val):
         msg = r"time data \"2020-01-01 00:00\" doesn't match format"

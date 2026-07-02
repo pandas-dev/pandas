@@ -804,6 +804,13 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
+        .. deprecated:: 3.1.0
+
+            Passing integer or float values together with ``format`` is
+            deprecated; cast them to strings first. In a future version numeric
+            values will be interpreted as epochs via ``unit`` instead, and
+            ``format`` will only apply to string input.
+
         .. note::
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
@@ -1189,6 +1196,26 @@ _unit_map = {
 }
 
 
+def stringify_numeric_column(values: Series) -> Series:
+    """
+    Cast a numeric column to object-dtype strings so that to_datetime with a
+    ``format`` doesn't have to infer how to interpret numeric input. GH#55663
+
+    Values that can't be represented as int64 (very large floats or +/-inf)
+    are set to NA so they coerce to NaT, rather than overflowing the int64
+    cast into a meaningless sentinel.
+    """
+    result = values.astype("object")
+    notna_mask = values.notna()
+    if is_float_dtype(values.dtype):
+        iinfo = np.iinfo(np.int64)
+        notna_mask &= values.between(iinfo.min, iinfo.max)
+    result[~notna_mask] = np.nan
+    if notna_mask.any():
+        result[notna_mask] = values[notna_mask].astype("int64").astype(str)
+    return result
+
+
 def _assemble_from_unit_mappings(
     arg, errors: DateTimeErrorChoices, utc: bool
 ) -> Series:
@@ -1270,8 +1297,11 @@ def _assemble_from_unit_mappings(
         + coerce(arg[unit_rev["month"]]) * 100
         + coerce(arg[unit_rev["day"]])
     )
+    # GH#55663 cast to strings up front so to_datetime doesn't need to
+    # infer what to do with numeric data when a format is given.
+    str_values = stringify_numeric_column(values)
     try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
+        values = to_datetime(str_values, format="%Y%m%d", errors=errors, utc=utc)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
