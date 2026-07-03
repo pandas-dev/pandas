@@ -359,6 +359,17 @@ def test_set_empty_level():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("level", [None, ["A", "B"]])
+def test_set_levels_codes_empty_outer_raises(level):
+    # GH#16147 an empty outer sequence should raise a clear ValueError
+    #  rather than IndexError when level is None or list-like
+    midx = MultiIndex(levels=[[], []], codes=[[], []], names=["A", "B"])
+    with pytest.raises(ValueError, match="non-zero number of levels"):
+        midx.set_levels([], level=level)
+    with pytest.raises(ValueError, match="Length of codes must match"):
+        midx.set_codes([], level=level)
+
+
 def test_set_levels_pos_args_removal():
     # https://github.com/pandas-dev/pandas/issues/41485
     idx = MultiIndex.from_tuples(

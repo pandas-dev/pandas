@@ -1560,9 +1560,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if method is None:
             raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-        if name == "mean":
-            # mean handles skipna itself; dropping NAs beforehand would hide
-            # the NA from its skipna=False short-circuit
+        if name in ("mean", "sum", "min", "max"):
+            # these methods handle skipna themselves; dropping NAs beforehand
+            # would hide the NA from their skipna=False short-circuit
             result = method(skipna=skipna, **kwargs)
         else:
             if skipna:
@@ -1637,6 +1637,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             The required number of valid values to perform the summation. If fewer
             than ``min_count`` valid values are present, the result will be the missing
             value indicator for subarray type.
+        skipna : bool, default True
+            Exclude NA/null values. If False and NA is present, return NA.
         *args, **kwargs
             Not Used. NumPy compatibility.
 
@@ -1645,11 +1647,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         scalar
         """
         nv.validate_sum(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
-        has_na = self.sp_index.ngaps > 0 and not self._null_fill_value
 
-        if has_na and not skipna:
+        if not skipna and self._hasna:
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
         if self._null_fill_value:
@@ -1786,17 +1788,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(valid_vals) > 0:
             sp_min_max = getattr(valid_vals, kind)()
 
+            if not skipna and self._hasna:
+                return na_value_for_dtype(self.dtype.subtype, compat=False)
+
             # If a non-null fill value is currently present, it might be the min/max
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
                 return func(sp_min_max, self.fill_value)
-            elif skipna:
-                return sp_min_max
-            elif self.sp_index.ngaps == 0:
-                # No NAs present
-                return sp_min_max
-            else:
-                return na_value_for_dtype(self.dtype.subtype, compat=False)
+
+            # A present NA with skipna=False is handled above, so the min/max of
+            # the valid sparse values is the result.
+            return sp_min_max
+        elif not skipna and self._hasna:
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
         elif has_nonnull_fill_vals:
             return self.fill_value
         else:

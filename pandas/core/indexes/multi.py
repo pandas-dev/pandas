@@ -4957,7 +4957,7 @@ def _require_listlike(level, arr, arrname: str):
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):
-        if not is_list_like(arr) or not is_list_like(arr[0]):
+        if not is_list_like(arr) or (len(arr) > 0 and not is_list_like(arr[0])):
             raise TypeError(f"{arrname} must be list of lists-like")
     return level, arr
 
