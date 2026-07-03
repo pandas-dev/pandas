@@ -13,8 +13,9 @@ extern "C" {
 Shortest round-trip float formatting matching numpy scalar str().
 
 Notation choice replicates numpy (value-based, not digit-exponent-based):
-fixed iff 1e-4 <= |val| < 1e16 for float64, 1e-4 <= |val| < 1e6 for float32,
-compared in double precision. Scientific style matches Python/numpy:
+fixed iff 1e-4 <= |val| < 1e16 for float64. For float32 the upper cutoff is
+supplied by the caller (fixed_hi) because numpy changed it in 2.3.0 (1e16 ->
+1e6). Compared in double precision. Scientific style matches Python/numpy:
 "d[.digits]e[+-]XX" with a sign and at least two exponent digits.
 */
 
@@ -32,8 +33,10 @@ int pd_double_repr(double val, char *out);
 /*
 float32 analogue of pd_double_repr; only usable when
 pd_float32_repr_available() returns nonzero (requires std::to_chars).
+fixed_hi is the value-based fixed/scientific cutoff (1e16 for numpy < 2.3,
+1e6 for numpy >= 2.3).
 */
-int pd_float32_repr(float val, char *out);
+int pd_float32_repr(float val, double fixed_hi, char *out);
 int pd_float32_repr_available(void);
 
 #ifdef __cplusplus

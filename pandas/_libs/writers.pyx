@@ -44,7 +44,7 @@ cdef extern from "Python.h":
 
 cdef extern from "pandas/double_repr.h":
     int pd_double_repr(double val, char *out)
-    int pd_float32_repr(float val, char *out)
+    int pd_float32_repr(float val, double fixed_hi, char *out)
     int pd_float32_repr_available()
 
 ctypedef fused pandas_string:
@@ -128,6 +128,13 @@ CSV_KIND_DT64 = 6
 
 # float32 rendering needs floating-point std::to_chars (no fallback)
 FLOAT32_NATIVE = bool(pd_float32_repr_available())
+
+# numpy 2.3 lowered the float32 str() positional/scientific cutoff from 1e16
+# (shared with float64) to 1e6; match the running numpy so native float32
+# rendering stays byte-identical to ndarray.astype(str).
+cdef double FLOAT32_FIXED_HI = 1e16
+if tuple(int(x) for x in np.__version__.split(".")[:2]) >= (2, 3):
+    FLOAT32_FIXED_HI = 1e6
 
 cdef enum:
     KIND_OBJ = 0
@@ -532,7 +539,7 @@ def write_csv_chunk(
                     if fval != fval:
                         slen = 0
                     else:
-                        slen = pd_float32_repr(fval, scratch)
+                        slen = pd_float32_repr(fval, FLOAT32_FIXED_HI, scratch)
                         if slen < 0:
                             raise ValueError("float formatting failed")
                 elif kind == KIND_INT64:

@@ -168,8 +168,8 @@ int pd_double_repr(double val, char *out) {
   return repr_to_chars(val, 1e-4, 1e16, out);
 }
 
-int pd_float32_repr(float val, char *out) {
-  return repr_to_chars(val, 1e-4, 1e6, out);
+int pd_float32_repr(float val, double fixed_hi, char *out) {
+  return repr_to_chars(val, 1e-4, fixed_hi, out);
 }
 
 int pd_float32_repr_available(void) { return 1; }
@@ -238,8 +238,9 @@ int pd_double_repr(double val, char *out) {
                      out);
 }
 
-int pd_float32_repr(float val, char *out) {
+int pd_float32_repr(float val, double fixed_hi, char *out) {
   (void)val;
+  (void)fixed_hi;
   (void)out;
   return -1;
 }
