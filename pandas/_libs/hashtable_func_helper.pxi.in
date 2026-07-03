@@ -388,6 +388,11 @@ cdef get_indexer_non_unique_{{dtype}}(
 
     counts = np.zeros(n_unique, dtype=np.intp)
 
+    # Acquire buffers up front so the C compiler can see they are always
+    # initialized; each is only *read* under the matching `use_searchsorted`
+    # branch below, but GCC's -Werror=maybe-uninitialized cannot prove that.
+    starts = offsets = slots = np.empty(0, dtype=np.intp)
+
     if use_searchsorted:
         starts = values.searchsorted(uniques[:n_unique], side="left")
         ends = values.searchsorted(uniques[:n_unique], side="right")
