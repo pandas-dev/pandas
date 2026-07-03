@@ -940,7 +940,9 @@ def _write_with_line_at_chunk_start(path, replacement: bytes) -> None:
     """Write a fixed-width CSV, then overwrite the line at the second chunk
     boundary with *replacement* (same byte length, so offsets stay valid)."""
     rows = [f"{i:06d},{i * 2:06d}" for i in range(4000)]
-    path.write_text("a,b\n" + "\n".join(rows) + "\n", encoding="utf-8")
+    # write bytes so line endings stay "\n" on every platform - the byte-offset
+    # math below assumes single-byte terminators (Windows text mode adds "\r")
+    path.write_bytes(("a,b\n" + "\n".join(rows) + "\n").encode("utf-8"))
     data_start = _find_data_start_offset(str(path), 0, 0)
     offsets = _find_chunk_byte_offsets(str(path), 4, data_start)
     boundary = offsets[1]
