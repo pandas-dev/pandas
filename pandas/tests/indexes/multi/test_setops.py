@@ -1,3 +1,5 @@
+from datetime import date
+
 import numpy as np
 import pytest
 
@@ -261,6 +263,20 @@ def test_union(idx, sort):
         tm.assert_index_equal(result.sort_values(), idx.sort_values())
     else:
         assert result.equals(idx)
+
+
+def test_union_mixed_date_timestamp():
+    # GH 61807
+    left = MultiIndex.from_tuples([(date(2001, 1, 1), "foo")])
+    right = MultiIndex.from_tuples([(pd.Timestamp("2001-01-01"), "bar")])
+
+    result = left.union(right, sort=False)
+
+    assert result.tolist() == [
+        (date(2001, 1, 1), "foo"),
+        (pd.Timestamp("2001-01-01"), "bar"),
+    ]
+    assert result.levels[0].dtype == object
 
 
 def test_union_with_regular_index(idx, using_infer_string):
