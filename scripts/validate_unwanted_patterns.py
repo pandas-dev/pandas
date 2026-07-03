@@ -385,6 +385,118 @@ def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
                 )
 
 
+MESSAGE_REGEX_VARIABLE_NAMES = frozenset({"msg", "pat"})
+
+BARE_PIPE_MESSAGE = (
+    "Bare top-level '|' in a message regex; use '|'.join([...]) to list "
+    "alternative messages, or group an inline alternation like '(a|b)'."
+)
+
+
+def _message_regex_source(node: ast.AST) -> str | None:
+    """Return the (approximate) regex source for a string-literal node.
+
+    Adjacent string literals are already concatenated by the parser. For an
+    f-string each substitution is treated as opaque placeholder text, so a bare
+    ``f"{a}|{b}"`` is still detected while the contents of ``{...}`` are not
+    interpreted as regex syntax. Returns ``None`` for anything that is not a
+    string literal (e.g. a ``"|".join([...])`` call or a plain name).
+    """
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.JoinedStr):
+        parts = []
+        for value in node.values:
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                parts.append(value.value)
+            else:
+                parts.append("\x00")  # opaque placeholder for a {substitution}
+        return "".join(parts)
+    return None
+
+
+def _has_top_level_pipe(regex: str) -> bool:
+    """Whether ``regex`` contains a ``|`` at the top level.
+
+    A top-level ``|`` is one that is not backslash-escaped, not inside a
+    ``(...)`` group, and not inside a ``[...]`` character class -- i.e. a real
+    alternation between separate messages rather than an inline ``(a|b)``.
+    """
+    depth = 0
+    in_character_class = False
+    index = 0
+    while index < len(regex):
+        char = regex[index]
+        if char == "\\":
+            index += 2
+            continue
+        if in_character_class:
+            if char == "]":
+                in_character_class = False
+        elif char == "[":
+            in_character_class = True
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        elif char == "|" and depth == 0:
+            return True
+        index += 1
+    return False
+
+
+def bare_pipe_alternation_in_message(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
+    """
+    Check that exception/warning message regexes don't use a bare ``|``.
+
+    When a test matches one of several possible messages, the alternatives
+    should be joined explicitly so the list stays readable::
+
+        msg = "|".join(["first message", "second message"])
+        with pytest.raises(ValueError, match=msg):
+            ...
+
+    rather than hiding the alternation inside a single literal
+    (``"first message|second message"``). An alternation that is genuinely part
+    of one message should instead be grouped, e.g. ``"cannot (add|subtract)"``.
+
+    This applies to ``msg``/``pat`` assignments and to ``match=`` arguments.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of the offending message regex.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+
+    for node in ast.walk(tree):
+        candidates: list[ast.AST] = []
+        if isinstance(node, ast.Assign):
+            if any(
+                isinstance(target, ast.Name)
+                and target.id in MESSAGE_REGEX_VARIABLE_NAMES
+                for target in node.targets
+            ):
+                candidates.append(node.value)
+        elif isinstance(node, ast.Call):
+            candidates.extend(
+                keyword.value for keyword in node.keywords if keyword.arg == "match"
+            )
+
+        for value in candidates:
+            regex = _message_regex_source(value)
+            if regex is not None and _has_top_level_pipe(regex):
+                yield (value.lineno, BARE_PIPE_MESSAGE)
+
+
 def main(
     function: Callable[[IO[str]], Iterable[tuple[int, str]]],
     source_path: str,
@@ -438,6 +550,7 @@ if __name__ == "__main__":
         "strings_with_wrong_placed_whitespace",
         "nodefault_used_not_only_for_typing",
         "doesnt_use_pandas_warnings",
+        "bare_pipe_alternation_in_message",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")

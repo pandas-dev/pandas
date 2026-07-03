@@ -1678,7 +1678,9 @@ def test_apply_datetime_tz_issue(engine, request):
 def test_mixed_column_raises(df, method, using_infer_string):
     # GH 16832
     if method == "sum" and not using_infer_string:
-        msg = r'can only concatenate str \(not "int"\) to str|does not support'
+        msg = "|".join(
+            [r'can only concatenate str \(not "int"\) to str', "does not support"]
+        )
         with pytest.raises(TypeError, match=msg):
             getattr(df, method)()
     else:

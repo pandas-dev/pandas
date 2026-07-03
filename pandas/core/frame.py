@@ -578,7 +578,9 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     data = list(data)
             if len(data) > 0:
-                if is_dataclass(data[0]):
+                if is_dataclass(data[0]) and not is_list_like(data[0]):
+                    # GH#41682 a list-like dataclass (e.g. a UserList subclass)
+                    # is treated as list-like, not converted to a dict of fields
                     data = dataclasses_to_dicts(data)
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
@@ -3988,6 +3990,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         *args : tuple, optional
             Accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
@@ -4676,7 +4679,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             ilocs = self.columns.get_indexer_non_unique(key)[0]
-            if (ilocs < 0).any():
+            if lib.has_sentinel(ilocs, -1):
                 # key entries not in self.columns
                 raise NotImplementedError
 
@@ -4728,17 +4731,19 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, (slice, Series, np.ndarray, Index)
             ):
                 cols_droplevel = maybe_droplevels(cols, key)
-                if (
-                    not isinstance(cols_droplevel, MultiIndex)
-                    and is_string_dtype(cols_droplevel.dtype)
-                    and not cols_droplevel.any()
-                ):
-                    # if cols_droplevel contains only empty strings,
-                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
-                    # see GH#62518 and GH#61841
-                    return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
-                    value = value.reindex(cols_droplevel, axis=1)
+                    if (
+                        not isinstance(cols_droplevel, MultiIndex)
+                        and is_string_dtype(cols_droplevel.dtype)
+                        and (cols_droplevel == "").all()
+                    ):
+                        # if cols_droplevel contains only empty strings,
+                        # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                        # see GH#62518 and GH#61841
+                        value = value.copy(deep=False)
+                        value.columns = cols_droplevel
+                    else:
+                        value = value.reindex(cols_droplevel, axis=1)
 
                 if not cols_droplevel.equals(cols):
                     # Levels were actually dropped, so we can safely use
@@ -4865,10 +4870,11 @@ class DataFrame(NDFrame, OpsMixin):
                 self.loc[index, col] = value
 
         except InvalidIndexError as ii_err:
-            # GH48729: Seems like you are trying to assign a value to a
-            # row when only scalar options are permitted
+            # GH#48729, GH#51866: get_loc raises InvalidIndexError when a
+            #  row/column label is not a scalar (e.g. a boolean mask, array,
+            #  list, or slice). .at only supports scalar label access.
             raise InvalidIndexError(
-                f"You can only assign a scalar value not a {type(value)}"
+                ".at-based indexing can only have scalar indexers; use .loc instead"
             ) from ii_err
 
     def _ensure_valid_index(self, value) -> None:
@@ -7957,7 +7963,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting duplicate rows.
 
-        Considering certain columns is optional.
+        Rows are considered duplicated when the same values appear more than
+        once across the requested columns. Considering certain columns is
+        optional.
 
         Parameters
         ----------
@@ -7974,7 +7982,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Boolean series for each duplicated rows.
+            Boolean Series indicating whether each row is a duplicated row
+            according to ``keep``.
 
         See Also
         --------
@@ -8151,9 +8160,10 @@ class DataFrame(NDFrame, OpsMixin):
              If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
-             information. `mergesort` and `stable` are the only stable algorithms. For
-             DataFrames, this option is only applied when sorting on a single
-             column or label.
+             information. The sort order is deterministic for a given input.
+             `mergesort` and `stable` are the only stable algorithms, which preserve
+             the relative order of equal keys. For DataFrames, this option is only
+             applied when sorting on a single column or label.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
@@ -13770,10 +13780,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        For boolean dtypes, this uses :meth:`operator.xor` rather than
-        :meth:`operator.sub`.
-        The result is calculated according to current dtype in DataFrame,
-        however dtype of the result is always float64.
+        Equivalent to ``self - self.shift(periods)``, except that boolean
+        dtypes use :meth:`operator.xor` rather than :meth:`operator.sub`; the
+        result dtype follows from that operation.
+
+        In particular, because the leading ``periods`` positions are filled
+        with a missing value, NumPy integer dtypes are cast to floating and
+        NumPy ``bool`` to ``object``.
 
         Examples
         --------
@@ -15151,11 +15164,13 @@ class DataFrame(NDFrame, OpsMixin):
             of `decimals` which are not columns of the input will be
             ignored.
         *args
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
         **kwargs
-            Additional keywords have no effect but might be accepted for
-            compatibility with numpy.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -15369,11 +15384,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         All columns regardless of dtype.
 
-        >>> df.describe(include="all")  # doctest: +SKIP
+        >>> df.describe(include="all")
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      a
+        top              d      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -15394,11 +15409,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Exclude a specific dtype.
 
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])
                categorical object
         count            3      3
         unique           3      3
-        top              f      a
+        top              d      a
         freq             1      1
         """
         return super().describe(
@@ -15433,8 +15448,7 @@ class DataFrame(NDFrame, OpsMixin):
                 regardless of the callable's behavior.
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -15491,7 +15505,9 @@ class DataFrame(NDFrame, OpsMixin):
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall" or callable(method):
+        elif method == "kendall":
+            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
+        elif callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
@@ -15993,11 +16009,6 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    if name == "all":
-                        # Behavior here appears incorrect; preserving
-                        # for backwards compatibility for now.
-                        # See https://github.com/pandas-dev/pandas/issues/57171
-                        skipna = True
                     result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
                     return result
@@ -16165,7 +16176,7 @@ class DataFrame(NDFrame, OpsMixin):
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16324,7 +16335,7 @@ class DataFrame(NDFrame, OpsMixin):
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16450,7 +16461,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16557,7 +16569,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16638,7 +16651,8 @@ class DataFrame(NDFrame, OpsMixin):
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16743,7 +16757,8 @@ class DataFrame(NDFrame, OpsMixin):
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16857,7 +16872,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -16981,7 +16997,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17351,7 +17368,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns. Not implemented for Series.
         **kwargs : dict
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17470,7 +17488,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17591,7 +17610,8 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17684,7 +17704,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17793,7 +17813,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -17902,7 +17922,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -18011,7 +18031,7 @@ class DataFrame(NDFrame, OpsMixin):
             Include only float, int, boolean columns.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

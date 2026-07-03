@@ -171,7 +171,8 @@ cdef dict _parse_code_table = {"y": 0,
                                "z": 19,
                                "G": 20,
                                "V": 21,
-                               "u": 22}
+                               "u": 22,
+                               "N": 23}
 
 
 cdef _validate_fmt(str fmt):
@@ -755,6 +756,13 @@ cdef tzinfo _parse_with_format(
             us = int(s)
             ns = us % 1000
             us = us // 1000
+        elif parse_code == 23:
+            # e.g. val='123456789'; fmt='%H:%M:%S.%N'
+            s = group_val
+            item_reso[0] = NPY_FR_ns
+            us = int(s)
+            ns = us % 1000
+            us = us // 1000
         elif parse_code == 11:
             # e.g val='Tuesday 24 Aug 2021 01:30:48 AM'; fmt='%A %d %b %Y %I:%M:%S %p'
             weekday = f_weekday_lookup[group_val.lower()]
@@ -859,7 +867,8 @@ class TimeRE(_TimeRE):
         super().__init__(locale_time=locale_time)
         # GH 48767: Overrides for cpython's TimeRE
         #  1) Parse up to nanos instead of micros
-        self.update({"f": r"(?P<f>[0-9]{1,9})"}),
+        self.update({"f": r"(?P<f>[0-9]{1,9})"})
+        self.update({"N": r"(?P<N>[0-9]{9})"})
 
     def __getitem__(self, key):
         if key == "Z":
