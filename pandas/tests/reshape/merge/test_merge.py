@@ -1341,6 +1341,16 @@ class TestMerge:
         result = merge(left, right, on=["a", "b"], validate="1:1")
         tm.assert_frame_equal(result, expected_multi)
 
+    def test_merge_validate_one_to_many_alias(self):
+        left = DataFrame({"key": [1, 2]})
+        right = DataFrame({"key": [1, 1, 2]})
+
+        result = merge(left, right, on="key", validate="1:m")
+
+        expected = DataFrame({"key": [1, 1, 2]})
+
+        tm.assert_frame_equal(result, expected)
+
     def test_merge_validate_error_message(self):
         # GH#62742
         left = DataFrame({"key": [1, 1, 2]})
