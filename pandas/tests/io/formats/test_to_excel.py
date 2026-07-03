@@ -471,3 +471,30 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
 
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses
+
+
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+def test_styler_to_excel_preserves_case_in_number_format(tmp_path, engine):
+    # GH#63101
+    pytest.importorskip(engine)
+
+    from openpyxl import load_workbook
+
+    import pandas as pd
+
+    df = pd.DataFrame({"A": [1_000_000]})
+
+    styler = df.style.map(
+        lambda _: 'number-format: #,,"M"',
+        subset=["A"],
+    )
+
+    path = tmp_path / f"test_{engine}.xlsx"
+
+    styler.to_excel(path, engine=engine)
+
+    wb = load_workbook(path)
+    ws = wb.active
+
+    assert ws is not None
+    assert ws["B2"].number_format == '#,,"M"'
