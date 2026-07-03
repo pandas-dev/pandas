@@ -303,6 +303,64 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
       cancel-in-progress: true
 
+  Linux-numpy-include-dir:
+    # Regression guard for GH#62883. pandas/meson.build must honor the
+    # `numpy-include-dir` cross/native-file property so cross-compilers can point
+    # the build at the *target* numpy headers instead of the build host's. When
+    # cross-compiling, running numpy.get_include() picks up the host numpy and
+    # bakes in the wrong ABI (e.g. int64_t sized as a 32-bit long), which then
+    # fails at import with "Buffer dtype mismatch, expected 'const int64_t' but
+    # got 'long long'". A configure-only check is enough: point the property at a
+    # distinct copy of the headers and assert it reaches the numpy include flags.
+    # Full cross-compilation is intentionally not exercised.
+    name: numpy-include-dir meson property
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip meson[ninja]==1.2.3 meson-python==0.18.0 versioneer[toml] cython numpy
+
+      - name: Assert meson honors numpy-include-dir
+        run: |
+          # Point the property at a *distinct* copy of the numpy headers. If the
+          # property is honored these headers (not numpy.get_include()) end up in
+          # the compile flags; if support regresses to the get_include() fallback
+          # the copy is never referenced and the assertion below fails.
+          NUMPY_INCDIR=$(python -c "import numpy; print(numpy.get_include())")
+          ALT_INCDIR="${RUNNER_TEMP}/target-numpy/include"
+          mkdir -p "$ALT_INCDIR"
+          cp -r "$NUMPY_INCDIR/numpy" "$ALT_INCDIR/"
+
+          cat > "${RUNNER_TEMP}/numpy-include-dir.ini" <<EOF
+          [properties]
+          numpy-include-dir = '${ALT_INCDIR}'
+          EOF
+
+          meson setup "${RUNNER_TEMP}/build" --native-file "${RUNNER_TEMP}/numpy-include-dir.ini"
+
+          echo "::group::numpy include flags"
+          grep -o -- "-I[^\" ]*numpy[^\" ]*" "${RUNNER_TEMP}/build/compile_commands.json" | sort -u || true
+          echo "::endgroup::"
+
+          if ! grep -q "$ALT_INCDIR" "${RUNNER_TEMP}/build/compile_commands.json"; then
+            echo "ERROR: meson ignored the numpy-include-dir property (GH#62883 regression)"
+            exit 1
+          fi
+          echo "OK: numpy-include-dir property is honored"
+    concurrency:
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-numpy-include-dir
+      cancel-in-progress: true
+
   Linux-Musl:
     runs-on: ubuntu-24.04
     permissions:

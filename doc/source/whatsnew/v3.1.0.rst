@@ -486,6 +486,7 @@ Other
 
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
+- Fixed cross-compilation (e.g. to 32-bit ARM) building against the build machine's NumPy headers instead of the target's, producing an extension that failed to import with ``ValueError: Buffer dtype mismatch``; the target NumPy include directory can now be set with the ``numpy-include-dir`` Meson property (:issue:`62883`)
 
 .. ***DO NOT USE THIS SECTION***
 
