@@ -23,6 +23,7 @@ from pandas._config import using_string_dtype
 from pandas._libs import lib
 from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1802,11 +1803,14 @@ def test_api_date_parsing(conn, request):
         Timestamp(2013, 1, 1, 0, 0, 0),
     ]
 
-    df = sql.read_sql_query(
-        "SELECT * FROM types",
-        conn,
-        parse_dates={"IntDateOnlyCol": "%Y%m%d"},
-    )
+    # GH#55663 passing a format for an integer column is deprecated
+    msg = "Passing a format for integer or float columns to read_sql"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        df = sql.read_sql_query(
+            "SELECT * FROM types",
+            conn,
+            parse_dates={"IntDateOnlyCol": "%Y%m%d"},
+        )
     assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
     assert df.IntDateOnlyCol.tolist() == [
         Timestamp("2010-10-10"),
@@ -1816,15 +1820,16 @@ def test_api_date_parsing(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable_types)
 def test_api_date_parsing_int_col_dict_format(conn, request):
-    # GH#55663 dict-form format on an integer column should not emit the
-    #  int-with-format deprecation warning from internal code
+    # GH#55663 dict-form format on an integer column is deprecated in favor of
+    #  the user casting the column to string explicitly after reading
     conn = request.getfixturevalue(conn)
-    # filterwarnings=error would turn any emitted deprecation into a failure
-    df = sql.read_sql_query(
-        "SELECT * FROM types",
-        conn,
-        parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
-    )
+    msg = "Passing a format for integer or float columns to read_sql"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        df = sql.read_sql_query(
+            "SELECT * FROM types",
+            conn,
+            parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
+        )
     assert df["IntDateOnlyCol"].tolist() == [
         Timestamp("2010-10-10"),
         Timestamp("2010-12-12"),
