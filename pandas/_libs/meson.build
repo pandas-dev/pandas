@@ -53,6 +53,9 @@ _khash_primitive_helper_dep = declare_dependency(
 m_dep = cc.find_library('m', required: false)
 fast_float = subproject('fast_float')
 fast_float_dep = fast_float.get_variable('fast_float_dep')
+xsimd_dep = dependency('xsimd', version: '>=14.2')
+
+subdir('simd')
 
 subdir('tslibs')
 
@@ -93,6 +96,7 @@ libs_sources = {
             'lib.pyx',
             'src/parser/tokenizer.c',
             'src/parser/fast_float_strtod.cpp',
+            'src/parser/pd_strtoi.cpp',
         ],
         'deps': [fast_float_dep],
     },
@@ -109,6 +113,7 @@ libs_sources = {
         'sources': [
             'src/parser/tokenizer.c',
             'src/parser/fast_float_strtod.cpp',
+            'src/parser/pd_strtoi.cpp',
             'src/parser/io.c',
             'src/parser/pd_parser.c',
         ],
@@ -119,6 +124,7 @@ libs_sources = {
             'parsers.pyx',
             'src/parser/tokenizer.c',
             'src/parser/fast_float_strtod.cpp',
+            'src/parser/pd_strtoi.cpp',
             'src/parser/io.c',
         ],
         'deps': [fast_float_dep, _khash_primitive_helper_dep],

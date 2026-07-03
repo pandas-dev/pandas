@@ -125,6 +125,17 @@ class TestDatetimeConcat:
         expected = DataFrame(data[50:] + data[:50], index=dr[50:].append(dr[:50]))
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_datetimeindex_freq_mixed_unit(self):
+        # GH#65920 - retain freq when concatting contiguous, evenly spaced
+        # DatetimeIndexes that share a freq but differ in unit
+        idx1 = date_range("2024-01-01", periods=3, freq="s", unit="s")
+        idx2 = date_range("2024-01-01 00:00:03", periods=3, freq="s", unit="ns")
+        result = idx1.append(idx2)
+        expected = date_range("2024-01-01", periods=6, freq="s", unit="ns")
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == "s"
+
     def test_concat_datetimeindex_tz_convert_freq(self):
         # GH#41585 - concat after tz_convert should not raise when
         # the converted timestamps no longer conform to the original freq
