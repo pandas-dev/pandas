@@ -179,7 +179,7 @@ def decorate_axes(ax: Axes, freq: BaseOffset) -> None:
     xaxis.freq = freq  # type: ignore[attr-defined]
 
 
-def _get_ax_freq(ax: Axes):
+def get_ax_freq(ax: Axes):
     """
     Get the freq attribute of the ax object if set.
     Also checks shared axes (eg when using secondary yaxis, sharex=True
@@ -235,7 +235,7 @@ def _get_freq(ax: Axes, series: Series):
         freq = getattr(series.index, "_inferred_freq_str", None)
         freq = to_offset(freq, is_period=True)
 
-    ax_freq = _get_ax_freq(ax)
+    ax_freq = get_ax_freq(ax)
 
     # use axes freq if no data freq
     if freq is None:
@@ -247,8 +247,8 @@ def _get_freq(ax: Axes, series: Series):
 
 
 def use_dynamic_x(ax: Axes, index: Index) -> bool:
-    freq = _get_index_freq(index)
-    ax_freq = _get_ax_freq(ax)
+    freq = get_index_freq(index)
+    ax_freq = get_ax_freq(ax)
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
@@ -282,7 +282,7 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     return True
 
 
-def _get_index_freq(index: Index) -> BaseOffset | None:
+def get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "_inferred_freq_str", None)
@@ -296,10 +296,10 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # This ensures evenly-spaced points: for BDay freq, Fri→Mon is a 1-unit
     # step rather than a 3-unit gap.  See GH#1482.
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq = _get_index_freq(data.index)
+        freq = get_index_freq(data.index)
 
         if freq is None:
-            freq = _get_ax_freq(ax)
+            freq = get_ax_freq(ax)
 
         if freq is None:
             raise ValueError("Could not get frequency alias for plotting")

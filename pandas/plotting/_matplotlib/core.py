@@ -68,6 +68,8 @@ from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
     decorate_axes,
     format_dateaxis,
+    get_ax_freq,
+    get_index_freq,
     maybe_convert_index,
     prepare_ts_data,
     use_dynamic_x,
@@ -88,6 +90,7 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
 
+    from pandas._libs.tslibs import BaseOffset
     from pandas._typing import (
         IndexLabel,
         NDFrameT,
@@ -1891,11 +1894,39 @@ class BarPlot(MPLPlot):
             self.tick_pos = np.array(
                 PeriodConverter.convert_from_freq(
                     self._get_xticks(),
-                    data.index.freq,
+                    self._ts_freq,
                 )
             )
+            if self._use_dynamic_dateaxis and not self._rot_set:
+                # date tick labels placed by the dynamic locator read like
+                # those of a line plot, so match the line-plot default
+                self.rot = 0
         else:
             self.tick_pos = np.arange(len(data))
+
+    @cache_readonly
+    def _ts_freq(self) -> BaseOffset:
+        # Resolve the freq the same way use_dynamic_x does: the index freq
+        # attribute may be unset even when the index is regular (inferred), or
+        # the freq may only be available from an already-decorated axes.
+        freq = get_index_freq(self.data.index)
+        if freq is None:
+            freq = get_ax_freq(self._get_ax(0))
+        # only evaluated when _is_ts_plot() is True, which requires that the
+        # freq be resolvable from the index or the axes
+        assert freq is not None
+        return freq
+
+    @cache_readonly
+    def _use_dynamic_dateaxis(self) -> bool:
+        # GH#1918: use the same dynamic date tick labeling as line plots.
+        # Restricted to vertical bars because format_dateaxis decorates the
+        # x-axis, which for barh is the value axis.
+        return (
+            self.orientation == "vertical"
+            and isinstance(self.data.index, (ABCDatetimeIndex, ABCPeriodIndex))
+            and self._is_ts_plot()
+        )
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
@@ -2056,15 +2087,44 @@ class BarPlot(MPLPlot):
             self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
-        if self.use_index:
-            str_index = [pprint_thing(key) for key in data.index]
-        else:
-            str_index = [pprint_thing(key) for key in range(data.shape[0])]
-
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
+        # GH#1918: use the same dynamic date tick labeling as line plots
+        if self._use_dynamic_dateaxis:
+            freq = self._ts_freq
+            # Set the freq info directly instead of calling decorate_axes to
+            # avoid attaching _plot_data: the bar artists must not be replayed
+            # by the line-plot resample machinery if a line is later added to
+            # this ax.
+            # TODO #54485
+            ax.freq = freq  # type: ignore[attr-defined]
+            # TODO #54485
+            ax.get_xaxis().freq = freq  # type: ignore[attr-defined]
+
+            # Convert DatetimeIndex to PeriodIndex (int64 business-day ordinals
+            # for BDay freq, avoiding deprecated Period[B]) to match the
+            # x-coordinates used in _make_plot.
+            data = maybe_convert_index(ax, data)
+            format_dateaxis(ax, freq, data.index)
+
+            ax.set_xlim((s_edge, e_edge))
+            if self.xticks is not None:
+                ax.set_xticks(np.array(self.xticks))
+            # otherwise leave tick placement to the dynamic locator installed
+            # by format_dateaxis, exactly as line plots do; pinning a tick at
+            # every bar would suppress the intermediate minor-tick labels
+
+            index_name = self._get_index_name()
+            if index_name is not None and self.use_index:
+                ax.set_xlabel(index_name)
+        else:
+            if self.use_index:
+                str_index = [pprint_thing(key) for key in data.index]
+            else:
+                str_index = [pprint_thing(key) for key in range(data.shape[0])]
+
+            self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
     def _decorate_ticks(
         self,

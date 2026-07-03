@@ -1787,6 +1787,71 @@ class TestTSPlot:
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
 
+    @pytest.mark.parametrize("freq", ["D", "B"])
+    def test_bar_plot_with_datetime_index_uses_date_formatter(self, freq):
+        # GH#1918 - bar plots use the dynamic date formatter like line plots
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=date_range("2020-01-01", periods=10, freq=freq),
+            columns=["A", "B"],
+        )
+        with tm.assert_produces_warning(None):
+            ax = df.plot(kind="bar")
+        assert isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+        # the formatted labels correspond to the actual dates, not ordinals
+        # misinterpreted relative to the axis origin
+        ax.get_figure().canvas.draw()
+        labels = [t.get_text() for t in ax.get_xticklabels() if t.get_text()]
+        assert labels
+        assert any("2020" in label for label in labels)
+        assert not any("1970" in label for label in labels)
+
+    def test_bar_plot_datetime_index_inferred_freq(self):
+        # GH#1918 - index freq attribute unset but inferable must not raise
+        # AttributeError (regression from GH#61173)
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        assert idx.freq is None
+        df = DataFrame({"A": [1, 2, 3]}, index=idx)
+        ax = df.plot(kind="bar")
+        assert isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+
+    def test_barh_plot_datetime_index_inferred_freq(self):
+        # GH#1918 - barh shares the freq-resolution path with bar and also
+        # raised AttributeError for an unset but inferable index freq
+        idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        assert idx.freq is None
+        df = DataFrame({"A": [1, 2, 3]}, index=idx)
+        ax = df.plot(kind="barh")
+        ax.get_figure().canvas.draw()
+        y_labels = [t.get_text() for t in ax.get_yticklabels()]
+        assert y_labels == [
+            "2020-01-01 00:00:00",
+            "2020-01-02 00:00:00",
+            "2020-01-03 00:00:00",
+        ]
+
+    def test_barh_plot_datetime_index_not_date_formatted(self):
+        # GH#1918 - for barh the x-axis is the value axis; the date formatter
+        # must not be applied to it
+        df = DataFrame(
+            {"A": [1.5, 2.5, 3.5]}, index=date_range("2020-01-01", periods=3)
+        )
+        ax = df.plot(kind="barh")
+        ax.get_figure().canvas.draw()
+        assert not isinstance(
+            ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
+        )
+        y_labels = [t.get_text() for t in ax.get_yticklabels()]
+        assert y_labels == [
+            "2020-01-01 00:00:00",
+            "2020-01-02 00:00:00",
+            "2020-01-03 00:00:00",
+        ]
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     fig = plt.gcf()
