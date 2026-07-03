@@ -259,10 +259,16 @@ def test_index_col_large_csv(temp_file, all_parsers, monkeypatch):
     tm.assert_frame_equal(result, df.set_index("a"))
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_index_col_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(
+                StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1], index_col=0
+            )
+        return
+
     result = parser.read_csv(
         StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1], index_col=0
     )
@@ -276,7 +282,9 @@ def test_index_col_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
+# header=[0] is a singleton, so it behaves like header=0; the empty-frame
+# index dtype still differs for the pyarrow engine (float64 vs object)
+@xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_index_col_header_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -289,10 +297,14 @@ def test_index_col_header_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1])
+        return
+
     result = parser.read_csv(StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1])
     expected = DataFrame(
         [], columns=MultiIndex.from_arrays([["a0", "a1", "a2"], ["b0", "b1", "b2"]])
@@ -300,10 +312,18 @@ def test_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_index_col_with_data(all_parsers):
     # GH#38292
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(
+                StringIO("a0,a1,a2\nb0,b1,b2\ndata,data,data"),
+                header=[0, 1],
+                index_col=0,
+            )
+        return
+
     result = parser.read_csv(
         StringIO("a0,a1,a2\nb0,b1,b2\ndata,data,data"), header=[0, 1], index_col=0
     )
@@ -355,7 +375,6 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_not_leading_index_col(all_parsers):
     # GH#38549
     parser = all_parsers
@@ -363,6 +382,11 @@ def test_multiindex_columns_not_leading_index_col(all_parsers):
 e,f,g,h
 x,y,1,2
 """
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), header=[0, 1], index_col=1)
+        return
+
     result = parser.read_csv(
         StringIO(data),
         header=[0, 1],

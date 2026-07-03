@@ -3978,3 +3978,20 @@ def test_to_datetime_missing_component_no_runtime_warning():
         result = to_datetime(df)
 
     assert result.iloc[1] is NaT
+
+
+def test_to_datetime_format_N_directive():
+    # GH 65863
+    result = to_datetime("2024-05-01 12:00:00.123456789", format="%Y-%m-%d %H:%M:%S.%N")
+    expected = Timestamp("2024-05-01 12:00:00.123456789")
+    tm.assert_equal(result, expected)
+
+    # %N must be exactly 9 digits
+    msg = 'time data "2024-05-01 12:00:00.12345" doesn\'t match format'
+    with pytest.raises(ValueError, match=msg):
+        to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%N")
+
+    # While %f can be fewer:
+    result_f = to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%f")
+    expected_f = Timestamp("2024-05-01 12:00:00.123450")
+    tm.assert_equal(result_f, expected_f)
