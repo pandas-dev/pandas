@@ -1,12 +1,16 @@
 import array
 from collections import (
     OrderedDict,
+    UserList,
     abc,
     defaultdict,
     namedtuple,
 )
 from collections.abc import Iterator
-from dataclasses import make_dataclass
+from dataclasses import (
+    dataclass,
+    make_dataclass,
+)
 from datetime import (
     date,
     datetime,
@@ -1654,6 +1658,17 @@ class TestDataFrameConstructors:
         with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
 
+    def test_constructor_list_of_list_like_dataclasses(self):
+        # GH#41682 a dataclass that is also list-like (e.g. a UserList subclass)
+        # is treated as list-like, not converted to a dict of its fields
+        @dataclass(frozen=True)
+        class MyList(UserList):
+            data: list
+
+        result = DataFrame([MyList([1, 2, 3]), [4, 5, 6]])
+        expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_dict_order(self):
         # GH10056
         data = [
@@ -2565,7 +2580,9 @@ class TestDataFrameConstructors:
     def test_with_mismatched_index_length_raises(self):
         # GH#33437
         dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
-        msg = "Shape of passed values|Passed arrays should have the same length"
+        msg = "|".join(
+            ["Shape of passed values", "Passed arrays should have the same length"]
+        )
         with pytest.raises(ValueError, match=msg):
             DataFrame(dti, index=range(4))
 
