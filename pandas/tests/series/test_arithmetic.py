@@ -251,7 +251,12 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|'mod' not supported"
+        msg = "|".join(
+            [
+                "not all arguments converted during string formatting",
+                "'mod' not supported",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             s2 % s1

@@ -284,7 +284,12 @@ class TestPandasContainer:
             datetime_frame.index = Series(datetime_frame.index).convert_dtypes(
                 dtype_backend=dtype_backend
             )
-        data = StringIO(datetime_frame.to_json(orient=orient))
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            data = StringIO(datetime_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
 
         if not convert_axes:  # one off for ts handling
@@ -624,7 +629,12 @@ class TestPandasContainer:
         df_mixed.columns = df_mixed.columns.astype(
             np.str_ if not using_infer_string else "str"
         )
-        data = StringIO(df_mixed.to_json(orient="split"))
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
         df_mixed.index = df_mixed.index.as_unit("ms")
         tm.assert_frame_equal(
@@ -751,7 +761,12 @@ class TestPandasContainer:
                 dtype_backend=dtype_backend
             )
 
-        data = StringIO(datetime_series.to_json(orient=orient))
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            data = StringIO(datetime_series.to_json(orient=orient))
         result = read_json(data, typ="series", orient=orient)
 
         if orient in ("values", "records"):
@@ -836,20 +851,32 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, df)
 
     def test_path(self, float_frame, int_frame, datetime_frame, temp_file):
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
         for df in [float_frame, int_frame, datetime_frame]:
-            df.to_json(temp_file)
+            warn = Pandas4Warning if df is datetime_frame else None
+            with tm.assert_produces_warning(warn, match=msg):
+                df.to_json(temp_file)
             read_json(temp_file)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
+        msg = (
+            "The default 'epoch' date format is deprecated and will be removed "
+            "in a future version, please use 'iso' date format instead."
+        )
         # frame
-        json = StringIO(datetime_frame.to_json())
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            json = StringIO(datetime_frame.to_json())
         result = read_json(json)
         expected = datetime_frame.copy()
         expected.index = expected.index.as_unit("ms")
         tm.assert_frame_equal(result, expected)
 
         # series
-        json = StringIO(datetime_series.to_json())
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            json = StringIO(datetime_series.to_json())
         result = read_json(json, typ="series")
         expected = datetime_series.copy()
         expected.index = expected.index.as_unit("ms")
@@ -1067,10 +1094,39 @@ class TestPandasContainer:
                 ),
                 Pandas4Warning,
             ),
+            # the index and the columns are written as epoch integers too, so a
+            # datetime-like index or set of column labels must warn as well
+            # (GH#65868)
+            (
+                DataFrame(
+                    {"A": [1, 2, 3]},
+                    index=pd.to_datetime(["2020-01-01", "2020-02-01", "2020-03-01"]),
+                ),
+                Pandas4Warning,
+            ),
+            (
+                DataFrame(
+                    {"A": [1, 2, 3]}, index=pd.to_timedelta(np.arange(3), unit="D")
+                ),
+                Pandas4Warning,
+            ),
+            (
+                DataFrame(
+                    [[1, 2]], columns=pd.to_datetime(["2020-01-01", "2020-02-01"])
+                ),
+                Pandas4Warning,
+            ),
+            (
+                Series(
+                    [1, 2, 3],
+                    index=pd.to_datetime(["2020-01-01", "2020-02-01", "2020-03-01"]),
+                ),
+                Pandas4Warning,
+            ),
         ],
     )
     def test_default_epoch_date_format_deprecated(self, df, warn):
-        # GH 57063
+        # GH 57063, GH 65868
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
@@ -1307,9 +1363,12 @@ class TestPandasContainer:
         data = [timedelta_typ(milliseconds=42)]
         ser = Series(data, index=data).astype("m8[ns]")
         ser.index = ser.index.astype("m8[ns]")
+        # the index is timedelta-like, so the default epoch warning fires even
+        # when the values are object-dtype (GH#65868)
         warn = Pandas4Warning
         if as_object:
             ser = ser.astype(object)
+            ser.index = ser.index.astype(object)
             warn = None
 
         msg = (
@@ -1592,7 +1651,7 @@ class TestPandasContainer:
     def test_read_json_large_numbers(self, bigNum):
         # GH20599, 26068
         json = StringIO('{"articleId":' + str(bigNum) + "}")
-        msg = r"Value is too small|Value is too big"
+        msg = "|".join(["Value is too small", "Value is too big"])
         with pytest.raises(ValueError, match=msg):
             read_json(json)
 

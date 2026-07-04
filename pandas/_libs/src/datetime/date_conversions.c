@@ -64,6 +64,7 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert datetime value to string");
     PyObject_Free(result);
+    return NULL;
   }
 
   // Note that get_datetime_iso_8601_strlen just gives a generic size

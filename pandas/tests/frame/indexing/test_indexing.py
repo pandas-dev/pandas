@@ -1183,7 +1183,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df2, expected)
 
         df["foo"] = "test"
-        msg = "not supported between instances|unorderable types|Invalid comparison"
+        msg = "|".join(
+            [
+                "not supported between instances",
+                "unorderable types",
+                "Invalid comparison",
+            ]
+        )
 
         with pytest.raises(TypeError, match=msg):
             df[df > 0.3] = 1
