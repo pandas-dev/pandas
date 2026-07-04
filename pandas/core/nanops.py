@@ -1116,14 +1116,10 @@ def _nanminmax(meth, fill_value_typ):
 
         dtype = values.dtype
         if dtype == object and skipna:
-            # GH#65500: the +/-inf fill in _get_values is not comparable
-            # with arbitrary objects (e.g. Timestamps, strings), raising
-            # TypeError in the reduction.  Instead fill NA entries with a
-            # valid value from the same reduction slice, which leaves the
-            # min/max unchanged.  Slices that are entirely NA have no such
-            # value and are filled with +/-inf (the legacy fill); their
-            # result is discarded by _maybe_null_out below, but reducing NA
-            # would emit a spurious RuntimeWarning on some numpy builds.
+            # GH#65500: _get_values' +/-inf fill isn't comparable with arbitrary
+            # objects (Timestamps, strings) and raises.  Fill NAs from the same
+            # slice instead (leaves min/max unchanged); all-NA slices keep the
+            # +/-inf fill since _maybe_null_out discards them anyway.
             mask = _maybe_get_mask(values, skipna, mask)
             if mask is not None and mask.any():
                 fill_value = _get_fill_value(dtype, fill_value_typ=fill_value_typ)

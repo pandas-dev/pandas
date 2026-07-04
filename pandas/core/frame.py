@@ -15973,10 +15973,7 @@ class DataFrame(NDFrame, OpsMixin):
             if df.shape[1]:
                 # GH#51474: block-wise axis=1 reduction avoiding an expensive
                 # transpose for numpy-backed blocks.  EA blocks are excluded
-                # here (GH#65500): frames sharing a single EA dtype are handled
-                # by the EA fastpath just below, while everything else falls
-                # through to the transpose (coerced to object when there is no
-                # common non-object dtype).
+                # (GH#65500) and handled below by the EA fastpath or transpose.
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all", "mean")
                     and len(df._mgr.blocks) > 1
