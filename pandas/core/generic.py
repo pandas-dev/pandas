@@ -8077,9 +8077,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         limit_behavior : {'fill', 'skip'}, default 'fill'
             How to handle NaN gaps relative to the limit.
 
-            * 'fill': Default behavior. Fill up to 'limit' consecutive NaNs.
-            * 'skip': Only interpolate if gap size <= limit. If gap exceeds limit,
-              skip the entire gap (no interpolation).
+            * 'fill': Default behavior. Fill up to ``limit`` consecutive NaNs.
+            * 'skip': Only interpolate if ``gap size <= limit``. If gap exceeds
+              ``limit``, skip the entire gap (no interpolation).
 
             .. versionadded:: 3.1.0
 
