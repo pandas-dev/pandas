@@ -66,8 +66,8 @@ tokenizer_lib = static_library(
     'src/parser/fast_float_strtod.cpp',
     'src/parser/pd_strtoi.cpp',
     'src/parser/tokenizer.c',
-    include_directories: [inc_pd, py.get_path('include'), simd_config_inc],
-    dependencies: [fast_float_dep],
+    include_directories: [inc_pd, simd_config_inc],
+    dependencies: [fast_float_dep, py.dependency()],
 )
 
 tokenizer_dep = declare_dependency(
