@@ -740,7 +740,7 @@ class TestDataFrameColor:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 2)), columns=["A", "B"]
         )
-        msg = "(is not a valid value)|(is not a known colormap)"
+        msg = "|".join(["is not a valid value", "is not a known colormap"])
         with pytest.raises((ValueError, KeyError), match=msg):
             df.plot(colormap="invalid_colormap")
 

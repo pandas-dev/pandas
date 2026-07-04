@@ -241,6 +241,49 @@ class TestPeriodIndex:
                 year=range(2000, 2004), quarter=list(range(4)), freq="Q-DEC"
             )
 
+    def test_constructor_field_arrays_quarter_no_freq(self):
+        # Quarter with no explicit freq infers Q-DEC
+        years = np.array([2020, 2020, 2020, 2020], dtype=np.int64)
+        quarters = np.array([1, 2, 3, 4], dtype=np.int64)
+        result = PeriodIndex.from_fields(year=years, quarter=quarters)
+        expected = PeriodIndex(
+            [Period(year=2020, quarter=q, freq="Q-DEC") for q in range(1, 5)]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_field_arrays_hourly(self):
+        # Test non-quarter path with all 6 fields
+        result = PeriodIndex.from_fields(
+            year=[2020, 2020],
+            month=[1, 6],
+            day=[15, 20],
+            hour=[10, 22],
+            minute=[30, 45],
+            second=[5, 59],
+            freq="s",
+        )
+        expected = PeriodIndex(
+            [
+                Period("2020-01-15 10:30:05", freq="s"),
+                Period("2020-06-20 22:45:59", freq="s"),
+            ]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_constructor_field_arrays_empty(self):
+        # Empty arrays should produce empty PeriodIndex
+        result = PeriodIndex.from_fields(year=[], month=[], freq="M")
+        expected = PeriodIndex([], dtype="period[M]")
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("field", ["year", "month"])
+    def test_constructor_field_arrays_outside_int32(self, field):
+        # Fields outside int32 range must raise instead of wrapping silently
+        fields = {"year": [2000, 2000], "month": [3, 3]}
+        fields[field] = [fields[field][0], 2**32 + 3]
+        with pytest.raises(OverflowError, match="value too large"):
+            PeriodIndex.from_fields(**fields, freq="M")
+
     def test_period_range_fractional_period(self):
         msg = "periods must be an integer, got 10.5"
         with pytest.raises(TypeError, match=msg):

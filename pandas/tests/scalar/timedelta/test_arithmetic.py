@@ -981,7 +981,7 @@ class TestTimedeltaMultiplicationDivision:
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         arr = np.array(arr)
-        msg = "unsupported operand type|cannot use operands with types"
+        msg = "|".join(["unsupported operand type", "cannot use operands with types"])
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
