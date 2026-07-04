@@ -171,7 +171,7 @@ foreach ext_name, ext_dict : libs_sources
         ext_name,
         ext_dict.get('sources'),
         cython_args: cython_args,
-        include_directories: [inc_np, inc_pd],
+        include_directories: [inc_np, inc_pd, simd_config_inc],
         dependencies: ext_dict.get('deps', []),
         subdir: 'pandas/_libs',
         install: true,

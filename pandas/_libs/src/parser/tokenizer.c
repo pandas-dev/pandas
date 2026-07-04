@@ -26,15 +26,19 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 #include <stdlib.h>
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(_M_ARM64)
-#  define PANDAS_HAS_NEON
+// Arch selection comes from the build-time SIMD config (pandas/_libs/simd),
+// which sets exactly one of PANDAS_HAVE_NEON / PANDAS_HAVE_SSE2 /
+// PANDAS_HAVE_SCALAR from the host CPU family. Pull in the matching intrinsics
+// header for whichever applies; the scalar case defines neither and falls back
+// to the byte-at-a-time scan.
+#include "pandas_simd_config.h"
+
+#if defined(PANDAS_HAVE_NEON)
 #  include <arm_neon.h>
 #  ifdef _MSC_VER
 #    include <intrin.h>
 #  endif
-#elif defined(__SSE2__) || defined(_M_X64) ||                                  \
-    (defined(_M_IX86_FP) && (_M_IX86_FP >= 2))
-#  define PANDAS_HAS_SSE2
+#elif defined(PANDAS_HAVE_SSE2)
 #  include <emmintrin.h>
 #  ifdef _MSC_VER
 #    include <intrin.h>
@@ -49,7 +53,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #  define __has_builtin(x) 0
 #endif
 
-#if defined(PANDAS_HAS_NEON)
+#if defined(PANDAS_HAVE_NEON)
 static inline int pandas_ctzll(unsigned long long mask) {
 #  if __has_builtin(__builtin_ctzll)
   return __builtin_ctzll(mask);
@@ -61,7 +65,7 @@ static inline int pandas_ctzll(unsigned long long mask) {
 #    error "no count-trailing-zeros builtin available"
 #  endif
 }
-#elif defined(PANDAS_HAS_SSE2)
+#elif defined(PANDAS_HAVE_SSE2)
 static inline int pandas_ctz(unsigned int mask) {
 #  if __has_builtin(__builtin_ctz)
   return __builtin_ctz(mask);
@@ -670,7 +674,7 @@ static int skip_this_line(parser_t *self, int64_t rownum) {
   }
 }
 
-#ifdef PANDAS_HAS_NEON
+#ifdef PANDAS_HAVE_NEON
 
 // Scan data for any special character using NEON.
 // Returns the byte offset of the first special character,
@@ -718,7 +722,7 @@ static inline size_t fast_scan_quoted_simd(const char *data, size_t len,
   return i;
 }
 
-#elif defined(PANDAS_HAS_SSE2)
+#elif defined(PANDAS_HAVE_SSE2)
 
 static inline size_t fast_scan_simd(const char *data, size_t len,
                                     __m128i vdelim, __m128i vterm, __m128i vcr,
@@ -777,7 +781,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const bool has_skip = (self->skipfunc != NULL || self->skipset != NULL ||
                          self->skip_first_N_rows >= 0);
 
-#ifdef PANDAS_HAS_NEON
+#ifdef PANDAS_HAVE_NEON
   const uint8x16_t vdelim = vdupq_n_u8((uint8_t)delimiter);
   const uint8x16_t vterm = vdupq_n_u8((uint8_t)lineterminator);
   const uint8x16_t vcr =
@@ -793,7 +797,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
   const uint8x16_t vcomment = (self->commentchar != '\0')
                                   ? vdupq_n_u8((uint8_t)self->commentchar)
                                   : vterm;
-#elif defined(PANDAS_HAS_SSE2)
+#elif defined(PANDAS_HAVE_SSE2)
   const __m128i vdelim = _mm_set1_epi8(delimiter);
   const __m128i vterm = _mm_set1_epi8(lineterminator);
   const __m128i vcr = has_carriage ? _mm_set1_epi8(carriage_symbol) : vterm;
@@ -1102,7 +1106,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
 
         // SIMD bulk scan: process 16 bytes at a time, copying
         // normal characters directly without state-machine overhead.
-#if defined(PANDAS_HAS_NEON) || defined(PANDAS_HAS_SSE2)
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
         if (!self->delim_whitespace) {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
@@ -1149,7 +1153,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
 
         // SIMD bulk scan for quoted fields: only quote and escape
         // chars are special, so use a lighter scan.
-#if defined(PANDAS_HAS_NEON) || defined(PANDAS_HAS_SSE2)
+#if defined(PANDAS_HAVE_NEON) || defined(PANDAS_HAVE_SSE2)
         {
           size_t remaining = self->datalen - (i + 1);
           if (remaining >= 16) {
