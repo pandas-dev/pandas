@@ -604,7 +604,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
-            result.index.name = self.obj.index.name
 
         return result
 
@@ -2876,7 +2875,8 @@ class TimeGrouper(Grouper):
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
             ax = Index(
-                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array()
+                cast("ArrowExtensionArray", ax.array)._maybe_convert_datelike_array(),
+                name=ax.name,
             )
         return obj, ax, indexer
 

@@ -1215,6 +1215,16 @@ class TestDataFrameReplace:
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
 
+    def test_replace_ellipsis(self):
+        # GH#50373 Ellipsis should be accepted as a scalar to_replace
+        df = DataFrame({"a": [1, 2, 3], "b": [..., ..., ...]})
+        result = df.replace(..., 1)
+        expected = DataFrame({"a": [1, 2, 3], "b": Series([1, 1, 1], dtype=object)})
+        tm.assert_frame_equal(result, expected)
+
+        # Ellipsis is equivalent to the spelled-out singleton
+        tm.assert_frame_equal(df.replace(Ellipsis, 1), expected)
+
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
     def test_replace_no_replacement_dtypes(self, dtype, value):

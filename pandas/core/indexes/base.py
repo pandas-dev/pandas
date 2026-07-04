@@ -908,9 +908,22 @@ class Index(IndexOpsMixin, PandasObject):
 
         If this is a MultiIndex, it's first level values are used.
         """
+        max_items = config["display"]["max_dir_items"]
+        # GH#18587 avoid hashing the entire Index in the common case where
+        # only the first ``max_items`` unique values are needed. Examining a
+        # bounded prefix suffices when it already contains enough uniques;
+        # otherwise fall back to the full unique() call.
+        if max_items is not None and len(self) > max_items * 10:
+            prefix_uniq = self[: max_items * 10].unique(level=0)
+            if len(prefix_uniq) >= max_items:
+                return {
+                    c
+                    for c in prefix_uniq[:max_items]
+                    if isinstance(c, str) and c.isidentifier()
+                }
         return {
             c
-            for c in self.unique(level=0)[: config["display"]["max_dir_items"]]
+            for c in self.unique(level=0)[:max_items]
             if isinstance(c, str) and c.isidentifier()
         }
 
@@ -2411,26 +2424,7 @@ class Index(IndexOpsMixin, PandasObject):
             new_codes.pop(i)
             new_names.pop(i)
 
-        if len(new_levels) == 1:
-            lev = new_levels[0]
-
-            if len(lev) == 0 and len(new_codes[0]) == 0:
-                # GH#42055, GH#45230 preserve RangeIndex here
-                result = lev[:0]
-            else:
-                result = lev.take(new_codes[0], allow_fill=True)
-                result._name = new_names[0]
-
-            return result
-        else:
-            from pandas.core.indexes.multi import MultiIndex
-
-            return MultiIndex(
-                levels=new_levels,
-                codes=new_codes,
-                names=new_names,
-                verify_integrity=False,
-            )
+        return droplevel_result(new_levels, new_codes, new_names)
 
     # --------------------------------------------------------------------
     # Introspection Methods
@@ -5490,7 +5484,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False, dtype=self.dtype)
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
@@ -5500,9 +5496,7 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype == self.dtype:
                 raise
             return self.astype(dtype).where(cond, other)
-        return Index(
-            result_ser._values, dtype=result_ser.dtype, name=self.name, copy=False
-        )
+        return Index(result_ser, dtype=result_ser.dtype, name=self.name, copy=False)
 
     # construction helpers
     @final
@@ -8345,6 +8339,37 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     name_sets = ({*ns} for ns in zip_longest(*name_tups))
     names = tuple(ns.pop() if len(ns) == 1 else None for ns in name_sets)
     return names
+
+
+def droplevel_result(
+    new_levels: list[Index],
+    new_codes: list[npt.NDArray[np.intp]],
+    new_names: list[Hashable],
+) -> Index:
+    """
+    Construct the result of dropping MultiIndex levels from the
+    retained levels, codes, and names.
+    """
+    if len(new_levels) == 1:
+        lev = new_levels[0]
+
+        if len(lev) == 0 and len(new_codes[0]) == 0:
+            # GH#42055, GH#45230 preserve RangeIndex here
+            result = lev[:0]
+        else:
+            result = lev.take(new_codes[0], allow_fill=True)
+            result._name = new_names[0]
+
+        return result
+    else:
+        from pandas.core.indexes.multi import MultiIndex
+
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes,
+            names=new_names,
+            verify_integrity=False,
+        )
 
 
 def _unpack_nested_dtype(other: Index) -> DtypeObj:
