@@ -502,6 +502,20 @@ class TestLocBaseIndependent:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_partial_series_multiple_columns(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, ["B", "C"]] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9.0, np.nan, 99.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=["a", "b", "c"])
 
