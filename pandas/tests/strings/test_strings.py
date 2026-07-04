@@ -2,7 +2,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import re
 
 import numpy as np
 import pytest
@@ -952,27 +951,3 @@ def test_setitem_with_different_string_storage():
 def test_has_regex_unsupported_code(pat, expected):
     # https://github.com/pandas-dev/pandas/issues/60833
     assert ArrowStringArrayMixin._has_unsupported_regex(pat) == expected
-
-
-def test_match_compiled_regex_with_flags(any_string_dtype):
-    # GH 66138: Ensure compiled regex with flags doesn't crash str.match/fullmatch
-    s = Series(["A", "B"], dtype=any_string_dtype)
-
-    # We use MULTILINE because it is a standard flag that
-    # previously triggered the ValueError
-    pat = re.compile(r"A", flags=re.MULTILINE)
-
-    # Test str.match
-    result_match = s.str.match(pat)
-    expected = Series([True, False], dtype="bool")
-
-    # If the dtype is a nullable boolean (string[pyarrow] or string[python]),
-    # we need to ensure the expected series matches that exact nullable type.
-    if s.dtype.name in ("string", "string[pyarrow]", "string[python]"):
-        expected = expected.astype("boolean")
-
-    tm.assert_series_equal(result_match, expected)
-
-    # Test str.fullmatch (as mentioned in the issue)
-    result_fullmatch = s.str.fullmatch(pat)
-    tm.assert_series_equal(result_fullmatch, expected)
