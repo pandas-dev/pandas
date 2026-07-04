@@ -829,3 +829,72 @@ class TestSeriesInterpolateData:
         result = ser.interpolate(method="linear")
         expected = Series([1.0, 2.0, 3.0], dtype="Float64")
         tm.assert_series_equal(result, expected)
+
+
+class TestInterpolateLimitBehavior:
+    def test_interpolate_limit_behavior_skip_basic(self):
+        # Gap of 3 NaNs with limit=1 should skip all
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(limit=1, limit_behavior="skip")
+        expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_fill_default(self):
+        # Default behavior unchanged: fill up to limit
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(limit=1)  # default fill
+        expected = Series([1.0, 2.0, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_multiple_gaps(self):
+        # Multiple gaps: skip only those exceeding limit
+        s = Series([1.0, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0])
+        result = s.interpolate(limit=2, limit_behavior="skip")
+        # Gap [1] size=1 <= 2 -> fill; Gap [3,4,5] size=3 > 2 -> skip
+        expected = Series([1.0, 2.0, 3.0, np.nan, np.nan, np.nan, 7.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_exact_limit(self):
+        # Gap exactly equal to limit should be filled
+        s = Series([1.0, np.nan, np.nan, 4.0])
+        result = s.interpolate(limit=2, limit_behavior="skip")
+        expected = Series([1.0, 2.0, 3.0, 4.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_skip_forward_direction(self):
+        # With limit_direction, skip behavior should still work
+        s = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        result = s.interpolate(
+            limit=1, limit_direction="forward", limit_behavior="skip"
+        )
+        expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_limit_behavior_invalid_value(self):
+        # Invalid limit_behavior should raise ValueError
+        s = Series([1.0, np.nan, 3.0])
+        msg = "Invalid limit_behavior"
+        with pytest.raises(ValueError, match=msg):
+            s.interpolate(limit_behavior="invalid")
+
+    @pytest.mark.parametrize("dtype", ["Float64", "Int64", "Arrow"])
+    def test_interpolate_limit_behavior_extension_arrays(self, dtype):
+        # extension arrays support
+        if dtype == "Arrow":
+            pytest.importorskip("pyarrow")
+            from pandas.core.arrays.arrow.array import ArrowExtensionArray
+            vals = [1.0, np.nan, np.nan, np.nan, 5.0]
+            s = Series(ArrowExtensionArray._from_sequence(vals))
+            expected = Series(ArrowExtensionArray._from_sequence(vals))
+        else:
+            s = Series([1.0, np.nan, np.nan, np.nan, 5.0], dtype=dtype)
+            # Nullable integer returns float array on interpolation if not
+            # dtype preserving, or Float64.
+            expected_dtype = "Float64" if dtype == "Int64" else dtype
+            expected = Series(
+                [1.0, np.nan, np.nan, np.nan, 5.0], dtype=expected_dtype
+            )
+
+        result = s.interpolate(limit=1, limit_behavior="skip")
+        tm.assert_series_equal(result, expected)
+

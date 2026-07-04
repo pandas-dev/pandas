@@ -310,6 +310,20 @@ def validate_limit_area(limit_area: str | None) -> Literal["inside", "outside"] 
     return limit_area  # type: ignore[return-value]
 
 
+def validate_limit_behavior(limit_behavior: str) -> Literal["fill", "skip"]:
+    valid_limit_behaviors = ["fill", "skip"]
+    limit_behavior = limit_behavior.lower()
+    if limit_behavior not in valid_limit_behaviors:
+        raise ValueError(
+            f"Invalid limit_behavior: expecting one of {valid_limit_behaviors}, got "
+            f"'{limit_behavior}'."
+        )
+    # error: Incompatible return value type (got "str", expected
+    # "Literal['fill', 'skip']")
+    return limit_behavior  # type: ignore[return-value]
+
+
+
 def infer_limit_direction(
     limit_direction: Literal["backward", "forward", "both"] | None, method: str
 ) -> Literal["backward", "forward", "both"]:
@@ -376,6 +390,7 @@ def interpolate_2d_inplace(
     limit_area: str | None = None,
     fill_value: Any | None = None,
     mask=None,
+    limit_behavior: str = "fill",
     **kwargs,
 ) -> None:
     """
@@ -405,6 +420,7 @@ def interpolate_2d_inplace(
 
     limit_direction = validate_limit_direction(limit_direction)
     limit_area_validated = validate_limit_area(limit_area)
+    limit_behavior = validate_limit_behavior(limit_behavior)
 
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
@@ -424,6 +440,7 @@ def interpolate_2d_inplace(
             fill_value=fill_value,
             bounds_error=False,
             mask=mask,
+            limit_behavior=limit_behavior,
             **kwargs,
         )
 
@@ -463,6 +480,7 @@ def _interpolate_1d(
     bounds_error: bool = False,
     order: int | None = None,
     mask=None,
+    limit_behavior: str = "fill",
     **kwargs,
 ) -> None:
     """
@@ -529,6 +547,19 @@ def _interpolate_1d(
         mid_nans = np.setdiff1d(all_nans, start_nans, assume_unique=True)
         mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
         preserve_nans = np.union1d(preserve_nans, mid_nans)
+
+    if limit_behavior == "skip" and limit is not None and len(all_nans) > 0:
+        gap_ends = np.where(np.diff(all_nans) > 1)[0]
+        gap_starts = np.concatenate(([0], gap_ends + 1))
+        gap_ends = np.concatenate((gap_ends, [len(all_nans) - 1]))
+        revert_indices = []
+        for start, end in zip(gap_starts, gap_ends, strict=True):
+            gap_size = end - start + 1
+            if gap_size > limit:
+                revert_indices.append(all_nans[start : end + 1])
+        if revert_indices:
+            revert_indices_arr = np.concatenate(revert_indices)
+            preserve_nans = np.union1d(preserve_nans, revert_indices_arr)
 
     is_datetimelike = yvalues.dtype.kind in "mM"
 
