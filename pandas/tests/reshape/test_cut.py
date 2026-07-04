@@ -861,3 +861,17 @@ def test_cut_datetime_array_no_attributeerror():
     tm.assert_categorical_equal(
         result, expected, check_dtype=True, check_category_order=True
     )
+
+
+def test_cut_int64_intervalindex_more_bins_than_leaf_size():
+    # GH#44075 building the IntervalTree engine for >100 integer bins used to
+    #  raise on 32-bit platforms (int64 indices could not be safely cast to
+    #  intp inside PyArray_Take).
+    bins = IntervalIndex.from_breaks(
+        range(0, 102, 1), closed="left", dtype="interval[int64]"
+    )
+    data = [1.2, np.nan, 10.2]
+    result = cut(data, bins)
+
+    expected_codes = np.array([1, -1, 10], dtype=result.codes.dtype)
+    tm.assert_numpy_array_equal(result.codes, expected_codes)
