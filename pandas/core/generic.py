@@ -8184,6 +8184,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2     9.0
         3    16.0
         Name: d, dtype: float64
+
+        Compare the behavior of the ``limit_behavior`` parameter when a gap
+        exceeds the limit. With ``limit_behavior='fill'`` (default), we partially
+        fill the gap up to the limit. With ``limit_behavior='skip'``, we skip
+        filling the entire gap.
+
+        >>> s = pd.Series([1.0, np.nan, np.nan, np.nan, 5.0])
+        >>> s.interpolate(limit=1, limit_behavior="fill")
+        0    1.0
+        1    2.0
+        2    NaN
+        3    NaN
+        4    5.0
+        dtype: float64
+
+        >>> s.interpolate(limit=1, limit_behavior="skip")
+        0    1.0
+        1    NaN
+        2    NaN
+        3    NaN
+        4    5.0
+        dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 

@@ -311,7 +311,7 @@ def validate_limit_area(limit_area: str | None) -> Literal["inside", "outside"] 
 
 
 def validate_limit_behavior(limit_behavior: str) -> Literal["fill", "skip"]:
-    valid_limit_behaviors = ["fill", "skip"]
+    valid_limit_behaviors = ("fill", "skip")
     limit_behavior = limit_behavior.lower()
     if limit_behavior not in valid_limit_behaviors:
         raise ValueError(
@@ -321,7 +321,6 @@ def validate_limit_behavior(limit_behavior: str) -> Literal["fill", "skip"]:
     # error: Incompatible return value type (got "str", expected
     # "Literal['fill', 'skip']")
     return limit_behavior  # type: ignore[return-value]
-
 
 
 def infer_limit_direction(
@@ -549,17 +548,21 @@ def _interpolate_1d(
         preserve_nans = np.union1d(preserve_nans, mid_nans)
 
     if limit_behavior == "skip" and limit is not None and len(all_nans) > 0:
-        gap_ends = np.where(np.diff(all_nans) > 1)[0]
-        gap_starts = np.concatenate(([0], gap_ends + 1))
-        gap_ends = np.concatenate((gap_ends, [len(all_nans) - 1]))
-        revert_indices = []
-        for start, end in zip(gap_starts, gap_ends, strict=True):
-            gap_size = end - start + 1
-            if gap_size > limit:
-                revert_indices.append(all_nans[start : end + 1])
-        if revert_indices:
-            revert_indices_arr = np.concatenate(revert_indices)
-            preserve_nans = np.union1d(preserve_nans, revert_indices_arr)
+        # Identify contiguous runs of NaNs using diff on a padded boolean mask.
+        # This is a vectorized approach to find gap starts, ends, and lengths.
+        padded = np.concatenate(([False], invalid, [False]))
+        diff = np.diff(padded.astype(np.int8))
+        starts = np.where(diff == 1)[0]
+        ends = np.where(diff == -1)[0]
+        lengths = ends - starts
+
+        keep_mask = np.zeros(len(invalid), dtype=bool)
+        for start, end in zip(
+            starts[lengths > limit], ends[lengths > limit], strict=True
+        ):
+            keep_mask[start:end] = True
+
+        preserve_nans = np.union1d(preserve_nans, np.flatnonzero(keep_mask))
 
     is_datetimelike = yvalues.dtype.kind in "mM"
 
