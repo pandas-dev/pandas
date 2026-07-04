@@ -3518,13 +3518,6 @@ class TestShouldCacheEarlyBail:
                 date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
                 {},
             ),
-            # format is not None and format != "mixed"
-            (
-                date_range("2020-01-01", periods=100, freq="s")
-                .strftime("%Y-%m-%dT%H:%M:%S")
-                .to_numpy(),
-                {"format": "%Y-%m-%dT%H:%M:%S"},
-            ),
         ],
     )
     def test_should_cache_returns_false(self, arg, kwargs):
@@ -3544,10 +3537,12 @@ class TestShouldCacheEarlyBail:
         idx = Index(arr)
         assert tools.should_cache(idx) is False
 
-    def test_should_cache_format_mixed_not_skipped(self):
-        # format="mixed" should NOT trigger the early bail
-        arg = Index(["2020-01-01", "01/02/2020"] * 50)
-        assert tools.should_cache(arg, format="mixed") is True
+    def test_should_cache_explicit_format_not_skipped(self):
+        # GH#65380, asv-runner#137: an explicit ``format`` must NOT disable
+        # caching. Highly-duplicated strings still benefit from caching even
+        # with a (slow-parsing) strptime format, so should_cache returns True.
+        arg = Index(["19MAY11"] * 100)
+        assert tools.should_cache(arg) is True
 
 
 def test_nullable_integer_to_datetime():
@@ -3983,3 +3978,20 @@ def test_to_datetime_missing_component_no_runtime_warning():
         result = to_datetime(df)
 
     assert result.iloc[1] is NaT
+
+
+def test_to_datetime_format_N_directive():
+    # GH 65863
+    result = to_datetime("2024-05-01 12:00:00.123456789", format="%Y-%m-%d %H:%M:%S.%N")
+    expected = Timestamp("2024-05-01 12:00:00.123456789")
+    tm.assert_equal(result, expected)
+
+    # %N must be exactly 9 digits
+    msg = 'time data "2024-05-01 12:00:00.12345" doesn\'t match format'
+    with pytest.raises(ValueError, match=msg):
+        to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%N")
+
+    # While %f can be fewer:
+    result_f = to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%f")
+    expected_f = Timestamp("2024-05-01 12:00:00.123450")
+    tm.assert_equal(result_f, expected_f)
