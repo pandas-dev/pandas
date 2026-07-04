@@ -36,6 +36,7 @@ Other enhancements
 - Added :class:`NamedFunc`, an alias to :class:`NamedAgg` for a more semantically accurate name when used with non-aggregation functions; either can accept arbitrary functions (:issue:`65164`)
 - :meth:`ExtensionArray.map` now calls :meth:`ExtensionArray._cast_pointwise_result` to retain the dtype backend, e.g. Arrow-backed arrays now preserve their Arrow dtype through ``map`` (:issue:`57189`, :issue:`62164`)
 - :func:`read_csv` now supports ``dtype="complex64"`` and ``dtype="complex128"`` with the C engine, enabling round-tripping of complex-number columns written by :meth:`DataFrame.to_csv` (:issue:`9379`)
+- :func:`to_datetime` and ``strptime`` parsing now support the ``%N`` directive for matching exactly 9 digits representing nanoseconds, providing symmetry with ``strftime`` formatting (:issue:`65863`)
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)
@@ -333,6 +334,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` silently keeping only the first column when assigning a 2D array to an existing column label, instead of raising as the new-column and :meth:`DataFrame.loc` cases already did (:issue:`46544`)
 - Bug in :meth:`DataFrame.at` raising ``TypeError`` when accessing a :class:`MultiIndex` with a partial date string on a :class:`DatetimeIndex` level (:issue:`43395`)
 - Bug in :meth:`DataFrame.duplicated` returning an empty :class:`Series` without the DataFrame's index when the DataFrame had no columns (:issue:`61191`)
+- Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` setitem raising ``ValueError`` ("cannot set using a slice indexer with a different length than the value") when assigning to a negative-step slice with an open-ended ``start`` or ``stop`` (e.g. ``ser.iloc[::-2]``) (:issue:`66100`)
 - Bug in :meth:`DataFrame.iloc` setitem raising ``AttributeError`` when assigning a :class:`Series` or :class:`Index` with a nullable EA dtype (e.g. ``Int64``, ``Float64``, ``boolean``) into a column with a NumPy dtype (:issue:`47776`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when assigning a list of tuples to an object-dtype column with a boolean mask on a mixed-dtype DataFrame (:issue:`37629`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row with a list-like value on a single-column :class:`DataFrame` with :class:`ExtensionArray` dtype (:issue:`44103`)
@@ -383,6 +385,7 @@ I/O
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
+- Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed segfault when instantiating the internal ``pandas._libs.parsers.TextReader`` with no arguments; it now raises ``TypeError`` (:issue:`53131`)
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)
