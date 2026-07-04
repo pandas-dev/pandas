@@ -515,3 +515,21 @@ class TestDataFrameInterpolate:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_interpolate_limit_behavior_skip_dataframe_axis_1(self):
+        # limit_behavior="skip" with axis=1 (columns-wise)
+        df = DataFrame(
+            [
+                [1.0, np.nan, np.nan, np.nan, 5.0],
+                [2.0, np.nan, 6.0, np.nan, np.nan],
+            ]
+        )
+        result = df.interpolate(limit=1, limit_behavior="skip", axis=1)
+        expected = DataFrame(
+            [
+                # Row 0: gap=3 > limit, skip
+                [1.0, np.nan, np.nan, np.nan, 5.0],
+                # Row 1: gap[1] <= limit fill, gap[3,4] > limit skip
+                [2.0, 4.0, 6.0, np.nan, np.nan],
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
