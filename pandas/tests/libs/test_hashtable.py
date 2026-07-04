@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
+import weakref
 
 import numpy as np
 import pytest
@@ -458,6 +459,72 @@ class TestPyObjectHashTableWithNans:
         assert table.get_item(nan2) == 42
         with pytest.raises(KeyError, match=re.escape(repr(other))):
             table.get_item(other)
+
+
+class _WeakRefKey:
+    # Hashable key that supports weakref (unlike built-in str).
+    __slots__ = ("__weakref__", "name")
+
+    def __init__(self, name):
+        self.name = name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, _WeakRefKey) and self.name == other.name
+
+
+def test_pyobject_hashtable_map_locations_refcount():
+    # GH#21968
+    # Verify that map_locations holds proper references to stored keys,
+    # preventing use-after-free when the source array is deallocated.
+    keys = [_WeakRefKey(f"key_{i}") for i in range(10)]
+    values = np.array(keys, dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    table.map_locations(values)
+
+    # The table must keep the keys alive after the source list/array are gone.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del table
+    assert all(ref() is None for ref in refs)
+
+
+def test_pyobject_hashtable_set_item_refcount():
+    # GH#21968
+    key = _WeakRefKey("unique_key")
+    ref = weakref.ref(key)
+
+    table = ht.PyObjectHashTable(64)
+    table.set_item(key, 0)
+
+    del key
+    assert ref() is not None
+
+    del table
+    assert ref() is None
+
+
+def test_pyobject_hashtable_unique_refcount():
+    # GH#21968
+    keys = [_WeakRefKey(f"key_{i}") for i in range(5)]
+    # Duplicate some keys so _unique exercises the "already seen" path too
+    values = np.array(keys + keys[:2], dtype=object)
+    refs = [weakref.ref(k) for k in keys]
+
+    table = ht.PyObjectHashTable(len(keys))
+    result = table.unique(values)
+
+    # Both the table and the returned uniques array must keep the keys alive.
+    del keys, values
+    assert all(ref() is not None for ref in refs)
+
+    del result, table
+    assert all(ref() is None for ref in refs)
 
 
 def test_hash_equal_tuple_with_nans():

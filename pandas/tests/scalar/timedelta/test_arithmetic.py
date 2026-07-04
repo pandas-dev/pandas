@@ -256,7 +256,7 @@ class TestTimedeltaAdditionSubtraction:
         result = NaT - td
         assert result is NaT
 
-        result = np.datetime64("NaT") - td
+        result = np.datetime64("NaT", "ns") - td
         assert result is NaT
 
     def test_td_rsub_offset(self):
@@ -569,7 +569,7 @@ class TestTimedeltaMultiplicationDivision:
 
         msg = r"unsupported operand type\(s\) for /: 'numpy.datetime64' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
-            np.datetime64("NaT") / td
+            np.datetime64("NaT", "ns") / td
 
         msg = r"unsupported operand type\(s\) for /: 'float' and 'Timedelta'"
         with pytest.raises(TypeError, match=msg):
@@ -981,7 +981,7 @@ class TestTimedeltaMultiplicationDivision:
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
         arr = np.array(arr)
-        msg = "unsupported operand type|cannot use operands with types"
+        msg = "|".join(["unsupported operand type", "cannot use operands with types"])
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 

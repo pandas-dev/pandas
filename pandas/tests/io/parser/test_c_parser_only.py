@@ -27,7 +27,9 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    StringDtype,
     concat,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -702,3 +704,25 @@ def test_float_precision_options(c_parser_only):
             Pandas4Warning, match=depr_msg, check_stacklevel=False
         ):
             parser.read_csv(StringIO(s), float_precision="junk")
+
+
+def test_invalid_utf8_raises(c_parser_only):
+    # GH#65283: the pyarrow string fast path memcpys raw bytes into arrow
+    # buffers; ensure invalid UTF-8 still raises like the object path
+    parser = c_parser_only
+    data = BytesIO(b"col\nabc\n\xff\xfe\n")
+    with pytest.raises(UnicodeDecodeError, match="invalid start byte"):
+        parser.read_csv(data)
+
+
+def test_string_storage_python_consistent(c_parser_only):
+    # GH#65283: the pyarrow string fast path must not produce an
+    # ArrowStringArray when mode.string_storage="python"
+    pytest.importorskip("pyarrow")
+    parser = c_parser_only
+    with option_context("future.infer_string", True, "mode.string_storage", "python"):
+        result = parser.read_csv(StringIO("col\nabc\nxyz\n"))
+        arr = result["col"].array
+        assert isinstance(arr.dtype, StringDtype)
+        assert arr.dtype.storage == "python"
+        assert type(arr) is arr.dtype.construct_array_type()

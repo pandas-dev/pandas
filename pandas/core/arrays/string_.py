@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from functools import partial
 import operator
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
     Self,
     cast,
+    overload,
 )
 import warnings
 
 import numpy as np
 
 from pandas._config import using_string_dtype
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     lib,
@@ -26,6 +26,7 @@ from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    PYPY,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -199,7 +200,7 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            storage = _global_config["mode"]["string_storage"]
+            storage = config["mode"]["string_storage"]
             if storage == "auto":
                 if HAS_PYARROW:
                     storage = "pyarrow"
@@ -597,7 +598,13 @@ class BaseStringArray(ExtensionArray):
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
-    def view(self, dtype: Dtype | None = None) -> Self:
+    @overload
+    def view(self, dtype: None = ...) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
+    def view(self, dtype: Dtype | None = None) -> ArrayLike:
         if dtype is not None:
             raise TypeError("Cannot change data-type for string array.")
         return super().view()
@@ -770,7 +777,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(
+                result, copy=copy, convert_na_value=False, skipna=False
+            )
             result[na_values] = na_value
 
         else:
@@ -821,16 +830,16 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         values[self.isna()] = None
         return pa.array(values, type=type)
 
+    def isna(self) -> np.ndarray:
+        return libmissing.isna_string(self._ndarray)
+
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
 
         return arr, self.dtype.na_value
 
     def _validate_setitem_value(self, value):
-        return self._maybe_convert_setitem_value(value)
-
-    def _maybe_convert_setitem_value(self, value):
-        """Maybe convert value to be StringArray compatible."""
+        """Validate / convert value to be StringArray compatible."""
         if lib.is_scalar(value):
             if isna(value):
                 value = self.dtype.na_value
@@ -861,7 +870,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
 
-        value = self._maybe_convert_setitem_value(value)
+        value = self._validate_setitem_value(value)
 
         key = check_array_indexer(self, key)
         scalar_key = lib.is_scalar(key)
@@ -1056,14 +1065,30 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return np.nan
         return super()._wrap_reduction_result(axis, result)
 
-    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def any(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> bool:
+        nv.validate_any((), kwargs)
+        return self._reduce("any", axis=axis, skipna=skipna, **kwargs)
+
+    def all(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> bool:
+        nv.validate_all((), kwargs)
+        return self._reduce("all", axis=axis, skipna=skipna, **kwargs)
+
+    def min(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(
+        self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
+    ) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             values=self.to_numpy(), mask=self.isna(), skipna=skipna
@@ -1097,7 +1122,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     def memory_usage(self, deep: bool = False) -> int:
         result = self._ndarray.nbytes
-        if deep:
+        if deep and not PYPY:
+            # deep introspection relies on sys.getsizeof, which always
+            # raises TypeError on PyPy (GH#46176)
             return result + lib.memory_usage_of_objects(self._ndarray)
         return result
 
@@ -1151,7 +1178,23 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         >>> arr.searchsorted([4])
         array([3])
         """
-        if self._hasna:
+
+        # GH#65837: avoid O(n) scan; NA confined to array ends in sorted data.
+        # When sorter is given, the sorted order is ndarray[sorter], so check
+        # the first/last positions via sorter instead of raw ndarray positions.
+        ndarray = self._ndarray
+        if len(ndarray):
+            if sorter is None:
+                has_na = libmissing.checknull(ndarray[0]) or libmissing.checknull(
+                    ndarray[-1]
+                )
+            else:
+                has_na = libmissing.checknull(
+                    ndarray[sorter[0]]
+                ) or libmissing.checknull(ndarray[sorter[-1]])
+        else:
+            has_na = False
+        if has_na:
             raise ValueError(
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
@@ -1227,8 +1270,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
-            if isinstance(other, Path):
-                # GH#61940
+            if not lib.is_string_array(result, skipna=True):
                 return result
             return self._from_backing_data(result)
         else:

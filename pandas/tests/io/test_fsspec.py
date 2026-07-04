@@ -22,6 +22,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
+from pandas.util.version import Version
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -179,16 +180,22 @@ def test_excel_options(fsspectest):
     assert fsspectest.test[0] == "read"
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and HAS_PYARROW and not pa_version_under14p0,
-    reason="TODO(infer_string) fastparquet",
-)
 @pytest.mark.filterwarnings(
     "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
 )
-def test_to_parquet_new_file(cleared_fs, df1):
+def test_to_parquet_new_file(cleared_fs, df1, request):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    pytest.importorskip("fastparquet")
+    fp = pytest.importorskip("fastparquet")
+
+    request.applymarker(
+        pytest.mark.xfail(
+            using_string_dtype()
+            and HAS_PYARROW
+            and not pa_version_under14p0
+            and Version(fp.__version__) < Version("2026.5.0"),
+            reason="TODO(infer_string) fastparquet",
+        )
+    )
 
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
@@ -280,7 +287,10 @@ def test_s3_parquet(s3_bucket_public, s3so, df1):
 
 @td.skip_if_installed("fsspec")
 def test_not_present_exception():
-    msg = "`Import fsspec` failed.  Use pip or conda to install the fsspec package."
+    msg = (
+        "`Import fsspec` failed.  Use pip, conda, or your preferred package "
+        "management tool to install the fsspec package."
+    )
     with pytest.raises(ImportError, match=msg):
         read_csv("memory://test/test.csv")
 

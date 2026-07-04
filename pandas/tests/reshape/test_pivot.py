@@ -1344,9 +1344,11 @@ class TestPivotTable:
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
         # see gh-3335
-        msg = (
-            f'Conflicting name "{margin_name}" in margins|'
-            "margins_name argument must be a string"
+        msg = "|".join(
+            [
+                f'Conflicting name "{margin_name}" in margins',
+                "margins_name argument must be a string",
+            ]
         )
         with pytest.raises(ValueError, match=msg):
             # multi-index index
@@ -2441,6 +2443,69 @@ class TestPivotTable:
                 [("sales", "A"), ("sales", "All")], names=[None, "a"]
             ),
             dtype="Int64",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_ea_dtype_cannot_hold_na_margins(self):
+        # GH#55484 IntervalDtype with integer subtype has _can_hold_na=False;
+        # pivot_table with margins=True must still preserve the dtype.
+        ii = pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+        iarr = pd.array(list(ii), dtype=ii.dtype)
+        assert not iarr.dtype._can_hold_na
+
+        df = DataFrame(
+            {
+                "a": ["foo", "foo", "bar", "bar"],
+                "b": ["one", "two", "one", "two"],
+                "c": iarr,
+            }
+        )
+
+        result = df.pivot_table(
+            index="a",
+            columns="b",
+            values="c",
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {
+                "one": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype),
+                "two": pd.array([ii[3], ii[1], ii[1]], dtype=ii.dtype),
+                "All": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype),
+            },
+            index=Index(["bar", "foo", "All"], name="a"),
+        )
+        expected.columns.name = "b"
+        tm.assert_frame_equal(result, expected)
+
+        # no-cols path (previously raised TypeError on row_margin init)
+        result = df.pivot_table(
+            index="a",
+            values="c",
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {"c": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype)},
+            index=Index(["bar", "foo", "All"], name="a"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # no-cols with mixed EA-no-NA and numeric values
+        df["d"] = [1.0, 2.0, 3.0, 4.0]
+        result = df.pivot_table(
+            index="a",
+            values=["c", "d"],
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {
+                "c": pd.array([ii[2], ii[0], ii[0]], dtype=ii.dtype),
+                "d": [3.0, 1.0, 1.0],
+            },
+            index=Index(["bar", "foo", "All"], name="a"),
         )
         tm.assert_frame_equal(result, expected)
 

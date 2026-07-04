@@ -31,6 +31,15 @@ def get_period_field_arr(
     arr: npt.NDArray[np.int64],  # const int64_t[:]
     freq: int,
 ) -> npt.NDArray[np.int64]: ...
+def period_ordinals_from_fields(
+    years: npt.NDArray[np.int64],
+    months: npt.NDArray[np.int64],
+    days: npt.NDArray[np.int64],
+    hours: npt.NDArray[np.int64],
+    minutes: npt.NDArray[np.int64],
+    seconds: npt.NDArray[np.int64],
+    freq: int,
+) -> npt.NDArray[np.int64]: ...
 def from_calendar_ordinals(
     values: npt.NDArray[np.int64],  # const int64_t[:]
     dtype: PeriodDtypeBase,
@@ -45,7 +54,7 @@ def extract_period_unit(
 def period_array_strftime(
     values: npt.NDArray[np.int64],
     dtype_code: int,
-    na_rep,
+    na_rep: str | float,
     date_format: str | None,
 ) -> npt.NDArray[np.object_]: ...
 
@@ -72,7 +81,7 @@ class Period(PeriodMixin):
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]
         cls,
-        value=...,
+        value: object = ...,
         freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
@@ -84,7 +93,7 @@ class Period(PeriodMixin):
         second: int | None = ...,
     ) -> Period | NaTType: ...
     @classmethod
-    def _maybe_convert_freq(cls, freq) -> BaseOffset: ...
+    def _maybe_convert_freq(cls, freq: object) -> BaseOffset: ...
     @classmethod
     def _from_ordinal(cls, ordinal: int, dtype: PeriodDtypeBase) -> Period: ...
     @classmethod
@@ -131,5 +140,5 @@ class Period(PeriodMixin):
     def month(self) -> int: ...
     @property
     def year(self) -> int: ...
-    def __sub__(self, other) -> Period | BaseOffset: ...
-    def __add__(self, other) -> Period: ...
+    def __sub__(self, other: object, /) -> Period | BaseOffset: ...
+    def __add__(self, other: object, /) -> Period: ...

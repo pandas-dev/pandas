@@ -677,7 +677,8 @@ def test_encode_errors_kwarg(any_string_dtype):
 
     result = ser.str.encode("cp1252", "ignore")
     expected = ser.map(lambda x: x.encode("cp1252", "ignore"))
-    tm.assert_series_equal(result, expected)
+    # GH#62164 map may retain dtype backend (e.g. binary[pyarrow])
+    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 def test_decode_errors_kwarg():

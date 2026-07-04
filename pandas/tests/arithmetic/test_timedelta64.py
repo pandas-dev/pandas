@@ -156,7 +156,13 @@ class TestTimedelta64ArrayLikeComparisons:
         result = rng != other
         tm.assert_numpy_array_equal(result, ~expected)
 
-        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        msg = "|".join(
+            [
+                "Invalid comparison between",
+                "Cannot compare type",
+                "not supported between",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             rng < other
         with pytest.raises(TypeError, match=msg):
@@ -623,6 +629,8 @@ class TestTimedelta64ArithmeticUnsorted:
             #  new dtype.  For the others, the op can assign a new array
             #  and get the dtype that normally results from `rng + two_hours`
             expected = expected.as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -647,6 +655,8 @@ class TestTimedelta64ArithmeticUnsorted:
             #  new dtype.  For the others, the op can assign a new array
             #  and get the dtype that normally results from `rng - two_hours`
             expected = expected.as_unit("ns")
+        if box_with_array is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -860,7 +870,7 @@ class TestTimedeltaArraylikeAddSubOps:
         actual = df1 - timedelta_NaT
         tm.assert_frame_equal(actual, dfn)
 
-        msg = "cannot subtract a datelike from|unsupported operand type"
+        msg = "|".join(["cannot subtract a datelike from", "unsupported operand type"])
         with pytest.raises(TypeError, match=msg):
             df1 + np.nan
         with pytest.raises(TypeError, match=msg):
@@ -1045,7 +1055,10 @@ class TestTimedeltaArraylikeAddSubOps:
 
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3, tz=tz)
-        if tz is not None and not timezones.is_utc(expected.tz):
+        if box_with_array is pd.array or (
+            tz is not None and not timezones.is_utc(expected.tz)
+        ):
+            # Array arithmetic does not compute freq (GH#24566).
             # Day is no longer preserved by timedelta add/sub in pandas3 because
             #  it represents Calendar-Day instead of 24h
             expected = expected._with_freq(None)
@@ -1057,11 +1070,16 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(tdarr + ts, expected)
 
         expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
-        if tz is not None and not timezones.is_utc(expected2.tz):
-            # Day is no longer preserved by timedelta add/sub in pandas3 because
-            #  it represents Calendar-Day instead of 24h
+        if box_with_array is pd.array or (
+            tz is not None and not timezones.is_utc(expected2.tz)
+        ):
+            # Array arithmetic does not compute freq (GH#24566).
             expected2 = expected2._with_freq(None)
         expected2 = tm.box_expected(expected2, box_with_array)
+        if box_with_array is pd.array:
+            # GH#24566 Array-level __neg__ and __rsub__ don't carry freq;
+            # freq is managed by the Index layer.
+            expected2._freq = None
 
         tm.assert_equal(ts - tdarr, expected2)
         tm.assert_equal(ts + (-tdarr), expected2)
@@ -1070,8 +1088,13 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdarr - ts
 
+    @pytest.mark.filterwarnings("ignore:.*generic.*unit.*:DeprecationWarning")
     def test_td64arr_add_datetime64_nat(self, box_with_array):
         # GH#23215
+        # The bare np.datetime64("NaT") is load-bearing here: the expected
+        # M8[us] dtype comes from numpy's default unit promotion from the
+        # generic-unit scalar. NumPy nightly emits a DeprecationWarning for
+        # the bare form, which the filterwarnings marker ignores.
         other = np.datetime64("NaT")
 
         tdi = timedelta_range("1 day", periods=3)
@@ -1317,6 +1340,8 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
         if isinstance(two_hours, Timedelta) and two_hours.unit == "ns":
             expected = expected.as_unit("ns")
+        if box is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, box)
@@ -1335,6 +1360,8 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
         if isinstance(two_hours, Timedelta) and two_hours.unit == "ns":
             expected = expected.as_unit("ns")
+        if box is pd.array:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, box)
@@ -1457,7 +1484,7 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = "has incorrect type|cannot add the type MonthEnd"
+        msg = "|".join(["has incorrect type", "cannot add the type MonthEnd"])
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(performance_warning):
                 tdi + anchored
@@ -1492,7 +1519,7 @@ class TestTimedeltaArraylikeAddSubOps:
         expected = tm.box_expected(expected, xbox).astype(object)
         tm.assert_equal(result, expected)
 
-        msg = "unsupported operand type|cannot subtract a datelike"
+        msg = "|".join(["unsupported operand type", "cannot subtract a datelike"])
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(performance_warning):
                 tdarr - other
@@ -1842,7 +1869,7 @@ class TestTimedeltaArraylikeMulDivOps:
         mismatched = [1, 2, 3, 4]
 
         rng = tm.box_expected(rng, box_with_array)
-        msg = "Cannot divide vectors|Unable to coerce to Series"
+        msg = "|".join(["Cannot divide vectors", "Unable to coerce to Series"])
         for obj in [mismatched, mismatched[:2]]:
             # one shorter, one longer
             for other in [obj, np.array(obj), Index(obj)]:

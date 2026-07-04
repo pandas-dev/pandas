@@ -136,11 +136,18 @@ def test_parse_dates_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("parse_dates", [[0, 2], ["a", "c"]])
 def test_parse_dates_column_list(all_parsers, parse_dates):
     data = "a,b,c\n01/01/2010,1,15/02/2010"
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), index_col=[0, 1], parse_dates=parse_dates, dayfirst=True
+            )
+        return
 
     expected = DataFrame(
         {"a": [datetime(2010, 1, 1)], "b": [1], "c": [datetime(2010, 2, 15)]}
@@ -218,13 +225,9 @@ def test_parse_tz_aware(all_parsers):
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
     if parser.engine == "pyarrow":
-        pytz = pytest.importorskip("pytz")
-        expected_tz = pytz.utc
         expected.index = expected.index.as_unit("s")
-    else:
-        expected_tz = timezone.utc
     tm.assert_frame_equal(result, expected)
-    assert result.index.tz is expected_tz
+    assert result.index.tz is timezone.utc
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": "C"}])
@@ -300,6 +303,13 @@ def test_parse_dates_empty_string(all_parsers):
     # see gh-2263
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), parse_dates=["Date"], na_filter=False)
+        return
+
     result = parser.read_csv(StringIO(data), parse_dates=["Date"], na_filter=False)
 
     expected = DataFrame(
@@ -308,7 +318,23 @@ def test_parse_dates_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+def test_parse_dates_missing_value(all_parsers):
+    # GH#47950 a missing value in a parse_dates column should become NaT,
+    # not be left as the string "None" (which the pyarrow engine used to do)
+    parser = all_parsers
+    data = "idx,date\n2,2000-01-01\n,\n"
+    result = parser.read_csv(StringIO(data), parse_dates=["date"])
+
+    expected = DataFrame(
+        {
+            "idx": [2.0, np.nan],
+            "date": [Timestamp("2000-01-01"), pd.NaT],
+        }
+    )
+    expected["date"] = expected["date"].astype("M8[us]")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -355,6 +381,12 @@ def test_parse_dates_empty_string(all_parsers):
 def test_parse_dates_no_convert_thousands(all_parsers, data, kwargs, expected):
     # see gh-14066
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), thousands=".", **kwargs)
+        return
 
     result = parser.read_csv(StringIO(data), thousands=".", **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -563,12 +595,16 @@ def test_date_parser_and_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 def test_date_parser_multiindex_columns(all_parsers):
     parser = all_parsers
     data = """a,b
 1,2
 2019-12-31,6"""
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
+        return
+
     result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
     expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
     tm.assert_frame_equal(result, expected)
@@ -703,7 +739,6 @@ def test_infer_first_column_as_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pyarrow engine doesn't support passing a dict for na_values
 def test_replace_nans_before_parsing_dates(all_parsers):
     # GH#26203
     parser = all_parsers
@@ -714,6 +749,17 @@ def test_replace_nans_before_parsing_dates(all_parsers):
 #
 2017-09-09
 """
+    if parser.engine == "pyarrow":
+        msg = "The pyarrow engine doesn't support passing a dict for na_values"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                na_values={"Test": ["#", "0"]},
+                parse_dates=["Test"],
+                date_format="%Y-%m-%d",
+            )
+        return
+
     result = parser.read_csv(
         StringIO(data),
         na_values={"Test": ["#", "0"]},

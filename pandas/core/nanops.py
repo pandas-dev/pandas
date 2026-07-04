@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import (
     NaT,
@@ -20,6 +20,7 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.algos as libalgos
+from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -66,7 +67,7 @@ def set_use_bottleneck(v: bool = True) -> None:
         _USE_BOTTLENECK = v
 
 
-set_use_bottleneck(_global_config["compute"]["use_bottleneck"])
+set_use_bottleneck(config["compute"]["use_bottleneck"])
 
 
 class disallow:
@@ -375,8 +376,8 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             elif np.fabs(result) > lib.i8max:
-                # raise if we have a timedelta64[ns] which is too large
-                raise ValueError("overflow in timedelta operation")
+                # GH#43178: raise if the result is too large for the dtype's unit
+                raise OutOfBoundsTimedelta("overflow in timedelta operation")
             else:
                 # return a timedelta64 with the original unit
                 result = np.int64(result).astype(dtype, copy=False)
@@ -1525,14 +1526,6 @@ def check_below_min_count(
         if non_nulls < min_count:
             return True
     return False
-
-
-def _zero_out_fperr(arg, tol: float | np.ndarray):
-    # #18044 reference this behavior to fix rolling skew/kurt issue
-    if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < tol, 0, arg)
-    else:
-        return arg.dtype.type(0) if np.abs(arg) < tol else arg
 
 
 @disallow("M8", "m8")

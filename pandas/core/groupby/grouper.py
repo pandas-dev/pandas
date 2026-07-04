@@ -101,7 +101,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default to False
+    sort : bool, default False
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -123,7 +123,7 @@ class Grouper:
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
-    offset : Timedelta or str, default is None
+    offset : Timedelta or str, default None
         An offset timedelta added to the origin.
 
     dropna : bool, default True
@@ -427,7 +427,7 @@ class Grouping:
     obj : DataFrame or Series
     name : Label
     level :
-    observed : bool, default False
+    observed : bool, default True
         If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
@@ -460,7 +460,7 @@ class Grouping:
         obj: NDFrame | None = None,
         level=None,
         sort: bool = True,
-        observed: bool = False,
+        observed: bool = True,
         in_axis: bool = False,
         dropna: bool = True,
         uniques: ArrayLike | None = None,
@@ -681,7 +681,9 @@ class Grouping:
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
             # we have a list of groupers
             codes = self.grouping_vector.codes_info
-            uniques = self.grouping_vector.result_index._values
+            # Pass the full Index (not ._values) so DatetimeIndex/TimedeltaIndex
+            # freq survives the trip through _with_infer.
+            uniques = self.grouping_vector.result_index  # type: ignore[assignment]
         elif self._uniques is not None:
             # GH#50486 Code grouping_vector using _uniques; allows
             # including uniques that are not present in grouping_vector.
@@ -689,12 +691,19 @@ class Grouping:
             codes = cat.codes
             uniques = self._uniques
         else:
-            # GH35667, replace dropna=False with use_na_sentinel=False
-            # error: Incompatible types in assignment (expression has type "Union[
-            # ndarray[Any, Any], Index]", variable has type "Categorical")
-            codes, uniques = algorithms.factorize(  # type: ignore[assignment]
-                self.grouping_vector, sort=self._sort, use_na_sentinel=self._dropna
-            )
+            result = _factorize_monotonic(self.grouping_vector, self._sort)
+            if result is not None:
+                codes, uniques = result
+            else:
+                # GH35667, replace dropna=False with use_na_sentinel=False
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ndarray[Any, Any], Index]", variable has type
+                # "Categorical")
+                codes, uniques = algorithms.factorize(  # type: ignore[assignment]
+                    self.grouping_vector,
+                    sort=self._sort,
+                    use_na_sentinel=self._dropna,
+                )
         return codes, uniques
 
     @cache_readonly
@@ -738,7 +747,7 @@ def get_grouper(
     key=None,
     level=None,
     sort: bool = True,
-    observed: bool = False,
+    observed: bool = True,
     validate: bool = True,
     dropna: bool = True,
 ) -> tuple[ops.BaseGrouper, frozenset[Hashable], NDFrameT]:
@@ -952,6 +961,73 @@ def get_grouper(
 
 def _is_label_like(val) -> bool:
     return isinstance(val, (str, tuple)) or (val is not None and is_scalar(val))
+
+
+def _factorize_monotonic(
+    grouping_vector,
+    sort: bool,
+) -> tuple | None:
+    """
+    Fast-path factorization for monotonic (sorted) grouping vectors.
+
+    Uses adjacent-element comparison instead of hash table construction.
+    Returns (codes, uniques) or None if the fast path is not applicable.
+
+    Since monotonic arrays contain no NA values (NAs break monotonicity
+    checks for n >= 2), NA handling is not needed here.
+    """
+    if isinstance(grouping_vector, (Series, Index)):
+        # Bail before np.asarray for extension dtypes (PeriodDtype,
+        # DatetimeTZDtype, etc.) — converting them would box every element.
+        dtype = grouping_vector.dtype
+        if not isinstance(dtype, np.dtype) or dtype.kind not in "iufmMb":
+            return None
+        ascending = grouping_vector.is_monotonic_increasing
+        if not ascending and not grouping_vector.is_monotonic_decreasing:
+            return None
+        arr = np.asarray(grouping_vector)
+    elif isinstance(grouping_vector, np.ndarray):
+        arr = grouping_vector
+        if arr.dtype.kind not in "iufmMb":
+            return None
+        if len(arr) <= 1:
+            return None
+        # Quick sample check: compare a few spaced elements to avoid
+        # a full O(n) scan on clearly unsorted data.
+        sample_idx = np.linspace(0, len(arr) - 1, num=min(8, len(arr)), dtype=np.intp)
+        sample = arr[sample_idx]
+        if not bool(np.all(sample[1:] >= sample[:-1])):
+            if not bool(np.all(sample[1:] <= sample[:-1])):
+                return None
+        ascending = bool(np.all(arr[1:] >= arr[:-1]))
+        if not ascending:
+            if not bool(np.all(arr[1:] <= arr[:-1])):
+                return None
+    else:
+        return None
+
+    n = len(arr)
+    if n <= 1:
+        return None
+
+    # Find group transitions via adjacent-element comparison.
+    transitions = np.empty(n, dtype=bool)
+    transitions[0] = True
+    transitions[1:] = arr[1:] != arr[:-1]
+
+    # Build codes using repeat (faster than cumsum on bool).
+    group_starts = np.flatnonzero(transitions)
+    uniques = arr[group_starts]
+    ngroups = len(group_starts)
+    run_lengths = np.diff(group_starts, append=n)
+    codes = np.repeat(np.arange(ngroups, dtype=np.intp), run_lengths)
+
+    if sort and not ascending:
+        # Reverse uniques to sorted order and remap codes.
+        uniques = uniques[::-1].copy()
+        codes = ensure_platform_int(ngroups - 1 - codes)
+
+    return codes, uniques
 
 
 def _convert_grouper(axis: Index, grouper):

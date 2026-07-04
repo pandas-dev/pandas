@@ -10,7 +10,6 @@ from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -595,6 +594,26 @@ def test_as_index_series_return_frame(df):
     tm.assert_frame_equal(result2, expected2)
 
 
+def test_as_index_series_ohlc(df):
+    # GH#65140
+    grouped = df.groupby("A", as_index=False)
+    grouped2 = df.groupby(["A", "B"], as_index=False)
+
+    result = grouped["C"].ohlc()
+    expected = df.groupby("A")["C"].ohlc().reset_index()
+    tm.assert_frame_equal(result, expected)
+
+    result2 = grouped2["C"].ohlc()
+    expected2 = df.groupby(["A", "B"])["C"].ohlc().reset_index()
+    tm.assert_frame_equal(result2, expected2)
+
+    df_conflict = DataFrame(
+        {"open": ["A", "A", "B", "B"], "price": [1.0, 2.0, 3.0, 4.0]}
+    )
+    with pytest.raises(ValueError, match="cannot insert open, already exists"):
+        df_conflict.groupby("open", as_index=False)["price"].ohlc()
+
+
 def test_as_index_series_column_slice_raises(df):
     # GH15072
     grouped = df.groupby("A", as_index=False)
@@ -1137,7 +1156,7 @@ def test_groupby_dtype_inference_empty():
     result = df.groupby("x").first()
     exp_index = Index([], name="x", dtype=np.float64)
     expected = DataFrame({"range": Series([], index=exp_index, dtype="int64")})
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_unit64_float_conversion():
@@ -2211,23 +2230,13 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "infer_string",
-    [
-        False,
-        pytest.param(True, marks=td.skip_if_no("pyarrow")),
-    ],
-)
-def test_groupby_duplicate_columns(infer_string):
+def test_groupby_duplicate_columns():
     # GH: 31735
-    if infer_string:
-        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
     df.columns = ["A", "B", "B"]
-    with pd.option_context("future.infer_string", infer_string):
-        result = df.groupby([0, 0, 0, 0]).min()
+    result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame(
         [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
     )
@@ -2876,6 +2885,20 @@ def test_groupby_series_with_datetimeindex_month_name():
     result = s.groupby(s).count()
     expected = Series([2, 1], name="jan")
     expected.index.name = "jan"
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_series_with_datetimeindex_numeric_name():
+    # GH 51818 - a name parseable as an out-of-bounds datetime (e.g. "09")
+    # should not make groupby(self) raise OutOfBoundsDatetime
+    ser = Series(
+        [0, 1, 0],
+        index=date_range("2013-06-07", periods=3, freq="15min"),
+        name="09",
+    )
+    result = ser.groupby(ser).count()
+    expected = Series([2, 1], name="09")
+    expected.index.name = "09"
     tm.assert_series_equal(result, expected)
 
 

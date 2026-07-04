@@ -14,15 +14,19 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
+from pandas.compat.numpy import np_version_gt2_3
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core import roperator
 from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.util.version import Version
 
 if NUMEXPR_INSTALLED:
     import numexpr as ne
+
+    ne_gt_211 = Version(ne.__version__) >= Version("2.11.0")
 
 if TYPE_CHECKING:
     from pandas._typing import FuncType
@@ -47,7 +51,12 @@ def set_use_numexpr(v: bool = True) -> None:
     # set/unset to use numexpr
     global USE_NUMEXPR
     if NUMEXPR_INSTALLED:
-        USE_NUMEXPR = v
+        if np_version_gt2_3 and not ne_gt_211:
+            # incompatibility of numexpr 2.10 with newer pandas resulting in wrong data
+            # https://github.com/pandas-dev/pandas/issues/63320
+            USE_NUMEXPR = False
+        else:
+            USE_NUMEXPR = v
 
     # choose what we are going to do
     global _evaluate, _where
@@ -193,7 +202,7 @@ def _where_numexpr(cond, left_op, right_op):
 
 
 # turn myself on
-set_use_numexpr(_global_config["compute"]["use_numexpr"])
+set_use_numexpr(config["compute"]["use_numexpr"])
 
 
 def _has_bool_dtype(x):

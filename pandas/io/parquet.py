@@ -16,7 +16,7 @@ from warnings import (
     filterwarnings,
 )
 
-from pandas._config.config import _global_config
+from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -33,6 +33,7 @@ from pandas import DataFrame
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     IOHandles,
+    check_parent_directory,
     get_handle,
     is_fsspec_url,
     is_url,
@@ -53,7 +54,7 @@ if TYPE_CHECKING:
 def get_engine(engine: str) -> BaseImpl:
     """return our implementation"""
     if engine == "auto":
-        engine = _global_config["io"]["parquet"]["engine"]
+        engine = config["io"]["parquet"]["engine"]
 
     if engine == "auto":
         # try engines in this order
@@ -142,24 +143,26 @@ def _get_path_or_handle(
         and isinstance(path_or_handle, str)
         and not os.path.isdir(path_or_handle)
     ):
-        # use get_handle only when we are very certain that it is not a directory
-        # fsspec resources can also point to directories
-        # this branch is used for example when reading from non-fsspec URLs
-        handles = get_handle(
-            path_or_handle, mode, is_text=False, storage_options=storage_options
-        )
-        fs = None
-        path_or_handle = handles.handle
-        if hasattr(path_or_handle, "name") and isinstance(
-            path_or_handle.name, (str, bytes)
-        ):
-            # Unwrap the Python file handle back to a string path so that
-            # PyArrow can use memory-mapped and multithreaded C++ I/O
-            # instead of going through the Python I/O layer. GH#47702
-            if isinstance(path_or_handle.name, bytes):
-                path_or_handle = path_or_handle.name.decode()
-            else:
-                path_or_handle = path_or_handle.name
+        if is_url(path_or_handle):
+            # pyarrow cannot read non-fsspec URLs (e.g. http/https), so let
+            # get_handle download them into a buffer for pyarrow to consume.
+            handles = get_handle(
+                path_or_handle, mode, is_text=False, storage_options=storage_options
+            )
+            path_or_handle = handles.handle
+        else:
+            # Local path: hand the string to pyarrow so it can use memory-mapped,
+            # multithreaded C++ I/O rather than the Python I/O layer (GH#47702).
+            # Do not open it via get_handle as well: pyarrow opens the path
+            # itself, so going through get_handle too would open the file twice.
+            # That wastes a syscall on POSIX and, on filesystems that finalize a
+            # file's contents on close, lets the empty pandas-side descriptor
+            # close last and clobber pyarrow's data to 0 bytes. get_handle would
+            # also expand "~" and check the parent directory on write, so
+            # reproduce both below to keep behavior unchanged.
+            path_or_handle = os.path.expanduser(path_or_handle)
+            if "w" in mode or "a" in mode or "x" in mode:
+                check_parent_directory(path_or_handle)
     return path_or_handle, handles, fs
 
 
@@ -433,9 +436,18 @@ def to_parquet(
     path : str, path object, file-like object, or None, default None
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function. If None, the result
-        is returned as bytes. If a string, it will be used as Root Directory
+        is returned as bytes. If a string, it will be used as the root directory
         path when writing a partitioned dataset. The engine fastparquet does
         not accept file-like objects.
+
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gs, and file. For file URLs, a host is expected. A local file could be:
+        ``file://localhost/path/to/table.parquet``. A remote example could be:
+        ``s3://bucket/path/to/table.parquet``.
+
+        Certain URL schemes may require additional packages. For example, S3
+        URLs require the ``s3fs`` library. See
+        :ref:`install.optional_dependencies` for a full list.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -542,6 +554,9 @@ def read_parquet(
 ) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
+
+    This function requires the `pyarrow <https://arrow.apache.org/docs/python/>`_
+    library.
 
     The function automatically handles reading the data from a parquet file
     and creates a DataFrame with the appropriate structure.

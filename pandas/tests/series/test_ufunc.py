@@ -230,6 +230,21 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
     assert result.name is None
 
 
+def test_binary_ufunc_out_pandas_object():
+    # GH#43190 passing a Series as the ufunc `out` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of writing the result.
+    a = pd.Series([1, 2])
+    b = pd.Series([3, 4])
+    out = pd.Series([0, 0])
+
+    result = np.fmin(a, b, out=out)
+
+    expected = pd.Series([1, 2])
+    tm.assert_series_equal(result, expected)
+    # the result is also written into `out` in place
+    tm.assert_series_equal(out, expected)
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:

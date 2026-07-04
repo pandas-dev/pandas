@@ -91,6 +91,45 @@ def test_pathlib_path_division(any_string_dtype, request):
     tm.assert_series_equal(result, expected)
 
 
+def test_arithmetic_custom_object(any_string_dtype):
+    # GH#64107
+    class CustomObject:
+        def __init__(self, val):
+            self.val = val
+
+        def __add__(self, other):
+            if hasattr(other, "dtype"):
+                return NotImplemented
+            return CustomObject(self.val + other)
+
+        def __radd__(self, other):
+            if hasattr(other, "dtype"):
+                return NotImplemented
+            return CustomObject(other + self.val)
+
+        def __eq__(self, other):
+            return isinstance(other, CustomObject) and self.val == other.val
+
+        def __repr__(self):
+            return f"<CustomObject({self.val})>"
+
+    arr = np.array([CustomObject("a"), CustomObject("b")], dtype=object)
+    ser = Series(["1", "2"], dtype=any_string_dtype)
+    obj_ser = Series(arr)
+
+    cases = [
+        (ser + arr[0], [CustomObject("1a"), CustomObject("2a")]),
+        (ser + arr, [CustomObject("1a"), CustomObject("2b")]),
+        (ser + obj_ser, [CustomObject("1a"), CustomObject("2b")]),
+        (arr[0] + ser, [CustomObject("a1"), CustomObject("a2")]),
+        (arr + ser, [CustomObject("a1"), CustomObject("b2")]),
+        (obj_ser + ser, [CustomObject("a1"), CustomObject("b2")]),
+    ]
+    for result, expected_values in cases:
+        expected = Series(expected_values, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+
 def test_mixed_object_comparison(any_string_dtype):
     # GH#60228
     dtype = any_string_dtype
@@ -198,7 +237,7 @@ def test_add(any_string_dtype, request):
 def test_add_2d(any_string_dtype, request):
     dtype = any_string_dtype
 
-    if dtype == object or dtype.storage == "pyarrow":
+    if dtype == object:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.applymarker(mark)
@@ -242,6 +281,21 @@ def test_add_sequence(any_string_dtype, request, using_infer_string):
     result = other + a
     expected = pd.array(["xa", None, None, None], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_string_add_missing_values(string_dtype_no_object):
+    # GH#64968 Arrow-backed str arrays should return NA when added to missing
+    arr = pd.array(["y"], dtype=string_dtype_no_object)
+    expected = pd.array([NA], dtype=string_dtype_no_object)
+
+    for na_val in [None, np.nan, NA]:
+        # left side
+        result = arr + na_val
+        tm.assert_extension_array_equal(result, expected)
+
+        # right side
+        result = na_val + arr
+        tm.assert_extension_array_equal(result, expected)
 
 
 def test_mul(any_string_dtype):
@@ -349,7 +403,8 @@ def test_comparison_methods_scalar_not_string(comparison_op, any_string_dtype):
     other = 42
 
     if op_name not in ["__eq__", "__ne__"]:
-        with pytest.raises(TypeError, match="Invalid comparison|not supported between"):
+        msg = "|".join(["Invalid comparison", "not supported between"])
+        with pytest.raises(TypeError, match=msg):
             getattr(a, op_name)(other)
 
         return

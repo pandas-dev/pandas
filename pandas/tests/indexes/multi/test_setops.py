@@ -440,7 +440,7 @@ def test_setops_sort_validation(method):
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
         getattr(idx1, method)(idx2, sort=2)
 
-    # sort=True is supported as of GH#?
+    # sort=True is supported as of GH#25151
     getattr(idx1, method)(idx2, sort=True)
 
 
@@ -625,8 +625,9 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_union_duplicates(index, request):
+def test_union_duplicates(index_sortable, request):
     # GH#38977
+    index = index_sortable
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
@@ -776,3 +777,24 @@ def test_union_with_na_when_constructing_dataframe():
     result = DataFrame([series1, series2])
     expected = DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method", ["difference", "intersection", "symmetric_difference"]
+)
+def test_setops_pyarrow_timestamp_level(method):
+    # GH#61382 setops must match a list of tuples against a pyarrow-backed
+    #  timestamp level (the list becomes a numpy-backed level internally)
+    pytest.importorskip("pyarrow")
+    mi = MultiIndex.from_arrays(
+        [
+            Series([1, 2], dtype="int64[pyarrow]"),
+            Series(["1900-01-01", "1901-06-15"], dtype="timestamp[ns][pyarrow]"),
+        ],
+        names=["id", "date"],
+    )
+
+    result = getattr(mi, method)([mi[0]])
+    # intersection keeps the matched row, (symmetric_)difference drops it
+    expected = mi[:1] if method == "intersection" else mi[1:]
+    tm.assert_index_equal(result, expected)

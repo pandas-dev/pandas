@@ -74,13 +74,11 @@ def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_mode_infer_string():
+def test_mode_string(any_string_dtype):
     # GH#56183
-    pytest.importorskip("pyarrow")
-    ser = Series(["a", "b"], dtype=object)
-    with pd.option_context("future.infer_string", True):
-        result = ser.mode()
-    expected = Series(["a", "b"], dtype=object)
+    ser = Series(["a", "b"], dtype=any_string_dtype)
+    result = ser.mode()
+    expected = Series(["a", "b"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -116,12 +114,13 @@ def test_td64_summation_overflow():
     assert np.allclose(result._value / 1000, expected._value / 1000)
 
     # sum
+    # GH#43178: OutOfBoundsTimedelta (a ValueError subclass) is raised
     msg = "overflow in timedelta operation"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (ser - ser.min()).sum()
 
     s1 = ser[0:10000]
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         (s1 - s1.min()).sum()
     s2 = ser[0:1000]
     (s2 - s2.min()).sum()
@@ -190,12 +189,20 @@ def test_mean_with_convertible_string_raises():
     ser = Series(["1", "2"])
     assert ser.sum() == "12"
 
-    msg = "Could not convert string '12' to numeric|does not support|Cannot perform"
+    msg = "|".join(
+        [
+            "Could not convert string '12' to numeric",
+            "does not support",
+            "Cannot perform",
+        ]
+    )
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
     df = ser.to_frame()
-    msg = r"Could not convert \['12'\] to numeric|does not support|Cannot perform"
+    msg = "|".join(
+        [r"Could not convert \['12'\] to numeric", "does not support", "Cannot perform"]
+    )
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
@@ -203,30 +210,50 @@ def test_mean_with_convertible_string_raises():
 def test_mean_dont_convert_j_to_complex():
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    msg = r"Could not convert \['J'\] to numeric|does not support|Cannot perform"
+    msg = "|".join(
+        [r"Could not convert \['J'\] to numeric", "does not support", "Cannot perform"]
+    )
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "Could not convert string 'J' to numeric|does not support|Cannot perform"
+    msg = "|".join(
+        [
+            "Could not convert string 'J' to numeric",
+            "does not support",
+            "Cannot perform",
+        ]
+    )
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "Could not convert string 'J' to numeric|ufunc 'divide'|Cannot perform"
+    msg = "|".join(
+        ["Could not convert string 'J' to numeric", "ufunc 'divide'", "Cannot perform"]
+    )
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
 
 def test_median_with_convertible_string_raises():
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
-    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support|Cannot perform"
+    msg = "|".join(
+        [
+            r"Cannot convert \['1' '2' '3'\] to numeric",
+            "does not support",
+            "Cannot perform",
+        ]
+    )
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    msg = (
-        r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support|Cannot perform"
+    msg = "|".join(
+        [
+            r"Cannot convert \[\['1' '2' '3'\]\] to numeric",
+            "does not support",
+            "Cannot perform",
+        ]
     )
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):

@@ -145,6 +145,46 @@ def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
     tm.assert_frame_equal(expected, result, check_column_type=False)
 
 
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+@pytest.mark.parametrize(
+    "data",
+    ["a\n(1+2j)\n(2+3j)\n(3+4j)\n", "a\n1+2j\n2+3j\n3+4j\n"],
+    ids=["parenthesized", "bare"],
+)
+def test_complex_dtype(all_parsers, data, dtype):
+    # GH#9379 round-trip support for complex columns in read_csv
+    parser = all_parsers
+    expected = DataFrame({"a": [1 + 2j, 2 + 3j, 3 + 4j]}, dtype=dtype)
+
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_complex_dtype_roundtrip(all_parsers, temp_file):
+    # GH#9379 read_csv reads back what to_csv writes for complex columns
+    parser = all_parsers
+    expected = DataFrame({"a": [1 + 2j, 2 + 3j, 3 + 4j]}, dtype="complex128")
+    expected.to_csv(temp_file, index=False)
+
+    result = parser.read_csv(temp_file, dtype={"a": "complex128"})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_complex_dtype_with_na(all_parsers):
+    # GH#9379 empty cells in complex columns become nan+0j
+    parser = all_parsers
+    data = "a,b\n(1+2j),1\n,2\n(3+4j),3\n"
+    expected = DataFrame(
+        {
+            "a": np.array([1 + 2j, complex(np.nan, 0), 3 + 4j], dtype="complex128"),
+            "b": [1, 2, 3],
+        }
+    )
+
+    result = parser.read_csv(StringIO(data), dtype={"a": "complex128"})
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.usefixtures("pyarrow_xfail")
 def test_boolean_dtype(all_parsers):
     parser = all_parsers
@@ -335,11 +375,23 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers
     data = "A,B,B\nX,Y,Z\n1,2,3"
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(
+                StringIO(data),
+                header=list(range(2)),
+                dtype={
+                    ("A", "X"): np.int32,
+                    ("B", "Y"): np.int32,
+                    ("B", "Z"): np.float32,
+                },
+            )
+        return
 
     result = parser.read_csv(
         StringIO(data),
@@ -382,7 +434,6 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
     tm.assert_frame_equal(actual, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -410,7 +461,6 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtypes_defaultdict_invalid(all_parsers):
     # GH#41574
     data = """a,b
@@ -550,20 +600,24 @@ def test_ea_int_avoid_overflow(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_string_inference(all_parsers):
+def test_string_inference(all_parsers, using_infer_string):
     # GH#54430
-    dtype = pd.StringDtype(na_value=np.nan)
+    dtype = pd.StringDtype(na_value=np.nan) if using_infer_string else object
 
     data = """a,b
 x,1
 y,2
 ,3"""
     parser = all_parsers
-    with pd.option_context("future.infer_string", True):
-        result = parser.read_csv(StringIO(data))
+    result = parser.read_csv(StringIO(data))
 
     expected = DataFrame(
-        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
+        {
+            "a": pd.Series(
+                ["x", "y", None if parser.engine == "pyarrow" else np.nan], dtype=dtype
+            ),
+            "b": [1, 2, 3],
+        },
         columns=pd.Index(["a", "b"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
@@ -577,28 +631,30 @@ x,a
 y,a
 z,a"""
     parser = all_parsers
-    with pd.option_context("future.infer_string", True):
-        result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=dtype)
 
-    expected_dtype = pd.StringDtype(na_value=np.nan) if dtype is str else object
+    expected_dtype = (
+        pd.StringDtype(na_value=np.nan)
+        if dtype is str and using_infer_string
+        else object
+    )
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
             "b": pd.Series(["a", "a", "a"], dtype=expected_dtype),
         },
-        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=pd.Index(["a", "b"]),
     )
     tm.assert_frame_equal(result, expected)
 
-    with pd.option_context("future.infer_string", True):
-        result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype})
 
     expected = DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
-            "b": pd.Series(["a", "a", "a"], dtype=pd.StringDtype(na_value=np.nan)),
+            "b": pd.Series(["a", "a", "a"]),
         },
-        columns=pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=pd.Index(["a", "b"]),
     )
     tm.assert_frame_equal(result, expected)
 

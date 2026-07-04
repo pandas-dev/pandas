@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 import warnings
 
@@ -99,11 +100,11 @@ class ArrowParserWrapper(ParserBase):
         if on_bad_lines is not None:
             if callable(on_bad_lines):
                 self.parse_options["invalid_row_handler"] = on_bad_lines
-            elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.BLHM_ERROR:
                 self.parse_options["invalid_row_handler"] = (
                     None  # PyArrow raises an exception by default
                 )
-            elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.BLHM_WARN:
 
                 def handle_warning(invalid_row) -> str:
                     warnings.warn(
@@ -115,7 +116,7 @@ class ArrowParserWrapper(ParserBase):
                     return "skip"
 
                 self.parse_options["invalid_row_handler"] = handle_warning
-            elif on_bad_lines == ParserBase.BadLineHandleMethod.SKIP:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.BLHM_SKIP:
                 self.parse_options["invalid_row_handler"] = lambda _: "skip"
 
         self.convert_options = {
@@ -139,11 +140,21 @@ class ArrowParserWrapper(ParserBase):
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
 
+        header = self.header
+        if isinstance(header, list):
+            # GH#65862 pyarrow.csv cannot produce multi-row/MultiIndex headers
+            if len(header) == 1:
+                header = header[0]
+            else:
+                raise ValueError(
+                    "The 'pyarrow' engine does not support a list of integers "
+                    "for the 'header' argument (MultiIndex columns are not "
+                    "supported)."
+                )
+
         self.read_options = {
-            "autogenerate_column_names": self.header is None,
-            "skip_rows": self.header
-            if self.header is not None
-            else self.kwds["skiprows"],
+            "autogenerate_column_names": header is None,
+            "skip_rows": header if header is not None else self.kwds["skiprows"],
             "encoding": self.encoding,
         }
 
@@ -291,6 +302,11 @@ class ArrowParserWrapper(ParserBase):
         except pa.ArrowInvalid as e:
             raise ParserError(e) from e
 
+        if self.usecols_dtype == "empty":
+            # GH#66056 pyarrow ignores an empty ``include_columns`` and returns
+            # every column; match the other engines by returning an empty frame.
+            table = table.select([]).slice(0, 0)
+
         dtype_backend = self.kwds["dtype_backend"]
 
         # Convert all pa.null() cols -> float64 (non nullable)
@@ -307,6 +323,17 @@ class ArrowParserWrapper(ParserBase):
             table = table.cast(new_schema)
 
         multi_index_named = self._adjust_column_names(table)
+
+        if isinstance(self.dtype, defaultdict):
+            # GH#41574 materialize the factory default over the actual columns
+            # so missing keys get the default, matching the other engines
+            if self.header is None:
+                # set by _adjust_column_names above
+                assert self.names is not None
+                columns = list(self.names)
+            else:
+                columns = table.column_names
+            self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():
             warnings.filterwarnings(

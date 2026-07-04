@@ -7,6 +7,7 @@ from libc.math cimport (
 from libc.stdlib cimport (
     free,
     malloc,
+    qsort,
 )
 from libc.string cimport memcpy
 
@@ -1270,7 +1271,6 @@ cdef void rank_sorted_1d(
     # array that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
-    # TODO(cython3): de-duplicate once cython supports conditional nogil
     with gil(numeric_object_t is object):
         for i in range(N):
             at_end = i == N - 1
@@ -1616,15 +1616,27 @@ cdef void accumulate_moments_scalar(
 ) noexcept nogil:
     cdef:
         Py_ssize_t i, n = len(values)
-        bint uses_mask = mask is not None
+        bint is_na_entry, uses_mask = mask is not None
         float64_t val
 
     for i in range(n):
         val = values[i]
-        if uses_mask and mask[i]:
-            val = NaN
-        if skipna and isnan(val):
+        if uses_mask:
+            is_na_entry = mask[i]
+        else:
+            is_na_entry = isnan(val)
+
+        if skipna and is_na_entry:
             continue
+        elif is_na_entry:
+            if max_moment >= 4:
+                m4[0] = NaN
+            if max_moment >= 3:
+                m3[0] = NaN
+            m2[0] = NaN
+            mean[0] = NaN
+            nobs[0] = n
+            return
         moments_add_value(val, nobs, mean, m2, m3, m4, max_moment)
 
 
@@ -1645,7 +1657,7 @@ cdef void accumulate_moments_axis(
     cdef:
         Py_ssize_t i, j, nrows = values.shape[0], ncols = values.shape[1]
         Py_ssize_t nouter, ninner
-        bint uses_mask = mask is not None
+        bint is_na_entry, uses_mask = mask is not None
         float64_t val
         float64_t* m3_ptr = NULL
         float64_t* m4_ptr = NULL
@@ -1666,10 +1678,22 @@ cdef void accumulate_moments_axis(
             m4_ptr = &m4[i]
         for j in range(ninner):
             val = values[j, i] if axis == 0 else values[i, j]
-            if uses_mask and (mask[j, i] if axis == 0 else mask[i, j]):
-                val = NaN
-            if skipna and isnan(val):
+            if uses_mask:
+                is_na_entry = mask[j, i] if axis == 0 else mask[i, j]
+            else:
+                is_na_entry = isnan(val)
+
+            if skipna and is_na_entry:
                 continue
+            elif is_na_entry:
+                if max_moment >= 4:
+                    m4[i] = NaN
+                if max_moment >= 3:
+                    m3[i] = NaN
+                m2[i] = NaN
+                mean[i] = NaN
+                nobs[i] = ninner
+                break
             moments_add_value(val, &nobs[i], &mean[i], &m2[i], m3_ptr, m4_ptr,
                               max_moment)
 
@@ -1759,6 +1783,220 @@ def axis_kurt(
             result[i] = calc_kurt(nobs[i], m2[i], m4[i])
 
     return result_arr
+
+
+# ----------------------------------------------------------------------
+# Pairwise Kendall correlation
+#
+# References:
+# - Knight, W. R. (1966).
+#   A computer method for calculating Kendall's tau with ungrouped data.
+#   Journal of the American Statistical Association, 61(314), 436-439.
+#
+# - rankcorr.jl
+#   https://github.com/JuliaStats/StatsBase.jl/blob/3e5382fa6b6ac90cf3d0b1904484668714d0e220/src/rankcorr.jl
+
+cdef struct Pair:
+    float64_t x
+    float64_t y
+
+cdef int compare_pair_aux(const void* a, const void* b) noexcept nogil:
+    cdef:
+        Pair *p1 = <Pair*>a
+        Pair *p2 = <Pair*>b
+    if p1.x < p2.x:
+        return -1
+    if p1.x > p2.x:
+        return 1
+    if p1.y < p2.y:
+        return -1
+    if p1.y > p2.y:
+        return 1
+    return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t insertion_sort(
+    float64_t[:] v,
+    Py_ssize_t lo,
+    Py_ssize_t hi
+) noexcept nogil:
+    cdef:
+        int64_t nswaps = 0
+        Py_ssize_t i, j
+        float64_t x
+
+    for i in range(lo + 1, hi + 1):
+        j = i
+        x = v[i]
+        while j > lo and x < v[j - 1]:
+            nswaps += 1
+            v[j] = v[j - 1]
+            j -= 1
+        v[j] = x
+    return nswaps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t merge_sort(
+    float64_t[:] v,
+    float64_t[:] t,
+    Py_ssize_t lo,
+    Py_ssize_t hi
+) noexcept nogil:
+    cdef:
+        int64_t nswaps = 0
+        Py_ssize_t m, i, j, k
+
+    if lo < hi:
+        if hi - lo <= 64:
+            return insertion_sort(v, lo, hi)
+
+        m = lo + (hi - lo) // 2
+        nswaps = merge_sort(v, t, lo, m)
+        nswaps += merge_sort(v, t, m + 1, hi)
+
+        for i in range(lo, m + 1):
+            t[i - lo] = v[i]
+
+        i = 0
+        j = m + 1
+        k = lo
+        while k < j <= hi and i <= m - lo:
+            if v[j] < t[i]:
+                v[k] = v[j]
+                j += 1
+                nswaps += (m - lo + 1 - i)
+            else:
+                v[k] = t[i]
+                i += 1
+            k += 1
+
+        while i <= m - lo:
+            v[k] = t[i]
+            k += 1
+            i += 1
+    return nswaps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t count_ties(
+    const float64_t[:] v,
+    Py_ssize_t lo,
+    Py_ssize_t hi
+) noexcept nogil:
+    cdef:
+        int64_t result = 0
+        int64_t tie_count = 0
+        Py_ssize_t i
+
+    for i in range(lo + 1, hi + 1):
+        if v[i] == v[i - 1]:
+            tie_count += 1
+        elif tie_count > 0:
+            result += tie_count * (tie_count + 1) // 2
+            tie_count = 0
+    if tie_count > 0:
+        result += tie_count * (tie_count + 1) // 2
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef float64_t compute_kendall_corr_1d(
+    const float64_t[:] x,
+    float64_t[:] y,
+    float64_t[:] temp_t
+) noexcept nogil:
+    cdef:
+        Py_ssize_t n = len(x)
+        int64_t npairs = <int64_t>n * (n - 1) // 2
+        int64_t ntiesx = 0
+        int64_t ntiesy = 0
+        int64_t ndoubleties = 0
+        int64_t nswaps = 0
+        Py_ssize_t i, k = 0
+        float64_t divisor
+
+    if n < 2:
+        return NaN
+
+    for i in range(1, n):
+        if x[i] == x[i-1]:
+            k += 1
+        elif k > 0:
+            ndoubleties += count_ties(y, i - k - 1, i - 1)
+            ntiesx += <int64_t>k * (k + 1) // 2
+            k = 0
+    if k > 0:
+        ndoubleties += count_ties(y, n - k - 1, n - 1)
+        ntiesx += <int64_t>k * (k + 1) // 2
+
+    nswaps = merge_sort(y, temp_t, 0, n - 1)
+    ntiesy = count_ties(y, 0, n - 1)
+
+    divisor = sqrt(<float64_t>(npairs - ntiesx) * <float64_t>(npairs - ntiesy))
+    if divisor == 0:
+        return NaN
+
+    return (npairs + ndoubleties - ntiesx - ntiesy - 2 * nswaps) / divisor
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr_kendall(const float64_t[:, :] mat, Py_ssize_t minp=1):
+    cdef:
+        Py_ssize_t i, xi, yi, N, K, nobs
+        ndarray[float64_t, ndim=2] result
+        ndarray[uint8_t, ndim=2] mask
+        float64_t[::1] x_obs, y_obs, temp_t
+        Pair *pairs = NULL
+        float64_t val
+
+    N, K = (<object>mat).shape
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat).view(np.uint8)
+
+    pairs = <Pair*>malloc(N * sizeof(Pair))
+    if pairs is NULL:
+        raise MemoryError()
+
+    x_obs = np.empty(N, dtype=np.float64)
+    y_obs = np.empty(N, dtype=np.float64)
+    temp_t = np.empty(N, dtype=np.float64)
+
+    with nogil:
+        for xi in range(K):
+            for yi in range(xi + 1):
+                nobs = 0
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
+                        pairs[nobs].x = mat[i, xi]
+                        pairs[nobs].y = mat[i, yi]
+                        nobs += 1
+
+                if nobs < minp:
+                    result[xi, yi] = result[yi, xi] = NaN
+                    continue
+
+                if xi == yi:
+                    result[xi, yi] = 1.0
+                    continue
+
+                qsort(pairs, nobs, sizeof(Pair), compare_pair_aux)
+
+                for i in range(nobs):
+                    x_obs[i] = pairs[i].x
+                    y_obs[i] = pairs[i].y
+
+                val = compute_kendall_corr_1d(x_obs[:nobs], y_obs[:nobs], temp_t[:nobs])
+                result[xi, yi] = result[yi, xi] = val
+        free(pairs)
+
+    return result
 
 
 # generated from template
