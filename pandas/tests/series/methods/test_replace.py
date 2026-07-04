@@ -461,6 +461,16 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    def test_replace_ellipsis(self):
+        # GH#50373 Ellipsis should be accepted as a scalar to_replace
+        series = pd.Series([..., 2, 3])
+        result = series.replace(..., 1)
+        expected = pd.Series([1, 2, 3], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        # Ellipsis is equivalent to the spelled-out singleton
+        tm.assert_series_equal(series.replace(Ellipsis, 1), expected)
+
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):
         obj = pd.Series(["a", "b", "c "])

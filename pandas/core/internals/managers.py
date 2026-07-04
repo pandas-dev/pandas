@@ -1315,6 +1315,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             # Check if we can use _iset_single fastpath
             loc = cast("int", loc)
+            if not value_is_extension_type and len(value) > 1:
+                # GH#46544 setting a single column with a 2D value; matches the
+                #  check in self.insert. value has been transposed above, so
+                #  len(value) is the number of columns in the original value.
+                raise ValueError(
+                    f"Expected a 1D array, got an array with shape {value.T.shape}"
+                )
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
@@ -2301,9 +2308,6 @@ class SingleBlockManager(BaseBlockManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        # For SingleBlockManager (i.e.Series)
-        if other.ndim != 1:
-            return False
         left = self.blocks[0].values
         right = other.blocks[0].values
         return array_equals(left, right)

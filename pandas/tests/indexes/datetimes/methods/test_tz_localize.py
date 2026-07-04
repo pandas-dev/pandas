@@ -355,6 +355,26 @@ class TestTZLocalize:
                 "2018-03-11 01:33:00",
                 timedelta(hours=-1),
             ],
+            # GH#40705, GH#40915: shifting across the UTC+0 DST boundary
+            ["2021-03-28 01:20:00", "Europe/London", "2021-03-28 02:00:00", "forward"],
+            [
+                "2021-03-28 01:20:00",
+                "Europe/London",
+                "2021-03-28 00:59:59.999999999",
+                "backward",
+            ],
+            [
+                "2021-03-28 01:20:00",
+                "Europe/London",
+                "2021-03-28 02:20:00",
+                timedelta(hours=1),
+            ],
+            [
+                "2021-03-28 01:20:00",
+                "Europe/London",
+                "2021-03-28 00:20:00",
+                timedelta(hours=-1),
+            ],
         ],
     )
     @pytest.mark.parametrize("tz_type", ["", "dateutil/"])
