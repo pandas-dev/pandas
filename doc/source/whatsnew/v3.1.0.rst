@@ -355,6 +355,7 @@ Indexing
 - Bug in :meth:`RangeIndex.memory_usage` and :attr:`RangeIndex.nbytes` raising ``TypeError`` on PyPy (:issue:`46176`)
 - Bug in :meth:`Series.where` and :meth:`Series.mask` raising ``ValueError`` when ``other`` is a tuple on object-dtype :class:`Series` (:issue:`37681`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning an iterable to a single cell in an ``object`` dtype column incorrectly raised a ``ValueError`` (:issue:`26333`, :issue:`57962`)
+- Fixed bug in :meth:`DataFrame.loc` where assigning a :class:`Series` to a subset of rows of one column upcast the dtype of other columns in a single-dtype :class:`DataFrame` (:issue:`66105`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
 -
