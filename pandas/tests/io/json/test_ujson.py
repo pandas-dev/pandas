@@ -714,13 +714,7 @@ class TestNumpyJSONTests:
             pytest.skip("Cannot test 64-bit integer on 32-bit platform")
 
         klass = np.dtype(any_int_numpy_dtype).type
-
-        # uint64 max will always overflow,
-        # as it's encoded to signed.
-        if any_int_numpy_dtype == "uint64":
-            num = np.iinfo("int64").max
-        else:
-            num = np.iinfo(any_int_numpy_dtype).max
+        num = np.iinfo(any_int_numpy_dtype).max
 
         assert klass(ujson.ujson_loads(ujson.ujson_dumps(num))) == num
 
