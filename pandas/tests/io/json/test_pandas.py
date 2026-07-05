@@ -2528,3 +2528,18 @@ def test_large_number_string_column():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("val", [np.uint64(2**63), np.uint64(2**64 - 1)])
+def test_to_json_uint64_object_dtype_no_wraparound(val):
+    # GH#66142: np.uint64 values >= 2**63 in object dtype were cast
+    # through signed int64 path in ujson, causing negative wraparound
+    expected = str(int(val))
+
+    # Series list path
+    result = Series([val], dtype=object).to_json()
+    assert f'"0":{expected}' in result
+
+    # DataFrame path
+    result_df = DataFrame({"a": [val]}, dtype=object).to_json()
+    assert f'"0":{expected}' in result_df
