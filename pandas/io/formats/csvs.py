@@ -11,6 +11,7 @@ from collections.abc import (
     Sequence,
 )
 import csv as csvlib
+from io import StringIO
 import os
 from typing import (
     TYPE_CHECKING,
@@ -58,6 +59,21 @@ if TYPE_CHECKING:
 
 
 _DEFAULT_CHUNKSIZE_CELLS = 100_000
+
+
+def _csv_quotes_crlf_unconditionally() -> bool:
+    """
+    Whether the running csv.writer quotes fields containing CR or LF
+    regardless of the line terminator. CPython versions up to 3.11.1 quoted
+    them only when they were part of the line terminator; the fast writer
+    probes the running module so its output stays byte-identical.
+    """
+    buf = StringIO()
+    csvlib.writer(buf, lineterminator="\r").writerow(["\n"])
+    return '"' in buf.getvalue()
+
+
+_CSV_QUOTES_CRLF = _csv_quotes_crlf_unconditionally()
 
 
 class CSVFormatter:
@@ -366,7 +382,10 @@ class CSVFormatter:
             and ord(self.quotechar) < 128
             and isinstance(self.lineterminator, str)
             and 1 <= len(self.lineterminator) <= 2
-            and all(ord(ch) < 128 for ch in self.lineterminator)
+            # only \r/\n line terminators: the native writer's per-field
+            # quoting scan assumes non-numeric output is all that can contain a
+            # line-ending char, and numeric/datetime output never does
+            and all(ch in "\r\n" for ch in self.lineterminator)
             and self.nlevels <= 1
         )
 
@@ -392,6 +411,7 @@ class CSVFormatter:
                 # na_rep is not necessarily a str, e.g. na_rep=999; the
                 # legacy paths stringify it downstream
                 str(self.na_rep),
+                _CSV_QUOTES_CRLF,
             )
         except UnicodeEncodeError:
             # e.g. lone surrogates, which csv.writer passes through

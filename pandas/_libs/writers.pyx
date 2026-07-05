@@ -187,11 +187,13 @@ cdef inline void buf_append_raw(CsvBuf* buf, const char* src, size_t n) noexcept
 
 
 cdef int append_field(CsvBuf* buf, const char* field, Py_ssize_t n,
-                      char sep, char quote, bint lone_field) except -1:
+                      char sep, char quote, char qe0, char qe1,
+                      bint lone_field) except -1:
     """
     Append one field with csv.writer QUOTE_MINIMAL semantics: quote (doubling
     embedded quotechars) iff the field contains the delimiter, the quotechar,
-    or a literal CR/LF; quote an empty field iff it is the row's only field.
+    or a line-ending trigger char (qe0/qe1); quote an empty field iff it is
+    the row's only field.
     """
     cdef:
         Py_ssize_t i
@@ -208,8 +210,8 @@ cdef int append_field(CsvBuf* buf, const char* field, Py_ssize_t n,
     need_quote = (
         memchr(field, sep, n) != NULL
         or memchr(field, quote, n) != NULL
-        or memchr(field, c"\r", n) != NULL
-        or memchr(field, c"\n", n) != NULL
+        or memchr(field, qe0, n) != NULL
+        or memchr(field, qe1, n) != NULL
     )
     if not need_quote:
         buf_reserve(buf, n)
@@ -230,7 +232,7 @@ cdef int append_field(CsvBuf* buf, const char* field, Py_ssize_t n,
 
 
 cdef int append_obj_cell(CsvBuf* buf, object cell, char sep, char quote,
-                         bint lone_field) except -1:
+                         char qe0, char qe1, bint lone_field) except -1:
     """
     Append a pre-converted cell like csv.writer would: str used as-is,
     None as empty, anything else via str().
@@ -241,13 +243,13 @@ cdef int append_obj_cell(CsvBuf* buf, object cell, char sep, char quote,
         object tmp
 
     if cell is None:
-        return append_field(buf, NULL, 0, sep, quote, lone_field)
+        return append_field(buf, NULL, 0, sep, quote, qe0, qe1, lone_field)
     if isinstance(cell, str):
         cstr = PyUnicode_AsUTF8AndSize(cell, &length)
-        return append_field(buf, cstr, length, sep, quote, lone_field)
+        return append_field(buf, cstr, length, sep, quote, qe0, qe1, lone_field)
     tmp = str(cell)
     cstr = PyUnicode_AsUTF8AndSize(tmp, &length)
-    return append_field(buf, cstr, length, sep, quote, lone_field)
+    return append_field(buf, cstr, length, sep, quote, qe0, qe1, lone_field)
 
 
 cdef inline int u64toa(uint64_t val, char* out) noexcept:
@@ -360,6 +362,7 @@ def write_csv_chunk(
     str quotechar,
     str lineterminator,
     str na_rep,
+    bint crlf_always,
 ) -> str:
     """
     Render a chunk of to_csv output to a single str, replicating
@@ -380,6 +383,10 @@ def write_csv_chunk(
         One or two ASCII characters.
     na_rep : str
         Written for NaN/NaT in natively-rendered columns.
+    crlf_always : bool
+        Whether the running csv.writer quotes fields containing CR or LF
+        regardless of the line terminator. CPython versions up to 3.11.1
+        quoted them only when they were part of the line terminator.
 
     Returns
     -------
@@ -397,6 +404,7 @@ def write_csv_chunk(
         char csep = <char>ord(sep)
         char cquote = <char>ord(quotechar)
         char lt0 = 0, lt1 = 0
+        char qe0, qe1
         int lt_len, kind, slen
         bytes na_field_b
         const char* na_ptr
@@ -424,14 +432,22 @@ def write_csv_chunk(
     if lt_len == 2:
         lt1 = (<const char*>lt_bytes)[1]
 
+    # csv.writer quotes a field iff it contains the delimiter, the quotechar,
+    # or a line-terminator character; modern CPython also always quotes \r and
+    # \n. The caller restricts the fast path to \r/\n line terminators, so the
+    # two trigger chars qe0/qe1 (duplicated when there is only one) cover it.
+    quote_extra = "\r\n" if crlf_always else lineterminator
+    qe_bytes = quote_extra.encode("ascii")
+    qe0 = (<const char*>qe_bytes)[0]
+    qe1 = (<const char*>qe_bytes)[1] if len(qe_bytes) == 2 else qe0
+
     # pre-render the field emitted for missing values, quoting rules applied
     if na_rep == "":
         na_field_b = (quotechar * 2).encode("utf-8") if lone_field else b""
     elif (
         sep in na_rep
         or quotechar in na_rep
-        or "\r" in na_rep
-        or "\n" in na_rep
+        or any(ch in na_rep for ch in quote_extra)
     ):
         na_field_b = (
             quotechar + na_rep.replace(quotechar, quotechar * 2) + quotechar
@@ -522,7 +538,7 @@ def write_csv_chunk(
                     cell = <object>(
                         (<PyObject**>(data_ptrs[k] + j * strides[k]))[0]
                     )
-                    append_obj_cell(&buf, cell, csep, cquote, lone_field)
+                    append_obj_cell(&buf, cell, csep, cquote, qe0, qe1, lone_field)
                     continue
 
                 slen = -1
@@ -576,7 +592,9 @@ def write_csv_chunk(
                         buf_reserve(&buf, na_len)
                         buf_append_raw(&buf, na_ptr, na_len)
                 elif scans[k]:
-                    append_field(&buf, scratch, slen, csep, cquote, lone_field)
+                    append_field(
+                        &buf, scratch, slen, csep, cquote, qe0, qe1, lone_field
+                    )
                 else:
                     buf_reserve(&buf, slen)
                     buf_append_raw(&buf, scratch, slen)

@@ -25,6 +25,7 @@ def write_csv_chunk(
     quotechar: str,
     lineterminator: str,
     na_rep: str,
+    crlf_always: bool,
 ) -> str: ...
 def convert_json_to_lines(arr: str) -> str: ...
 def max_len_string_array(

@@ -22,8 +22,13 @@ def _legacy_to_csv(monkeypatch, df, **kwargs):
 
 
 def assert_fast_matches_legacy(monkeypatch, df, **kwargs):
-    result = df.to_csv(**kwargs)
-    expected = _legacy_to_csv(monkeypatch, df, **kwargs)
+    # get_values_for_csv casts some ExtensionArrays (e.g. IntervalArray) to
+    # str, which can emit a spurious "invalid value encountered in cast"
+    # RuntimeWarning on some platforms; it is shared by both writers and
+    # irrelevant to the byte comparison here.
+    with np.errstate(invalid="ignore"):
+        result = df.to_csv(**kwargs)
+        expected = _legacy_to_csv(monkeypatch, df, **kwargs)
     assert result == expected
 
 
@@ -173,13 +178,26 @@ def test_fast_writer_float_boundaries(monkeypatch):
 
 def test_fast_writer_lone_empty_field(monkeypatch):
     # csv.writer quotes an empty field iff it is the row's only field
+    # (lineterminator is pinned so the expected string is platform-independent)
     df = DataFrame({"a": ["", "x", ""]})
     assert_fast_matches_legacy(monkeypatch, df, index=False)
-    assert df.to_csv(index=False) == 'a\n""\nx\n""\n'
+    assert df.to_csv(index=False, lineterminator="\n") == 'a\n""\nx\n""\n'
     # ... including for NaN rendered with the default na_rep=""
     df = DataFrame({"a": [np.nan, 1.0]})
     assert_fast_matches_legacy(monkeypatch, df, index=False)
-    assert df.to_csv(index=False) == 'a\n""\n1.0\n'
+    assert df.to_csv(index=False, lineterminator="\n") == 'a\n""\n1.0\n'
+
+
+@pytest.mark.parametrize("lineterminator", ["\n", "\r\n", "\r"])
+def test_fast_writer_embedded_newline_quoting(monkeypatch, lineterminator):
+    # csv.writer quotes a field containing \r or \n; up to CPython 3.11.1 it
+    # did so only when the char was part of the line terminator. The fast
+    # writer must match the running module for each line terminator.
+    df = DataFrame({"a": ["plain", "has\nlf", "has\rcr", "has\r\ncrlf"]})
+    assert_fast_matches_legacy(monkeypatch, df, lineterminator=lineterminator)
+    assert_fast_matches_legacy(
+        monkeypatch, df, lineterminator=lineterminator, na_rep="a\nb"
+    )
 
 
 def test_fast_writer_long_na_rep_truncation(monkeypatch):
