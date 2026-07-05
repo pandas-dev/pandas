@@ -1647,6 +1647,22 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
+    @pytest.mark.parametrize("bigNum", [np.uint64(2**63), np.iinfo(np.uint64).max])
+    def test_to_json_object_dtype_numpy_uint64_scalar(self, bigNum):
+        # Object-dtype containers store the numpy scalar directly, which
+        # previously went through a signed int64 cast in ujson and wrapped.
+        expected_num = str(int(bigNum))
+
+        series = Series([bigNum], dtype=object, index=["articleId"])
+        assert series.to_json() == '{"articleId":' + expected_num + "}"
+
+        # Scalar constructor path should match the list path.
+        series_scalar = Series(bigNum, dtype=object, index=["articleId"])
+        assert series_scalar.to_json() == '{"articleId":' + expected_num + "}"
+
+        df = DataFrame({"a": [bigNum]}, dtype=object)
+        assert df.to_json() == '{"a":{"0":' + expected_num + "}}"
+
     @pytest.mark.parametrize("bigNum", [-(2**63) - 1, 2**64])
     def test_read_json_large_numbers(self, bigNum):
         # GH20599, 26068
