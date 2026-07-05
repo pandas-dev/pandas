@@ -64,7 +64,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas.core import roperator
+from pandas.core import (
+    algorithms,
+    roperator,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -885,6 +888,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             else:
                 codes = np.arange(len(self), dtype=np.intp)
                 uniques = self.copy()
+            uniques._name = None
+            return codes, uniques
+        if len(self) > 1 and (
+            self.is_monotonic_increasing or self.is_monotonic_decreasing
+        ):
+            # Monotonic implies no NaT, so NA handling is not needed
+            codes, uniques_indexer = algorithms.factorize_monotonic_codes(
+                self._data._ndarray, self.is_monotonic_increasing, sort
+            )
+            uniques = self[uniques_indexer]
             uniques._name = None
             return codes, uniques
         return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)

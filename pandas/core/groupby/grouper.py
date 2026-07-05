@@ -982,8 +982,9 @@ def _factorize_monotonic(
         dtype = grouping_vector.dtype
         if not isinstance(dtype, np.dtype) or dtype.kind not in "iufmMb":
             return None
-        if getattr(grouping_vector, "freq", None) is not None:
-            # Fallback for DatetimeIndex/TimedeltaIndex/PeriodIndex is faster
+        if isinstance(grouping_vector, Index) and dtype.kind in "mM":
+            # DatetimeIndex/TimedeltaIndex.factorize has its own fastpaths
+            # (freq-based and monotonic) that retain freq and Index uniques
             return None
         ascending = grouping_vector.is_monotonic_increasing
         if not ascending and not grouping_vector.is_monotonic_decreasing:
@@ -1009,28 +1010,11 @@ def _factorize_monotonic(
     else:
         return None
 
-    n = len(arr)
-    if n <= 1:
+    if len(arr) <= 1:
         return None
 
-    # Find group transitions via adjacent-element comparison.
-    transitions = np.empty(n, dtype=bool)
-    transitions[0] = True
-    transitions[1:] = arr[1:] != arr[:-1]
-
-    # Build codes using repeat (faster than cumsum on bool).
-    group_starts = np.flatnonzero(transitions)
-    uniques = arr[group_starts]
-    ngroups = len(group_starts)
-    run_lengths = np.diff(group_starts, append=n)
-    codes = np.repeat(np.arange(ngroups, dtype=np.intp), run_lengths)
-
-    if sort and not ascending:
-        # Reverse uniques to sorted order and remap codes.
-        uniques = uniques[::-1].copy()
-        codes = ensure_platform_int(ngroups - 1 - codes)
-
-    return codes, uniques
+    codes, uniques_indexer = algorithms.factorize_monotonic_codes(arr, ascending, sort)
+    return codes, arr[uniques_indexer]
 
 
 def _convert_grouper(axis: Index, grouper):

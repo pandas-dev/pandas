@@ -26,6 +26,7 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
@@ -1245,3 +1246,21 @@ def test_groupby_any_with_timedelta():
     expected.index = expected.index.astype(np.int64)
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        date_range("2020-01-01", periods=5, freq="D"),
+        timedelta_range("1 day", periods=5, freq="D"),
+    ],
+)
+def test_groupby_index_with_freq_retains_freq(idx):
+    # GH#66046 - grouping by a DatetimeIndex/TimedeltaIndex with a freq
+    # retains the freq on the result index
+    df = DataFrame({"a": range(5)})
+
+    result = df.groupby(idx).sum()
+
+    assert result.index.freq == idx.freq
+    tm.assert_index_equal(result.index, idx)
