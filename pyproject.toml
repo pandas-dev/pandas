@@ -474,6 +474,10 @@ filterwarnings = [
   # Remove 2 below when pyarrow version > ??
   "ignore:make_block is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
   "ignore:DatetimeTZBlock is deprecated and will be removed in a future version:pandas.errors.Pandas4Warning:pyarrow",
+  # pyarrow>=24 deprecates feather.read_table/write_feather, still used by
+  # pandas.io.feather_format; remove once we migrate to pyarrow.ipc
+  "ignore:pyarrow.feather.read_table is deprecated:FutureWarning",
+  "ignore:pyarrow.feather.write_feather is deprecated:FutureWarning",
 ]
 junit_family = "xunit2"
 
