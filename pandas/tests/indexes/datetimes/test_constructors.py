@@ -1118,6 +1118,26 @@ class TestTimeSeries:
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(dti, freq="QS-JAN")
 
+    @pytest.mark.parametrize(
+        "data_freq, passed_freq",
+        [
+            # Jan 2000 has 31 days, so the first month-start gap equals 31D/744h
+            ("MS", "31D"),
+            ("MS", "744h"),
+            # Apr 30 2000 is a Sunday, so ME data does not conform to BME even
+            # though the earlier month-end gaps happen to agree
+            ("ME", "BME"),
+        ],
+    )
+    def test_constructor_freq_first_step_coincidence(self, data_freq, passed_freq):
+        # GH#65012 a passed freq that only agrees with the data on the first
+        # step must not be pinned; later steps diverge, so it does not conform
+        dti = date_range("2000-01-01", freq=data_freq, periods=4)
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq=passed_freq)
+
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
