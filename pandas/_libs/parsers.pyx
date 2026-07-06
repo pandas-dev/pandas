@@ -1829,13 +1829,13 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
                               int64_t line_start, int64_t line_end,
                               size_t width, char *data) noexcept nogil:
     cdef:
-        int64_t i
+        int64_t _
         coliter_t it
         const char *word = NULL
 
     coliter_setup(&it, parser, col, line_start)
 
-    for i in range(line_end - line_start):
+    for _ in range(line_end - line_start):
         COLITER_NEXT(it, word)
         strncpy(data, word, width)
         data += width
@@ -1892,7 +1892,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            int *na_count) nogil:
     cdef:
         int error = 0,
-        Py_ssize_t i, lines = line_end - line_start
+        Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         char *p_end
@@ -1902,7 +1902,7 @@ cdef int _try_double_nogil(parser_t *parser,
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(na_hashset, word):
@@ -1932,7 +1932,7 @@ cdef int _try_double_nogil(parser_t *parser,
                         data[0] = NA
             data += 1
     else:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
                                        parser.sci, parser.thousands,
@@ -2162,7 +2162,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                               int *na_count) nogil:
     cdef:
         int error = 0
-        Py_ssize_t i, lines = line_end - line_start
+        Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
 
@@ -2170,7 +2170,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(na_hashset, word):
@@ -2194,7 +2194,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                 return error
             data += 1
     else:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(true_hashset, word):
