@@ -63,8 +63,11 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     Parameters
     ----------
-    df : DataFrameXchg
-        Object supporting the interchange protocol, i.e. `__dataframe__` method.
+    df : ArrowStreamExportable or DataFrameXchg
+        Object supporting the Arrow PyCapsule Interface, i.e. an
+        `__arrow_c_stream__` method (``ArrowStreamExportable``), or an object
+        supporting the interchange protocol, i.e. a `__dataframe__` method
+        (``DataFrameXchg``).
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).

@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
     period as libperiod,
     to_offset,
 )
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
@@ -365,16 +366,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     # -----------------------------------------------------------------
     # DatetimeLike Interface
 
-    # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
-    # "DatetimeLikeArrayMixin"; supertype defines the argument type as
-    # "Union[Union[Period, Any, Timedelta], NaTType]"
-    def _unbox_scalar(  # type: ignore[override]
+    def _unbox_scalar(
         self,
-        value: Period | NaTType,
+        # error: Argument 1 of "_unbox_scalar" is incompatible with supertype
+        # "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin"; supertype
+        #  defines the argument type as "Period | Timestamp | Timedelta | NaTType"
+        value: Period | NaTType,  # type: ignore[override]
     ) -> np.int64:
         if value is NaT:
-            # error: Item "Period" of "Union[Period, NaTType]" has no attribute "value"
-            return np.int64(value._value)  # type: ignore[union-attr]
+            return np.int64(value._value)
         elif isinstance(value, self._scalar_type):
             self._check_compatible_with(value)
             return np.int64(value.ordinal)
@@ -384,10 +384,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    # error: Argument 1 of "_check_compatible_with" is incompatible with
-    # supertype "DatetimeLikeArrayMixin"; supertype defines the argument type
-    # as "Period | Timestamp | Timedelta | NaTType"
-    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
+    def _check_compatible_with(
+        self,
+        #  error: Argument 1 of "_check_compatible_with" is incompatible with
+        # supertype "pandas.core.arrays.datetimelike.DatetimeLikeArrayMixin";
+        # supertype defines the argument type as "Period | Timestamp | Timedelta
+        # | NaTType"
+        other: Period | NaTType | PeriodArray,  # type: ignore[override]
+    ) -> None:
         if other is NaT:
             return
         elif isinstance(other, Period):
@@ -1474,7 +1478,19 @@ def dt64arr_to_periodarr(
         if isinstance(data, ABCIndex):
             data, freq = data._values, data.freq
         elif isinstance(data, ABCSeries):
-            data, freq = data._values, data.dt.freq
+            # freq is always None for DatetimeArray inside a Series;
+            # data.dt.freq uses inferred_freq, which we are deprecating.
+            inferred_freq = data.dt.freq
+            if inferred_freq is not None:
+                warnings.warn(
+                    "Constructing PeriodArray from a Series of datetime64 data "
+                    "will stop inferring the frequency in a future version. "
+                    "Pass `freq` explicitly instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                freq = inferred_freq
+            data = data._values
 
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
@@ -1553,34 +1569,50 @@ def _range_from_fields(
     if day is None:
         day = 1
 
-    ordinals = []
-
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = cast("int", FreqGroup.FR_QTR.value)
+            base = FreqGroup.FR_QTR.value
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != cast("int", FreqGroup.FR_QTR.value):
+            if base != FreqGroup.FR_QTR.value:
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        for y, q in zip(year, quarter, strict=True):
-            calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
-            val = libperiod.period_ordinal(
-                calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
-            )
-            ordinals.append(val)
+        year = np.asarray(year, dtype=np.int64)
+        quarter = np.asarray(quarter, dtype=np.int64)
+
+        if (quarter < 1).any() or (quarter > 4).any():
+            raise ValueError("Quarter must be 1 <= q <= 4")
+
+        # Vectorized quarter_to_myear
+        mnum = MONTH_NUMBERS[parsing.get_rule_month(freqstr)] + 1
+        months = (mnum + (quarter - 1) * 3) % 12 + 1
+        years = np.where(months > mnum, year - 1, year)
+
+        length = len(years)
+        ones = np.ones(length, dtype=np.int64)
+        zeros = np.zeros(length, dtype=np.int64)
+        ordinals = libperiod.period_ordinals_from_fields(
+            years, months, ones, zeros, zeros, zeros, base
+        )
     else:
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays, strict=True):
-            ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
+        ordinals = libperiod.period_ordinals_from_fields(
+            arrays[0].astype(np.int64, copy=False),
+            arrays[1].astype(np.int64, copy=False),
+            arrays[2].astype(np.int64, copy=False),
+            arrays[3].astype(np.int64, copy=False),
+            arrays[4].astype(np.int64, copy=False),
+            arrays[5].astype(np.int64, copy=False),
+            base,
+        )
 
-    return np.array(ordinals, dtype=np.int64), freq
+    return ordinals, freq
 
 
 def _make_field_arrays(*fields) -> list[np.ndarray]:

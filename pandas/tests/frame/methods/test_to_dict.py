@@ -532,12 +532,13 @@ class TestDataFrameToDict:
     @pytest.mark.parametrize(
         "df",
         [
-            DataFrame({"B": ["x", "y"], "A": ["a", "b"]}),  # all object dtype cols
-            DataFrame({"B": [1, 2], "A": ["x", "y"]}),  # mixed object/non-object
-            DataFrame({"B": [1, 2], "A": [3, 4]}),  # no object dtype cols
+            DataFrame({"B": ["x", "y"], "A": ["a", "b"]}),  # all EA cols
+            DataFrame({"B": [1, 2], "A": ["x", "y"]}),  # mixed EA/non-EA
+            DataFrame({"B": [1, 2], "A": [3, 4]}),  # no EA cols
         ],
     )
     def test_to_dict_index_into_applies_to_nested_mappings(self, df: DataFrame):
+        # https://github.com/pandas-dev/pandas/issues/65778
 
         result = df.to_dict(orient="index", into=OrderedDict)
 

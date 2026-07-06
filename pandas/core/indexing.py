@@ -2850,6 +2850,20 @@ class _iLocIndexer(_LocationIndexer):
                     self._setitem_single_column(loc, value, indexer[0])
                     return
 
+            if (
+                self.ndim == 2
+                and len(indexer) == 2
+                and self.obj.shape[1] > 1
+                and not com.is_null_slice(indexer[1])
+                and not isinstance(value, ABCDataFrame)
+                and not can_hold_element(
+                    self.obj._mgr.blocks[0].values,
+                    extract_array(value, extract_numpy=True),
+                )
+            ):
+                self._setitem_with_indexer_split_path(indexer, value, name)
+                return
+
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
         if isinstance(value, ABCDataFrame) and name != "iloc":

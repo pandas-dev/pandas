@@ -102,6 +102,19 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
+        op_name = all_reductions
+        ser = pd.Series(data)
+
+        if op_name != "count":
+            # https://github.com/pandas-dev/pandas/pull/63512
+            # DecimalArray does not implement sum et all as attributes.
+            msg = f"object has no attribute '{op_name}'"
+            with pytest.raises(AttributeError, match=msg):
+                getattr(ser.array, op_name)()
+        else:
+            return super().test_reduce_array(request, data, all_reductions, skipna)
+
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
 
