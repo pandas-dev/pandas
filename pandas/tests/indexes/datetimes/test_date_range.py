@@ -1304,6 +1304,35 @@ class TestCustomDateRange:
         tm.assert_index_equal(result, expected)
         assert result.freq == expected.freq
 
+    def test_cdaterange_sparse_weekmask_holidays_periods(self, unit):
+        # GH#65604: a sparse weekmask combined with holidays landing on
+        # on-offset days pushes consecutive on-offset dates >7 calendar days
+        # apart, so the internal daily buffer under-filled and fewer than
+        # ``periods`` entries were returned.
+        holidays = ["2026-03-09", "2026-03-16"]
+        dates = ["2026-03-02", "2026-03-23", "2026-03-30", "2026-04-06"]
+
+        result = bdate_range(
+            start="2026-03-02",
+            periods=4,
+            freq="C",
+            weekmask="Mon",
+            holidays=holidays,
+            unit=unit,
+        )
+        expected = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq=result.freq)
+        tm.assert_index_equal(result, expected)
+
+        result = bdate_range(
+            end="2026-04-06",
+            periods=4,
+            freq="C",
+            weekmask="Mon",
+            holidays=holidays,
+            unit=unit,
+        )
+        tm.assert_index_equal(result, expected)
+
     def test_cdaterange_holidays_weekmask_requires_freqstr(self):
         # raise with non-custom freq
         msg = (

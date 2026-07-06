@@ -128,28 +128,35 @@ def generate_daily_offset_range(
     """
     abs_n = freq.n  # caller ensures n >= 1
 
-    # For the periods case, convert to start+end by extending the known
-    # endpoint with a generous Timedelta. The worst-case gap for any
-    # daily-grid offset is 7 calendar days per on-offset day (e.g. Week),
-    # so needed * 7 + 6 is always sufficient.
-    trim_to = None
-    trim_from_end = False
-    if periods is not None:
+    # When `periods` is anchored to `end`, the stride and trim work from the
+    # end of the produced range rather than the start.
+    trim_from_end = periods is not None and end is not None
+
+    if periods is None:
+        i8values = _daily_masked_i8values(start, end, freq, unit)
+    else:
+        # Convert to a start+end range by extending the known endpoint with a
+        # buffer of calendar days, then filter and trim. On-offset dates are at
+        # most 7 calendar days apart in the holiday-free case (e.g. a weekly
+        # weekmask), but a sparse weekmask combined with holidays landing on
+        # on-offset days can push consecutive on-offset dates arbitrarily far
+        # apart (GH#65604), so grow the buffer until enough are produced. This
+        # terminates: the buffer eventually overflows the datetime bounds,
+        # raising for the iterative fallback in the caller to handle.
         needed_on_offset = (periods - 1) * abs_n + 1
         buffer_days = needed_on_offset * 7 + 6
-        if end is None:
-            # start is guaranteed non-None by the caller
-            end = (  # type: ignore[assignment]
-                start + Timedelta(days=buffer_days)  # type: ignore[operator]
-            ).as_unit(unit)
-        else:
-            trim_from_end = True
-            start = (end - Timedelta(days=buffer_days)).as_unit(unit)  # pyright: ignore[reportAssignmentType]
-        trim_to = periods
-
-    i8values = generate_regular_range(start, end, None, Day(), unit=unit)
-    dt64 = i8values.view(f"datetime64[{unit}]")
-    i8values = i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
+        # Exactly one of start/end is non-None here (caller guarantees it).
+        anchor = end if trim_from_end else start
+        assert anchor is not None
+        while True:
+            if trim_from_end:
+                start = (anchor - Timedelta(days=buffer_days)).as_unit(unit)
+            else:
+                end = (anchor + Timedelta(days=buffer_days)).as_unit(unit)
+            i8values = _daily_masked_i8values(start, end, freq, unit)
+            if len(i8values) >= needed_on_offset:
+                break
+            buffer_days *= 2
 
     if abs_n > 1:
         # When trimming from the end (end+periods case), the buffer starts
@@ -162,13 +169,28 @@ def generate_daily_offset_range(
         else:
             i8values = i8values[::abs_n]
 
-    if trim_to is not None:
+    if periods is not None:
         if trim_from_end:
-            i8values = i8values[-trim_to:]
+            i8values = i8values[-periods:]
         else:
-            i8values = i8values[:trim_to]
+            i8values = i8values[:periods]
 
     return i8values
+
+
+def _daily_masked_i8values(
+    start: Timestamp | None,
+    end: Timestamp | None,
+    freq: BaseOffset,
+    unit: TimeUnit,
+) -> npt.NDArray[np.int64]:
+    """
+    Generate a daily i8 range between ``start`` and ``end`` and keep only the
+    values that are on-offset for ``freq``.
+    """
+    i8values = generate_regular_range(start, end, None, Day(), unit=unit)
+    dt64 = i8values.view(f"datetime64[{unit}]")
+    return i8values[freq._get_daily_offset_mask(dt64)]  # type: ignore[attr-defined]
 
 
 def _generate_range_overflow_safe(
