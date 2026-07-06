@@ -1325,7 +1325,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             result = type(self)._simple_new(dates, name=self.name)
-            result._freq = self.freq
+            # The sort=False result is non-monotonic (self's values followed
+            #  by earlier values from other), so it cannot carry a freq.
             return result
         else:
             left, right = other, self
