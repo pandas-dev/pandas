@@ -101,11 +101,7 @@ class TestSparseArray(base.ExtensionTests):
         return False
 
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        return True
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        if all_numeric_reductions in [
+        if op_name in [
             "prod",
             "median",
             "var",
@@ -114,19 +110,10 @@ class TestSparseArray(base.ExtensionTests):
             "skew",
             "kurt",
         ]:
-            mark = pytest.mark.xfail(
-                reason="This should be viable but is not implemented"
-            )
-            request.node.add_marker(mark)
-        elif (
-            all_numeric_reductions in ["sum", "max", "min", "mean"]
-            and data.dtype.kind == "f"
-            and not skipna
-        ):
-            mark = pytest.mark.xfail(reason="getting a non-nan float")
-            request.node.add_marker(mark)
-
-        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+            # These should be viable but are not implemented
+            return False
+        else:
+            return True
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
@@ -142,13 +129,6 @@ class TestSparseArray(base.ExtensionTests):
             mark = pytest.mark.xfail(
                 reason="This should be viable but is not implemented"
             )
-            request.node.add_marker(mark)
-        elif (
-            all_numeric_reductions in ["sum", "max", "min", "mean"]
-            and data.dtype.kind == "f"
-            and not skipna
-        ):
-            mark = pytest.mark.xfail(reason="ExtensionArray NA mask are different")
             request.node.add_marker(mark)
 
         super().test_reduce_frame(data, all_numeric_reductions, skipna)

@@ -453,12 +453,12 @@ cpdef ndarray astype_overflowsafe(
             values.ndim, values.shape, cnp.NPY_INT64, 0
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
-        Py_ssize_t i, N = values.size
+        Py_ssize_t _, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts
         bint is_td = dtype.type_num == cnp.NPY_TIMEDELTA
 
-    for i in range(N):
+    for _ in range(N):
         # Analogous to: item = values[i]
         value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -524,10 +524,10 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
         int64_t lval, rval
         bint res_value
 
-        Py_ssize_t i, N = left.size
+        Py_ssize_t _, N = left.size
         npy_datetimestruct ldts, rdts
 
-    for i in range(N):
+    for _ in range(N):
         # Analogous to: lval = lvalues[i]
         lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -586,7 +586,7 @@ cdef ndarray _astype_overflowsafe_to_larger_unit_via_dts(
             values.ndim, values.shape, cnp.NPY_INT64, 0
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(iresult, i8values)
-        Py_ssize_t i, N = values.size
+        Py_ssize_t _, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts
         npy_datetimestruct cmp_lower, cmp_upper
@@ -594,7 +594,7 @@ cdef ndarray _astype_overflowsafe_to_larger_unit_via_dts(
 
     get_implementation_bounds(to_unit, &cmp_lower, &cmp_upper)
 
-    for i in range(N):
+    for _ in range(N):
         value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         if value == NPY_DATETIME_NAT:
@@ -644,7 +644,7 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
     # e.g. test_astype_ns_to_ms_near_bounds is a case with round_ok=True where
     #  just using numpy's astype silently fails
     cdef:
-        Py_ssize_t i, N = i8values.size
+        Py_ssize_t _, N = i8values.size
 
         # equiv: iresult = np.empty((<object>i8values).shape, dtype="i8")
         ndarray iresult = cnp.PyArray_EMPTY(
@@ -657,7 +657,7 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
         int64_t mult = get_conversion_factor(to_unit, from_unit)
         int64_t value, mod, new_value
 
-    for i in range(N):
+    for _ in range(N):
         # Analogous to: item = i8values[i]
         value = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -814,7 +814,7 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     `right` may either be zero-dim or of the same shape as `left`.
     """
     cdef:
-        Py_ssize_t N = left.size
+        Py_ssize_t _, N = left.size
         int64_t lval, rval, res_value
         ndarray iresult = cnp.PyArray_EMPTY(
             left.ndim, left.shape, cnp.NPY_INT64, 0
@@ -824,7 +824,7 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.
     try:
-        for i in range(N):
+        for _ in range(N):
             # Analogous to: lval = lvalues[i]
             lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
