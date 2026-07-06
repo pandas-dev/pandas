@@ -600,7 +600,7 @@ def array_to_datetime_with_tz(
     cdef:
         ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        Py_ssize_t i, n = values.size
+        Py_ssize_t _, n = values.size
         object item
         int64_t ival
         _TSObject tsobj
@@ -614,7 +614,7 @@ def array_to_datetime_with_tz(
     else:
         abbrev = npy_unit_to_abbrev(creso)
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to `item = values[i]`
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
