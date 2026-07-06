@@ -1384,19 +1384,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             values = ensure_wrapped_if_datetimelike(values)
             return astype_array(values, dtype=future_dtype, copy=False)
 
-        # GH#49631: save whether the original arg was a string (e.g.
-        # "Sparse[int64]") vs an explicit SparseDtype object, since
-        # update_dtype will overwrite dtype below.
-        dtype_from_string = not isinstance(dtype, SparseDtype)
         dtype = self.dtype.update_dtype(dtype)
 
-        # When dtype came from a string, update_dtype returns it with the
-        # default fill_value (e.g. 0 for int64) rather than converting the
-        # source fill_value (e.g. NaT -> iNaT). Fix that here.
+        # GH#49631: update_dtype resolves the target to the subtype's default
+        # fill_value (e.g. 0 for int64) rather than converting the source
+        # fill_value. For a datetimelike source with an NA (NaT) fill, casting to
+        # int is a view, so match the dense .astype and map NaT -> iNaT instead of
+        # silently using 0. Skip when fully dense, since the fill_value is unused.
         if (
-            dtype_from_string
-            and self.dtype._is_na_fill_value
+            self.dtype._is_na_fill_value
             and not dtype._is_na_fill_value
+            and self.dtype.subtype.kind in "mM"
+            and self.sp_index.npoints != len(self)
         ):
             fv_arr = np.atleast_1d(np.array(self.fill_value))
             fv_arr = ensure_wrapped_if_datetimelike(fv_arr)

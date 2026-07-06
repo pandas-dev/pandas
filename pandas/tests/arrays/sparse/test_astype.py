@@ -4,6 +4,7 @@ import pytest
 from pandas._libs.sparse import IntIndex
 
 from pandas import (
+    Series,
     SparseDtype,
     Timestamp,
 )
@@ -132,16 +133,33 @@ class TestAstype:
         result3 = arr3.astype("int64")
         tm.assert_numpy_array_equal(result3, expected)
 
-    def test_astype_dt64_to_sparse_int64_fill_value(self):
-        # GH#49631 converting to "Sparse[int64]" (string) should convert
-        # the NaT fill_value to iNaT, not silently replace it with 0
+    @pytest.mark.parametrize("dtype", ["Sparse[int64]", SparseDtype("int64")])
+    def test_astype_dt64_to_sparse_int64_fill_value(self, dtype):
+        # GH#49631 converting to Sparse[int64] should convert the NaT
+        # fill_value to iNaT, not silently replace it with 0. This must hold
+        # both for the string form and for an explicit SparseDtype object
+        # (Series.astype resolves the string to an object before dispatching).
         values = np.array(["NaT", "2016-01-02", "2016-01-03"], dtype="M8[ns]")
         arr = SparseArray(values)
-
-        result = arr.astype("Sparse[int64]")
         iNaT = np.iinfo(np.int64).min
         expected = SparseArray(
             values.astype("int64"),
             dtype=SparseDtype("int64", fill_value=iNaT),
         )
+
+        result = arr.astype(dtype)
+        tm.assert_sp_array_equal(result, expected)
+
+        # GH#49631 the fill_value conversion must survive the Series.astype path
+        result = Series(arr).astype(dtype)
+        tm.assert_sp_array_equal(result.array, expected)
+
+    def test_astype_fully_dense_na_fill_to_int_no_raise(self):
+        # GH#49631 a fully dense float SparseArray whose (unused) NaN fill_value
+        # cannot be represented as an integer must not raise on astype to int
+        arr = SparseArray(np.array([1.0, 2.0, 3.0]), fill_value=np.nan)
+        assert arr.sp_index.npoints == len(arr)  # fully dense
+
+        result = arr.astype("Sparse[int64]")
+        expected = SparseArray(np.array([1, 2, 3], dtype="int64"))
         tm.assert_sp_array_equal(result, expected)
