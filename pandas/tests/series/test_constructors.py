@@ -1967,6 +1967,15 @@ class TestSeriesConstructors:
         expected = Series(pd.to_timedelta([1000000, 200000, 3000000], unit="us"))
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dtype_timedelta_float_honors_unit(self):
+        # GH#63499 float data should be interpreted in the dtype's unit,
+        #  matching the integer case, instead of being treated as nanoseconds
+        result = Series([1.5, 2.5, 90.0], dtype="timedelta64[s]")
+        expected = Series(pd.to_timedelta([1.5, 2.5, 90.0], unit="s").as_unit("s"))
+        tm.assert_series_equal(result, expected)
+        # 90 seconds is preserved rather than silently truncated to zero
+        assert result[2] == pd.Timedelta(seconds=90)
+
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(

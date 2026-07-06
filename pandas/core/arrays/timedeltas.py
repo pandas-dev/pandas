@@ -250,7 +250,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit = None
         if dtype:
             dtype = _validate_td64_dtype(dtype)
-            if lib.infer_dtype(data) == "integer":
+            if lib.infer_dtype(data) in ("integer", "floating"):
                 unit = np.datetime_data(dtype)[0]
 
         data = sequence_to_td64ns(data, copy=copy, unit=unit)
