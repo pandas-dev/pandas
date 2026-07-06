@@ -20,6 +20,8 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
+from matplotlib.collections import LineCollection
+from matplotlib.lines import Line2D
 import numpy as np
 
 from pandas._libs import lib
@@ -1556,7 +1558,29 @@ class LinePlot(MPLPlot):
         if self.stacked:
             self.data = self.data.fillna(value=0)
 
+    def _use_collection(self) -> bool:
+        # GH#61532 For a wide numeric-indexed frame we can draw every column with
+        # a single LineCollection instead of one Line2D per column, which is much
+        # faster. We only take this path when it is behaviorally equivalent to the
+        # per-column draw, i.e. a plain line plot with no per-column styling that a
+        # LineCollection cannot reproduce (markers, styles, stacking, error bars,
+        # subplots, secondary-y) and a numeric x-axis.
+        threshold = 200
+        return (
+            len(self.data.columns) > threshold
+            and not self._is_ts_plot()
+            and not self.subplots
+            and not self.stacked
+            and not self.secondary_y
+            and self.style is None
+            and not self.kwds.get("marker")
+            and not com.any_not_none(*self.errors.values())
+            and is_any_real_numeric_dtype(self.data.index.dtype)
+        )
+
     def _make_plot(self, fig: Figure) -> None:
+        use_collection = self._use_collection()
+
         if self._is_ts_plot():
             ax0 = self._get_ax(0)
             data = maybe_convert_index(ax0, self.data)
@@ -1587,6 +1611,16 @@ class LinePlot(MPLPlot):
         is_errorbar = com.any_not_none(*self.errors.values())
 
         colors = self._get_colors()
+        # GH#61532 vertices/colors accumulated for the LineCollection fast path,
+        # plus the line styling shared by every column (style is None here, so
+        # these come from the global kwds and apply to the whole frame)
+        segments: list[np.ndarray] = []
+        seg_colors: list[Any] = []
+        lc_linewidth = self.kwds.get(
+            "linewidth", self.kwds.get("lw", mpl.rcParams["lines.linewidth"])
+        )
+        lc_linestyle = self.kwds.get("linestyle", self.kwds.get("ls"))
+        lc_alpha = self.kwds.get("alpha")
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
@@ -1608,6 +1642,28 @@ class LinePlot(MPLPlot):
             label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
+            if use_collection:
+                # Keep NaNs so they render as gaps (matplotlib breaks the line at
+                # NaN vertices), matching the per-column ax.plot draw.
+                segments.append(
+                    np.column_stack(
+                        (np.asarray(x, dtype=float), np.asarray(y, dtype=float))
+                    )
+                )
+                seg_colors.append(kwds.get("color", colors[i % len(colors)]))
+                # lightweight proxy so legend/handles behave as usual
+                proxy = Line2D(
+                    [],
+                    [],
+                    color=seg_colors[-1],
+                    label=label,
+                    linewidth=lc_linewidth,
+                    linestyle=lc_linestyle or "-",
+                    alpha=lc_alpha,
+                )
+                self._append_legend_handles_labels(proxy, label)
+                continue
+
             newlines = plotf(
                 ax,
                 x,
@@ -1626,6 +1682,17 @@ class LinePlot(MPLPlot):
                 lines = get_all_lines(ax)
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
+
+        if use_collection:
+            # GH#61532 single draw call for the whole frame
+            ax0 = self._get_ax(0)
+            lc = LineCollection(segments, colors=seg_colors, linewidths=lc_linewidth)
+            if lc_linestyle is not None:
+                lc.set_linestyle(lc_linestyle)
+            if lc_alpha is not None:
+                lc.set_alpha(lc_alpha)
+            ax0.add_collection(lc)
+            ax0.autoscale_view()
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
