@@ -356,7 +356,7 @@ def array_to_timedelta64(
     assert unit not in ["Y", "y", "M"]
 
     cdef:
-        Py_ssize_t i, n = values.size
+        Py_ssize_t _, n = values.size
         ndarray result = np.empty((<object>values).shape, dtype="m8[ns]")
         object item
         int64_t ival
@@ -382,7 +382,7 @@ def array_to_timedelta64(
 
     if unit is not None and errors != "coerce":
         it = cnp.PyArray_IterNew(values)
-        for i in range(n):
+        for _ in range(n):
             # Analogous to: item = values[i]
             item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
             if isinstance(item, str):
@@ -391,7 +391,7 @@ def array_to_timedelta64(
                 )
             cnp.PyArray_ITER_NEXT(it)
 
-    for i in range(n):
+    for _ in range(n):
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         try:
