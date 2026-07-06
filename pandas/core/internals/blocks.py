@@ -1088,10 +1088,17 @@ class Block(PandasObject, libinternals.Block):
         # get_new_values can return a view of self.values on the identity-indexer
         #  fast path (see _Unstacker._make_sorted_values); every other path copies
         #  via take_nd.  Gate on that, then the O(1) may_share_memory, so CoW
-        #  tracks the reference.  GH#65107
-        if unstacker._indexer_is_identity and np.may_share_memory(
-            new_values, self.values
-        ):
+        #  tracks the reference.  GH#65107.  For NDArrayBacked EAs (e.g. tz-aware
+        #  datetime, period) np.asarray boxes to object, so may_share_memory on
+        #  the EA objects is always False; compare the backing ._ndarray instead
+        #  as get_result does, else the shared view goes untracked.  GH#65748
+        if isinstance(self.values, np.ndarray):
+            source, unstacked = self.values, new_values
+        else:
+            values = cast("NDArrayBackedExtensionArray", self.values)
+            source, unstacked = values._ndarray, new_values._ndarray
+
+        if unstacker._indexer_is_identity and np.may_share_memory(unstacked, source):
             refs = self.refs
         else:
             refs = None
