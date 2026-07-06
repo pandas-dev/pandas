@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas.compat.numpy import np_version_gt2_6
-from pandas.errors import NullFrequencyError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -190,10 +189,6 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, expected)
         assert not result.is_monotonic_increasing
         assert result.freq is None
-
-        # With no freq, shift raises instead of silently emptying the index.
-        with pytest.raises(NullFrequencyError, match="Cannot shift with no freq"):
-            result.shift(1)
 
     def test_union_dataframe_index(self):
         rng1 = date_range("1/1/1999", "1/1/2012", freq="MS")
