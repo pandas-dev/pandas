@@ -27,6 +27,7 @@ class TestTypes(Base):
         "is_numeric_dtype",
         "is_object_dtype",
         "is_scalar",
+        "is_sparse",
         "is_string_dtype",
         "is_signed_integer_dtype",
         "is_timedelta64_dtype",

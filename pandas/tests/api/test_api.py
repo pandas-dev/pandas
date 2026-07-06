@@ -321,6 +321,7 @@ class TestApi(Base):
         "is_re_compilable",
         "is_scalar",
         "is_signed_integer_dtype",
+        "is_sparse",
         "is_string_dtype",
         "is_timedelta64_dtype",
         "is_timedelta64_ns_dtype",

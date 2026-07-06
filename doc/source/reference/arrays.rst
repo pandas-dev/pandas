@@ -683,6 +683,7 @@ Data type introspection
     api.types.is_timedelta64_dtype
     api.types.is_timedelta64_ns_dtype
     api.types.is_unsigned_integer_dtype
+    api.types.is_sparse
 
 Iterable introspection
 ~~~~~~~~~~~~~~~~~~~~~~
