@@ -2509,6 +2509,61 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_margins_distinct_ea_dtypes(self):
+        # GH#55484 with two parameterized EA columns of the same kind but
+        # different parameters, each margin cell must be cast to its own
+        # column's dtype, not another column's.
+        ii_int = pd.IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+        ii_flt = pd.IntervalIndex.from_breaks([0.5, 1.5, 2.5, 3.5, 4.5])
+        df = DataFrame(
+            {
+                "key": ["a", "a", "b", "b"],
+                "i_int": pd.array(list(ii_int), dtype=ii_int.dtype),
+                "i_flt": pd.array(list(ii_flt), dtype=ii_flt.dtype),
+            }
+        )
+        result = df.pivot_table(
+            index="key",
+            values=["i_int", "i_flt"],
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected = DataFrame(
+            {
+                "i_flt": pd.array(
+                    [ii_flt[0], ii_flt[2], ii_flt[0]], dtype=ii_flt.dtype
+                ),
+                "i_int": pd.array(
+                    [ii_int[0], ii_int[2], ii_int[0]], dtype=ii_int.dtype
+                ),
+            },
+            index=Index(["a", "b", "All"], name="key"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # two Categorical columns with disjoint categories
+        df2 = DataFrame(
+            {
+                "key": ["a", "a", "b", "b"],
+                "c1": Categorical(["x", "y", "x", "y"]),
+                "c2": Categorical(["p", "q", "p", "q"]),
+            }
+        )
+        result2 = df2.pivot_table(
+            index="key",
+            values=["c1", "c2"],
+            aggfunc=lambda x: x.iloc[0],
+            margins=True,
+        )
+        expected2 = DataFrame(
+            {
+                "c1": Categorical(["x", "x", "x"], categories=["x", "y"]),
+                "c2": Categorical(["p", "p", "p"], categories=["p", "q"]),
+            },
+            index=Index(["a", "b", "All"], name="key"),
+        )
+        tm.assert_frame_equal(result2, expected2)
+
     def test_pivot_table_sort_false_with_multiple_values(self):
         df = DataFrame(
             {
