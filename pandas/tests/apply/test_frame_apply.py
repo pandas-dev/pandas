@@ -1938,6 +1938,45 @@ def test_agg_np_size():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_list_like_series_method_not_reduction():
+    # GH#65031 - the DataFrame-level reductions fast path must only fire for
+    # genuine column-wise reductions. Series-returning DataFrame methods that
+    # are not indexed by the columns (value_counts/duplicated/memory_usage)
+    # must fall back to the per-column path rather than silently producing NaN
+    # or wrong values.
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+    result = df.agg(["value_counts"])
+    expected = DataFrame(
+        {
+            ("A", "value_counts"): [1.0, 1.0, 1.0, np.nan, np.nan, np.nan],
+            ("B", "value_counts"): [np.nan, np.nan, np.nan, 1.0, 1.0, 1.0],
+        },
+        index=[1, 2, 3, 4, 5, 6],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg(["duplicated"])
+    expected = DataFrame(
+        {
+            ("A", "duplicated"): [False, False, False],
+            ("B", "duplicated"): [False, False, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # memory_usage is not a reduction; each column must match Series.memory_usage
+    result = df.agg(["memory_usage"])
+    for col in df.columns:
+        assert result.loc["memory_usage", col] == df[col].memory_usage()
+
+    # mixed dtypes previously raised ValueError on the fast path
+    df_mixed = DataFrame({"A": [1, 2, 3], "B": ["x", "yy", "zzz"]})
+    result = df_mixed.agg(["memory_usage"])
+    for col in df_mixed.columns:
+        assert result.loc["memory_usage", col] == df_mixed[col].memory_usage()
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = DataFrame(

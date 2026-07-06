@@ -1106,6 +1106,11 @@ class FrameApply(NDFrameApply):
                 if not isinstance(row, ABCSeries):
                     # Not a reduction (e.g. returns DataFrame), fall back
                     return None
+                if not row.index.equals(sub.columns):
+                    # Series-returning method that isn't a column-wise
+                    # reduction, so its result isn't indexed by the columns
+                    # (e.g. value_counts, duplicated, memory_usage); fall back.
+                    return None
                 # to_frame().T avoids the slow DataFrame(list-of-Series) path
                 group_pieces.append(row.to_frame(func_name).T)
             pieces.append(concat(group_pieces))
