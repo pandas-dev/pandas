@@ -1124,6 +1124,36 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
 
+    >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
+    ... <data xmlns="http://example.com">
+    ...  <row>
+    ...    <shape>square</shape>
+    ...    <degrees>360</degrees>
+    ...    <sides>4.0</sides>
+    ...  </row>
+    ...  <row>
+    ...    <shape>circle</shape>
+    ...    <degrees>360</degrees>
+    ...    <sides/>
+    ...  </row>
+    ...  <row>
+    ...    <shape>triangle</shape>
+    ...    <degrees>180</degrees>
+    ...    <sides>3.0</sides>
+    ...  </row>
+    ... </data>'''
+
+    >>> df = pd.read_xml(
+    ...     StringIO(xml),
+    ...     xpath="//doc:row",
+    ...     namespaces={"doc": "http://example.com"},
+    ... )
+    >>> df
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
     >>> xml_data = '''
     ...         <data>
     ...            <row>
