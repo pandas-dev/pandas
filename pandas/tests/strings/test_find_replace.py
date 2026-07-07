@@ -1196,6 +1196,21 @@ def test_match_compiled_regex(any_string_dtype):
     values.str.match(re.compile("ab", flags=re.IGNORECASE), flags=re.IGNORECASE)
 
 
+@pytest.mark.parametrize("compiled_flags", [re.ASCII, re.MULTILINE, re.DOTALL])
+def test_match_compiled_regex_default_flags_preserves_pattern_flags(
+    any_string_dtype, compiled_flags
+):
+    # GH#66138
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+    result = values.str.match(re.compile("ab", flags=compiled_flags))
+
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([True, False, True, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "pat, case, exp",
     [
