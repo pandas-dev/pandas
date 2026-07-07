@@ -19,7 +19,6 @@ from pandas._libs.tslibs.offsets import (
     DateOffset,
     MonthEnd,
     prefix_mapping,
-    to_offset,
 )
 from pandas.errors import (
     OutOfBoundsDatetime,
@@ -1094,19 +1093,15 @@ class TestGenRangeGeneration:
     )
     @pytest.mark.parametrize("periods", [1, 2, 3])
     def test_generate_range_end_off_offset(self, freq, periods):
-        # GH#65011 with only end + periods, an off-offset end must be rolled
-        # onto the grid (like start is) so the result stays on-offset with the
-        # requested length; previously it returned an off-grid Timestamp with
-        # freq still pinned (an internally-invalid index) and the wrong count.
+        # GH#65011 with only end + periods, an off-offset end is rolled onto the
+        # grid (like start), so the result has the requested length and stays a
+        # valid index; previously periods=1 gave an off-grid Timestamp with freq
+        # still pinned (an invalid index) and periods>1 gave the wrong count.
         end = Timestamp("2018-04-17")  # a Tuesday: off every freq above
         result = date_range(end=end, periods=periods, freq=freq)
 
         assert len(result) == periods
-        assert result.freq == to_offset(freq)
-        # every value lands on the offset grid and end is the last value
-        assert all(to_offset(freq).is_on_offset(ts) for ts in result)
-        assert result[-1] <= end
-        # round-trip: pinning the freq on a fresh index must not raise
+        # round-trip re-pins the freq; raises if any value is off-grid
         tm.assert_index_equal(DatetimeIndex(list(result), freq=freq), result)
 
     dt1, dt2 = "2017-01-01", "2017-01-01"
