@@ -52,7 +52,7 @@ dask
 seaborn
 ipython
 moto
-asv>=0.6.5
+asv>=0.6.6
 py-rattler
 mypy==2.1.0
 tokenize-rt

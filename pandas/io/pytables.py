@@ -1353,8 +1353,10 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        complib : default None
-            This parameter is currently not accepted.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Compression library to use, only applied with ``format='table'``.
+            None disables compression. See the ``complib`` parameter of
+            :class:`HDFStore` for the full list of supported compressors.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
@@ -1364,7 +1366,7 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str
+        nan_rep : str, default 'nan'
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
@@ -1569,14 +1571,19 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
-        axes : default None
-            This parameter is currently not accepted.
+        axes : list, default None
+            Single-element list selecting the axis to store as the table's
+            indexed (appendable) axis: ``[0]`` for the index (the default) or
+            ``[1]`` for the columns. Ignored when appending to an existing
+            table, which keeps the axes it was created with.
         index : bool, default True
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        complib : default None
-            This parameter is currently not accepted.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Compression library to use; None disables compression. See the
+            ``complib`` parameter of :class:`HDFStore` for the full list of
+            supported compressors.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
@@ -1588,10 +1595,10 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str
+        nan_rep : str, default 'nan'
             Str to use as str nan representation.
-        chunksize : int or None
-            Size to chunk the writing.
+        chunksize : int, default 100000
+            Number of rows to write in each chunk.
         expectedrows : int
             Expected TOTAL row size of this table.
         dropna : bool, default False, optional
@@ -2648,6 +2655,10 @@ class IndexCol:
     def kind_attr(self) -> str:
         return f"{self.name}_kind"
 
+    @property
+    def meta_attr(self) -> str:
+        return f"{self.name}_meta"
+
     def set_pos(self, pos: int) -> None:
         """set the position of this column in the Table"""
         self.pos = pos
@@ -2702,9 +2713,29 @@ class IndexCol:
         if self.meta == "category":
             # GH#33909, GH#16118: reconstruct a CategoricalIndex from the
             # stored integer codes and the categories saved as metadata.
+            categories = self.metadata
+            codes = values.ravel()
+
+            # Mirror DataCol.convert's NaN-category handling so a
+            # CategoricalIndex round-trips through format="table". GH#65576
+            if categories is None:
+                # Zero-category (all-NaN) case: PyTables cannot store an
+                # empty metadata array, so it round-trips as None.
+                categories = Index([], dtype=np.float64)
+            else:
+                mask = isna(categories)
+                if mask.any():
+                    # A category decodes to NaN when it equaled the nan_rep
+                    # string on write; drop NaN categories and remap the
+                    # codes so from_codes does not reject a null category.
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
+                    categories = categories[~mask]
+                    codes = np.where(codes < 0, codes, remap[codes])
+
             cat = Categorical.from_codes(
-                values,
-                categories=self.metadata,
+                codes,
+                categories=categories,
                 ordered=bool(self.ordered),
                 validate=False,
             )
@@ -2891,6 +2922,11 @@ class IndexCol:
     def set_attr(self) -> None:
         """set the kind for this column"""
         _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
+        if self.meta is not None:
+            # Persist meta="category" so an all-NaN CategoricalIndex, whose
+            # empty categories cannot be written as metadata, still round-trips
+            # as categorical rather than as raw integer codes. GH#65576
+            _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -2998,10 +3034,6 @@ class DataCol(IndexCol):
     @property
     def dtype_attr(self) -> str:
         return f"{self.name}_dtype"
-
-    @property
-    def meta_attr(self) -> str:
-        return f"{self.name}_meta"
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -4394,7 +4426,13 @@ class Table(Fixed):
         for i, (axis, name) in enumerate(self.attrs.index_cols):
             atom = getattr(desc, name)
             md = self.read_metadata(name)
-            meta = "category" if md is not None else None
+            # Prefer the explicit meta attribute (written since GH#65576); it
+            # survives even when the categories are empty and no metadata node
+            # exists. Fall back to inferring from the metadata node for files
+            # written before the attribute was persisted.
+            meta = getattr(table_attrs, f"{name}_meta", None)
+            if meta is None and md is not None:
+                meta = "category"
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
@@ -6288,17 +6326,20 @@ class Selection:
             stop += nrows
 
         if self.condition is not None:
-            return self.table.table.get_where_list(
+            coords = self.table.table.get_where_list(
                 self.condition.format(), start=start, stop=stop, sort=True
             )
         elif self.coordinates is not None:
             return self.coordinates
+        else:
+            coords = np.arange(start, stop)
 
-        coords = np.arange(start, stop)
         if self.filter is not None and len(coords):
             # e.g. an "index in [...]" clause with more selectors than numexpr
             #  can handle is realized as a post-read filter rather than a
-            #  numexpr condition (GH#17567)
+            #  numexpr condition (GH#17567). A where clause may combine such a
+            #  filter with a numexpr condition (e.g. "index in [...] and A>=1"),
+            #  so the filter must be applied on top of get_where_list's result.
             for field, op, filt in self.filter.format():
                 data = self.table.read_column(
                     field, start=coords.min(), stop=coords.max() + 1
