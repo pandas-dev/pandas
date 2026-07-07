@@ -74,7 +74,15 @@ def to_feather(
     with get_handle(
         path, "wb", storage_options=storage_options, is_text=False
     ) as handles:
-        feather.write_feather(df, handles.handle, **kwargs)
+        # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66169)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.write_feather is deprecated",
+                FutureWarning,
+            )
+            feather.write_feather(df, handles.handle, **kwargs)
 
 
 @set_module("pandas")
@@ -164,6 +172,14 @@ def read_feather(
                     "make_block is deprecated",
                     Pandas4Warning,
                 )
+                # pyarrow>=24 deprecates feather.read_feather in favor of
+                # pyarrow.ipc; suppress until we migrate the implementation
+                # (GH#66169)
+                warnings.filterwarnings(
+                    "ignore",
+                    "pyarrow.feather.read_feather is deprecated",
+                    FutureWarning,
+                )
 
                 df = feather.read_feather(
                     handles.handle, columns=columns, use_threads=bool(use_threads)
@@ -175,7 +191,15 @@ def read_feather(
                         df[col] = df[col].astype("object")
                 return df
 
-        pa_table = feather.read_table(
-            handles.handle, columns=columns, use_threads=bool(use_threads)
-        )
+        # pyarrow>=24 deprecates feather.read_table in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66169)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.read_table is deprecated",
+                FutureWarning,
+            )
+            pa_table = feather.read_table(
+                handles.handle, columns=columns, use_threads=bool(use_threads)
+            )
         return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
