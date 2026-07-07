@@ -6326,17 +6326,20 @@ class Selection:
             stop += nrows
 
         if self.condition is not None:
-            return self.table.table.get_where_list(
+            coords = self.table.table.get_where_list(
                 self.condition.format(), start=start, stop=stop, sort=True
             )
         elif self.coordinates is not None:
             return self.coordinates
+        else:
+            coords = np.arange(start, stop)
 
-        coords = np.arange(start, stop)
         if self.filter is not None and len(coords):
             # e.g. an "index in [...]" clause with more selectors than numexpr
             #  can handle is realized as a post-read filter rather than a
-            #  numexpr condition (GH#17567)
+            #  numexpr condition (GH#17567). A where clause may combine such a
+            #  filter with a numexpr condition (e.g. "index in [...] and A>=1"),
+            #  so the filter must be applied on top of get_where_list's result.
             for field, op, filt in self.filter.format():
                 data = self.table.read_column(
                     field, start=coords.min(), stop=coords.max() + 1
