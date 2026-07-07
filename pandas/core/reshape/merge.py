@@ -66,6 +66,7 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
 )
 import pandas.core.algorithms as algos
@@ -81,6 +82,7 @@ from pandas.core.construction import (
     extract_array,
 )
 from pandas.core.indexes.api import default_index
+from pandas.core.indexes.base import maybe_sequence_to_range
 from pandas.core.sorting import (
     get_group_index,
     is_int64_overflow_possible,
@@ -687,12 +689,16 @@ def merge_asof(
         The data MUST be in ascending order. Furthermore this must be
         a numeric column, such as datetimelike, integer, or float. ``on``
         or ``left_on`` / ``right_on`` must be given.
-    left_on : label
-        Field name to join on in left DataFrame. If specified, sort the left
-        DataFrame by this column in ascending order before merging.
-    right_on : label
-        Field name to join on in right DataFrame. If specified, sort the right
-        DataFrame by this column in ascending order before merging.
+    left_on : label or array-like
+        Field name to join on in left DataFrame. Can also be an array of the
+        length of the left DataFrame, which is treated as if it were a column.
+        If specified, sort the left DataFrame by this key in ascending order
+        before merging.
+    right_on : label or array-like
+        Field name to join on in right DataFrame. Can also be an array of the
+        length of the right DataFrame, which is treated as if it were a column.
+        If specified, sort the right DataFrame by this key in ascending order
+        before merging.
     left_index : bool
         Use the index of the left DataFrame as the join key.
     right_index : bool
@@ -1262,7 +1268,7 @@ class _MergeOperation:
         right_indexer: npt.NDArray[np.intp] | None,
     ) -> None:
         # Inner joins never produce -1 (missing) in the indexers, so we can
-        # skip the potentially expensive (indexer == -1).any() scans.
+        # skip the potentially expensive lib.has_sentinel scans.
         if self.how == "inner":
             left_has_missing = False
             right_has_missing = False
@@ -1286,7 +1292,7 @@ class _MergeOperation:
                             left_has_missing = (
                                 False
                                 if left_indexer is None
-                                else (left_indexer == -1).any()
+                                else lib.has_sentinel(left_indexer, -1)
                             )
 
                         if left_has_missing:
@@ -1300,7 +1306,7 @@ class _MergeOperation:
                             right_has_missing = (
                                 False
                                 if right_indexer is None
-                                else (right_indexer == -1).any()
+                                else lib.has_sentinel(right_indexer, -1)
                             )
 
                         if right_has_missing:
@@ -1483,22 +1489,11 @@ class _MergeOperation:
         -------
         Index
         """
-        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
-            # if final index requires values in other_index but not target
-            # index, indexer may hold missing (-1) values, causing Index.take
-            # to take the final value in target index. So, we set the last
-            # element to be the desired fill value. We do not use allow_fill
-            # and fill_value because it throws a ValueError on integer indices
-            mask = indexer == -1
-            if np.any(mask):
-                fill_value = na_value_for_dtype(index.dtype, compat=False)
-                if not index._can_hold_na:
-                    new_index = Index([fill_value])
-                else:
-                    new_index = Index([fill_value], dtype=index.dtype)
-                index = index.append(new_index)
         if indexer is None:
             return index.copy()
+        if self.how in (how, "outer") and not isinstance(other_index, MultiIndex):
+            fill_value = na_value_for_dtype(index.dtype, compat=False)
+            return index.take(indexer, allow_fill=True, fill_value=fill_value)
         return index.take(indexer)
 
     @final
@@ -2027,6 +2022,16 @@ class _MergeOperation:
             )
 
 
+def _maybe_promote_to_rangeindex(idx: Index) -> Index:
+    if idx.dtype.kind in "iu" and idx.is_monotonic_increasing and idx.is_unique:
+        values = idx._values
+        if isinstance(values, np.ndarray):
+            result = maybe_sequence_to_range(values)
+            if isinstance(result, range):
+                return RangeIndex(result, name=idx.name)
+    return idx
+
+
 def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
@@ -2093,10 +2098,41 @@ def get_join_indexers(
         and (left.is_unique or right.is_unique)
     ):
         _, lidx, ridx = left.join(right, how=how, return_indexers=True, sort=sort)
+    elif not sort and how in ("left", "right"):
+        lk: ArrayLike
+        rk: ArrayLike
+        if how == "left" and not isinstance(right, RangeIndex):
+            right = _maybe_promote_to_rangeindex(right)
+        elif how == "right" and not isinstance(left, RangeIndex):
+            left = _maybe_promote_to_rangeindex(left)
+        if how == "left":
+            lk = left._values
+            if (
+                isinstance(lk, np.ndarray)
+                and isinstance(right, RangeIndex)
+                and lk.dtype.kind in "iu"
+            ):
+                ridx = right.get_indexer(lk)
+                lidx = None
+            else:
+                rk = right._values
+                lidx, ridx = get_join_indexers_non_unique(lk, rk, sort, how)
+        else:
+            rk = right._values
+            if (
+                isinstance(rk, np.ndarray)
+                and isinstance(left, RangeIndex)
+                and rk.dtype.kind in "iu"
+            ):
+                lidx = left.get_indexer(rk)
+                ridx = None
+            else:
+                lk = left._values
+                lidx, ridx = get_join_indexers_non_unique(lk, rk, sort, how)
     else:
-        lidx, ridx = get_join_indexers_non_unique(
-            left._values, right._values, sort, how
-        )
+        lk = left._values
+        rk = right._values
+        lidx, ridx = get_join_indexers_non_unique(lk, rk, sort, how)
 
     if lidx is not None and is_range_indexer(lidx, len(left)):
         lidx = None
@@ -2773,10 +2809,13 @@ def _left_join_on_index(
         # variable has type "ndarray[Any, dtype[signedinteger[Any]]]")
         rkey = right_ax._values  # type: ignore[assignment]
 
-    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort)
-    left_indexer, right_indexer = libjoin.left_outer_join(
-        left_key, right_key, count, sort=sort
-    )
+    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort, how="left")
+    if count == -1:
+        left_indexer, right_indexer = left_key, right_key
+    else:
+        left_indexer, right_indexer = libjoin.left_outer_join(
+            left_key, right_key, count, sort=sort
+        )
 
     if sort or len(left_ax) != len(left_indexer):
         # if asked to sort or there are 1-to-many matches
@@ -2965,16 +3004,18 @@ def _factorize_keys(
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
-            ridx, lidx = rizer.hash_inner_join(lk_data, lk_mask)
+            # GH#38418 Use lookup instead of hash_inner_join for unique right
+            # keys. lookup pre-allocates the result array and fills directly,
+            # avoiding dynamic vector resizing and scatter.
+            ridx = rizer.table.lookup(lk_data, lk_mask)  # type: ignore[attr-defined]
             if how == "inner":
+                mask = ridx != -1
+                lidx = mask.nonzero()[0].astype(np.intp, copy=False)
+                ridx = ridx[mask].astype(np.intp, copy=False)
                 return lidx, ridx, -1
             # left-outer hash join with unique right side.
-            # Preserve original left-row order: one output row per left row,
-            # ridx=-1 for unmatched rows.
-            n_left = len(lk_data)
-            ridx_full = np.full(n_left, -1, dtype=np.intp)
-            ridx_full[lidx] = ridx
-            return np.arange(n_left, dtype=np.intp), ridx_full, -1
+            # One output row per left row, ridx=-1 for unmatched rows.
+            return np.arange(len(lk_data), dtype=np.intp), ridx, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)
     else:

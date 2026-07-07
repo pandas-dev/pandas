@@ -523,6 +523,73 @@ class TestGetIndexer:
         tm.assert_index_equal(result, expected)
 
 
+def test_get_indexer_scalars_all_closed(closed):
+    # GH#47614 - boundary behavior for each closed value
+    # Use gaps between all intervals to avoid overlap with closed="both"
+    tuples = [(0, 1), (2, 3), (5, 6)]
+    index = IntervalIndex.from_tuples(tuples, closed=closed)
+
+    # Points to test: before, on boundaries, interior, in gaps, after
+    query = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 5.5, 6, 6.5]
+
+    closed_left = closed in ("left", "both")
+    closed_right = closed in ("right", "both")
+
+    expected = []
+    for val in query:
+        found = -1
+        for idx, (left, right) in enumerate(tuples):
+            in_left = val > left if not closed_left else val >= left
+            in_right = val < right if not closed_right else val <= right
+            if in_left and in_right:
+                found = idx
+                break
+        expected.append(found)
+
+    result = index.get_indexer(query)
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype="intp"))
+
+
+def test_get_indexer_with_nans_in_target(closed):
+    # GH#47614 - NaN in scalar target should return -1
+    index = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+    result = index.get_indexer([0.5, np.nan, 2.5])
+    expected = np.array([0, -1, 1], dtype="intp")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_indexer_non_monotonic_with_scalars():
+    # GH#47614 - non-monotonic falls back to IntervalTree
+    index = IntervalIndex.from_tuples([(2, 3), (0, 1)])
+    result = index.get_indexer([0.5, 2.5, 1.5])
+    expected = np.array([1, 0, -1], dtype="intp")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_indexer_scalar_monotonic_datetime():
+    # GH#47614 - datetime IntervalIndex with scalar targets
+    breaks = date_range("2018-01-01", periods=4, unit="ns")
+    index = IntervalIndex.from_breaks(breaks)
+    # 2018-01-01T12:00 -> interval 0, 2018-01-05 -> past end,
+    # 2018-01-02T12:00 -> interval 1
+    target = DatetimeIndex(
+        ["2018-01-01T12:00", "2018-01-05", "2018-01-02T12:00"], dtype="M8[ns]"
+    )
+    result = index.get_indexer(target)
+    expected = np.array([0, -1, 1], dtype="intp")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_get_indexer_scalar_monotonic_timedelta():
+    # GH#47614 - timedelta IntervalIndex with scalar targets
+    breaks = timedelta_range("0 days", periods=4)
+    index = IntervalIndex.from_breaks(breaks)
+    target = Index([Timedelta("0.5 days"), Timedelta("3.5 days")])
+    result = index.get_indexer(target)
+    expected = np.array([0, -1], dtype="intp")
+    tm.assert_numpy_array_equal(result, expected)
+
+
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
         # increasing monotonically

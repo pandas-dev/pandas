@@ -1065,15 +1065,17 @@ def test_scalar_setitem_with_nested_value(value):
     with pytest.raises(ValueError, match=msg):
         df.loc[0, "B"] = value
 
-    # TODO For object dtype this happens as well, but should we rather preserve
-    # the nested data and set as such?
+    # Update for object dtype: We DO preserve nested data now (Fixes #57962)
     df = DataFrame({"A": [1, 2, 3], "B": np.array([1, "a", "b"], dtype=object)})
-    with pytest.raises(ValueError, match="Must have equal len keys and value"):
-        df.loc[0, "B"] = value
-    # if isinstance(value, np.ndarray):
-    #     assert (df.loc[0, "B"] == value).all()
-    # else:
-    #     assert df.loc[0, "B"] == value
+
+    # Perform the assignment (this used to be inside the pytest.raises block)
+    df.loc[0, "B"] = value
+
+    # Use the author's original intended assertions
+    if isinstance(value, np.ndarray):
+        assert (df.loc[0, "B"] == value).all()
+    else:
+        assert df.loc[0, "B"] == value
 
 
 @pytest.mark.parametrize(
@@ -1140,6 +1142,43 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
         assert (ser.loc[0] == value).all()
     else:
         assert ser.loc[0] == value
+
+
+def test_scalar_setitem_tuple_into_object_column():
+    # GH#26333 - assigning a tuple to a single cell of an object-dtype column
+    #  that already holds tuples should store it as-is, not raise on length
+    df = DataFrame({"a": [1, 2, 3], "b": [(1, 2), (1, 2, 3), (3, 4)]})
+
+    df.loc[0, "b"] = (7, 8, 9)
+    assert df.loc[0, "b"] == (7, 8, 9)
+
+    # .at takes the same path
+    df.at[1, "b"] = (4, 5)
+    assert df.at[1, "b"] == (4, 5)
+
+    expected = DataFrame({"a": [1, 2, 3], "b": [(7, 8, 9), (4, 5), (3, 4)]})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_list_of_tuples_on_object_column():
+    # GH#37629 - assigning list of tuples to object-dtype column
+    # with a boolean mask on a mixed-dtype DataFrame
+    df = DataFrame({"a": [1, 1, 2, 1], "b": [(1, 1, 0)] * 4})
+
+    # list of tuples matching selected row count
+    df.loc[df["a"] == 1, "b"] = [(0, 0, 1), (0, 0, 1), (0, 0, 1)]
+    expected = DataFrame(
+        {"a": [1, 1, 2, 1], "b": [(0, 0, 1), (0, 0, 1), (1, 1, 0), (0, 0, 1)]}
+    )
+    tm.assert_frame_equal(df, expected)
+    # verify tuples are preserved as tuples
+    assert isinstance(df["b"].iloc[0], tuple)
+
+    # doubly-nested list: [[(tuple)]] treated as 2D with 1 row x 1 col,
+    # tuple value broadcast to all matching rows
+    df2 = DataFrame({"a": [1, 1, 2, 1], "b": [(1, 1, 0)] * 4})
+    df2.loc[df2["a"] == 1, "b"] = [[(0, 0, 1)]]
+    tm.assert_frame_equal(df2, expected)
 
 
 def test_object_dtype_series_set_series_element():

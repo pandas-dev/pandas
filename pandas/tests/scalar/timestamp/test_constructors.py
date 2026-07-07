@@ -163,6 +163,28 @@ class TestTimestampConstructorFoldKeyword:
         expected = fold
         assert result == expected
 
+    def test_timestamp_constructor_string_tz_respects_fold(self):
+        # GH#55932 fold must be respected when tz is given as a plain string
+        #  (which now resolves to zoneinfo, not pytz)
+        utc0 = Timestamp("2023-11-05T08:30:00Z")
+        utc1 = Timestamp("2023-11-05T09:30:00Z")
+
+        ts0 = Timestamp(
+            year=2023, month=11, day=5, hour=1, minute=30, fold=0, tz="US/Pacific"
+        )
+        ts1 = Timestamp(
+            year=2023, month=11, day=5, hour=1, minute=30, fold=1, tz="US/Pacific"
+        )
+        assert ts0 == utc0
+        assert ts1 == utc1
+
+        # Naive datetime + string tz + fold (second case in GH#55932 thread)
+        naive = datetime(2022, 11, 6, 1, 6, 58)
+        ts0 = Timestamp(naive, tz="America/New_York", fold=0)
+        ts1 = Timestamp(naive, tz="America/New_York", fold=1)
+        assert ts0 != ts1
+        assert (ts1 - ts0) == Timedelta(hours=1)
+
     @pytest.mark.parametrize(
         "tz",
         [
@@ -239,7 +261,9 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 
     def test_constructor_keyword(self):
         # GH#10758
-        msg = "function missing required argument 'day'|Required argument 'day'"
+        msg = "|".join(
+            ["function missing required argument 'day'", "Required argument 'day'"]
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(year=2000, month=1)
 
@@ -361,6 +385,40 @@ class TestTimestampClassMethodConstructors:
         assert result == expected_timestamp
         assert result == expected_stdlib
         assert isinstance(result, Timestamp)
+
+    @pytest.mark.parametrize(
+        "date_string",
+        [
+            "2023-11-05T08:30:00Z",
+            "2023-11-05T08:30:00+0000",
+            "2023-11-05T08:30:00+00:00",
+            "2024-08-02T00:00:00-04:00",
+        ],
+    )
+    def test_constructor_fromisoformat_preserves_tz(self, date_string):
+        # GH#56398 fromisoformat used to drop tz info due to args offset
+        #  in Timestamp.__new__ when the inherited datetime classmethod
+        #  called cls(year, month, day, ..., tzinfo).
+        result = Timestamp.fromisoformat(date_string)
+        expected_stdlib = datetime.fromisoformat(date_string)
+        assert isinstance(result, Timestamp)
+        assert result.tzinfo is not None
+        assert result == expected_stdlib
+        assert result == Timestamp(date_string)
+
+    def test_constructor_fromisoformat_naive(self):
+        # GH#56398 the tz-naive case should remain tz-naive
+        result = Timestamp.fromisoformat("2023-01-15T10:30:00")
+        assert isinstance(result, Timestamp)
+        assert result.tzinfo is None
+        assert result == Timestamp("2023-01-15T10:30:00")
+
+    def test_constructor_fromisoformat_roundtrip_isoformat(self):
+        # GH#56398 fromisoformat(ts.isoformat()) should round-trip
+        original = Timestamp.now("UTC")
+        result = Timestamp.fromisoformat(original.isoformat())
+        assert result == original
+        assert result.tzinfo is not None
 
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
@@ -790,7 +848,7 @@ class TestTimestampConstructors:
             Timestamp(Timestamp.min._value * 2)
 
     def test_out_of_bounds_value(self):
-        one_us = np.timedelta64(1).astype("timedelta64[us]")
+        one_us = np.timedelta64(1, "ns").astype("timedelta64[us]")
 
         # By definition we can't go out of bounds in [ns], so we
         # convert the datetime64s to [us] so we can go out of bounds
@@ -909,6 +967,14 @@ class TestTimestampConstructors:
         result = Timestamp(arg)
         expected = Timestamp(datetime(2013, 1, 1), tz=timezone(timedelta(hours=9)))
         assert result == expected
+
+    def test_comma_separated_fractional_seconds(self):
+        # GH#59256 - comma as decimal separator should parse correctly
+        ts_comma = Timestamp("2024-06-17T18:57:43,567")
+        ts_dot = Timestamp("2024-06-17T18:57:43.567")
+        assert ts_comma == ts_dot
+        assert ts_comma.unit == ts_dot.unit
+        assert ts_comma.microsecond == 567000
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
@@ -1108,7 +1174,9 @@ def test_timestamp_constructor_np_str():
     assert result == expected
 
 
-@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+@pytest.mark.parametrize(
+    "na_value", [None, np.nan, np.datetime64("NaT", "ns"), NaT, NA]
+)
 def test_timestamp_constructor_na_value(na_value):
     # GH45481
     result = Timestamp(na_value)

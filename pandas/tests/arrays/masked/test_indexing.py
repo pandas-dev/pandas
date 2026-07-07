@@ -40,8 +40,8 @@ class TestSetitemValidation:
         "1",
         "1.0",
         pd.NaT,
-        np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
     ]
 
     @pytest.mark.parametrize(

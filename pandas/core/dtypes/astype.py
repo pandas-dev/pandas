@@ -100,7 +100,7 @@ def _astype_nansafe(
         ).reshape(shape)
 
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
-        return _astype_float_to_int_nansafe(arr, dtype, copy)
+        return astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif arr.dtype == object:
         # if we have a datetime/timedelta array of objects
@@ -137,7 +137,7 @@ def _astype_nansafe(
     return arr.astype(dtype, copy=copy)
 
 
-def _astype_float_to_int_nansafe(
+def astype_float_to_int_nansafe(
     values: np.ndarray, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     """
@@ -145,8 +145,8 @@ def _astype_float_to_int_nansafe(
     """
     if not np.isfinite(values).all():
         raise IntCastingNaNError(
-            "Cannot convert non-finite values (NA or inf) to integer."
-            "Replace or remove non-finite values or cast to an integer type"
+            "Cannot convert non-finite values (NA or inf) to integer. "
+            "Replace or remove non-finite values or cast to an integer type "
             "that supports these values (e.g. 'Int64')"
         )
     if dtype.kind == "u":
@@ -274,6 +274,10 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         return True
 
     elif isinstance(dtype, np.dtype) and isinstance(new_dtype, np.dtype):
+        # GH#63936: pandas realizes a numpy str ("<U") target as an object
+        #  array via ensure_string_array, which views an object source.
+        if is_object_dtype(dtype) and is_string_dtype(new_dtype):
+            return True
         # Only equal numpy dtypes avoid a copy
         return False
 

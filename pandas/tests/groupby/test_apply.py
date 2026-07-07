@@ -438,7 +438,7 @@ def test_apply_frame_concat_series():
 
     result = df.groupby("A").apply(trans)
     exp = df.groupby("A")["C"].apply(trans2)
-    tm.assert_series_equal(result, exp, check_names=False)
+    tm.assert_series_equal(result, exp)
     assert result.name == "C"
 
 
@@ -1541,3 +1541,44 @@ def test_groupby_apply_store_copy():
 
     tm.assert_frame_equal(store[0], expected_out_0)
     tm.assert_frame_equal(store[1], expected_out_1)
+
+
+def test_groupby_apply_return_object_holding_index():
+    # GH#41477 when the UDF returns an arbitrary object that holds a reference
+    #  to the group's Index, each result must keep its own group's Index
+    #  rather than all sharing a single one.
+    class Wrapper:
+        def __init__(self, value):
+            self.value = value
+
+    df = DataFrame({"key": ["a", "b"]}, index=["foo", "bar"])
+    result = df.groupby("key").apply(lambda group: Wrapper(group.index))
+
+    tm.assert_index_equal(result.loc["a"].value, Index(["foo"]))
+    tm.assert_index_equal(result.loc["b"].value, Index(["bar"]))
+
+
+@pytest.mark.parametrize("test_empty", [False, True])
+def test_apply_as_index_false_empty_index_name(test_empty):
+    # https://github.com/pandas-dev/pandas/issues/48135
+    df = DataFrame({"A": [4, 4, 4], "B": [9, 9, 9]})
+
+    if test_empty:
+        df = df.iloc[:0]
+
+    gb = df.groupby("A", as_index=False)
+    result = gb.apply(lambda x: x)
+
+    if test_empty:
+        expected = DataFrame(
+            {"B": Series([], dtype="int64")},
+            index=Index([], dtype="int64"),
+        )
+    else:
+        expected = DataFrame(
+            {"B": [9, 9, 9]},
+            index=Index([0, 1, 2], dtype="int64"),
+        )
+
+    expected.index.name = None
+    tm.assert_frame_equal(result, expected)

@@ -8,8 +8,12 @@ from csv import (
 )
 import warnings
 
-from pandas._config import is_nan_na
+from pandas._config import (
+    is_nan_na,
+    using_string_dtype,
+)
 
+from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.util._exceptions import find_stack_level
 
 from pandas import (
@@ -32,7 +36,6 @@ from cpython.exc cimport (
 from cpython.long cimport PyLong_FromString
 from cpython.object cimport PyObject
 from cpython.ref cimport (
-    Py_INCREF,
     Py_XDECREF,
 )
 from cpython.unicode cimport (
@@ -42,8 +45,10 @@ from cpython.unicode cimport (
     PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
+from libc.stdint cimport INT32_MAX
 from libc.stdlib cimport free
 from libc.string cimport (
+    memcpy,
     strcasecmp,
     strlen,
     strncpy,
@@ -54,6 +59,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     float64_t,
+    int32_t,
     int64_t,
     ndarray,
     uint8_t,
@@ -147,9 +153,9 @@ cdef extern from "pandas/parser/tokenizer.h":
     enum: ERROR_OVERFLOW, ERROR_INVALID_CHARS
 
     ctypedef enum BadLineHandleMethod:
-        ERROR,
-        WARN,
-        SKIP
+        BLHM_ERROR,
+        BLHM_WARN,
+        BLHM_SKIP
 
     ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                   int *status, const char *encoding_errors)
@@ -269,12 +275,14 @@ cdef extern from "pandas/parser/pd_parser.h":
 
     void parser_set_default_options(parser_t *self)
 
-    int parser_consume_rows(parser_t *self, size_t nrows)
+    int parser_consume_rows(parser_t *self, uint64_t nrows)
 
     int parser_trim_buffers(parser_t *self)
 
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
-    int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
+    int tokenize_nrows(
+        parser_t *self, uint64_t nrows, const char *encoding_errors
+    ) nogil
 
     int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
     uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
@@ -323,6 +331,7 @@ cdef class TextReader:
         bint allow_leading_cols
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
+        object _encoding_errors
         kh_str_starts_t *false_set
         kh_str_starts_t *true_set
         int64_t buffer_lines, skipfooter
@@ -364,7 +373,7 @@ cdef class TextReader:
                   thousands=None,       # bytes | str
                   dtype=None,
                   usecols=None,
-                  on_bad_lines=ERROR,
+                  on_bad_lines=BLHM_ERROR,
                   bint na_filter=True,
                   na_values=None,       # dict[hashable, set[str]] | set[str]
                   na_fvalues=None,      # dict[hashable, set[float]] | set[float]
@@ -384,7 +393,8 @@ cdef class TextReader:
             encoding_errors = encoding_errors.encode("utf-8")
         elif encoding_errors is None:
             encoding_errors = b"strict"
-        Py_INCREF(encoding_errors)
+        # store encoding_errors in `self` for Cython to manage its lifetime.
+        self._encoding_errors = encoding_errors
         self.encoding_errors = PyBytes_AsString(encoding_errors)
 
         self.parser = parser_new()
@@ -458,7 +468,7 @@ cdef class TextReader:
             self.usecols = usecols
 
         if skipfooter > 0:
-            self.parser.on_bad_lines = SKIP
+            self.parser.on_bad_lines = BLHM_SKIP
 
         self.delimiter = delimiter
 
@@ -835,7 +845,7 @@ cdef class TextReader:
 
         return chunks
 
-    cdef _tokenize_rows(self, size_t nrows):
+    cdef _tokenize_rows(self, uint64_t nrows):
         cdef:
             int status
 
@@ -923,8 +933,7 @@ cdef class TextReader:
             end = min(start + rows, self.parser.lines)
 
         num_cols = -1
-        # Py_ssize_t cast prevents build warning
-        for i in range(<Py_ssize_t>self.parser.lines):
+        for i in range(<int64_t>self.parser.lines):
             num_cols = (num_cols < self.parser.line_fields[i]) * \
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
@@ -1032,6 +1041,8 @@ cdef class TextReader:
                 return col_res, na_count
 
         if i in self.noconvert:
+            # noconvert columns are parse_dates targets; keep them as
+            # object ndarray so to_datetime can take its fast path.
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
@@ -1039,6 +1050,16 @@ cdef class TextReader:
             for dt in self.dtype_cast_order:
                 if not maybe_int and dt.kind in "iu":
                     continue
+
+                if dt == object:
+                    # Last fallback in the cast order: route directly through
+                    # _string_convert so the pyarrow fast path can fire when
+                    # allow_pyarrow applies (col_dtype is None). Bypass
+                    # _convert_with_dtype to avoid its default allow_pyarrow=False.
+                    col_res, na_count = self._string_convert(
+                        i, start, end, na_filter, na_hashset,
+                        allow_pyarrow=col_dtype is None)
+                    break
 
                 try:
                     col_res, na_count = self._convert_with_dtype(
@@ -1052,17 +1073,17 @@ cdef class TextReader:
                         # and we discover that we cannot convert to any numerical
                         # dtype successfully. As a result, we leave the data
                         # column AS IS with object dtype.
-                        col_res, na_count = self._convert_with_dtype(
-                            np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset, False)
+                        col_res, na_count = self._string_convert(
+                            i, start, end, 0, na_hashset,
+                            allow_pyarrow=col_dtype is None)
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
                                                         end, na_filter, na_hashset)
                     except ValueError:
-                        col_res, na_count = self._convert_with_dtype(
-                            np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset, False)
+                        col_res, na_count = self._string_convert(
+                            i, start, end, 0, na_hashset,
+                            allow_pyarrow=col_dtype is None)
 
                 if col_res is not None:
                     break
@@ -1173,6 +1194,12 @@ cdef class TextReader:
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
             return result, na_count
+        elif dtype.kind == "c":
+            # GH#9379 numpy parses both "1+2j" and "(1+2j)" forms; the
+            # latter is what to_csv writes for complex columns.
+            result, na_count = self._string_convert(i, start, end, na_filter,
+                                                    na_hashset)
+            return np.asarray(result, dtype=dtype), na_count
         elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
@@ -1210,9 +1237,36 @@ cdef class TextReader:
         else:
             raise TypeError(f"the dtype {dtype} is not supported for parsing")
 
-    # -> tuple[ndarray[object], int]
+    # -> tuple[ArrayLike, int]
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
-                         bint na_filter, kh_str_starts_t *na_hashset):
+                         bint na_filter, kh_str_starts_t *na_hashset,
+                         bint allow_pyarrow=False):
+
+        cdef str target = ""
+        if (
+            allow_pyarrow
+            and HAS_PYARROW
+            and self.encoding_errors == b"strict"
+        ):
+            if self.dtype_backend == "pyarrow":
+                target = "arrow"
+            elif (
+                self.dtype_backend == "numpy"
+                and using_string_dtype()
+                # an ArrowStringArray result would be inconsistent with
+                # mode.string_storage="python"
+                and StringDtype(na_value=np.nan).storage == "pyarrow"
+            ):
+                target = "str_nan"
+
+        if target:
+            try:
+                return _string_pyarrow_utf8(self.parser, i, start, end,
+                                            na_filter, na_hashset, target)
+            except OverflowError:
+                # >2GiB of string data does not fit the "arrow" target's
+                # int32 offsets; the object path below chunks as needed.
+                pass
 
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
@@ -1515,6 +1569,188 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     return result, na_count
 
 
+# -> tuple[ExtensionArray, int]
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
+                          int64_t line_start, int64_t line_end,
+                          bint na_filter, kh_str_starts_t *na_hashset,
+                          str target):
+    """
+    Build a pyarrow-backed string ExtensionArray directly from the C parser
+    buffers, bypassing the intermediate ``ndarray[object]`` and its associated
+    ``PyUnicode`` allocations plus the downstream ``_from_sequence`` walk.
+
+    target = "str_nan"    -> ArrowStringArray with StringDtype(na_value=np.nan)
+                             (default when ``using_string_dtype()`` is on)
+    target = "arrow"      -> ArrowExtensionArray(pa.string())
+                             (dtype_backend="pyarrow")
+
+    For "str_nan" we use ``pa.large_string()`` (int64 offsets) to match
+    StringDtype's pyarrow storage. For "arrow" we keep ``pa.string()`` (int32
+    offsets) to match the dtype_backend="pyarrow" convention; raises
+    OverflowError if the column exceeds 2GiB.
+    """
+    import pyarrow as pa
+
+    from pandas.core.arrays.string_arrow import ArrowStringArray
+    cdef:
+        int na_count = 0
+        Py_ssize_t i, lines
+        Py_ssize_t total_bytes = 0
+        int64_t wlen, seg
+        coliter_t it
+        const char *word = NULL
+        ndarray[int32_t, ndim=1] offsets32
+        ndarray[int64_t, ndim=1] offsets64
+        ndarray[uint8_t, ndim=1] validity_arr
+        ndarray[uint8_t, ndim=1] data_arr
+        int32_t *offsets32_ptr = NULL
+        int64_t *offsets64_ptr = NULL
+        uint8_t *validity_ptr = NULL
+        char *data_ptr = NULL
+        bint large = target == "str_nan"
+        bint track_validity = na_filter
+        bint overflow = False
+        bint saw_non_ascii = False
+        uint64_t ascii_acc = 0
+        uint64_t HIGH_BITS = 0x8080808080808080
+        const uint64_t *data_words = NULL
+        Py_ssize_t nwords, block_start, block_end, jw
+
+    lines = line_end - line_start
+    if large:
+        offsets64 = np.empty(lines + 1, dtype=np.int64)
+        offsets64_ptr = <int64_t *>offsets64.data
+        offsets64_ptr[0] = 0
+    else:
+        offsets32 = np.empty(lines + 1, dtype=np.int32)
+        offsets32_ptr = <int32_t *>offsets32.data
+        offsets32_ptr[0] = 0
+
+    if track_validity:
+        # Start all-valid and clear bits on NA rows, so the common no-NA case
+        # does no per-token bitmap work.  Padding bits in the last byte stay
+        # set, which Arrow permits (their value is unspecified).
+        validity_arr = np.full((lines + 7) // 8, 255, dtype=np.uint8)
+        validity_ptr = <uint8_t *>validity_arr.data
+    else:
+        validity_arr = None
+
+    # Pass 1 (nogil): compute offsets / validity / na_count / total_bytes.  No
+    # Python-object resize happens in the loop, so the whole pass is GIL-free
+    # and parallelises across threads in the parallel-read path.
+    coliter_setup(&it, parser, col, line_start)
+    with nogil:
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+
+            if na_filter and kh_get_str_starts_item(na_hashset, word):
+                na_count += 1
+                validity_ptr[i >> 3] &= <uint8_t>(~(1 << (i & 7)))
+                if large:
+                    offsets64_ptr[i + 1] = <int64_t>total_bytes
+                else:
+                    offsets32_ptr[i + 1] = <int32_t>total_bytes
+                continue
+
+            wlen = strlen(word)
+
+            if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
+                overflow = True
+                break
+
+            total_bytes += wlen
+            if large:
+                offsets64_ptr[i + 1] = <int64_t>total_bytes
+            else:
+                offsets32_ptr[i + 1] = <int32_t>total_bytes
+
+    if overflow:
+        raise OverflowError(
+            "String column exceeds 2GiB, which is the maximum supported "
+            "by pyarrow's 'string' type."
+        )
+
+    # Allocate the data buffer exactly once now that the total size is known.
+    data_arr = np.empty(total_bytes, dtype=np.uint8)
+    if total_bytes:
+        data_ptr = <char *>data_arr.data
+
+    # Pass 2 (nogil): copy each token's bytes into its slot.  Segment lengths
+    # come from the offsets computed in pass 1, so na / empty rows (seg == 0)
+    # are skipped without re-checking the na hashset.
+    coliter_setup(&it, parser, col, line_start)
+    with nogil:
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+            if large:
+                seg = offsets64_ptr[i + 1] - offsets64_ptr[i]
+                if seg:
+                    memcpy(data_ptr + offsets64_ptr[i], word, <size_t>seg)
+            else:
+                seg = offsets32_ptr[i + 1] - offsets32_ptr[i]
+                if seg:
+                    memcpy(data_ptr + offsets32_ptr[i], word, <size_t>seg)
+
+        # ASCII probe: a clear high bit across the data buffer means the
+        # column is pure ASCII, which is valid UTF-8 by construction, so
+        # validate(full=True) below can be skipped.  Scan in 32KiB blocks so
+        # multibyte data bails out after the first block.
+        nwords = total_bytes >> 3
+        data_words = <const uint64_t *>data_ptr
+        block_start = 0
+        while block_start < nwords and not saw_non_ascii:
+            block_end = block_start + 4096
+            if block_end > nwords:
+                block_end = nwords
+            for jw in range(block_start, block_end):
+                ascii_acc |= data_words[jw]
+            if ascii_acc & HIGH_BITS:
+                saw_non_ascii = True
+            block_start = block_end
+        if not saw_non_ascii:
+            for jw in range(nwords << 3, total_bytes):
+                ascii_acc |= <uint8_t>data_ptr[jw]
+            saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
+
+    if large:
+        offsets_buf = pa.py_buffer(offsets64)
+        pa_type = pa.large_string()
+    else:
+        offsets_buf = pa.py_buffer(offsets32)
+        pa_type = pa.string()
+    data_buf = pa.py_buffer(data_arr)
+    if na_count > 0:
+        validity_buf = pa.py_buffer(validity_arr)
+        pa_arr = pa.Array.from_buffers(
+            pa_type, lines, [validity_buf, offsets_buf, data_buf],
+            null_count=na_count,
+        )
+    else:
+        pa_arr = pa.Array.from_buffers(
+            pa_type, lines, [None, offsets_buf, data_buf],
+            null_count=0,
+        )
+
+    # from_buffers does not validate UTF-8; fall back to the object path so
+    # malformed bytes raise UnicodeDecodeError as before.  Pure-ASCII columns
+    # (the common case) are valid UTF-8 by construction and skip this.
+    if saw_non_ascii:
+        try:
+            pa_arr.validate(full=True)
+        except pa.lib.ArrowInvalid:
+            return _string_box_utf8(parser, col, line_start, line_end,
+                                    na_filter, na_hashset, b"strict")
+
+    if target == "str_nan":
+        return (
+            ArrowStringArray(pa_arr, dtype=StringDtype(na_value=np.nan)),
+            na_count,
+        )
+    return ArrowExtensionArray(pa_arr), na_count
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _categorical_convert(parser_t *parser, int64_t col,
@@ -1593,13 +1829,13 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
                               int64_t line_start, int64_t line_end,
                               size_t width, char *data) noexcept nogil:
     cdef:
-        int64_t i
+        int64_t _
         coliter_t it
         const char *word = NULL
 
     coliter_setup(&it, parser, col, line_start)
 
-    for i in range(line_end - line_start):
+    for _ in range(line_end - line_start):
         COLITER_NEXT(it, word)
         strncpy(data, word, width)
         data += width
@@ -1656,7 +1892,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            int *na_count) nogil:
     cdef:
         int error = 0,
-        Py_ssize_t i, lines = line_end - line_start
+        Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
         char *p_end
@@ -1666,7 +1902,7 @@ cdef int _try_double_nogil(parser_t *parser,
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(na_hashset, word):
@@ -1696,7 +1932,7 @@ cdef int _try_double_nogil(parser_t *parser,
                         data[0] = NA
             data += 1
     else:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
             data[0] = double_converter(word, &p_end, parser.decimal,
                                        parser.sci, parser.thousands,
@@ -1766,6 +2002,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
 
@@ -1778,13 +2015,13 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, thousands)
             if error != 0:
                 return error
 
@@ -1830,6 +2067,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        char thousands = parser.thousands
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1843,13 +2081,13 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, thousands)
             if error != 0:
                 return error
 
@@ -1924,7 +2162,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                               int *na_count) nogil:
     cdef:
         int error = 0
-        Py_ssize_t i, lines = line_end - line_start
+        Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
 
@@ -1932,7 +2170,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(na_hashset, word):
@@ -1956,7 +2194,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
                 return error
             data += 1
     else:
-        for i in range(lines):
+        for _ in range(lines):
             COLITER_NEXT(it, word)
 
             if kh_get_str_starts_item(true_hashset, word):
@@ -2081,6 +2319,8 @@ def _compute_na_values():
     na_values = {
         np.float32: np.nan,
         np.float64: np.nan,
+        np.complex64: np.nan,
+        np.complex128: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,
         np.int16: int16info.min,

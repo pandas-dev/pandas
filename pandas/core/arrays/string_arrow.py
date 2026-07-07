@@ -18,13 +18,16 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
+from pandas.compat.numpy import function as nv
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
@@ -52,6 +55,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        AxisInt,
         Dtype,
         NpDtype,
         Scalar,
@@ -160,10 +164,39 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _from_pyarrow_array(self, pa_array):
         """
-        Construct from the pyarrow array result of an operation, retaining
-        self.dtype.na_value.
+        Construct from a pyarrow Array/ChunkedArray result of an operation.
+
+        Avoids full __init__ overhead (type checking, pc.cast, ArrowDtype
+        construction, etc.).
         """
-        return type(self)(pa_array, dtype=self.dtype)
+        assert isinstance(pa_array, (pa.Array, pa.ChunkedArray))
+        if not pa.types.is_large_string(pa_array.type):
+            pa_array = pa_array.cast(pa.large_string())
+        obj = type(self).__new__(type(self))
+        if isinstance(pa_array, pa.Array):
+            pa_array = pa.chunked_array([pa_array])
+        obj._pa_array = pa_array
+        obj._dtype = self._dtype
+        obj._cache = {}
+        return obj
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        if len(values) == 0:
+            return self[:0].copy()
+
+        try:
+            arr = pa.array(values, from_pandas=True)
+        except (ValueError, TypeError):
+            values = construct_1d_object_array_from_listlike(values)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
+            return self._from_pyarrow_array(arr)
+        if self.dtype.na_value is np.nan:
+            # ArrowEA has different semantics, so we return numpy-based
+            #  result instead
+            values = construct_1d_object_array_from_listlike(values)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+        return ArrowExtensionArray(arr)
 
     @classmethod
     def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
@@ -217,7 +250,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     pa_arr = pc.utf8_capitalize(pa_arr)
             else:
                 result = lib.ensure_string_array(
-                    result, copy=copy, convert_na_value=False
+                    result, copy=copy, convert_na_value=False, skipna=False
                 )
                 pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
         elif isinstance(scalars, ArrowExtensionArray):
@@ -292,7 +325,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             values = values.fill_null(na)
         return BooleanDtype().__from_arrow__(values)
 
-    def _maybe_convert_setitem_value(self, value):
+    def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         if is_scalar(value):
             if isna(value):
@@ -302,16 +335,21 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     f"Invalid value '{value}' for dtype 'str'. Value should be a "
                     f"string or missing value, got '{type(value).__name__}' instead."
                 )
+        elif isinstance(value, type(self)):
+            pass
         else:
-            value = np.array(value, dtype=object, copy=True)
-            value[isna(value)] = None
-            for v in value:
-                if not (v is None or isinstance(v, str)):
-                    raise TypeError(
-                        "Invalid value for dtype 'str'. Value should be a "
-                        "string or missing value (or array of those)."
-                    )
-        return super()._maybe_convert_setitem_value(value)
+            if not is_array_like(value):
+                value = np.asarray(value, dtype=object)
+            else:
+                value = np.asarray(value)
+            if len(value) and not (
+                value.ndim == 1 and lib.is_string_array(value, skipna=True)
+            ):
+                raise TypeError(
+                    "Invalid value for dtype 'str'. Value should be a "
+                    "string or missing value (or array of those)."
+                )
+        return super()._validate_setitem_value(value)
 
     def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         value_set = [
@@ -372,6 +410,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_removeprefix = ArrowStringArrayMixin._str_removeprefix
     _str_find = ArrowStringArrayMixin._str_find
     _str_get = ArrowStringArrayMixin._str_get
+    _str_getitem = ArrowStringArrayMixin._str_getitem
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
     _str_title = ArrowStringArrayMixin._str_title
     _str_swapcase = ArrowStringArrayMixin._str_swapcase
@@ -530,12 +569,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_int_result(self, result):
         if self.dtype.na_value is np.nan:
+            result = result.cast(pa.int64())
             if isinstance(result, pa.Array):
                 result = result.to_numpy(zero_copy_only=False)
             else:
                 result = result.to_numpy()
-            if result.dtype == np.int32:
-                result = result.astype(np.int64)
             return result
 
         return Int64Dtype().__from_arrow__(result)
@@ -551,8 +589,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return Float64Dtype().__from_arrow__(result)
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: AxisInt | None = 0,
+        **kwargs,
     ):
+        nv.validate_minmax_axis(axis, self.ndim)
         if self.dtype.na_value is np.nan and name in ["any", "all"]:
             if not skipna:
                 nas = pc.is_null(self._pa_array)

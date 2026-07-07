@@ -1,5 +1,3 @@
-from datetime import date
-
 import numpy as np
 import pytest
 
@@ -42,7 +40,7 @@ class TestMultiIndexLoc:
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-    def test_loc_getitem_general(self, performance_warning, any_real_numpy_dtype):
+    def test_loc_getitem_general(self, any_real_numpy_dtype):
         # GH#2817
         dtype = any_real_numpy_dtype
         data = {
@@ -55,8 +53,7 @@ class TestMultiIndexLoc:
         df = df.set_index(keys=["col", "num"])
         key = 4.0, 12
 
-        with tm.assert_produces_warning(performance_warning):
-            tm.assert_frame_equal(df.loc[key], df.iloc[2:])
+        tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
         return_value = df.sort_index(inplace=True)
@@ -520,6 +517,27 @@ def test_loc_getitem_duplicates_multiindex_non_scalar_type_object():
     result = df.loc["function", ("functs", "mean")]
     expected = np.mean
     assert result == expected
+
+
+def test_loc_getitem_unique_key_in_nonunique_multiindex():
+    # GH#42102 - unique key in a non-unique MultiIndex should return scalar
+    mi = MultiIndex.from_tuples([(0, 0), (1, 0), (1, 0)])
+    ser = Series(range(3), index=mi)
+
+    # (0, 0) is unique even though the overall index is non-unique
+    result = ser.loc[(0, 0)]
+    assert result == 0
+    assert not isinstance(result, Series)
+
+    # (1, 0) is duplicated, should still return a Series
+    result = ser.loc[(1, 0)]
+    assert isinstance(result, Series)
+
+    # DataFrame column case: unique key in non-unique column MultiIndex
+    columns = MultiIndex.from_tuples([("A", "x"), ("B", "y"), ("B", "y")])
+    df = DataFrame([[1, 2, 3]], columns=columns)
+    result = df[("A", "x")]
+    assert isinstance(result, Series)
 
 
 def test_loc_getitem_tuple_plus_slice():
@@ -1014,27 +1032,82 @@ def test_multindex_series_loc_with_tuple_label():
     assert result == 2
 
 
-def test_loc_datetime_date_multiindex_with_np_datetime64():
-    # GH#55969
-    # loc with np.datetime64 key on MultiIndex with datetime.date level
-    # should correctly filter on subsequent levels
-    dates = [date(2023, 11, 1), date(2023, 11, 1), date(2023, 11, 2)]
-    t1 = ["A", "B", "C"]
-    t2 = ["C", "D", "E"]
-    vals = [0.1, 0.2, 0.3]
-    df = DataFrame({"dates": dates, "t1": t1, "t2": t2, "vals": vals})
-    df = df.set_index(["dates", "t1", "t2"])
-
-    # Verify the index level stays object dtype with date entries
-    assert df.index.get_level_values("dates").dtype == object
-    assert all(isinstance(v, date) for v in df.index.get_level_values("dates"))
-
-    dt_key = np.datetime64("2023-11-01")
-
-    # Should return only the row matching (dt_key, "A"), not all rows for dt_key
-    result = df.loc[(dt_key, "A")]
-    expected = DataFrame(
-        {"vals": [0.1]},
-        index=Index(["C"], name="t2"),
+def test_loc_np_datetime64_key_on_object_dt64_level():
+    # GH#64689 (revert)
+    # Verify MultiIndex.loc works with np.datetime64 key on object-dtype level
+    # holding datetime64 values without the datetime64-to-date conversion.
+    mi = MultiIndex.from_arrays(
+        [
+            Index(
+                [np.datetime64("2023-01-01", "s")] * 2,
+                dtype=object,
+            ),
+            ["A", "B"],
+            ["X", "Y"],
+        ],
     )
+    df = DataFrame({"val": [1, 2]}, index=mi)
+    result = df.loc[(np.datetime64("2023-01-01", "s"), "A")]
+    expected = DataFrame({"val": [1]}, index=Index(["X"]))
     tm.assert_frame_equal(result, expected)
+
+
+def test_loc_multiindex_with_overlapping_interval_single_match():
+    # GH#27456 - tuple .loc on MultiIndex with overlapping IntervalIndex
+    # level returned Series instead of scalar when only one interval matched
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["label1", "label1", "label2", "label2"]),
+            pd.IntervalIndex.from_arrays([1, 3, 1, 2], [3, 4, 2, 4]),
+        ]
+    )
+    ser = Series([1, 2, 3, 4], index=idx, name="Value")
+
+    result = ser.loc[("label1", 1.5)]
+    expected = ser.loc["label1"].loc[1.5]
+    assert result == expected == 1
+
+
+def test_loc_multiindex_with_overlapping_interval_multiple_matches():
+    # GH#27456 - tuple .loc on MultiIndex where the scalar falls in
+    # multiple overlapping intervals for the same outer label;
+    # the intervals in the level are non-contiguous (get_loc returns
+    # a boolean array, not a slice)
+    idx = MultiIndex.from_arrays(
+        [
+            Index(["A", "A", "B", "B"]),
+            pd.IntervalIndex.from_arrays([1, 0, 0.5, 2], [3, 2, 0.8, 4]),
+        ]
+    )
+    ser = Series([10, 20, 30, 40], index=idx, name="Value")
+
+    result = ser.loc[("A", 1.5)]
+    expected = np.array([10, 20], dtype=result.values.dtype)
+    tm.assert_numpy_array_equal(result.values, expected)
+
+
+def test_loc_multiindex_interval_level_inf_break():
+    # GH#46699 - .loc with a tuple/list-of-tuples key on a MultiIndex whose
+    # inner IntervalIndex level has breaks at +/-inf used to raise ValueError
+    # from the engine when the scalar fell in the inf-bounded interval.
+    left = DataFrame(
+        {"Result": [101, 102, 103]},
+        index=pd.IntervalIndex.from_breaks(
+            [-np.inf, 35, 59, np.inf], closed="left", name="age"
+        ),
+    )
+    right = DataFrame(
+        {"Result": [1, 2, 3, 4]},
+        index=pd.IntervalIndex.from_breaks(
+            [-np.inf, 35, 59, 70, np.inf], closed="left", name="age"
+        ),
+    )
+    mapper = pd.concat([left, right], axis=0, keys=[False, True], names=["children"])
+
+    # scalar tuple: 99 falls in the [59, inf) interval of the False group
+    result = mapper.loc[(False, 99)]
+    tm.assert_series_equal(result, mapper.iloc[2])
+
+    # list of tuples, one of which falls in the [59, inf) interval
+    result = mapper.loc[[(False, 45), (False, 99)], :]
+    tm.assert_frame_equal(result, mapper.iloc[[1, 2]])

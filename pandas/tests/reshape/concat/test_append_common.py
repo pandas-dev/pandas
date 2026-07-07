@@ -187,17 +187,7 @@ class TestConcatAppendCommon:
             pytest.skip("categorical type tested elsewhere")
 
         # specify expected dtype
-        if typ1 == "bool" and typ2 in ("int64", "float64"):
-            # series coerces to numeric based on numpy rule
-            # index doesn't because bool is object dtype
-            exp_series_dtype = typ2
-            mark = pytest.mark.xfail(reason="GH#39187 casting to object")
-            request.applymarker(mark)
-        elif typ2 == "bool" and typ1 in ("int64", "float64"):
-            exp_series_dtype = typ1
-            mark = pytest.mark.xfail(reason="GH#39187 casting to object")
-            request.applymarker(mark)
-        elif typ1 in {"datetime64[ns, US/Eastern]", "timedelta64[ns]"} or typ2 in {
+        if typ1 in {"datetime64[ns, US/Eastern]", "timedelta64[ns]"} or typ2 in {
             "datetime64[ns, US/Eastern]",
             "timedelta64[ns]",
         }:

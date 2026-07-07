@@ -319,6 +319,10 @@ class MultiIndexing:
         target = tuple([self.tgt_scalar] * self.nlevels)
         self.df.xs(target)
 
+    def time_xs_partial_key(self, unique_levels):
+        # partial key -> contiguous slice of rows (non-unique levels)
+        self.df.xs(self.tgt_scalar)
+
 
 class IntervalIndexing:
     def setup_cache(self):
@@ -548,6 +552,24 @@ class SetitemObjectDtype:
 
     def time_setitem_object_dtype(self):
         self.df.loc[0, 1] = 1.0
+
+
+class SeriesSetitem:
+    params = ["str"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 500_000
+        self.s = Series(np.random.rand(N), dtype=dtype)
+        self.arr = self.s.array
+        self.arr_obj = np.asarray(self.s.array, dtype=object)
+
+    def time_setitem_slice_array(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/64530
+        self.s[:] = self.arr
+
+    def time_setitem_slice_array_infer(self, dtype):
+        self.s[:] = self.arr_obj
 
 
 class ChainIndexing:

@@ -27,6 +27,7 @@ from cpython.datetime cimport (
     datetime,
     import_datetime,
 )
+from libc.stdint cimport INT32_MAX
 from libc.stdlib cimport (
     free,
     malloc,
@@ -1241,7 +1242,11 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{(dts.us):06d}")
 
-    elif freq_group == FR_NS and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%n"):
+    elif freq_group == FR_NS and (
+        is_fmt_none
+        or fmt == "%Y-%m-%d %H:%M:%S.%N"
+        or fmt == "%Y-%m-%d %H:%M:%S.%n"
+    ):
         return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
@@ -1259,15 +1264,48 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         return _period_strftime(value, freq, fmt, dts)
 
 
+cdef _warn_period_strftime_n_deprecated():
+    import warnings
+
+    from pandas.errors import Pandas4Warning
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(
+        "The %n directive in Period.strftime is deprecated and will be "
+        "removed in a future version. Use %N instead to format nanoseconds.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
 cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%f", b"^`CD`^"),
                         (b"%F", b"^`EF`^"),
                         (b"%l", b"^`GH`^"),
                         (b"%u", b"^`IJ`^"),
-                        (b"%n", b"^`KL`^")]
+                        (b"%n", b"^`KL`^"),
+                        (b"%N", b"^`MN`^")]
 
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
-                            "^`GH`^", "^`IJ`^", "^`KL`^"]
+                            "^`GH`^", "^`IJ`^", "^`KL`^", "^`MN`^"]
+
+# Conservative cross-platform set of valid C strftime directives, matching
+# CPython's allowlist for time.strftime on Windows. Pandas-specific
+# directives (q, f, F, l, u, n) are pre-extracted before validation, so they
+# are intentionally absent here.
+cdef frozenset _VALID_STRFTIME_DIRECTIVES = frozenset(b"aAbBcdHIjmMpSUwWxXyYzZ%")
+
+
+cdef _validate_strftime_format(bytes fmt):
+    # Reject unknown %X directives so that C strftime is never asked to
+    # handle them. Without this, MSVCRT crashes the process on Windows when
+    # given a directive like %Q (GH#53562).
+    cdef Py_ssize_t idx = fmt.find(b"%")
+    while idx != -1:
+        if idx + 1 >= len(fmt) or fmt[idx + 1] not in _VALID_STRFTIME_DIRECTIVES:
+            raise ValueError("Invalid format string")
+        idx = fmt.find(b"%", idx + 2)
+
 
 cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct dts):
     cdef:
@@ -1287,6 +1325,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
         if pat in fmt:
             fmt = fmt.replace(pat, brepl)
             found_pat[i] = True
+
+    _validate_strftime_format(fmt)
 
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
@@ -1322,7 +1362,9 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
                 repl = f"{(us // 1_000):03d}"
             elif i == 4:  # %u, microseconds
                 repl = f"{(us):06d}"
-            elif i == 5:  # %n, nanoseconds
+            elif i == 5:  # %n, nanoseconds (deprecated, use %N instead)
+                repl = f"{((us * 1000) + (ps // 1000)):09d}"
+            elif i == 6:  # %N, nanoseconds
                 repl = f"{((us * 1000) + (ps // 1000)):09d}"
 
             result = result.replace(str_extra_fmts[i], repl)
@@ -1355,6 +1397,9 @@ def period_array_strftime(
         )
         object[::1] out_flat = out.ravel()
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
+
+    if date_format is not None and "%n" in date_format:
+        _warn_period_strftime_n_deprecated()
 
     for i in range(n):
         # Analogous to: ordinal = values[i]
@@ -1525,6 +1570,61 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+def period_ordinals_from_fields(
+    const int64_t[:] years,
+    const int64_t[:] months,
+    const int64_t[:] days,
+    const int64_t[:] hours,
+    const int64_t[:] minutes,
+    const int64_t[:] seconds,
+    int freq,
+):
+    """
+    Vectorized version of period_ordinal: convert arrays of date/time fields
+    to an array of period ordinals for the given frequency.
+
+    Parameters
+    ----------
+    years, months, days, hours, minutes, seconds : int64 arrays
+    freq : int
+
+    Returns
+    -------
+    ndarray[int64]
+    """
+    cdef:
+        Py_ssize_t i, n = len(years)
+        int64_t[::1] result = np.empty(n, dtype="i8")
+        npy_datetimestruct dts
+
+    memset(&dts, 0, sizeof(npy_datetimestruct))
+
+    for i in range(n):
+        # month/day/hour/min/sec land in int32 npy_datetimestruct fields,
+        #  so values outside int32 range would silently wrap; period_ordinal
+        #  raises OverflowError for these (C int args), so match that.
+        if (
+            not (INT32_MIN <= years[i] <= INT32_MAX)
+            or not (INT32_MIN <= months[i] <= INT32_MAX)
+            or not (INT32_MIN <= days[i] <= INT32_MAX)
+            or not (INT32_MIN <= hours[i] <= INT32_MAX)
+            or not (INT32_MIN <= minutes[i] <= INT32_MAX)
+            or not (INT32_MIN <= seconds[i] <= INT32_MAX)
+        ):
+            raise OverflowError("value too large to convert to int")
+        dts.year = years[i]
+        dts.month = months[i]
+        dts.day = days[i]
+        dts.hour = hours[i]
+        dts.min = minutes[i]
+        dts.sec = seconds[i]
+        result[i] = get_period_ordinal(&dts, freq)
+
+    return result.base
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
     # NB: this is *not* the same behavior as PeriodIndex.from_ordinals,
     #  but a vectorized application of the Period constructor on an integer
@@ -1555,7 +1655,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
-        Py_ssize_t i, n = values.size
+        Py_ssize_t _, n = values.size
         int64_t ordinal
         ndarray ordinals = cnp.PyArray_EMPTY(
             values.ndim, values.shape, cnp.NPY_INT64, 0
@@ -1567,7 +1667,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -1591,7 +1691,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227
+        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
         ordinal = item
     else:
         try:
@@ -1617,7 +1717,7 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def extract_period_unit(ndarray[object] values) -> PeriodDtypeBase:
-    # TODO: Change type to const object[:] when Cython supports that.
+    # TODO(cython#2485): once possible, use const object[:]
 
     cdef:
         Py_ssize_t i, n = len(values)
@@ -2560,9 +2660,18 @@ cdef class _Period(PeriodMixin):
         >>> per.end_time.day_of_week
         2
         """
-        # Docstring is a duplicate from day_of_week. Reusing docstrings with
-        # Appender doesn't work for properties in Cython files, and setting
-        # the __doc__ attribute is also not possible.
+        # GH#12816
+        import warnings
+
+        from pandas.errors import Pandas4Warning
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "Period.weekday is deprecated and will be removed "
+            "in a future version. Use Period.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.day_of_week
 
     @property
@@ -2835,6 +2944,14 @@ cdef class _Period(PeriodMixin):
         value = str(formatted)
         return value
 
+    def __format__(self, fmt: str) -> str:
+        # GH#48536
+        if not isinstance(fmt, str):
+            raise TypeError(f"must be str, not {type(fmt).__name__}")
+        if len(fmt) != 0:
+            return self.strftime(fmt)
+        return str(self)
+
     def __setstate__(self, state):
         self._freq = state[1]
         self._ordinal = state[2]
@@ -2847,11 +2964,15 @@ cdef class _Period(PeriodMixin):
         r"""
         Returns a formatted string representation of the :class:`Period`.
 
+        .. deprecated:: 3.1.0
+            The ``%n`` directive for nanoseconds is deprecated; use ``%N`` instead.
+            ``%n`` conflicts with the POSIX standard meaning of a newline character.
+
         ``fmt`` must be ``None`` or a string containing one or several directives.
         When ``None``, the format will be determined from the frequency of the Period.
         The method recognizes the same directives as the :func:`time.strftime`
         function of the standard Python distribution, as well as the specific
-        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
+        additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%N``.
         (formatting & docs originally from scikits.timeries).
 
         +-----------+--------------------------------+-------+
@@ -2910,7 +3031,10 @@ cdef class _Period(PeriodMixin):
         | ``%u``    | Microsecond as a decimal number|       |
         |           | [000000,999999].               |       |
         +-----------+--------------------------------+-------+
-        | ``%n``    | Nanosecond as a decimal number |       |
+        | ``%N``    | Nanosecond as a decimal number |       |
+        |           | [000000000,999999999].         |       |
+        +-----------+--------------------------------+-------+
+        | ``%n``    | Nanosecond as a decimal number | \(6)  |
         |           | [000000000,999999999].         |       |
         +-----------+--------------------------------+-------+
         | ``%U``    | Week number of the year        | \(5)  |
@@ -2998,6 +3122,11 @@ cdef class _Period(PeriodMixin):
             The ``%U`` and ``%W`` directives are only used in calculations
             when the day of the week and the year are specified.
 
+        (6)
+            The ``%n`` directive is deprecated since pandas 3.1.0; use
+            ``%N`` instead. ``%n`` is a newline directive in C ``strftime``
+            (and Python's ``time.strftime`` / ``datetime.strftime``).
+
         Examples
         --------
 
@@ -3015,6 +3144,8 @@ cdef class _Period(PeriodMixin):
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
+        if isinstance(fmt, str) and "%n" in fmt:
+            _warn_period_strftime_n_deprecated()
         base = self._dtype._dtype_code
         return period_format(self.ordinal, base, fmt)
 

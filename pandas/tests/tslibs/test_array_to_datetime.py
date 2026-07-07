@@ -45,7 +45,7 @@ class TestArrayToDatetimeResolutionInference:
         arr = np.array([None, dt2, dt2, dt2], dtype=object)
         result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert tz is None
-        expected = np.array([np.datetime64("NaT"), dt2, dt2, dt2], dtype="M8[s]")
+        expected = np.array([np.datetime64("NaT", "ns"), dt2, dt2, dt2], dtype="M8[s]")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_infer_homogeoneous_dt64(self):
@@ -54,7 +54,9 @@ class TestArrayToDatetimeResolutionInference:
         arr = np.array([None, dt64, dt64, dt64], dtype=object)
         result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert tz is None
-        expected = np.array([np.datetime64("NaT"), dt64, dt64, dt64], dtype="M8[ms]")
+        expected = np.array(
+            [np.datetime64("NaT", "ns"), dt64, dt64, dt64], dtype="M8[ms]"
+        )
         tm.assert_numpy_array_equal(result, expected)
 
     def test_infer_homogeoneous_timestamps(self):
@@ -63,7 +65,9 @@ class TestArrayToDatetimeResolutionInference:
         arr = np.array([None, ts, ts, ts], dtype=object)
         result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert tz is None
-        expected = np.array([np.datetime64("NaT")] + [ts.asm8] * 3, dtype="M8[ns]")
+        expected = np.array(
+            [np.datetime64("NaT", "ns")] + [ts.asm8] * 3, dtype="M8[ns]"
+        )
         tm.assert_numpy_array_equal(result, expected)
 
     def test_infer_homogeoneous_datetimes_strings(self):
@@ -71,7 +75,9 @@ class TestArrayToDatetimeResolutionInference:
         arr = np.array([None, item, item, item], dtype=object)
         result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert tz is None
-        expected = np.array([np.datetime64("NaT"), item, item, item], dtype="M8[us]")
+        expected = np.array(
+            [np.datetime64("NaT", "ns"), item, item, item], dtype="M8[us]"
+        )
         tm.assert_numpy_array_equal(result, expected)
 
     def test_infer_heterogeneous(self):
@@ -98,7 +104,7 @@ class TestArrayToDatetimeResolutionInference:
         arr = np.array([dt, item], dtype=object)
         result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert tz is None
-        expected = np.array([dt, np.datetime64("NaT")], dtype="M8[us]")
+        expected = np.array([dt, np.datetime64("NaT", "ns")], dtype="M8[us]")
         tm.assert_numpy_array_equal(result, expected)
 
         result2, tz2 = tslib.array_to_datetime(arr[::-1], creso=creso_infer)

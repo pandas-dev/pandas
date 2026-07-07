@@ -41,9 +41,11 @@ from pandas.core.arrays import (
 
 ok_for_period = PeriodArray._datetimelike_ops
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-ok_for_dt = DatetimeArray._datetimelike_ops
+# ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
+# directly rather than on the underlying array, so add it explicitly.
+ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq"]
 # GH#46768 - deprecated aliases that should be skipped in property access tests
-_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth"}
+_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
 ok_for_dt_methods = [
     "to_period",
     "to_pydatetime",
@@ -59,7 +61,7 @@ ok_for_dt_methods = [
     "isocalendar",
     "as_unit",
 ]
-ok_for_td = TimedeltaArray._datetimelike_ops
+ok_for_td = [*TimedeltaArray._datetimelike_ops, "freq"]
 ok_for_td_methods = [
     "components",
     "to_pytimedelta",
@@ -592,10 +594,94 @@ class TestSeriesDatetimeValues:
             expected = expected.astype(StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
+    def test_strftime_literal_braces(self):
+        # Literal braces in the format string should be preserved
+        ser = Series(date_range("2024-01-01", periods=3))
+        result = ser.dt.strftime("{%Y}")
+        expected = Series(["{2024}", "{2024}", "{2024}"])
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_dt64_year_lt_1000(self):
+        # GH#58179, GH#64609 the directive-map fast path must zero-pad %Y to
+        #  a minimum of 4 digits for years < 1000, matching datetime.strftime
+        ser = Series(
+            np.array(
+                ["0005-06-15", "0099-01-01", "0999-12-31", "2024-03-02"],
+                dtype="M8[s]",
+            )
+        )
+        result = ser.dt.strftime("%Y")
+        expected = Series(["0005", "0099", "0999", "2024"])
+        tm.assert_series_equal(result, expected)
+
+        # composite format still routes through the directive-map fast path
+        result = ser.dt.strftime("%Y/%m/%d")
+        expected = Series(["0005/06/15", "0099/01/01", "0999/12/31", "2024/03/02"])
+        tm.assert_series_equal(result, expected)
+
     def test_strftime_dt64_microsecond_resolution(self):
         ser = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)])
         result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
         expected = Series(["2013-01-01 02:32:59", "2013-01-02 14:32:01"])
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_nanosecond_directive(self):
+        # GH#29461 - %N directive for nanoseconds, vectorized fast paths
+        ser = Series(
+            [
+                pd.Timestamp("2019-05-18 15:17:08.132263123"),
+                pd.Timestamp("2019-05-18 15:17:08.000000123"),
+            ]
+        )
+
+        # fast path: format matches the hardcoded "%Y-%m-%d %H:%M:%S.%N" branch
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S.%N")
+        expected = Series(
+            ["2019-05-18 15:17:08.132263123", "2019-05-18 15:17:08.000000123"]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # template path: %N in a non-hardcoded format goes through the
+        # str.format-based fmt_template path
+        result = ser.dt.strftime("%Y-%m-%dT%H:%M:%S.%N")
+        expected = Series(
+            ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # DatetimeIndex.strftime should produce the same result
+        dti = DatetimeIndex(
+            [
+                pd.Timestamp("2019-05-18 15:17:08.132263123"),
+                pd.Timestamp("2019-05-18 15:17:08.000000123"),
+            ]
+        )
+        result = dti.strftime("%Y-%m-%dT%H:%M:%S.%N")
+        expected = Index(
+            ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_strftime_nanosecond_directive_tz(self):
+        # GH#29461 - %N directive must work for tz-aware data via the
+        # template path (Localizer is wired up only for the template path)
+        dti = DatetimeIndex(
+            [
+                pd.Timestamp("2019-05-18 15:17:08.132263123", tz="US/Eastern"),
+                pd.Timestamp("2019-05-18 15:17:08.000000123", tz="US/Eastern"),
+            ]
+        )
+        result = dti.strftime("%Y-%m-%dT%H:%M:%S.%N")
+        expected = Index(
+            ["2019-05-18T15:17:08.132263123", "2019-05-18T15:17:08.000000123"]
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_strftime_nanosecond_directive_nat(self):
+        # GH#29461 - NaT should produce NaN through ser.dt.strftime
+        ser = Series([pd.Timestamp("2019-05-18 15:17:08.132263123"), pd.NaT])
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S.%N")
+        expected = Series(["2019-05-18 15:17:08.132263123", np.nan])
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_hours(self):
@@ -620,6 +706,39 @@ class TestSeriesDatetimeValues:
                 "2013/01/01 00:00:00.001",
                 "2013/01/01 00:00:00.002",
                 "2013/01/01 00:00:00.003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_capital_N(self):
+        # GH#65432 %N is the new directive for nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%N")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_period_nanoseconds_lowercase_n_deprecated(self):
+        # GH#65432 %n collides with the POSIX newline directive; warn once
+        # per call regardless of array length, and still produce nanoseconds
+        ser = Series(
+            period_range("2013-01-01 00:00:00.000000001", periods=3, freq="ns")
+        )
+        msg = "The %n directive in Period.strftime is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%n")
+        expected = Series(
+            [
+                "2013/01/01 00:00:00.000000001",
+                "2013/01/01 00:00:00.000000002",
+                "2013/01/01 00:00:00.000000003",
             ]
         )
         tm.assert_series_equal(result, expected)

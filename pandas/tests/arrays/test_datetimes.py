@@ -11,6 +11,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_version_gt2_5,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -74,8 +78,10 @@ class TestNonNano:
 
         assert (dti == dta).all()
 
-        res = getattr(dta, field)
-        expected = getattr(dti._data, field)
+        warn = Pandas4Warning if field == "weekday" else None
+        with tm.assert_produces_warning(warn, match="weekday is deprecated"):
+            res = getattr(dta, field)
+            expected = getattr(dti._data, field)
         tm.assert_numpy_array_equal(res, expected)
 
     def test_normalize(self, unit):
@@ -206,10 +212,16 @@ class TestNonNano:
         tm.assert_numpy_array_equal(result, expected)
 
         if op not in [operator.eq, operator.ne]:
-            # check that numpy still gets this wrong; if it is fixed we may be
-            #  able to remove compare_mismatched_resolutions
-            np_res = op(left._ndarray, right._ndarray)
-            tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
+            if is_numpy_dev or np_version_gt2_5:
+                # numpy now raises instead of silently overflowing
+                # https://github.com/numpy/numpy/pull/31085
+                with pytest.raises(OverflowError, match="Overflow"):
+                    op(left._ndarray, right._ndarray)
+            else:
+                # check that numpy still gets this wrong; if it is fixed we may
+                #  be able to remove compare_mismatched_resolutions
+                np_res = op(left._ndarray, right._ndarray)
+                tm.assert_numpy_array_equal(np_res[1:], ~expected[1:])
 
     def test_add_mismatched_reso_doesnt_downcast(self):
         # https://github.com/pandas-dev/pandas/pull/48748#issuecomment-1260181008
@@ -287,7 +299,6 @@ class TestDatetimeArrayComparisons:
 
         dti = pd.date_range("2016-01-1", freq="MS", periods=9, tz=None)
         arr = dti._data
-        assert arr.freq == dti.freq
         assert arr.tz == dti.tz
 
         right = dti
@@ -466,11 +477,6 @@ class TestDatetimeArray:
         ts = pd.Timestamp("2000", tz="US/Eastern")
         arr[0] = ts
         assert arr[0] == ts.tz_convert("US/Central")
-
-    def test_setitem_clears_freq(self):
-        a = pd.date_range("2000", periods=2, freq="D", tz="US/Central")._data
-        a[0] = pd.Timestamp("2000", tz="US/Central")
-        assert a.freq is None
 
     @pytest.mark.parametrize(
         "obj",
@@ -655,11 +661,11 @@ class TestDatetimeArray:
             1,
             np.int64(1),
             1.0,
-            np.timedelta64("NaT"),
+            np.timedelta64("NaT", "ns"),
             pd.Timedelta(days=2),
             "invalid",
             np.arange(10, dtype="i8") * 24 * 3600 * 10**9,
-            np.arange(10).view("timedelta64[ns]") * 24 * 3600 * 10**9,
+            np.arange(10, dtype="i8").view("timedelta64[ns]") * 24 * 3600 * 10**9,
             pd.Timestamp("2021-01-01").to_period("D"),
         ],
     )

@@ -123,8 +123,8 @@ class TestIndexConstructorInference:
     @pytest.mark.parametrize(
         "klass,dtype,ctor",
         [
-            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat")),
-            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("nat")),
+            (DatetimeIndex, "datetime64[ns]", np.datetime64("nat", "ns")),
+            (TimedeltaIndex, "timedelta64[ns]", np.timedelta64("NaT", "ns")),
         ],
     )
     def test_constructor_infer_nat_dt_like(
@@ -164,7 +164,7 @@ class TestIndexConstructorInference:
     @pytest.mark.parametrize("swap_objs", [True, False])
     def test_constructor_mixed_nat_objs_infers_object(self, swap_objs):
         # mixed np.datetime64/timedelta64 nat results in object
-        data = [np.datetime64("nat"), np.timedelta64("nat")]
+        data = [np.datetime64("nat", "ns"), np.timedelta64("NaT", "ns")]
         if swap_objs:
             data = data[::-1]
 
@@ -190,6 +190,21 @@ class TestIndexConstructorInference:
         result = Index([dt1, dt2])
         expected = Index([dt1, dt2], dtype=object)
         tm.assert_index_equal(result, expected)
+
+    def test_constructor_preserves_byteorder(self):
+        # GH#43042 non-native byteorder (and the values) must be preserved
+        arr = np.array([0, 256, 2**40], dtype=">i8")
+        expected = [0, 256, 2**40]
+
+        # inferred from a big-endian ndarray
+        result = Index(arr)
+        assert result.dtype == np.dtype(">i8")
+        assert result.tolist() == expected
+
+        # explicit big-endian dtype from a python list
+        result = Index([0, 256, 2**40], dtype=">i8")
+        assert result.dtype == np.dtype(">i8")
+        assert result.tolist() == expected
 
 
 class TestDtypeEnforced:

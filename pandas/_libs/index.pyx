@@ -379,7 +379,8 @@ cdef class IndexEngine:
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -436,6 +437,11 @@ cdef class IndexEngine:
 
         n = len(values)
         n_t = len(targets)
+        if n == 0:
+            # GH#54746 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
@@ -548,28 +554,16 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
     # This is equivalent to the stdlib's bisect.bisect_left
 
     cdef:
-        Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
-        object pval
-
-    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
-        return len(values)
+        Py_ssize_t mid, lo = 0, hi = len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = PySequence_GetItem(values, mid)
-        if val < pval:
-            hi = mid
-        elif val > pval:
+        if PySequence_GetItem(values, mid) < val:
             lo = mid + 1
         else:
-            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
-                mid -= 1
-            return mid
+            hi = mid
 
-    if val <= PySequence_GetItem(values, mid):
-        return mid
-    else:
-        return mid + 1
+    return lo
 
 
 cdef Py_ssize_t _bin_search_right(ndarray values, object val) except -1:
@@ -1262,7 +1256,8 @@ cdef class MaskedIndexEngine(IndexEngine):
             Py_ssize_t n_values = len(values)
 
         if (
-            self.over_size_threshold
+            not self.is_mapping_populated
+            and self.over_size_threshold
             and self.is_monotonic_increasing
             and self.is_unique
             and n_values < (n_self / (2 * n_self.bit_length()))
@@ -1321,6 +1316,11 @@ cdef class MaskedIndexEngine(IndexEngine):
 
         n = len(values)
         n_t = len(target_vals)
+        if n == 0:
+            # GH#64674 empty index matches nothing; every target is missing.
+            # Early return also avoids ZeroDivisionError in the searchsorted
+            # heuristic below (n.bit_length() == 0 -> divide by zero).
+            return np.full(n_t, -1, dtype=np.intp), np.arange(n_t, dtype=np.intp)
         max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000

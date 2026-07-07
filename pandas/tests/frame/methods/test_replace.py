@@ -6,6 +6,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1214,6 +1215,16 @@ class TestDataFrameReplace:
         with pytest.raises(TypeError, match=msg):
             df.replace(lambda x: x.strip())
 
+    def test_replace_ellipsis(self):
+        # GH#50373 Ellipsis should be accepted as a scalar to_replace
+        df = DataFrame({"a": [1, 2, 3], "b": [..., ..., ...]})
+        result = df.replace(..., 1)
+        expected = DataFrame({"a": [1, 2, 3], "b": Series([1, 1, 1], dtype=object)})
+        tm.assert_frame_equal(result, expected)
+
+        # Ellipsis is equivalent to the spelled-out singleton
+        tm.assert_frame_equal(df.replace(Ellipsis, 1), expected)
+
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
     def test_replace_no_replacement_dtypes(self, dtype, value):
@@ -1469,6 +1480,12 @@ class TestDataFrameReplace:
         else:
             expected = ser
         tm.assert_series_equal(result, expected)
+
+    def test_replace_datetime_out_of_bounds_for_ns(self):
+        # GH#61671
+        df = DataFrame([np.nan], dtype="datetime64[ns]")
+        with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
+            df.replace(np.nan, datetime(3000, 1, 1))
 
 
 class TestDataFrameReplaceRegex:

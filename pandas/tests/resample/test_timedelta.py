@@ -216,3 +216,17 @@ def test_arrow_duration_resample():
     expected = Series(np.arange(5, dtype=np.float64), index=idx)
     result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_arrow_duration_resample_on_keep_index_name():
+    # GH#59823 resampling on a pyarrow-backed duration column should keep its name
+    df = DataFrame(
+        {
+            "td": timedelta_range("1 day", periods=5),
+            "metric": np.arange(5, dtype=np.int64),
+        }
+    ).astype({"td": "duration[ns][pyarrow]"})
+    result = df.resample("1D", on="td").sum()
+    assert result.index.name == "td"
+    assert result.index.dtype == "duration[ns][pyarrow]"

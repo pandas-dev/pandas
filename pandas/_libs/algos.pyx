@@ -7,6 +7,7 @@ from libc.math cimport (
 from libc.stdlib cimport (
     free,
     malloc,
+    qsort,
 )
 from libc.string cimport memcpy
 
@@ -136,25 +137,37 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         An ordered ndarray[int64_t]
     """
     cdef:
-        Py_ssize_t i, n = len(arr)
+        Py_ssize_t i, n = len(arr), num_uniques = 0
         int64_t val
         khiter_t k
         kh_int64_t *table
         int ret = 0
-        list uniques = []
+        int64_t *uniques = NULL
         ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
     kh_resize_int64(table, 10)
+
+    # n - 1 is the max possible number of unique deltas
+    if n > 1:
+        uniques = <int64_t*>malloc((n - 1) * sizeof(int64_t))
+        if uniques is NULL:
+            kh_destroy_int64(table)
+            raise MemoryError()
+
     for i in range(n - 1):
         val = arr[i + 1] - arr[i]
         k = kh_get_int64(table, val)
         if k == table.n_buckets:
             kh_put_int64(table, val, &ret)
-            uniques.append(val)
+            uniques[num_uniques] = val
+            num_uniques += 1
     kh_destroy_int64(table)
 
-    result = np.array(uniques, dtype=np.int64)
+    result = np.empty(num_uniques, dtype=np.int64)
+    if num_uniques > 0:
+        memcpy(cnp.PyArray_DATA(result), uniques, num_uniques * sizeof(int64_t))
+    free(uniques)
     result.sort()
     return result
 
@@ -347,6 +360,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        bint no_nans
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -356,6 +370,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    no_nans = np.asarray(mask).all()
 
     with nogil:
         for xi in range(K):
@@ -363,18 +378,32 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 # Welford's method for the variance-calculation
                 # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
                 nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+
+                if no_nans:
+                    nobs = N
+                    for i in range(N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
                         dx = vx - meanx
                         dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
+                        meanx += 1. / (i + 1) * dx
+                        meany += 1. / (i + 1) * dy
                         ssqdmx += (vx - meanx) * dx
                         ssqdmy += (vy - meany) * dy
                         covxy += (vx - meanx) * dy
+                else:
+                    for i in range(N):
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx += 1. / nobs * dx
+                            meany += 1. / nobs * dy
+                            ssqdmx += (vx - meanx) * dx
+                            ssqdmy += (vy - meany) * dy
+                            covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
@@ -401,6 +430,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
     cdef:
         Py_ssize_t i, xi, yi, N, K
@@ -547,17 +577,18 @@ def get_fill_indexer(const uint8_t[:] mask, limit=None):
 
     last_valid = -1  # haven't yet seen anything non-NA
 
-    for i in range(N):
-        if not mask[i]:
-            indexer[i] = i
-            last_valid = i
-            fill_count = 0
-        else:
-            if fill_count < lim:
-                indexer[i] = last_valid
+    with nogil:
+        for i in range(N):
+            if not mask[i]:
+                indexer[i] = i
+                last_valid = i
+                fill_count = 0
             else:
-                indexer[i] = -1
-            fill_count += 1
+                if fill_count < lim:
+                    indexer[i] = last_valid
+                else:
+                    indexer[i] = -1
+                fill_count += 1
 
     return indexer
 
@@ -590,36 +621,37 @@ def pad(
 
     cur = old[0]
 
-    while j <= nright - 1 and new[j] < cur:
-        j += 1
+    with nogil(numeric_object_t is not object):
+        while j <= nright - 1 and new[j] < cur:
+            j += 1
 
-    while True:
-        if j == nright:
-            break
+        while True:
+            if j == nright:
+                break
 
-        if i == nleft - 1:
-            while j < nright:
+            if i == nleft - 1:
+                while j < nright:
+                    if new[j] == cur:
+                        indexer[j] = i
+                    elif new[j] > cur and fill_count < lim:
+                        indexer[j] = i
+                        fill_count += 1
+                    j += 1
+                break
+
+            next_val = old[i + 1]
+
+            while j < nright and cur <= new[j] < next_val:
                 if new[j] == cur:
                     indexer[j] = i
-                elif new[j] > cur and fill_count < lim:
+                elif fill_count < lim:
                     indexer[j] = i
                     fill_count += 1
                 j += 1
-            break
 
-        next_val = old[i + 1]
-
-        while j < nright and cur <= new[j] < next_val:
-            if new[j] == cur:
-                indexer[j] = i
-            elif fill_count < lim:
-                indexer[j] = i
-                fill_count += 1
-            j += 1
-
-        fill_count = 0
-        i += 1
-        cur = next_val
+            fill_count = 0
+            i += 1
+            cur = next_val
 
     return indexer
 
@@ -641,19 +673,20 @@ def pad_inplace(numeric_object_t[:] values, uint8_t[:] mask, limit=None):
 
     lim = validate_limit(N, limit)
 
-    val = values[0]
-    prev_mask = mask[0]
-    for i in range(N):
-        if mask[i]:
-            if fill_count >= lim:
-                continue
-            fill_count += 1
-            values[i] = val
-            mask[i] = prev_mask
-        else:
-            fill_count = 0
-            val = values[i]
-            prev_mask = mask[i]
+    with nogil(numeric_object_t is not object):
+        val = values[0]
+        prev_mask = mask[0]
+        for i in range(N):
+            if mask[i]:
+                if fill_count >= lim:
+                    continue
+                fill_count += 1
+                values[i] = val
+                mask[i] = prev_mask
+            else:
+                fill_count = 0
+                val = values[i]
+                prev_mask = mask[i]
 
 
 @cython.boundscheck(False)
@@ -672,19 +705,139 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 
     lim = validate_limit(N, limit)
 
-    for j in range(K):
-        fill_count = 0
-        val = values[j, 0]
+    with nogil(numeric_object_t is not object):
+        for j in range(K):
+            fill_count = 0
+            val = values[j, 0]
+            for i in range(N):
+                if mask[j, i]:
+                    if fill_count >= lim or i == 0:
+                        continue
+                    fill_count += 1
+                    values[j, i] = val
+                    mask[j, i] = False
+                else:
+                    fill_count = 0
+                    val = values[j, i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def scalar_fillna_inplace(
+    numeric_object_t[:] values,
+    numeric_object_t fill_val,
+    uint8_t[:] mask=None,
+    bint is_datetimelike=False,
+    limit=None,
+) -> Py_ssize_t:
+    """
+    Fill NA values in `values` with `fill_val` in a single pass.
+
+    NA detection strategy (in priority order):
+    - If `mask` is provided, NA positions are read from the mask and
+      filled entries are cleared.
+    - If `is_datetimelike` is True (int64 values), NA is ``NPY_NAT``.
+    - For object dtype, NA is detected via ``checknull``.
+    - For other numeric dtypes, NA is detected via NaN-check.
+
+    Parameters
+    ----------
+    values : 1D memoryview, modified in-place
+    fill_val : scalar fill value (same fused type as values)
+    mask : optional uint8 memoryview indicating NA positions, modified in-place
+    is_datetimelike : bool, default False
+        True if `values` contains datetime-like entries (int64 with
+        NPY_NAT sentinel).
+    limit : int or None
+        Maximum number of NA values to fill. If None, fill all.
+
+    Returns
+    -------
+    Py_ssize_t
+        Number of values filled.
+    """
+    cdef:
+        Py_ssize_t i, N, filled = 0
+        int lim
+        bint isna_val, uses_mask = mask is not None
+
+    N = len(values)
+    if N == 0:
+        return 0
+
+    lim = validate_limit(N, limit)
+
+    with nogil(numeric_object_t is not object):
         for i in range(N):
-            if mask[j, i]:
-                if fill_count >= lim or i == 0:
-                    continue
-                fill_count += 1
-                values[j, i] = val
-                mask[j, i] = False
+            if uses_mask:
+                isna_val = mask[i]
+            elif numeric_object_t is object:
+                isna_val = checknull(values[i])
+            elif numeric_object_t is int64_t and is_datetimelike:
+                isna_val = values[i] == NPY_NAT
             else:
-                fill_count = 0
-                val = values[j, i]
+                isna_val = values[i] != values[i]
+            if isna_val:
+                if filled >= lim:
+                    break
+                filled += 1
+                values[i] = fill_val
+                if uses_mask:
+                    mask[i] = 0
+
+    return filled
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def scalar_fillna_2d_inplace(
+    numeric_object_t[:, :] values,
+    numeric_object_t fill_val,
+    limit=None,
+) -> Py_ssize_t:
+    """
+    Fill NA values in 2D `values` with `fill_val` in a single pass.
+
+    The limit is applied per-column (axis=1 of block values).
+
+    Parameters
+    ----------
+    values : 2D memoryview (K, N), modified in-place
+    fill_val : scalar fill value
+    limit : int or None
+
+    Returns
+    -------
+    Py_ssize_t
+        Total number of values filled.
+    """
+    cdef:
+        Py_ssize_t i, j, K, N, filled = 0
+        int lim, col_fill_count
+        bint isna_val
+
+    K, N = (<object>values).shape
+    if N == 0 or K == 0:
+        return 0
+
+    lim = validate_limit(N, limit)
+
+    with nogil(numeric_object_t is not object):
+        for j in range(K):
+            col_fill_count = 0
+            for i in range(N):
+                if numeric_object_t is object:
+                    isna_val = checknull(values[j, i])
+                else:
+                    isna_val = values[j, i] != values[j, i]
+                if isna_val:
+                    if col_fill_count >= lim:
+                        continue
+                    col_fill_count += 1
+                    values[j, i] = fill_val
+                    filled += 1
+
+    return filled
 
 
 @cython.boundscheck(False)
@@ -739,36 +892,37 @@ def backfill(
 
     cur = old[nleft - 1]
 
-    while j >= 0 and new[j] > cur:
-        j -= 1
+    with nogil(numeric_object_t is not object):
+        while j >= 0 and new[j] > cur:
+            j -= 1
 
-    while True:
-        if j < 0:
-            break
+        while True:
+            if j < 0:
+                break
 
-        if i == 0:
-            while j >= 0:
+            if i == 0:
+                while j >= 0:
+                    if new[j] == cur:
+                        indexer[j] = i
+                    elif new[j] < cur and fill_count < lim:
+                        indexer[j] = i
+                        fill_count += 1
+                    j -= 1
+                break
+
+            prev = old[i - 1]
+
+            while j >= 0 and prev < new[j] <= cur:
                 if new[j] == cur:
                     indexer[j] = i
                 elif new[j] < cur and fill_count < lim:
                     indexer[j] = i
                     fill_count += 1
                 j -= 1
-            break
 
-        prev = old[i - 1]
-
-        while j >= 0 and prev < new[j] <= cur:
-            if new[j] == cur:
-                indexer[j] = i
-            elif new[j] < cur and fill_count < lim:
-                indexer[j] = i
-                fill_count += 1
-            j -= 1
-
-        fill_count = 0
-        i -= 1
-        cur = prev
+            fill_count = 0
+            i -= 1
+            cur = prev
 
     return indexer
 
@@ -837,8 +991,6 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
                 is_monotonic_dec = 0
                 break
             if not is_monotonic_inc and not is_monotonic_dec:
-                is_monotonic_inc = 0
-                is_monotonic_dec = 0
                 break
             prev = cur
 
@@ -1016,7 +1168,6 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == "top")
-    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
     if nans_rank_highest:
         order = [masked_vals, mask]
     else:
@@ -1025,7 +1176,9 @@ def rank_1d(
     if check_labels:
         order.append(labels)
 
-    np.putmask(masked_vals, mask, nan_fill_val)
+    if check_mask:
+        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
+        np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
     masked_vals_memview = masked_vals
 
@@ -1058,6 +1211,7 @@ def rank_1d(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
 cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
@@ -1117,7 +1271,6 @@ cdef void rank_sorted_1d(
     # array that we sorted previously, which gives us the location of
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
-    # TODO(cython3): de-duplicate once cython supports conditional nogil
     with gil(numeric_object_t is object):
         for i in range(N):
             at_end = i == N - 1
@@ -1463,15 +1616,27 @@ cdef void accumulate_moments_scalar(
 ) noexcept nogil:
     cdef:
         Py_ssize_t i, n = len(values)
-        bint uses_mask = mask is not None
+        bint is_na_entry, uses_mask = mask is not None
         float64_t val
 
     for i in range(n):
         val = values[i]
-        if uses_mask and mask[i]:
-            val = NaN
-        if skipna and isnan(val):
+        if uses_mask:
+            is_na_entry = mask[i]
+        else:
+            is_na_entry = isnan(val)
+
+        if skipna and is_na_entry:
             continue
+        elif is_na_entry:
+            if max_moment >= 4:
+                m4[0] = NaN
+            if max_moment >= 3:
+                m3[0] = NaN
+            m2[0] = NaN
+            mean[0] = NaN
+            nobs[0] = n
+            return
         moments_add_value(val, nobs, mean, m2, m3, m4, max_moment)
 
 
@@ -1492,7 +1657,7 @@ cdef void accumulate_moments_axis(
     cdef:
         Py_ssize_t i, j, nrows = values.shape[0], ncols = values.shape[1]
         Py_ssize_t nouter, ninner
-        bint uses_mask = mask is not None
+        bint is_na_entry, uses_mask = mask is not None
         float64_t val
         float64_t* m3_ptr = NULL
         float64_t* m4_ptr = NULL
@@ -1513,10 +1678,22 @@ cdef void accumulate_moments_axis(
             m4_ptr = &m4[i]
         for j in range(ninner):
             val = values[j, i] if axis == 0 else values[i, j]
-            if uses_mask and (mask[j, i] if axis == 0 else mask[i, j]):
-                val = NaN
-            if skipna and isnan(val):
+            if uses_mask:
+                is_na_entry = mask[j, i] if axis == 0 else mask[i, j]
+            else:
+                is_na_entry = isnan(val)
+
+            if skipna and is_na_entry:
                 continue
+            elif is_na_entry:
+                if max_moment >= 4:
+                    m4[i] = NaN
+                if max_moment >= 3:
+                    m3[i] = NaN
+                m2[i] = NaN
+                mean[i] = NaN
+                nobs[i] = ninner
+                break
             moments_add_value(val, &nobs[i], &mean[i], &m2[i], m3_ptr, m4_ptr,
                               max_moment)
 
@@ -1606,6 +1783,220 @@ def axis_kurt(
             result[i] = calc_kurt(nobs[i], m2[i], m4[i])
 
     return result_arr
+
+
+# ----------------------------------------------------------------------
+# Pairwise Kendall correlation
+#
+# References:
+# - Knight, W. R. (1966).
+#   A computer method for calculating Kendall's tau with ungrouped data.
+#   Journal of the American Statistical Association, 61(314), 436-439.
+#
+# - rankcorr.jl
+#   https://github.com/JuliaStats/StatsBase.jl/blob/3e5382fa6b6ac90cf3d0b1904484668714d0e220/src/rankcorr.jl
+
+cdef struct Pair:
+    float64_t x
+    float64_t y
+
+cdef int compare_pair_aux(const void* a, const void* b) noexcept nogil:
+    cdef:
+        Pair *p1 = <Pair*>a
+        Pair *p2 = <Pair*>b
+    if p1.x < p2.x:
+        return -1
+    if p1.x > p2.x:
+        return 1
+    if p1.y < p2.y:
+        return -1
+    if p1.y > p2.y:
+        return 1
+    return 0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t insertion_sort(
+    float64_t[:] v,
+    Py_ssize_t lo,
+    Py_ssize_t hi
+) noexcept nogil:
+    cdef:
+        int64_t nswaps = 0
+        Py_ssize_t i, j
+        float64_t x
+
+    for i in range(lo + 1, hi + 1):
+        j = i
+        x = v[i]
+        while j > lo and x < v[j - 1]:
+            nswaps += 1
+            v[j] = v[j - 1]
+            j -= 1
+        v[j] = x
+    return nswaps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t merge_sort(
+    float64_t[:] v,
+    float64_t[:] t,
+    Py_ssize_t lo,
+    Py_ssize_t hi
+) noexcept nogil:
+    cdef:
+        int64_t nswaps = 0
+        Py_ssize_t m, i, j, k
+
+    if lo < hi:
+        if hi - lo <= 64:
+            return insertion_sort(v, lo, hi)
+
+        m = lo + (hi - lo) // 2
+        nswaps = merge_sort(v, t, lo, m)
+        nswaps += merge_sort(v, t, m + 1, hi)
+
+        for i in range(lo, m + 1):
+            t[i - lo] = v[i]
+
+        i = 0
+        j = m + 1
+        k = lo
+        while k < j <= hi and i <= m - lo:
+            if v[j] < t[i]:
+                v[k] = v[j]
+                j += 1
+                nswaps += (m - lo + 1 - i)
+            else:
+                v[k] = t[i]
+                i += 1
+            k += 1
+
+        while i <= m - lo:
+            v[k] = t[i]
+            k += 1
+            i += 1
+    return nswaps
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int64_t count_ties(
+    const float64_t[:] v,
+    Py_ssize_t lo,
+    Py_ssize_t hi
+) noexcept nogil:
+    cdef:
+        int64_t result = 0
+        int64_t tie_count = 0
+        Py_ssize_t i
+
+    for i in range(lo + 1, hi + 1):
+        if v[i] == v[i - 1]:
+            tie_count += 1
+        elif tie_count > 0:
+            result += tie_count * (tie_count + 1) // 2
+            tie_count = 0
+    if tie_count > 0:
+        result += tie_count * (tie_count + 1) // 2
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef float64_t compute_kendall_corr_1d(
+    const float64_t[:] x,
+    float64_t[:] y,
+    float64_t[:] temp_t
+) noexcept nogil:
+    cdef:
+        Py_ssize_t n = len(x)
+        int64_t npairs = <int64_t>n * (n - 1) // 2
+        int64_t ntiesx = 0
+        int64_t ntiesy = 0
+        int64_t ndoubleties = 0
+        int64_t nswaps = 0
+        Py_ssize_t i, k = 0
+        float64_t divisor
+
+    if n < 2:
+        return NaN
+
+    for i in range(1, n):
+        if x[i] == x[i-1]:
+            k += 1
+        elif k > 0:
+            ndoubleties += count_ties(y, i - k - 1, i - 1)
+            ntiesx += <int64_t>k * (k + 1) // 2
+            k = 0
+    if k > 0:
+        ndoubleties += count_ties(y, n - k - 1, n - 1)
+        ntiesx += <int64_t>k * (k + 1) // 2
+
+    nswaps = merge_sort(y, temp_t, 0, n - 1)
+    ntiesy = count_ties(y, 0, n - 1)
+
+    divisor = sqrt(<float64_t>(npairs - ntiesx) * <float64_t>(npairs - ntiesy))
+    if divisor == 0:
+        return NaN
+
+    return (npairs + ndoubleties - ntiesx - ntiesy - 2 * nswaps) / divisor
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def nancorr_kendall(const float64_t[:, :] mat, Py_ssize_t minp=1):
+    cdef:
+        Py_ssize_t i, xi, yi, N, K, nobs
+        ndarray[float64_t, ndim=2] result
+        ndarray[uint8_t, ndim=2] mask
+        float64_t[::1] x_obs, y_obs, temp_t
+        Pair *pairs = NULL
+        float64_t val
+
+    N, K = (<object>mat).shape
+    result = np.empty((K, K), dtype=np.float64)
+    mask = np.isfinite(mat).view(np.uint8)
+
+    pairs = <Pair*>malloc(N * sizeof(Pair))
+    if pairs is NULL:
+        raise MemoryError()
+
+    x_obs = np.empty(N, dtype=np.float64)
+    y_obs = np.empty(N, dtype=np.float64)
+    temp_t = np.empty(N, dtype=np.float64)
+
+    with nogil:
+        for xi in range(K):
+            for yi in range(xi + 1):
+                nobs = 0
+                for i in range(N):
+                    if mask[i, xi] and mask[i, yi]:
+                        pairs[nobs].x = mat[i, xi]
+                        pairs[nobs].y = mat[i, yi]
+                        nobs += 1
+
+                if nobs < minp:
+                    result[xi, yi] = result[yi, xi] = NaN
+                    continue
+
+                if xi == yi:
+                    result[xi, yi] = 1.0
+                    continue
+
+                qsort(pairs, nobs, sizeof(Pair), compare_pair_aux)
+
+                for i in range(nobs):
+                    x_obs[i] = pairs[i].x
+                    y_obs[i] = pairs[i].y
+
+                val = compute_kendall_corr_1d(x_obs[:nobs], y_obs[:nobs], temp_t[:nobs])
+                result[xi, yi] = result[yi, xi] = val
+        free(pairs)
+
+    return result
 
 
 # generated from template

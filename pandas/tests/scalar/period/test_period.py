@@ -830,12 +830,50 @@ class TestPeriodMethods:
         p = Period("nat", freq="M")
         assert repr(NaT) in repr(p)
 
+    def test_format(self):
+        # GH#48536
+        period = Period("2000-1-1 12:34:12", freq="s")
+        assert f"{period:%Y-%m-%d %H:%M:%S}" == "2000-01-01 12:34:12"
+        assert f"{period}" == str(period)
+        assert format(period, "%Y-%m") == "2000-01"
+
     def test_strftime(self):
         # GH#3363
         p = Period("2000-1-1 12:34:12", freq="s")
         res = p.strftime("%Y-%m-%d %H:%M:%S")
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
+
+    def test_strftime_nanosecond_capital_N(self):
+        # GH#65432 %N is the new directive for nanoseconds
+        per = Period("2000-1-1 12:34:12.123456789", freq="ns")
+        res = per.strftime("%Y-%m-%d %H:%M:%S.%N")
+        assert res == "2000-01-01 12:34:12.123456789"
+
+    def test_strftime_nanosecond_lowercase_n_deprecated(self):
+        # GH#65432 %n conflicts with POSIX newline meaning, deprecated in
+        # favor of %N
+        per = Period("2000-1-1 12:34:12.123456789", freq="ns")
+        msg = "The %n directive in Period.strftime is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = per.strftime("%Y-%m-%d %H:%M:%S.%n")
+        assert res == "2000-01-01 12:34:12.123456789"
+
+    def test_strftime_default_format_no_warning(self):
+        # GH#65432 the default format (fmt=None) for ns frequency must
+        # not raise the %n deprecation warning
+        per = Period("2000-1-1 12:34:12.123456789", freq="ns")
+        with tm.assert_produces_warning(None):
+            res = str(per)
+        assert res == "2000-01-01 12:34:12.123456789"
+
+    @pytest.mark.parametrize("fmt", ["%Y-Q%Q", "%Q", "%E", "%Y%"])
+    def test_strftime_invalid_format(self, fmt):
+        # GH#53562 - unknown directives previously crashed on Windows via
+        # MSVCRT's invalid-parameter handler; now raise ValueError.
+        per = Period("2023-Q2")
+        with pytest.raises(ValueError, match="Invalid format string"):
+            per.strftime(fmt)
 
 
 class TestPeriodProperties:
@@ -1103,7 +1141,7 @@ class TestPeriodProperties:
         assert b_date.quarter == 1
         assert b_date.month == 1
         assert b_date.day == 1
-        assert b_date.weekday == 0
+        assert b_date.day_of_week == 0
         assert b_date.day_of_year == 1
         assert b_date.days_in_month == 31
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
@@ -1115,7 +1153,7 @@ class TestPeriodProperties:
         assert d_date.quarter == 1
         assert d_date.month == 1
         assert d_date.day == 1
-        assert d_date.weekday == 0
+        assert d_date.day_of_week == 0
         assert d_date.day_of_year == 1
         assert d_date.days_in_month == 31
         assert Period(freq="D", year=2012, month=2, day=1).days_in_month == 29
@@ -1130,7 +1168,7 @@ class TestPeriodProperties:
             assert h_date.quarter == 1
             assert h_date.month == 1
             assert h_date.day == 1
-            assert h_date.weekday == 0
+            assert h_date.day_of_week == 0
             assert h_date.day_of_year == 1
             assert h_date.hour == 0
             assert h_date.days_in_month == 31
@@ -1144,7 +1182,7 @@ class TestPeriodProperties:
         assert t_date.quarter == 1
         assert t_date.month == 1
         assert t_date.day == 1
-        assert t_date.weekday == 0
+        assert t_date.day_of_week == 0
         assert t_date.day_of_year == 1
         assert t_date.hour == 0
         assert t_date.minute == 0
@@ -1163,7 +1201,7 @@ class TestPeriodProperties:
         assert s_date.quarter == 1
         assert s_date.month == 1
         assert s_date.day == 1
-        assert s_date.weekday == 0
+        assert s_date.day_of_week == 0
         assert s_date.day_of_year == 1
         assert s_date.hour == 0
         assert s_date.minute == 0

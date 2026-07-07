@@ -8,6 +8,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import register_extension_dtype
@@ -17,11 +19,9 @@ from pandas.arrays import (
     FloatingArray,
     IntegerArray,
     IntervalArray,
+    NumpyExtensionArray,
     SparseArray,
     TimedeltaArray,
-)
-from pandas.core.arrays import (
-    NumpyExtensionArray,
 )
 from pandas.tests.extension.decimal import (
     DecimalArray,
@@ -499,6 +499,15 @@ def test_scalar_raises():
         pd.array(1)
 
 
+@pytest.mark.parametrize("dtype", ["i8", "int64", "u8", "uint64"])
+def test_pd_array_float_with_nan_to_integer_raises(dtype):
+    # GH#41724
+    arr = np.array([np.nan, 1.0])
+    msg = "Cannot convert non-finite values"
+    with pytest.raises(pd.errors.IntCastingNaNError, match=msg):
+        pd.array(arr, dtype=dtype)
+
+
 def test_dataframe_raises():
     # GH#51167 don't accidentally cast to StringArray by doing inference on columns
     df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
@@ -568,37 +577,127 @@ def test_array_to_numpy_na():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_pd_array_from_masked_array_preserves_mask_integer():
+@pytest.mark.parametrize(
+    "data, mask",
+    [
+        ([1, 2, 3], [False, True, False]),
+        ([1, 2, 3], [False, False, False]),
+        ([1, 2, 3], ma.nomask),
+        ([], ma.nomask),
+    ],
+)
+@pytest.mark.parametrize(
+    "np_dtype",
+    [
+        "uint8",
+        "int32",
+        "int64",
+        "bool",
+        "float16",
+        "float32",
+        "complex128",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ],
+)
+@pytest.mark.parametrize("copy", [True, False])
+def test_masked_array_kinds(data, mask, np_dtype, copy):
     # GH#63879
-    # Integer masked array should produce Int64 with pd.NA where mask=True
-    ma_arr = ma.array([1, 2, 3, 4], mask=[False, True, False, True], dtype=np.int64)
-    result = pd.array(ma_arr)
-    expected = pd.array([1, pd.NA, 3, pd.NA], dtype="Float64")
+    arr = np.array(data, dtype=np_dtype)
+    ma_arr = ma.array(arr, mask=mask)
+    result = pd.array(ma_arr, copy=copy)
+    expected = pd.array(arr)
+    if np.any(mask):
+        na = np.nan if np_dtype in ("float16", "complex128") else pd.NA
+        expected[np.asarray(mask)] = na
+    tm.assert_extension_array_equal(result, expected)
+
+    # Check whether we made a copy.
+    result_has_mask = np_dtype not in [
+        "float16",
+        "complex128",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ]
+    if result_has_mask:
+        result_data = result._data
+    else:
+        result_data = result._ndarray
+
+    expect_data_shares = not (
+        copy
+        # np.shares_memory is always False on length 0.
+        or len(ma_arr) == 0
+        # If the result has no mask, data needs to be modified if there are NA values
+        or (np.any(mask) and not result_has_mask)
+    )
+    assert np.shares_memory(result_data, ma_arr.data) == expect_data_shares
+
+    if not result_has_mask:
+        return
+
+    expect_mask_shares = not (copy or len(ma_arr) == 0 or mask is np.False_)
+    assert np.shares_memory(result._mask, ma_arr.mask) == expect_mask_shares
+
+
+@pytest.mark.parametrize("dtype", [None, "Int64"])
+def test_masked_array_no_float_detour(dtype):
+    # GH#63879 - ensure we don't round-trip through float64
+    ma_arr = ma.array([2**53 + 1, 2, 3], mask=[False, True, False], dtype=np.int64)
+    result = pd.array(ma_arr, dtype=dtype)
+    expected = pd.array([2**53 + 1, pd.NA, 3], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_pd_array_from_masked_array_preserves_mask_string():
-    # GH#63879
-    # String masked array should produce StringArray with pd.NA where mask=True
-    ma_arr = ma.array(["a", "b", "c", "d"], mask=[False, True, False, True])
-    result = pd.array(ma_arr)
-    expected = pd.array(["a", pd.NA, "c", pd.NA], dtype="string")
+@pytest.mark.parametrize(
+    "np_dtype, dtype",
+    [
+        ("float32", "Float64"),
+        ("int64", "Float64"),
+        ("int64", "Int32"),
+        ("float64", "Int64"),
+        ("bool", "boolean"),
+        ("float64", "string"),
+        ("datetime64[ns]", "datetime64[us]"),
+        ("timedelta64[ns]", "timedelta64[us]"),
+        pytest.param("int64", "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("float64", "float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("bool", "bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("float64", "string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param(
+            "datetime64[ns]",
+            "timestamp[ns][pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        pytest.param(
+            "timedelta64[ns]",
+            "duration[ns][pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+def test_masked_array_explicit_dtype(np_dtype, dtype):
+    # GH#63879 - an explicitly passed dtype takes precedence over the dtype
+    # inferred from the masked array, and masked values become NA
+    ma_arr = ma.array([1, 2, 3], mask=[False, True, False], dtype=np_dtype)
+    result = pd.array(ma_arr, dtype=dtype)
+    expected = pd.array(ma_arr).astype(dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_pd_array_from_masked_array_no_mask():
-    # GH#63879 - edge case: mask is all False
-    ma_arr = ma.array([1, 2, 3], mask=[False, False, False], dtype=np.int64)
-    result = pd.array(ma_arr)
-    expected = pd.array([1, 2, 3], dtype="Int64")
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_pd_array_from_masked_array_nomask():
-    # GH#63879 - edge case: mask is nomask
-    ma_arr = ma.array([1, 2, 3], mask=ma.nomask, dtype=np.int64)
-    result = pd.array(ma_arr)
-    expected = pd.array([1, 2, 3], dtype="Int64")
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        (["a", "b", "c"], ["a", pd.NA, "c"]),
+        ([b"abc", b"def", "café".encode()], ["abc", pd.NA, "café"]),
+    ],
+    ids=["str", "bytes"],
+)
+def test_masked_array_string(data, expected):
+    # GH#63879 - str and bytes masked arrays both infer the string dtype (bytes
+    # are UTF-8 decoded), consistently with the no-missing-value case
+    result = pd.array(ma.array(data, mask=[False, True, False]))
+    expected = pd.array(expected, dtype="string")
     tm.assert_extension_array_equal(result, expected)
 
 
