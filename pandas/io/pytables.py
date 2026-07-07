@@ -1353,8 +1353,10 @@ class HDFStore:
             Write DataFrame index as a column.
         append : bool, default False
             This will force Table format, append the input data to the existing.
-        complib : default None
-            This parameter is currently not accepted.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Compression library to use, only applied with ``format='table'``.
+            None disables compression. See the ``complib`` parameter of
+            :class:`HDFStore` for the full list of supported compressors.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
@@ -1364,7 +1366,7 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str
+        nan_rep : str, default 'nan'
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
@@ -1569,14 +1571,19 @@ class HDFStore:
                 Table format. Write as a PyTables Table structure which may perform
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
-        axes : default None
-            This parameter is currently not accepted.
+        axes : list, default None
+            Single-element list selecting the axis to store as the table's
+            indexed (appendable) axis: ``[0]`` for the index (the default) or
+            ``[1]`` for the columns. Ignored when appending to an existing
+            table, which keeps the axes it was created with.
         index : bool, default True
             Write DataFrame index as a column.
         append : bool, default True
             Append the input data to the existing.
-        complib : default None
-            This parameter is currently not accepted.
+        complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
+            Compression library to use; None disables compression. See the
+            ``complib`` parameter of :class:`HDFStore` for the full list of
+            supported compressors.
         complevel : int, 0-9, default None
             Specifies a compression level for data.
             A value of 0 or None disables compression.
@@ -1588,10 +1595,10 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str
+        nan_rep : str, default 'nan'
             Str to use as str nan representation.
-        chunksize : int or None
-            Size to chunk the writing.
+        chunksize : int, default 100000
+            Number of rows to write in each chunk.
         expectedrows : int
             Expected TOTAL row size of this table.
         dropna : bool, default False, optional
