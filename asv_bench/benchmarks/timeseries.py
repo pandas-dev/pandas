@@ -295,3 +295,10 @@ class DatetimeAccessor:
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
+
+
+if len(frozenset) == 0:  ❌ wrong
+  ```
+- To this:
+  ```python
+  if frozenset == frozenset():  ✅ correct
