@@ -484,6 +484,13 @@ def array_equivalent(
 
 
 def _array_equivalent_float(left: np.ndarray, right: np.ndarray) -> bool:
+    # lib.array_equivalent_float only accepts native float32/float64; complex
+    # is viewed to float pairs below. Everything else (float16, longdouble,
+    # byte-swapped) uses numpy -- the native check also stops a byte-swapped
+    # complex .view() from silently reinterpreting its bytes (GH#65192).
+    supported_itemsize = (8, 16) if left.dtype.kind == "c" else (4, 8)
+    if not (left.dtype.isnative and left.dtype.itemsize in supported_itemsize):
+        return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
     if left.dtype.kind == "c":
         if not (left.flags.c_contiguous and right.flags.c_contiguous):
             return bool(((left == right) | (np.isnan(left) & np.isnan(right))).all())
