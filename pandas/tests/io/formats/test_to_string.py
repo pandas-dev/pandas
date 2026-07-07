@@ -1004,7 +1004,10 @@ class TestDataFrameToString:
         # GH#64824
         df = DataFrame({"a": [1.1] * 10})
         result = df.to_string(max_rows=5, min_rows=1)
+        lines = result.splitlines()
+        assert len(lines) == 3
         assert "0   1.1" in result
+        assert "1   1.1" not in result
         assert "..  ..." in result
 
 
