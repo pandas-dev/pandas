@@ -1518,8 +1518,16 @@ class StringMethods(NoNewAttributesMixin):
             Character sequence or regular expression.
         case : bool, default True
             If True, case sensitive.
+            When a compiled regex is passed and ``case`` is not specified,
+            case sensitivity is inferred from the pattern's flags
+            (i.e. ``False`` if ``re.IGNORECASE`` is set, ``True`` otherwise).
+            Raises ``ValueError`` if ``case`` conflicts with the compiled
+            pattern's case sensitivity.
         flags : int, default 0 (no flags)
-            Regex module flags, e.g. re.IGNORECASE.
+            Regex module flags, e.g. ``re.IGNORECASE``.
+            When a compiled regex is passed and ``flags`` is not specified,
+            the pattern's own flags are used. Raises ``ValueError`` if
+            ``flags`` conflicts with the compiled pattern's flags.
         na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
             array. For the ``"str"`` dtype, ``False`` is used. For object
@@ -1539,6 +1547,12 @@ class StringMethods(NoNewAttributesMixin):
         contains : Analogous, but less strict, relying on re.search instead of
             re.match.
         extract : Extract matched groups.
+
+        .. versionchanged:: 3.1.0
+            ``pat`` now accepts compiled regular expressions. When a compiled
+            regex is passed without explicit ``case`` or ``flags`` arguments,
+            those values are inferred from the pattern. Conflicting values
+            raise ``ValueError``.
 
         Examples
         --------
@@ -1565,7 +1579,9 @@ class StringMethods(NoNewAttributesMixin):
             #  re.compile(pat, flags=flags) the constructor does not raise.
             flags = 0
         else:
-            flags = 0
+            # Preserve compiled pattern flags when the user did not explicitly
+            # provide the flags argument.
+            flags = pat.flags if is_re(pat) else 0
 
         if case is lib.no_default:
             if is_re(pat):
