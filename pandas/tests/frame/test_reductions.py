@@ -2573,9 +2573,9 @@ def test_numeric_ea_axis_1(
     "dtype", ["Int64", "Float64", "UInt32", "boolean", "int64[pyarrow]"]
 )
 def test_idxmax_idxmin_axis_1_ea_matches_numpy(how, skipna, dtype):
-    # GH#56903 the EA-backed axis=1 fastpath must agree with the numpy-backed
-    # path, including skipna=False when there are no NA values (previously this
-    # silently returned the wrong column or raised spuriously).
+    # GH#56903 the EA-backed axis=1 path must agree with the numpy-backed path,
+    # including skipna=False when there are no NA values (previously the cython
+    # kernel returned the all-NA sentinel for every row).
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")
     if dtype == "boolean":
