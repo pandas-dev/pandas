@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Index,
@@ -219,7 +221,9 @@ class TestFloatNumericIndex:
 
         # object
         exp = Index([1.0, "obj", 3.0], name="x")
-        tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
     def test_logical_compat(self, dtype):
         idx = Index(np.arange(5, dtype=dtype))
@@ -312,9 +316,12 @@ class TestNumericInt:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        msg = (
-            "Cannot change data-type for array of references.|"
-            "Cannot change data-type for object array.|"
+        msg = "|".join(
+            [
+                "Cannot change data-type for array of references.",
+                "Cannot change data-type for object array.",
+                "",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             index.view(Index)

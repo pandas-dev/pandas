@@ -89,6 +89,7 @@ from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
+    droplevel_result,
     ensure_index,
     get_unanimous_names,
 )
@@ -3812,12 +3813,26 @@ class MultiIndex(Index):
             If level does not exist or all levels were dropped, the exception
             has to be handled outside.
             """
-            new_index = self[indexer]
+            if not levels:
+                # No levels to drop, just slice
+                return self[indexer]
 
-            for i in sorted(levels, reverse=True):
-                new_index = new_index._drop_level_numbers([i])
+            # Combine indexing and level-dropping into a single step
+            # to avoid creating an intermediate MultiIndex.
+            drop_set = set(levels)
+            kept = [i for i in range(self.nlevels) if i not in drop_set]
 
-            return new_index
+            if not kept:
+                raise ValueError(
+                    f"Cannot remove {len(levels)} levels from an index with "
+                    f"{self.nlevels} levels: at least one level must be left."
+                )
+
+            new_levels = [self.levels[i] for i in kept]
+            new_codes = [self.codes[i][indexer] for i in kept]
+            new_names = [self.names[i] for i in kept]
+
+            return droplevel_result(new_levels, new_codes, new_names)
 
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
@@ -4201,7 +4216,7 @@ class MultiIndex(Index):
                         if missing_mask.sum() > na_count:
                             raise KeyError(k) from None
                         # NaN is in k but must also be present in the data
-                        if not (level_codes == -1).any():
+                        if not lib.has_sentinel(level_codes, -1):
                             raise KeyError(k) from None
                     elif missing_mask.any():
                         raise KeyError(k) from None
@@ -4424,7 +4439,7 @@ class MultiIndex(Index):
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
-            if not lib.array_equivalent_bytes(self_codes, new_codes):
+            if not array_equivalent(self_codes, new_codes):
                 return False
             if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64
@@ -4942,7 +4957,7 @@ def _require_listlike(level, arr, arrname: str):
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):
-        if not is_list_like(arr) or not is_list_like(arr[0]):
+        if not is_list_like(arr) or (len(arr) > 0 and not is_list_like(arr[0])):
             raise TypeError(f"{arrname} must be list of lists-like")
     return level, arr
 

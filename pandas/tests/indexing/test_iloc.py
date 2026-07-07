@@ -676,7 +676,9 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "index 5 is out of bounds for axis 0 with size 4|index out of bounds"
+        msg = "|".join(
+            ["index 5 is out of bounds for axis 0 with size 4", "index out of bounds"]
+        )
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -1297,6 +1299,32 @@ class TestiLocBaseIndependent:
         res = df.iloc[:, ::-1]
         expected = DataFrame({"B": df["B"], "A": df["A"]})
         tm.assert_frame_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "indexer, values, expected_values",
+        [
+            (slice(None, None, -2), [11, 5, 15], [15, 13, 5, 9, 11]),
+            (slice(None, None, -1), [11, 5, 15, 9, 3], [3, 9, 15, 5, 11]),
+            (slice(3, None, -1), [11, 5, 15, 9], [9, 15, 5, 11, 3]),
+        ],
+    )
+    def test_iloc_setitem_slice_negative_step_none_bounds(
+        self, indexer, values, expected_values
+    ):
+        # GH#66100 length_of_indexer previously returned a negative length
+        # for negative-step slices with start/stop left as None, causing
+        # a spurious "different length than the value" ValueError
+        ser = Series([2, 13, 7, 9, 3], index=["a", "b", "c", "d", "e"])
+        ser.iloc[indexer] = values
+        expected = Series(expected_values, index=["a", "b", "c", "d", "e"])
+        tm.assert_series_equal(ser, expected)
+
+    def test_iloc_setitem_slice_negative_step_full_reverse(self):
+        # GH#66100
+        ser = Series([2, 13, 7, 9, 3], index=["a", "b", "c", "d", "e"])
+        ser.iloc[::-2] = [11, 5, 15]
+        expected = Series([15, 13, 5, 9, 11], index=["a", "b", "c", "d", "e"])
+        tm.assert_series_equal(ser, expected)
 
     def test_iloc_setitem_2d_ndarray_into_ea_block(self):
         # GH#44703
