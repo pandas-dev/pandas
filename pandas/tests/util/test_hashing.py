@@ -6,6 +6,7 @@ import textwrap
 import numpy as np
 import pytest
 
+from pandas.compat import WASM
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -60,6 +61,7 @@ def test_consistency():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
 def test_interval_array_hash_stable_across_processes():
     # GH#64605 IntervalArray hashing must not depend on the per-process-salted
     # builtin hash() of the "closed" string, otherwise hashes differ across
