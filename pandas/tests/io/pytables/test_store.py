@@ -561,6 +561,58 @@ def test_remove(temp_hdfstore):
     assert len(store) == 0
 
 
+@pytest.mark.parametrize("n_selectors", [3, 100])
+def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
+    # GH#17567 removing with a large "in" selector (more than numexpr can
+    #  handle, i.e. > _max_selectors=31) falls back to a post-read filter;
+    #  remove must apply that filter rather than dropping every row
+    store = temp_hdfstore
+    df = DataFrame(
+        {"A": np.arange(1000)},
+        index=date_range("2020-01-01", periods=1000, unit="ns"),
+    )
+    store.put("df", df, format="table", track_times=False)
+
+    selector = list(df.index[:n_selectors])
+    # the where clause matches exactly the selected rows
+    assert len(store.select("df", where="index in selector")) == n_selectors
+
+    removed = store.remove("df", where="index in selector")
+    assert removed == n_selectors
+
+    result = store.select("df")
+    expected = df[~df.index.isin(selector)]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("n_selectors", [3, 100])
+def test_remove_where_filter_and_condition(temp_hdfstore, n_selectors):
+    # GH#17567 a large "in" selector (> numexpr's _max_selectors=31) becomes a
+    #  post-read filter, but it can be combined with a numexpr condition (here
+    #  "A>=50"). select_coords must apply the filter on top of the condition's
+    #  coordinates; otherwise remove drops the wrong rows.
+    store = temp_hdfstore
+    df = DataFrame(
+        {"A": np.arange(1000)},
+        index=date_range("2020-01-01", periods=1000, unit="ns"),
+    )
+    store.put("df", df, format="table", data_columns=["A"], track_times=False)
+
+    selector = list(df.index[:n_selectors])
+    where = "index in selector and A>=50"
+    # matching rows: index in the first n_selectors AND A>=50
+    mask = df.index.isin(selector) & (df["A"] >= 50)
+
+    assert len(store.select("df", where=where)) == mask.sum()
+    assert len(store.select_as_coordinates("df", where=where)) == mask.sum()
+
+    removed = store.remove("df", where=where)
+    assert removed == mask.sum()
+
+    result = store.select("df")
+    tm.assert_frame_equal(result, df[~mask])
+
+
 def test_same_name_scoping(temp_hdfstore):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((20, 2)),
@@ -865,6 +917,19 @@ def test_select_filter_corner(temp_hdfstore):
     crit = "columns=df.columns[:75:2]"
     result = temp_hdfstore.select("frame", [crit])
     tm.assert_frame_equal(result, df.loc[:, df.columns[:75:2]])
+
+
+def test_select_string_index_aligned(temp_hdfstore):
+    # GH#54396 string index -> byte-unaligned values block; the read-back
+    #  block must be realigned to avoid SIGBUS on strict-alignment platforms
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+    df.index = [f"{c:3d}" for c in df.index]
+
+    temp_hdfstore.put("frame", df, format="table", track_times=False)
+    result = temp_hdfstore.select("frame")
+    tm.assert_frame_equal(result, df)
+    for blk in result._mgr.blocks:
+        assert blk.values.flags["ALIGNED"]
 
 
 def test_path_pathlib(temp_h5_path):

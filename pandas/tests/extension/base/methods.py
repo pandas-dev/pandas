@@ -1,6 +1,7 @@
 import inspect
 from io import StringIO
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -293,6 +294,35 @@ class BaseMethodsTests:
             {"A": [1, 1, 2], "B": data_for_sorting.take([2, 0, 1])}, index=[2, 0, 1]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_inplace(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_for_sorting.copy()
+        result = arr.sort()
+        assert result is None
+        expected = data_for_sorting.take([2, 0, 1])
+        tm.assert_extension_array_equal(arr, expected)
+
+    def test_sort_inplace_descending(self, data_for_sorting):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_for_sorting.copy()
+        arr.sort(ascending=False)
+        if pd.Series(data_for_sorting).nunique() == 2:
+            expected = data_for_sorting.take([0, 1, 2])
+        else:
+            expected = data_for_sorting.take([1, 0, 2])
+        tm.assert_extension_array_equal(arr, expected)
+
+    @pytest.mark.parametrize("na_position", ["first", "last"])
+    def test_sort_inplace_na_position(self, data_missing_for_sorting, na_position):
+        # https://github.com/pandas-dev/pandas/issues/64977
+        arr = data_missing_for_sorting.copy()
+        arr.sort(na_position=na_position)
+        if na_position == "last":
+            expected = data_missing_for_sorting.take([2, 0, 1])
+        else:
+            expected = data_missing_for_sorting.take([1, 2, 0])
+        tm.assert_extension_array_equal(arr, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_rank(self, data_for_sorting, ascending):
@@ -857,3 +887,27 @@ class BaseMethodsTests:
         result: str = ser.to_json()
         ser_new = pd.read_json(StringIO(result), typ="series", dtype=data.dtype)
         tm.assert_series_equal(ser_new, ser)
+
+    def test_round(self, data):
+        # GH#49387
+        if data.dtype._is_boolean:
+            result = data.round()
+            tm.assert_extension_array_equal(result, data)
+            return
+        if not data.dtype._is_numeric:
+            msg = re.escape(f"Cannot round dtype {data.dtype} as it is non-numeric")
+            with pytest.raises(TypeError, match=msg):
+                data.round()
+            return
+        result = pd.Series(data).round()
+        round_fn = np.round if data.dtype.kind == "c" else round
+        expected = pd.Series(
+            type(data)._from_sequence(
+                [
+                    round_fn(item) if not item_isna else item
+                    for item, item_isna in zip(data, data.isna(), strict=True)
+                ],
+                dtype=data.dtype,
+            )
+        )
+        tm.assert_series_equal(result, expected)

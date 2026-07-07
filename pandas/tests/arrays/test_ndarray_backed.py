@@ -2,12 +2,20 @@
 Tests for subclasses of NDArrayBackedExtensionArray
 """
 
+import pickle
+
 import numpy as np
+import pytest
+
+from pandas._libs.arrays import NDArrayBacked
 
 from pandas import (
     CategoricalIndex,
+    MultiIndex,
     date_range,
+    timedelta_range,
 )
+import pandas._testing as tm
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -74,3 +82,30 @@ class TestEmpty:
         assert isinstance(result, NumpyExtensionArray)
         assert result.dtype == dtype
         assert result.shape == shape
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        Categorical(["a", "b", "a"]),
+        date_range("2011-01-01", periods=3)._data,
+        timedelta_range("1 Day", periods=3)._data,
+    ],
+)
+def test_setstate_2tuple_without_attrs_dict(arr):
+    # GH#63078, GH#62820: Cython 3.2's auto-pickle hands __setstate__ a bare
+    #  (dtype, ndarray) 2-tuple with no trailing attrs dict, which previously
+    #  raised NotImplementedError.
+    result = type(arr).__new__(type(arr))
+    NDArrayBacked.__setstate__(result, (arr.dtype, arr._ndarray))
+    tm.assert_extension_array_equal(result, arr)
+
+
+def test_pickle_datetime_multiindex_level():
+    # GH#63078: pickling a datetime level of a MultiIndex raised
+    #  NotImplementedError in NDArrayBacked.__setstate__
+    mi = MultiIndex.from_product(
+        [date_range("2011-01-01", periods=3), [1, 2]], names=["date", "id"]
+    )
+    lev = mi.get_level_values("date")
+    tm.assert_index_equal(pickle.loads(pickle.dumps(lev)), lev)

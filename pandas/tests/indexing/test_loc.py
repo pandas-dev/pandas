@@ -475,6 +475,47 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_partial_series_preserves_other_columns_dtype(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, "B"] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9, 10, 11, 12],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_preserves_large_int_values(self):
+        # GH#66105
+        df = DataFrame({"A": [2**53 + 1, 2**53 + 3, 2**53 + 5], "B": [1, 2, 3]})
+        df.loc[df.index > 0, "B"] = Series([99], index=[1])
+
+        expected = DataFrame(
+            {
+                "A": [2**53 + 1, 2**53 + 3, 2**53 + 5],
+                "B": [1.0, 99.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_multiple_columns(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, ["B", "C"]] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9.0, np.nan, 99.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=["a", "b", "c"])
 
@@ -890,6 +931,17 @@ class TestLocBaseIndependent:
         expected = DataFrame({1: [5, 2], 2: [6, 4], "a": ["a", "b"]})
         df.loc[0, [1, 2]] = [5, 6]
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_getitem_single_row_mixed_dtype_subset(self):
+        # GH#37346 selecting a single row with a list of same-dtype columns
+        #  from a mixed-dtype frame preserves the column dtype rather than
+        #  upcasting to the frame's interleaved dtype
+        df = DataFrame({"a": [1], "b": [0.1]})
+
+        result = df.loc[0, ["a"]]
+        expected = Series([1], index=Index(["a"]), dtype="int64", name=0)
+        tm.assert_series_equal(result, expected)
+        assert result.values.dtype == np.int64
 
     def test_loc_setitem_frame_multiples(self):
         # multiple setting

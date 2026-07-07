@@ -70,7 +70,7 @@ dependencies:
   - moto
 
   # benchmarks
-  - asv>=0.6.5
+  - asv>=0.6.6
   - py-rattler
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.

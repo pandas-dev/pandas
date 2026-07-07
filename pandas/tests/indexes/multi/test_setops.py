@@ -631,7 +631,7 @@ def test_union_duplicates(index_sortable, request):
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
         pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
-    values = index.unique().values.tolist()
+    values = index.unique().tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0], *values], [1] * (len(values) + 1)])
     result = mi2.union(mi1)
@@ -777,3 +777,24 @@ def test_union_with_na_when_constructing_dataframe():
     result = DataFrame([series1, series2])
     expected = DataFrame({(np.nan, np.nan): [1.0, 10.0], ("a", "b"): [np.nan, 20.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method", ["difference", "intersection", "symmetric_difference"]
+)
+def test_setops_pyarrow_timestamp_level(method):
+    # GH#61382 setops must match a list of tuples against a pyarrow-backed
+    #  timestamp level (the list becomes a numpy-backed level internally)
+    pytest.importorskip("pyarrow")
+    mi = MultiIndex.from_arrays(
+        [
+            Series([1, 2], dtype="int64[pyarrow]"),
+            Series(["1900-01-01", "1901-06-15"], dtype="timestamp[ns][pyarrow]"),
+        ],
+        names=["id", "date"],
+    )
+
+    result = getattr(mi, method)([mi[0]])
+    # intersection keeps the matched row, (symmetric_)difference drops it
+    expected = mi[:1] if method == "intersection" else mi[1:]
+    tm.assert_index_equal(result, expected)
