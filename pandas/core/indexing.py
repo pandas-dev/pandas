@@ -2838,7 +2838,9 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer, tuple):
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
-        if isinstance(value, ABCDataFrame) and name != "iloc":
+        is_original_df = isinstance(value, ABCDataFrame)
+
+        if is_original_df and name != "iloc":
             if (
                 isinstance(indexer, tuple)
                 and self.ndim == len(indexer) == 2
@@ -2873,7 +2875,7 @@ class _iLocIndexer(_LocationIndexer):
                 and len(indexer) == 2
                 and self.obj.shape[1] > 1
                 and not com.is_null_slice(indexer[1])
-                and not isinstance(value, ABCDataFrame)
+                and not is_original_df
                 and not can_hold_element(
                     self.obj._mgr.blocks[0].values,
                     extract_array(value, extract_numpy=True),
