@@ -2267,6 +2267,9 @@ class Timedelta(_Timedelta):
                 )
             return value
         elif isinstance(value, str):
+            if type(value) is not str:
+                # GH#48974 np.str_ object
+                value = str(value)
             if unit is not None:
                 raise ValueError("unit must not be specified if the value is a str")
             if (len(value) > 0 and value[0] == "P") or (
