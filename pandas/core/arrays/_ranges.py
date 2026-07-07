@@ -149,10 +149,12 @@ def generate_daily_offset_range(
         anchor = end if trim_from_end else start
         assert anchor is not None
         while True:
+            # Timedelta(days=<int>) never yields NaT, but its stub widens the
+            # result to include NaTType, which pyright then rejects here.
             if trim_from_end:
-                start = (anchor - Timedelta(days=buffer_days)).as_unit(unit)
+                start = (anchor - Timedelta(days=buffer_days)).as_unit(unit)  # pyright: ignore[reportAssignmentType]
             else:
-                end = (anchor + Timedelta(days=buffer_days)).as_unit(unit)
+                end = (anchor + Timedelta(days=buffer_days)).as_unit(unit)  # pyright: ignore[reportAssignmentType]
             i8values = _daily_masked_i8values(start, end, freq, unit)
             if len(i8values) >= needed_on_offset:
                 break
