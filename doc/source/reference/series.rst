@@ -291,8 +291,6 @@ to specific data types.
     Series.sparse
     DataFrame.sparse
     Index.str
-    Series.list
-    Series.struct
 
 
 =========================== =================================
