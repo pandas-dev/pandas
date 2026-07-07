@@ -1625,6 +1625,29 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     pc->longValue = value;
     return;
   } else if (PyArray_IsScalar(obj, Integer)) {
+    PyArray_Descr *idtype = PyArray_DescrFromScalar(obj);
+    if (idtype != NULL && PyTypeNum_ISUNSIGNED(idtype->type_num)) {
+      npy_uint64 uval;
+      PyArray_Descr *u64 = PyArray_DescrFromType(NPY_UINT64);
+      PyArray_CastScalarToCtype(obj, &uval, u64);
+      Py_DECREF(u64);
+      Py_DECREF(idtype);
+
+      PyObject *pyint = PyLong_FromUnsignedLongLong(uval);
+      if (pyint == NULL) {
+        goto INVALID;
+      }
+      tc->type = JT_LONG;
+      int overflow = 0;
+      pc->longValue = PyLong_AsLongLongAndOverflow(pyint, &overflow);
+      if (overflow) {
+        tc->type = JT_BIGNUM;
+      }
+      Py_DECREF(pyint);
+      return;
+    }
+    Py_DECREF(idtype);
+
     tc->type = JT_LONG;
     PyArray_CastScalarToCtype(obj, &(pc->longValue),
                               PyArray_DescrFromType(NPY_INT64));

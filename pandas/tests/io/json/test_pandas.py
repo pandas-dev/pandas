@@ -2333,6 +2333,20 @@ class TestPandasContainer:
         result = df.to_json(orient="split")
         assert result == expected
 
+
+    def test_json_uint64_object_dtype(self):
+        # GH#66142
+        result = Series([np.uint64(2**63)], dtype=object).to_json()
+        assert result == '{"0":9223372036854775808}'
+
+        result = Series([np.uint64(2**64 - 1)], dtype=object).to_json()
+        assert result == '{"0":18446744073709551615}'
+
+        result = Series(
+            [np.uint64(2**63), np.uint64(2**64 - 1)], dtype=object
+        ).to_json()
+        assert result == '{"0":9223372036854775808,"1":18446744073709551615}'
+
     def test_read_json_dtype_backend(
         self, string_storage, dtype_backend, orient, using_infer_string
     ):
