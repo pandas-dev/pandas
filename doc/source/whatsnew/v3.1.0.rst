@@ -192,6 +192,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.apply` with ``axis=1`` when the :class:`DataFrame` has :class:`ExtensionDtype` columns (e.g. :class:`ArrowDtype`) (:issue:`61747`)
 - Performance improvement in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` when data contains no NaN values (:issue:`64857`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method="kendall"`` (:issue:`28329`)
+- Performance improvement in :meth:`DataFrame.diff` (:issue:`64864`)
 - Performance improvement in :meth:`DataFrame.equals`, :meth:`DataFrame.select_dtypes`, and other operations performing shallow column slicing on Arrow-backed columns (:issue:`58966`)
 - Performance improvement in :meth:`DataFrame.fillna` and :meth:`Series.fillna` with scalar fill value for float, object, nullable, and datetime-like dtypes (:issue:`42147`)
 - Performance improvement in :meth:`DataFrame.from_records` when passing a 2D :class:`numpy.ndarray` (:issue:`22025`)
