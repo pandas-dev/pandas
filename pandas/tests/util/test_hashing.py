@@ -76,12 +76,12 @@ def test_interval_array_hash_stable_across_processes():
     out0 = subprocess.check_output(
         [sys.executable, "-c", code],
         env={**os.environ, "PYTHONHASHSEED": "0"},
-        text=True,
+        encoding="utf-8",
     )
     out1 = subprocess.check_output(
         [sys.executable, "-c", code],
         env={**os.environ, "PYTHONHASHSEED": "1"},
-        text=True,
+        encoding="utf-8",
     )
     assert out0 == out1
 
