@@ -5316,16 +5316,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         ``_values`` are consistent between ``Series`` and ``Index``.
 
-        It may differ from the public '.values' method.
+        It may differ from the public '.values' method, though this
+        difference is deprecated and will be removed in a future version.
 
         index             | values          | _values       |
         ----------------- | --------------- | ------------- |
         Index             | ndarray         | ndarray       |
         CategoricalIndex  | Categorical     | Categorical   |
         DatetimeIndex     | ndarray[M8ns]   | DatetimeArray |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray |
-        PeriodIndex       | ndarray[object] | PeriodArray   |
+        DatetimeIndex[tz] | ndarray[M8ns]*  | DatetimeArray |
+        PeriodIndex       | ndarray[object]*| PeriodArray   |
         IntervalIndex     | IntervalArray   | IntervalArray |
+
+        * Will return the ExtensionArray in a future version (deprecated).
 
         See Also
         --------
@@ -5484,7 +5487,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False, dtype=self.dtype)
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
@@ -5494,9 +5499,7 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype == self.dtype:
                 raise
             return self.astype(dtype).where(cond, other)
-        return Index(
-            result_ser._values, dtype=result_ser.dtype, name=self.name, copy=False
-        )
+        return Index(result_ser, dtype=result_ser.dtype, name=self.name, copy=False)
 
     # construction helpers
     @final
@@ -7603,6 +7606,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         Index
             A new Index object with the computed differences.
+
+        See Also
+        --------
+        Series.diff : First discrete difference of Series elements.
+        DataFrame.diff : First discrete difference of element.
 
         Examples
         --------

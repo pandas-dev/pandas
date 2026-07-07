@@ -800,7 +800,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Timezone aware datetime data is converted to UTC and the timezone
         is dropped, while :attr:`Series.array` preserves the timezone:
 
-        >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
+        >>> pd.Series(
+        ...     pd.date_range("20130101", periods=3, tz="US/Eastern")
+        ... ).values  # doctest: +SKIP
         array(['2013-01-01T05:00:00.000000',
                '2013-01-02T05:00:00.000000',
                '2013-01-03T05:00:00.000000'], dtype='datetime64[us]')
@@ -809,6 +811,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
          '2013-01-03 00:00:00-05:00']
         Length: 3, dtype: datetime64[us, US/Eastern]
+
+        .. deprecated:: 3.0.0
+            For :class:`DatetimeTZDtype`, :class:`PeriodDtype`, and
+            :class:`IntervalDtype` dtypes, the behavior of ``.values`` returning
+            a lossy or object-dtype result is deprecated. In a future version,
+            ``.values`` will return the underlying ExtensionArray. Use
+            :meth:`Series.to_numpy` or :attr:`Series.array` instead.
         """
         return self._mgr.external_values()
 
@@ -824,7 +833,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         historical backwards compatibility of the public attribute (e.g. period
         returns object ndarray and datetimetz a datetime64[ns] ndarray for
         ``.values`` while it returns an ExtensionArray for ``._values`` in those
-        cases).
+        cases). This difference is deprecated and will be removed in a future
+        version.
 
         Differs from ``.array`` in that this still returns the numpy array if
         the Block is backed by a numpy array (except for datetime64 and
@@ -1282,6 +1292,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # set using a non-recursive method
                 self.loc[label] = value
                 return
+            except InvalidIndexError as ii_err:
+                # GH#51866: get_loc raises InvalidIndexError when label is not
+                #  a scalar (e.g. a boolean mask, array, or list). .at only
+                #  supports scalar label access.
+                raise InvalidIndexError(
+                    ".at-based indexing can only have scalar indexers; use .loc instead"
+                ) from ii_err
         else:
             loc = label
 
@@ -2560,8 +2577,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Indicate duplicate Series values.
 
         Duplicated values are indicated as ``True`` values in the resulting
-        Series. Either all duplicates, all except the first or all except the
-        last occurrence of duplicates can be indicated.
+        Series. Values are considered duplicated when the same value appears
+        more than once. Either all duplicated values, all except the first, or
+        all except the last occurrence of duplicated values can be indicated.
 
         Parameters
         ----------
@@ -2577,8 +2595,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         Series[bool]
-            Series indicating whether each value has occurred in the
-            preceding values.
+            Series indicating whether each value is a duplicated value
+            according to ``keep``.
 
         See Also
         --------
@@ -2652,6 +2670,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -2712,6 +2731,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -2772,6 +2792,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *args, **kwargs
             Additional arguments and keywords have no effect but might be
             accepted for compatibility with NumPy.
+            See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -8874,7 +8895,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9007,7 +9028,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             :ref:`Kleene logic <boolean.kleene>`.
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9105,7 +9126,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9176,7 +9198,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9254,7 +9277,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9353,7 +9377,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             The required number of valid values to perform the operation. If fewer than
             ``min_count`` non-NA values are present the result will be NA.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9433,7 +9458,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9492,7 +9518,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Include only float, int, boolean columns.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9574,7 +9601,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns. Not implemented for Series.
         **kwargs :
             Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+            for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9720,7 +9747,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Not implemented for Series.
         **kwargs :
             Additional keywords have no effect but might be accepted
-            for compatibility with NumPy.
+            for compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9783,7 +9810,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         numeric_only : bool, default False
             Unused.
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9837,7 +9865,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Include only float, int, boolean columns.
 
         **kwargs
-            Additional keyword arguments to be passed to the function.
+            Additional keyword arguments have no effect but might be accepted for
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9884,7 +9913,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If the entire series is NA, the result will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -9948,7 +9977,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Exclude NA/null values. If the series is NA, the result is NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -10011,7 +10040,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Exclude NA/null values. If entire series is NA, the result will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -10075,7 +10104,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Exclude NA/null values. If entire Series is NA, the result will be NA.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
