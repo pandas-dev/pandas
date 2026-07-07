@@ -2835,24 +2835,7 @@ class _iLocIndexer(_LocationIndexer):
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
 
-        if isinstance(indexer, tuple):
-            indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
-
         is_original_df = isinstance(value, ABCDataFrame)
-
-        if is_original_df and name != "iloc":
-            if (
-                isinstance(indexer, tuple)
-                and self.ndim == len(indexer) == 2
-                and is_integer(indexer[info_axis])
-            ):
-                col = item_labels[indexer[info_axis]]
-                if col in value.columns:
-                    value = self._align_series(indexer, value[col])
-                else:
-                    value = np.nan
-            else:
-                value = self._align_frame(indexer, value)._values
 
         if isinstance(indexer, tuple):
             # if we are setting on the info axis ONLY
@@ -2883,6 +2866,22 @@ class _iLocIndexer(_LocationIndexer):
             ):
                 self._setitem_with_indexer_split_path(indexer, value, name)
                 return
+
+            indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
+
+        if is_original_df and name != "iloc":
+            if (
+                isinstance(indexer, tuple)
+                and self.ndim == len(indexer) == 2
+                and is_integer(indexer[info_axis])
+            ):
+                col = item_labels[indexer[info_axis]]
+                if col in value.columns:
+                    value = self._align_series(indexer, value[col])
+                else:
+                    value = np.nan
+            else:
+                value = self._align_frame(indexer, value)._values
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
 
