@@ -1197,13 +1197,39 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+            wrapped = wrap_function(self.func)
+            if self.axis == 0:
+                if self.values.shape[1] == 0:
+                    raise ValueError(
+                        "Cannot apply_along_axis when any iteration dimensions are 0"
+                    )
+                res_list = [
+                    wrapped(col, *self.args, **self.kwargs) for col in self.values.T
+                ]
+                first_res = res_list[0]
+                dtype = np.asanyarray(first_res).dtype
+                res_list = [
+                    x.item() if isinstance(x, np.ndarray) and x.ndim == 0 else x
+                    for x in res_list
+                ]
+                result = np.array(res_list, dtype=dtype)
+                if result.ndim == 2:
+                    result = result.T
+            else:
+                if self.values.shape[0] == 0:
+                    raise ValueError(
+                        "Cannot apply_along_axis when any iteration dimensions are 0"
+                    )
+                res_list = [
+                    wrapped(row, *self.args, **self.kwargs) for row in self.values
+                ]
+                first_res = res_list[0]
+                dtype = np.asanyarray(first_res).dtype
+                res_list = [
+                    x.item() if isinstance(x, np.ndarray) and x.ndim == 0 else x
+                    for x in res_list
+                ]
+                result = np.array(res_list, dtype=dtype)
 
         # TODO: mixed type case
         if result.ndim == 2:
