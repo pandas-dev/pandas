@@ -18,10 +18,17 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import common
+from pandas.core.apply import (
+    ResamplerWindowApply,
+    reconstruct_func,
+)
 from pandas.core.arrays.datetimelike import dtype_to_unit
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -410,6 +417,17 @@ class ExponentialMovingWindow(BaseWindow):
         """
         return ExponentialMovingWindowIndexer()
 
+    def _resolve_aggregate_func(self, func):
+        if callable(func):
+            return common.get_cython_func(func) or func
+        if isinstance(func, list):
+            return [self._resolve_aggregate_func(arg) for arg in func]
+        if isinstance(func, dict):
+            return {
+                key: self._resolve_aggregate_func(value) for key, value in func.items()
+            }
+        return func
+
     def online(
         self, engine: str = "numba", engine_kwargs=None
     ) -> OnlineExponentialMovingWindow:
@@ -521,7 +539,17 @@ class ExponentialMovingWindow(BaseWindow):
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
         """
-        return super().aggregate(func, *args, **kwargs)
+        func = self._resolve_aggregate_func(func)
+        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
+        if isinstance(result, ABCDataFrame) and relabeling:
+            result = result.iloc[:, order]
+            result.columns = columns
+        if result is None:
+            raise NotImplementedError(
+                "ExponentialMovingWindow.aggregate does not support arbitrary callables"
+            )
+        return result
 
     agg = aggregate
 
