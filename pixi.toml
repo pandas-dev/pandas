@@ -151,7 +151,7 @@ pyyaml = "*"
 xarray = ">=2024.10.0"
 
 [feature.benchmarks.dependencies]
-asv = ">=0.6.5"
+asv = ">=0.6.6"
 py-rattler = "*"  # for environment_type in asv.conf.json
 
 [feature.documentation.dependencies]
@@ -316,6 +316,9 @@ cmd = [
   "run",
   "--quick",
   "--dry-run",
+  # Fork server imports pandas once instead of re-importing it per
+  # benchmark; asv >=0.6.6 defaults to "spawn" which does not (GH#66193).
+  "--launch-method=forkserver",
   "--durations=30",
   "--python=same",
   "--show-stderr",
