@@ -2678,7 +2678,7 @@ class TestDataFramePlots:
             index=idx,
             columns=["A"],
         )
-        expected = idx.values
+        expected = idx._values
 
         ax = df.plot()
         result = ax.get_lines()[0].get_xdata()

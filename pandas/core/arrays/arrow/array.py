@@ -520,6 +520,17 @@ class ArrowExtensionArray(
                 values = np.asarray(values, dtype=object)
                 mask = is_pdna_or_none(values)
                 arr = pa.array(values, mask=mask)
+            elif hasattr(values, "__arrow_array__"):
+                arr = values.__arrow_array__()
+            elif hasattr(values, "_ndarray"):
+                # DatetimeArray, TimedeltaArray: pass underlying ndarray
+                # to avoid pyarrow calling Series.values (which is deprecated
+                # for tz-aware datetimes)
+                arr = pa.array(values._ndarray, from_pandas=True)
+                if hasattr(values.dtype, "tz") and values.dtype.tz is not None:
+                    arr = arr.cast(
+                        pa.timestamp(values.dtype.unit, tz=str(values.dtype.tz))
+                    )
             else:
                 arr = pa.array(values, from_pandas=True)
         except (ValueError, TypeError):
