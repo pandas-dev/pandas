@@ -70,7 +70,7 @@ dependencies:
   - moto
 
   # benchmarks
-  - asv>=0.6.5
+  - asv>=0.6.6
   - py-rattler
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
@@ -78,7 +78,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - mypy=1.17.1  # pre-commit uses locally installed mypy
+  - mypy=2.1.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
 

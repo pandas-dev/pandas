@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeGuard,
     TypeVar,
     overload,
 )
@@ -213,15 +214,9 @@ def maybe_convert_usecols(
     return usecols
 
 
-@overload
-def validate_freeze_panes(freeze_panes: tuple[int, int]) -> Literal[True]: ...
-
-
-@overload
-def validate_freeze_panes(freeze_panes: None) -> Literal[False]: ...
-
-
-def validate_freeze_panes(freeze_panes: tuple[int, int] | None) -> bool:
+def validate_freeze_panes(
+    freeze_panes: tuple[int, int] | None,
+) -> TypeGuard[tuple[int, int]]:
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes

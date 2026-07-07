@@ -29,7 +29,6 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
-    ensure_dtype_can_hold_na,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_promote,
@@ -40,14 +39,20 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import NumpyEADtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    isna,
+    na_value_for_dtype,
+)
 
 import pandas.core.common as com
 
@@ -327,14 +332,31 @@ def array(
                 "Cannot construct an array from an ndarray with compound dtype. "
                 "Use DataFrame instead."
             )
-        elif data.mask is not np.False_ and ma.getmaskarray(data).any():
-            na_dtype = ensure_dtype_can_hold_na(data.dtype)
-            if na_dtype.char in "SU":
-                na_dtype = np.dtype("object")
-            data = cast("ma.MaskedArray", data.astype(na_dtype)).filled(np.nan)
-        else:
-            # No mask, convert to regular array
+        mask = ma.getmask(data)
+        if mask is ma.nomask:
+            # Avoid materializing an all-False mask.
             data = np.asarray(data)
+        else:
+            try:
+                masked_cls = BaseMaskedDtype.from_numpy_dtype(
+                    data.dtype
+                ).construct_array_type()
+            except (KeyError, NotImplementedError):
+                # No nullable masked dtype for this kind.
+                if data.dtype.char in "SU":
+                    data = lib.ensure_string_array(np.asarray(data.data))
+                    data[mask] = np.nan
+                else:
+                    # datetime64/timedelta64 use NaT; float16/complex/object NaN.
+                    # Argument to "filled" of "MaskedArray" has incompatible type...;
+                    # expected "complex | str | bytes | generic[Any] | None"
+                    data = data.filled(
+                        na_value_for_dtype(data.dtype, compat=False)  # type: ignore[arg-type]
+                    )
+            else:
+                # Argument 2 to "BaseMaskedArray" has incompatible type...;
+                # expected "ndarray[tuple[Any, ...], dtype[numpy.bool[builtins.bool]]]"
+                data = masked_cls(np.asarray(data.data), mask, copy=copy)  # type: ignore[arg-type]
 
     # this returns None for not-found dtypes.
     if dtype is not None:
@@ -369,6 +391,8 @@ def array(
                 return NumpyExtensionArray._from_sequence(
                     data, dtype=result.dtype, copy=copy
                 )
+            # We know result is an ExtensionArray here, but mypy doesn't
+            assert isinstance(result, ExtensionArray)
             if result is data and copy:
                 return result.copy()
             return result

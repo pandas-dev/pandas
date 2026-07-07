@@ -7,6 +7,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -128,7 +130,9 @@ class TestSeriesFillNA:
         vals = ["0", "1.5", "-0.3"]
         for val in vals:
             ser = Series([0, 1, np.nan, np.nan, 4], dtype="float64")
-            result = ser.fillna(val)
+            # GH#45153 filling with incompatible value is deprecated
+            with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+                result = ser.fillna(val)
             expected = Series([0, 1, val, val, 4], dtype="object")
             tm.assert_series_equal(result, expected)
 
@@ -138,7 +142,9 @@ class TestSeriesFillNA:
 
         ser = Series([Timestamp("20130101"), NaT])
 
-        result = ser.fillna(Timestamp("20130101", tz="US/Eastern"))
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna(Timestamp("20130101", tz="US/Eastern"))
         expected = Series(
             [Timestamp("20130101"), Timestamp("2013-01-01", tz="US/Eastern")],
             dtype="object",
@@ -152,7 +158,9 @@ class TestSeriesFillNA:
         tm.assert_series_equal(result, expected)
 
         # with a non-datetime
-        result = ser.fillna("foo")
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna("foo")
         expected = Series([Timestamp("20130101"), "foo"])
         tm.assert_series_equal(result, expected)
 
@@ -192,7 +200,9 @@ class TestSeriesFillNA:
         # GH#45746 pre-1.? ints were interpreted as seconds.  then that was
         #  deprecated and changed to raise. In 2.0 it casts to common dtype,
         #  consistent with every other dtype's behavior
-        res = obj.fillna(1)
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res = obj.fillna(1)
         expected = obj.astype(object).fillna(1)
         tm.assert_equal(res, expected)
 
@@ -323,8 +333,11 @@ class TestSeriesFillNA:
         ser[0] = NaT
         ser2 = ser.copy()
 
-        res = ser.fillna(item)
-        res2 = ser2.fillna(Series(vec))
+        # GH#45153 filling with mismatched resolution requires casting
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res = ser.fillna(item)
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res2 = ser2.fillna(Series(vec))
 
         if scalar:
             tm.assert_series_equal(res, expected)
@@ -351,8 +364,11 @@ class TestSeriesFillNA:
         ser[0] = NaT
         ser2 = ser.copy()
 
-        res = ser.fillna(item)
-        res2 = ser2.fillna(Series(vec))
+        # GH#45153 filling with mismatched resolution requires casting
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res = ser.fillna(item)
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            res2 = ser2.fillna(Series(vec))
 
         if scalar:
             tm.assert_series_equal(res, expected)
@@ -403,7 +419,9 @@ class TestSeriesFillNA:
         # check s is not changed
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"))
+        # GH#45153 filling with incompatible value (tz-mismatch) is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00").as_unit("s"),
@@ -415,7 +433,9 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna("AAA")
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna("AAA")
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00").as_unit("s"),
@@ -428,12 +448,14 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(
-            {
-                1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
-                3: Timestamp("2011-01-04 10:00").as_unit("s"),
-            }
-        )
+        # GH#45153 filling with incompatible value (tz-mismatch) is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna(
+                {
+                    1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                    3: Timestamp("2011-01-04 10:00").as_unit("s"),
+                }
+            )
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00").as_unit("s"),
@@ -471,7 +493,9 @@ class TestSeriesFillNA:
         assert ser.dtype == f"datetime64[{unit}, {tz}]"
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00").as_unit("s"))
+        # GH#45153 filling tz-aware with tz-naive is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna(Timestamp("2011-01-02 10:00").as_unit("s"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
@@ -511,7 +535,9 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna("AAA")
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna("AAA")
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
@@ -524,12 +550,14 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(
-            {
-                1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
-                3: Timestamp("2011-01-04 10:00").as_unit("s"),
-            }
-        )
+        # GH#45153 filling tz-aware with tz-naive is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna(
+                {
+                    1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                    3: Timestamp("2011-01-04 10:00").as_unit("s"),
+                }
+            )
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
@@ -559,7 +587,9 @@ class TestSeriesFillNA:
         tm.assert_series_equal(isna(ser), null_loc)
 
         # filling with a naive/other zone, coerce to object
-        result = ser.fillna(Timestamp("20130101").as_unit("s"))
+        # GH#45153 filling with incompatible value is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            result = ser.fillna(Timestamp("20130101").as_unit("s"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
@@ -1035,3 +1065,21 @@ def test_ffill_bfill_limit_area(data, expected_data, method, kwargs):
     expected = Series(expected_data)
     result = getattr(s, method)(**kwargs)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, dtype, msg",
+    [
+        ([1, None], "Int64", "Invalid value"),
+        ([1.0, None], "Float64", "Invalid value"),
+        ([True, None], "boolean", "Invalid value"),
+        (["a", None], "category", "new category"),
+    ],
+)
+def test_fillna_incompatible_value_raises_without_warning(data, dtype, msg):
+    # GH#45153 ExtensionArrays whose array-level fillna already raises on an
+    #  incompatible fill value must not also emit the casting deprecation warning
+    ser = Series(data, dtype=dtype)
+    with tm.assert_produces_warning(None):
+        with pytest.raises(TypeError, match=msg):
+            ser.fillna("x")

@@ -286,7 +286,13 @@ class TestSeriesPlots:
 
     @pytest.mark.parametrize("axis, meth", [("yaxis", "bar"), ("xaxis", "barh")])
     def test_bar_log(self, axis, meth):
-        expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
+        # matplotlib 3.11 no longer pads log-axis ticks a decade past the
+        #  view limits, so the outermost tick is dropped (GH#65918)
+        expected = (
+            np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
+            if Version(mpl.__version__) < Version("3.11.0rc1")
+            else np.array([1e-1, 1e0, 1e1, 1e2, 1e3])
+        )
 
         _, ax = mpl.pyplot.subplots()
         ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
@@ -302,7 +308,13 @@ class TestSeriesPlots:
     )
     def test_bar_log_kind_bar(self, axis, kind, res_meth):
         # GH 9905
-        expected = np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
+        # matplotlib 3.11 no longer pads log-axis ticks a decade past the
+        #  view limits, so the outermost ticks are dropped (GH#65918)
+        expected = (
+            np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
+            if Version(mpl.__version__) < Version("3.11.0rc1")
+            else np.array([1e-4, 1e-3, 1e-2, 1e-1, 1e0])
+        )
 
         _, ax = mpl.pyplot.subplots()
         ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind=kind, ax=ax)
@@ -849,6 +861,7 @@ class TestSeriesPlots:
 
         _check_plot_works(s.plot)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     @pytest.mark.xfail(
         reason="GH#24426, see also "
         "github.com/pandas-dev/pandas/commit/"

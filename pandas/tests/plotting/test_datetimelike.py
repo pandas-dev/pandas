@@ -26,6 +26,7 @@ from pandas import (
     concat,
     isna,
     to_datetime,
+    to_timedelta,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import (
@@ -621,6 +622,33 @@ class TestTSPlot:
         xp = Period("1/1/1999", freq="h").ordinal
 
         assert rs == xp
+
+    @pytest.mark.parametrize(
+        "freq, equiv_freq", [("h", "60min"), ("2h", "120min"), ("D", "24h")]
+    )
+    def test_finder_period_equivalent_freq_same_labels(self, freq, equiv_freq):
+        # GH#57587 equivalent frequencies (e.g. "h" and "60min") must render
+        # identical x-axis tick labels, not just identical line data.
+        def _tick_labels(frqncy):
+            idx = period_range("2000-01-01", freq=frqncy, periods=4)
+            df = DataFrame(np.array([0, 1, 0, 1]), index=idx, columns=["A"])
+            _, ax = mpl.pyplot.subplots()
+            df.plot(ax=ax)
+            ax.figure.canvas.draw()
+            labels = [
+                label.get_text()
+                for label in list(ax.get_xticklabels(minor=False))
+                + list(ax.get_xticklabels(minor=True))
+                if label.get_text()
+            ]
+            mpl.pyplot.close(ax.figure)
+            return sorted(labels)
+
+        expected = _tick_labels(freq)
+        # sanity check: more than just the two endpoints are labeled, so a
+        # regression that collapses the ticks would not silently match
+        assert len(expected) > 2
+        assert _tick_labels(equiv_freq) == expected
 
     def test_gaps(self):
         ts = Series(
@@ -1639,6 +1667,20 @@ class TestTSPlot:
         result_labels = [x.get_text() for x in labels]
         assert len(result_labels) == len(expected_labels)
         assert result_labels == expected_labels
+
+    def test_irregular_timedelta_index_labels(self):
+        # GH#18910 a sub-millisecond TimedeltaIndex with no inferred freq must
+        # still get x-axis tick labels
+        rng = to_timedelta(np.arange(0, 1, 1e-4), unit="s")
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
+        _, ax = mpl.pyplot.subplots()
+        df.plot(ax=ax)
+        mpl.pyplot.draw()
+
+        labels = [x.get_text() for x in ax.get_xticklabels() if x.get_text().strip()]
+        assert labels
+        # every label shown corresponds to an actual index entry
+        assert set(labels) <= {str(td) for td in rng}
 
     def test_timedelta_plot(self):
         # test issue #8711

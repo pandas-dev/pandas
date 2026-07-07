@@ -62,6 +62,7 @@ if TYPE_CHECKING:
         ScalarIndexer,
         SequenceIndexer,
         Shape,
+        SortKind,
         TakeIndexer,
         npt,
     )
@@ -230,6 +231,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def unique(self) -> Self:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
+
+    def sort(
+        self,
+        *,
+        ascending: bool = True,
+        kind: SortKind = "quicksort",
+        na_position: str = "last",
+    ) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+        sort_indices = self.argsort(
+            ascending=ascending, kind=kind, na_position=na_position
+        )
+        self._ndarray[:] = self._ndarray[sort_indices]
 
     @classmethod
     def _concat_same_type(

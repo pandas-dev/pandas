@@ -355,7 +355,7 @@ class DatetimeConverter(mdates.DateConverter):
                 # Series was skipped. Convert to DatetimeIndex to get asi8
                 values = Index(values)
             if isinstance(values, Index):
-                values = values.values
+                values = values._values
             if not isinstance(values, np.ndarray):
                 values = com.asarray_tuplesafe(values)
 

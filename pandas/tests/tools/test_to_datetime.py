@@ -40,6 +40,7 @@ from pandas import (
     Index,
     NaT,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     isna,
@@ -3327,7 +3328,7 @@ class TestOrigin:
             max(reso_order.index(origin_unit), reso_order.index(unit_reso))
         ]
         expected = Series(
-            [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
+            [Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
             dtype=f"M8[{exp_unit}]",
         )
 
@@ -3458,6 +3459,65 @@ class TestOrigin:
         expected = DatetimeIndex(data, dtype="datetime64[us]", name="foo")
         tm.assert_index_equal(result, expected)
 
+    def test_origin_errors_coerce_overflow(self):
+        # GH#63419: errors="coerce" should turn out-of-bounds offsets into NaT
+        # rather than raising.  10**8 days is in bounds; 10**9 overflows the
+        # us-resolution result; 10**18 overflows to_timedelta itself
+        origin = Timestamp("2016-01-01")
+        vals = [1, 2, 10**8, 10**9, 10**18]
+        result = to_datetime(vals, unit="D", origin=origin, errors="coerce")
+        expected = DatetimeIndex(
+            [
+                origin + Timedelta(days=1),
+                origin + Timedelta(days=2),
+                origin + Timedelta(days=10**8),
+                NaT,
+                NaT,
+            ],
+            dtype="datetime64[us]",
+        )
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime(Series(vals), unit="D", origin=origin, errors="coerce")
+        tm.assert_series_equal(result, Series(expected))
+
+        assert to_datetime(10**9, unit="D", origin=origin, errors="coerce") is NaT
+
+        # errors="raise" still raises
+        msg = "Cannot cast .* without overflow"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
+            to_datetime([1, 2, 10**18], unit="D", origin=origin)
+
+        msg = "cannot add values to origin"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            to_datetime([1, 2, 10**9], unit="D", origin=origin)
+
+    def test_origin_errors_coerce_overflow_boundary(self):
+        # GH#63419 exact boundary: with origin 16801 days past the epoch, the
+        # largest value representable in the us-resolution result is
+        # (2**63 - 1) // (86400 * 10**6) - 16801 days
+        origin = Timestamp("2016-01-01")
+        bound = (2**63 - 1) // (86400 * 10**6) - 16801
+        result = to_datetime(
+            [bound, bound + 1], unit="D", origin=origin, errors="coerce"
+        )
+        assert result[0] == origin + Timedelta(days=bound)
+        assert result[1] is NaT
+
+        # values just past the boundary raise OutOfBoundsDatetime (not a bare
+        # OverflowError) under errors="raise"
+        with pytest.raises(OutOfBoundsDatetime, match="cannot add values"):
+            to_datetime([bound + 1], unit="D", origin=origin)
+
+    def test_origin_oob_for_unit_coerce(self):
+        # GH#63419 origin not representable in the result resolution; under
+        # errors="coerce" all entries become NaT instead of raising
+        result = to_datetime(
+            list(range(5)), unit="ns", origin=datetime(1, 1, 1), errors="coerce"
+        )
+        expected = DatetimeIndex([NaT] * 5, dtype="datetime64[ns]")
+        tm.assert_index_equal(result, expected)
+
 
 class TestShouldCache:
     @pytest.mark.parametrize(
@@ -3518,13 +3578,6 @@ class TestShouldCacheEarlyBail:
                 date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
                 {},
             ),
-            # format is not None and format != "mixed"
-            (
-                date_range("2020-01-01", periods=100, freq="s")
-                .strftime("%Y-%m-%dT%H:%M:%S")
-                .to_numpy(),
-                {"format": "%Y-%m-%dT%H:%M:%S"},
-            ),
         ],
     )
     def test_should_cache_returns_false(self, arg, kwargs):
@@ -3544,10 +3597,12 @@ class TestShouldCacheEarlyBail:
         idx = Index(arr)
         assert tools.should_cache(idx) is False
 
-    def test_should_cache_format_mixed_not_skipped(self):
-        # format="mixed" should NOT trigger the early bail
-        arg = Index(["2020-01-01", "01/02/2020"] * 50)
-        assert tools.should_cache(arg, format="mixed") is True
+    def test_should_cache_explicit_format_not_skipped(self):
+        # GH#65380, asv-runner#137: an explicit ``format`` must NOT disable
+        # caching. Highly-duplicated strings still benefit from caching even
+        # with a (slow-parsing) strptime format, so should_cache returns True.
+        arg = Index(["19MAY11"] * 100)
+        assert tools.should_cache(arg) is True
 
 
 def test_nullable_integer_to_datetime():
@@ -3983,3 +4038,20 @@ def test_to_datetime_missing_component_no_runtime_warning():
         result = to_datetime(df)
 
     assert result.iloc[1] is NaT
+
+
+def test_to_datetime_format_N_directive():
+    # GH 65863
+    result = to_datetime("2024-05-01 12:00:00.123456789", format="%Y-%m-%d %H:%M:%S.%N")
+    expected = Timestamp("2024-05-01 12:00:00.123456789")
+    tm.assert_equal(result, expected)
+
+    # %N must be exactly 9 digits
+    msg = 'time data "2024-05-01 12:00:00.12345" doesn\'t match format'
+    with pytest.raises(ValueError, match=msg):
+        to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%N")
+
+    # While %f can be fewer:
+    result_f = to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%f")
+    expected_f = Timestamp("2024-05-01 12:00:00.123450")
+    tm.assert_equal(result_f, expected_f)
