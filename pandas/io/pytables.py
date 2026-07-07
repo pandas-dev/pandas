@@ -2655,6 +2655,10 @@ class IndexCol:
     def kind_attr(self) -> str:
         return f"{self.name}_kind"
 
+    @property
+    def meta_attr(self) -> str:
+        return f"{self.name}_meta"
+
     def set_pos(self, pos: int) -> None:
         """set the position of this column in the Table"""
         self.pos = pos
@@ -2709,9 +2713,29 @@ class IndexCol:
         if self.meta == "category":
             # GH#33909, GH#16118: reconstruct a CategoricalIndex from the
             # stored integer codes and the categories saved as metadata.
+            categories = self.metadata
+            codes = values.ravel()
+
+            # Mirror DataCol.convert's NaN-category handling so a
+            # CategoricalIndex round-trips through format="table". GH#65576
+            if categories is None:
+                # Zero-category (all-NaN) case: PyTables cannot store an
+                # empty metadata array, so it round-trips as None.
+                categories = Index([], dtype=np.float64)
+            else:
+                mask = isna(categories)
+                if mask.any():
+                    # A category decodes to NaN when it equaled the nan_rep
+                    # string on write; drop NaN categories and remap the
+                    # codes so from_codes does not reject a null category.
+                    remap = np.full(len(categories), -1, dtype=codes.dtype)
+                    remap[~mask] = np.arange((~mask).sum(), dtype=codes.dtype)
+                    categories = categories[~mask]
+                    codes = np.where(codes < 0, codes, remap[codes])
+
             cat = Categorical.from_codes(
-                values,
-                categories=self.metadata,
+                codes,
+                categories=categories,
                 ordered=bool(self.ordered),
                 validate=False,
             )
@@ -2898,6 +2922,11 @@ class IndexCol:
     def set_attr(self) -> None:
         """set the kind for this column"""
         _set_attr_if_changed(self.attrs, self.kind_attr, self.kind)
+        if self.meta is not None:
+            # Persist meta="category" so an all-NaN CategoricalIndex, whose
+            # empty categories cannot be written as metadata, still round-trips
+            # as categorical rather than as raw integer codes. GH#65576
+            _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -3005,10 +3034,6 @@ class DataCol(IndexCol):
     @property
     def dtype_attr(self) -> str:
         return f"{self.name}_dtype"
-
-    @property
-    def meta_attr(self) -> str:
-        return f"{self.name}_meta"
 
     def __repr__(self) -> str:
         temp = tuple(
@@ -4401,7 +4426,13 @@ class Table(Fixed):
         for i, (axis, name) in enumerate(self.attrs.index_cols):
             atom = getattr(desc, name)
             md = self.read_metadata(name)
-            meta = "category" if md is not None else None
+            # Prefer the explicit meta attribute (written since GH#65576); it
+            # survives even when the categories are empty and no metadata node
+            # exists. Fall back to inferring from the metadata node for files
+            # written before the attribute was persisted.
+            meta = getattr(table_attrs, f"{name}_meta", None)
+            if meta is None and md is not None:
+                meta = "category"
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
