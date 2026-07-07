@@ -11,17 +11,24 @@ versioneer = ">=0.29"
 cython = ">3.1.0,<4.0.0a0"
 meson = ">=1.2.3,<2"
 meson-python = ">=0.19.0,<1"
-c-compiler = "*"
-cxx-compiler = "*"
 pip = ">=26"
 
 # Required dependencies
 python-dateutil = ">=2.8.2"
 
+[feature.default-compiler.dependencies]
+c-compiler = "*"
+cxx-compiler = "*"
+
 [feature.mingw-compiler]
 platforms = ["win-64"]
 dependencies = { gcc = "*", gxx = "*" }
 activation = { env = { CC = "gcc", CXX = "g++" } }
+
+[feature.sanitizers]
+platforms = ["linux-64"]
+dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
+activation = { env = { CC = "clang", CXX = "clang++" } }
 
 [feature.numpy.dependencies]
 numpy = ">=1.26.0,<3"
@@ -188,29 +195,31 @@ pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
 pre-commit = ">=4.2.0"
 ipython = "*"
 mypy = "==2.1.0"
-scipy-stubs = "*"
+# TODO: Investigate why Pixi is downgrading e.g. https://github.com/pandas-dev/pandas/pull/66147
+scipy-stubs = ">=1.17.1.5"
 types-python-dateutil = "*"
 types-PyMySQL = "*"
 types-pytz = "*"
 types-PyYAML = "*"
 
 [environments]
-py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies"] }
-py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies"] }
-py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies"] }
-py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies"] }
-no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies"] }
-minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions"] }
-py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base"] }
-numpy-nightly = { features = ["py313", "numpy-nightly", "test-base"] }
-pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly"] }
-downstream = { features = ["py313", "numpy", "test-base", "downstream"] }
-asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks" ]}
-doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests" ] }
+py311 = { features = ["py311", "numpy21", "test-base", "test-clipboard", "test-network", "pyarrow21", "optional-dependencies", "default-compiler"] }
+py312 = { features = ["py312", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
+py313 = { features = ["py313", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
+py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
+no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
+minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
+py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base", "default-compiler"] }
+numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "default-compiler"] }
+pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly", "default-compiler"] }
+downstream = { features = ["py313", "numpy", "test-base", "downstream", "default-compiler"] }
+asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks", "default-compiler"] }
+doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests", "default-compiler"] }
 # https://github.com/apache/arrow/issues/49831 for "pyarrow23" in typing
-typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing" ] }
-docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website" ]}
+typing = { features = ["py313", "numpy", "test-base", "pyarrow23", "optional-dependencies", "typing", "default-compiler"] }
+docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website", "default-compiler"] }
 mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
+sanitizers = { features = ["py313", "numpy", "test-base", "optional-dependencies", "sanitizers"] }
 
 
 [tasks]

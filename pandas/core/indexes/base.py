@@ -7604,6 +7604,11 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             A new Index object with the computed differences.
 
+        See Also
+        --------
+        Series.diff : First discrete difference of Series elements.
+        DataFrame.diff : First discrete difference of element.
+
         Examples
         --------
         >>> import pandas as pd

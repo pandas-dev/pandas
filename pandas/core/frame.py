@@ -578,7 +578,9 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     data = list(data)
             if len(data) > 0:
-                if is_dataclass(data[0]):
+                if is_dataclass(data[0]) and not is_list_like(data[0]):
+                    # GH#41682 a list-like dataclass (e.g. a UserList subclass)
+                    # is treated as list-like, not converted to a dict of fields
                     data = dataclasses_to_dicts(data)
                 if not isinstance(data, np.ndarray) and treat_as_nested(data):
                     # exclude ndarray as we may have cast it a few lines above
@@ -4868,10 +4870,11 @@ class DataFrame(NDFrame, OpsMixin):
                 self.loc[index, col] = value
 
         except InvalidIndexError as ii_err:
-            # GH48729: Seems like you are trying to assign a value to a
-            # row when only scalar options are permitted
+            # GH#48729, GH#51866: get_loc raises InvalidIndexError when a
+            #  row/column label is not a scalar (e.g. a boolean mask, array,
+            #  list, or slice). .at only supports scalar label access.
             raise InvalidIndexError(
-                f"You can only assign a scalar value not a {type(value)}"
+                ".at-based indexing can only have scalar indexers; use .loc instead"
             ) from ii_err
 
     def _ensure_valid_index(self, value) -> None:
@@ -7960,7 +7963,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return boolean Series denoting duplicate rows.
 
-        Considering certain columns is optional.
+        Rows are considered duplicated when the same values appear more than
+        once across the requested columns. Considering certain columns is
+        optional.
 
         Parameters
         ----------
@@ -7977,7 +7982,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         Series
-            Boolean series for each duplicated rows.
+            Boolean Series indicating whether each row is a duplicated row
+            according to ``keep``.
 
         See Also
         --------
@@ -15378,11 +15384,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         All columns regardless of dtype.
 
-        >>> df.describe(include="all")  # doctest: +SKIP
+        >>> df.describe(include="all")
                categorical  numeric object
         count            3      3.0      3
         unique           3      NaN      3
-        top              f      NaN      a
+        top              d      NaN      a
         freq             1      NaN      1
         mean           NaN      2.0    NaN
         std            NaN      1.0    NaN
@@ -15403,11 +15409,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         Exclude a specific dtype.
 
-        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+        >>> df.describe(exclude=[np.number])
                categorical object
         count            3      3
         unique           3      3
-        top              f      a
+        top              d      a
         freq             1      1
         """
         return super().describe(
@@ -15442,8 +15448,7 @@ class DataFrame(NDFrame, OpsMixin):
                 regardless of the callable's behavior.
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result. Currently only available for Pearson
-            and Spearman correlation.
+            to have a valid result.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
@@ -15500,7 +15505,9 @@ class DataFrame(NDFrame, OpsMixin):
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall" or callable(method):
+        elif method == "kendall":
+            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
+        elif callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
