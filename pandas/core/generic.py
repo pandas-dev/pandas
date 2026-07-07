@@ -12059,6 +12059,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2013-01-01 09:00:05  NaN
         2013-01-01 09:00:06  4.0
 
+        Rolling sum with forward-looking windows with 3 seconds.
+
+        >>> df_time.iloc[::-1].rolling("3s").sum().iloc[::-1]
+                               B
+        2013-01-01 09:00:00  1.0
+        2013-01-01 09:00:02  3.0
+        2013-01-01 09:00:03  2.0
+        2013-01-01 09:00:05  4.0
+        2013-01-01 09:00:06  4.0
+
+        .. note::
+
+            Negative offset strings (e.g., ``"-5h"``) do not create forward-looking
+            windows and should be avoided. They collapse to single-element windows.
+
         Rolling sum with forward looking windows with 2 observations.
 
         >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
