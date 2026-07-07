@@ -714,7 +714,7 @@ class TestNumpyJSONTests:
             pytest.skip("Cannot test 64-bit integer on 32-bit platform")
 
         klass = np.dtype(any_int_numpy_dtype).type
-        num = np.iinfo(any_int_numpy_dtype).max
+        num = klass(np.iinfo(any_int_numpy_dtype).max)
 
         assert klass(ujson.ujson_loads(ujson.ujson_dumps(num))) == num
 

@@ -1647,7 +1647,7 @@ class TestPandasContainer:
         expected = '{"0":{"articleId":' + str(bigNum) + "}}"
         assert json == expected
 
-    @pytest.mark.parametrize("bigNum", [np.uint64(2**63), np.iinfo(np.uint64).max])
+    @pytest.mark.parametrize("bigNum", [np.uint64(2**63), np.uint64(2**64 - 1)])
     def test_to_json_object_dtype_numpy_uint64_scalar(self, bigNum):
         # Object-dtype containers store the numpy scalar directly, which
         # previously went through a signed int64 cast in ujson and wrapped.
