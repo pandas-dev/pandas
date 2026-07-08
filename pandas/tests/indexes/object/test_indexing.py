@@ -28,12 +28,8 @@ class TestGetIndexer:
     def test_get_indexer_strings_raises(self):
         index = Index(["b", "c"], dtype=object)
 
-        msg = "|".join(
-            [
-                "operation 'sub' not supported for dtype 'str'",
-                r"unsupported operand type\(s\) for -: 'str' and 'str'",
-            ]
-        )
+        # object-dtype string subtraction goes through the Python operator
+        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
         with pytest.raises(TypeError, match=msg):
             index.get_indexer(["a", "b", "c", "d"], method="nearest")
 
