@@ -95,11 +95,15 @@ class TestPPrintThing:
         assert printing.pprint_thing(np.array(5)) == "5"
 
 
-@pytest.mark.parametrize("box", [pd.Series, pd.Index, lambda vals: pd.DataFrame(vals)])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
 def test_repr_object_dtype_0d_array(box):
-    # GH#64638 repr of a container holding a 0-d ndarray should not raise
+    # GH#64638 repr of a container holding a 0-d ndarray should not raise, and
+    # the array should be unwrapped to its scalar value ("5") rather than shown
+    # via its own ndarray repr ("array(5)")
     obj = box(pd.array([np.array(5)], dtype=object))
-    assert "5" in repr(obj)
+    result = repr(obj)
+    assert "5" in result
+    assert "array(5)" not in result
 
 
 class TestFormatBase:
