@@ -88,11 +88,8 @@ class TestSeriesRepr:
         str(Series(dtype=object))
 
     def test_empty_frozenset(self):
-        s = Series([frozenset()])
-        result = repr(s)
-
-        assert "{" and "}" not in result
-        assert "frozenset" in result
+        ser = Series([frozenset()])
+        result = repr(ser)
 
         expected = "0    frozenset()\ndtype: object"
         assert result == expected
