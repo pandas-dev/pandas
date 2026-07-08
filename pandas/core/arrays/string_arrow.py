@@ -24,10 +24,10 @@ from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
+    is_array_like_deprecate_non_pandas,
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
@@ -338,7 +338,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif isinstance(value, type(self)):
             pass
         else:
-            if not is_array_like(value):
+            if not is_array_like_deprecate_non_pandas(value):
                 value = np.asarray(value, dtype=object)
             else:
                 value = np.asarray(value)

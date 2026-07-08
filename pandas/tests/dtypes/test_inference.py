@@ -42,6 +42,7 @@ from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
 from pandas.core.dtypes.common import (
     ensure_int32,
+    is_array_like_deprecate_non_pandas,
     is_bool,
     is_complex,
     is_datetime64_any_dtype,
@@ -292,6 +293,33 @@ def test_is_array_like():
     assert not inference.is_array_like(())
     assert not inference.is_array_like("foo")
     assert not inference.is_array_like(123)
+
+
+def test_is_array_like_deprecate_non_pandas():
+    # ndarray, ExtensionArray (incl. NumpyExtensionArray), Index, Series
+    #  are not deprecated
+    for obj in [
+        np.array([1, 2, 3]),
+        pd.arrays.NumpyExtensionArray(np.array([1, 2, 3])),
+        pd.array([1, 2, 3], dtype="Int64"),
+        Categorical([1, 2, 3]),
+        Index([1, 2, 3]),
+        Series([1, 2, 3]),
+    ]:
+        with tm.assert_produces_warning(None):
+            assert is_array_like_deprecate_non_pandas(obj)
+
+    # duck-typed array-likes warn but still return True
+    duck = MockNumpyLikeArray(np.array([1, 2, 3]))
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="no longer be treated as array-like"
+    ):
+        assert is_array_like_deprecate_non_pandas(duck)
+
+    # non-array-likes return False without warning
+    with tm.assert_produces_warning(None):
+        assert not is_array_like_deprecate_non_pandas([1, 2, 3])
+        assert not is_array_like_deprecate_non_pandas("foo")
 
 
 @pytest.mark.parametrize(

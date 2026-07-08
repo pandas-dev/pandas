@@ -83,7 +83,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     infer_dtype_from_object,
     is_1d_only_ea_dtype,
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_dataclass,
     is_dict_like,
@@ -9453,7 +9453,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             # GH#36702. Raise when attempting arithmetic with list of array-like.
-            if any(is_array_like(el) for el in right):
+            if any(is_array_like_deprecate_non_pandas(el) for el in right):
                 raise ValueError(
                     f"Unable to coerce list of {type(right[0])} to Series/DataFrame"
                 )

@@ -50,6 +50,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_array_like_deprecate_non_pandas,
     is_hashable,
     is_integer,
     is_iterator,
@@ -68,7 +69,6 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
     array_equivalent,
     isna,
@@ -1058,7 +1058,7 @@ class MultiIndex(Index):
 
         if isinstance(levels, Index):
             pass
-        elif is_array_like(levels):
+        elif is_array_like_deprecate_non_pandas(levels):
             levels = Index(levels)
         elif is_list_like(levels):
             levels = list(levels)

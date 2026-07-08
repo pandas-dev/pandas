@@ -51,7 +51,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_float_dtype,
     is_integer,
@@ -700,7 +700,7 @@ class ArrowExtensionArray(
             ):
                 # See https://github.com/apache/arrow/issues/35289
                 value = np.asarray(value, dtype=object)
-            elif copy and is_array_like(value):
+            elif copy and is_array_like_deprecate_non_pandas(value):
                 # pa array should not get updated when numpy array is updated
                 value = value.copy()
 
@@ -1244,7 +1244,7 @@ class ArrowExtensionArray(
                 raise ValueError(
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
-            if not is_array_like(other):
+            if not is_array_like_deprecate_non_pandas(other):
                 other = np.asarray(other)
             other = other[valid]
 
