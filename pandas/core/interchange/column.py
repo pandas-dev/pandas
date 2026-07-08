@@ -417,9 +417,10 @@ class PandasColumn(Column):
             valid = invalid == 0
             invalid = not valid
 
-            mask = np.zeros(shape=(len(buf),), dtype=np.bool_)
-            for i, obj in enumerate(buf):
-                mask[i] = valid if isinstance(obj, str) else invalid
+            is_str = [isinstance(obj, str) for obj in buf]
+            mask = np.array(is_str, dtype=np.bool_)
+            if not valid:
+                mask = ~mask
 
             # Convert the mask array to a Pandas "buffer" using
             # a NumPy array as the backing store
@@ -446,18 +447,13 @@ class PandasColumn(Column):
         offsets buffer.
         """
         if self.dtype[0] == DtypeKind.STRING:
-            # For each string, we need to manually determine the next offset
             values = self._col.to_numpy()
-            ptr = 0
+            lengths = [
+                len(v.encode(encoding="utf-8")) if isinstance(v, str) else 0
+                for v in values
+            ]
             offsets = np.zeros(shape=(len(values) + 1,), dtype=np.int64)
-            for i, v in enumerate(values):
-                # For missing values (in this case, `np.nan` values)
-                # we don't increment the pointer
-                if isinstance(v, str):
-                    b = v.encode(encoding="utf-8")
-                    ptr += len(b)
-
-                offsets[i + 1] = ptr
+            offsets[1:] = np.cumsum(lengths)
 
             # Convert the offsets to a Pandas "buffer" using
             # the NumPy array as the backing store
