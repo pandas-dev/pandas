@@ -44,7 +44,7 @@ def find_stack_level() -> int:
     (tests notwithstanding).
     """
     global _pkg_dir, _test_dir
-    if _pkg_dir is None:
+    if _pkg_dir is None or _test_dir is None:
         import pandas as pd
 
         _pkg_dir = os.path.dirname(pd.__file__)
@@ -52,6 +52,8 @@ def find_stack_level() -> int:
 
     pkg_dir = _pkg_dir
     test_dir = _test_dir
+    assert pkg_dir is not None
+    assert test_dir is not None
 
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
     frame: FrameType | None = inspect.currentframe()
