@@ -227,7 +227,7 @@ def _isna_array(values: ArrayLike) -> npt.NDArray[np.bool_] | NDFrame:
 
     Parameters
     ----------
-    values: ndarray or ExtensionArray
+    values : ndarray or ExtensionArray
         The input array whose elements are to be checked.
 
     Returns
