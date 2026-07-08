@@ -167,6 +167,7 @@ class TestDataFrameGroupByPlots:
             g.hist(legend=True, label="d")
 
     def test_plot_kwargs_scatter_legend_labels(self):
+        # GH#66027
         df = DataFrame(
             {
                 "x": [1, 2, 3, 4, 5],
@@ -183,3 +184,22 @@ class TestDataFrameGroupByPlots:
 
         _check_legend_labels(res["a"], ["a"])
         _check_legend_labels(res["b"], ["b"])
+
+    def test_plot_kwargs_scatter_no_legend(self):
+        # GH#66027
+        df = DataFrame(
+            {
+                "x": [1, 2, 3, 4, 5],
+                "y": [1, 2, 3, 2, 1],
+                "z": list("ababa"),
+            }
+        )
+
+        res = df.groupby("z").plot.scatter(
+            x="x",
+            y="y",
+            legend=False,
+        )
+
+        assert res["a"].get_legend() is None
+        assert res["b"].get_legend() is None
