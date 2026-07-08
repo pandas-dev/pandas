@@ -62,6 +62,7 @@ def test_consistency():
 
 
 @pytest.mark.skipif(WASM, reason="Can't start subprocesses in WASM")
+@pytest.mark.single_cpu
 def test_interval_array_hash_stable_across_processes():
     # GH#64605 IntervalArray hashing must not depend on the per-process-salted
     # builtin hash() of the "closed" string, otherwise hashes differ across
