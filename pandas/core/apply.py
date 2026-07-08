@@ -15,6 +15,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
@@ -1208,10 +1209,7 @@ class FrameApply(NDFrameApply):
                 ]
                 first_res = res_list[0]
                 dtype = np.asanyarray(first_res).dtype
-                res_list = [
-                    x.item() if isinstance(x, np.ndarray) and x.ndim == 0 else x
-                    for x in res_list
-                ]
+                res_list = [lib.item_from_zerodim(x) for x in res_list]
                 result = np.array(res_list, dtype=dtype)
                 if result.ndim == 2:
                     result = result.T
@@ -1225,10 +1223,7 @@ class FrameApply(NDFrameApply):
                 ]
                 first_res = res_list[0]
                 dtype = np.asanyarray(first_res).dtype
-                res_list = [
-                    x.item() if isinstance(x, np.ndarray) and x.ndim == 0 else x
-                    for x in res_list
-                ]
+                res_list = [lib.item_from_zerodim(x) for x in res_list]
                 result = np.array(res_list, dtype=dtype)
 
         # TODO: mixed type case
