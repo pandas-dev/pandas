@@ -391,8 +391,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       column positions and names in non-first chunks.
     * The separator is a single character or ``r"\\s+"`` - anything else forces
       the python engine inside ``TextFileReader``.
-    * The encoding is UTF-8-compatible - chunk workers feed raw file bytes to
-      the C tokenizer, which decodes words as UTF-8.
+    * The encoding is ``utf-8`` / ``utf-8-sig`` - chunk workers feed raw file
+      bytes to the C tokenizer, which decodes words as UTF-8.  ``ascii`` is
+      excluded so a non-ASCII byte still raises rather than being masked.
     * ``comment`` is ``None`` and the preamble has no blank lines - full-line
       comments and blank lines shift where pandas locates the header relative
       to the physical line count used by :func:`_find_data_start_offset`.
@@ -459,14 +460,17 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # Chunk workers feed raw file bytes to the C tokenizer, which decodes
     # words as UTF-8.  The serial path instead transcodes through a
     # TextIOWrapper, so anything that is not already valid UTF-8 (latin-1,
-    # cp1252, UTF-16/32, ...) must take the serial path.
+    # cp1252, UTF-16/32, ...) must take the serial path.  "ascii" is excluded
+    # for the same reason: the workers would decode a non-ASCII byte as UTF-8
+    # and succeed, masking the UnicodeDecodeError the serial path raises for
+    # bytes outside the declared encoding (GH#64347).
     encoding = kwds.get("encoding")
     if encoding is not None:
         try:
             codec_name = codecs.lookup(encoding).name
         except LookupError:
             return False
-        if codec_name not in ("utf-8", "ascii", "utf-8-sig"):
+        if codec_name not in ("utf-8", "utf-8-sig"):
             return False
 
     # Separators that force the python-engine fallback inside TextFileReader
@@ -696,6 +700,35 @@ def _read_csv_parallel(
     name_reader.close()
     if n_first_rows != 1:
         return None
+
+    # A dict ``dtype`` is applied per raw header name: when a name is repeated,
+    # the serial path assigns that dtype to every de-duplicated column (``a``
+    # and ``a.1``), but the workers receive the already-de-duplicated
+    # ``col_names`` and would match only ``a``.  ``col_names`` no longer shows
+    # the duplication, so recover the raw header names (parse the header line
+    # as data) and fall back to serial when they collide.  GH#64347
+    if header is not None and isinstance(kwds.get("dtype"), dict):
+        header_line = preamble.splitlines(keepends=True)[-1]
+        raw_reader = TextFileReader(
+            io.BytesIO(header_line),
+            **{
+                **base_kwds,
+                "header": None,
+                "names": None,
+                "usecols": None,
+                "index_col": False,
+                "dtype": str,
+                "converters": None,
+                "skiprows": None,
+                "na_filter": False,
+            },
+        )
+        try:
+            raw_names = list(raw_reader.read().iloc[0])
+        finally:
+            raw_reader.close()
+        if len(set(raw_names)) != len(raw_names):
+            return None
 
     # ------------------------------------------------------------------
     # Dispatch all chunks in parallel.  Each worker gets a zero-copy

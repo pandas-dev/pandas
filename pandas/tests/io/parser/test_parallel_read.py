@@ -182,10 +182,12 @@ class TestCanParallelizeCsv:
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert not _can_parallelize_csv(path, self._kwds(encoding=encoding))
 
-    @pytest.mark.parametrize("encoding", ["latin-1", "cp1252", "shift_jis"])
+    @pytest.mark.parametrize("encoding", ["latin-1", "cp1252", "shift_jis", "ascii"])
     def test_rejects_non_utf8_encoding(self, tmp_path, monkeypatch, encoding):
         # Chunk workers feed raw file bytes to the C tokenizer, which decodes
-        # words as UTF-8; only UTF-8-compatible encodings are byte-safe (GH#64347).
+        # words as UTF-8; only UTF-8-compatible encodings are byte-safe.  "ascii"
+        # is excluded too: the workers would decode a non-ASCII byte as UTF-8 and
+        # succeed, masking the UnicodeDecodeError serial raises (GH#64347).
         import pandas.io.parsers.readers as _readers
 
         path = tmp_path / "data.csv"
@@ -194,6 +196,7 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, self._kwds(encoding=encoding))
         assert _can_parallelize_csv(path, self._kwds(encoding="utf-8"))
         assert _can_parallelize_csv(path, self._kwds(encoding="UTF8"))
+        assert _can_parallelize_csv(path, self._kwds(encoding="utf-8-sig"))
 
     def test_rejects_python_engine_seps(self, tmp_path, monkeypatch):
         # Multi-char/regex seps (other than r"\s+") and sep=None force the
@@ -586,6 +589,21 @@ class TestReadCsvParallel:
         expected = self._serial_read(path, dtype={"a": "float64", "b": "float64"})
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
+    def test_dict_dtype_duplicate_names_falls_back(self, tmp_path):
+        # A dict dtype keyed on a duplicated header name must return None so the
+        # caller re-reads serially; the same dtype on unique names must still
+        # parallelize (GH#64347).
+        path = tmp_path / "data.csv"
+        body = "".join(f"{i},{i + 1}\n" for i in range(5_000))
+
+        path.write_text("a,a\n" + body, encoding="utf-8")
+        kwds = self._base_kwds(path, dtype={"a": str})
+        assert _read_csv_parallel(str(path), kwds, 4) is None
+
+        path.write_text("a,b\n" + body, encoding="utf-8")
+        kwds = self._base_kwds(path, dtype={"a": str})
+        assert _read_csv_parallel(str(path), kwds, 4) is not None
+
 
 # ---------------------------------------------------------------------------
 # Embedded newlines in quoted fields
@@ -774,6 +792,43 @@ def test_parallel_latin1_matches_serial(tmp_path, monkeypatch):
     expected = read_csv(io.BytesIO(raw), encoding="latin-1")
     tm.assert_frame_equal(result, expected)
     assert result.loc[0, "col1"] == "se\xf1or0"
+
+
+def test_parallel_ascii_non_ascii_byte_matches_serial(tmp_path, monkeypatch):
+    # encoding="ascii" with a non-ASCII (but valid UTF-8) byte deep in the
+    # file: the serial path raises UnicodeDecodeError, but the workers decode
+    # chunk bytes as UTF-8 and would silently succeed, so ascii must take the
+    # serial path (GH#64347).
+    raw = (
+        b"a,b\n"
+        + b"".join(f"{i},x{i}\n".encode() for i in range(500))
+        + b"500,\xc3\xa9\n"  # U+00E9 (é): valid UTF-8, not ASCII
+        + b"".join(f"{i},x{i}\n".encode() for i in range(501, 1000))
+    )
+    path = tmp_path / "ascii.csv"
+    path.write_bytes(raw)
+
+    msg = "'ascii' codec can't decode"
+    with pytest.raises(UnicodeDecodeError, match=msg):
+        _read_forced_parallel(path, monkeypatch, encoding="ascii")
+    with pytest.raises(UnicodeDecodeError, match=msg):
+        read_csv(io.BytesIO(raw), encoding="ascii")
+
+
+def test_parallel_dup_names_dict_dtype_matches_serial(tmp_path, monkeypatch):
+    # A dict dtype keyed on a duplicated header name is applied by serial to
+    # every de-duplicated column ("a" and "a.1"), but the workers receive the
+    # already de-duplicated names and would match only "a".  The parallel path
+    # must recover the raw header names and hand back to serial (GH#64347).
+    raw = b"a,a\n" + b"".join(f"{i},{i + 1}\n".encode() for i in range(500))
+    path = tmp_path / "dup.csv"
+    path.write_bytes(raw)
+
+    result = _read_forced_parallel(path, monkeypatch, dtype={"a": str})
+    expected = read_csv(io.BytesIO(raw), dtype={"a": str})
+    tm.assert_frame_equal(result, expected)
+    # the dtype reaches BOTH duplicated columns, not just the first
+    assert result.dtypes["a"] == result.dtypes["a.1"]
 
 
 def test_parallel_comment_before_header_matches_serial(tmp_path, monkeypatch):
