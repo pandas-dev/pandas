@@ -486,6 +486,19 @@ def test_to_timedelta_np_str():
     tm.assert_index_equal(result, expected)
 
 
+def test_to_timedelta_scalar_np_str():
+    # GH#48974 scalar np.str_ should also not break timedelta parsing
+    scalar = np.array(["1 day"])[0]
+    assert isinstance(scalar, np.str_)
+
+    expected = pd.Timedelta("1 day")
+    assert to_timedelta(scalar) == expected
+    assert pd.Timedelta(scalar) == expected
+
+    # ISO format
+    assert pd.Timedelta(np.str_("P1DT1H")) == pd.Timedelta("1 days 01:00:00")
+
+
 @pytest.mark.parametrize("dtype", [np.int16, np.int32, np.uint32, np.int64])
 def test_to_timedelta_subint64_with_unit(dtype):
     # GH#56996 NumPy 2 / NEP 50 made `np.int32(x) - py_int` return np.int32,
