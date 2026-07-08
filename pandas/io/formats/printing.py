@@ -123,7 +123,7 @@ def _pprint_seq(
     if isinstance(seq, set):
         fmt = "{{{body}}}"
     elif isinstance(seq, frozenset):
-        fmt = "frozenset({{{body}}})"
+        fmt = "frozenset()" if not seq else "frozenset({{{body}}})"
     else:
         fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
