@@ -177,7 +177,7 @@ class GroupByPlot(PandasObject):
             def f(self, key):
                 local_kwargs = kwargs.copy()
 
-                if name == "scatter":
+                if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
 
                 return getattr(self.plot, name)(*args, **local_kwargs)
