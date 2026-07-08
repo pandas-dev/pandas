@@ -1502,7 +1502,7 @@ ctypedef fused out_t:
 @cython.wraparound(False)
 def diff_2d(
     const diff_t[:, :] arr,
-    ndarray[out_t, ndim=2] out,
+    out_t[:, :] out,
     Py_ssize_t periods,
     int axis,
     bint datetimelike=False,
@@ -1511,6 +1511,15 @@ def diff_2d(
         Py_ssize_t i, j, sx, sy, start, stop
         bint f_contig = arr.is_f_contig()
         diff_t left, right
+        # Raw pointer variables for auto-vectorization of inner loops.
+        # Memoryview indexing generates strided pointer arithmetic that
+        # prevents the C compiler from auto-vectorizing even when the
+        # data is contiguous. Using raw typed pointers gives the compiler
+        # unit-stride access patterns it can vectorize.
+        const diff_t *arr_row
+        const diff_t *arr_prev_row
+        out_t *out_row
+        bint rows_contiguous
 
     # Disable for unsupported dtype combinations,
     #  see https://github.com/cython/cython/issues/2646
@@ -1527,6 +1536,13 @@ def diff_2d(
         # We put this inside an indented else block to avoid cython build
         #  warnings about unreachable code
         sx, sy = (<object>arr).shape
+
+        # Check whether both arrays have unit stride along axis 1 (columns),
+        # i.e. rows are contiguous. When true, inner loops over j can use
+        # raw C pointers enabling SIMD auto-vectorization.
+        rows_contiguous = (arr.strides[1] == <Py_ssize_t>sizeof(diff_t) and
+                           out.strides[1] == <Py_ssize_t>sizeof(out_t))
+
         with nogil:
             if f_contig:
                 if axis == 0:
@@ -1567,33 +1583,64 @@ def diff_2d(
                         start, stop = periods, sx
                     else:
                         start, stop = 0, sx + periods
-                    for i in range(start, stop):
-                        for j in range(sy):
-                            left = arr[i, j]
-                            right = arr[i - periods, j]
-                            if out_t is int64_t and datetimelike:
-                                if left == NPY_NAT or right == NPY_NAT:
-                                    out[i, j] = NPY_NAT
+                    if rows_contiguous:
+                        for i in range(start, stop):
+                            arr_row = &arr[i, 0]
+                            arr_prev_row = &arr[i - periods, 0]
+                            out_row = &out[i, 0]
+                            for j in range(sy):
+                                if out_t is int64_t and datetimelike:
+                                    left = arr_row[j]
+                                    right = arr_prev_row[j]
+                                    if left == NPY_NAT or right == NPY_NAT:
+                                        out_row[j] = NPY_NAT
+                                    else:
+                                        out_row[j] = left - right
+                                else:
+                                    out_row[j] = arr_row[j] - arr_prev_row[j]
+                    else:
+                        for i in range(start, stop):
+                            for j in range(sy):
+                                left = arr[i, j]
+                                right = arr[i - periods, j]
+                                if out_t is int64_t and datetimelike:
+                                    if left == NPY_NAT or right == NPY_NAT:
+                                        out[i, j] = NPY_NAT
+                                    else:
+                                        out[i, j] = left - right
                                 else:
                                     out[i, j] = left - right
-                            else:
-                                out[i, j] = left - right
                 else:
                     if periods >= 0:
                         start, stop = periods, sy
                     else:
                         start, stop = 0, sy + periods
-                    for i in range(sx):
-                        for j in range(start, stop):
-                            left = arr[i, j]
-                            right = arr[i, j - periods]
-                            if out_t is int64_t and datetimelike:
-                                if left == NPY_NAT or right == NPY_NAT:
-                                    out[i, j] = NPY_NAT
+                    if rows_contiguous:
+                        for i in range(sx):
+                            arr_row = &arr[i, 0]
+                            out_row = &out[i, 0]
+                            for j in range(start, stop):
+                                if out_t is int64_t and datetimelike:
+                                    left = arr_row[j]
+                                    right = arr_row[j - periods]
+                                    if left == NPY_NAT or right == NPY_NAT:
+                                        out_row[j] = NPY_NAT
+                                    else:
+                                        out_row[j] = left - right
+                                else:
+                                    out_row[j] = arr_row[j] - arr_row[j - periods]
+                    else:
+                        for i in range(sx):
+                            for j in range(start, stop):
+                                left = arr[i, j]
+                                right = arr[i, j - periods]
+                                if out_t is int64_t and datetimelike:
+                                    if left == NPY_NAT or right == NPY_NAT:
+                                        out[i, j] = NPY_NAT
+                                    else:
+                                        out[i, j] = left - right
                                 else:
                                     out[i, j] = left - right
-                            else:
-                                out[i, j] = left - right
 
 
 # ----------------------------------------------------------------------
