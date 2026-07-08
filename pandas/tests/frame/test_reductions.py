@@ -2567,6 +2567,48 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", "UInt32", "boolean", "int64[pyarrow]"]
+)
+def test_idxmax_idxmin_axis_1_ea_matches_numpy(how, skipna, dtype):
+    # GH#56903 the EA-backed axis=1 path must agree with the numpy-backed path,
+    # including skipna=False when there are no NA values (previously the cython
+    # kernel returned the all-NA sentinel for every row).
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False, True], [False, False, True], [True, True, False]]
+        np_dtype = bool
+    else:
+        values = [[1, 4, 0], [5, 2, 9], [2, 8, 1], [3, 3, 7]]
+        np_dtype = "float64"
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"]).astype(np_dtype)
+
+    result = getattr(df_ea, how)(axis=1, skipna=skipna)
+    expected = getattr(df_np, how)(axis=1, skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean", "int64[pyarrow]"])
+def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
+    # GH#56903 a fully-NA row must raise (matching the numpy-backed path) rather
+    # than leak the -1 cython sentinel as a column label.
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False], [pd.NA, pd.NA], [False, True]]
+    else:
+        values = [[1, 4], [pd.NA, pd.NA], [3, 9]]
+    df = DataFrame(values, columns=["a", "b"]).astype(dtype)
+    with pytest.raises(ValueError, match="[Ee]ncountered an?.*NA value"):
+        getattr(df, how)(axis=1, skipna=skipna)
+
+
 def test_mean_nullable_int_axis_1():
     # GH##36585
     df = DataFrame(
