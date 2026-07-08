@@ -76,7 +76,7 @@ class TestConversion:
         # assert that we are creating a copy of the index
 
         ser = index.to_series()
-        assert ser.values is not index.values
+        assert ser._values is not index._values
         assert ser.index is not index
         assert ser.name == index.name
 
@@ -86,14 +86,14 @@ class TestConversion:
         # index kwarg
         ser = index.to_series(index=index)
 
-        assert ser.values is not index.values
+        assert ser._values is not index._values
         assert ser.index is index
         assert ser.name == index.name
 
         # name kwarg
         ser = index.to_series(name="__test")
 
-        assert ser.values is not index.values
+        assert ser._values is not index._values
         assert ser.index is not index
         assert ser.name != index.name
 
