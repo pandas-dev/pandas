@@ -637,7 +637,7 @@ def test_resample_reresample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
-    assert len(result) == 25
+    assert len(result) == 22
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
 
@@ -2093,16 +2093,14 @@ def test_resample_c_b_closed_right(freq: str, unit):
             datetime(2020, 1, 30),
             datetime(2020, 1, 31),
             datetime(2020, 2, 3),
-            datetime(2020, 2, 4),
         ],
         freq=freq,
     ).as_unit(unit)
     expected = DataFrame(
         {
             "ts": [
-                datetime(2020, 1, 31),
-                datetime(2020, 2, 3),
-                datetime(2020, 2, 4),
+                datetime(2020, 1, 31, 23, 59),
+                datetime(2020, 2, 3, 23, 59),
                 datetime(2020, 2, 4, 3, 59),
             ]
         },
@@ -2122,12 +2120,11 @@ def test_resample_b_55282(unit):
             datetime(2023, 9, 26),
             datetime(2023, 9, 27),
             datetime(2023, 9, 28),
-            datetime(2023, 9, 29),
         ],
         freq="B",
     ).as_unit(unit)
     expected = Series(
-        [1.0, 2.5, 4.5, 6.0],
+        [1.5, 3.5, 5.5],
         index=exp_dti,
     )
     tm.assert_series_equal(result, expected)
@@ -2244,4 +2241,25 @@ def test_groupby_multiday_grouper_closed_right_intraday():
             ["2019-12-29", "2019-12-31", "2020-01-02", "2020-01-04"], freq="2D"
         ),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_custom_business_day(unit):
+    # GH 55281/55282: CustomBusinessDay closed="right" binning edge alignment
+    from pandas.tseries.offsets import CustomBusinessDay
+
+    cbd = CustomBusinessDay(holidays=["2022-11-24"])
+    df = DataFrame(
+        {"x": [1, 2, 3, 4, 5]},
+        index=DatetimeIndex(
+            ["2022-11-22", "2022-11-23", "2022-11-25", "2022-11-28", "2022-11-29"]
+        ).as_unit(unit),
+    )
+    result = df.resample(cbd, closed="right", label="right").last()
+
+    exp_idx = DatetimeIndex(
+        ["2022-11-22", "2022-11-23", "2022-11-25", "2022-11-28", "2022-11-29"],
+        freq=cbd,
+    ).as_unit(unit)
+    expected = DataFrame({"x": [1, 2, 3, 4, 5]}, index=exp_idx)
     tm.assert_frame_equal(result, expected)

@@ -2697,15 +2697,8 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
-            "BQE",
-            "BYE",
-            "QE",
-            "YE",
-            "W",
-        ):
+        code = self.freq.rule_code.split("-")[0]
+        if code.endswith("E") or code in ("W", "B", "C"):
             # If the right end-point is on the last day of the month, roll forwards
             # until the last moment of that day. Note that we only do this for offsets
             # which correspond to the end of a super-daily period - "month start", for
