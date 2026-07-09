@@ -480,6 +480,23 @@ class TestDateRanges:
         with pytest.raises(ValueError, match=msg):
             date_range("1/1/2000", "1/1/2001", freq=MonthEnd(0))
 
+    @pytest.mark.parametrize(
+        "freq, periods, expected",
+        [
+            ("W-SUN", 3, ["2019-12-29", "2020-01-05", "2020-01-12"]),
+            ("W-MON", 3, ["2019-12-30", "2020-01-06", "2020-01-13"]),
+            ("ME", 2, ["2019-11-30", "2019-12-31"]),
+            ("MS", 2, ["2019-12-01", "2020-01-01"]),
+            ("QS", 2, ["2019-10-01", "2020-01-01"]),
+        ],
+    )
+    def test_date_range_end_off_offset_periods(self, freq, periods, expected):
+        # GH#64834 with end not on the offset, deriving start from
+        # (end, periods) dropped a period for anchored offsets
+        result = date_range(end="2020-01-15", periods=periods, freq=freq)
+        expected = DatetimeIndex(expected, freq=freq)
+        tm.assert_index_equal(result, expected)
+
     def test_range_bug(self, unit):
         # GH #770
         offset = DateOffset(months=3)
