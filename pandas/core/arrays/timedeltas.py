@@ -441,9 +441,11 @@ class TimedeltaArray(dtl.TimelikeOps):
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
 
-    def _mul_float_overflowsafe(self, other) -> Self:
-        # GH#43178: detect float multiplication that would saturate on the int64
-        #  cast, instead of silently clipping to int64.max
+    def _mul_float_overflowsafe(
+        self, other: float | np.floating | npt.NDArray[np.floating]
+    ) -> Self:
+        # GH#43178: detect float products that would silently saturate to
+        #  int64.max on the int64 cast below
         i8 = self.asi8
         self_mask = i8 == iNaT
         if self_mask.any():
@@ -452,11 +454,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         f_result = i8 * other
         nan_mask = np.isnan(f_result)
         non_nan = f_result[~nan_mask]
-        # Compare against 2**63 rather than i8max: i8max (2**63 - 1) is not
-        #  exactly representable in float64 and rounds up to 2**63, so a product
-        #  that lands exactly on 2**63 (e.g. (2**62) * 2.0) would otherwise slip
-        #  past the check and silently saturate on the i8 cast below. Also
-        #  catches +/-inf products.
+        # Compare against 2**63, not i8max: i8max (2**63 - 1) rounds up to
+        #  2**63 in float64, so a product landing exactly on 2**63 would slip
+        #  past a ``> i8max`` check and saturate on the cast. Also catches +/-inf.
         if non_nan.size and np.max(np.abs(non_nan), initial=0.0) >= 2.0**63:
             raise OverflowError("Overflow in timedelta multiplication")
         # NaN-to-int cast is platform-dependent; substitute 0 then re-mask as NaT
@@ -478,13 +478,11 @@ class TimedeltaArray(dtl.TimelikeOps):
                     "integers instead"
                 )
             if lib.is_integer(other):
-                # GH#43178: detect int64 overflow rather than silently wrapping.
-                #  A multiplier outside int64 bounds (e.g. a large np.uint64)
-                #  would wrap in the i8 cast below.
-                # TODO(numpy>=2.5): numpy raises natively for the int64-multiplier
-                #  case (numpy GH-31378); drop mul_overflowsafe and the integer
-                #  branches here once the numpy floor is >= 2.5. The float path is
-                #  not covered by that change and stays regardless.
+                # GH#43178: detect int64 overflow rather than silently wrapping
+                #  in the i8 cast below (e.g. a multiplier outside int64 bounds).
+                # TODO(numpy>=2.5): numpy raises natively here (numpy GH-31378);
+                #  drop mul_overflowsafe and these integer branches once the
+                #  numpy floor is >= 2.5. The float path isn't covered and stays.
                 if other > lib.i8max or other < -lib.i8max - 1:
                     raise OverflowError("Overflow in int64 multiplication")
                 i8_result = mul_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
@@ -530,11 +528,10 @@ class TimedeltaArray(dtl.TimelikeOps):
         if other.dtype.kind in "iu":
             # GH#43178: detect int64 overflow rather than silently wrapping.
             #  Cast to int64 first: an unsigned multiplier above int64.max wraps
-            #  to a negative value here, which we detect via its sign and raise
-            #  on rather than silently multiplying by the wrong number. We check
-            #  the sign instead of comparing ``other > i8max`` because comparing
-            #  a broadcast unsigned array against a Python int segfaults on
-            #  numpy < 2.2, and the DataFrame blockwise path passes such an array.
+            #  to negative, which we detect by sign. We check the sign rather
+            #  than ``other > i8max`` because comparing a broadcast unsigned
+            #  array to a Python int segfaults on numpy < 2.2 (hit via the
+            #  DataFrame blockwise path).
             i8_other = other.astype("i8", copy=False)
             if other.dtype.kind == "u" and (i8_other < 0).any():
                 raise OverflowError("Overflow in int64 multiplication")
