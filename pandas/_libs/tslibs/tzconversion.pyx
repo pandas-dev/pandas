@@ -96,16 +96,22 @@ cdef class Localizer:
                 #  of seconds.
                 # TODO: avoid these np.array calls
                 if creso == NPY_DATETIMEUNIT.NPY_FR_us:
-                    trans = np.array(trans) // 1_000
-                    deltas = np.array(deltas) // 1_000
+                    divisor = 1_000
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
-                    trans = np.array(trans) // 1_000_000
-                    deltas = np.array(deltas) // 1_000_000
+                    divisor = 1_000_000
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_s:
-                    trans = np.array(trans) // 1_000_000_000
-                    deltas = np.array(deltas) // 1_000_000_000
+                    divisor = 1_000_000_000
                 else:
                     raise NotImplementedError(creso)
+
+                trans = np.array(trans)
+                # trans[0] is the NPY_NAT+1 "beginning of time" sentinel; a
+                #  plain floordiv would scale it up to a real (~1677) value,
+                #  mislocalizing earlier timestamps, so preserve it exactly.
+                trans_sentinel = trans == NPY_NAT + 1
+                trans = trans // divisor
+                trans[trans_sentinel] = NPY_NAT + 1
+                deltas = np.array(deltas) // divisor
 
             self.trans = trans
             self.ntrans = self.trans.shape[0]
