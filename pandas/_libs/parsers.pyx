@@ -255,6 +255,8 @@ cdef extern from "pandas/parser/tokenizer.h":
                                     char sci, char tsep, int skip_trailing,
                                     int *error, int *maybe_int,
                                     const char *end) nogil
+    int pd_fast_double(const char *start, const char *end, char decimal,
+                       double *out) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
@@ -1971,6 +1973,12 @@ cdef int _try_double_nogil(parser_t *parser,
         int64_t token_idx = 0
         char *p_end
         khiter_t k64
+        # pd_fast_double covers the default converter with default settings;
+        # tokens it rejects (spaces, inf/nan spellings, junk) take the
+        # generic converter below for the legacy semantics.
+        bint fastpath = (double_converter == precise_xstrtod_wrapper
+                         and parser.thousands == b"\0"
+                         and (parser.sci == b"e" or parser.sci == b"E"))
 
     na_count[0] = 0
     coliter_setup(&it, parser, col, line_start)
@@ -1985,6 +1993,36 @@ cdef int _try_double_nogil(parser_t *parser,
                 data[0] = NA
             else:
                 word_end = word + _token_len(parser, token_idx)
+                if (not fastpath or
+                        pd_fast_double(word, word_end,
+                                       parser.decimal, data) != 0):
+                    data[0] = double_converter(word, &p_end, parser.decimal,
+                                               parser.sci, parser.thousands,
+                                               1, &error, NULL, word_end)
+                    if error != 0 or p_end == word or p_end[0]:
+                        error = 0
+                        if (strcasecmp(word, cinf) == 0 or
+                                strcasecmp(word, cposinf) == 0 or
+                                strcasecmp(word, cinfty) == 0 or
+                                strcasecmp(word, cposinfty) == 0):
+                            data[0] = INF
+                        elif (strcasecmp(word, cneginf) == 0 or
+                                strcasecmp(word, cneginfty) == 0):
+                            data[0] = NEGINF
+                        else:
+                            return 1
+                if use_na_flist:
+                    k64 = kh_get_float64(na_fhashset, data[0])
+                    if k64 != na_fhashset.n_buckets:
+                        na_count[0] += 1
+                        data[0] = NA
+            data += 1
+    else:
+        for _ in range(lines):
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            word_end = word + _token_len(parser, token_idx)
+            if (not fastpath or
+                    pd_fast_double(word, word_end, parser.decimal, data) != 0):
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL, word_end)
@@ -2000,31 +2038,6 @@ cdef int _try_double_nogil(parser_t *parser,
                         data[0] = NEGINF
                     else:
                         return 1
-                if use_na_flist:
-                    k64 = kh_get_float64(na_fhashset, data[0])
-                    if k64 != na_fhashset.n_buckets:
-                        na_count[0] += 1
-                        data[0] = NA
-            data += 1
-    else:
-        for _ in range(lines):
-            COLITER_NEXT_WITH_IDX(it, word, token_idx)
-            word_end = word + _token_len(parser, token_idx)
-            data[0] = double_converter(word, &p_end, parser.decimal,
-                                       parser.sci, parser.thousands,
-                                       1, &error, NULL, word_end)
-            if error != 0 or p_end == word or p_end[0]:
-                error = 0
-                if (strcasecmp(word, cinf) == 0 or
-                        strcasecmp(word, cposinf) == 0 or
-                        strcasecmp(word, cinfty) == 0 or
-                        strcasecmp(word, cposinfty) == 0):
-                    data[0] = INF
-                elif (strcasecmp(word, cneginf) == 0 or
-                        strcasecmp(word, cneginfty) == 0):
-                    data[0] = NEGINF
-                else:
-                    return 1
             data += 1
 
     return 0

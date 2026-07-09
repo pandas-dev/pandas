@@ -248,4 +248,9 @@ double precise_xstrtod(const char *p, char **q, char decimal, char sci,
 double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
                                 char tsep, int skip_trailing, int *error,
                                 int *maybe_int, const char *end);
+// Hot-path double parse (fast_float) for default settings; succeeds only
+// when the token parses cleanly and consumes exactly [start, end). Defined
+// in fast_float_strtod.cpp.
+int pd_fast_double(const char *start, const char *end, char decimal,
+                   double *out);
 int to_boolean(const char *item, uint8_t *val);

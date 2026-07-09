@@ -20,4 +20,31 @@ int fast_float_strtod(const char *start, const char *end, double *value,
   return -1;
 }
 
+/* Hot-path double parse for read_csv with default settings (no thousands
+ * separator, 'e'/'E' exponent). Succeeds (returns 0, writes *out) only
+ * when a numeric-looking token parses cleanly and consumes exactly
+ * [start, end); anything else — leading/trailing spaces, inf/nan
+ * spellings, junk — returns nonzero so the caller retries through the
+ * full converter with its legacy semantics.
+ */
+int pd_fast_double(const char *start, const char *end, char decimal,
+                   double *out) {
+  const char *q = start;
+  if (*q == '-' || *q == '+') {
+    q++;
+  }
+  if (!(*q >= '0' && *q <= '9') &&
+      !(*q == decimal && q[1] >= '0' && q[1] <= '9')) {
+    return -1;
+  }
+  fast_float::parse_options options{fast_float::chars_format::general, decimal};
+  auto result = fast_float::from_chars_advanced(start, end, *out, options);
+  if ((result.ec == std::errc() ||
+       result.ec == std::errc::result_out_of_range) &&
+      result.ptr == end) {
+    return 0;
+  }
+  return -1;
+}
+
 } // extern "C"
