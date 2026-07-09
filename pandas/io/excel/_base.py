@@ -297,6 +297,12 @@ def read_excel(
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
 
+        .. deprecated:: 3.1.0
+            For xlsx/xlsm files the default engine will change from
+            ``openpyxl`` to ``calamine`` in a future version. Pass ``engine``
+            explicitly, or set the ``io.excel.xlsx.reader`` /
+            ``io.excel.xlsm.reader`` option, to keep the current behavior.
+
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
@@ -1646,6 +1652,29 @@ class ExcelFile:
                 engine = config["io"]["excel"][ext]["reader"]
                 if engine == "auto":
                     engine = get_default_engine(ext, mode="reader")
+                    # GH#56542 - the calamine engine will become the default
+                    # for xlsx/xlsm. Warn while calamine is available so the
+                    # switch is actionable; an explicit engine or the
+                    # io.excel.<ext>.reader option silences this.
+                    if (
+                        ext in ("xlsx", "xlsm")
+                        and engine == "openpyxl"
+                        and import_optional_dependency(
+                            "python_calamine", errors="ignore"
+                        )
+                        is not None
+                    ):
+                        warnings.warn(
+                            f"The default read_excel engine for {ext!r} files "
+                            "will change from 'openpyxl' to 'calamine' in a "
+                            "future version. Output is unchanged for nearly all "
+                            "files; see the pandas 3.1.0 release notes for the "
+                            "rare differences. Pass engine='openpyxl' (or set "
+                            f"the 'io.excel.{ext}.reader' option) to keep the "
+                            "current engine and silence this warning.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
 
         assert engine is not None
         self.engine = engine

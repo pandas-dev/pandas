@@ -311,6 +311,9 @@ Look,a snake,🐍"""
             ),
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:The default read_excel engine:pandas.errors.Pandas4Warning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
