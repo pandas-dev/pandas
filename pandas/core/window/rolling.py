@@ -356,11 +356,6 @@ class BaseWindow(SelectionMixin):
         except (ValueError, TypeError) as err:
             raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
-        # Convert inf to nan for C funcs
-        inf = np.isinf(values)
-        if inf.any():
-            values = np.where(inf, np.nan, values)
-
         return values
 
     def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:

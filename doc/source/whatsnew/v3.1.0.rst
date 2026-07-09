@@ -470,6 +470,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`65140`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
 - Bug in :meth:`DataFrame.resample` dropping the result index name when resampling ``on`` a column with a pyarrow-backed datetime or duration dtype (:issue:`59823`)
+- Bug in :meth:`DataFrame.rolling` dropping ``inf`` values when ``window`` is a :class:`Timedelta` (:issue:`57549`)
 - Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` where same-frequency resampling with monthly, quarterly, or annual frequencies bypassed aggregation, returning the original values instead of the aggregation result (:issue:`18553`)
 
 Reshaping
