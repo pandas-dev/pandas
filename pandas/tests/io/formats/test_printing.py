@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 import string
 
+import numpy as np
 import pytest
 
 import pandas._config.config as cf
@@ -91,6 +92,21 @@ class TestPPrintThing:
     def test_repr_seq_float_precision(self):
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
+
+    def test_repr_0d_array(self):
+        # GH#64638 0-d arrays are not iterable and must fall through to str()
+        assert printing.pprint_thing(np.array(5)) == "5"
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+def test_repr_object_dtype_0d_array(box):
+    # GH#64638 repr of a container holding a 0-d ndarray should not raise, and
+    # the array should be unwrapped to its scalar value ("5") rather than shown
+    # via its own ndarray repr ("array(5)")
+    obj = box(pd.array([np.array(5)], dtype=object))
+    result = repr(obj)
+    assert "5" in result
+    assert "array(5)" not in result
 
 
 class TestFormatBase:

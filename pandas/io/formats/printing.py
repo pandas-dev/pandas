@@ -253,6 +253,8 @@ def pprint_thing(
                 ABCNDFrame,
             ),
         )
+        # GH#64638 0-d arrays are not iterable; fall through to str()
+        and not (isinstance(thing, np.ndarray) and thing.ndim == 0)
         and _nest_lvl < config["display"]["pprint_nest_depth"]
     ):
         result = _pprint_seq(
