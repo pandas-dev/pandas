@@ -284,6 +284,9 @@ static npy_int64 get_long_attr(PyObject *o, const char *attr) {
 
   // ensure we are in nanoseconds, similar to Timestamp._as_creso or _as_unit
   PyObject *reso = PyObject_GetAttrString(o, "_creso");
+  if (reso == NULL) {
+    return -1;
+  }
   if (!PyLong_Check(reso)) {
     // https://github.com/pandas-dev/pandas/pull/49034#discussion_r1023165139
     Py_DECREF(reso);
