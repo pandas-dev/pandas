@@ -354,6 +354,20 @@ class TestTimedeltas:
         result2 = to_timedelta(arr2, unit="s")
         assert result2.unit == "ns"
 
+    @pytest.mark.parametrize("val", [np.inf, -np.inf])
+    def test_to_timedelta_object_inf(self, val):
+        # GH#63275 non-finite floats in an object array used to raise a bare
+        #  OverflowError from int(item); coerce should give NaT and the
+        #  default should raise OutOfBoundsTimedelta.
+        arr = np.array([1.0, val, 3.0], dtype=object)
+
+        result = to_timedelta(arr, errors="coerce")
+        expected = TimedeltaIndex([1, "NaT", 3])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
+            to_timedelta(arr)
+
     def test_to_timedelta_unit_mixed_round_and_non_round_floats(self):
         # GH#65150 - round floats mixed with non-round floats should
         # respect the unit for all values
