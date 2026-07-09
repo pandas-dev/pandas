@@ -794,6 +794,28 @@ class TestiLocBaseIndependent:
             else:
                 df.iloc[:, [0, 2]] = value
 
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    @pytest.mark.parametrize("nrows", [2, 3])
+    def test_setitem_split_path_list_of_arrays_is_2d(self, indexer, nrows):
+        # GH#64230 a list of 1-D arrays is a 2D value (a list of rows), just
+        # like a list of lists / an ndarray; the split path used to transpose
+        # it into columns instead.
+        df = DataFrame(
+            {
+                "a": np.zeros(nrows),
+                "b": np.zeros(nrows, dtype="int64"),
+                "c": np.zeros(nrows),
+            }
+        )
+        value = [np.array([2 * i + 1, 2 * i + 2]) for i in range(nrows)]
+        if indexer == "loc":
+            df.loc[:, ["a", "c"]] = value
+        else:
+            df.iloc[:, [0, 2]] = value
+
+        expected = DataFrame(np.array(value, dtype="float64"), columns=["a", "c"])
+        tm.assert_frame_equal(df[["a", "c"]], expected)
+
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
     @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
