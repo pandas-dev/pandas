@@ -294,6 +294,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # test_constructor_empty_special has a case with an iter object
             scalars = list(scalars)
 
+        if isinstance(scalars, ExtensionArray) and scalars.dtype.kind in "iu":
+            # e.g. masked or arrow-backed integer array; np.asarray would cast
+            #  integers-with-NA to float and raise a misleading "floating point"
+            #  error below, so route through object dtype to keep the integers.
+            scalars = scalars.to_numpy(dtype=object, na_value=NaT)
+
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
             if not lib.all_nans(arrdata):

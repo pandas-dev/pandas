@@ -1691,8 +1691,12 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
-        ordinal = item
+        if item == NPY_NAT:
+            ordinal = NPY_NAT
+        else:
+            # GH#64227 treat integers as calendar years, matching the
+            #  int-array path (from_calendar_ordinals) and Period(int, freq)
+            ordinal = Period(item, freq=dtype).ordinal
     else:
         try:
             ordinal = item.ordinal
