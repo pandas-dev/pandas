@@ -4580,7 +4580,9 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
+    def validate_data_columns(
+        self, data_columns, min_itemsize, non_index_axes, index_cnames=()
+    ) -> list:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4597,7 +4599,11 @@ class Table(Fixed):
                     f"data_columns {data_columns}"
                 )
             if isinstance(min_itemsize, dict):
-                mi_keys = [k for k in min_itemsize if k != "values"]
+                # GH#12154 'values' sizes every string column and the index
+                # cname(s) size the row index; both are legal here. Only
+                # per-column keys are unsupported for MultiIndex columns.
+                allowed = {"values", *index_cnames}
+                mi_keys = [k for k in min_itemsize if k not in allowed]
                 if mi_keys:
                     raise ValueError(
                         f"cannot use min_itemsize keys {mi_keys} on axis "
@@ -4759,7 +4765,7 @@ class Table(Fixed):
 
         # figure out data_columns and get out blocks
         data_columns = self.validate_data_columns(
-            data_columns, min_itemsize, new_non_index_axes
+            data_columns, min_itemsize, new_non_index_axes, (new_index.cname,)
         )
 
         if new_index.cname in data_columns:
