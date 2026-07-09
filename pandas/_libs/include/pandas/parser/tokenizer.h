@@ -181,6 +181,22 @@ void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
     (void)coliter_idx;                                                         \
   } while (0)
 
+// Emits the resolved token index via idx_out so callers needing the token
+// length can compute it as word_starts[idx+1] - word_starts[idx] - 1
+// (using parser->stream_len for the last token where idx+1 == words_len).
+// Missing fields yield word = "" and idx_out = -1; callers must treat
+// those as length 0 rather than indexing into word_starts.
+#define COLITER_NEXT_WITH_IDX(iter, word, idx_out)                             \
+  do {                                                                         \
+    idx_out = *iter.line_start++ + iter.col;                                   \
+    if (idx_out >= *iter.line_start) {                                         \
+      word = "";                                                               \
+      idx_out = -1;                                                            \
+    } else {                                                                   \
+      word = iter.words[idx_out];                                              \
+    }                                                                          \
+  } while (0)
+
 parser_t *parser_new(void);
 
 int parser_init(parser_t *self);

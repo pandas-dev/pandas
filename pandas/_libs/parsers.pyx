@@ -1535,7 +1535,6 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         int64_t token_idx = 0
-        int64_t word_len
         ndarray[object] result
 
         int ret = 0
@@ -1569,11 +1568,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            # Unlike strlen, _token_len counts past any embedded NUL, while
-            # the cache above is keyed on the NUL-terminated C string, so
-            # fields differing only after an embedded NUL share one value.
-            word_len = _token_len(parser, token_idx)
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(
+                word, _token_len(parser, token_idx), encoding_errors)
 
             table.vals[k] = <PyObject *>pyval
 
