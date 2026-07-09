@@ -481,6 +481,7 @@ def read_hdf(
         # so delegate to the iterator
         auto_close = True
 
+    read_succeeded = False
     try:
         if key is None:
             groups = store.groups()
@@ -502,7 +503,7 @@ def read_hdf(
                         "file contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
-        return store.select(
+        result = store.select(
             key,
             where=where,
             start=start,
@@ -512,13 +513,15 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, LookupError):
-        if not isinstance(path_or_buf, HDFStore):
-            # if there is an error, close the store if we opened it.
+        read_succeeded = True
+        return result
+    finally:
+        # If the read failed for any reason, close the store when we were the
+        # ones who opened it, so the caller can reopen the file (GH#28430). On
+        # success the store is left as-is: an iterator result needs it open.
+        if not read_succeeded and not isinstance(path_or_buf, HDFStore):
             with suppress(AttributeError):
                 store.close()
-
-        raise
 
 
 def _is_metadata_of(group: Node, parent_group: Node) -> bool:
