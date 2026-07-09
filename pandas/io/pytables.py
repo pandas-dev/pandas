@@ -577,7 +577,10 @@ class HDFStore:
         Specifies a compression level for data.
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-        Specifies the compression library to be used.
+        Specifies the compression library to be used. This has no effect
+        unless ``complevel`` is set to a value greater than 0; passing
+        ``complib`` alone emits a ``UserWarning`` and produces an
+        uncompressed store.
         These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
@@ -633,6 +636,18 @@ class HDFStore:
 
         if complib is None and complevel is not None:
             complib = tables.filters.default_complib
+
+        if complib is not None and complevel is None:
+            # GH#29310 complib without complevel does not compress, because
+            # complevel defaults to 0. Warn rather than silently ignoring the
+            # requested library.
+            warnings.warn(
+                f"complib={complib!r} was specified without complevel; no "
+                "compression will be applied. Pass complevel (an int in 1-9) "
+                "to enable compression.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         self._path = stringify_path(path)
         if mode is None:
