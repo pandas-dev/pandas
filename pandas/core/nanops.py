@@ -1115,9 +1115,34 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
-        values, mask = _get_values(
-            values, skipna, fill_value_typ=fill_value_typ, mask=mask
-        )
+        if dtype == object and skipna:
+            # GH#65500: _get_values' +/-inf fill isn't comparable with arbitrary
+            # objects (Timestamps, strings) and raises.  Fill NAs from the same
+            # slice instead (leaves min/max unchanged); all-NA slices keep the
+            # +/-inf fill since _maybe_null_out discards them anyway.
+            mask = _maybe_get_mask(values, skipna, mask)
+            if mask is not None and mask.any():
+                fill_value = _get_fill_value(dtype, fill_value_typ=fill_value_typ)
+                if mask.all():
+                    values = np.full(values.shape, fill_value, dtype=object)
+                elif values.ndim == 1 or axis is None:
+                    fill = np.empty(1, dtype=object)
+                    # wrap in an array so that e.g. tuple fill values
+                    # are not broadcast by np.where
+                    fill[0] = values[~mask][0]
+                    values = np.where(mask, fill, values)
+                else:
+                    indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
+                    fill = np.take_along_axis(values, indexer, axis=axis)
+                    # argmax selects an NA entry for entirely-NA slices; fill
+                    # those with +/-inf instead so the reduction does not warn
+                    all_na = np.expand_dims(mask.all(axis=axis), axis)
+                    fill = np.where(all_na, fill_value, fill)
+                    values = np.where(mask, fill, values)
+        else:
+            values, mask = _get_values(
+                values, skipna, fill_value_typ=fill_value_typ, mask=mask
+            )
         result = getattr(values, meth)(axis)
         result = _maybe_null_out(
             result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"

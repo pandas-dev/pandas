@@ -65,6 +65,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     PeriodDtype,
 )
 
@@ -1004,6 +1005,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
+        if isinstance(self.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "DatetimeIndex.values returning an ndarray that drops "
+                "timezone information is deprecated. In a future version, "
+                "this will return the underlying DatetimeArray instead. "
+                "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
+                "'DatetimeIndex.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         data = self._data._ndarray
         data = data.view()
         data.flags.writeable = False
@@ -1325,7 +1336,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             result = type(self)._simple_new(dates, name=self.name)
-            result._freq = self.freq
+            # The sort=False result is non-monotonic (self's values followed
+            #  by earlier values from other), so it cannot carry a freq.
             return result
         else:
             left, right = other, self

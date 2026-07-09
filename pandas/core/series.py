@@ -800,7 +800,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Timezone aware datetime data is converted to UTC and the timezone
         is dropped, while :attr:`Series.array` preserves the timezone:
 
-        >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
+        >>> pd.Series(
+        ...     pd.date_range("20130101", periods=3, tz="US/Eastern")
+        ... ).values  # doctest: +SKIP
         array(['2013-01-01T05:00:00.000000',
                '2013-01-02T05:00:00.000000',
                '2013-01-03T05:00:00.000000'], dtype='datetime64[us]')
@@ -809,6 +811,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
          '2013-01-03 00:00:00-05:00']
         Length: 3, dtype: datetime64[us, US/Eastern]
+
+        .. deprecated:: 3.0.0
+            For :class:`DatetimeTZDtype`, :class:`PeriodDtype`, and
+            :class:`IntervalDtype` dtypes, the behavior of ``.values`` returning
+            a lossy or object-dtype result is deprecated. In a future version,
+            ``.values`` will return the underlying ExtensionArray. Use
+            :meth:`Series.to_numpy` or :attr:`Series.array` instead.
         """
         return self._mgr.external_values()
 
@@ -824,7 +833,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         historical backwards compatibility of the public attribute (e.g. period
         returns object ndarray and datetimetz a datetime64[ns] ndarray for
         ``.values`` while it returns an ExtensionArray for ``._values`` in those
-        cases).
+        cases). This difference is deprecated and will be removed in a future
+        version.
 
         Differs from ``.array`` in that this still returns the numpy array if
         the Block is backed by a numpy array (except for datetime64 and
