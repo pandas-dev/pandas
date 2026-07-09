@@ -2636,6 +2636,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Write a DataFrame to the binary Feather format.
 
+        .. deprecated:: 3.1.0
+
+           Use :meth:`DataFrame.to_parquet` instead.
+
         The Feather format is a lightweight, language-agnostic columnar file
         format based on Apache Arrow, designed for efficient read and write
         performance. This method requires the ``pyarrow`` library.

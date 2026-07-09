@@ -231,6 +231,9 @@ class TestS3:
         )
         tm.assert_frame_equal(tips_df, result)
 
+    @pytest.mark.filterwarnings(
+        "ignore:read_feather is deprecated:pandas.errors.Pandas4Warning"
+    )
     def test_read_feather_s3_file_path(
         self, s3_bucket_public_with_data, s3so, feather_file
     ):
