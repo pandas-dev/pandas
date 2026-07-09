@@ -523,11 +523,22 @@ def array_to_timedelta64(
 
             elif isinstance(item, Day):
                 # GH#64240: support Day offsets in list-like conversion
-                ival = item.n * 86400
                 item_reso = NPY_DATETIMEUNIT.NPY_FR_s
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
+                try:
+                    # GH#64306 rescale to the array's resolution; when mixed
+                    #  with a finer-reso element the seconds value must be
+                    #  converted, not stored as-is.
+                    ival = convert_reso(
+                        item.n * 86400,
+                        NPY_DATETIMEUNIT.NPY_FR_s,
+                        creso,
+                        round_ok=True,
+                    )
+                except (OverflowError, OutOfBoundsDatetime) as err:
+                    raise OutOfBoundsTimedelta(item) from err
 
             else:
                 raise TypeError(f"Invalid type for timedelta scalar: {type(item)}")
