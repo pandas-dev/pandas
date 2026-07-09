@@ -266,6 +266,39 @@ def test_zoneinfo_utc_to_local_post_2100(tz_name):
     assert [ts.utcoffset() for ts in local] == [dt.utcoffset() for dt in expected]
 
 
+@pytest.mark.parametrize("tz_name", ["Africa/Casablanca", "Africa/El_Aaiun"])
+def test_zoneinfo_negative_dst_distant_dates(tz_name):
+    # GH#65712, GH#65733 - negative-DST zones (whose Ramadan-based rule keeps
+    # "DST" in effect for nearly the whole year) cannot have their POSIX future
+    # transitions flattened into a sorted transition list. Dates in the window
+    # between the last cached transition and 2100 must fall back to zoneinfo's
+    # Python API rather than the (unreliable) fast path.
+    tz = zoneinfo.ZoneInfo(tz_name)
+    # fmt: off
+    data = [
+        "2085-01-01", "2085-07-01",  # cached/historical range
+        "2088-01-01", "2088-07-01",  # start of the previously-broken window
+        "2099-01-01", "2099-07-01",  # end of the previously-broken window
+        "2100-01-01", "2100-07-01",  # beyond the cached range (already fell back)
+    ]
+    # fmt: on
+    utc_times = to_datetime(data, utc=True)
+
+    expected = [
+        datetime.fromisoformat(date).replace(tzinfo=timezone.utc).astimezone(tz)
+        for date in data
+    ]
+
+    # UTC -> local matches zoneinfo and is internally consistent
+    local = utc_times.tz_convert(tz)
+    tm.assert_numpy_array_equal(local.to_pydatetime(), np.array(expected))
+    assert [ts.utcoffset() for ts in local] == [dt.utcoffset() for dt in expected]
+
+    # local -> UTC round-trips back to the original UTC values
+    roundtrip = local.tz_localize(None).tz_localize(tz).tz_convert("UTC")
+    tm.assert_numpy_array_equal(roundtrip.to_pydatetime(), utc_times.to_pydatetime())
+
+
 def test_zoneinfo_utc_to_local_far_future_seconds_resolution():
     # GH#65712 - for dates beyond cached transition data, we should fall back
     # to zoneinfo's API and preserve correct DST offsets.

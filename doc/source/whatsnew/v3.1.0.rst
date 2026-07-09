@@ -291,8 +291,8 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :class:`DatetimeIndex` addition with a :class:`DateOffset` that has only timedelta components (e.g. ``DateOffset(hours=-2)``) raising ``ValueError`` near DST transitions, while scalar :class:`Timestamp` addition worked correctly (:issue:`28610`)
+- Bug in :meth:`DatetimeIndex.tz_convert` and :meth:`DatetimeIndex.tz_localize` returning incorrect offsets for dates between roughly 2088 and 2100 with negative-DST ``zoneinfo`` timezones such as ``Africa/Casablanca`` and ``Africa/El_Aaiun`` (:issue:`65712`)
 - Bug in :meth:`Timestamp.to_julian_date` and :meth:`DatetimeIndex.to_julian_date` returning the Julian date of the local wall clock for timezone-aware inputs instead of the underlying UTC instant (:issue:`54763`)
--
 
 Numeric
 ^^^^^^^
