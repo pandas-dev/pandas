@@ -559,6 +559,25 @@ class RangeIndex(Index):
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
         target_array = np.asarray(target)
+        if target_array.dtype.kind in "iu":
+            # GH#64148: computing offsets as ``target_array - start`` in int64
+            # overflows for extreme integer targets (near INT64_MIN, or uint64
+            # values above INT64_MAX) and for ranges spanning more than
+            # INT64_MAX, producing spurious matches or dropping valid ones.
+            # Establish membership with exact comparisons, then compute offsets
+            # in uint64: an in-window offset lies in [0, 2**64), so the modular
+            # result is exact.
+            valid = (target_array >= start) & (target_array < stop)
+            start_uint = np.uint64(start % 2**64)
+            step_uint = np.uint64(step)
+            locs_uint = target_array.astype(np.uint64, copy=False) - start_uint
+            valid &= locs_uint % step_uint == 0
+            locs = np.where(valid, (locs_uint // step_uint).astype(np.int64), -1)
+            if step != self.step:
+                # We reversed this range: transform to original locs
+                locs = np.where(valid, len(self) - 1 - locs, -1)
+            return ensure_platform_int(locs)
+
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
         locs[~valid] = -1

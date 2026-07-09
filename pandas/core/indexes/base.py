@@ -8188,13 +8188,31 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
         np_sequence = np.asarray(sequence, dtype=np.int64)
     except OverflowError:
         return sequence
-    diff = np_sequence[1] - np_sequence[0]
+    if (
+        isinstance(sequence, np.ndarray)
+        and sequence.dtype.kind == "u"
+        and (np_sequence < 0).any()
+    ):
+        # GH#64148: uint64 values above INT64_MAX silently wrap to negative when
+        # cast to int64; don't fabricate an incorrect range for them.
+        return sequence
+    # GH#64148: compute the step and stop with python ints so widely-separated
+    # values (e.g. INT64_MIN and INT64_MAX) don't overflow int64 and corrupt the
+    # resulting range. Only build a range when its stop and step stay within the
+    # int64 domain that RangeIndex relies on.
+    first = int(np_sequence[0])
+    diff = int(np_sequence[1]) - first
     if diff == 0:
         return sequence
-    elif len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff):
-        return range(np_sequence[0], np_sequence[-1] + diff, diff)
-    else:
-        return sequence
+    stop = int(np_sequence[-1]) + diff
+    iinfo = np.iinfo(np.int64)
+    if (
+        iinfo.min <= diff <= iinfo.max
+        and iinfo.min <= stop <= iinfo.max
+        and (len(sequence) == 2 or lib.is_sequence_range(np_sequence, diff))
+    ):
+        return range(first, stop, diff)
+    return sequence
 
 
 def ensure_index_from_sequences(
