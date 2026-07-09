@@ -2911,11 +2911,63 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
     left = DataFrame({"a": [1, 2, 3], "b": 1}, dtype=any_numeric_ea_dtype)
     right = DataFrame({"a": [1, 2, 3], "c": 2}, dtype=any_numeric_ea_dtype.lower())
     result = left.merge(right, how=join_type)
+    # GH#56454: for a right join, every output row corresponds to a real
+    # right-frame row, so the shared key column keeps the right frame's
+    # dtype (matching the symmetric right.merge(left, how="left") call);
+    # every other join type keeps the left frame's key dtype as before.
+    key_dtype = (
+        any_numeric_ea_dtype.lower() if join_type == "right" else any_numeric_ea_dtype
+    )
     expected = DataFrame(
         {
-            "a": Series([1, 2, 3], dtype=any_numeric_ea_dtype),
+            "a": Series([1, 2, 3], dtype=key_dtype),
             "b": Series([1, 1, 1], dtype=any_numeric_ea_dtype),
             "c": Series([2, 2, 2], dtype=any_numeric_ea_dtype.lower()),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_how_left_right_key_dtype_symmetry():
+    # GH#56454
+    # a.merge(b, how="left") and b.merge(a, how="right") describe the same
+    # logical join (up to column order/suffixes), so the dtype of the
+    # shared join key should not depend on which frame the merge is called
+    # on.
+    a = DataFrame({"key": Series([1, 2], dtype="int64")})
+    b = DataFrame({"key": Series([1.0, 2.0], dtype="float64")})
+
+    left_result = a.merge(b, on="key", how="left")
+    right_result = b.merge(a, on="key", how="right")
+
+    tm.assert_series_equal(left_result["key"], right_result["key"])
+    assert left_result["key"].dtype == "int64"
+
+    # and the reverse pairing should be symmetric too, taking on the
+    # other frame's dtype
+    left_result2 = b.merge(a, on="key", how="left")
+    right_result2 = a.merge(b, on="key", how="right")
+
+    tm.assert_series_equal(left_result2["key"], right_result2["key"])
+    assert left_result2["key"].dtype == "float64"
+
+
+def test_merge_how_right_key_dtype_with_unmatched_rows():
+    # GH#56454
+    # A right join keeps every right-frame row, so the shared key column
+    # should reflect the right frame's original dtype even when some rows
+    # are unmatched (not just in the fully-matched case).
+    left = DataFrame({"key": Series([1, 2, 5], dtype="int64"), "a": [10, 20, 50]})
+    right = DataFrame(
+        {"key": Series([1.0, 2.0, 9.0], dtype="float64"), "b": [100, 200, 900]}
+    )
+
+    result = left.merge(right, on="key", how="right")
+    expected = DataFrame(
+        {
+            "key": Series([1.0, 2.0, 9.0], dtype="float64"),
+            "a": Series([10.0, 20.0, np.nan], dtype="float64"),
+            "b": [100, 200, 900],
         }
     )
     tm.assert_frame_equal(result, expected)

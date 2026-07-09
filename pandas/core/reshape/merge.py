@@ -1285,8 +1285,23 @@ class _MergeOperation:
 
             take_left, take_right = None, None
 
+            # GH#56454 When every row already lines up 1:1 (both indexers
+            # are None, i.e. nothing needs reindexing/filling), a left join
+            # trivially keeps self.left's own key dtype since that's simply
+            # what's already in `result`. A right join should be symmetric
+            # and keep self.right's key dtype, but the shared join-key
+            # column is only ever physically retained from self.left
+            # upstream (see _get_merge_keys), so without this check the
+            # right frame's original dtype is silently lost even though
+            # there's no missing data requiring any real reconciliation.
+            no_reindex_needed = left_indexer is None and right_indexer is None
+
             if name in result:
-                if left_indexer is not None or right_indexer is not None:
+                if (
+                    left_indexer is not None
+                    or right_indexer is not None
+                    or (self.how == "right" and no_reindex_needed)
+                ):
                     if name in self.left:
                         if left_has_missing is None:
                             left_has_missing = (
@@ -1295,7 +1310,9 @@ class _MergeOperation:
                                 else lib.has_sentinel(left_indexer, -1)
                             )
 
-                        if left_has_missing:
+                        if left_has_missing or (
+                            self.how == "right" and no_reindex_needed
+                        ):
                             take_right = self.right_join_keys[i]
 
                             if result[name].dtype != self.left[name].dtype:
@@ -1348,6 +1365,9 @@ class _MergeOperation:
                 elif right_indexer is not None and (right_indexer == -1).all():
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     result_dtype = lvals.dtype
+                elif self.how == "right" and no_reindex_needed:
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=False)
+                    result_dtype = rvals.dtype
                 else:
                     key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     if left_indexer is not None:
