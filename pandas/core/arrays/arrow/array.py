@@ -571,14 +571,29 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             if arr.type.tz == self._pa_array.type.tz:
-                arr = arr.cast(self._pa_array.type)
+                try:
+                    arr = arr.cast(self._pa_array.type)
+                except pa.lib.ArrowInvalid:
+                    # GH#62523 a finer-resolution result can't be cast down to
+                    #  the original coarser unit without losing data; keep the
+                    #  inferred unit rather than raising
+                    pass
 
         elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
             arr = arr.cast(self._pa_array.type)
         elif pa.types.is_time(arr.type) and pa.types.is_time(self._pa_array.type):
-            arr = arr.cast(self._pa_array.type)
+            try:
+                arr = arr.cast(self._pa_array.type)
+            except pa.lib.ArrowInvalid:
+                # GH#62523 as above for the timestamp branch
+                pass
         elif pa.types.is_decimal(arr.type) and pa.types.is_decimal(self._pa_array.type):
-            arr = arr.cast(self._pa_array.type)
+            try:
+                arr = arr.cast(self._pa_array.type)
+            except pa.lib.ArrowInvalid:
+                # GH#62523 rescaling to the original decimal type would lose
+                #  data; keep the inferred precision/scale rather than raising
+                pass
         elif pa.types.is_integer(arr.type) and pa.types.is_integer(self._pa_array.type):
             try:
                 arr = arr.cast(self._pa_array.type)
