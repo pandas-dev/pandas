@@ -794,3 +794,68 @@ def test_select_dtypes_ea_class_include_exclude_overlap_raises():
     msg = "include and exclude overlap"
     with pytest.raises(ValueError, match=msg):
         df.select_dtypes(include=pd.CategoricalDtype, exclude=pd.CategoricalDtype)
+
+
+@pytest.mark.parametrize(
+    "string, np_dtype, ea_dtype, values",
+    [
+        ("Int64", "int64", "Int64", [1, 2]),
+        ("Int32", "int32", "Int32", [1, 2]),
+        ("Float64", "float64", "Float64", [1.0, 2.0]),
+        ("boolean", "bool", "boolean", [True, False]),
+    ],
+)
+def test_select_dtypes_masked_name_string_matches_only_masked(
+    string, np_dtype, ea_dtype, values
+):
+    # GH#40234: a nullable-dtype name (e.g. "Int64") selects only that extension
+    # dtype, not the numpy dtype that shares its ``dtype.type``
+    df = DataFrame(
+        {
+            "numpy": np.array(values, dtype=np_dtype),
+            "masked": pd.array(values, dtype=ea_dtype),
+        }
+    )
+    tm.assert_frame_equal(df.select_dtypes(include=string), df[["masked"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude=string), df[["numpy"]])
+
+
+@pytest.mark.parametrize(
+    "string, np_dtype, masked_dtype, values",
+    [
+        ("int64[pyarrow]", "int64", "Int64", [1, 2]),
+        ("float64[pyarrow]", "float64", "Float64", [1.0, 2.0]),
+        ("bool[pyarrow]", "bool", "boolean", [True, False]),
+    ],
+)
+def test_select_dtypes_arrow_name_string_matches_only_arrow(
+    string, np_dtype, masked_dtype, values
+):
+    # GH#59888: the string form of an Arrow dtype matches only Arrow columns of
+    # that exact dtype. Previously "int64[pyarrow]" matched nothing and
+    # "float64[pyarrow]" matched every float column via ``dtype.type``.
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "numpy": np.array(values, dtype=np_dtype),
+            "masked": pd.array(values, dtype=masked_dtype),
+            "arrow": pd.array(values, dtype=string),
+        }
+    )
+    tm.assert_frame_equal(df.select_dtypes(include=string), df[["arrow"]])
+
+
+def test_select_dtypes_arrow_timestamp_string_matches_only_arrow():
+    # GH#59888: previously "timestamp[ns][pyarrow]" matched a tz-aware numpy
+    # column (both have ``dtype.type`` Timestamp) and missed the Arrow column
+    pytest.importorskip("pyarrow")
+    dti = pd.to_datetime(["2020-01-01", "2020-01-02"]).as_unit("ns")
+    df = DataFrame(
+        {
+            "naive": dti,
+            "tz": dti.tz_localize("UTC"),
+            "arrow": pd.array(dti, dtype="timestamp[ns][pyarrow]"),
+        }
+    )
+    result = df.select_dtypes(include=["timestamp[ns][pyarrow]"])
+    tm.assert_frame_equal(result, df[["arrow"]])
