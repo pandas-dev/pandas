@@ -1881,8 +1881,71 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
+/* SWAR helpers for parsing 8 ASCII digits at a time (same technique as
+ * fast_float). Callers must guarantee 8 readable bytes at `chars`. */
+static inline uint64_t swar_read8(const char *chars) {
+  uint64_t val;
+  memcpy(&val, chars, 8);
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  val = __builtin_bswap64(val);
+#endif
+  return val;
+}
+
+static inline int swar_is_eight_digits(uint64_t val) {
+  return ((val & 0xF0F0F0F0F0F0F0F0ULL) |
+          (((val + 0x0606060606060606ULL) & 0xF0F0F0F0F0F0F0F0ULL) >> 4)) ==
+         0x3333333333333333ULL;
+}
+
+static inline uint64_t swar_parse_eight_digits(uint64_t val) {
+  val = (val & 0x0F0F0F0F0F0F0F0FULL) * 2561 >> 8;
+  val = (val & 0x00FF00FF00FF00FFULL) * 6553601 >> 16;
+  return (val & 0x0000FFFF0000FFFFULL) * 42949672960001ULL >> 32;
+}
+
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
+  // SWAR fast path for the common case: an optional sign followed by 1-18
+  // digits filling the whole [p_item, p_item+length) span. 18 digits cannot
+  // overflow int64, and a pure-digit span can contain no thousands
+  // separator, spaces or trailing junk, so full consumption means the token
+  // is exactly a clean integer. Anything else falls through to the slow path.
+  if (length >= 1) {
+    const char *p_end = p_item + length;
+    const bool neg = *p_item == '-';
+    const char *digits = p_item + (neg || *p_item == '+');
+    size_t rem = (size_t)(p_end - digits);
+    if (rem >= 1 && rem <= 18) {
+      uint64_t acc = 0;
+      bool valid = true;
+      while (rem >= 8) {
+        const uint64_t block = swar_read8(digits);
+        if (!swar_is_eight_digits(block)) {
+          valid = false;
+          break;
+        }
+        acc = acc * 100000000ULL + swar_parse_eight_digits(block);
+        digits += 8;
+        rem -= 8;
+      }
+      if (valid) {
+        for (; rem > 0; rem--, digits++) {
+          const unsigned char digit = (unsigned char)(*digits - '0');
+          if (digit > 9) {
+            valid = false;
+            break;
+          }
+          acc = acc * 10 + digit;
+        }
+      }
+      if (valid) {
+        *error = 0;
+        return neg ? -(int64_t)acc : (int64_t)acc;
+      }
+    }
+  }
+
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
