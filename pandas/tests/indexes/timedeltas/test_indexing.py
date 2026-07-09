@@ -456,6 +456,62 @@ class TestStringSliceResolution:
         result = ser.loc["1500ms":"1500ms"]
         tm.assert_series_equal(result, ser.iloc[:0])
 
+    def test_string_slice_reso_iso_seconds_not_minutes(self):
+        # GH#33603 - ISO "PT120S" has second resolution, not minute,
+        #  even though 120s = 2 minutes exactly
+        tdi = timedelta_range("115s", "200s", freq="100ms")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"PT120S"]
+        expected = ser[ser.index < Timedelta("121s")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_iso_minutes(self):
+        # GH#33603 - ISO "PT2M" has minute resolution
+        tdi = timedelta_range("110s", "200s", freq="s")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"PT2M"]
+        expected = ser[ser.index < Timedelta("3min")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_iso_hours(self):
+        # GH#33603 - ISO "P1DT12H" has hour resolution
+        ser = Series(
+            np.arange(100),
+            index=timedelta_range("1 days", periods=100, freq="h"),
+        )
+        result = ser.loc[:"P1DT12H"]
+        expected = ser[ser.index < Timedelta("1D 13h")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_iso_day_vs_zero_hours(self):
+        # GH#33603 - a bare ISO "P2D" has day resolution, but the "T0H"
+        #  marker in "P2DT0H" forces hour resolution even though both are
+        #  exactly 2 days
+        ser = Series(
+            np.arange(100),
+            index=timedelta_range("1 days", periods=100, freq="h"),
+        )
+        result = ser.loc[:"P2D"]
+        expected = ser[ser.index < Timedelta("3D")]
+        tm.assert_series_equal(result, expected)
+
+        result = ser.loc[:"P2DT0H"]
+        expected = ser[ser.index < Timedelta("2D 1h")]
+        tm.assert_series_equal(result, expected)
+
+    def test_string_slice_reso_trailing_zero_fraction(self):
+        # GH#33603 - sub-second precision comes from the value, so trailing
+        #  zeros are not significant: "0:0:1.100000" resolves to millisecond
+        #  (1.1s == 1100ms), not microsecond
+        tdi = timedelta_range("1099ms", "1102ms", freq="100us")
+        ser = Series(np.arange(len(tdi)), index=tdi)
+
+        result = ser.loc[:"0:0:1.100000"]
+        expected = ser[ser.index < Timedelta("1101ms")]
+        tm.assert_series_equal(result, expected)
+
 
 class TestContains:
     def test_contains_nonunique(self):
