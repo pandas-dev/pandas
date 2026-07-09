@@ -93,6 +93,7 @@ from pandas._libs.khash cimport (
     kh_get_float64,
     kh_get_str,
     kh_get_str_starts_item,
+    kh_get_strbox,
     kh_init_float64,
     kh_init_str,
     kh_init_str_starts,
@@ -1800,8 +1801,7 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
         if k != table.n_buckets:
             pyval = <object>table.vals[k]
         else:
-            pyval = PyUnicode_Decode(word, strlen(word), "utf-8",
-                                     encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(word, strlen(word), encoding_errors)
             k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject *>pyval
 
