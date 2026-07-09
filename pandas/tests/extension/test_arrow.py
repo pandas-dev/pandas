@@ -28,6 +28,7 @@ import operator
 import pickle
 import re
 import sys
+import unicodedata
 
 import numpy as np
 import pytest
@@ -2329,12 +2330,24 @@ def test_str_r_index(method, start, end):
         getattr(ser.str, method)("foo", start, end)
 
 
-@pytest.mark.parametrize("form", ["NFC", "NFKC"])
+@pytest.mark.parametrize("form", ["NFC", "NFD", "NFKC", "NFKD"])
 def test_str_normalize(form):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    # GH#64359 the composing forms (NFC/NFKC) must apply canonical composition,
+    #  not just decomposition: "e" + U+0301 must compose to U+00E9, and a
+    #  pre-composed character must round-trip unchanged. The compatibility
+    #  forms additionally fold e.g. the U+FB01 "fi" ligature.
+    data = ["abc", "e\u0301", "\u00e9", "\u212b", "\ufb01", None]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.string()))
     result = ser.str.normalize(form)
-    expected = ser.copy()
+    expected = pd.Series(
+        [unicodedata.normalize(form, val) if val is not None else None for val in data],
+        dtype=ArrowDtype(pa.string()),
+    )
     tm.assert_series_equal(result, expected)
+    if form in ("NFC", "NFKC"):
+        # decomposed and pre-composed inputs both yield the single U+00E9
+        assert result[1] == "\u00e9"
+        assert result[2] == "\u00e9"
 
 
 @pytest.mark.parametrize(
