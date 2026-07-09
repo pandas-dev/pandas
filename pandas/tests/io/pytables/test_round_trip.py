@@ -112,6 +112,50 @@ def test_string_column_literal_nan_and_real_nan(temp_hdfstore):
     tm.assert_frame_equal(result, df)
 
 
+def test_string_index_real_na_roundtrips_fixed(temp_h5_path):
+    # GH#9604 — a genuine missing value in a string Index round-trips in the
+    # fixed format (previously it was read back as the literal string "nan").
+    ser = Series(range(3), index=Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "s"), ser)
+
+
+def test_string_index_real_na_roundtrips_table(temp_hdfstore):
+    # GH#9604 — same, table format.
+    ser = Series(range(3), index=Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    temp_hdfstore.append("s", ser)
+    tm.assert_series_equal(temp_hdfstore.select("s"), ser)
+
+
+def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
+    # GH#9604 — a real NA and the literal string "nan" coexist in one string
+    # Index and both round-trip: the NaN sentinel is chosen to avoid colliding
+    # with any real value (here it must dodge "nan").
+    ser = Series(range(4), index=Index(["nan", np.nan, "bbb", "ccc"], dtype=str))
+
+    ser.to_hdf(temp_h5_path, key="fixed", mode="w")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "fixed"), ser)
+
+    ser.to_hdf(temp_h5_path, key="table", mode="a", format="table")
+    tm.assert_series_equal(read_hdf(temp_h5_path, "table"), ser)
+
+
+def test_string_index_all_na_roundtrips(temp_h5_path):
+    # GH#9604 — the missing values in an all-missing string Index survive the
+    # round-trip. The index dtype degrades to object because an all-NaN array
+    # cannot infer a string dtype on read; that is a pre-existing inference
+    # limitation, orthogonal to GH#9604 (before the fix the values themselves
+    # were lost, coming back as the literal string "nan").
+    ser = Series(range(2), index=Index([np.nan, np.nan], dtype=str))
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    result = read_hdf(temp_h5_path, "s")
+    tm.assert_series_equal(result, ser, check_index_type=False)
+    assert result.index.isna().all()
+
+
 def test_api(temp_h5_path):
     # GH4584
     # API issue when to_hdf doesn't accept append AND format args

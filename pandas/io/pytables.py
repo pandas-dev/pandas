@@ -2619,6 +2619,7 @@ class IndexCol:
         table=None,
         meta=None,
         metadata=None,
+        nan_rep=None,
     ) -> None:
         if not isinstance(name, str):
             raise ValueError("`name` must be a str.")
@@ -2637,6 +2638,9 @@ class IndexCol:
         self.table = table
         self.meta = meta
         self.metadata = metadata
+        # GH#9604: for a string Index, the sentinel used on write to encode
+        # missing values (None when the index had no missing values).
+        self.nan_rep = nan_rep
 
         if pos is not None:
             self.set_pos(pos)
@@ -2658,6 +2662,10 @@ class IndexCol:
     @property
     def meta_attr(self) -> str:
         return f"{self.name}_meta"
+
+    @property
+    def nan_rep_attr(self) -> str:
+        return f"{self.name}_nan_rep"
 
     def set_pos(self, pos: int) -> None:
         """set the position of this column in the Table"""
@@ -2743,7 +2751,9 @@ class IndexCol:
             return cat_index, cat_index
 
         val_kind = self.kind
-        values = _maybe_convert(values, val_kind, encoding, errors)
+        # GH#9604: self.nan_rep (set from the persisted per-index sentinel) lets
+        # a string Index restore missing values while leaving a literal "nan".
+        values = _maybe_convert(values, val_kind, encoding, errors, self.nan_rep)
         kwargs = {}
         kwargs["name"] = self.index_name
 
@@ -2927,6 +2937,10 @@ class IndexCol:
             # empty categories cannot be written as metadata, still round-trips
             # as categorical rather than as raw integer codes. GH#65576
             _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
+        if self.nan_rep is not None:
+            # GH#9604: persist the string-Index NaN sentinel so select() can
+            # restore missing values on read (see IndexCol.convert).
+            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -3682,6 +3696,11 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
 
+            if converted.nan_rep is not None:
+                # GH#9604: persist the string-Index NaN sentinel so read_index
+                # can restore missing values (see read_index_node).
+                node._v_attrs.nan_rep = converted.nan_rep
+
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
 
@@ -3710,6 +3729,9 @@ class GenericFixed(Fixed):
             node = getattr(self.group, level_key)
             node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
+
+            if conv_level.nan_rep is not None:
+                node._v_attrs.nan_rep = conv_level.nan_rep
 
             # write the name
             setattr(node._v_attrs, f"{key}_name{name}", name)
@@ -3768,6 +3790,9 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
+        # GH#9604: per-index string NaN sentinel (absent for old files)
+        nan_rep = getattr(node._v_attrs, "nan_rep", None)
+
         if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
@@ -3780,7 +3805,11 @@ class GenericFixed(Fixed):
             try:
                 index = factory(
                     _unconvert_index(
-                        data, kind, encoding=self.encoding, errors=self.errors
+                        data,
+                        kind,
+                        encoding=self.encoding,
+                        errors=self.errors,
+                        nan_rep=nan_rep,
                     ),
                     **kwargs,
                 )
@@ -3793,7 +3822,11 @@ class GenericFixed(Fixed):
                 ):
                     index = factory(
                         _unconvert_index(
-                            data, kind, encoding=self.encoding, errors=self.errors
+                            data,
+                            kind,
+                            encoding=self.encoding,
+                            errors=self.errors,
+                            nan_rep=nan_rep,
                         ),
                         dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
@@ -4436,6 +4469,8 @@ class Table(Fixed):
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
+            # GH#9604: per-index string NaN sentinel (absent for old files)
+            nan_rep = getattr(table_attrs, f"{name}_nan_rep", None)
 
             index_col = IndexCol(
                 name=name,
@@ -4446,6 +4481,7 @@ class Table(Fixed):
                 table=self.table,
                 meta=meta,
                 metadata=md,
+                nan_rep=nan_rep,
             )
             _indexables.append(index_col)
 
@@ -5760,6 +5796,19 @@ def _set_tz(
     return dta
 
 
+def _make_index_nan_rep(values: np.ndarray, mask: np.ndarray) -> str:
+    """
+    Choose a string NaN sentinel for a string Index that does not collide with
+    any non-missing value, so genuine missing values round-trip without being
+    confused with a literal string such as ``"nan"`` (GH#9604).
+    """
+    existing = set(values[~mask])
+    nan_rep = "nan"
+    while nan_rep in existing:
+        nan_rep = f"_{nan_rep}_"
+    return nan_rep
+
+
 def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
     assert isinstance(name, str)
 
@@ -5841,6 +5890,18 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             name, converted, "date", _tables().Time32Col(), index_name=index_name
         )
     elif inferred_type == "string":
+        # GH#9604: a genuine missing value and the literal string "nan" both
+        # serialize to b"nan" via the fixed-width string cast, so they cannot
+        # be told apart on read. Substitute the missing values with a sentinel
+        # that does not collide with any real value and persist it (see
+        # write_index / IndexCol.set_attr) so the reader can restore the NAs
+        # while leaving a literal "nan" untouched.
+        mask = np.asarray(index.isna())
+        nan_rep = None
+        if mask.any():
+            nan_rep = _make_index_nan_rep(values, mask)
+            values = values.copy()
+            values[mask] = nan_rep
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
         return IndexCol(
@@ -5849,6 +5910,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             "string",
             _tables().StringCol(itemsize),
             index_name=index_name,
+            nan_rep=nan_rep,
         )
 
     elif inferred_type in ["integer", "floating"]:
@@ -5862,7 +5924,9 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         return IndexCol(name, converted, kind, atom, index_name=index_name)
 
 
-def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray | Index:
+def _unconvert_index(
+    data, kind: str, encoding: str, errors: str, nan_rep=None
+) -> np.ndarray | Index:
     index: Index | np.ndarray
 
     if kind.startswith("datetime64"):
@@ -5886,7 +5950,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(
-            data, nan_rep=None, encoding=encoding, errors=errors
+            data, nan_rep=nan_rep, encoding=encoding, errors=errors
         )
     elif kind == "object":
         index = np.asarray(data[0])
@@ -6014,9 +6078,9 @@ def _unconvert_string_array(
     ----------
     data : np.ndarray[fixed-length-string]
     nan_rep : the storage repr of NaN, or None to skip substitution.
-        Pass None when the writer did not encode NaN as a sentinel string
-        (e.g. for string indices); otherwise legitimate occurrences of the
-        sentinel value would be incorrectly replaced with NaN on read.
+        Pass None when the writer did not encode NaN as a sentinel string;
+        otherwise legitimate occurrences of the sentinel value would be
+        incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -6047,22 +6111,24 @@ def _unconvert_string_array(
     return data.reshape(shape)
 
 
-def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str):
+def _maybe_convert(
+    values: np.ndarray, val_kind: str, encoding: str, errors: str, nan_rep=None
+):
     assert isinstance(val_kind, str), type(val_kind)
     if _need_convert(val_kind):
-        conv = _get_converter(val_kind, encoding, errors)
+        conv = _get_converter(val_kind, encoding, errors, nan_rep)
         values = conv(values)
     return values
 
 
-def _get_converter(kind: str, encoding: str, errors: str):
+def _get_converter(kind: str, encoding: str, errors: str, nan_rep=None):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif "datetime64" in kind:
         return lambda x: np.asarray(x, dtype=kind)
     elif kind == "string":
         return lambda x: _unconvert_string_array(
-            x, nan_rep=None, encoding=encoding, errors=errors
+            x, nan_rep=nan_rep, encoding=encoding, errors=errors
         )
     else:  # pragma: no cover
         raise ValueError(f"invalid kind {kind}")
