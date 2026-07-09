@@ -1526,10 +1526,7 @@ class TestParquetFastParquet(Base):
 
 
 @pytest.mark.xfail(
-    reason=(
-        "Upstream PyArrow nightly/py314 fails to cast FIXED_LEN_BYTE_ARRAY "
-        "to UUID - Pandas GH 61602 / Arrow Issue: https://github.com/apache/arrow/issues/50312"
-    )
+    reason="Upstream PyArrow fails to cast FIXED_LEN_BYTE_ARRAY to UUID - GH 61602"
 )
 @td.skip_if_no("pyarrow", min_version="24.0.0")
 def test_to_parquet_uuid_supported(temp_file):
