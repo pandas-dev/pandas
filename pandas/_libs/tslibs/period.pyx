@@ -1644,6 +1644,11 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
         else:
             # equiv Period(val, freq=dtype.unit).ordinal, specialized
             #  bc we know val is an integer
+            if not INT32_MIN <= val <= INT32_MAX:
+                # val is used as the year, which lands in the int32
+                #  npy_datetimestruct.year field; out-of-range would silently
+                #  wrap, so raise to match the scalar Period(int) path.
+                raise OutOfBoundsDatetime(f"Out of bounds year: {val}")
             result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
