@@ -177,6 +177,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`64515`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns (:issue:`65767`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and string columns (:issue:`65350`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default except on Windows and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, particularly when strings do not repeat (:issue:`65283`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
@@ -323,6 +324,7 @@ Conversion
 - Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
+- Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
 
 Strings
 ^^^^^^^
@@ -473,6 +475,8 @@ Reshaping
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :meth:`DataFrame.melt` where ``var_name`` colliding with an ``id_vars`` column or ``value_name`` silently overwrote the affected column data instead of raising (:issue:`65654`)
 - Bug in :meth:`DataFrame.pivot_table` with ``margins=True`` raising ``TypeError`` when ``values`` has an :class:`ExtensionDtype` that cannot hold ``NA`` (e.g. :class:`IntervalDtype` with an integer subtype) and no ``columns`` were specified (:issue:`55484`)
+- Bug in :meth:`DataFrame.select_dtypes` where a nullable extension dtype name such as ``"Int64"`` or ``"boolean"`` also selected numpy columns sharing the same scalar type; it now selects only columns of that extension dtype (:issue:`40234`)
+- Bug in :meth:`DataFrame.select_dtypes` where the string form of an Arrow dtype such as ``"int64[pyarrow]"`` selected no columns and ``"float64[pyarrow]"`` selected numpy float columns; an Arrow dtype string now selects only columns of that exact dtype (:issue:`59888`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
