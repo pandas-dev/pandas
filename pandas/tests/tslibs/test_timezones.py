@@ -268,8 +268,8 @@ def test_zoneinfo_utc_to_local_post_2100(tz_name):
 
 @pytest.mark.parametrize("tz_name", ["Africa/Casablanca", "Africa/El_Aaiun"])
 def test_zoneinfo_negative_dst_distant_dates(tz_name):
-    # GH#65712, GH#65733 - negative-DST zones (whose Ramadan-based rule keeps
-    # "DST" in effect for nearly the whole year) cannot have their POSIX future
+    # GH#65712, GH#65733 - zones whose Ramadan-based rule keeps the DST offset
+    # in effect for nearly the whole year cannot have their POSIX future
     # transitions flattened into a sorted transition list. Dates in the window
     # between the last cached transition and 2100 must fall back to zoneinfo's
     # Python API rather than the (unreliable) fast path.

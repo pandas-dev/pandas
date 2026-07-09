@@ -315,6 +315,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int64_t fixed_offset_seconds, last_hist_ts, start_utc, end_utc
         list trans_utc, deltas_seconds, future_trans
         int year, last_year, std_offset, dst_offset
+        bint valid
 
     tz_py = _ZoneInfo(tz.key)
 
@@ -342,48 +343,60 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         std_offset = int(tz_after.std.utcoff.total_seconds())
         dst_offset = int(tz_after.dst.utcoff.total_seconds())
 
-        # Negative-DST zones (dst_offset < std_offset, e.g. Africa/Casablanca and
-        # Africa/El_Aaiun, whose Ramadan-based rule keeps "DST" in effect for
-        # nearly the whole year) have per-year (start, end) intervals that overlap
-        # across calendar years, so they cannot be flattened into a correct sorted
-        # transition list. Skip generating them and leave has_future_dst=True so
-        # the per-value zoneinfo fallback (see Localizer.utc_val_to_local_val and
+        if trans_utc:
+            last_hist_ts = trans_utc[-1]
+            try:
+                last_year = datetime.fromtimestamp(last_hist_ts, timezone.utc).year
+            except (OSError, OverflowError, ValueError):
+                last_year = 1970
+        else:
+            last_hist_ts = 0
+            last_year = 1970
+
+        future_trans = []
+        for year in range(last_year, 2100):
+            try:
+                year_trans = tz_after.transitions(year)
+                if not year_trans:
+                    break
+                start_local, end_local = year_trans
+                start_utc = start_local - std_offset
+                end_utc = end_local - dst_offset
+                if start_utc > last_hist_ts:
+                    future_trans.append((start_utc, dst_offset))
+                if end_utc > last_hist_ts:
+                    future_trans.append((end_utc, std_offset))
+            except Exception:
+                break
+
+        future_trans.sort()
+
+        # Some zones (e.g. Africa/Casablanca and Africa/El_Aaiun, whose
+        # Ramadan-based rule keeps the DST offset in effect for nearly the whole
+        # year) have per-year (start, end) intervals that overlap across calendar
+        # years, so flattening them into a sorted transition list yields wrong
+        # offsets. Depending on the tzdata build the POSIX rule may or may not
+        # resemble ordinary DST, so verify the flattened transitions against
+        # zoneinfo directly rather than inferring it from the offsets. If any
+        # disagree, drop them and leave has_future_dst=True so the per-value
+        # zoneinfo fallback (see Localizer.utc_val_to_local_val and
         # _get_utc_bounds) handles dates beyond the last historical transition.
         # GH#65712, GH#65733
-        if dst_offset >= std_offset:
-            if trans_utc:
-                last_hist_ts = trans_utc[-1]
-                try:
-                    last_year = datetime.fromtimestamp(
-                        last_hist_ts, timezone.utc
-                    ).year
-                except (OSError, OverflowError, ValueError):
-                    last_year = 1970
-            else:
-                last_hist_ts = 0
-                last_year = 1970
-
-            future_trans = []
-            for year in range(last_year, 2100):
-                try:
-                    year_trans = tz_after.transitions(year)
-                    if not year_trans:
-                        break
-                    start_local, end_local = year_trans
-                    start_utc = start_local - std_offset
-                    end_utc = end_local - dst_offset
-                    if start_utc > last_hist_ts:
-                        future_trans.append((start_utc, dst_offset))
-                    if end_utc > last_hist_ts:
-                        future_trans.append((end_utc, std_offset))
-                except Exception:
+        valid = True
+        try:
+            for future_ts, future_delta in future_trans:
+                probe = datetime.fromtimestamp(future_ts + 1, timezone.utc)
+                probe_offset = probe.astimezone(tz).utcoffset().total_seconds()
+                if int(probe_offset) != future_delta:
+                    valid = False
                     break
+        except (OSError, OverflowError, ValueError):
+            valid = False
 
-            future_trans.sort()
-
-            for t, d in future_trans:
-                trans_utc.append(t)
-                deltas_seconds.append(d)
+        if valid:
+            for future_ts, future_delta in future_trans:
+                trans_utc.append(future_ts)
+                deltas_seconds.append(future_delta)
 
     trans = np.array(trans_utc, dtype="i8") * 1_000_000_000
     trans = np.hstack([np.array([NPY_NAT + 1], dtype=np.int64), trans])
