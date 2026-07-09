@@ -93,7 +93,7 @@ class TestSliceLocs:
                 np.array([1, 0, 1, 1, 0, 0, 1, 0]),
             ],
         )
-        msg = "[Kk]ey length.*greater than MultiIndex lexsort depth"
+        msg = "Key length.*was greater than MultiIndex lexsort depth"
         with pytest.raises(KeyError, match=msg):
             index.slice_locs((1, 0, 1), (2, 1, 0))
 
