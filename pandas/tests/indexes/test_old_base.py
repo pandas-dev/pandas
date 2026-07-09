@@ -546,7 +546,8 @@ class TestBase:
         index_c = index_a[0:-1].append(index_a[-2:-1])
         index_d = index_a[0:1]
 
-        msg = "|".join(["Lengths must match", "could not be broadcast"])
+        # the Index length check raises before NumPy can attempt to broadcast
+        msg = "Lengths must match"
         with pytest.raises(ValueError, match=msg):
             index_a == index_b
         expected1 = np.array([True] * n)
@@ -926,13 +927,7 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        msg = "|".join(
-            [
-                "Cannot change data-type for array of references.",
-                "Cannot change data-type for object array.",
-                "",
-            ]
-        )
+        msg = "Cannot change data-type"
         with pytest.raises(TypeError, match=msg):
             # GH#55709
             idx.view(index_cls)
