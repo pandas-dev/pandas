@@ -803,6 +803,20 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                             "values does not conform to passed frequency "
                             f"{freq.freqstr}"
                         )
+                elif isinstance(freq, Tick) and len(self) > 1:
+                    # A Tick is a fixed step in i8 space regardless of tz, so
+                    # conformance is just uniform spacing. This avoids the
+                    # pricier _validate_frequency (which infers the freq and
+                    # allocates a range). Not valid for Day (DST-dependent) or
+                    # calendar offsets, which stay on the path below.
+                    delta = Timedelta(freq)
+                    step = delta.as_unit(self.unit)
+                    if step != delta or not (np.diff(self.asi8) == step._value).all():
+                        raise ValueError(
+                            f"Inferred frequency {inferred} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
                 elif len(self) > 1:
                     type(arr)._validate_frequency(self, freq, **validate_kwds)
             self._freq = freq

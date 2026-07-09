@@ -1138,6 +1138,32 @@ class TestTimeSeries:
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(dti, freq=passed_freq)
 
+    def test_constructor_tick_freq_conforming_accepted(self):
+        # GH#65012 a Tick freq that differs from the inferred (non-Tick) freq
+        # but genuinely conforms is accepted via the uniform-spacing fast path
+        dti = date_range("2000-01-01", freq="D", periods=5)  # inferred Day
+
+        result = DatetimeIndex(dti, freq="24h")
+        assert result.freqstr == "24h"
+
+    def test_constructor_tick_freq_tz_aware_across_dst_raises(self):
+        # GH#65012 a Tick is a fixed step in i8 space even across a DST
+        # transition, so the uniform-spacing check runs on the (UTC) i8 view
+        dti = date_range("2021-03-13", freq="2h", periods=4, tz="US/Eastern")
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="3h")
+
+    def test_constructor_tick_freq_subunit_resolution_raises(self):
+        # GH#65012 a Tick finer than the index resolution cannot conform even
+        # if it rounds to the data's step (1500ms -> 1s at second resolution)
+        dti = date_range("2000-01-01", freq="s", periods=4).as_unit("s")
+
+        msg = "does not conform to passed frequency"
+        with pytest.raises(ValueError, match=msg):
+            DatetimeIndex(dti, freq="1500ms")
+
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
