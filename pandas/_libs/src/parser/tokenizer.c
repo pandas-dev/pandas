@@ -1352,16 +1352,18 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
 
-  /* if word_deletions == 0 (i.e. this case) then char_count must
-   * be 0 too, as no data needs to be skipped.
-   * Otherwise char_count is the start of the first surviving word, which
-   * equals the end (past the trailing '\0') of the last deleted word; when
-   * every word is being deleted we fall through to stream_len. */
-  const uint64_t char_count =
-      word_deletions >= 1 ? ((uint64_t)word_deletions < self->words_len
-                                 ? (uint64_t)self->word_starts[word_deletions]
-                                 : self->stream_len)
-                          : 0;
+  uint64_t char_count;
+  if (word_deletions < 1) {
+    /* nothing deleted, so no data needs to be skipped */
+    char_count = 0;
+  } else if ((uint64_t)word_deletions < self->words_len) {
+    /* start of the first surviving word, which equals the end (past the
+     * trailing '\0') of the last deleted word */
+    char_count = (uint64_t)self->word_starts[word_deletions];
+  } else {
+    /* every word is being deleted */
+    char_count = self->stream_len;
+  }
 
   /* move stream, only if something to move */
   if (char_count < self->stream_len) {

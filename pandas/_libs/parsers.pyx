@@ -1527,7 +1527,6 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         coliter_t it
         const char *word = NULL
         int64_t token_idx = 0
-        int64_t word_len
         ndarray[object] result
 
         int ret = 0
@@ -1561,18 +1560,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            # Token length from adjacent word_starts offsets (avoids strlen);
-            # token_idx == -1 means a missing field; the last token falls
-            # back to stream_len.
-            if token_idx < 0:
-                word_len = 0
-            elif <uint64_t>(token_idx + 1) < parser.words_len:
-                word_len = (parser.word_starts[token_idx + 1]
-                            - parser.word_starts[token_idx] - 1)
-            else:
-                word_len = (<int64_t>parser.stream_len
-                            - parser.word_starts[token_idx] - 1)
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(
+                word, _token_len(parser, token_idx), encoding_errors)
 
             table.vals[k] = <PyObject *>pyval
 
