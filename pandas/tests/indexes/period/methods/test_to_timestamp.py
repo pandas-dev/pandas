@@ -146,3 +146,23 @@ def test_ms_to_timestamp_error_message():
     ix = period_range("2000", periods=3, freq="M")
     with pytest.raises(ValueError, match="for Period, please use 'M' instead of 'MS'"):
         ix.to_timestamp("MS")
+
+
+@pytest.mark.parametrize("freq", ["ns", "1ns"])
+def test_to_timestamp_nanosecond_target(freq):
+    # GH#63760 a target freq that normalizes to nanoseconds must give a
+    #  nanosecond-unit result rather than misinterpreting the ordinal
+    pi = period_range("2020-01-01", periods=3, freq="D")
+    result = pi.to_timestamp(freq)
+    expected = date_range("2020-01-01", periods=3, freq="D", unit="ns")
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["D", "s", "us"])
+def test_to_timestamp_from_nanosecond_period(freq):
+    # GH#63760 converting a nanosecond PeriodIndex with a coarser target must
+    #  yield a microsecond DatetimeIndex, not reinterpret the value as ns
+    pi = period_range("2020-01-01", periods=3, freq="ns")
+    result = pi.to_timestamp(freq)
+    expected = DatetimeIndex(["2020-01-01"] * 3, dtype="M8[us]")
+    tm.assert_index_equal(result, expected)

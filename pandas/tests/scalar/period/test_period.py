@@ -789,6 +789,29 @@ class TestPeriodMethods:
         result = Period(ts).to_timestamp(freq=freq).microsecond
         assert result == expected
 
+    @pytest.mark.parametrize("freq", ["ns", "1ns", offsets.Nano()])
+    def test_to_timestamp_nanosecond_target(self, freq):
+        # GH#63760 the result unit is derived from the normalized target base,
+        #  so a freq that normalizes to nanoseconds (e.g. "1ns") must give a
+        #  correct nanosecond-unit Timestamp rather than misinterpreting the
+        #  nanosecond ordinal as microseconds
+        per = Period("2020-01-01", freq="D")
+        result = per.to_timestamp(freq)
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01")
+
+    @pytest.mark.parametrize(
+        "freq, unit", [(None, "ns"), ("D", "us"), ("s", "us"), ("us", "us")]
+    )
+    def test_to_timestamp_from_nanosecond_period(self, freq, unit):
+        # GH#63760 a nanosecond Period converted with a coarser (non-ns) target
+        #  must yield a microsecond Timestamp, not reinterpret the microsecond
+        #  value as nanoseconds
+        per = Period("2020-01-01", freq="ns")
+        result = per.to_timestamp(freq)
+        assert result.unit == unit
+        assert result == Timestamp("2020-01-01")
+
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
