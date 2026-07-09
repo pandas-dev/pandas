@@ -203,6 +203,15 @@ def _get_fill_value(
             return np.inf
         else:
             return -np.inf
+    elif dtype.kind == "u":
+        # Unsigned ints: use a uint64 sentinel so np.where keeps the values
+        # unsigned.  An int64 fill would force a uint64/int64 mix to promote to
+        # float64, losing precision for values above 2**53 and giving the wrong
+        # idxmin/idxmax/min/max (GH#64478).  u8max/0 also bracket the full
+        # uint64 range, unlike i8max which real values can exceed.
+        if fill_value_typ == "+inf":
+            return np.uint64(lib.u8max)
+        return np.uint64(0)
     elif fill_value_typ == "+inf":
         # need the max int here
         # Return as np.int64 so that np.where promotes the dtype

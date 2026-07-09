@@ -1384,3 +1384,30 @@ def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars)
         assert result.dtype == np.float64
     else:
         assert result.dtype == dtype
+
+
+@pytest.mark.parametrize("na_pos", [0, 3])
+def test_nanargminmax_uint64_with_mask(na_pos):
+    # GH#64478 the +/-inf fill for masked uint64 values must stay uint64;
+    # an int64 fill promotes uint64/int64 to float64 and loses precision above
+    # 2**53, and i8max cannot bracket uint64 values above 2**63.
+    values = np.array([2**63 + 1, 2**63 + 2, 2**63 + 3, 0], dtype=np.uint64)
+    mask = np.zeros(4, dtype=bool)
+    mask[na_pos] = True
+    valid = np.flatnonzero(~mask)
+
+    argmax = nanops.nanargmax(values, mask=mask)
+    argmin = nanops.nanargmin(values, mask=mask)
+    assert argmax == valid[values[valid].argmax()]
+    assert argmin == valid[values[valid].argmin()]
+
+    assert nanops.nanmax(values, mask=mask) == values[valid].max()
+    assert nanops.nanmin(values, mask=mask) == values[valid].min()
+
+
+def test_idxminmax_uint64_with_na():
+    # GH#64478 idxmax/idxmin on a nullable UInt64 column with values above 2**53
+    values = pd.array([2**63 + 1, 2**63 + 2, 2**63 + 3, pd.NA], dtype="UInt64")
+    df = pd.DataFrame({"a": values})
+    assert df.idxmax().tolist() == [2]
+    assert df.idxmin().tolist() == [0]
