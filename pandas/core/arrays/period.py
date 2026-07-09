@@ -1581,8 +1581,8 @@ def _range_from_fields(
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        year = np.asarray(year, dtype=np.int64)
-        quarter = np.asarray(quarter, dtype=np.int64)
+        year = _field_to_int64(year)
+        quarter = _field_to_int64(quarter)
 
         if (quarter < 1).any() or (quarter > 4).any():
             raise ValueError("Quarter must be 1 <= q <= 4")
@@ -1603,16 +1603,25 @@ def _range_from_fields(
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         ordinals = libperiod.period_ordinals_from_fields(
-            arrays[0].astype(np.int64, copy=False),
-            arrays[1].astype(np.int64, copy=False),
-            arrays[2].astype(np.int64, copy=False),
-            arrays[3].astype(np.int64, copy=False),
-            arrays[4].astype(np.int64, copy=False),
-            arrays[5].astype(np.int64, copy=False),
+            _field_to_int64(arrays[0]),
+            _field_to_int64(arrays[1]),
+            _field_to_int64(arrays[2]),
+            _field_to_int64(arrays[3]),
+            _field_to_int64(arrays[4]),
+            _field_to_int64(arrays[5]),
             base,
         )
 
     return ordinals, freq
+
+
+def _field_to_int64(values) -> np.ndarray:
+    values = np.asarray(values)
+    if values.dtype.kind == "f" and np.isnan(values).any():
+        # Match the error raised by the scalar Period constructor; casting
+        #  NaN to int64 would otherwise silently produce garbage ordinals.
+        raise ValueError("cannot convert float NaN to integer")
+    return values.astype(np.int64, copy=False)
 
 
 def _make_field_arrays(*fields) -> list[np.ndarray]:

@@ -1593,10 +1593,21 @@ def period_ordinals_from_fields(
     ndarray[int64]
     """
     cdef:
-        Py_ssize_t i, n = len(years)
-        int64_t[::1] result = np.empty(n, dtype="i8")
+        Py_ssize_t i, n = years.shape[0]
+        int64_t[::1] result
         npy_datetimestruct dts
 
+    # Guard against out-of-bounds reads below (boundscheck is disabled).
+    if not (
+        months.shape[0] == n
+        and days.shape[0] == n
+        and hours.shape[0] == n
+        and minutes.shape[0] == n
+        and seconds.shape[0] == n
+    ):
+        raise ValueError("Mismatched Period array lengths")
+
+    result = np.empty(n, dtype="i8")
     memset(&dts, 0, sizeof(npy_datetimestruct))
 
     for i in range(n):

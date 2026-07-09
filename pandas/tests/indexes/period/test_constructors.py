@@ -284,6 +284,23 @@ class TestPeriodIndex:
         with pytest.raises(OverflowError, match="value too large"):
             PeriodIndex.from_fields(**fields, freq="M")
 
+    def test_constructor_field_arrays_tuple_mismatched_length(self):
+        # GH#65921 a tuple is not treated as list-like, so it is repeated and
+        #  used to bypass the length check; must raise instead of reading OOB
+        msg = "Mismatched Period array lengths"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex.from_fields(year=(2020, 2021), month=[1, 2], freq="M")
+
+    @pytest.mark.parametrize(
+        "kwargs", [{"month": [1, 2], "freq": "M"}, {"quarter": [1, 2]}]
+    )
+    def test_constructor_field_arrays_nan_raises(self, kwargs):
+        # GH#65921 NaN must raise rather than silently casting to a garbage
+        #  ordinal (e.g. Period("0-01"))
+        msg = "cannot convert float NaN to integer"
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex.from_fields(year=[np.nan, 2020], **kwargs)
+
     def test_period_range_fractional_period(self):
         msg = "periods must be an integer, got 10.5"
         with pytest.raises(TypeError, match=msg):
