@@ -37,7 +37,11 @@ from pandas.compat import (
     pa_version_under25p0,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -3695,8 +3699,37 @@ class ArrowExtensionArray(
             target_type = pa.duration(unit)
         else:
             raise NotImplementedError(f"as_unit not implemented for {pa_type}")
-        # Use safe=False to allow truncation, matching pandas as_unit behavior
-        result = pc.cast(self._pa_array, target_type, safe=False)
+
+        nanos_per_unit = {"s": 1_000_000_000, "ms": 1_000_000, "us": 1_000, "ns": 1}
+        from_nanos = nanos_per_unit[pa_type.unit]
+        to_nanos = nanos_per_unit[unit]
+        if to_nanos <= from_nanos:
+            # Same or finer resolution: exact upscale. Use safe=True so that
+            # out-of-bounds values raise instead of silently wrapping, matching
+            # numpy/pandas as_unit.
+            try:
+                result = pc.cast(self._pa_array, target_type)
+            except pa.ArrowInvalid as err:
+                err_type = (
+                    OutOfBoundsDatetime
+                    if pa.types.is_timestamp(pa_type)
+                    else OutOfBoundsTimedelta
+                )
+                raise err_type(
+                    f"Cannot convert {pa_type} to {target_type} without overflow"
+                ) from err
+        else:
+            # Coarser resolution: floor toward -inf like numpy/pandas. pc.cast
+            # truncates toward zero, which is wrong for negative timedeltas and
+            # pre-epoch timestamps (GH#63573).
+            ratio = pa.scalar(to_nanos // from_nanos, type=pa.int64())
+            i8 = pc.cast(self._pa_array, pa.int64())
+            quotient = pc.divide(i8, ratio)
+            remainder = pc.subtract(i8, pc.multiply(quotient, ratio))
+            floored = pc.if_else(
+                pc.less(remainder, 0), pc.subtract(quotient, 1), quotient
+            )
+            result = pc.cast(floored, target_type)
         return self._from_pyarrow_array(result)
 
     @property
