@@ -70,3 +70,16 @@ def test_read_cell_annotation():
     result = pd.read_excel("test_cell_annotation.ods")
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_cell_line_breaks():
+    # GH#55728 - line breaks in a cell can be <text:line-break/> elements or
+    # consecutive <text:p> paragraphs (as written by LibreOffice)
+    expected = pd.DataFrame(
+        ["break1\nbreak2", "para1\npara2"],
+        columns=["Column 1"],
+    )
+
+    result = pd.read_excel("test_line_breaks.ods")
+
+    tm.assert_frame_equal(result, expected)

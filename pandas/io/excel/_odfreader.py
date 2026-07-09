@@ -230,21 +230,36 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         from odf.element import Element
         from odf.namespaces import TEXTNS
         from odf.office import Annotation
-        from odf.text import S
+        from odf.text import (
+            LineBreak,
+            P,
+            S,
+        )
 
         office_annotation = Annotation().qname
         text_s = S().qname
+        text_p = P().qname
+        text_line_break = LineBreak().qname
 
         value = []
+        paragraphs_seen = 0
 
         for fragment in cell.childNodes:
             if isinstance(fragment, Element):
                 if fragment.qname == text_s:
                     spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
                     value.append(" " * spaces)
+                elif fragment.qname == text_line_break:
+                    # GH 55728: <text:line-break/> represents a line break
+                    value.append("\n")
                 elif fragment.qname == office_annotation:
                     continue
                 else:
+                    if fragment.qname == text_p:
+                        # each <text:p> after the first is a new line (GH 53924)
+                        if paragraphs_seen:
+                            value.append("\n")
+                        paragraphs_seen += 1
                     # recursive impl needed in case of nested fragments
                     # with multiple spaces
                     # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704

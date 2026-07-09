@@ -8,6 +8,7 @@ import uuid
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 from pandas.io.excel import ExcelWriter
 
@@ -104,3 +105,41 @@ def test_cell_value_type(
         cell = sheet_cells[0]
         assert cell.attributes.get((OFFICENS, "value-type")) == cell_value_type
         assert cell.attributes.get((OFFICENS, cell_value_attribute)) == cell_value
+
+
+def test_cell_value_with_line_break(tmp_excel):
+    # GH#55728 - newlines in strings must be written as <text:line-break/>
+    # elements instead of raw newline characters
+    from odf.table import (
+        TableCell,
+        TableRow,
+    )
+    from odf.text import (
+        LineBreak,
+        P,
+    )
+
+    pd.DataFrame([["line1\nline2"]]).to_excel(tmp_excel, header=False, index=False)
+
+    with pd.ExcelFile(tmp_excel) as wb:
+        sheet = wb._reader.get_sheet_by_index(0)
+        sheet_rows = sheet.getElementsByType(TableRow)
+        sheet_cells = [
+            x
+            for x in sheet_rows[0].childNodes
+            if hasattr(x, "qname") and x.qname == TableCell().qname
+        ]
+
+        cell = sheet_cells[0]
+        assert len(cell.getElementsByType(P)) == 1
+        assert len(cell.getElementsByType(LineBreak)) == 1
+
+
+def test_roundtrip_cell_with_line_break(tmp_excel):
+    # GH#55728
+    df = pd.DataFrame({"col": ["line1\nline2", "line3"]})
+    df.to_excel(tmp_excel, index=False)
+
+    result = pd.read_excel(tmp_excel, engine="odf")
+
+    tm.assert_frame_equal(result, df)

@@ -112,7 +112,10 @@ class ODSWriter(ExcelWriter):
             TableCell,
             TableRow,
         )
-        from odf.text import P
+        from odf.text import (
+            LineBreak,
+            P,
+        )
 
         sheet_name = self._get_sheet_name(sheet_name)
         assert sheet_name is not None
@@ -146,7 +149,16 @@ class ODSWriter(ExcelWriter):
             pvalue, tc = self._make_table_cell(cell)
             rows[cell.row].addElement(tc)
             col_count[cell.row] += 1
-            p = P(text=pvalue)
+            if isinstance(pvalue, str) and "\n" in pvalue:
+                # GH 55728: line breaks must be written as <text:line-break/>
+                # elements; a raw newline is not preserved by ODF consumers
+                p = P()
+                for i, line in enumerate(pvalue.split("\n")):
+                    if i > 0:
+                        p.addElement(LineBreak())
+                    p.addText(line)
+            else:
+                p = P(text=pvalue)
             tc.addElement(p)
 
         # add all rows to the sheet
