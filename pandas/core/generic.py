@@ -2767,7 +2767,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specifies a compression level for data.
             A value of 0 or None disables compression.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-            Specifies the compression library to be used.
+            Specifies the compression library to be used. This has no effect
+            unless ``complevel`` is set to a value greater than 0; passing
+            ``complib`` alone emits a ``UserWarning`` and writes the data
+            uncompressed.
             These additional compressors for Blosc are supported
             (default if no compressor specified: 'blosc:blosclz'):
             {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
