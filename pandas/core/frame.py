@@ -76,12 +76,10 @@ from pandas.core.dtypes.cast import (
     construct_2d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
-    invalidate_string_dtypes,
     maybe_downcast_to_dtype,
     maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
-    infer_dtype_from_object,
     is_1d_only_ea_dtype,
     is_array_like,
     is_bool_dtype,
@@ -104,6 +102,8 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -5355,6 +5355,12 @@ class DataFrame(NDFrame, OpsMixin):
           work to select all string columns.
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
+        * A dtype instance (e.g. ``np.dtype("int32")`` or
+          ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
+          exactly that dtype, whereas a class or string selects a family
+          of dtypes. Under-specified instances like a unitless
+          ``np.dtype("datetime64")`` or a bare ``pd.CategoricalDtype()``
+          select their whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5414,83 +5420,181 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
-        # convert the myriad valid dtypes object to a single representation
-        def check_int_infer_dtype(dtypes):
-            converted_dtypes: list[type] = []
-            for dtype in dtypes:
-                # Numpy maps int to different types (int32, in64) on Windows and Linux
-                # see https://github.com/numpy/numpy/issues/9464
-                if (isinstance(dtype, str) and dtype == "int") or (dtype is int):
-                    converted_dtypes.append(np.int32)
-                    converted_dtypes.append(np.int64)
-                elif dtype == "float" or dtype is float:
-                    # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
-                    converted_dtypes.extend([np.float64, np.float32])
-                else:
-                    converted_dtypes.append(infer_dtype_from_object(dtype))
-            return frozenset(converted_dtypes)
+        def to_callable(
+            dtypes,
+        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
+            # We convert the user-provided dtypes (which may be dtype instances,
+            # dtype classes, dtype.types, or strings) into our dtype predicate,
+            # along with the set of dtype instances and dtype.type-style objects
+            # they resolve to (used for validation below).
 
-        include_set = check_int_infer_dtype(include)
-        exclude_set = check_int_infer_dtype(exclude)
-        for dtypes in (include_set, exclude_set):
-            invalidate_string_dtypes(dtypes)
+            def matches_object(dtype_obj: DtypeObj) -> bool:
+                # backwards compat for the default `str` dtype being
+                # selected by object
+                return dtype_obj == np.dtype(np.object_) or (
+                    isinstance(dtype_obj, StringDtype) and dtype_obj.na_value is np.nan
+                )
+
+            def matches_number(dtype_obj: DtypeObj) -> bool:
+                # All numeric dtypes, excluding bool dtypes
+                # GH#46870: BooleanDtype._is_numeric == True but should
+                # be excluded
+                return not is_bool_dtype(dtype_obj) and (
+                    (
+                        isinstance(dtype_obj, np.dtype)
+                        and issubclass(dtype_obj.type, np.number)
+                    )
+                    or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
+                )
+
+            def matches_type(
+                dtype_type: type | tuple[type, ...],
+            ) -> Callable[[DtypeObj], bool]:
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return issubclass(dtype_obj.type, dtype_type)
+
+                return func
+
+            funcs: list[Callable[[DtypeObj], bool]] = []
+            instances: list[DtypeObj] = []
+            resolved: set[type | DtypeObj] = set()
+            for dtype in dtypes:
+                if isinstance(dtype, (np.dtype, ExtensionDtype)):
+                    # GH#40234: a dtype instance matches only columns with
+                    # exactly that dtype, whereas a class or string matches
+                    # a family of dtypes
+                    if isinstance(dtype, np.dtype) and issubclass(
+                        dtype.type, (np.str_, np.bytes_)
+                    ):
+                        raise TypeError(
+                            "numpy string dtypes are not allowed, "
+                            "use 'str' or 'object' instead"
+                        )
+                    if lib.is_np_dtype(dtype, "mM"):
+                        unit = np.datetime_data(dtype)[0]
+                        if unit == "generic":
+                            # unitless np.dtype("datetime64") is not a specific
+                            # dtype, so match the family, as with np.datetime64
+                            resolved.add(dtype.type)
+                            funcs.append(matches_type(dtype.type))
+                            continue
+                        if unit not in ("s", "ms", "us", "ns"):
+                            # no column can ever have this dtype
+                            raise ValueError(
+                                f"{dtype.name!r} is too specific of a "
+                                f"frequency, try passing "
+                                f"{dtype.type.__name__!r}"
+                            )
+                    elif isinstance(dtype, CategoricalDtype) and (
+                        dtype.categories is None
+                    ):
+                        # a bare CategoricalDtype() is not a specific dtype,
+                        # so match all categorical columns, as with the
+                        # "category" string
+                        resolved.add(dtype.type)
+                        funcs.append(matches_type(dtype.type))
+                        continue
+                    resolved.add(dtype)
+                    instances.append(dtype)
+
+                elif dtype is np.number or (
+                    isinstance(dtype, str) and dtype == "number"
+                ):
+                    resolved.add(np.number)
+                    funcs.append(matches_number)
+
+                elif (isinstance(dtype, str) and dtype == "int") or (dtype is int):
+                    # Numpy maps int to different types (int32, int64)
+                    # on Windows and Linux
+                    # see https://github.com/numpy/numpy/issues/9464
+                    resolved.update((np.int32, np.int64))
+                    funcs.append(matches_type((np.int32, np.int64)))
+
+                elif dtype == "float" or dtype is float:
+                    # GH#42452: np.dtype("float") coerces to np.float64
+                    # from Numpy 1.20
+                    resolved.update((np.float64, np.float32))
+                    funcs.append(matches_type((np.float64, np.float32)))
+
+                else:
+                    # Resolve dtype to a dtype.type-style object. Comparing the
+                    # raw user input against np.dtype(object) would trigger
+                    # numpy's abstract-type conversion DeprecationWarning for
+                    # entries like np.floating, so normalize first and dispatch
+                    # on the resolved type below.
+                    dtype_type: type
+                    if isinstance(dtype, type) and issubclass(dtype, np.generic):
+                        # e.g. np.floating, np.int64: use as-is instead of
+                        # routing through np.dtype(...), which resolves abstract
+                        # types such as np.signedinteger to a concrete dtype
+                        # (GH#51523)
+                        dtype_type = dtype
+                    else:
+                        try:
+                            pdtype = pandas_dtype(dtype)
+                        except TypeError:
+                            if not isinstance(dtype, str):
+                                raise
+                            # strings accepted here but not by pandas_dtype
+                            # TODO(jreback) should deprecate these
+                            if dtype in ("datetimetz", "datetime64tz"):
+                                dtype_type = DatetimeTZDtype.type
+                            elif dtype == "period":
+                                raise NotImplementedError from None
+                            elif dtype == "datetime":
+                                dtype_type = np.datetime64
+                            elif dtype == "timedelta":
+                                dtype_type = np.timedelta64
+                            else:
+                                maybe_dtype = getattr(np, dtype, None)
+                                if isinstance(maybe_dtype, type) and issubclass(
+                                    maybe_dtype, np.generic
+                                ):
+                                    # e.g. "floating", "integer"
+                                    dtype_type = maybe_dtype
+                                else:
+                                    raise
+                        else:
+                            if lib.is_np_dtype(pdtype, "mM"):
+                                unit = np.datetime_data(pdtype)[0]
+                                if unit not in ("generic", "ns"):
+                                    raise ValueError(
+                                        f"{pdtype.name!r} is too specific of a "
+                                        f"frequency, try passing "
+                                        f"{pdtype.type.__name__!r}"
+                                    )
+                            dtype_type = pdtype.type
+
+                    resolved.add(dtype_type)
+                    if dtype_type is np.object_:
+                        funcs.append(matches_object)
+                    else:
+                        funcs.append(matches_type(dtype_type))
+
+            def matches_any(dtype_obj: DtypeObj) -> bool:
+                if any(dtype_obj == instance for instance in instances):
+                    return True
+                if isinstance(dtype_obj, ArrowDtype):
+                    # class- and string-based matching treats ArrowDtype
+                    # columns like their numpy counterparts
+                    dtype_obj = dtype_obj.numpy_dtype
+                return any(func(dtype_obj) for func in funcs)
+
+            return matches_any, frozenset(resolved)
+
+        include_func, include_set = to_callable(include)
+        exclude_func, exclude_set = to_callable(exclude)
+
+        for dtype_set in (include_set, exclude_set):
+            if dtype_set & {np.bytes_, np.str_}:
+                raise TypeError(
+                    "numpy string dtypes are not allowed, use 'str' or 'object' instead"
+                )
         if not include_set.isdisjoint(exclude_set):
             # can't both include AND exclude!
             raise ValueError(
                 f"include and exclude overlap on {(include_set & exclude_set)}"
             )
-
-        def to_callable(dtypes):
-            # We convert the user-provided dtypes (which may be dtype instances,
-            # dtype classes, dtype.types, or strings) into our dtype predicate
-
-            funcs = []
-            for dtype in dtypes:
-                # dtype=dtype binds the current loop value as a default so each
-                # closure captures its own dtype rather than sharing the loop
-                # variable (which would leave every func using the last dtype).
-                def new_func(x: DtypeObj, dtype=dtype):
-                    x = x if not isinstance(x, ArrowDtype) else x.numpy_dtype
-
-                    if dtype is np.number or (
-                        isinstance(dtype, str) and dtype == "number"
-                    ):
-                        # Include all numeric dtypes, exclude bool dtypes
-                        # GH#46870: BooleanDtype._is_numeric == True but should
-                        # be excluded
-                        return not is_bool_dtype(x) and (
-                            (isinstance(x, np.dtype) and issubclass(x.type, np.number))
-                            or (isinstance(x, ExtensionDtype) and x._is_numeric)
-                        )
-
-                    elif (isinstance(dtype, str) and dtype == "int") or (dtype is int):
-                        # Numpy maps int to different types (int32, in64)
-                        # on Windows and Linux
-                        # see https://github.com/numpy/numpy/issues/9464
-                        return issubclass(x.type, (np.int32, np.int64))
-
-                    elif dtype == "float" or dtype is float:
-                        return issubclass(x.type, (np.float64, np.float32))
-
-                    # Comparing the raw user input against np.dtype(object) would
-                    # trigger numpy's abstract-type conversion DeprecationWarning
-                    # for entries like np.floating, so normalize first.
-                    dtype_type = infer_dtype_from_object(dtype)
-                    if dtype_type is np.object_:
-                        # backwards compat for the default `str` dtype being
-                        # selected by object
-                        return x == dtype_type or (
-                            isinstance(x, StringDtype) and x.na_value is np.nan
-                        )
-                    return issubclass(x.type, dtype_type)
-
-                funcs.append(new_func)
-
-            func = lambda x: any(func(x) for func in funcs)
-            return func
-
-        include_func = to_callable(include)
-        exclude_func = to_callable(exclude)
 
         def predicate(arr: ArrayLike) -> bool:
             dtype = arr.dtype
@@ -16010,20 +16114,16 @@ class DataFrame(NDFrame, OpsMixin):
                 return result
 
             if df.shape[1]:
-                # GH#51474: block-wise axis=1 reduction avoiding expensive
-                # transpose for numpy-backed and 2D EA blocks.
+                # GH#51474: block-wise axis=1 reduction avoiding an expensive
+                # transpose for numpy-backed blocks.  EA blocks are excluded
+                # (GH#65500) and handled below by the EA fastpath or transpose.
                 if (
                     name in ("sum", "prod", "min", "max", "any", "all", "mean")
                     and len(df._mgr.blocks) > 1
                     and all(
-                        (isinstance(bv, np.ndarray) and bv.dtype.kind != "O")
-                        or (
-                            isinstance(bv, ExtensionArray)
-                            and bv.ndim == 2
-                            and name in ("min", "max")
-                            and skipna
-                        )
-                        for bv in (block.values for block in df._mgr.blocks)
+                        isinstance(block.values, np.ndarray)
+                        and block.values.dtype.kind != "O"
+                        for block in df._mgr.blocks
                     )
                 ):
                     return df._reduce_axis1(

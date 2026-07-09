@@ -73,12 +73,11 @@ if cy.version().version_compare('>=3.1.0')
 
     # Use shared utility code to reduce wheel sizes
     # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
-    cy = find_program(cy.cmd_array()[0])
     cython_shared_src = custom_target(
         install: false,
         output: '_cyutility.c',
         command: [
-            cy,
+            cy.cmd_array(),
             '-3',
             '-Xfreethreading_compatible=true',
             '--fast-fail',
