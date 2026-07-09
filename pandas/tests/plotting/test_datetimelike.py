@@ -896,6 +896,72 @@ class TestTSPlot:
         x2 = lines[1].get_xdata()
         tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
+    def test_bday_subplots_sharex_false(self):
+        # GH#64311 subplots=True with sharex=False previously raised
+        # AttributeError: only the first subplot received business-day freq
+        # info, and the int64 ordinal index carries no freq of its own.
+        idx = bdate_range("2020-01-01", periods=10)
+        df = DataFrame(
+            np.arange(20, dtype=np.float64).reshape(10, 2),
+            index=idx,
+            columns=["a", "b"],
+        )
+        axes = df.plot(subplots=True, sharex=False)
+        expected = np.array([conv.bday_count(ts) for ts in idx])
+        for ax in axes:
+            assert ax.freq == "B"
+            tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), expected)
+
+    def test_mixed_freq_bday_then_higher(self):
+        # GH#64311 plotting a higher-frequency (hourly) series onto an existing
+        # business-day axis previously raised AttributeError: the stored BDay
+        # series has a plain int64 index with no .asfreq method.
+        bser = Series(
+            np.arange(10, dtype=np.float64),
+            index=bdate_range("2020-01-01", periods=10),
+        )
+        hser = Series(
+            np.arange(48, dtype=np.float64),
+            index=date_range("2020-01-01", periods=48, freq="h"),
+        )
+        _, ax = mpl.pyplot.subplots()
+        bser.plot(ax=ax)
+        hser.plot(ax=ax)
+        # both lines resolve onto the finer hourly grid
+        assert ax.freq == "h"
+        for line in ax.get_lines():
+            assert PeriodIndex(data=line.get_xdata()).freq == "h"
+        # aligned starts -> shared first x-coordinate
+        assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
+
+    def test_mixed_freq_bday_onto_lower(self):
+        # GH#64311 plotting BDay data onto an axis that already holds a
+        # lower-frequency (monthly) series previously left ax.freq clobbered to
+        # "B" before resampling, so the monthly line kept its month ordinals
+        # and the two lines ended up on incompatible scales.
+        mser = Series(
+            np.arange(12, dtype=np.float64),
+            index=date_range("2020-01-01", periods=12, freq="ME"),
+        )
+        bser = Series(
+            np.arange(10, dtype=np.float64),
+            index=bdate_range("2020-06-01", periods=10),
+        )
+        _, ax = mpl.pyplot.subplots()
+        mser.plot(ax=ax)
+        bser.plot(ax=ax)
+        # both lines share a common business-day ordinal scale
+        assert ax.freq == "B"
+        line_m, line_b = ax.get_lines()
+        # the monthly line is upsampled to the business-day ordinals of its
+        # (month-start) timestamps
+        expected_m = np.array(
+            [conv.bday_count(per.to_timestamp()) for per in mser.index.to_period("M")]
+        )
+        tm.assert_numpy_array_equal(line_m.get_xdata(), expected_m)
+        expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
+        tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
+
     def test_mixed_freq_hf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
