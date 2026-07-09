@@ -5364,6 +5364,10 @@ class DataFrame(NDFrame, OpsMixin):
         * To select Pandas categorical dtypes, use ``'category'``
         * To select Pandas datetimetz dtypes, use ``'datetimetz'``
           or ``'datetime64[ns, tz]'``
+        * An :class:`~pandas.api.extensions.ExtensionDtype` subclass matches
+          every instance of that subclass regardless of parametrization, e.g.
+          ``pd.ArrowDtype`` selects all pyarrow-backed columns and
+          ``pd.CategoricalDtype`` selects all categorical columns
 
         Examples
         --------
@@ -5453,6 +5457,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             funcs: list[Callable[[DtypeObj], bool]] = []
             instances: list[DtypeObj] = []
+            klasses: list[type[ExtensionDtype]] = []
             resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
                 if isinstance(dtype, (np.dtype, ExtensionDtype)):
@@ -5512,6 +5517,13 @@ class DataFrame(NDFrame, OpsMixin):
                     resolved.update((np.float64, np.float32))
                     funcs.append(matches_type((np.float64, np.float32)))
 
+                elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+                    # An ExtensionDtype subclass matches every instance of
+                    # that subclass, e.g. ArrowDtype matches all pyarrow-backed
+                    # dtypes and CategoricalDtype matches all categoricals
+                    resolved.add(dtype)
+                    klasses.append(dtype)
+
                 else:
                     # Resolve dtype to a dtype.type-style object. Comparing the
                     # raw user input against np.dtype(object) would trigger
@@ -5567,8 +5579,15 @@ class DataFrame(NDFrame, OpsMixin):
                     else:
                         funcs.append(matches_type(dtype_type))
 
+            klass_tuple = tuple(klasses)
+
             def matches_any(dtype_obj: DtypeObj) -> bool:
+                # instance specs (GH#40234) and EA-subclass specs (GH#65366) are
+                # checked against the raw dtype before the ArrowDtype ->
+                # numpy_dtype normalization below.
                 if any(dtype_obj == instance for instance in instances):
+                    return True
+                if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
                     # class- and string-based matching treats ArrowDtype
@@ -5607,8 +5626,7 @@ class DataFrame(NDFrame, OpsMixin):
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
         if (
             np.object_ in include_set
-            and str not in include_set
-            and str not in exclude_set
+            and not {str, StringDtype} & (include_set | exclude_set)
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes
