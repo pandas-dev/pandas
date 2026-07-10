@@ -585,7 +585,9 @@ def test_store_mixed(compression, temp_h5_path):
 def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
     options = {}
     if compression:
+        # complevel is required for complib to take effect (GH#29310)
         options["complib"] = "blosc"
+        options["complevel"] = 9
 
     with HDFStore(path, "w", **options) as store:
         store["obj"] = obj
@@ -596,7 +598,9 @@ def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
 def _check_roundtrip_table(obj, comparator, path, compression=False):
     options = {}
     if compression:
+        # complevel is required for complib to take effect (GH#29310)
         options["complib"] = "blosc"
+        options["complevel"] = 9
 
     with HDFStore(path, "w", **options) as store:
         store.put("obj", obj, format="table", track_times=False)
