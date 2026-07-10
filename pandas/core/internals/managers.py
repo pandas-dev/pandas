@@ -558,6 +558,19 @@ class BaseBlockManager(PandasObject):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
+        # GH#66255: Early return when the column indexer is a boolean array
+        # that selects no columns (all False).  Without this, the empty
+        # selection propagates to ExtensionBlock._unwrap_setitem_indexer
+        # where ``False == 0`` incorrectly matches the integer-column-0 branch.
+        if self.ndim == 2 and isinstance(indexer, tuple) and len(indexer) == 2:
+            col_idx = indexer[1]
+            if (
+                isinstance(col_idx, np.ndarray)
+                and col_idx.dtype == np.dtype(bool)
+                and not col_idx.any()
+            ):
+                return self.copy(deep=False)
+
         if not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
