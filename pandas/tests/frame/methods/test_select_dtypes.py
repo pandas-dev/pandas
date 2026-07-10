@@ -333,7 +333,7 @@ class TestSelectDtypes:
         tm.assert_frame_equal(r, e)
 
         with tm.assert_produces_warning(warn, match=msg):
-            r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
+            r = df.select_dtypes(include=["i8", "O", "timedelta64[us]"])
         e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
@@ -354,11 +354,63 @@ class TestSelectDtypes:
                 "f": pd.date_range("now", periods=3).values,
             }
         )
-        with pytest.raises(ValueError, match=".+ is too specific"):
+        # units that pandas cannot represent are rejected; only 's', 'ms',
+        # 'us', 'ns' (or a unitless spec) are accepted
+        with pytest.raises(ValueError, match="is not a supported"):
             df.select_dtypes(include=["datetime64[D]"])
 
-        with pytest.raises(ValueError, match=".+ is too specific"):
+        with pytest.raises(ValueError, match="is not a supported"):
             df.select_dtypes(exclude=["datetime64[as]"])
+
+    @pytest.mark.parametrize("kind", ["datetime64", "timedelta64"])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_select_dtypes_dt64_td64_specific_unit(self, kind, unit):
+        # GH#40234 a datetime64/timedelta64 spec with a specific (supported)
+        # unit selects only columns with exactly that resolution
+        units = ["s", "ms", "us", "ns"]
+        if kind == "datetime64":
+            base = pd.date_range("2020-01-01", periods=3)
+        else:
+            base = pd.timedelta_range("1 day", periods=3)
+        df = DataFrame({other: base.as_unit(other) for other in units})
+
+        expected = df[[unit]]
+        # spelled as a string ...
+        result = df.select_dtypes(include=[f"{kind}[{unit}]"])
+        tm.assert_frame_equal(result, expected)
+        # ... and as a numpy dtype instance
+        result = df.select_dtypes(include=[np.dtype(f"{kind}[{unit}]")])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kind, cls", [("datetime64", np.datetime64), ("timedelta64", np.timedelta64)]
+    )
+    def test_select_dtypes_dt64_td64_unitless_matches_all(self, kind, cls):
+        # GH#40234 a unitless datetime64/timedelta64 spec still matches every
+        # resolution
+        units = ["s", "ms", "us", "ns"]
+        if kind == "datetime64":
+            base = pd.date_range("2020-01-01", periods=3)
+        else:
+            base = pd.timedelta_range("1 day", periods=3)
+        df = DataFrame({unit: base.as_unit(unit) for unit in units})
+
+        for spec in (kind, cls, np.dtype(kind)):
+            result = df.select_dtypes(include=[spec])
+            tm.assert_frame_equal(result, df)
+
+    def test_select_dtypes_dt64_unit_exclude_and_overlap(self):
+        # GH#40234 excluding one resolution leaves the others, and pairing a
+        # unit-specific include/exclude does not trip the overlap check
+        base = pd.date_range("2020-01-01", periods=3)
+        df = DataFrame({unit: base.as_unit(unit) for unit in ["s", "us", "ns"]})
+        expected = df[["s", "ns"]]
+
+        result = df.select_dtypes(exclude=["datetime64[us]"])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.select_dtypes(include="datetime64", exclude="datetime64[us]")
+        tm.assert_frame_equal(result, expected)
 
     def test_select_dtypes_datetime_with_tz(self):
         df2 = DataFrame(

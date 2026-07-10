@@ -4905,7 +4905,10 @@ control compression: ``complevel`` and ``complib``.
   ``0<complevel<10`` enables compression.
 
 * ``complib`` specifies which compression library to use.
-  If nothing is  specified the default library ``zlib`` is used. A
+  If nothing is  specified the default library ``zlib`` is used. Note that
+  ``complib`` only takes effect when ``complevel`` is set greater than ``0``;
+  passing ``complib`` on its own writes the data uncompressed and emits a
+  ``UserWarning``. A
   compression library usually optimizes for either good compression rates
   or speed and the results will depend on the type of data. Which type of
   compression to choose depends on your specific needs and data. The list
@@ -6492,7 +6495,9 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
+       df.to_hdf(
+           "test_fixed_compress.hdf", key="test", mode="w", complib="blosc", complevel=9
+       )
 
 
    def test_hdf_fixed_read_compress():
@@ -6509,7 +6514,12 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf",
+           key="test",
+           mode="w",
+           complib="blosc",
+           complevel=9,
+           format="table",
        )
 
 
