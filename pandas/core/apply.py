@@ -1707,6 +1707,14 @@ class SeriesApply(NDFrameApply):
         elif not self.by_row:
             return func(obj, *self.args, **self.kwargs)
 
+        if not self.args and not self.kwargs:
+            from pandas.core.util.numba_ import maybe_run_numba_apply
+            res_arr = maybe_run_numba_apply(obj, func)
+            if res_arr is not None:
+                return obj._constructor(res_arr, index=obj.index).__finalize__(
+                    obj, method="apply"
+                )
+
         if self.args or self.kwargs:
             # _map_values does not support args/kwargs
             def curried(x):

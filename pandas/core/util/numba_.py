@@ -147,3 +147,70 @@ def prepare_function_arguments(
 
     args = args[num_required_args:]
     return args, kwargs
+
+
+_JIT_APPLY_CACHE: dict[int, Callable] = {}
+_GLOBAL_LOOP: Callable | None = None
+
+
+def get_global_loop(numba) -> Callable:
+    global _GLOBAL_LOOP
+    if _GLOBAL_LOOP is None:
+        @numba.njit(parallel=True)
+        def global_numba_apply_loop(arr, jitted_func):
+            n = len(arr)
+            first_val = jitted_func(arr[0])
+            res = np.empty(n, dtype=type(first_val))
+            res[0] = first_val
+            for i in numba.prange(1, n):
+                res[i] = jitted_func(arr[i])
+            return res
+        _GLOBAL_LOOP = global_numba_apply_loop
+    return _GLOBAL_LOOP
+
+
+def maybe_run_numba_apply(series, func) -> np.ndarray | None:
+    """
+    Attempt to JIT compile the user function using Numba and run it over the Series.
+
+    Parameters
+    ----------
+    series : Series
+        The Pandas Series object.
+    func : Callable
+        The User Defined Function (UDF).
+
+    Returns
+    -------
+    np.ndarray or None
+        The result array if compilation and execution succeed, otherwise None.
+    """
+    if len(series) < 50_000:
+        return None
+
+    if not np.issubdtype(series.dtype, np.number) and not np.issubdtype(series.dtype, np.datetime64) and not np.issubdtype(series.dtype, np.timedelta64):
+        return None
+
+    try:
+        import numba
+    except ImportError:
+        return None
+
+    func_id = id(func)
+    if func_id in _JIT_APPLY_CACHE:
+        jitted_udf = _JIT_APPLY_CACHE[func_id]
+    else:
+        try:
+            jitted_udf = numba.njit(func)
+            _JIT_APPLY_CACHE[func_id] = jitted_udf
+        except Exception:
+            return None
+
+    try:
+        loop = get_global_loop(numba)
+        return loop(series.to_numpy(), jitted_udf)
+    except Exception:
+        return None
+
+
+
