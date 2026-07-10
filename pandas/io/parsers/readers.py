@@ -849,6 +849,13 @@ def _read_csv_parallel(
         # block is ndarray-backed: plain ndarrays plus tz-naive
         # datetime64/timedelta64 arrays (from parse_dates conversion).
         if isinstance(piece, np.ndarray):
+            if piece.dtype == object:
+                # Object pieces take the leftover path below, where the
+                # gathered column runs through the same constructor
+                # inference as a serial read (e.g. object -> str dtype
+                # under ``future.infer_string`` when the pyarrow string
+                # fast path is unavailable).
+                return None
             return piece
         if isinstance(piece, (DatetimeArray, TimedeltaArray)) and isinstance(
             piece.dtype, np.dtype
@@ -986,6 +993,10 @@ def _read_csv_parallel(
         gathered = _concatenate_chunks(leftover_dicts, leftover_names, warn_mixed=False)
         for pos, name in zip(leftover_pos, leftover_names, strict=True):
             values = gathered[name]
+            if isinstance(values, np.ndarray) and values.dtype == object:
+                # Match the serial constructor's inference for object
+                # columns (object -> str dtype under future.infer_string).
+                values = Series(values, index=index, copy=False)._values
             if isinstance(values, np.ndarray):
                 # _make_block expects numpy values already in 2D block shape
                 values = values.reshape(1, -1)

@@ -1405,3 +1405,21 @@ def test_count_processor_core_records_variable_record_size():
 def test_count_processor_core_records_empty():
     buf = (ctypes.c_byte * 0)()
     assert _count_processor_core_records(buf, 0) is None
+
+
+def test_parallel_string_dtype_python_storage(tmp_path, monkeypatch):
+    # Without the pyarrow string fast path, the gathered object column must
+    # get the same string-dtype inference a serial read applies via the
+    # DataFrame constructor (GH#66275).
+    import pandas.io.parsers.readers as _readers
+
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},s{i % 7}" for i in range(5000))
+    path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    with option_context("mode.string_storage", "python"):
+        with option_context("mode.max_threads", 1):
+            serial = read_csv(path)
+        with option_context("mode.max_threads", 4):
+            parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)
