@@ -2,9 +2,9 @@
 
 from libc.math cimport (
     fabs,
-    signbit,
     isinf,
     isnan,
+    signbit,
 )
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
@@ -468,7 +468,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                     if not isnan(val):
                         if isinf(val):          # <--- CHANGED
                             inf_count -= 1
-                        else:                   
+                        else:
                             remove_var(val, &nobs, &mean_x, &ssqdm_x,
                                        &compensation_remove, &numerically_unstable)
 
@@ -478,19 +478,19 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                     if not isnan(val):
                         if isinf(val):          # <--- CHANGED
                             inf_count += 1
-                        else:                   
+                        else:
                             add_var(val, &nobs, &mean_x, &ssqdm_x, &compensation_add,
                                     &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
-                inf_count = 0                   
+                inf_count = 0
                 for j in range(s, e):
                     val = values[j]
                     if not isnan(val):
                         if isinf(val):          # <--- CHANGED
                             inf_count += 1
-                        else:                   
+                        else:
                             add_var(val, &nobs, &mean_x, &ssqdm_x, &compensation_add,
                                     &numerically_unstable)
                 numerically_unstable = False
