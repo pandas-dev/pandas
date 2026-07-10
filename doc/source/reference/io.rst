@@ -90,8 +90,14 @@ JSON
 .. autosummary::
    :toctree: api/
 
-   JsonReader
    build_table_schema
+
+.. currentmodule:: pandas.api.typing
+
+.. autosummary::
+   :toctree: api/
+
+   JsonReader
 
 .. currentmodule:: pandas
 
