@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import inspect
 import types
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -13,6 +16,7 @@ from pandas.errors import NumbaUtilError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pandas import Series
 
 GLOBAL_USE_NUMBA: bool = False
 
@@ -153,11 +157,11 @@ _JIT_APPLY_CACHE: dict[int, Callable] = {}
 _GLOBAL_LOOP: Callable | None = None
 
 
-def get_global_loop(numba) -> Callable:
+def get_global_loop(numba: types.ModuleType) -> Callable:
     global _GLOBAL_LOOP
     if _GLOBAL_LOOP is None:
         @numba.njit(parallel=True)
-        def global_numba_apply_loop(arr, jitted_func):
+        def global_numba_apply_loop(arr: np.ndarray, jitted_func: Callable[[Any], Any]) -> np.ndarray:
             n = len(arr)
             first_val = jitted_func(arr[0])
             res = np.empty(n, dtype=type(first_val))
@@ -170,8 +174,8 @@ def get_global_loop(numba) -> Callable:
 
 
 def maybe_run_numba_apply(
-    series,
-    func,
+    series: Series,
+    func: Callable[[Any], Any],
     engine: str | None = None,
     engine_kwargs: dict[str, Any] | None = None,
 ) -> np.ndarray | None:
