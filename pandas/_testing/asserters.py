@@ -709,8 +709,12 @@ def assert_numpy_array_equal(
     __tracebackhide__ = True
 
     # instance validation
-    # Show a detailed error message when classes are different
-    assert_class_equal(left, right, obj=obj)
+    # Show a detailed error message when classes are different. Always describe
+    # this as a numpy array class mismatch instead of using ``obj``, so that
+    # callers passing e.g. ``obj="Series"`` do not produce a misleading
+    # "Series classes are different" message when it is only the backing array
+    # classes (e.g. an ``np.ndarray`` subclass) that differ (GH#65770).
+    assert_class_equal(left, right, obj="numpy array")
     # both classes must be an np.ndarray
     _check_isinstance(left, right, np.ndarray)
 

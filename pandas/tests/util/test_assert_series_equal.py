@@ -324,6 +324,22 @@ def test_series_equal_series_type():
         tm.assert_series_equal(s3, s1, check_series_type=True)
 
 
+def test_series_equal_array_subclass_message():
+    # GH#65770 - when only the backing array classes differ (e.g. an
+    # ``np.ndarray`` subclass), the error must not be reported as a mismatch of
+    # the Series classes; the message should make clear it refers to the
+    # (backing) numpy array classes instead.
+    class OtherArray(np.ndarray):
+        pass
+
+    arr = np.array([1])
+    left = Series(arr)
+    right = Series(arr.view(OtherArray))
+
+    with pytest.raises(AssertionError, match="numpy array classes are different"):
+        tm.assert_series_equal(left, right, check_series_type=False)
+
+
 def test_series_equal_exact_for_nonnumeric():
     # https://github.com/pandas-dev/pandas/issues/35446
     s1 = Series(["a", "b"])
