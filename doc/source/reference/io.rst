@@ -90,6 +90,7 @@ JSON
 .. autosummary::
    :toctree: api/
 
+   JsonReader
    build_table_schema
 
 .. currentmodule:: pandas
