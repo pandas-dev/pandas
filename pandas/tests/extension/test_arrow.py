@@ -4492,3 +4492,47 @@ def test_reduction_axis_out_of_bounds(method, axis):
     msg = "`axis` must be fewer than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
+
+
+@pytest.mark.parametrize("dtype", ["float32[pyarrow]", "float64[pyarrow]"])
+def test_cummax_all_negative(dtype):
+    # GH#66257 - pyarrow's cumulative_max defaults start to the smallest
+    # positive normal float, clobbering negative running maxima
+    ser = pd.Series([-4.0, -3.0, -2.0, -1.0], dtype=dtype)
+    result = ser.cummax()
+    expected = pd.Series([-4.0, -3.0, -2.0, -1.0], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["float32[pyarrow]", "float64[pyarrow]"])
+def test_cummin_with_inf(dtype):
+    # GH#66257 - pyarrow's cumulative_min defaults start to the largest
+    # finite float, clobbering a running minimum of +inf
+    ser = pd.Series([float("inf"), 4.0, 3.0], dtype=dtype)
+    result = ser.cummin()
+    expected = pd.Series([float("inf"), 4.0, 3.0], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_cummax_cummin_match_numpy_dtype():
+    # GH#66257
+    values = [-2.5, -1.0, 0.0, -3.0, 1.5]
+    ser_pa = pd.Series(values, dtype="float64[pyarrow]")
+    ser_np = pd.Series(values, dtype="float64")
+
+    for op in ["cummax", "cummin"]:
+        result = getattr(ser_pa, op)().astype("float64")
+        expected = getattr(ser_np, op)()
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+def test_cummax_negative_with_na(skipna):
+    # GH#66257 - NA handling must be preserved with the explicit start value
+    ser = pd.Series([-4.0, None, -2.0], dtype="float64[pyarrow]")
+    result = ser.cummax(skipna=skipna)
+    if skipna:
+        expected = pd.Series([-4.0, None, -2.0], dtype="float64[pyarrow]")
+    else:
+        expected = pd.Series([-4.0, None, None], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)

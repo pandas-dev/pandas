@@ -2375,6 +2375,13 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
+        # GH#66257: pyarrow's cumulative_max/min default start to the smallest
+        # positive normal / largest finite float, not -inf/+inf. This causes
+        # incorrect results for negative cummax or inf cummin on float types.
+        if pa.types.is_floating(pa_dtype) and name in ("cummax", "cummin"):
+            start_value = float("-inf") if name == "cummax" else float("inf")
+            kwargs.setdefault("start", pa.scalar(start_value, type=pa_dtype))
+
         try:
             result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
         except pa.ArrowNotImplementedError as err:
