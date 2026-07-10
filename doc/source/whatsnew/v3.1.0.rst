@@ -427,7 +427,7 @@ I/O
 - Fixed ``MemoryError`` in :meth:`HDFStore.select` when iterating large tables with ``chunksize`` and no ``where`` filter (:issue:`15937`)
 - Fixed bug in :func:`read_hdf` raising on files written by older pandas versions whose ``freq`` index attribute could not be decoded; the ``freq`` is now dropped with a warning instead of corrupting the index (:issue:`35917`)
 - Fixed bug in :func:`read_hdf` where a categorical column containing a category equal to the ``nan_rep`` string (e.g. the default ``"nan"``) raised ``ValueError: operands could not be broadcast together`` instead of reading that category back as ``NaN`` (:issue:`21741`)
-- Fixed bug in :func:`read_hdf` where the literal string ``"nan"`` in a string :class:`Index` was incorrectly converted to ``NaN`` on read, even when a custom ``nan_rep`` was supplied (:issue:`9604`)
+- Fixed bug in :func:`read_hdf` where a string :class:`Index` did not round-trip missing values and the literal string ``"nan"``: a missing value was read back as ``"nan"`` and a literal ``"nan"`` was read back as ``NaN`` (:issue:`9604`)
 - Fixed bug in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.put` where writing an object to a key silently deleted any nested keys stored beneath it (:issue:`17267`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
