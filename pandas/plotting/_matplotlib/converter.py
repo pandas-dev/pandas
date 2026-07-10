@@ -75,11 +75,10 @@ _mpl_units: dict = {}  # Cache for units overwritten by us
 
 def plottable_ea_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
     """Return a list of (type, Converter) pairs of all plottable ExtensionDtypes."""
-    return [
-        tpl
-        for tpl in [dtype._get_plot_converter() for dtype in _ea_dtypes_registry.dtypes]
-        if tpl is not None
+    converter_pairs = [
+        dtype._get_plot_converter() for dtype in _ea_dtypes_registry.dtypes
     ]
+    return [pair for pair in converter_pairs if pair is not None]
 
 
 def plottable_types() -> list[type]:

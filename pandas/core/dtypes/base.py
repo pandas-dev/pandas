@@ -88,7 +88,6 @@ class ExtensionDtype:
 
     * _is_numeric
     * _is_boolean
-    * _is_plottable
     * _get_common_dtype
 
     The `na_value` class attribute can be used to set the default NA value

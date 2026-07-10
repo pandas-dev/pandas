@@ -48,7 +48,7 @@ def _get_plot_df(data: ExtensionArray) -> pd.DataFrame:
 
 def _check_plot_data(
     ax: maxes.Axes,
-    sr: pd.Series,
+    ser: pd.Series,
     axis: Literal["x", "y"],
 ) -> None:
     """Check that the data plotted matches the expected converted data from the Series.
@@ -57,18 +57,18 @@ def _check_plot_data(
     ----------
     ax : maxes.Axes
         The Axes object containing the plot.
-    sr : pd.Series
+    ser : pd.Series
         The Series containing the expected data.
     axis : Literal["x", "y"]
         The axis to check ("x" or "y").
     """
-    arr = sr.to_numpy()
+    arr = ser.to_numpy()
     if munits._is_natively_supported(arr) or is_bool_dtype(arr):
         # Convert natively or boolean just to float
         converted_data = arr.astype(np.float64)
     else:
         # Need to get registered converter for non-natively
-        type_ = sr.dtype.type
+        type_ = ser.dtype.type
         with pandas_converters():
             converter = munits.registry[type_]
         axis_: maxis.Axis = getattr(ax, f"{axis}axis")
@@ -136,7 +136,6 @@ class BasePlottingTests:
         """Test that EA data can be plotted on the x-axis."""
         _plot(data, x="Data", y="Numeric")
 
-    # Idea: Add plot_kind fixture defined by the EAs
     def test_plot_on_y_axis(self, data, **kwargs):
         """Test that EA data can be plotted on the y-axis."""
         _plot(data, x="Numeric", y="Data", **kwargs)
