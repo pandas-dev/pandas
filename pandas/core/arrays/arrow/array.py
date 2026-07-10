@@ -418,10 +418,10 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of strings.
         """
-        mask = isna(strings)
-
         if isinstance(strings, cls):
             strings = strings._pa_array
+
+        is_pa_array = isinstance(strings, (pa.Array, pa.ChunkedArray))
 
         pa_type = to_pyarrow_type(dtype)
         if (
@@ -441,7 +441,7 @@ class ArrowExtensionArray(
             from pandas.core.tools.datetimes import to_datetime
 
             scalars = to_datetime(strings, errors="raise").date
-            scalars = pa.array(scalars, type=pa_type, mask=mask)
+            scalars = pa.array(scalars, type=pa_type, mask=isna(strings))
         elif pa.types.is_duration(pa_type):
             from pandas.core.tools.timedeltas import to_timedelta
 
@@ -452,7 +452,7 @@ class ArrowExtensionArray(
                 # attempt to parse as int64 reflecting pyarrow's
                 # duration to string casting behavior
                 mask = isna(scalars)
-                if not isinstance(strings, (pa.Array, pa.ChunkedArray)):
+                if not is_pa_array:
                     strings = pa.array(strings, type=pa.string(), mask=mask)
                 strings = pc.if_else(mask, None, strings)
                 try:
@@ -471,10 +471,10 @@ class ArrowExtensionArray(
             # Note: BooleanArray was previously used to parse these strings
             #   and allows "1.0" and "0.0". Pyarrow casting does not support
             #   this, but we allow it here.
-            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+            if is_pa_array:
                 scalars = strings
             else:
-                scalars = pa.array(strings, type=pa.string(), mask=mask)
+                scalars = pa.array(strings, type=pa.string(), mask=isna(strings))
             scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
             scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
             scalars = scalars.cast(pa.bool_())
@@ -486,10 +486,12 @@ class ArrowExtensionArray(
             from pandas.core.tools.numeric import to_numeric
 
             scalars = to_numeric(strings, errors="raise")
-            if isinstance(strings, (pa.Array, pa.ChunkedArray)):
+            if is_pa_array:
                 scalars = strings.cast(pa_type)
-            elif mask is not None:
-                scalars = pa.array(scalars, mask=mask, type=pa_type)
+            else:
+                mask = isna(strings)
+                if mask is not None:
+                    scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
             raise NotImplementedError(
