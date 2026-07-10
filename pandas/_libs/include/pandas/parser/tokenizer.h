@@ -165,42 +165,27 @@ typedef struct coliter_t {
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
-// As COLITER_NEXT, but also emits the resolved token index via idx_out so
-// callers can derive the token length from adjacent word_starts entries.
-// Missing fields yield word = "" and idx_out = -1.
-#define COLITER_NEXT_WITH_IDX(iter, word, idx_out)                             \
-  do {                                                                         \
-    idx_out = *iter.line_start++ + iter.col;                                   \
-    if (idx_out >= *iter.line_start) {                                         \
-      word = "";                                                               \
-      idx_out = -1;                                                            \
-    } else {                                                                   \
-      word = iter.words[idx_out];                                              \
-    }                                                                          \
-  } while (0)
+// Advance the column iterator and return the next field's token, emitting its
+// resolved index via idx_out so callers needing the token length can compute
+// it as word_starts[idx+1] - word_starts[idx] - 1 (using parser->stream_len
+// for the last token where idx+1 == words_len). A missing field yields "" and
+// idx_out = -1, which callers must treat as length 0 rather than indexing into
+// word_starts.
+static inline const char *coliter_next_with_idx(coliter_t *self,
+                                                int64_t *idx_out) {
+  const int64_t idx = *self->line_start++ + self->col;
+  if (idx >= *self->line_start) {
+    *idx_out = -1;
+    return "";
+  }
+  *idx_out = idx;
+  return self->words[idx];
+}
 
-#define COLITER_NEXT(iter, word)                                               \
-  do {                                                                         \
-    int64_t coliter_idx;                                                       \
-    COLITER_NEXT_WITH_IDX(iter, word, coliter_idx);                            \
-    (void)coliter_idx;                                                         \
-  } while (0)
-
-// Emits the resolved token index via idx_out so callers needing the token
-// length can compute it as word_starts[idx+1] - word_starts[idx] - 1
-// (using parser->stream_len for the last token where idx+1 == words_len).
-// Missing fields yield word = "" and idx_out = -1; callers must treat
-// those as length 0 rather than indexing into word_starts.
-#define COLITER_NEXT_WITH_IDX(iter, word, idx_out)                             \
-  do {                                                                         \
-    idx_out = *iter.line_start++ + iter.col;                                   \
-    if (idx_out >= *iter.line_start) {                                         \
-      word = "";                                                               \
-      idx_out = -1;                                                            \
-    } else {                                                                   \
-      word = iter.words[idx_out];                                              \
-    }                                                                          \
-  } while (0)
+static inline const char *coliter_next(coliter_t *self) {
+  int64_t idx;
+  return coliter_next_with_idx(self, &idx);
+}
 
 parser_t *parser_new(void);
 
