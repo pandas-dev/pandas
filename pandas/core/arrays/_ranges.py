@@ -142,7 +142,10 @@ def generate_daily_offset_range(
         # end + periods: anchor at the last on-offset date <= end so that
         # ``periods`` on-offset dates are returned (GH#64834).
         tod: Timedelta = end - end.normalize()
-        anchor = Timestamp(freq.rollback(end.normalize()))
+        # pyright can't see through the NaT-returning Timestamp constructor.
+        anchor: Timestamp = Timestamp(  # pyright: ignore[reportAssignmentType]
+            freq.rollback(end.normalize())
+        )
         start = (anchor - (periods - 1) * freq + tod).as_unit(unit)
         end = (anchor + tod).as_unit(unit)
     else:
@@ -151,7 +154,9 @@ def generate_daily_offset_range(
         assert start is not None
         # Roll an off-offset start forward to the first on-offset date (n >= 1).
         tod = start - start.normalize()
-        anchor = Timestamp(freq.rollforward(start.normalize()))
+        anchor = Timestamp(  # pyright: ignore[reportAssignmentType]
+            freq.rollforward(start.normalize())
+        )
         start = (anchor + tod).as_unit(unit)
         if periods is not None:
             # start + periods.
