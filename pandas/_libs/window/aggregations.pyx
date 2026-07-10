@@ -3,6 +3,8 @@
 from libc.math cimport (
     fabs,
     signbit,
+    isinf,
+    isnan,
 )
 from libcpp.deque cimport deque
 from libcpp.stack cimport stack
@@ -434,6 +436,8 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
         bint requires_recompute, numerically_unstable
+        int64_t inf_count = 0  # <--- ADDED: Track infinities in the window
+        float64_t val          # <--- ADDED: Temporary variable
 
     minp = max(minp, 1)
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
@@ -454,37 +458,54 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                 i == 0
                 or not is_monotonic_increasing_bounds
                 or s >= end[i - 1]
+                or inf_count > 0  # <--- ADDED: Force recompute if previous window had inf
             )
 
             if not requires_recompute:
-                # After the first window, observations can both be added
-                # and removed
-
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
-                               &compensation_remove, &numerically_unstable)
+                    val = values[j]
+                    if not isnan(val):
+                        if isinf(val):          # <--- CHANGED
+                            inf_count -= 1
+                        else:                   
+                            remove_var(val, &nobs, &mean_x, &ssqdm_x,
+                                       &compensation_remove, &numerically_unstable)
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &numerically_unstable)
+                    val = values[j]
+                    if not isnan(val):
+                        if isinf(val):          # <--- CHANGED
+                            inf_count += 1
+                        else:                   
+                            add_var(val, &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                                    &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
-
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
+                inf_count = 0                   
                 for j in range(s, e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &numerically_unstable)
+                    val = values[j]
+                    if not isnan(val):
+                        if isinf(val):          # <--- CHANGED
+                            inf_count += 1
+                        else:                   
+                            add_var(val, &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                                    &numerically_unstable)
                 numerically_unstable = False
 
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
+            if inf_count > 0:
+                output[i] = NaN                 # <--- CHANGED (NaN is defined locally at top of file)
+            else:
+                output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
                 mean_x = 0.0
                 ssqdm_x = 0.0
                 compensation_remove = 0.0
+                inf_count = 0                   # <--- ADDED: Reset inf_count
 
     return output
 

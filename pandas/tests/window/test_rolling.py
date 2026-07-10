@@ -1850,7 +1850,7 @@ def test_step_not_positive_raises():
             [20, 10, 10, np.inf, 1, 1, 2, 3],
             3,
             1,
-            [np.nan, 50, 100 / 3, 0, 40.5, 0, 1 / 3, 1],
+            [np.nan, 50, 100 / 3, np.nan, np.nan, np.nan, 1 / 3, 1],
         ],
         [
             [20, 10, 10, np.nan, 10, 1, 2, 3],
