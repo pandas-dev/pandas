@@ -281,6 +281,8 @@ cdef extern from "pandas/parser/pd_parser.h":
 
     int parser_trim_buffers(parser_t *self)
 
+    void parser_clear_data_buffers(parser_t *self) nogil
+
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(
         parser_t *self, uint64_t nrows, const char *encoding_errors
@@ -1442,7 +1444,19 @@ cdef class TextReader:
 # which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
+    # Drop the pre-loaded buffer reference deterministically so the caller
+    # can close the backing mmap (free-threaded builds may otherwise delay
+    # the release past pool shutdown).
+    reader._buffer_ref = None
     # also preemptively free all allocated memory
+    # Free the (potentially large) data buffers without the GIL: on macOS
+    # freeing them gives pages back to the OS via madvise, which would
+    # otherwise stall every other parser thread in the parallel-read path.
+    # Guard NULL: __cinit__ can raise before parser_new() (e.g. missing
+    # source) yet __dealloc__ still runs (GH#53131).
+    if reader.parser != NULL:
+        with nogil:
+            parser_clear_data_buffers(reader.parser)
     parser_free(reader.parser)
     if reader.true_set:
         kh_destroy_str_starts(reader.true_set)
