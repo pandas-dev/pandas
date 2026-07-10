@@ -30,6 +30,7 @@ from pandas import (
     StringDtype,
     concat,
     option_context,
+    read_csv,
 )
 import pandas._testing as tm
 
@@ -775,3 +776,64 @@ def test_string_storage_python_consistent(c_parser_only):
         assert isinstance(arr.dtype, StringDtype)
         assert arr.dtype.storage == "python"
         assert type(arr) is arr.dtype.construct_array_type()
+
+
+@pytest.mark.parametrize("lineterm", ["\n", "\r\n"])
+def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
+    # The SIMD block fast lane defers lines led by blanks (or entirely
+    # blank) to the state machine; a no-progress lane exit must preserve
+    # the post-WHITESPACE_LINE state instead of ping-ponging (GH#XXXXX).
+    parser = c_parser_only
+    rows = []
+    for i in range(200):
+        if i % 7 == 0:
+            rows.append("")  # blank line, skipped by skip_blank_lines
+        elif i % 11 == 0:
+            rows.append(f"  {i},{i * 2},{i * 3}")  # leading whitespace
+        else:
+            rows.append(f"{i},{i * 2},{i * 3}")
+    data = "a,b,c" + lineterm + lineterm.join(rows) + lineterm
+    result = parser.read_csv(StringIO(data))
+    expected = read_csv(StringIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_block_lane_chunked_reads_match(c_parser_only):
+    # A line-limited tokenize call can stop mid-lane; the parser state must
+    # be reset so the next chunk resumes cleanly (GH#XXXXX).
+    parser = c_parser_only
+    n_rows = 500
+    data = "a,b\n" + "\n".join(f"value{i:04d},{i}" for i in range(n_rows)) + "\n"
+    expected = parser.read_csv(StringIO(data))
+    with parser.read_csv(StringIO(data), chunksize=7) as reader:
+        result = concat(reader, ignore_index=True)
+    tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(StringIO(data), low_memory=True)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_block_lane_crlf_pairs_at_block_edges(c_parser_only):
+    # \r\n pairs are consumed in-lane; pairs split across a 16-byte block
+    # boundary or bare \r must defer to the state machine.  Vary field
+    # widths so terminators land on every block offset.
+    parser = c_parser_only
+    rows = [f"{'x' * (i % 23)},{i}" for i in range(300)]
+    data = "a,b\r\n" + "\r\n".join(rows) + "\r\n"
+    result = parser.read_csv(StringIO(data))
+    expected = parser.read_csv(StringIO(data.replace("\r\n", "\n")))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_block_lane_quoted_specials_mid_block(c_parser_only):
+    # Any block containing a quote falls back to the state machine; quoted
+    # fields with embedded delimiters/newlines must round-trip regardless
+    # of their offset inside a 16-byte block.
+    parser = c_parser_only
+    rows = []
+    for i in range(200):
+        pad = "y" * (i % 19)
+        rows.append(f'{pad},"emb,{i}\nnext",{i}')
+    data = "a,b,c\n" + "\n".join(rows) + "\n"
+    result = parser.read_csv(StringIO(data))
+    expected = read_csv(StringIO(data), engine="python")
+    tm.assert_frame_equal(result, expected)
