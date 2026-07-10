@@ -109,6 +109,10 @@ def _plot(
     # Create a DataFrame for plotting using the provided ExtensionArray data
     plot_df = _get_plot_df(data)
 
+    # Set include_bool flag for boolean dtypes
+    if is_bool_dtype(data.dtype) and "include_bool" not in kwargs:
+        kwargs["include_bool"] = True
+
     # Check that the plot works with the specified x and y columns and any additional
     # keyword arguments
     ax = _check_plot_works(plot_df.plot, x=x, y=y, **kwargs)

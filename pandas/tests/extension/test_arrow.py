@@ -1142,7 +1142,6 @@ class TestArrowArray(base.ExtensionTests):
         err_cls = BaseException
         msg = ""
         reason = ""
-        kwargs = {}
 
         # Set expected values and kwargs for certain dtypes
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1156,13 +1155,10 @@ class TestArrowArray(base.ExtensionTests):
             err_cls = TypeError
             reason = "Binary data cannot be plotted on y-axis"
             msg = "no numeric data to plot"
-        # Need to set include_bool flag for boolean dtypes
-        elif pa.types.is_boolean(pa_dtype):
-            kwargs["include_bool"] = True
 
         # Call test, errors should only be raised for unsupported dtypes set above
         try:
-            super().test_plot_on_y_axis(data, **kwargs)
+            super().test_plot_on_y_axis(data)
         except err_cls as err:
             if msg and msg in str(err):
                 request.applymarker(pytest.mark.xfail(raises=err_cls, reason=reason))

@@ -24,7 +24,6 @@ from pandas.compat import (
 from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_float_dtype,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
@@ -354,14 +353,6 @@ class TestMaskedArrays(base.ExtensionTests):
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
-
-    def test_plot_on_y_axis(self, data):
-        # GH 64535
-        kwargs = {}
-        # Need to set include_bool flag for boolean dtypes
-        if is_bool_dtype(data.dtype):
-            kwargs = {"include_bool": True}
-        super().test_plot_on_y_axis(data, **kwargs)
 
 
 @pytest.mark.parametrize(
