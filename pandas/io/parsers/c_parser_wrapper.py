@@ -21,6 +21,9 @@ from pandas.core.dtypes.concat import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.common import (
@@ -61,6 +64,10 @@ if TYPE_CHECKING:
 class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
+    # When False, read() leaves deferred string columns as raw pending
+    # handles for the caller to materialize (one chunked ExtensionArray per
+    # column, e.g. post-gather in a parallel read).
+    wrap_deferred: bool = True
 
     def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
@@ -93,6 +100,9 @@ class CParserWrapper(ParserBase):
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
+        # Let the pyarrow string fast path return raw pending-column handles;
+        # read() wraps them into one ExtensionArray per column at the end.
+        self._reader.defer_pa_wrap = True
 
         self.unnamed_cols = self._reader.unnamed_cols
 
@@ -217,6 +227,10 @@ class CParserWrapper(ParserBase):
                 data = _concatenate_chunks(chunks, self.names)
             else:
                 data = self._reader.read(nrows)
+                if self.wrap_deferred:
+                    data = {
+                        key: _wrap_deferred_pa(values) for key, values in data.items()
+                    }
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
@@ -333,6 +347,31 @@ def _filter_usecols(usecols, names: SequenceT) -> SequenceT | list[Hashable]:
     return names
 
 
+def _pa_arrays_to_ea(arrs) -> ArrayLike:
+    """
+    Build one ExtensionArray from the pending string columns returned by
+    the deferred TextReader string fast path (``defer_pa_wrap``).
+
+    The fast path emits ``large_string`` for the default string dtype and
+    ``string`` for ``dtype_backend="pyarrow"``, so the arrow type determines
+    the target ExtensionArray.
+    """
+    import pyarrow as pa
+
+    chunked = pa.chunked_array([pending.materialize() for pending in arrs])
+    if pa.types.is_large_string(chunked.type):
+        return ArrowStringArray(chunked, dtype=StringDtype(na_value=np.nan))
+    return ArrowExtensionArray(chunked)
+
+
+def _wrap_deferred_pa(values):
+    """Wrap a pending string column from the deferred fast path; pass through
+    everything else."""
+    if hasattr(values, "dtype"):
+        return values
+    return _pa_arrays_to_ea([values])
+
+
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]], column_names: list[str]
 ) -> dict:
@@ -348,6 +387,20 @@ def _concatenate_chunks(
     result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
+
+        # Pending string columns from the deferred fast path have no `dtype`
+        # attribute.  The homogeneous case (every chunk deferred) combines
+        # zero-copy into a single chunked ExtensionArray; mixed cases (e.g.
+        # earlier chunks inferred numeric) wrap each pending column and fall
+        # through to the regular concat below.
+        if not hasattr(arrs[0], "dtype"):
+            if all(not hasattr(arr, "dtype") for arr in arrs):
+                result[name] = _pa_arrays_to_ea(arrs)
+                continue
+            arrs = [_wrap_deferred_pa(arr) for arr in arrs]
+        elif any(not hasattr(arr, "dtype") for arr in arrs):
+            arrs = [_wrap_deferred_pa(arr) for arr in arrs]
+
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
         non_cat_dtypes = {x for x in dtypes if not isinstance(x, CategoricalDtype)}

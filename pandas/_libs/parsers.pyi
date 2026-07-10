@@ -30,6 +30,7 @@ class TextReader:
     table_width: int  # int64_t
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
+    defer_pa_wrap: bool
     def __init__(
         self,
         source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],
