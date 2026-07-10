@@ -3195,9 +3195,10 @@ def _generate_range(
     else:
         end = None
 
-    # GH#64834 When deriving start from (end, periods), roll end onto the
-    # offset first so we don't lose a period. For B/bh this is handled by the
-    # vectorized path, but anchored offsets (W, ME, MS, QS, ...) reach here.
+    # GH#64834/GH#65011 When deriving start from (end, periods), roll end onto
+    # the offset first so we don't lose a period. For B/bh this is handled by
+    # the vectorized path, but anchored offsets (W, ME, MS, QS, ...) reach here.
+    # Without this, periods=1 also leaves freq pinned to an off-grid end.
     if end is not None and periods is not None and not offset.is_on_offset(end):
         if offset.n >= 0:
             end = offset.rollback(end)  # type: ignore[assignment]

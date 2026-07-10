@@ -1104,6 +1104,24 @@ class TestGenRangeGeneration:
         result = date_range("2018-04-01", periods=1, freq=freq)
         assert len(result) == 1
 
+    @pytest.mark.parametrize(
+        "freq",
+        ["MS", "QS", "W-SUN", "ME", offsets.LastWeekOfMonth(1), offsets.FY5253(1)],
+    )
+    @pytest.mark.parametrize("periods", [1, 2, 3])
+    def test_generate_range_end_off_offset(self, freq, periods):
+        # GH#64834/GH#65011 with only end + periods, an off-offset end is rolled
+        # onto the grid (like start), so the result has the requested length and
+        # stays a valid index; previously periods=1 gave an off-grid Timestamp
+        # with freq still pinned (an invalid index) and periods>1 gave the wrong
+        # count.
+        end = Timestamp("2018-04-17")  # a Tuesday: off every freq above
+        result = date_range(end=end, periods=periods, freq=freq)
+
+        assert len(result) == periods
+        # round-trip re-pins the freq; raises if any value is off-grid
+        tm.assert_index_equal(DatetimeIndex(list(result), freq=freq), result)
+
     dt1, dt2 = "2017-01-01", "2017-01-01"
     tz1, tz2 = "US/Eastern", "Europe/London"
 
