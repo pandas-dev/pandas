@@ -334,13 +334,19 @@ def _filter_usecols(usecols, names: SequenceT) -> SequenceT | list[Hashable]:
 
 
 def _concatenate_chunks(
-    chunks: list[dict[int, ArrayLike]], column_names: list[str]
+    chunks: list[dict[int, ArrayLike]],
+    column_names: list[str],
+    warn_mixed: bool = True,
 ) -> dict:
     """
     Concatenate chunks of data read with low_memory=True.
 
     The tricky part is handling Categoricals, where different chunks
     may have different inferred categories.
+
+    ``warn_mixed=False`` suppresses the mixed-dtype warning; the parallel
+    reader gathers byte-range chunks (not low_memory row chunks), so a
+    column's cross-chunk dtype has already been reconciled by the caller.
     """
     names = list(chunks[0].keys())
     warning_columns = []
@@ -360,7 +366,7 @@ def _concatenate_chunks(
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
                 warning_columns.append(column_names[name])
 
-    if warning_columns:
+    if warning_columns and warn_mixed:
         warning_names = ", ".join(
             [f"{index}: {name}" for index, name in enumerate(warning_columns)]
         )
