@@ -2375,6 +2375,9 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
+        if name in ("cummax", "cummin") and pa.types.is_floating(data_to_accum.type):
+            kwargs["start"] = float("-inf") if name == "cummax" else float("inf")
+
         try:
             result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
         except pa.ArrowNotImplementedError as err:
