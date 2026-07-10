@@ -150,6 +150,11 @@ typedef struct parser_t {
   char *error_msg;
 
   int skip_empty_lines;
+
+  // Boolean: 1 when the input was pre-loaded via TextReader.load_buffer.
+  // The buffer then never starts with a header row, so the first line gets
+  // no special treatment: no BOM strip, no exemption from field-count checks.
+  int preloaded;
 } parser_t;
 
 typedef struct coliter_t {
@@ -164,6 +169,22 @@ void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
   do {                                                                         \
     const int64_t i = *iter.line_start++ + iter.col;                           \
     word = i >= *iter.line_start ? "" : iter.words[i];                         \
+  } while (0)
+
+// Emits the resolved token index via idx_out so callers needing the token
+// length can compute it as word_starts[idx+1] - word_starts[idx] - 1
+// (using parser->stream_len for the last token where idx+1 == words_len).
+// Missing fields yield word = "" and idx_out = -1; callers must treat
+// those as length 0 rather than indexing into word_starts.
+#define COLITER_NEXT_WITH_IDX(iter, word, idx_out)                             \
+  do {                                                                         \
+    idx_out = *iter.line_start++ + iter.col;                                   \
+    if (idx_out >= *iter.line_start) {                                         \
+      word = "";                                                               \
+      idx_out = -1;                                                            \
+    } else {                                                                   \
+      word = iter.words[idx_out];                                              \
+    }                                                                          \
   } while (0)
 
 parser_t *parser_new(void);
@@ -201,9 +222,9 @@ void uint_state_init(uint_state *self);
 
 int uint64_conflict(uint_state *self);
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
-                       char tsep);
-int64_t str_to_int64(const char *p_item, int *error, char tsep);
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep);
+int64_t str_to_int64(const char *p_item, int64_t length, int *error, char tsep);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);

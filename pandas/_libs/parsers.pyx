@@ -40,7 +40,6 @@ from cpython.ref cimport (
 )
 from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
-    PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
     PyUnicode_FromString,
 )
@@ -82,7 +81,6 @@ from pandas._libs.khash cimport (
     kh_get_float64,
     kh_get_str,
     kh_get_str_starts_item,
-    kh_get_strbox,
     kh_init_float64,
     kh_init_str,
     kh_init_str_starts,
@@ -237,6 +235,8 @@ cdef extern from "pandas/parser/tokenizer.h":
 
         int64_t skip_empty_lines
 
+        int preloaded
+
     ctypedef struct coliter_t:
         char **words
         int64_t *line_start
@@ -248,6 +248,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         int seen_null
 
     void COLITER_NEXT(coliter_t, const char *) nogil
+    void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
@@ -263,6 +264,7 @@ cdef extern from "pandas/parser/pd_parser.h":
     void coliter_setup(coliter_t *it, parser_t *parser,
                        int64_t i, int64_t start) nogil
     void COLITER_NEXT(coliter_t, const char *) nogil
+    void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
 
     parser_t* parser_new()
 
@@ -284,8 +286,10 @@ cdef extern from "pandas/parser/pd_parser.h":
         parser_t *self, uint64_t nrows, const char *encoding_errors
     ) nogil
 
-    int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
+    int64_t str_to_int64(char *p_item, int64_t length, int *error, char tsep) nogil
+    uint64_t str_to_uint64(
+        uint_state *state, char *p_item, int64_t length, int *error, char tsep
+    ) nogil
 
     double precise_xstrtod(const char *p, char **q, char decimal,
                            char sci, char tsep, int skip_trailing,
@@ -338,6 +342,7 @@ cdef class TextReader:
         list dtype_cast_order  # list[np.dtype]
         list names   # can be None
         set noconvert  # set[int]
+        object _buffer_ref  # keeps pre-loaded bytes alive during parse
 
     cdef public:
         int64_t leading_cols, table_width
@@ -576,6 +581,63 @@ cdef class TextReader:
 
     def close(self):
         _close(self)
+
+    def load_buffer(self, const unsigned char[::1] data, bint strip_bom=False):
+        """Pre-load all chunk bytes into the parser's internal buffer.
+
+        After this call the tokeniser reads directly from the supplied *data*
+        buffer rather than calling back into Python via the ``cb_io``
+        I/O callback.  Because ``_tokenize_helper`` in ``tokenizer.c`` checks
+        ``self->source == NULL`` before invoking ``parser_buffer_bytes``, the
+        GIL is **never** re-acquired during tokenisation — enabling true CPU
+        parallelism across threads.
+
+        Call this method immediately after constructing a ``TextReader`` with
+        ``header=None`` (and before calling ``read()``).
+
+        Parameters
+        ----------
+        data : contiguous buffer
+            Raw CSV bytes for one chunk (no header line).  Accepts any object
+            implementing the buffer protocol (bytes, memoryview, mmap, etc.).
+        strip_bom : bool, default False
+            Skip a leading UTF-8 byte-order mark.  Pass True only when *data*
+            starts at byte 0 of the underlying file; a BOM byte sequence
+            anywhere else is real data and is preserved.
+        """
+        # Release the rd_source that was allocated for the dummy source passed
+        # to __cinit__, balancing the Py_INCREF done by new_rd_source.
+        if self.parser.cb_cleanup != NULL:
+            self.parser.cb_cleanup(self.parser.source)
+            self.parser.cb_cleanup = NULL
+
+        # NULL source is the sentinel checked in _tokenize_helper to skip the
+        # Python I/O callback once the pre-loaded buffer is exhausted.
+        self.parser.source = NULL
+
+        # Keep the underlying Python object alive for the full duration of the
+        # parse so that parser.data (which points into it) remains valid.
+        self._buffer_ref = data.base
+        self.parser.data = <char *>&data[0]
+        self.parser.datalen = data.shape[0]
+        self.parser.datapos = 0
+
+        # Disable the header/first-line special cases in tokenizer.c: the
+        # buffer holds plain data rows, so its first line must get regular
+        # bad-line handling and no BOM stripping (see parser_t.preloaded).
+        self.parser.preloaded = 1
+        if (
+            strip_bom
+            and data.shape[0] >= 3
+            and data[0] == 0xEF
+            and data[1] == 0xBB
+            and data[2] == 0xBF
+        ):
+            self.parser.datapos = 3
+
+        # _get_header may have set state=FINISHED when it probed the empty
+        # dummy source during __cinit__; reset so tokenisation actually runs.
+        self.parser.state = START_RECORD
 
     def _set_quoting(self, quote_char: str | bytes | None, quoting: int):
         if not isinstance(quoting, int):
@@ -1524,6 +1586,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
+        int64_t token_idx = 0
         ndarray[object] result
 
         int ret = 0
@@ -1540,7 +1603,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        COLITER_NEXT(it, word)
+        COLITER_NEXT_WITH_IDX(it, word, token_idx)
 
         if na_filter:
             if kh_get_str_starts_item(na_hashset, word):
@@ -1549,17 +1612,17 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
                 result[i] = NA
                 continue
 
-        k = kh_get_strbox(table, word)
+        # no deletions from this table, so ret == 0 means already present
+        k = kh_put_strbox(table, word, &ret)
 
         # in the hash table
-        if k != table.n_buckets:
+        if ret == 0:
             # this increments the refcount, but need to test
             pyval = <object>table.vals[k]
         else:
-            # box it. new ref?
-            pyval = PyUnicode_Decode(word, strlen(word), "utf-8", encoding_errors)
+            pyval = PyUnicode_DecodeUTF8(
+                word, _token_len(parser, token_idx), encoding_errors)
 
-            k = kh_put_strbox(table, word, &ret)
             table.vals[k] = <PyObject *>pyval
 
         result[i] = pyval
@@ -1992,6 +2055,17 @@ cdef _try_uint64(parser_t *parser, int64_t col,
     return result
 
 
+cdef inline int64_t _token_len(parser_t *parser, int64_t token_idx) noexcept nogil:
+    # Token length from adjacent word_starts offsets (avoids strlen);
+    # token_idx == -1 marks a missing field; the last token uses stream_len.
+    if token_idx < 0:
+        return 0
+    elif <uint64_t>(token_idx + 1) < parser.words_len:
+        return (parser.word_starts[token_idx + 1]
+                - parser.word_starts[token_idx] - 1)
+    return <int64_t>parser.stream_len - parser.word_starts[token_idx] - 1
+
+
 cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                            int64_t line_start,
                            int64_t line_end, bint na_filter,
@@ -2002,26 +2076,29 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        int64_t token_idx = 0
         char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 state.seen_null = 1
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, &error, thousands)
+            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
+                                    &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, &error, thousands)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
+                                    &error, thousands)
             if error != 0:
                 return error
 
@@ -2067,6 +2144,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        int64_t token_idx = 0
         char thousands = parser.thousands
 
     na_count[0] = 0
@@ -2074,20 +2152,22 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 na_count[0] += 1
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, &error, thousands)
+            data[i] = str_to_int64(word, _token_len(parser, token_idx),
+                                   &error, thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, &error, thousands)
+            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            data[i] = str_to_int64(word, _token_len(parser, token_idx),
+                                   &error, thousands)
             if error != 0:
                 return error
 

@@ -40,6 +40,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
@@ -5361,9 +5362,17 @@ class DataFrame(NDFrame, OpsMixin):
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
           ``'timedelta64'``
+        * To select datetimes or timedeltas of a specific resolution, pass a
+          unit-qualified dtype such as ``'datetime64[us]'`` or
+          ``'timedelta64[ms]'``; this matches only columns with exactly that
+          resolution, whereas an unqualified spec matches every resolution
         * To select Pandas categorical dtypes, use ``'category'``
         * To select Pandas datetimetz dtypes, use ``'datetimetz'``
           or ``'datetime64[ns, tz]'``
+        * An :class:`~pandas.api.extensions.ExtensionDtype` subclass matches
+          every instance of that subclass regardless of parametrization, e.g.
+          ``pd.ArrowDtype`` selects all pyarrow-backed columns and
+          ``pd.CategoricalDtype`` selects all categorical columns
 
         Examples
         --------
@@ -5421,8 +5430,9 @@ class DataFrame(NDFrame, OpsMixin):
         ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
             # We convert the user-provided dtypes (which may be dtype instances,
             # dtype classes, dtype.types, or strings) into our dtype predicate,
-            # along with the set of dtype instances and dtype.type-style objects
-            # they resolve to (used for validation below).
+            # along with the set of objects they resolve to -- dtype instances,
+            # dtype.type-style objects, or ExtensionDtype classes/instances for
+            # EA-name strings (used for validation below).
 
             def matches_object(dtype_obj: DtypeObj) -> bool:
                 # backwards compat for the default `str` dtype being
@@ -5451,8 +5461,40 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
+            def matches_ea_class(
+                dtype_class: type[ExtensionDtype],
+            ) -> Callable[[DtypeObj], bool]:
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return isinstance(dtype_obj, dtype_class)
+
+                return func
+
+            def matches_ea_instance(
+                target: ExtensionDtype,
+            ) -> Callable[[DtypeObj], bool]:
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return dtype_obj == target
+
+                return func
+
+            def matches_np_dtype(
+                np_dtype: np.dtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # A datetime64/timedelta64 dtype with a specific unit matches
+                # only columns with exactly that resolution (GH#40234)
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return isinstance(dtype_obj, np.dtype) and dtype_obj == np_dtype
+
+                return func
+
+            # Matchers for string specs that name a specific ExtensionDtype are
+            # collected separately: they are checked against the column dtype
+            # as-is, before the ArrowDtype -> numpy_dtype normalization that the
+            # remaining (numpy-oriented) matchers rely on.
             funcs: list[Callable[[DtypeObj], bool]] = []
             instances: list[DtypeObj] = []
+            ea_funcs: list[Callable[[DtypeObj], bool]] = []
+            klasses: list[type[ExtensionDtype]] = []
             resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
                 if isinstance(dtype, (np.dtype, ExtensionDtype)):
@@ -5512,6 +5554,13 @@ class DataFrame(NDFrame, OpsMixin):
                     resolved.update((np.float64, np.float32))
                     funcs.append(matches_type((np.float64, np.float32)))
 
+                elif isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
+                    # An ExtensionDtype subclass matches every instance of
+                    # that subclass, e.g. ArrowDtype matches all pyarrow-backed
+                    # dtypes and CategoricalDtype matches all categoricals
+                    resolved.add(dtype)
+                    klasses.append(dtype)
+
                 else:
                     # Resolve dtype to a dtype.type-style object. Comparing the
                     # raw user input against np.dtype(object) would trigger
@@ -5551,14 +5600,44 @@ class DataFrame(NDFrame, OpsMixin):
                                 else:
                                     raise
                         else:
+                            if isinstance(dtype, str) and isinstance(
+                                pdtype, ExtensionDtype
+                            ):
+                                # GH#40234, GH#59888: a string naming a specific
+                                # ExtensionDtype selects that exact dtype rather
+                                # than anything sharing its ``dtype.type``. A
+                                # bracketed string (e.g. "int64[pyarrow]") names
+                                # one parametrization and matches that instance;
+                                # a bare name (e.g. "Int64", "category") names
+                                # the dtype's class and matches any instance.
+                                if "[" in dtype:
+                                    resolved.add(pdtype)
+                                    ea_funcs.append(matches_ea_instance(pdtype))
+                                else:
+                                    resolved.add(type(pdtype))
+                                    ea_funcs.append(matches_ea_class(type(pdtype)))
+                                continue
                             if lib.is_np_dtype(pdtype, "mM"):
                                 unit = np.datetime_data(pdtype)[0]
-                                if unit not in ("generic", "ns"):
+                                if unit == "generic":
+                                    # a unitless datetime64/timedelta64 matches
+                                    # every resolution
+                                    dtype_type = pdtype.type
+                                elif is_supported_dtype(pdtype):
+                                    # a specific unit (s, ms, us, ns) matches
+                                    # only that exact resolution (GH#40234)
+                                    resolved.add(pdtype)
+                                    funcs.append(matches_np_dtype(pdtype))
+                                    continue
+                                else:
                                     raise ValueError(
-                                        f"{pdtype.name!r} is too specific of a "
-                                        f"frequency, try passing "
+                                        f"{pdtype.name!r} is not a supported "
+                                        "datetime64/timedelta64 resolution; pass "
+                                        "'s', 'ms', 'us', 'ns', or "
                                         f"{pdtype.type.__name__!r}"
                                     )
+                            # Instances are handled at the top of the loop, so
+                            # only strings/numpy types reach here.
                             dtype_type = pdtype.type
 
                     resolved.add(dtype_type)
@@ -5567,8 +5646,18 @@ class DataFrame(NDFrame, OpsMixin):
                     else:
                         funcs.append(matches_type(dtype_type))
 
+            klass_tuple = tuple(klasses)
+
             def matches_any(dtype_obj: DtypeObj) -> bool:
+                # instance specs (GH#40234), EA-name string specs (GH#59888),
+                # and EA-subclass specs (GH#65366) are all checked against the
+                # raw dtype before the ArrowDtype -> numpy_dtype normalization
+                # below.
                 if any(dtype_obj == instance for instance in instances):
+                    return True
+                if any(func(dtype_obj) for func in ea_funcs):
+                    return True
+                if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
                     # class- and string-based matching treats ArrowDtype
@@ -5605,10 +5694,13 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        # ``str`` (the type) and ``StringDtype`` (from a "str"/"string" spec)
+        # both count as the user explicitly handling string columns.
+        string_specs = {str, StringDtype}
         if (
             np.object_ in include_set
-            and str not in include_set
-            and str not in exclude_set
+            and string_specs.isdisjoint(include_set)
+            and string_specs.isdisjoint(exclude_set)
             and any(
                 isinstance(dtype, StringDtype) and dtype.na_value is np.nan
                 for dtype in blk_dtypes

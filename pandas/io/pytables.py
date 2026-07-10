@@ -481,6 +481,7 @@ def read_hdf(
         # so delegate to the iterator
         auto_close = True
 
+    read_succeeded = False
     try:
         if key is None:
             groups = store.groups()
@@ -502,7 +503,7 @@ def read_hdf(
                         "file contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
-        return store.select(
+        result = store.select(
             key,
             where=where,
             start=start,
@@ -512,13 +513,15 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, LookupError):
-        if not isinstance(path_or_buf, HDFStore):
-            # if there is an error, close the store if we opened it.
+        read_succeeded = True
+        return result
+    finally:
+        # If the read failed for any reason, close the store when we were the
+        # ones who opened it, so the caller can reopen the file (GH#28430). On
+        # success the store is left as-is: an iterator result needs it open.
+        if not read_succeeded and not isinstance(path_or_buf, HDFStore):
             with suppress(AttributeError):
                 store.close()
-
-        raise
 
 
 def _is_metadata_of(group: Node, parent_group: Node) -> bool:
@@ -577,7 +580,10 @@ class HDFStore:
         Specifies a compression level for data.
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-        Specifies the compression library to be used.
+        Specifies the compression library to be used. This has no effect
+        unless ``complevel`` is set to a value greater than 0; passing
+        ``complib`` alone emits a ``UserWarning`` and produces an
+        uncompressed store.
         These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
@@ -633,6 +639,18 @@ class HDFStore:
 
         if complib is None and complevel is not None:
             complib = tables.filters.default_complib
+
+        if complib is not None and complevel is None:
+            # GH#29310 complib without complevel does not compress, because
+            # complevel defaults to 0. Warn rather than silently ignoring the
+            # requested library.
+            warnings.warn(
+                f"complib={complib!r} was specified without complevel; no "
+                "compression will be applied. Pass complevel (an int in 1-9) "
+                "to enable compression.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         self._path = stringify_path(path)
         if mode is None:
@@ -4618,7 +4636,9 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
+    def validate_data_columns(
+        self, data_columns, min_itemsize, non_index_axes, index_cnames=()
+    ) -> list:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4635,7 +4655,11 @@ class Table(Fixed):
                     f"data_columns {data_columns}"
                 )
             if isinstance(min_itemsize, dict):
-                mi_keys = [k for k in min_itemsize if k != "values"]
+                # GH#12154 'values' sizes every string column and the index
+                # cname(s) size the row index; both are legal here. Only
+                # per-column keys are unsupported for MultiIndex columns.
+                allowed = {"values", *index_cnames}
+                mi_keys = [k for k in min_itemsize if k not in allowed]
                 if mi_keys:
                     raise ValueError(
                         f"cannot use min_itemsize keys {mi_keys} on axis "
@@ -4797,7 +4821,7 @@ class Table(Fixed):
 
         # figure out data_columns and get out blocks
         data_columns = self.validate_data_columns(
-            data_columns, min_itemsize, new_non_index_axes
+            data_columns, min_itemsize, new_non_index_axes, (new_index.cname,)
         )
 
         if new_index.cname in data_columns:
