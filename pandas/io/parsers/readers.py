@@ -41,7 +41,7 @@ from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._cpu import (
     available_cpu_count,
-    performance_core_count,
+    physical_core_count,
 )
 from pandas.errors import (
     AbstractMethodError,
@@ -381,13 +381,13 @@ def _default_n_workers() -> int:
 
     ``mode.max_threads`` wins whenever it is set (except on WASM, which cannot
     spawn threads at all).  Otherwise parallel reading is off by default on
-    Windows, and elsewhere defaults to the number of physical performance cores
-    (:func:`~pandas.compat._cpu.performance_core_count`): the fast cluster on a
-    heterogeneous P/E-core CPU, or the physical core count on a homogeneous one.
-    Efficiency cores and SMT siblings are excluded because they do not speed up
-    the memory-bandwidth-bound parse (and a slow efficiency-core chunk becomes
-    the straggler the gather waits on).  That count is then clamped to the CPUs
-    actually available to the process (CPU affinity / cgroup limits) and to
+    Windows, and elsewhere defaults to the number of physical cores
+    (:func:`~pandas.compat._cpu.physical_core_count`), efficiency cores
+    included: the work-queued parallel path keeps every core productive (a
+    slow core simply pulls fewer chunks).  SMT siblings are excluded because
+    a hyperthread adds no memory bandwidth to the bandwidth-bound parse its
+    sibling is running.  That count is then clamped to the CPUs actually
+    available to the process (CPU affinity / cgroup limits) and to
     ``_MAX_DEFAULT_WORKERS``.
     """
     max_threads = get_option("mode.max_threads")
@@ -404,7 +404,7 @@ def _default_n_workers() -> int:
         # benchmark numbers in the GH#64347 discussion:
         # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
         return 1
-    n_workers = performance_core_count()
+    n_workers = physical_core_count()
     available = available_cpu_count()
     if available is not None:
         n_workers = min(n_workers, available)

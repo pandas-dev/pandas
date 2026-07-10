@@ -23,11 +23,11 @@ import pytest
 
 from pandas.compat._cpu import (
     _count_distinct_cores,
-    _count_top_efficiency_class,
+    _count_processor_core_records,
     _parse_cgroup_v2_quota,
     _parse_cpu_list,
     available_cpu_count,
-    performance_core_count,
+    physical_core_count,
 )
 from pandas.errors import (
     ParserError,
@@ -726,7 +726,7 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     # Pin the non-Windows default so the test does not depend on the host's
     # actual core count / topology / cgroup limits.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
-    monkeypatch.setattr(_readers, "performance_core_count", lambda: 4)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 4)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     # Stub the parallel reader so this exercises only the platform-gating
@@ -749,18 +749,18 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
     assert len(calls) == 1  # parallel by default elsewhere
 
 
-def test_parallel_default_uses_performance_cores(tmp_path, monkeypatch):
-    """The default worker count follows the detected physical performance cores."""
+def test_parallel_default_uses_physical_cores(tmp_path, monkeypatch):
+    """The default worker count follows the detected physical core count."""
     import pandas.io.parsers.readers as _readers
 
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # 6 performance cores out of 16 logical CPUs: the default follows the fast
-    # cluster, not the full logical core count.
+    # 6 physical cores out of 16 logical CPUs (SMT): the default follows the
+    # physical core count, not the logical one.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
-    monkeypatch.setattr(_readers, "performance_core_count", lambda: 6)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     workers = []
@@ -774,7 +774,7 @@ def test_parallel_default_uses_performance_cores(tmp_path, monkeypatch):
     read_csv(path)
     assert workers == [6]
 
-    # An explicit mode.max_threads still overrides the performance-core default.
+    # An explicit mode.max_threads still overrides the physical-core default.
     workers.clear()
     with option_context("mode.max_threads", 8):
         read_csv(path)
@@ -1083,14 +1083,14 @@ def test_parallel_bom_at_file_start_header_none(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_performance_core_count_within_bounds():
+def test_physical_core_count_within_bounds():
     # Whatever the host topology, the detector returns a positive int no larger
     # than the logical CPU count, and never raises.
-    performance_core_count.cache_clear()
+    physical_core_count.cache_clear()
     try:
-        n_perf = performance_core_count()
+        n_perf = physical_core_count()
     finally:
-        performance_core_count.cache_clear()
+        physical_core_count.cache_clear()
     assert isinstance(n_perf, int)
     assert 1 <= n_perf <= (os.cpu_count() or 1)
 
@@ -1098,13 +1098,13 @@ def test_performance_core_count_within_bounds():
 @pytest.mark.parametrize(
     "platform_name, probe_name",
     [
-        ("darwin", "_perf_cores_darwin"),
-        ("linux", "_perf_cores_linux"),
-        ("win32", "_perf_cores_windows"),
+        ("darwin", "_physical_cores_darwin"),
+        ("linux", "_physical_cores_linux"),
+        ("win32", "_physical_cores_windows"),
     ],
 )
 @pytest.mark.parametrize("failure", ["returns_none", "raises"])
-def test_performance_core_count_falls_back(
+def test_physical_core_count_falls_back(
     monkeypatch, platform_name, probe_name, failure
 ):
     # A probe that returns None or raises must fall back to os.cpu_count().
@@ -1116,11 +1116,11 @@ def test_performance_core_count_falls_back(
 
     monkeypatch.setattr(_cpu.sys, "platform", platform_name)
     monkeypatch.setattr(_cpu, probe_name, probe)
-    _cpu.performance_core_count.cache_clear()
+    _cpu.physical_core_count.cache_clear()
     try:
-        assert _cpu.performance_core_count() == (os.cpu_count() or 1)
+        assert _cpu.physical_core_count() == (os.cpu_count() or 1)
     finally:
-        _cpu.performance_core_count.cache_clear()
+        _cpu.physical_core_count.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -1131,17 +1131,17 @@ def test_performance_core_count_falls_back(
         (10**6, "total"),  # more cores than exist -> fall back
     ],
 )
-def test_performance_core_count_validates_probe(monkeypatch, probe_result, expected):
+def test_physical_core_count_validates_probe(monkeypatch, probe_result, expected):
     from pandas.compat import _cpu
 
     total = os.cpu_count() or 1
     monkeypatch.setattr(_cpu.sys, "platform", "darwin")
-    monkeypatch.setattr(_cpu, "_perf_cores_darwin", lambda: probe_result)
-    _cpu.performance_core_count.cache_clear()
+    monkeypatch.setattr(_cpu, "_physical_cores_darwin", lambda: probe_result)
+    _cpu.physical_core_count.cache_clear()
     try:
-        result = _cpu.performance_core_count()
+        result = _cpu.physical_core_count()
     finally:
-        _cpu.performance_core_count.cache_clear()
+        _cpu.physical_core_count.cache_clear()
     assert result == (total if expected == "total" else expected)
 
 
@@ -1165,7 +1165,7 @@ def test_default_n_workers_combines_detection_allocation_cap(
 
     assert _readers._MAX_DEFAULT_WORKERS == 16
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    monkeypatch.setattr(_readers, "performance_core_count", lambda: n_perf)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: n_perf)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
     with option_context("mode.max_threads", None):
         assert _default_n_workers() == expected
@@ -1176,7 +1176,7 @@ def test_default_n_workers_windows_is_serial(monkeypatch):
 
     monkeypatch.setattr(_readers.sys, "platform", "win32")
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 12)
-    monkeypatch.setattr(_readers, "performance_core_count", lambda: 6)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
     with option_context("mode.max_threads", None):
         assert _default_n_workers() == 1
 
@@ -1196,7 +1196,7 @@ def test_default_n_workers_max_threads_wins(monkeypatch, platform_name):
 
     monkeypatch.setattr(_readers.sys, "platform", platform_name)
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 12)
-    monkeypatch.setattr(_readers, "performance_core_count", lambda: 6)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
     with option_context("mode.max_threads", 3):
         assert _default_n_workers() == 3
 
@@ -1306,29 +1306,29 @@ def _fake_cpu_topology_reader(cores_per_cpu):
     return read_int
 
 
-def test_perf_cores_linux_hybrid_collapses_smt(monkeypatch):
-    # 8 logical P-CPUs (0-7) that are 4 physical cores with 2 SMT threads each.
+def test_physical_cores_linux_hybrid_collapses_smt(monkeypatch):
+    # Hybrid part: logical CPUs 0-7 are 4 physical P-cores with 2 SMT threads
+    # each, and CPUs 8-11 are 4 efficiency cores.  SMT siblings collapse;
+    # efficiency cores count.
     from pandas.compat import _cpu
 
-    strs = {"/sys/devices/cpu_core/cpus": "0-7"}
+    strs = {"/sys/devices/system/cpu/present": "0-11"}
     cores = {cpu: cpu // 2 for cpu in range(8)}
+    cores.update({cpu: cpu - 4 for cpu in range(8, 12)})
     monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: strs.get(path))
     monkeypatch.setattr(_cpu, "_read_sysfs_int", _fake_cpu_topology_reader(cores))
-    assert _cpu._perf_cores_linux() == 4
+    assert _cpu._physical_cores_linux() == 8
 
 
-def test_perf_cores_linux_homogeneous_uses_present(monkeypatch):
-    # No hybrid P-core dir: fall back to all present CPUs (0-3 = 2 physical cores).
+def test_physical_cores_linux_homogeneous_uses_present(monkeypatch):
+    # All present CPUs, SMT collapsed (0-3 = 2 physical cores).
     from pandas.compat import _cpu
 
-    strs = {
-        "/sys/devices/cpu_core/cpus": None,
-        "/sys/devices/system/cpu/present": "0-3",
-    }
+    strs = {"/sys/devices/system/cpu/present": "0-3"}
     cores = {cpu: cpu // 2 for cpu in range(4)}
     monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: strs.get(path))
     monkeypatch.setattr(_cpu, "_read_sysfs_int", _fake_cpu_topology_reader(cores))
-    assert _cpu._perf_cores_linux() == 2
+    assert _cpu._physical_cores_linux() == 2
 
 
 def test_cgroup_cpu_quota_v2(monkeypatch):
@@ -1384,24 +1384,24 @@ def _make_win_processor_buffer(records):
     return buf, total
 
 
-def test_count_top_efficiency_class_hybrid():
-    # 4 performance cores (class 1) + 4 efficiency cores (class 0).
+def test_count_processor_core_records_hybrid():
+    # 4 performance cores (class 1) + 4 efficiency cores (class 0): every
+    # physical core counts, efficiency class does not matter.
     buf, length = _make_win_processor_buffer([(32, 1)] * 4 + [(32, 0)] * 4)
-    assert _count_top_efficiency_class(buf, length) == 4
+    assert _count_processor_core_records(buf, length) == 8
 
 
-def test_count_top_efficiency_class_homogeneous():
-    # All cores share one efficiency class -> every core counts.
+def test_count_processor_core_records_homogeneous():
     buf, length = _make_win_processor_buffer([(32, 0)] * 8)
-    assert _count_top_efficiency_class(buf, length) == 8
+    assert _count_processor_core_records(buf, length) == 8
 
 
-def test_count_top_efficiency_class_variable_record_size():
+def test_count_processor_core_records_variable_record_size():
     # Records advance by their own Size field, not a fixed stride.
     buf, length = _make_win_processor_buffer([(40, 1), (24, 1), (32, 0)])
-    assert _count_top_efficiency_class(buf, length) == 2
+    assert _count_processor_core_records(buf, length) == 3
 
 
-def test_count_top_efficiency_class_empty():
+def test_count_processor_core_records_empty():
     buf = (ctypes.c_byte * 0)()
-    assert _count_top_efficiency_class(buf, 0) is None
+    assert _count_processor_core_records(buf, 0) is None

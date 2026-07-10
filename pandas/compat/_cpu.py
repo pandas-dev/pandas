@@ -2,15 +2,14 @@
 _cpu
 ====
 
-Detection of a CPU's physical performance-core count.
+Detection of a CPU's physical core count.
 
 Used to pick the default worker count for parallel I/O.  The target is the
-number of *physical performance cores*: on a heterogeneous CPU (performance /
-efficiency clusters, e.g. Apple silicon or recent Intel client parts) that is
-the fast cluster, and on a homogeneous CPU it is simply the physical core count.
-Efficiency cores and SMT siblings are excluded because they do not speed up the
-memory-bandwidth-bound CSV parsing work (and an efficiency-core straggler slows
-the parallel gather down).
+number of *physical cores*, efficiency cores included: with the work-queued
+parallel read path, efficiency cores contribute real throughput (a slow chunk
+just means that worker pulls fewer chunks from the queue).  SMT siblings are
+excluded because a hyperthread does not add memory bandwidth to the
+bandwidth-bound parsing work its sibling is already doing.
 """
 
 from __future__ import annotations
@@ -56,30 +55,26 @@ def _count_distinct_cores(topology: Iterable[tuple[int, int] | None]) -> int | N
     return len(cores) or None
 
 
-def _count_top_efficiency_class(
+def _count_processor_core_records(
     buf: ctypes.Array[ctypes.c_byte], length: int
 ) -> int | None:
     """
-    Count performance cores in a ``GetLogicalProcessorInformationEx`` buffer.
+    Count physical cores in a ``GetLogicalProcessorInformationEx`` buffer.
 
     ``buf`` holds a sequence of ``SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX``
-    records (one per physical core): ``Size`` is a ``DWORD`` at offset ``+4`` and
-    ``PROCESSOR_RELATIONSHIP.EfficiencyClass`` is a ``BYTE`` at offset ``+9``.
-    The highest efficiency class is the performance cores.
+    records, one per physical core (SMT siblings share a record); ``Size`` is
+    a ``DWORD`` at offset ``+4``.
     """
     addr = ctypes.addressof(buf)
     offset = 0
-    eff_classes = []
+    count = 0
     while offset < length:
         size = ctypes.c_uint32.from_address(addr + offset + 4).value
-        eff_classes.append(ctypes.c_uint8.from_address(addr + offset + 9).value)
+        count += 1
         if size == 0:
             break
         offset += size
-    if not eff_classes:
-        return None
-    top = max(eff_classes)
-    return sum(1 for cls in eff_classes if cls == top)
+    return count or None
 
 
 def _sysctl_int(name: bytes) -> int | None:
@@ -96,16 +91,9 @@ def _sysctl_int(name: bytes) -> int | None:
     return None
 
 
-def _perf_cores_darwin() -> int | None:
-    """Physical performance cores on macOS (P-cluster on hybrid, else all)."""
-    # perflevel0 is the highest-performance cluster on Apple silicon; on a
-    # homogeneous CPU (e.g. an Intel Mac) it is absent, so fall back to the
-    # overall physical core count.
-    for name in (b"hw.perflevel0.physicalcpu", b"hw.physicalcpu"):
-        val = _sysctl_int(name)
-        if val is not None:
-            return val
-    return None
+def _physical_cores_darwin() -> int | None:
+    """Physical core count on macOS (performance and efficiency clusters)."""
+    return _sysctl_int(b"hw.physicalcpu")
 
 
 def _read_sysfs_int(path: str) -> int | None:
@@ -134,40 +122,27 @@ def _cpu_topology(cpu: int) -> tuple[int, int] | None:
     return (pkg, core)
 
 
-def _perf_logical_cpus_linux() -> list[int]:
-    """Logical CPU ids that belong to the performance cluster on Linux."""
-    # Intel hybrid parts expose the performance cores via a dedicated driver dir.
-    spec = _read_sysfs_str("/sys/devices/cpu_core/cpus")
-    if spec:
-        ids = _parse_cpu_list(spec)
-        if ids:
-            return ids
-    # Homogeneous (or non-Intel): every present CPU is a performance core.
+def _physical_cores_linux() -> int | None:
+    """Physical core count on Linux (SMT siblings collapsed)."""
     spec = _read_sysfs_str("/sys/devices/system/cpu/present")
-    if spec:
-        return _parse_cpu_list(spec)
-    return []
-
-
-def _perf_cores_linux() -> int | None:
-    """Physical performance cores on Linux (SMT siblings collapsed)."""
-    logical = _perf_logical_cpus_linux()
+    if not spec:
+        return None
+    logical = _parse_cpu_list(spec)
     if not logical:
         return None
     physical = _count_distinct_cores(_cpu_topology(cpu) for cpu in logical)
     if physical is not None:
         return physical
-    # Topology unreadable: fall back to the logical performance-CPU count.
+    # Topology unreadable: fall back to the logical CPU count.
     return len(logical)
 
 
-def _perf_cores_windows() -> int | None:
-    """Physical performance cores on Windows, or None."""
+def _physical_cores_windows() -> int | None:
+    """Physical core count on Windows, or None."""
     if sys.platform != "win32":
         return None
-    # GetLogicalProcessorInformationEx(RelationProcessorCore) reports an
-    # EfficiencyClass per physical core; the highest class is the performance
-    # cores.
+    # GetLogicalProcessorInformationEx(RelationProcessorCore) reports one
+    # record per physical core (SMT siblings share a record).
     try:
         from ctypes import wintypes
 
@@ -179,7 +154,7 @@ def _perf_cores_windows() -> int | None:
         buf = (ctypes.c_byte * length.value)()
         if not get_info(relation_processor_core, buf, ctypes.byref(length)):
             return None
-        return _count_top_efficiency_class(buf, length.value)
+        return _count_processor_core_records(buf, length.value)
     except Exception:
         return None
 
@@ -247,22 +222,21 @@ def available_cpu_count() -> int | None:
 
 
 @functools.lru_cache(maxsize=1)
-def performance_core_count() -> int:
+def physical_core_count() -> int:
     """
-    Return the number of physical performance cores available to the process.
+    Return the number of physical cores (SMT siblings excluded).
 
-    On heterogeneous CPUs (e.g. Apple silicon or recent Intel client parts with
-    performance/efficiency clusters) this is the size of the fast cluster.  On
-    homogeneous CPUs it is the physical core count.  Whenever the platform probe
-    is unavailable or fails, this falls back to :func:`os.cpu_count`.
+    Efficiency cores count: they contribute real throughput to the
+    work-queued parallel read.  Whenever the platform probe is unavailable or
+    fails, this falls back to :func:`os.cpu_count`.
 
     The result is cached for the lifetime of the process.
     """
     total = os.cpu_count() or 1
     probe = {
-        "darwin": _perf_cores_darwin,
-        "linux": _perf_cores_linux,
-        "win32": _perf_cores_windows,
+        "darwin": _physical_cores_darwin,
+        "linux": _physical_cores_linux,
+        "win32": _physical_cores_windows,
     }.get(sys.platform)
     try:
         n_perf = probe() if probe is not None else None
