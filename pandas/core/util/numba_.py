@@ -169,7 +169,12 @@ def get_global_loop(numba) -> Callable:
     return _GLOBAL_LOOP
 
 
-def maybe_run_numba_apply(series, func) -> np.ndarray | None:
+def maybe_run_numba_apply(
+    series,
+    func,
+    engine: str | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
+) -> np.ndarray | None:
     """
     Attempt to JIT compile the user function using Numba and run it over the Series.
 
@@ -179,21 +184,33 @@ def maybe_run_numba_apply(series, func) -> np.ndarray | None:
         The Pandas Series object.
     func : Callable
         The User Defined Function (UDF).
+    engine : str, optional
+        The execution engine (e.g. 'numba' or 'python').
+    engine_kwargs : dict, optional
+        Keyword arguments passed to numba.njit.
 
     Returns
     -------
     np.ndarray or None
         The result array if compilation and execution succeed, otherwise None.
     """
-    if len(series) < 50_000:
+    if not maybe_use_numba(engine):
+        return None
+
+    # Size threshold only applies to automatic JIT (engine is None and GLOBAL_USE_NUMBA is True)
+    if engine is None and len(series) < 50_000:
         return None
 
     if not np.issubdtype(series.dtype, np.number) and not np.issubdtype(series.dtype, np.datetime64) and not np.issubdtype(series.dtype, np.timedelta64):
+        if engine == "numba":
+            raise ValueError(f"Numba engine only supports numeric/datetime dtypes, got {series.dtype}")
         return None
 
     try:
         import numba
-    except ImportError:
+    except ImportError as err:
+        if engine == "numba":
+            raise ImportError("Numba is not installed. Please install numba to use engine='numba'") from err
         return None
 
     func_id = id(func)
@@ -201,16 +218,28 @@ def maybe_run_numba_apply(series, func) -> np.ndarray | None:
         jitted_udf = _JIT_APPLY_CACHE[func_id]
     else:
         try:
-            jitted_udf = numba.njit(func)
+            nopython = True
+            nogil = True
+            parallel = False
+            if engine_kwargs:
+                nopython = engine_kwargs.get("nopython", True)
+                nogil = engine_kwargs.get("nogil", True)
+                parallel = engine_kwargs.get("parallel", False)
+            jitted_udf = numba.njit(func, nopython=nopython, nogil=nogil, parallel=parallel)
             _JIT_APPLY_CACHE[func_id] = jitted_udf
-        except Exception:
+        except Exception as err:
+            if engine == "numba":
+                raise NumbaUtilError(f"Failed to JIT compile function: {err}") from err
             return None
 
     try:
         loop = get_global_loop(numba)
         return loop(series.to_numpy(), jitted_udf)
-    except Exception:
+    except Exception as err:
+        if engine == "numba":
+            raise NumbaUtilError(f"Failed to execute Numba JIT loop: {err}") from err
         return None
+
 
 
 

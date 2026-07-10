@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import math
+from pandas.errors import NumbaUtilError
 
 # NumPy 2.5 compatibility patch for Numba in test runtime
 np.row_stack = np.vstack
@@ -12,66 +13,56 @@ pytestmark = [
 ]
 
 
-def test_numba_apply_correctness():
-    # Large numeric series (> 50k elements) to trigger JIT
-    s = pd.Series(np.random.randn(60_000))
+def test_numba_apply_opt_in():
+    # Explicitly opting in to JIT should work regardless of Series size
+    s = pd.Series(np.random.randn(100))
     
     def udf(x):
-        if x > 0:
-            return math.sin(x) * 2.0
-        else:
-            return math.cos(x) - 1.0
-
-    res_jit = s.apply(udf)
+        return math.sin(x) * 2.0
+        
+    res_jit = s.apply(udf, engine="numba")
+    res_py = s.apply(udf, engine="python")
     
-    # Force interpreter by temporarily mocking maybe_run_numba_apply
-    import pandas.core.util.numba_ as nb_util
-    orig = nb_util.maybe_run_numba_apply
-    try:
-        nb_util.maybe_run_numba_apply = lambda series, func: None
-        res_interpreter = s.apply(udf)
-    finally:
-        nb_util.maybe_run_numba_apply = orig
-    
-    pd.testing.assert_series_equal(res_jit, res_interpreter)
+    pd.testing.assert_series_equal(res_jit, res_py)
 
 
-def test_numba_apply_small_series():
-    # Small numeric series (< 50k elements) should bypass JIT
-    s = pd.Series(np.random.randn(100))
+def test_numba_apply_global_option():
+    # Test transparent auto-JIT using the global configuration option
+    s = pd.Series(np.random.randn(60_000))
     
     def udf(x):
         return x * 2.0 + 1.0
 
-    # Ensure it doesn't fail and returns correct results
-    res = s.apply(udf)
-    expected = s * 2.0 + 1.0
-    pd.testing.assert_series_equal(res, expected)
+    # Turn global option ON
+    with pd.option_context("compute.use_numba", True):
+        res_auto_jit = s.apply(udf)
+        
+    # Turn global option OFF
+    with pd.option_context("compute.use_numba", False):
+        res_standard = s.apply(udf)
+        
+    pd.testing.assert_series_equal(res_auto_jit, res_standard)
 
 
-def test_numba_apply_unsupported_ops_fallback():
-    # Large numeric series to trigger JIT check
-    s = pd.Series(np.random.randn(60_000))
+def test_numba_apply_unsupported_ops_raises_error():
+    # If the user explicitly opts in, compilation errors must raise rather than falling back silently
+    s = pd.Series(np.random.randn(100))
     
-    # A function that uses list operations unsupported by Numba in nopython mode
-    # will fail compilation and should fallback gracefully
-    def udf_fallback(x):
-        l = []
-        l.append(x)
-        return len(l) * 2.5 + x
+    def udf_invalid(x):
+        # eval is unsupported by Numba's nopython compiler
+        eval("x + 1")
+        return x
 
-    res = s.apply(udf_fallback)
-    expected = s + 2.5
-    pd.testing.assert_series_equal(res, expected)
+    with pytest.raises(NumbaUtilError, match="Failed to execute Numba JIT loop"):
+        s.apply(udf_invalid, engine="numba")
 
 
-def test_numba_apply_non_numeric_dtype():
-    # Object series should bypass JIT check
-    s = pd.Series(["a", "b", "c"] * 20_000, dtype=object)
+def test_numba_apply_non_numeric_dtype_raises_error():
+    # Explicit JIT on non-numeric series should raise ValueError
+    s = pd.Series(["a", "b", "c"] * 100, dtype=object)
     
     def udf_str(x):
         return x + "_suffix"
 
-    res = s.apply(udf_str)
-    expected = s + "_suffix"
-    pd.testing.assert_series_equal(res, expected, check_dtype=False)
+    with pytest.raises(ValueError, match="Numba engine only supports numeric/datetime dtypes"):
+        s.apply(udf_str, engine="numba")

@@ -5301,6 +5301,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         args: tuple[Any, ...] = (),
         *,
         by_row: Literal[False, "compat"] = "compat",
+        engine: Literal["python", "numba"] | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -5417,6 +5419,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self,
             func,
             by_row=by_row,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
             args=args,
             kwargs=kwargs,
         ).apply()
