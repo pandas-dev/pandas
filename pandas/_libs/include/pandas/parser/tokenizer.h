@@ -92,14 +92,17 @@ typedef struct parser_t {
   uint64_t stream_len;
   uint64_t stream_cap;
 
-  // Store words in (potentially ragged) matrix for now, hmm
-  char **words;
-  int64_t *word_starts; // where we are in the stream
+  // Words live NUL-terminated and tightly packed in the stream; word i is
+  // the bytes [word_ends[i-1] + 1, word_ends[i]) (word 0 starts at offset
+  // 0), with word_ends[i] the offset of its trailing NUL. Storing only the
+  // end offsets (instead of a char* per word plus a start offset) halves
+  // the per-field bookkeeping and means nothing needs rebasing when the
+  // stream buffer reallocs.
+  int64_t *word_ends; // stream offset of each word's trailing NUL
   uint64_t words_len;
   uint64_t words_cap;
   uint64_t max_words_cap; // maximum word cap encountered
 
-  char *pword_start;  // pointer to stream start of current field
   int64_t word_start; // position start of current field
 
   int64_t *line_start;  // position in words for start of line
@@ -158,19 +161,24 @@ typedef struct parser_t {
 } parser_t;
 
 typedef struct coliter_t {
-  char **words;
+  const char *stream;
+  const int64_t *word_ends;
   int64_t *line_start;
   int64_t col;
 } coliter_t;
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i, int64_t start);
 
+// Word i starts right after word i-1's trailing NUL (word 0 at offset 0).
+static inline const char *coliter_word(const coliter_t *self, int64_t i) {
+  return self->stream + (i == 0 ? 0 : self->word_ends[i - 1] + 1);
+}
+
 // Advance the column iterator and return the next field's token, emitting its
 // resolved index via idx_out so callers needing the token length can compute
-// it as word_starts[idx+1] - word_starts[idx] - 1 (using parser->stream_len
-// for the last token where idx+1 == words_len). A missing field yields "" and
-// idx_out = -1, which callers must treat as length 0 rather than indexing into
-// word_starts.
+// it from adjacent word_ends entries. A missing field yields "" and
+// idx_out = -1, which callers must treat as length 0 rather than indexing
+// into word_ends.
 static inline const char *coliter_next_with_idx(coliter_t *self,
                                                 int64_t *idx_out) {
   const int64_t idx = *self->line_start++ + self->col;
@@ -179,7 +187,7 @@ static inline const char *coliter_next_with_idx(coliter_t *self,
     return "";
   }
   *idx_out = idx;
-  return self->words[idx];
+  return coliter_word(self, idx);
 }
 
 static inline const char *coliter_next(coliter_t *self) {
@@ -194,6 +202,8 @@ int parser_init(parser_t *self);
 int parser_consume_rows(parser_t *self, uint64_t nrows);
 
 int parser_trim_buffers(parser_t *self);
+
+void parser_clear_data_buffers(parser_t *self);
 
 int parser_add_skiprow(parser_t *self, int64_t row);
 
