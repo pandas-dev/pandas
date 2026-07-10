@@ -218,14 +218,12 @@ def maybe_run_numba_apply(
         jitted_udf = _JIT_APPLY_CACHE[func_id]
     else:
         try:
-            nopython = True
             nogil = True
             parallel = False
             if engine_kwargs:
-                nopython = engine_kwargs.get("nopython", True)
                 nogil = engine_kwargs.get("nogil", True)
                 parallel = engine_kwargs.get("parallel", False)
-            jitted_udf = numba.njit(func, nopython=nopython, nogil=nogil, parallel=parallel)
+            jitted_udf = numba.njit(func, nogil=nogil, parallel=parallel)
             _JIT_APPLY_CACHE[func_id] = jitted_udf
         except Exception as err:
             if engine == "numba":
