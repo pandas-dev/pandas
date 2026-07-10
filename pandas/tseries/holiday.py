@@ -172,7 +172,7 @@ class Holiday:
         Month of the holiday.
     day : int, default None
         Day of the holiday.
-    offset : BaseOffset or list of BaseOffset, default None
+    offset : DateOffset or list of DateOffset, default None
         Computes offset from date. See :mod:`pandas.tseries.offsets` for the
         available offset classes.
     observance : function, default None
