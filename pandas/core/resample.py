@@ -203,6 +203,13 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return object.__getattribute__(self, attr)
 
+    def __getitem__(self, key):
+        if isinstance(key, tuple) and len(key) > 1:
+            subset = self.obj[key]
+            return self._gotitem(key, ndim=subset.ndim, subset=subset)
+
+        return super().__getitem__(key)
+
     @final
     @property
     def _from_selection(self) -> bool:
