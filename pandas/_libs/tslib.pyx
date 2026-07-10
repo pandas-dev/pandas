@@ -124,6 +124,7 @@ _STRFTIME_FORMAT_MAP = {
     "%M": "{4:02d}",
     "%S": "{5:02d}",
     "%f": "{6:06d}",
+    "%N": "{7:09d}",
     "%%": "%",
 }
 
@@ -231,6 +232,11 @@ def format_array_from_datetime(
             basic_format = show_us = True
             show_ns = show_ms = False
 
+        elif format == "%Y-%m-%d %H:%M:%S.%N":
+            # Same format as default, but with hardcoded precision (ns)
+            basic_format = show_ns = True
+            show_us = show_ms = False
+
         elif format == "%Y-%m-%d":
             # Default format for dates
             basic_format_day = True
@@ -277,6 +283,7 @@ def format_array_from_datetime(
             res = fmt_template.format(
                 dts.year, dts.month, dts.day,
                 dts.hour, dts.min, dts.sec, dts.us,
+                dts.us * 1000 + dts.ps // 1000,
             )
 
         else:
@@ -593,7 +600,7 @@ def array_to_datetime_with_tz(
     cdef:
         ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_INT64, 0)
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        Py_ssize_t i, n = values.size
+        Py_ssize_t _, n = values.size
         object item
         int64_t ival
         _TSObject tsobj
@@ -607,7 +614,7 @@ def array_to_datetime_with_tz(
     else:
         abbrev = npy_unit_to_abbrev(creso)
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to `item = values[i]`
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 

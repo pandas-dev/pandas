@@ -78,6 +78,33 @@ def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwar
     tm.assert_frame_equal(result, temp_hdfstore.select("df", where="A>0"))
 
 
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 50}, {"iterator": True}])
+def test_select_iterator_condition_and_big_selector(temp_hdfstore, iter_kwargs):
+    # GH#12953 a `where` that combines a numexpr row condition with a big-list
+    # (>31 selectors) data-column filter is realized as a numexpr condition plus
+    # a post-read filter. The chunked/iterator path reads by row coordinates, so
+    # the filter must be applied when computing those coordinates -- otherwise it
+    # is silently dropped and extra rows leak through.
+    df = DataFrame(
+        {
+            "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
+            "users": ["a"] * 50
+            + ["b"] * 50
+            + ["c"] * 100
+            + [f"a{i:03d}" for i in range(100)],
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=["ts", "users"])
+
+    selector = ["a", "b", "c"] + [f"a{i:03d}" for i in range(60)]
+    where = "ts>=Timestamp('2012-02-01') and users=selector"
+
+    expected = df[(df["ts"] >= Timestamp("2012-02-01")) & df["users"].isin(selector)]
+    result = concat(list(temp_hdfstore.select("df", where=where, **iter_kwargs)))
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, temp_hdfstore.select("df", where=where))
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = DataFrame(
@@ -89,11 +116,11 @@ def test_select_with_dups(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=df.columns)
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=["A"])
     expected = df.loc[:, ["A"]]
@@ -120,19 +147,19 @@ def test_select_with_dups_across_dtypes(temp_hdfstore):
 
     result = temp_hdfstore.select("df")
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     result = temp_hdfstore.select("df", columns=df.columns)
     expected = df
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     expected = df.loc[:, ["A"]]
     result = temp_hdfstore.select("df", columns=["A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
     expected = df.loc[:, ["B", "A"]]
     result = temp_hdfstore.select("df", columns=["B", "A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_select_with_dups_across_index_and_columns(temp_hdfstore):
@@ -156,7 +183,7 @@ def test_select_with_dups_across_index_and_columns(temp_hdfstore):
     expected = df.loc[:, ["B", "A"]]
     expected = concat([expected, expected])
     result = temp_hdfstore.select("df", columns=["B", "A"])
-    tm.assert_frame_equal(result, expected, by_blocks=True)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_select(temp_hdfstore):

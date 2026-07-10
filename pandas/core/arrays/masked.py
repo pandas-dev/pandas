@@ -421,6 +421,45 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self._validate_setitem_value(item)
         return super().insert(loc, item)
 
+    def _validate_listlike(self, value) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+        """
+        Validate a non-scalar setitem value and return ``(data, mask)``.
+
+        Raises
+        ------
+        TypeError
+            If `value` cannot be losslessly stored in self.dtype.
+        """
+        kind = self.dtype.kind
+
+        if hasattr(value, "dtype"):
+            their_kind = value.dtype.kind
+            # Compatible numeric/bool ndarrays defer to _coerce_to_array,
+            # which handles precision/NaN checks via _safe_cast.  Bool
+            # ndarrays are accepted for numeric targets to preserve the
+            # long-standing bool-as-int treatment exercised by Series.mask.
+            if (kind == "b" and their_kind == "b") or (
+                kind in "iuf" and their_kind in "iufb"
+            ):
+                return self._coerce_to_array(value, dtype=self.dtype)
+        elif not is_list_like(value):
+            # is_scalar in __setitem__ misses some non-listlike inputs
+            # (e.g. an opaque ``object()`` instance); route them through
+            # the scalar validator, which will raise.
+            self._validate_setitem_value(value)
+
+        # Otherwise let _cast_pointwise_result infer the natural type of
+        # `value` (without the silent string-/bool-to-numeric coercions
+        # that _coerce_to_array performs).  A kind-mismatch is invalid.
+        casted = self._cast_pointwise_result(value)
+        casted_kind = casted.dtype.kind
+        if not (
+            (kind == "b" and casted_kind == "b")
+            or (kind in "iuf" and casted_kind in "iuf")
+        ):
+            raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+        return self._coerce_to_array(casted, dtype=self.dtype)
+
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
@@ -438,7 +477,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 self._mask[key] = False
             return
 
-        value, mask = self._coerce_to_array(value, dtype=self.dtype)
+        value, mask = self._validate_listlike(value)
 
         self._data[key] = value
         self._mask[key] = mask
@@ -1699,7 +1738,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
+        if name in ("any", "all"):
+            np_dtype = "bool"
+        elif name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
@@ -1874,7 +1915,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -1968,7 +2009,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------

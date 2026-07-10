@@ -126,7 +126,13 @@ class TestDatetime64ArrayLikeComparisons:
         result = dta != other
         tm.assert_numpy_array_equal(result, ~expected)
 
-        msg = "Invalid comparison between|Cannot compare type|not supported between"
+        msg = "|".join(
+            [
+                "Invalid comparison between",
+                "Cannot compare type",
+                "not supported between",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             dta < other
         with pytest.raises(TypeError, match=msg):
@@ -1020,7 +1026,7 @@ class TestDatetime64Arithmetic:
     ):
         tz = tz_aware_fixture
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        dt64vals = dti.values
+        dt64vals = dti.to_numpy(dtype="datetime64[ns]")
 
         dtarr = tm.box_expected(dti, box_with_array)
         msg = "Cannot subtract tz-naive and tz-aware datetime"
@@ -1044,7 +1050,7 @@ class TestDatetime64Arithmetic:
             dti2 = dti.tz_localize(None)
         dtarr = tm.box_expected(dti, box_with_array)
 
-        assert_cannot_add(dtarr, dti.values)
+        assert_cannot_add(dtarr, dti._data._ndarray)
         assert_cannot_add(dtarr, dti)
         assert_cannot_add(dtarr, dtarr)
         assert_cannot_add(dtarr, dti[0])
@@ -1858,7 +1864,8 @@ class TestTimestampSeriesArithmetic:
         # did this for us.
         if op_str not in op_fail:
             with pytest.raises(
-                TypeError, match="operate|[cC]annot|unsupported operand"
+                TypeError,
+                match="|".join(["operate", "[cC]annot", "unsupported operand"]),
             ):
                 op(arg2)
         else:

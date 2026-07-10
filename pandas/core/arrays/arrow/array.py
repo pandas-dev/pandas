@@ -6,7 +6,6 @@ from datetime import (
 )
 import functools
 import operator
-from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -34,7 +33,9 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under14p0,
     pa_version_under21p0,
+    pa_version_under25p0,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -520,6 +521,17 @@ class ArrowExtensionArray(
                 values = np.asarray(values, dtype=object)
                 mask = is_pdna_or_none(values)
                 arr = pa.array(values, mask=mask)
+            elif hasattr(values, "__arrow_array__"):
+                arr = values.__arrow_array__()
+            elif hasattr(values, "_ndarray"):
+                # DatetimeArray, TimedeltaArray: pass underlying ndarray
+                # to avoid pyarrow calling Series.values (which is deprecated
+                # for tz-aware datetimes)
+                arr = pa.array(values._ndarray, from_pandas=True)
+                if hasattr(values.dtype, "tz") and values.dtype.tz is not None:
+                    arr = arr.cast(
+                        pa.timestamp(values.dtype.unit, tz=str(values.dtype.tz))
+                    )
             else:
                 arr = pa.array(values, from_pandas=True)
         except (ValueError, TypeError):
@@ -1221,6 +1233,29 @@ class ArrowExtensionArray(
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
+    def _str_arith_method_object_fallback(
+        self, other, op
+    ) -> Self | npt.NDArray[np.object_]:
+        mask = isna(self) | isna(other)
+        valid = ~mask
+
+        if is_list_like(other):
+            if len(other) != len(self):
+                raise ValueError(
+                    f"Lengths of operands do not match: {len(self)} != {len(other)}"
+                )
+            if not is_array_like(other):
+                other = np.asarray(other)
+            other = other[valid]
+
+        result = np.empty(len(self), dtype=object)
+        result[mask] = self.dtype.na_value
+        result[valid] = op(np.asarray(self, dtype=object)[valid], other)
+
+        if not lib.is_string_array(result, skipna=True):
+            return result
+        return type(self)._from_sequence(result, dtype=self.dtype)
+
     def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
         if isinstance(other, BaseOffset) and pa.types.is_date(self._pa_array.type):
             # Cast date32/date64 → timestamp, apply offset via DatetimeArray, cast back
@@ -1238,24 +1273,19 @@ class ArrowExtensionArray(
                 self._pa_array.type
             )
             return self._from_pyarrow_array(result_pa)
-        if (
-            op in [operator.truediv, roperator.rtruediv]
-            and isinstance(other, Path)
-            and (
-                pa.types.is_string(self._pa_array.type)
-                or pa.types.is_large_string(self._pa_array.type)
-            )
-        ):
-            # GH#61940
-            return np.array(
-                [
-                    op(x, other) if isinstance(x, str) else self.dtype.na_value
-                    for x in self
-                ],
-                dtype=object,
-            )
 
-        result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        result: Self | npt.NDArray[np.object_]
+        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
+            try:
+                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
+                result = self._str_arith_method_object_fallback(other, op)
+        else:
+            result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+        if isinstance(result, np.ndarray):
+            return result
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
             mask = pc.is_nan(parr).fill_null(False).to_numpy()
@@ -1681,7 +1711,8 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(values))
+        value_set = self._box_pa(values)
+        result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
@@ -1868,7 +1899,17 @@ class ArrowExtensionArray(
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
-        return self._from_pyarrow_array(pc.round(self._pa_array, ndigits=decimals))
+        if not self.dtype._is_numeric or self.dtype._is_boolean:
+            # pc.round raises ArrowNotImplementedError on boolean and
+            # non-numeric types; defer to the base for the (copy / TypeError)
+            # contract.
+            return super().round(decimals, *args, **kwargs)
+        result = pc.round(self._pa_array, ndigits=decimals)
+        if pa_version_under14p0:
+            # pyarrow < 14 upcasts integer inputs to double; cast back so the
+            # output dtype matches the input.
+            result = result.cast(self._pa_array.type)
+        return self._from_pyarrow_array(result)
 
     def searchsorted(
         self,
@@ -2880,16 +2921,19 @@ class ArrowExtensionArray(
             return result
 
         data = self._pa_array.combine_chunks()
-        sort_keys = "ascending" if ascending else "descending"
+        order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
         tiebreaker = "min" if method == "average" else method
 
-        result = pc.rank(
-            data,
-            sort_keys=sort_keys,
-            null_placement=null_placement,
-            tiebreaker=tiebreaker,
-        )
+        rank_kwargs: dict[str, Any]
+        if pa_version_under25p0:
+            rank_kwargs = {"sort_keys": order, "null_placement": null_placement}
+        else:
+            # pyarrow 25 deprecated the null_placement keyword in favor of
+            # specifying it per sort key
+            rank_kwargs = {"sort_keys": [("", order, null_placement)]}
+
+        result = pc.rank(data, tiebreaker=tiebreaker, **rank_kwargs)
 
         if na_option == "keep":
             mask = pc.is_null(self._pa_array)
@@ -2897,12 +2941,7 @@ class ArrowExtensionArray(
             result = pc.if_else(mask, null, result)
 
         if method == "average":
-            result_max = pc.rank(
-                data,
-                sort_keys=sort_keys,
-                null_placement=null_placement,
-                tiebreaker="max",
-            )
+            result_max = pc.rank(data, tiebreaker="max", **rank_kwargs)
             result_max = result_max.cast(pa.float64())
             result_min = result.cast(pa.float64())
             result = pc.divide(pc.add(result_min, result_max), 2)
@@ -3485,6 +3524,9 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1) -> Self:
+        if pat is not None and not isinstance(pat, str):
+            msg = f"expected a string object, not {type(pat).__name__}"
+            raise TypeError(msg)
         if n in {-1, 0}:
             n = None
         if pat is None:

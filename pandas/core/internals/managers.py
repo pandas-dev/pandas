@@ -1315,6 +1315,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             # Check if we can use _iset_single fastpath
             loc = cast("int", loc)
+            if not value_is_extension_type and len(value) > 1:
+                # GH#46544 setting a single column with a 2D value; matches the
+                #  check in self.insert. value has been transposed above, so
+                #  len(value) is the number of columns in the original value.
+                raise ValueError(
+                    f"Expected a 1D array, got an array with shape {value.T.shape}"
+                )
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
@@ -2186,7 +2193,9 @@ class SingleBlockManager(BaseBlockManager):
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)
 
-    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> SingleBlockManager:
+    def get_slice(
+        self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
+    ) -> SingleBlockManager:
         # Assertion disabled for performance
         # assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
@@ -2198,7 +2207,8 @@ class SingleBlockManager(BaseBlockManager):
         # TODO this method is only used in groupby SeriesSplitter at the moment,
         # so passing refs is not yet covered by the tests
         block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
-        new_index = self.index._getitem_slice(slobj)
+        if new_index is None:
+            new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
     @property
@@ -2298,9 +2308,6 @@ class SingleBlockManager(BaseBlockManager):
         Used in .equals defined in base class. Only check the column values
         assuming shape and indexes have already been checked.
         """
-        # For SingleBlockManager (i.e.Series)
-        if other.ndim != 1:
-            return False
         left = self.blocks[0].values
         right = other.blocks[0].values
         return array_equals(left, right)
