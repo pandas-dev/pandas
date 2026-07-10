@@ -870,12 +870,13 @@ class TestInterpolateLimitBehavior:
         expected = Series([1.0, np.nan, np.nan, np.nan, 5.0])
         tm.assert_series_equal(result, expected)
 
-    def test_interpolate_limit_behavior_invalid_value(self):
+    @pytest.mark.parametrize("invalid", ["invalid", None, 123])
+    def test_interpolate_limit_behavior_invalid_value(self, invalid):
         # Invalid limit_behavior should raise ValueError
         s = Series([1.0, np.nan, 3.0])
         msg = "Invalid limit_behavior"
         with pytest.raises(ValueError, match=msg):
-            s.interpolate(limit_behavior="invalid")
+            s.interpolate(limit_behavior=invalid)
 
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "Arrow"])
     def test_interpolate_limit_behavior_extension_arrays(self, dtype):

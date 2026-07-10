@@ -312,11 +312,16 @@ def validate_limit_area(limit_area: str | None) -> Literal["inside", "outside"] 
 
 def validate_limit_behavior(limit_behavior: str) -> Literal["fill", "skip"]:
     valid_limit_behaviors = ("fill", "skip")
+    if not isinstance(limit_behavior, str):
+        raise ValueError(
+            f"Invalid limit_behavior: expecting one of {valid_limit_behaviors}, got "
+            f"{limit_behavior!r}."
+        )
     limit_behavior = limit_behavior.lower()
     if limit_behavior not in valid_limit_behaviors:
         raise ValueError(
             f"Invalid limit_behavior: expecting one of {valid_limit_behaviors}, got "
-            f"'{limit_behavior}'."
+            f"{limit_behavior!r}."
         )
     # error: Incompatible return value type (got "str", expected
     # "Literal['fill', 'skip']")
