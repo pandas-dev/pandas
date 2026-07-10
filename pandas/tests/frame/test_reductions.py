@@ -1919,12 +1919,12 @@ class TestDataFrameReductions:
             _make_2d_ea_df(
                 [
                     to_datetime(["2020-02-01", "2020-02-02", pd.NaT])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                     to_datetime([pd.NaT, "2020-02-04", "2020-02-05"])
-                    .as_unit("ns")
-                    .tz_localize("US/Eastern")
+                    .as_unit("us")
+                    .tz_localize("UTC")
                     ._data,
                 ],
                 ["dz3", "dz4"],
@@ -2035,6 +2035,60 @@ class TestDataFrameReductions:
                 check_dtype=False,
                 check_names=False,
             )
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_with_nat(self, method):
+        # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
+        # must skip NaT under skipna=True, matching the transpose path.
+        ts = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        df = DataFrame({"a": [ts, ts], "b": [ts, pd.NaT]})
+        # Two separate blocks (CoW), same EA dtype.
+        assert len(df._mgr.blocks) == 2
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([ts, ts], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        # skipna=False propagates NaT.
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
+        # GH#65500: different tz across blocks must not enter the EA fast
+        # path (which would silently produce a wrong-dtype result); fall
+        # through to the slow path so the result has object dtype.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, ts2]})
+
+        result = df.max(axis=1)
+        expected = Series([ts1, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = df.min(axis=1)
+        expected = Series([ts2, ts2], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_dt64tz_mixed_tz_with_nat(self, method):
+        # GH#65500: mixed-tz frames reduce via the object path; NaT must
+        # be skipped under skipna=True instead of raising TypeError on
+        # comparison with the NA fill value.
+        ts1 = Timestamp("2026-01-01 15:13:44", tz="Europe/Budapest")
+        ts2 = Timestamp("2026-01-01 15:13:44", tz="Europe/Moscow")
+        # ts2 is the earlier of the two in UTC terms
+        df = DataFrame({"a": [ts1, ts1], "b": [ts2, pd.NaT]})
+        winner = ts2 if method == "min" else ts1
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, ts1], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, pd.NaT], dtype=object)
+        tm.assert_series_equal(result, expected)
 
     def test_frame_any_with_timedelta(self):
         # GH#17667
@@ -2565,6 +2619,48 @@ def test_numeric_ea_axis_1(
             # GH#65710 Kleene "all" on (truthy, NA) row returns NA
             expected.iloc[2] = pd.NA
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", "UInt32", "boolean", "int64[pyarrow]"]
+)
+def test_idxmax_idxmin_axis_1_ea_matches_numpy(how, skipna, dtype):
+    # GH#56903 the EA-backed axis=1 path must agree with the numpy-backed path,
+    # including skipna=False when there are no NA values (previously the cython
+    # kernel returned the all-NA sentinel for every row).
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False, True], [False, False, True], [True, True, False]]
+        np_dtype = bool
+    else:
+        values = [[1, 4, 0], [5, 2, 9], [2, 8, 1], [3, 3, 7]]
+        np_dtype = "float64"
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"]).astype(np_dtype)
+
+    result = getattr(df_ea, how)(axis=1, skipna=skipna)
+    expected = getattr(df_np, how)(axis=1, skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean", "int64[pyarrow]"])
+def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
+    # GH#56903 a fully-NA row must raise (matching the numpy-backed path) rather
+    # than leak the -1 cython sentinel as a column label.
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    if dtype == "boolean":
+        values = [[True, False], [pd.NA, pd.NA], [False, True]]
+    else:
+        values = [[1, 4], [pd.NA, pd.NA], [3, 9]]
+    df = DataFrame(values, columns=["a", "b"]).astype(dtype)
+    with pytest.raises(ValueError, match="[Ee]ncountered an?.*NA value"):
+        getattr(df, how)(axis=1, skipna=skipna)
 
 
 def test_mean_nullable_int_axis_1():

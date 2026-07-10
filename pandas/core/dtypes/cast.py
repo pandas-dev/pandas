@@ -842,21 +842,6 @@ def _maybe_infer_dtype_type(element: object) -> DtypeObj | None:
     return tipo
 
 
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
-    """
-    Change string like dtypes to object for
-    ``DataFrame.select_dtypes()``.
-    """
-    non_string_dtypes = dtype_set - {
-        np.dtype("S").type,
-        np.dtype("<U").type,
-    }
-    if non_string_dtypes != dtype_set:
-        raise TypeError(
-            "numpy string dtypes are not allowed, use 'str' or 'object' instead"
-        )
-
-
 def coerce_indexer_dtype(indexer: np.ndarray, categories: Index) -> np.ndarray:
     """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
