@@ -58,7 +58,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -2735,10 +2734,7 @@ class MultiIndex(Index):
                     level_values = level_values.union(mi.levels[i])
                 level_codes = [
                     recode_for_categories(
-                        mi.codes[i],
-                        mi.levels[i].astype(level_values.dtype, copy=False),
-                        level_values,
-                        copy=False,
+                        mi.codes[i], mi.levels[i], level_values, copy=False
                     )
                     for mi in ([self, *other])
                 ]
@@ -3167,18 +3163,9 @@ class MultiIndex(Index):
                 f"must be <= self.nlevels ({self.nlevels})"
             )
         for i in range(len(new_levels)):
-            old_level = self.levels[i]
-            new_level = new_levels[i]
-            if (
-                is_object_dtype(old_level.dtype)
-                and needs_i8_conversion(new_level.dtype)
-            ) or (
-                needs_i8_conversion(old_level.dtype)
-                and is_object_dtype(new_level.dtype)
-            ):
-                old_level = old_level.astype(object)
-                new_level = new_level.astype(object)
-            yield recode_for_categories(self.codes[i], old_level, new_level, copy=copy)
+            yield recode_for_categories(
+                self.codes[i], self.levels[i], new_levels[i], copy=copy
+            )
 
     def _get_codes_for_sorting(self) -> list[Categorical]:
         """
@@ -4449,18 +4436,12 @@ class MultiIndex(Index):
                 return False
             self_level = self.levels[i]
             other_level = other.levels[i]
-            self_level_orig = self_level
-            other_level_orig = other_level
-            if self_level.dtype != other_level.dtype:
-                dtype = self_level._find_common_type_compat(other_level)
-                self_level = self_level.astype(dtype, copy=False)
-                other_level = other_level.astype(dtype, copy=False)
             new_codes = recode_for_categories(
                 other_codes, other_level, self_level, copy=False
             )
             if not array_equivalent(self_codes, new_codes):
                 return False
-            if not self_level_orig[:0].equals(other_level_orig[:0]):
+            if not self_level[:0].equals(other_level[:0]):
                 # e.g. Int64 != int64
                 return False
         return True

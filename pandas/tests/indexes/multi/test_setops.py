@@ -270,7 +270,8 @@ def test_union_mixed_date_timestamp():
     left = MultiIndex.from_tuples([(date(2001, 1, 1), "foo")])
     right = MultiIndex.from_tuples([(pd.Timestamp("2001-01-01"), "bar")])
 
-    result = left.union(right, sort=False)
+    with tm.assert_produces_warning(None):
+        result = left.union(right, sort=False)
 
     assert result.tolist() == [
         (date(2001, 1, 1), "foo"),
