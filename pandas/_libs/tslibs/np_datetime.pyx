@@ -872,7 +872,7 @@ cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.
     try:
-        for i in range(N):
+        for _ in range(N):
             # Analogous to: lval = lvalues[i]
             lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
