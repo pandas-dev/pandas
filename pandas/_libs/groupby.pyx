@@ -36,16 +36,14 @@ from pandas._libs.algos cimport (
     calc_kurt,
     calc_skew,
     get_rank_nan_fill_val,
+    groupsort_indexer,
     kth_smallest_c,
     moments_add_value,
-)
-
-from pandas._libs.algos import (
-    groupsort_indexer,
-    rank_1d,
     take_2d_axis1_bool_bool,
     take_2d_axis1_float64_float64,
 )
+
+from pandas._libs.algos import rank_1d
 
 from pandas._libs.dtypes cimport (
     numeric_object_t,
@@ -223,13 +221,13 @@ def group_median_float64(
     data = np.empty((K, N), dtype=np.float64)
     ptr = <float64_t*>cnp.PyArray_DATA(data)
 
-    take_2d_axis1_float64_float64(values.T, indexer, out=data)
+    take_2d_axis1_float64_float64(values.T, indexer, data)
 
     if uses_mask:
         data_mask = np.empty((K, N), dtype=np.uint8)
         ptr_mask = <uint8_t *>cnp.PyArray_DATA(data_mask)
 
-        take_2d_axis1_bool_bool(mask.T, indexer, out=data_mask, fill_value=1)
+        take_2d_axis1_bool_bool(mask.T, indexer, data_mask, 1)
 
         with nogil:
 

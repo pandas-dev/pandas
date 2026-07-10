@@ -214,7 +214,7 @@ def is_lexsorted(list_of_arrays: list) -> bool:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
+cpdef groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     """
     Compute a 1-d indexer.
 

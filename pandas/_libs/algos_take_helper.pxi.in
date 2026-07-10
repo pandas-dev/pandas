@@ -314,9 +314,9 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if c_type_in != "object"}}
-def take_2d_axis1_{{name}}_{{dest}}(const {{c_type_in}}[:, :] values,
+cpdef take_2d_axis1_{{name}}_{{dest}}(const {{c_type_in}}[:, :] values,
 {{else}}
-def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
+cpdef take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 {{endif}}
                                     ndarray[intp_t, ndim=1] indexer,
                                     {{c_type_out}}[:, :] out,
