@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import is_platform_windows
 
@@ -112,6 +114,10 @@ def test_string_column_literal_nan_and_real_nan(temp_hdfstore):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_index_real_na_roundtrips_fixed(temp_h5_path):
     # GH#9604 — a genuine missing value in a string Index round-trips in the
     # fixed format (previously it was read back as the literal string "nan").
@@ -121,6 +127,10 @@ def test_string_index_real_na_roundtrips_fixed(temp_h5_path):
     tm.assert_series_equal(read_hdf(temp_h5_path, "s"), ser)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_index_real_na_roundtrips_table(temp_hdfstore):
     # GH#9604 — same, table format.
     ser = Series(range(3), index=Index(["aaa", np.nan, "bbb"], dtype=str))
@@ -129,6 +139,10 @@ def test_string_index_real_na_roundtrips_table(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("s"), ser)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
     # GH#9604 — a real NA and the literal string "nan" coexist in one string
     # Index and both round-trip: the NaN sentinel is chosen to avoid colliding
@@ -142,6 +156,10 @@ def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
     tm.assert_series_equal(read_hdf(temp_h5_path, "table"), ser)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_index_all_na_roundtrips(temp_h5_path):
     # GH#9604 — the missing values in an all-missing string Index survive the
     # round-trip. The index dtype degrades to object because an all-NaN array
