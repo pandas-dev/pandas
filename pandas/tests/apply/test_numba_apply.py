@@ -7,6 +7,8 @@ from pandas.errors import NumbaUtilError
 # NumPy 2.5 compatibility patch for Numba in test runtime
 np.row_stack = np.vstack
 
+pytest.importorskip("numba")
+
 pytestmark = [
     pytest.mark.filterwarnings("ignore::DeprecationWarning"),
     pytest.mark.filterwarnings("ignore::UserWarning"),
