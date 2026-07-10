@@ -752,14 +752,13 @@ def test_parallel_default_off_on_windows(tmp_path, monkeypatch):
 
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is capped at 4, regardless of core count."""
+    """The default worker count is the machine's core count."""
     import pandas.io.parsers.readers as _readers
 
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # More cores than the cap: the default should clamp down to 4.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
 
     workers = []
@@ -771,7 +770,7 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     read_csv(path)
-    assert workers == [4]
+    assert workers == [16]
 
     # An explicit mode.max_threads still overrides the cap.
     workers.clear()
@@ -1094,3 +1093,22 @@ def test_parallel_bom_at_file_start_header_none(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
     # the stripped BOM means the first cell parses as an integer
     assert result["a"].iloc[0] == 0
+
+
+def test_parallel_string_dtype_python_storage(tmp_path, monkeypatch):
+    # Without the pyarrow string fast path, the gathered object column must
+    # get the same string-dtype inference a serial read applies via the
+    # DataFrame constructor (GH#66275).
+    import pandas.io.parsers.readers as _readers
+
+    path = tmp_path / "data.csv"
+    rows = "\n".join(f"{i},s{i % 7}" for i in range(5000))
+    path.write_text("a,b\n" + rows + "\n", encoding="utf-8")
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+    with option_context("mode.string_storage", "python"):
+        with option_context("mode.max_threads", 1):
+            serial = read_csv(path)
+        with option_context("mode.max_threads", 4):
+            parallel = read_csv(path)
+    tm.assert_frame_equal(parallel, serial)

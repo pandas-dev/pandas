@@ -195,6 +195,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when an extension dtype is requested (e.g. ``dtype="Int64"``, ``dtype="boolean"``, or ``dtype="int64[pyarrow]"``) (:issue:`66279`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` when reading in parallel, which now applies to files as small as 5 MB and uses all available CPU cores by default (:issue:`66275`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading in parallel: closing a parser no longer blocks the other parser threads while its buffers are freed (:issue:`66272`)
 - Performance improvement in :func:`read_csv` with ``engine="c"``, especially for large files and parallel reads (:issue:`66271`)
 - Performance improvement in :func:`read_hdf` for the fixed (default) format, especially on large frames (:issue:`47726`)

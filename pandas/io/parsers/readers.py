@@ -17,6 +17,7 @@ import csv
 import io
 import mmap
 import os
+import queue
 import sys
 from typing import (
     IO,
@@ -59,8 +60,17 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.inference import is_file_like
 
 from pandas import Series
+from pandas.core.arrays import (
+    DatetimeArray,
+    TimedeltaArray,
+)
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import RangeIndex
+from pandas.core.indexes.api import (
+    RangeIndex,
+    ensure_index,
+)
+from pandas.core.internals.api import _make_block
+from pandas.core.internals.managers import BlockManager
 
 from pandas.io.common import (
     IOHandles,
@@ -75,7 +85,10 @@ from pandas.io.parsers.base_parser import (
     is_index_col,
     parser_defaults,
 )
-from pandas.io.parsers.c_parser_wrapper import CParserWrapper
+from pandas.io.parsers.c_parser_wrapper import (
+    CParserWrapper,
+    _concatenate_chunks,
+)
 from pandas.io.parsers.python_parser import (
     FixedWidthFieldParser,
     PythonParser,
@@ -182,7 +195,9 @@ _python_unsupported = {"low_memory", "float_precision"}
 
 # Minimum file size (bytes) to attempt parallel CSV reading.
 # Below this threshold the overhead of splitting and threading outweighs the benefit.
-_PARALLEL_READ_MIN_BYTES = 50 * 1024 * 1024  # 50 MB
+# Parallel reading breaks even around 1-2 MB (thread spawn plus chunk-split
+# overhead is sub-millisecond); 5 MB leaves margin for cold-cache reads.
+_PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -339,11 +354,13 @@ def _read(
             # https://github.com/pandas-dev/pandas/pull/64347#issuecomment-4468820601
             _n_workers = 1
         else:
-            # Cap the default at 4 threads: parallel CSV reading sees
-            # diminishing returns beyond a handful of workers, and a lower
-            # default avoids oversubscribing the machine.  Users who want more
-            # can opt in explicitly via mode.max_threads.
-            _n_workers = min(os.cpu_count() or 1, 4)
+            # Use every core by default: with the parse, convert and gather
+            # phases all GIL-free and the allocator out of the hot path,
+            # parallel reading keeps scaling through heterogeneous
+            # (performance + efficiency) core sets.  Users embedding pandas
+            # in an already-parallel workload can lower this via
+            # mode.max_threads.
+            _n_workers = os.cpu_count() or 1
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
             _filepath = stringify_path(filepath_or_buffer)
             assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
@@ -665,8 +682,13 @@ def _read_csv_parallel(
     # Byte offset at which real data rows begin.
     data_start = _find_data_start_offset(filepath, header, skiprows)
 
-    # Split the data section into up to n_workers chunks.
-    offsets = _find_chunk_byte_offsets(filepath, n_workers, data_start)
+    # Split the data section into 3x n_workers chunks pulled from a shared
+    # queue: on heterogeneous CPUs (performance + efficiency cores) an equal
+    # split leaves the fast cores idle while the slow ones finish their single
+    # oversized chunk.  3x strikes the balance now that per-chunk overhead is
+    # low (readers and their buffers are reused across the chunks a worker
+    # pulls); larger factors showed no further gain.
+    offsets = _find_chunk_byte_offsets(filepath, n_workers * 3, data_start)
     n_chunks = len(offsets) - 1
     if n_chunks < 2:
         # e.g. a data section with no interior newlines (one giant line)
@@ -748,6 +770,11 @@ def _read_csv_parallel(
         "header": None,
         "names": col_names,
         "skiprows": None,
+        # low_memory chunking exists to bound peak memory during type
+        # inference; a worker's byte slice is already bounded, and skipping
+        # it avoids a per-worker GIL-held np.concatenate over the internal
+        # chunks.
+        "low_memory": False,
     }
 
     # mmap the file once and pass zero-copy memoryview slices to each thread
@@ -756,52 +783,210 @@ def _read_csv_parallel(
     with open(filepath, "rb") as fh:
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
 
-    def _process_chunk(start: int, end: int) -> DataFrame:
-        data = mv[start:end]
+    # Work-stealing over more chunks than workers: each of n_workers threads
+    # reuses one parser to drain the queue, so a thread that draws cheap
+    # chunks (or a fast core) keeps going instead of stalling the gather on a
+    # straggler - without paying to construct a parser per chunk.
+    chunk_queue: queue.SimpleQueue = queue.SimpleQueue()
+    for chunk_idx in range(n_chunks):
+        chunk_queue.put(chunk_idx)
+    results: list = [None] * n_chunks
+    workers_readers: list = []
+
+    def _worker() -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
-        # The serial C parser strips a UTF-8 BOM at byte 0 of the file only;
-        # strip_bom mirrors that for the chunk that starts there.
-        reader._engine._reader.load_buffer(data, strip_bom=start == 0)
-        try:
-            return reader.read()
-        finally:
-            reader.close()
+        # Buffers are reused at high-water mark across the queued chunks and
+        # freed at close; trimming between chunks would only stall the other
+        # workers with shrink-reallocs.
+        reader._engine._reader.trim_after_read = False
+        workers_readers.append(reader)
+        while True:
+            try:
+                chunk_idx = chunk_queue.get_nowait()
+            except queue.Empty:
+                return
+            data = mv[offsets[chunk_idx] : offsets[chunk_idx + 1]]
+            # The serial C parser strips a UTF-8 BOM at byte 0 of the file
+            # only; strip_bom mirrors that for the chunk that starts there
+            # (offset 0, i.e. a headerless file - with a header the first data
+            # chunk begins after it, so a leading BOM on a data line is kept).
+            reader._engine._reader.load_buffer(data, strip_bom=offsets[chunk_idx] == 0)
+            # the reader holds its own reference for the parse duration
+            del data
+            # Collect raw column arrays rather than a DataFrame: per-chunk
+            # DataFrame assembly happens under the GIL (serializing the pool)
+            # and a final concat would push every column back through the
+            # block machinery.  The columns are gathered once, below.
+            _, chunk_columns, col_dict = reader._engine.read()
+            results[chunk_idx] = (chunk_columns, col_dict)
 
+    def _copy_piece(dst: np.ndarray, pos: int, piece: np.ndarray) -> None:
+        # ndarray slice assignment releases the GIL for the memcpy, so the
+        # gather parallelises across the pool.
+        dst[pos : pos + len(piece)] = piece
+
+    def _piece_ndarray(piece) -> np.ndarray | None:
+        # The ndarray behind a parsed column piece, for pieces whose final
+        # block is ndarray-backed: plain ndarrays plus tz-naive
+        # datetime64/timedelta64 arrays (from parse_dates conversion).
+        if isinstance(piece, np.ndarray):
+            if piece.dtype == object:
+                # Object pieces take the leftover path below, where the
+                # gathered column runs through the same constructor
+                # inference as a serial read (e.g. object -> str dtype
+                # under ``future.infer_string`` when the pyarrow string
+                # fast path is unavailable).
+                return None
+            return piece
+        if isinstance(piece, (DatetimeArray, TimedeltaArray)) and isinstance(
+            piece.dtype, np.dtype
+        ):
+            return piece._ndarray
+        return None
+
+    dtype_arg = kwds.get("dtype")
+    # Mirror TextFileReader.read: a dict dtype or a str/object dtype request
+    # needs a Series-per-column wrap, so it takes the plain dict-based
+    # constructor below instead of direct block assembly.
+    needs_series_wrap = isinstance(dtype_arg, dict) or (
+        dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
+    )
+
+    block_specs: list[tuple] = []
+    leftover_pos: list[int] = []
+    col_list: list = []
+    chunk_dicts: list[dict] = []
+    columns: Sequence[Hashable] = []
+    total = 0
+    readers_closing = False
     try:
         with (
             memoryview(mm) as mv,
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
-            futures = [
-                pool.submit(_process_chunk, offsets[i], offsets[i + 1])
-                for i in range(n_chunks)
-            ]
-            dfs = [fut.result() for fut in futures]
+            for fut in [pool.submit(_worker) for _ in range(n_workers)]:
+                fut.result()
+            # Freeing each worker's parser buffers costs a few ms of madvise,
+            # so it runs on the pool, overlapped with the gather copies below.
+            close_futures = [pool.submit(reader.close) for reader in workers_readers]
+            readers_closing = True
+
+            chunk_results = cast("list[tuple]", results)
+            columns = chunk_results[0][0]
+            chunk_dicts = [col_dict for _, col_dict in chunk_results]
+            col_list = list(chunk_dicts[0])
+            if col_list:
+                total = sum(len(chunk_dict[col_list[0]]) for chunk_dict in chunk_dicts)
+
+            # Per-chunk dtype inference can disagree with whole-file inference
+            # (e.g. a numeric column whose only non-numeric row sits in one
+            # chunk parses int64 in clean chunks but object in the dirty one,
+            # whereas serial gives object for the whole column).  Mixed
+            # signed-int/float chunks gather to the same float64 result serial
+            # would produce; anything else must be re-read serially.
+            for name in col_list:
+                chunk_dtypes = {chunk_dict[name].dtype for chunk_dict in chunk_dicts}
+                if len(chunk_dtypes) > 1 and not all(
+                    dt.kind in "if" for dt in chunk_dtypes
+                ):
+                    return None
+
+            if not needs_series_wrap:
+                # Group gatherable (same-dtype ndarray) columns by dtype and
+                # gather each group straight into one preallocated consolidated
+                # block via GIL-free slice-assign copies on the pool.  Anything
+                # else (extension arrays, int/float mixes) is left to
+                # _concatenate_chunks below.
+                groups: dict[np.dtype, list[int]] = {}
+                col_nd_pieces: dict[int, list[np.ndarray]] = {}
+                for pos, name in enumerate(col_list):
+                    nd_pieces = [
+                        _piece_ndarray(chunk_dict[name]) for chunk_dict in chunk_dicts
+                    ]
+                    first = nd_pieces[0]
+                    if first is not None and all(
+                        piece is not None and piece.dtype == first.dtype
+                        for piece in nd_pieces
+                    ):
+                        groups.setdefault(first.dtype, []).append(pos)
+                        col_nd_pieces[pos] = cast("list[np.ndarray]", nd_pieces)
+                    else:
+                        leftover_pos.append(pos)
+
+                copy_futures = []
+                for group_dtype, positions in groups.items():
+                    values2d = np.empty((len(positions), total), dtype=group_dtype)
+                    for row, pos in enumerate(positions):
+                        offset = 0
+                        for piece in col_nd_pieces[pos]:
+                            copy_futures.append(
+                                pool.submit(_copy_piece, values2d[row], offset, piece)
+                            )
+                            offset += len(piece)
+                    block_specs.append((values2d, np.array(positions, dtype=np.intp)))
+                for fut in copy_futures:
+                    fut.result()
+            for fut in close_futures:
+                fut.result()
     finally:
-        # suppress: a worker exception's traceback still holds a memoryview
-        # export, in which case close() raises BufferError and would mask the
-        # real exception.  The mapping is unmapped once that traceback is
-        # garbage-collected.
+        if not readers_closing:
+            for reader in workers_readers:
+                try:
+                    reader.close()
+                except Exception:
+                    pass
+        # suppress: a worker exception's traceback may still hold a memoryview
+        # export, in which case close() raises BufferError.  The mapping is
+        # unmapped once that traceback is garbage-collected.
         with contextlib.suppress(BufferError):
             mm.close()
 
-    # Per-chunk dtype inference can disagree with whole-file inference, e.g.
-    # a numeric column whose only non-numeric row sits in one chunk parses as
-    # int64 in the clean chunks but object in the dirty one, whereas serial
-    # gives object for the whole column.  Mixed signed-int/float chunks concat
-    # to the same float64 result serial would produce; anything else must be
-    # re-read serially.
-    for pos in range(dfs[0].shape[1]):
-        chunk_dtypes = {df.dtypes.iloc[pos] for df in dfs}
-        if len(chunk_dtypes) > 1 and not all(
-            dtype.kind in "if" for dtype in chunk_dtypes
-        ):
-            return None
+    index = RangeIndex(total)
 
-    from pandas import concat
+    if needs_series_wrap:
+        data = _concatenate_chunks(chunk_dicts, list(columns), warn_mixed=False)
+        if isinstance(dtype_arg, dict):
+            dtype: defaultdict = defaultdict(lambda: None)
+            dtype.update(dtype_arg)
+        else:
+            dtype = defaultdict(lambda: dtype_arg)
+        new_col_dict = {
+            k: Series(
+                v,
+                index=index,
+                dtype=(
+                    dtype[k]
+                    if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                    else None
+                ),
+                copy=False,
+            )
+            for k, v in data.items()
+        }
+        return DataFrame(new_col_dict, columns=columns, index=index, copy=False)
 
-    return concat(dfs, ignore_index=True)
+    if leftover_pos:
+        leftover_names = [col_list[pos] for pos in leftover_pos]
+        leftover_dicts = [
+            {name: chunk_dict[name] for name in leftover_names}
+            for chunk_dict in chunk_dicts
+        ]
+        gathered = _concatenate_chunks(leftover_dicts, leftover_names, warn_mixed=False)
+        for pos, name in zip(leftover_pos, leftover_names, strict=True):
+            values = gathered[name]
+            if isinstance(values, np.ndarray) and values.dtype == object:
+                # Match the serial constructor's inference for object
+                # columns (object -> str dtype under future.infer_string).
+                values = Series(values, index=index, copy=False)._values
+            if isinstance(values, np.ndarray):
+                # _make_block expects numpy values already in 2D block shape
+                values = values.reshape(1, -1)
+            block_specs.append((values, np.array([pos], dtype=np.intp)))
+
+    block_objs = [_make_block(values, placement) for values, placement in block_specs]
+    mgr = BlockManager(block_objs, [ensure_index(columns), index])
+    return DataFrame._from_mgr(mgr, mgr.axes)
 
 
 @overload
