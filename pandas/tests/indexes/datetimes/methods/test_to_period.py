@@ -81,6 +81,36 @@ class TestToPeriod:
         assert result.freqstr == expected_freq
 
     @pytest.mark.parametrize(
+        "dates, expected_freq, expected_periods",
+        [
+            (
+                ["2012-01-01", "2012-04-01", "2012-07-01", "2012-10-01"],
+                "Q-DEC",
+                ["2012Q1", "2012Q2", "2012Q3", "2012Q4"],
+            ),
+            (
+                ["2012-02-01", "2012-05-01", "2012-08-01", "2012-11-01"],
+                "Q-JAN",
+                ["2013Q1", "2013Q2", "2013Q3", "2013Q4"],
+            ),
+            (
+                ["2012-03-01", "2012-06-01", "2012-09-01", "2012-12-01"],
+                "Q-FEB",
+                ["2013Q1", "2013Q2", "2013Q3", "2013Q4"],
+            ),
+        ],
+    )
+    def test_to_period_quarter_start_inferred(
+        self, dates, expected_freq, expected_periods
+    ):
+        # GH#36939 - without a set freq the anchor is only inferred up to
+        #  mod 3; calendar quarter starts must keep the calendar Q-DEC labels
+        dti = DatetimeIndex(dates)
+        result = dti.to_period()
+        expected = PeriodIndex(expected_periods, freq=expected_freq)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "off, expected_freq",
         [
             ("YS-APR", "Y-MAR"),

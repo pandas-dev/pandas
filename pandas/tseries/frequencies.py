@@ -341,7 +341,14 @@ class _FrequencyInferer:
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
-            mod_dict = {0: 12, 2: 11, 1: 10}
+            if quarterly_rule in ("QS", "BQS"):
+                # GH#36939 the anchor month is only known up to mod 3; use the
+                #  first-calendar-quarter representative so that to_period on
+                #  e.g. Jan/Apr/Jul/Oct starts (QS-JAN) keeps the calendar
+                #  convention Q-DEC
+                mod_dict = {1: 1, 2: 2, 0: 3}
+            else:
+                mod_dict = {0: 12, 2: 11, 1: 10}
             month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
             alias = f"{quarterly_rule}-{month}"
             return _maybe_add_count(alias, nquarters)
