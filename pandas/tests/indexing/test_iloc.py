@@ -816,6 +816,36 @@ class TestiLocBaseIndependent:
         expected = DataFrame(np.array(value, dtype="float64"), columns=["a", "c"])
         tm.assert_frame_equal(df[["a", "c"]], expected)
 
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_0d_arrays(self, indexer):
+        # GH#64230 0-d array elements are scalars, not rows, so a list of
+        # them is not a 2D value; set one scalar per column
+        df = DataFrame({"a": [0.0, 0.0], "b": [0, 0], "c": [0.0, 0.0]})
+        value = [np.array(1.0), np.array(2.0)]
+        if indexer == "loc":
+            df.loc[0, ["a", "c"]] = value
+        else:
+            df.iloc[0, [0, 2]] = value
+
+        expected = DataFrame({"a": [1.0, 0.0], "b": [0, 0], "c": [2.0, 0.0]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_list_of_2d_arrays(self, indexer):
+        # GH#64230 2-D array elements make the value 3D, not 2D; they get
+        # stored per-cell in an object column
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [np.ones((2, 2)), np.zeros((2, 2))]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        result = df["a"].tolist()
+        assert len(result) == 2
+        tm.assert_numpy_array_equal(result[0], value[0])
+        tm.assert_numpy_array_equal(result[1], value[1])
+
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
     @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
