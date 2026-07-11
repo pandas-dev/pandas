@@ -1253,19 +1253,30 @@ def stringify_numeric_column(values: Series) -> Series:
     Cast a numeric column to object-dtype strings so that to_datetime with a
     ``format`` doesn't have to infer how to interpret numeric input. GH#55663
 
-    Values that can't be represented as int64 (very large floats or +/-inf)
-    are set to NA so they coerce to NaT, rather than overflowing the int64
-    cast into a meaningless sentinel.
+    Floats that can't be represented as int64 (e.g. +/-inf) get their plain
+    ``str`` form, which fails to parse downstream: raise for errors="raise",
+    NaT for errors="coerce".
     """
-    result = values.astype("object")
-    notna_mask = values.notna()
+    notna_mask = values.notna().to_numpy()
+    int_mask = notna_mask
     if is_float_dtype(values.dtype):
         iinfo = np.iinfo(np.int64)
-        notna_mask &= values.between(iinfo.min, iinfo.max)
-    result[~notna_mask] = np.nan
-    if notna_mask.any():
-        result[notna_mask] = values[notna_mask].astype("int64").astype(str)
-    return result
+        # float64(iinfo.max) rounds up to 2**63, just out of range, so
+        # exclude the right endpoint
+        in_range = values.between(iinfo.min, iinfo.max, inclusive="left")
+        int_mask = notna_mask & in_range.to_numpy(dtype=bool, na_value=False)
+
+    result = np.full(len(values), np.nan, dtype=object)
+    oob_mask = notna_mask & ~int_mask
+    if oob_mask.any():
+        result[oob_mask] = np.asarray(values[oob_mask].astype(str), dtype=object)
+    if int_mask.any():
+        result[int_mask] = np.asarray(
+            values[int_mask].astype("int64").astype(str), dtype=object
+        )
+    return values._constructor(
+        result, index=values.index, name=values.name, dtype=object
+    )
 
 
 def _assemble_from_unit_mappings(

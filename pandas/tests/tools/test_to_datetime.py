@@ -2262,12 +2262,18 @@ class TestToDatetimeDataFrame:
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_dataframe_float_out_of_int64_range(self, errors, cache):
         # GH#55663 a float too large to represent as int64 (e.g. an absurd
-        #  year) coerces to NaT instead of overflowing the int64 cast into a
-        #  meaningless sentinel; filterwarnings=error guards the no-warning path
+        #  year) keeps its plain str() form instead of overflowing the int64
+        #  cast into a meaningless sentinel, so it raises/coerces like any
+        #  unparsable string; filterwarnings=error guards the no-warning path
         df2 = DataFrame({"year": [10**16, np.nan], "month": [1, 1], "day": [1, 1]})
-        result = to_datetime(df2, errors=errors, cache=cache)
-        expected = Series([NaT, NaT], dtype="datetime64[s]")
-        tm.assert_series_equal(result, expected)
+        if errors == "raise":
+            msg = "cannot assemble the datetimes"
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(df2, errors=errors, cache=cache)
+        else:
+            result = to_datetime(df2, errors=errors, cache=cache)
+            expected = Series([NaT, NaT], dtype="datetime64[s]")
+            tm.assert_series_equal(result, expected)
 
     def test_dataframe_extra_keys_raises(self, df, cache):
         # extra columns
@@ -4102,3 +4108,31 @@ def test_to_datetime_format_N_directive():
     result_f = to_datetime("2024-05-01 12:00:00.12345", format="%Y-%m-%d %H:%M:%S.%f")
     expected_f = Timestamp("2024-05-01 12:00:00.123450")
     tm.assert_equal(result_f, expected_f)
+
+
+def test_stringify_numeric_column_int64_boundary():
+    # GH#55663 float64(2**63) is just above int64.max and must take the
+    #  plain-str path, not an undefined float->int64 cast
+    ser = Series([float(2**63), float(2**63 - 2048), np.inf, np.nan, 20000101.0])
+    result = tools.stringify_numeric_column(ser)
+    expected = Series(
+        ["9.223372036854776e+18", "9223372036854773760", "inf", np.nan, "20000101"],
+        dtype=object,
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_dataframe_assemble_duplicate_index_with_nan(cache):
+    # GH#55663 duplicate index labels plus a NaN component must not trip
+    #  label alignment in the numeric-to-string cast
+    df = DataFrame(
+        {"year": [2000, 2001, np.nan], "month": [1, 1, 1], "day": [1, 1, 1]},
+        index=[0, 0, 1],
+    )
+    result = to_datetime(df, cache=cache)
+    expected = Series(
+        [Timestamp("2000-01-01"), Timestamp("2001-01-01"), NaT],
+        index=[0, 0, 1],
+        dtype="M8[us]",
+    )
+    tm.assert_series_equal(result, expected)
