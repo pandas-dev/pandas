@@ -15188,8 +15188,9 @@ class DataFrame(NDFrame, OpsMixin):
               similar to SQL right anti join; preserve key order.
 
               .. versionadded:: 3.0
-        on : Hashable or a sequence of the previous
-            Column or index level names to join on. These must be found in both
+        on : label, list/tuple of labels, or array-like, optional
+            A single label or a list or tuple of labels will be treated as column
+            or index level names to join on. These must be found in both
             DataFrames. If `on` is None and not merging on indexes then this defaults
             to the intersection of the columns in both DataFrames.
         left_on : label, list/tuple of labels, or array-like
