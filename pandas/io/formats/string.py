@@ -20,17 +20,33 @@ if TYPE_CHECKING:
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(self, fmt: DataFrameFormatter, line_width: int | None = None) -> None:
+    def __init__(
+        self,
+        fmt: DataFrameFormatter,
+        line_width: int | None = None,
+        ending_header: bool = False,
+    ) -> None:
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame
         self.line_width = line_width
+        self.ending_header = ending_header
 
     def to_string(self) -> str:
         text = self._get_string_representation()
+        if self.ending_header and not self.fmt.frame.empty and self.fmt.header:
+            text = f"{text}\n{self._get_header_line()}"
         if self.fmt.should_show_dimensions:
             text = f"{text}{self.fmt.dimensions_info}"
         return text
+
+    def _get_header_line(self) -> str:
+        """Return the header row(s) using the same column widths as the full table."""
+        n_header_rows = self.fmt.frame.columns.nlevels + int(
+            self.fmt.show_row_idx_names
+        )
+        full = self.adj.adjoin(1, *self._get_strcols())
+        return "\n".join(full.split("\n")[:n_header_rows])
 
     def _get_strcols(self) -> list[list[str]]:
         strcols = self.fmt.get_strcols()

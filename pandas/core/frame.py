@@ -1021,6 +1021,7 @@ class DataFrame(NDFrame, OpsMixin):
         min_rows: int | None = ...,
         max_colwidth: int | None = ...,
         encoding: str | None = ...,
+        ending_header: bool = ...,
     ) -> str: ...
 
     @overload
@@ -1046,6 +1047,7 @@ class DataFrame(NDFrame, OpsMixin):
         min_rows: int | None = ...,
         max_colwidth: int | None = ...,
         encoding: str | None = ...,
+        ending_header: bool = ...,
     ) -> None: ...
 
     def to_string(
@@ -1070,6 +1072,7 @@ class DataFrame(NDFrame, OpsMixin):
         min_rows: int | None = None,
         max_colwidth: int | None = None,
         encoding: str | None = None,
+        ending_header: bool = False,
     ) -> str | None:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -1142,6 +1145,10 @@ class DataFrame(NDFrame, OpsMixin):
             Max width to truncate each column in characters. By default, no limit.
         encoding : str, default "utf-8"
             Set character encoding.
+        ending_header : bool, default False
+            If True, repeat the column names as a footer below the last data row.
+            Useful for wide or tall DataFrames where the header has scrolled off screen.
+            .. versionadded:: 3.1.0
 
         Returns
         -------
@@ -1188,6 +1195,7 @@ class DataFrame(NDFrame, OpsMixin):
                 buf=buf,
                 encoding=encoding,
                 line_width=line_width,
+                ending_header=ending_header,
             )
 
     def _get_values_for_csv(

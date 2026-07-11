@@ -950,6 +950,7 @@ class DataFrameRenderer:
         buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         line_width: int | None = None,
+        ending_header: bool = False,
     ) -> str | None:
         """
         Render a DataFrame to a console-friendly tabular output.
@@ -964,10 +965,16 @@ class DataFrameRenderer:
             Set character encoding.
         line_width : int, optional
             Width to wrap a line in characters.
+        ending_header : bool, default False
+            If True, repeat the column names as a footer below the last data row.
+
+            .. versionadded:: 3.1.0
         """
         from pandas.io.formats.string import StringFormatter
 
-        string_formatter = StringFormatter(self.fmt, line_width=line_width)
+        string_formatter = StringFormatter(
+            self.fmt, line_width=line_width, ending_header=ending_header
+        )
         string = string_formatter.to_string()
         return save_to_buffer(string, buf=buf, encoding=encoding)
 
