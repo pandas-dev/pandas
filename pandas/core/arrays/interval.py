@@ -1594,6 +1594,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             unit = self.dtype.subtype.unit
             tz = str(self.dtype.subtype.tz)
             subtype = pyarrow.timestamp(unit, tz=tz)
+            # Bounds are always DatetimeArray for DatetimeTZDtype subtypes.
+            assert isinstance(self._left, DatetimeArray)
+            assert isinstance(self._right, DatetimeArray)
             left_arr = pyarrow.array(self._left._ndarray).cast(subtype)
             right_arr = pyarrow.array(self._right._ndarray).cast(subtype)
         else:
