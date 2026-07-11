@@ -498,11 +498,13 @@ def array_to_timedelta64(
                     ival = _numeric_to_td64ns(item, parsed_unit, creso)
 
             elif is_float_object(item):
-                int_item = int(item)
-                if item == int_item:
+                # GH#63275 use is_integer() (not int(item)) so that non-finite
+                #  floats fall through to _numeric_to_td64ns, which raises a
+                #  clear OutOfBoundsTimedelta rather than a bare OverflowError.
+                if item.is_integer():
                     # round float -> treat this like an int, giving
                     #  int_reso where possible
-                    item = int_item
+                    item = int(item)
 
                     if item == NPY_NAT:
                         ival = NPY_NAT
@@ -2359,15 +2361,25 @@ class Timedelta(_Timedelta):
                 if unit != "ns":
                     # Return with the closest-to-supported unit by going through
                     #  the timedelta64 path
-                    td = np.timedelta64(value, unit)
+                    try:
+                        td = np.timedelta64(value, unit)
+                    except OverflowError as err:
+                        # GH#63275 e.g. Timedelta(10**19, unit="s"); numpy
+                        #  raises a bare OverflowError, so re-raise as
+                        #  OutOfBoundsTimedelta for consistency.
+                        raise OutOfBoundsTimedelta(
+                            f"Cannot cast {value} from '{unit}' without overflow."
+                        ) from err
                     return cls(td)
                 value = _numeric_to_td64ns(value, unit)
 
         elif is_float_object(value):
-            int_item = int(value)
-            if value == int_item:
+            # GH#63275 use is_integer() (not int(value)) so that non-finite
+            #  floats fall through to _numeric_to_td64ns, which raises a clear
+            #  OutOfBoundsTimedelta rather than a bare OverflowError.
+            if value.is_integer():
                 # round float -> treat like an int, try to preserve unit
-                return cls(int_item, unit=unit)
+                return cls(int(value), unit=unit)
 
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
