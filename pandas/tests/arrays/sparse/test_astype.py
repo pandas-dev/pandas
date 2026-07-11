@@ -154,6 +154,22 @@ class TestAstype:
         result = Series(arr).astype(dtype)
         tm.assert_sp_array_equal(result.array, expected)
 
+    def test_astype_dt64_to_sparse_int64_explicit_fill_value(self):
+        # GH#49631 an explicitly-requested non-default fill_value must be
+        # preserved, not overridden with iNaT
+        values = np.array(["NaT", "2016-01-02", "2016-01-03"], dtype="M8[ns]")
+        arr = SparseArray(values)
+        dtype = SparseDtype("int64", fill_value=5)
+        expected = SparseArray._simple_new(
+            values[1:].astype("int64"), IntIndex(3, [1, 2]), dtype
+        )
+
+        result = arr.astype(dtype)
+        tm.assert_sp_array_equal(result, expected)
+
+        result = Series(arr).astype(dtype)
+        tm.assert_sp_array_equal(result.array, expected)
+
     def test_astype_fully_dense_na_fill_to_int_no_raise(self):
         # GH#49631 a fully dense float SparseArray whose (unused) NaN fill_value
         # cannot be represented as an integer must not raise on astype to int
