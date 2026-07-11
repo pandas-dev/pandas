@@ -127,16 +127,13 @@ class bottleneck_switch:
                     if k not in kwds:
                         kwds[k] = v
 
-            if values.size == 0 and kwds.get("min_count") is None:
-                # We are empty, returning NA for our type
-                # Only applies for the default `min_count` of None
-                # since that affects how empty arrays are handled.
-                # TODO(GH-18976) update all the nanops methods to
-                # correctly handle empty inputs and remove this check.
-                # It *may* just be `var`
-                return _na_for_min_count(values, axis)
-
-            if _USE_BOTTLENECK and skipna and _bn_ok_dtype(values.dtype, bn_name):
+            if (
+                _USE_BOTTLENECK
+                and skipna
+                and _bn_ok_dtype(values.dtype, bn_name)
+                and values.size > 0
+            ):
+                # GH-18976 skip bottleneck for empty arrays, let each function handle it
                 if kwds.get("mask", None) is None:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
@@ -371,7 +368,9 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
             result = result.astype(dtype)
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
-            if result == fill_value or np.isnan(result):
+            # GH#18976 use isna() to avoid deprecated comparison of timedelta64 with
+            # generic unit to integer fill_value on numpy-nightly
+            if isna(result):
                 unit = np.datetime_data(dtype)[0]
                 result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
@@ -696,6 +695,9 @@ def nanmean(
     >>> nanops.nanmean(s.values)
     np.float64(1.5)
     """
+    if values.size == 0:
+        # GH-18976
+        return cast("float", _na_for_min_count(values, axis))
     if values.dtype == object and len(values) > 1_000 and mask is None:
         # GH#54754 if we are going to fail, try to fail-fast
         nanmean(values[:1000], axis=axis, skipna=skipna)
@@ -954,6 +956,10 @@ def nanstd(
         unit = np.datetime_data(values.dtype)[0]
         values = values.view(f"m8[{unit}]")
 
+    if values.size == 0:
+        # GH-18976
+        return cast("float", _na_for_min_count(values, axis))
+
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
 
@@ -998,6 +1004,9 @@ def nanvar(
     >>> nanops.nanvar(s.values)
     1.0
     """
+    if values.size == 0:
+        # GH-18976
+        return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
     if dtype.kind in "iu":
@@ -1080,6 +1089,10 @@ def nansem(
     >>> nanops.nansem(s.values)
      np.float64(0.5773502691896258)
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
     nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
@@ -1285,6 +1298,10 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     dtype = values.dtype
     values = ensure_float64(values)
 
@@ -1342,6 +1359,10 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
+    if values.size == 0:
+        # GH#18976
+        return cast("float", _na_for_min_count(values, axis))
+
     dtype = values.dtype
     values = ensure_float64(values)
 
