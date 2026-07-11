@@ -335,7 +335,7 @@ def _filter_usecols(usecols, names: SequenceT) -> SequenceT | list[Hashable]:
 
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
-    column_names: list[str],
+    column_names: Sequence[Hashable],
     warn_mixed: bool = True,
 ) -> dict:
     """
