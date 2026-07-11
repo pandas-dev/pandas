@@ -955,14 +955,20 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         end = how == "E"
         if end:
+            if freq is not None:
+                # GH#63760 normalize so e.g. "1ns" is recognized as nanosecond
+                freq = Period._maybe_convert_freq(freq)
+            ns_target = freq is not None and freq.base == "ns"
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
                 stamp = self.to_timestamp(how="start")
-                adjust = Timedelta(1, unit="D") - Timedelta(1, unit=stamp.unit)
+                unit = "ns" if ns_target else stamp.unit
+                adjust = Timedelta(1, unit="D") - Timedelta(1, unit=unit)
                 return stamp + adjust
             else:
                 stamp = (self + self.freq).to_timestamp(how="start")
-                return stamp - Timedelta(1, unit=stamp.unit)
+                unit = "ns" if ns_target else stamp.unit
+                return stamp - Timedelta(1, unit=unit)
 
         if freq is None:
             freq_code = self._dtype._get_to_timestamp_base()

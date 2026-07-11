@@ -812,6 +812,31 @@ class TestPeriodMethods:
         assert result.unit == unit
         assert result == Timestamp("2020-01-01")
 
+    @pytest.mark.parametrize("freq", ["ns", "1ns", offsets.Nano()])
+    def test_to_timestamp_end_nanosecond_target(self, freq):
+        # GH#63760 how="end" keeps nanosecond precision for a target freq
+        #  that normalizes to nanoseconds
+        per = Period("2020-01-01", freq="D")
+        result = per.to_timestamp(freq, how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01 23:59:59.999999999")
+
+    def test_to_timestamp_end_from_nanosecond_period(self):
+        # GH#63760 a nanosecond Period keeps its nanosecond end bound with a
+        #  coarser target freq
+        per = Period("2020-01-01", freq="ns")
+        result = per.to_timestamp("D", how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-01")
+
+    def test_to_timestamp_end_bday_nanosecond_target(self):
+        # GH#63760 the B roll-forward path keeps nanosecond precision too
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per = Period("2020-01-02", freq="B")
+            result = per.to_timestamp("ns", how="E")
+        assert result.unit == "ns"
+        assert result == Timestamp("2020-01-02 23:59:59.999999999")
+
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
