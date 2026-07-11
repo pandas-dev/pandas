@@ -2008,6 +2008,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
                     delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
+            elif not kwds:
+                # GH#61870: bare DateOffset(n) with no keywords defaults to
+                # n days (matching the scalar path); without this branch it
+                # would incorrectly become a no-op on the vectorized path.
+                delta = Timedelta(days=1).as_unit("s")
             else:
                 delta = Timedelta(0).as_unit("s")
 
