@@ -655,6 +655,77 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return result
 
     @classmethod
+    def _maybe_convert_categories(
+        cls,
+        cats: Index,
+        true_values=None,
+        false_values=None,
+        convert_numeric: bool = True,
+        convert_bool: bool = True,
+    ) -> Index | None:
+        """
+        Try converting string categories to numeric or boolean, mirroring
+        the type inference read_csv performs on non-categorical columns.
+
+        Parameters
+        ----------
+        cats : Index
+        true_values : list, optional
+            Strings recognized as True, in addition to the defaults
+            "True", "TRUE", and "true."
+        false_values : list, optional
+            Strings recognized as False, in addition to the defaults
+            "False", "FALSE", and "false."
+        convert_numeric : bool, default True
+            Whether to attempt numeric conversion. Callers pass False when
+            the strings may not round-trip through ``to_numeric`` (e.g.
+            read_csv with non-default ``thousands``/``decimal``).
+        convert_bool : bool, default True
+            Whether to attempt boolean conversion. The C parser passes
+            False for low-memory chunks, deferring inference until the
+            chunks have been concatenated.
+
+        Returns
+        -------
+        Index or None
+            The converted categories, possibly containing duplicates (e.g.
+            "1" and "1.0" both convert to 1.0), or None if no conversion
+            applies.
+        """
+        from pandas import (
+            Index,
+            to_numeric,
+        )
+
+        if len(cats) == 0 or cats.dtype.kind != "O":
+            # empty categories stay object dtype, matching the zero-row case
+            return None
+
+        if convert_numeric:
+            # e.g. "1" -> 1, "3.4" -> 3.4
+            try:
+                converted = Index(to_numeric(cats, errors="raise"), copy=False)
+            except (ValueError, TypeError):
+                pass
+            else:
+                if not converted.hasnans:
+                    return converted
+                # to_numeric converts "" to NaN, which cannot be a category
+                #  (e.g. na_filter=False keeps "" as a string); fall back
+
+        if convert_bool:
+            # e.g. "True"/"False" -> bool
+            inferred_bool, _ = libops.maybe_convert_bool(
+                np.asarray(cats),
+                true_values=true_values,
+                false_values=false_values,
+            )
+            if inferred_bool.dtype.kind == "b":
+                return Index(inferred_bool, copy=False)
+
+        return None
+
+    @classmethod
     def _from_inferred_categories(
         cls,
         inferred_categories,
@@ -663,6 +734,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         true_values=None,
         false_values=None,
         convert_numeric: bool = True,
+        convert_bool: bool = True,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
@@ -684,9 +756,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "False", "FALSE", and "false."
         convert_numeric : bool, default True
             Whether to convert string categories to numeric when `dtype` does
-            not provide categories. Callers pass False when the strings may
-            not round-trip through ``to_numeric`` (e.g. read_csv with
-            non-default ``thousands``/``decimal``).
+            not provide categories. See ``_maybe_convert_categories``.
+        convert_bool : bool, default True
+            Whether to convert string categories to boolean when `dtype` does
+            not provide categories. See ``_maybe_convert_categories``.
 
         Returns
         -------
@@ -704,30 +777,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
 
-        if not known_categories and cats.dtype.kind == "O":
+        if not known_categories:
             # GH#56044 - When categories are not explicitly provided, mirror the
             #  type inference performed on ordinary (non-categorical) columns so
             #  that all engines agree: try numeric first, then boolean.
-            converted = None
-            if convert_numeric:
-                # e.g. "1" -> 1, "3.4" -> 3.4. to_numeric is unaware of the
-                #  thousands/decimal options, so callers disable this when those
-                #  are set.
-                try:
-                    converted = Index(to_numeric(cats, errors="raise"), copy=False)
-                except (ValueError, TypeError):
-                    converted = None
-            if converted is None:
-                # e.g. "True"/"False" -> bool. Unaffected by thousands/decimal,
-                #  so always attempted when numeric inference does not apply.
-                inferred_bool, _ = libops.maybe_convert_bool(
-                    np.asarray(cats),
-                    true_values=true_values,
-                    false_values=false_values,
-                )
-                if inferred_bool.dtype.kind == "b":
-                    converted = Index(inferred_bool, copy=False)
-
+            converted = cls._maybe_convert_categories(
+                cats,
+                true_values=true_values,
+                false_values=false_values,
+                convert_numeric=convert_numeric,
+                convert_bool=convert_bool,
+            )
             if converted is not None:
                 if not converted.is_unique:
                     # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True; merge the

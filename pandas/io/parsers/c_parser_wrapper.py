@@ -255,6 +255,9 @@ class CParserWrapper(ParserBase):
                 chunks = self._reader.read_low_memory(nrows)
                 # destructive to chunks
                 data = _concatenate_chunks(chunks, self.names)
+                # GH#56044 category-dtype inference is deferred until after
+                #  concatenation so all chunks agree
+                self._reader._maybe_infer_categoricals(data)
             else:
                 data = self._reader.read(nrows)
         except StopIteration:

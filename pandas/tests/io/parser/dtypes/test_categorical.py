@@ -206,6 +206,82 @@ def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+def test_categorical_dtype_low_memory_mixed_numeric_chunks(all_parsers, monkeypatch):
+    # GH#56044 with the C parser in low-memory mode, chunks can disagree on
+    #  the inferred category dtype (int64 for all-int chunks, float64 once
+    #  "1.5" appears), which used to break union_categoricals; inference is
+    #  now applied after the chunks are concatenated
+    parser = all_parsers
+    heuristic = 2**5
+    ints = [str(i) for i in range(40)]
+    rows = [*ints, "1.5", *ints]
+    expected = DataFrame({"a": Categorical([float(x) for x in rows])})
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [*(str(i) for i in range(40)), "apple", *(str(i) for i in range(40))],
+        [*["True", "False"] * 20, "maybe", *["True", "False"] * 20],
+        [*["True", "False"] * 20, "3", *["True", "False"] * 20],
+    ],
+)
+def test_categorical_dtype_low_memory_mixed_type_chunks(all_parsers, monkeypatch, rows):
+    # GH#56044 a chunk whose values do not all parse as numeric or boolean
+    #  keeps every chunk's categories strings
+    parser = all_parsers
+    heuristic = 2**5
+    expected = DataFrame({"a": Categorical(rows)})
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
+    # category order for unconverted string chunks follows chunk-union
+    #  order; normalize to sorted before comparing
+    actual["a"] = actual["a"].cat.reorder_categories(
+        actual["a"].cat.categories.sort_values()
+    )
+    tm.assert_frame_equal(actual, expected)
+
+
+@xfail_pyarrow  # pyarrow treats "" as null regardless of na_filter
+def test_categorical_dtype_empty_string_na_filter_false(all_parsers):
+    # GH#56044 to_numeric converts "" to NaN, which cannot be a category;
+    #  keep string categories
+    parser = all_parsers
+    data = "a,b\n,1\n2,3"
+    expected = DataFrame({"a": Categorical(["", "2"]), "b": Categorical([1, 3])})
+    actual = parser.read_csv(StringIO(data), dtype="category", na_filter=False)
+    tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_empty_string_keep_default_na(all_parsers):
+    # GH#56044 as above, with "" surviving via keep_default_na=False
+    parser = all_parsers
+    data = "a,b\n,1\n2,3"
+    expected = DataFrame({"a": Categorical(["", "2"]), "b": Categorical([1, 3])})
+    actual = parser.read_csv(StringIO(data), dtype="category", keep_default_na=False)
+    tm.assert_frame_equal(actual, expected)
+
+
+@xfail_pyarrow  # pyarrow gives float64 categories for all-NA columns
+def test_categorical_dtype_all_na(all_parsers):
+    # GH#56044 empty inferred categories keep object dtype
+    parser = all_parsers
+    data = "a,b\n,1\n,2"
+    expected = DataFrame(
+        {
+            "a": Categorical.from_codes([-1, -1], pd.Index([], dtype=object)),
+            "b": Categorical([1, 2]),
+        }
+    )
+    actual = parser.read_csv(StringIO(data), dtype="category")
+    tm.assert_frame_equal(actual, expected)
+
+
 @pytest.mark.slow
 def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     # see gh-18186, gh-56044
