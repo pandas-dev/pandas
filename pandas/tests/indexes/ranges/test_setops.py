@@ -304,6 +304,50 @@ class TestRangeIndexSetOps:
         expected = Index([0, 1, 4, 5, 8, 9, 12, 13, 16, 17])
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_union_indexes_range_fastpath(self):
+        from pandas.core.indexes.api import union_indexes
+
+        # 1. Homogeneous identical
+        idx1 = RangeIndex(0, 10, name="foo")
+        idx2 = RangeIndex(0, 10, name="foo")
+        result = union_indexes([idx1, idx2])
+        tm.assert_index_equal(result, idx1, exact=True)
+
+        # 2. Homogeneous identical, different names -> None name
+        idx3 = RangeIndex(0, 10, name="bar")
+        result = union_indexes([idx1, idx3])
+        tm.assert_index_equal(result, RangeIndex(0, 10, name=None), exact=True)
+
+        # 3. Contiguous, same name, step > 0
+        idx4 = RangeIndex(0, 5, name="foo")
+        idx5 = RangeIndex(5, 12, name="foo")
+        result = union_indexes([idx4, idx5])
+        tm.assert_index_equal(result, RangeIndex(0, 12, name="foo"), exact=True)
+
+        # 4. Contiguous, same name, step < 0
+        idx6 = RangeIndex(10, 5, -1, name="foo")
+        idx7 = RangeIndex(5, 0, -1, name="foo")
+        result = union_indexes([idx6, idx7])
+        tm.assert_index_equal(result, RangeIndex(10, 0, -1, name="foo"), exact=True)
+
+        # 5. Overlapping
+        idx8 = RangeIndex(0, 6, 2, name="foo")
+        idx9 = RangeIndex(4, 10, 2, name="foo")
+        result = union_indexes([idx8, idx9])
+        tm.assert_index_equal(result, RangeIndex(0, 10, 2, name="foo"), exact=True)
+
+        # 6. Non-contiguous (falls back to standard union)
+        idx10 = RangeIndex(0, 5, name="foo")
+        idx11 = RangeIndex(7, 12, name="foo")
+        result = union_indexes([idx10, idx11])
+        expected = Index([0, 1, 2, 3, 4, 7, 8, 9, 10, 11], name="foo")
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # 7. With empty ranges
+        idx12 = RangeIndex(0, 0, name="foo")
+        result = union_indexes([idx4, idx12])
+        tm.assert_index_equal(result, idx4, exact=True)
+
     def test_difference(self):
         # GH#12034 Cases where we operate against another RangeIndex and may
         #  get back another RangeIndex
