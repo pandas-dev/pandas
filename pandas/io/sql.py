@@ -2658,9 +2658,7 @@ class SQLiteTable(SQLTable):
         data_list = list(data_iter)
         try:
             flattened_data = [x for row in data_list for x in row]
-            conn.execute(
-                self.insert_statement(num_rows=len(data_list)), flattened_data
-            )
+            conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
         finally:
             # Restore user adapters/converters that were overridden
             # in __init__.  See GH#64337.
