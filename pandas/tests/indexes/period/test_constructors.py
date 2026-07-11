@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -363,6 +366,25 @@ class TestPeriodIndex:
 
         expected = PeriodIndex(vals.astype("M8[ns]"), freq="D")
         tm.assert_index_equal(pi, expected)
+
+    def test_constructor_int_array_out_of_bounds(self):
+        # GH#64158 integer values are interpreted as years; out-of-int32-range
+        #  values used to silently wrap instead of raising like Period(int)
+        arr = np.array([2**32 + 1985], dtype=np.int64)
+        msg = "Out of bounds year: 4294969281"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            PeriodIndex(arr, freq="Y")
+
+        # negative out-of-range and a nanosecond-epoch-like value also raise
+        for val in [-(2**32), 10**18]:
+            with pytest.raises(OutOfBoundsDatetime, match="Out of bounds year"):
+                PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
+
+        # int32 boundaries and >4-digit years remain valid; for freq="Y" the
+        #  ordinal is year - 1970
+        for val in [2**31 - 1, -(2**31), 100000]:
+            result = PeriodIndex(np.array([val], dtype=np.int64), freq="Y")
+            assert result.asi8[0] == val - 1970
 
     @pytest.mark.parametrize("box", [None, "series", "index"])
     def test_constructor_datetime64arr_ok(self, box):
