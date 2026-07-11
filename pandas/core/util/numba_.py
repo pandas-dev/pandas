@@ -160,7 +160,7 @@ _GLOBAL_LOOP: Callable | None = None
 def get_global_loop(numba: types.ModuleType) -> Callable:
     global _GLOBAL_LOOP
     if _GLOBAL_LOOP is None:
-        @numba.njit(parallel=True)
+        @numba.njit(parallel=True)  # type: ignore[untyped-decorator]
         def global_numba_apply_loop(arr: np.ndarray, jitted_func: Callable[[Any], Any]) -> np.ndarray:
             n = len(arr)
             first_val = jitted_func(arr[0])
@@ -205,7 +205,12 @@ def maybe_run_numba_apply(
     if engine is None and len(series) < 50_000:
         return None
 
-    if not np.issubdtype(series.dtype, np.number) and not np.issubdtype(series.dtype, np.datetime64) and not np.issubdtype(series.dtype, np.timedelta64):
+    is_supported_dtype = isinstance(series.dtype, np.dtype) and (
+        np.issubdtype(series.dtype, np.number)
+        or np.issubdtype(series.dtype, np.datetime64)
+        or np.issubdtype(series.dtype, np.timedelta64)
+    )
+    if not is_supported_dtype:
         if engine == "numba":
             raise ValueError(f"Numba engine only supports numeric/datetime dtypes, got {series.dtype}")
         return None
