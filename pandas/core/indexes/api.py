@@ -23,7 +23,10 @@ from pandas.core.indexes.base import (
     maybe_sequence_to_range,
 )
 from pandas.core.indexes.category import CategoricalIndex
-from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    date_range,
+)
 from pandas.core.indexes.interval import IntervalIndex
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -162,6 +165,10 @@ def _get_combined_index(
     if sort and sort is not lib.no_default:
         index = safe_sort_index(index)
         all_equal = False
+    if not intersect:
+        # GH#64253: keep the combined-index freq order-independent even when an
+        # explicit sort rebuilds the index (which would otherwise drop freq).
+        index = _restore_shared_datetime_freq(index, indexes)
     return index, all_equal
 
 
@@ -197,6 +204,35 @@ def safe_sort_index(index: Index) -> Index:
             index = Index(array_sorted, name=index.name, dtype=index.dtype)
 
     return index
+
+
+def _restore_shared_datetime_freq(result: Index, indexes: list[Index]) -> Index:
+    """
+    Reattach a shared, non-inferable frequency to a combined ``DatetimeIndex``.
+
+    A pairwise union of ``DatetimeIndex`` objects can drop a shared frequency in
+    an intermediate step (e.g. a ``CustomBusinessDay`` freq, which cannot be
+    recovered by ``inferred_freq``), leaving ``result.freq`` dependent on the
+    order of the inputs (GH#64253). If every input shares a single frequency and
+    ``result`` is exactly regular with respect to it, reattach that frequency so
+    the combined index does not depend on the input order. ``result`` is
+    returned unchanged (values and dtype untouched) in every other case.
+    """
+    if (
+        not isinstance(result, DatetimeIndex)
+        or result.freq is not None
+        or len(result) < 3
+    ):
+        return result
+    freqs = {getattr(idx, "freq", None) for idx in indexes}
+    if len(freqs) != 1:
+        return result
+    freq = next(iter(freqs))
+    if freq is None:
+        return result
+    if result.equals(date_range(result[0], result[-1], freq=freq, unit=result.unit)):
+        return result._with_freq(freq)
+    return result
 
 
 def union_indexes(
@@ -270,6 +306,11 @@ def union_indexes(
 
         for other in indexes[1:]:
             result = result.union(other, sort=None if sort else False)
+
+        if num_dtis == len(indexes):
+            # GH#64253: a pairwise union can drop a shared, non-inferable freq
+            # in an intermediate step, making result.freq order-dependent.
+            result = _restore_shared_datetime_freq(result, indexes)
         return result, False
 
     elif kind == "array":
