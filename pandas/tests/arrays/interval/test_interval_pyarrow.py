@@ -158,3 +158,70 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_datetime_tz():
+    # GH#64297 - IntervalDtype with DatetimeTZDtype subtype must convert
+    # from Arrow, not raise TypeError on np.asarray(..., dtype=DatetimeTZDtype)
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    tz = "Europe/Brussels"
+    left = pd.Timestamp("2012-01-01", tz=tz)
+    right = pd.Timestamp("2013-01-01", tz=tz)
+    arrow_type = ArrowIntervalType(pa.timestamp("us", tz=tz), "right")
+    arr = pa.array([{"left": left, "right": right}], type=arrow_type)
+
+    dtype = pd.IntervalDtype(pd.DatetimeTZDtype("us", tz), closed="right")
+    result = dtype.__from_arrow__(arr)
+
+    expected = IntervalArray.from_arrays(
+        pd.DatetimeIndex([left]),
+        pd.DatetimeIndex([right]),
+        closed="right",
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    # chunked and empty
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+    empty = dtype.__from_arrow__(pa.chunked_array([], type=arrow_type))
+    assert len(empty) == 0
+    assert empty.dtype == dtype
+
+
+def test_arrow_array_datetime_tz_roundtrip():
+    # GH#64297 - full Arrow round-trip for tz-aware interval bounds
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    breaks = pd.date_range("2017-01-01", periods=4, freq="D", tz="US/Eastern")
+    arr = IntervalArray.from_breaks(breaks)
+    arr[1] = None
+
+    result = pa.array(arr)
+    assert isinstance(result.type, ArrowIntervalType)
+    assert result.type.closed == arr.closed
+    assert result.type.subtype == pa.timestamp("us", tz="US/Eastern")
+
+    back = arr.dtype.__from_arrow__(result)
+    tm.assert_extension_array_equal(back, arr)
+
+
+def test_from_arrow_nullable_integer_subtype_falls_back_to_numpy():
+    # GH#64297 - IntervalArray does not generally retain nullable integer
+    # subtypes, but conversion should no longer raise TypeError.
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    arr = pa.array(
+        [{"left": 1, "right": 2}], type=ArrowIntervalType(pa.int64(), "right")
+    )
+    dtype = pd.IntervalDtype(pd.Int64Dtype(), closed="right")
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays([1], [2], closed="right")
+    tm.assert_extension_array_equal(result, expected)

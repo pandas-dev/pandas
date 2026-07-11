@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1586,19 +1587,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
-        try:
-            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
-        except TypeError as err:
-            raise TypeError(
-                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
-                "is not supported"
-            ) from err
+        if isinstance(self.dtype.subtype, DatetimeTZDtype):
+            # DatetimeTZDtype is a supported Interval subtype but is not a
+            # numpy dtype, so from_numpy_dtype fails (GH#64297). Convert via
+            # the UTC-based ndarray to avoid the DatetimeArray.values deprecation.
+            unit = self.dtype.subtype.unit
+            tz = str(self.dtype.subtype.tz)
+            subtype = pyarrow.timestamp(unit, tz=tz)
+            left_arr = pyarrow.array(self._left._ndarray).cast(subtype)
+            right_arr = pyarrow.array(self._right._ndarray).cast(subtype)
+        else:
+            try:
+                subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
+            except TypeError as err:
+                raise TypeError(
+                    f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                    "is not supported"
+                ) from err
+            left_arr = pyarrow.array(self._left, type=subtype, from_pandas=True)
+            right_arr = pyarrow.array(self._right, type=subtype, from_pandas=True)
         interval_type = ArrowIntervalType(subtype, self.closed)
         storage_array = pyarrow.StructArray.from_arrays(
-            [
-                pyarrow.array(self._left, type=subtype, from_pandas=True),
-                pyarrow.array(self._right, type=subtype, from_pandas=True),
-            ],
+            [left_arr, right_arr],
             names=["left", "right"],
         )
         mask = self.isna()
