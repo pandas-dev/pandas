@@ -406,6 +406,15 @@ class TestTimedeltas:
         expected = to_timedelta(["1D", "2D"]).as_unit("s")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("finer", ["ms", "us", "ns"])
+    def test_to_timedelta_day_offset_mixed_reso(self, finer):
+        # GH#64306 a Day offset mixed with a finer-resolution element must be
+        #  rescaled to the array's resolution, not stored as a raw seconds value
+        result = to_timedelta([to_offset("2D"), pd.Timedelta(1, unit=finer)])
+        expected = to_timedelta(["2D", f"1{finer}"]).as_unit(finer)
+        tm.assert_index_equal(result, expected)
+        assert result[0] == pd.Timedelta(2, unit="D")
+
     def test_float_to_timedelta_raise_oob_ns(self):
         value = np.float64(2**63)
         arr = np.array([value], dtype=np.float64)
