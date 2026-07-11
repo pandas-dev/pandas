@@ -89,7 +89,9 @@ accumulate_mean_scalar_direct(
     sum += val;
     count++;
   }
-  return MeanAcc{.sum = sum, .count = count};
+  // Explicit template arguments: CTAD for aggregates (P1816) is unavailable
+  // in Apple clang < 17 (Xcode < 16).
+  return MeanAcc<double, std::size_t>{.sum = sum, .count = count};
 }
 
 template <class Arch>
@@ -115,7 +117,8 @@ accumulate_mean_direct(std::span<const double> values, bool skipna) {
     vec_count = xsimd::incr_if(vec_count, is_not_na_si);
     vec_sum += xsimd::select(isna, batch_type(0), val);
   }
-  return MeanAcc{vec_sum, vec_count};
+  return MeanAcc<batch_type, xsimd::batch<std::uint64_t, Arch>>{vec_sum,
+                                                                vec_count};
 }
 
 template <class Arch, std::size_t NAcc>
@@ -178,7 +181,8 @@ accumulate_mean_direct(std::span<const double> values,
     }
   }
 
-  return MeanAcc{.sum = sum[0], .count = count};
+  return MeanAcc<value_batch_type, xsimd::batch<std::uint64_t, Arch>>{
+      .sum = sum[0], .count = count};
 }
 
 static inline CentralDiffs<double> accumulate_central_diffs_scalar_direct(
@@ -324,8 +328,8 @@ accumulate_mean_pairwise(std::span<const double> values,
     return std::nullopt;
   }
 
-  return MeanAcc{.sum = left->sum + right->sum,
-                 .count = left->count + right->count};
+  return MeanAcc<value_batch_type, xsimd::batch<std::uint64_t, Arch>>{
+      .sum = left->sum + right->sum, .count = left->count + right->count};
 }
 
 template <class Arch>
