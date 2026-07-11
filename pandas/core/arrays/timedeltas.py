@@ -483,9 +483,22 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # TODO(numpy>=2.5): numpy raises natively here (numpy GH-31378);
                 #  drop mul_overflowsafe and these integer branches once the
                 #  numpy floor is >= 2.5. The float path isn't covered and stays.
+                other = int(other)
                 if other > lib.i8max or other < -lib.i8max - 1:
                     raise OverflowError("Overflow in int64 multiplication")
-                i8_result = mul_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
+                i8_vals = self.asi8
+                if other != 0 and i8_vals.size:
+                    # The extreme elements bound all products, so checking them
+                    #  with exact Python-int arithmetic lets the common
+                    #  no-overflow case use a vectorized multiply. NaT
+                    #  (int64.min) always trips the bound, falling through to
+                    #  the NaT-aware cython loop.
+                    low_prod = int(i8_vals.min()) * other
+                    high_prod = int(i8_vals.max()) * other
+                    if max(abs(low_prod), abs(high_prod)) <= lib.i8max:
+                        result = (i8_vals * other).view(self._ndarray.dtype)
+                        return type(self)._simple_new(result, dtype=result.dtype)
+                i8_result = mul_overflowsafe(i8_vals, np.asarray(other, dtype="i8"))
                 result = i8_result.view(self._ndarray.dtype)
                 return type(self)._simple_new(result, dtype=result.dtype)
             if lib.is_float(other):
@@ -552,6 +565,36 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     __rmul__ = __mul__
 
+    def _check_float_div_overflow(
+        self, other: float | np.floating | npt.NDArray[np.floating]
+    ) -> None:
+        # GH#43178: numpy's timedelta64-by-float division silently saturates
+        #  when the quotient exceeds int64 bounds; detect that on the float64
+        #  quotient and raise instead. NaT dividends and zero/NaN divisors are
+        #  excluded: numpy returns NaT for those. A float64 quotient inside
+        #  (-2**63, 2**63) is at least an ulp (1024) away from the boundary,
+        #  so the floor in __floordiv__ cannot push it out of bounds.
+        i8 = self.asi8
+        other_arr = np.asarray(other)
+        if other_arr.ndim == 0 and i8.size:
+            divisor = other_arr.item()
+            if divisor == 0 or np.isnan(divisor):
+                # numpy returns all-NaT; nothing to check
+                return
+            # The extreme elements bound all quotients, so most cases resolve
+            #  without the full per-element check below. A NaT (int64.min)
+            #  dividend can only false-trip this bound, never pass an
+            #  overflowing quotient.
+            low_quot = i8.min() / divisor
+            high_quot = i8.max() / divisor
+            if max(abs(low_quot), abs(high_quot)) < 2.0**63:
+                return
+        with np.errstate(divide="ignore", invalid="ignore"):
+            f_quot = i8 / other_arr
+        exclude_mask = (i8 == iNaT) | np.isnan(f_quot) | (other_arr == 0)
+        if np.max(np.abs(f_quot), initial=0.0, where=~exclude_mask) >= 2.0**63:
+            raise OverflowError("Overflow in timedelta division")
+
     def _scalar_divlike_op(self, other, op):
         """
         Shared logic for __truediv__, __rtruediv__, __floordiv__, __rfloordiv__
@@ -579,6 +622,9 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot divide {type(other).__name__} by {type(self).__name__}"
                 )
 
+            if lib.is_float(other):
+                # GH#43178: raise instead of silently saturating on overflow
+                self._check_float_div_overflow(other)
             result = op(self._ndarray, other)
             return type(self)._simple_new(result, dtype=result.dtype)
 
@@ -596,8 +642,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         Shared logic for __truediv__, __floordiv__, and their reversed versions
         with timedelta64-dtype ndarray other.
         """
+        other_arr = np.asarray(other)
+        if other_arr.dtype.kind == "f" and op in [operator.truediv, operator.floordiv]:
+            # GH#43178: raise instead of silently saturating on overflow
+            self._check_float_div_overflow(other_arr)
+
         # Let numpy handle it
-        result = op(self._ndarray, np.asarray(other))
+        result = op(self._ndarray, other_arr)
 
         if (is_integer_dtype(other.dtype) or is_float_dtype(other.dtype)) and op in [
             operator.truediv,

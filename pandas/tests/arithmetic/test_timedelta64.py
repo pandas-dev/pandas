@@ -1653,6 +1653,58 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(tdi * 2, expected)
         tm.assert_equal(tdi * 2.0, expected)
 
+    def test_td64arr_div_float_overflow(self, box_with_array):
+        # GH#43178: float division whose quotient exceeds int64 bounds must
+        #  raise instead of silently saturating
+        tdi = TimedeltaIndex([Timedelta(2**62, "ns"), Timedelta(2**62, "ns")])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        msg = "Overflow in timedelta division"
+        with pytest.raises(OverflowError, match=msg):
+            tdi / 0.4
+        with pytest.raises(OverflowError, match=msg):
+            tdi // 0.4
+        with pytest.raises(OverflowError, match=msg):
+            tdi / np.array([0.4, 0.4])
+        with pytest.raises(OverflowError, match=msg):
+            tdi // np.array([0.4, 0.4])
+
+    # numpy < 2.0 emits RuntimeWarnings for zero/NaN float divisors
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test_td64arr_div_float_zero_nan_still_nat(self, box_with_array):
+        # GH#43178: overflow detection must not change numpy's NaT results
+        #  for zero or NaN float divisors
+        tdi = TimedeltaIndex([Timedelta(2**62, "ns"), NaT])
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        expected = TimedeltaIndex([NaT, NaT], dtype="m8[ns]")
+        expected = tm.box_expected(expected, box_with_array)
+
+        tm.assert_equal(tdi / 0.0, expected)
+        tm.assert_equal(tdi // 0.0, expected)
+        tm.assert_equal(tdi / np.nan, expected)
+        tm.assert_equal(tdi // np.nan, expected)
+        tm.assert_equal(tdi / np.array([0.0, np.nan]), expected)
+
+    def test_td64arr_mul_div_overflow_non_nano(self, box_with_array):
+        # GH#43178: overflow bounds are per-unit int64, not nanosecond-specific
+        tdi = TimedeltaIndex(np.array([2**62, 2**62], dtype="m8[s]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+
+        with pytest.raises(OverflowError, match="Overflow in int64 multiplication"):
+            tdi * 2
+        with pytest.raises(OverflowError, match="Overflow in timedelta multiplication"):
+            tdi * 2.0
+        with pytest.raises(OverflowError, match="Overflow in timedelta division"):
+            tdi / 0.5
+
+        # values far outside the ns-representable range multiply fine in "s"
+        tdi = TimedeltaIndex(np.array([2**62 - 1, 2**62 - 1], dtype="m8[s]"))
+        tdi = tm.box_expected(tdi, box_with_array)
+        expected = TimedeltaIndex(np.array([2**63 - 2, 2**63 - 2], dtype="m8[s]"))
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(tdi * 2, expected)
+
     def test_td64arr_mul_tdlike_scalar_raises(self, two_hours, box_with_array):
         rng = timedelta_range("1 days", "10 days", name="foo")
         rng = tm.box_expected(rng, box_with_array)
