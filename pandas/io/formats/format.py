@@ -1704,10 +1704,7 @@ def get_format_timedelta64(
         vals = i8[i8 != iNaT]
         if vals.size == 0 or not (vals % periods_per_second(values._creso)).any():
             format = "long"
-        elif (
-            NpyDatetimeUnit.NPY_FR_ns.value == values._creso
-            and (vals % 1_000).any()
-        ):
+        elif NpyDatetimeUnit.NPY_FR_ns.value == values._creso and (vals % 1_000).any():
             format = "all"  # nanosecond precision → 9 digits
         else:
             format = "us"  # microsecond precision → 6 digits
