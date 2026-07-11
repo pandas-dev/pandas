@@ -43,7 +43,11 @@ from pandas.compat import (
     pa_version_under21p0,
 )
 from pandas.compat.pyarrow import pa_version_under22p0
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -3049,6 +3053,59 @@ def test_as_unit_date_raises():
     # as_unit should raise for date types
     ser = pd.Series([1, 2], dtype=ArrowDtype(pa.date32()))
     with pytest.raises(NotImplementedError, match="as_unit not implemented"):
+        ser.dt.as_unit("ns")
+
+
+@pytest.mark.parametrize(
+    "from_unit, to_unit",
+    [("ns", "s"), ("ns", "ms"), ("ns", "us"), ("us", "s"), ("ms", "s")],
+)
+def test_as_unit_duration_negative_floors(from_unit, to_unit):
+    # GH#63573 downcasting a negative duration must floor toward -inf like
+    # numpy, not truncate toward zero
+    values = [93784567890123, -93784567890123, None]
+    ser_arrow = pd.Series(pd.to_timedelta(values, unit="ns").as_unit(from_unit)).astype(
+        f"duration[{from_unit}][pyarrow]"
+    )
+
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = pd.Series(
+        pd.to_timedelta(values, unit="ns").as_unit(from_unit).as_unit(to_unit)
+    ).astype(f"duration[{to_unit}][pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("to_unit", ["s", "ms", "us"])
+def test_as_unit_timestamp_pre_epoch_floors(to_unit):
+    # GH#63573 downcasting a pre-epoch timestamp must floor toward -inf like
+    # numpy, not truncate toward zero (which would cross the epoch)
+    ser_arrow = pd.Series(
+        [pd.Timestamp("1969-12-31 23:59:59.123456789"), None],
+        dtype="timestamp[ns][pyarrow]",
+    )
+    result = ser_arrow.dt.as_unit(to_unit)
+    expected = pd.Series(ser_arrow.astype("datetime64[ns]").dt.as_unit(to_unit)).astype(
+        f"timestamp[{to_unit}][pyarrow]"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_as_unit_timestamp_overflow_raises():
+    # GH#63573 upcasting out-of-bounds values must raise instead of silently
+    # wrapping via int64 overflow
+    ser = pd.Series(
+        [pd.Timestamp("2600-01-01").as_unit("s"), None],
+        dtype="timestamp[s][pyarrow]",
+    )
+    with pytest.raises(OutOfBoundsDatetime, match="overflow"):
+        ser.dt.as_unit("ns")
+
+
+def test_as_unit_duration_overflow_raises():
+    # GH#63573 upcasting out-of-bounds durations must raise instead of silently
+    # wrapping via int64 overflow
+    ser = pd.Series([19880899200, None], dtype="duration[s][pyarrow]")
+    with pytest.raises(OutOfBoundsTimedelta, match="overflow"):
         ser.dt.as_unit("ns")
 
 
