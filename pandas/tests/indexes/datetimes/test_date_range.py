@@ -1218,6 +1218,24 @@ class TestBusinessDateRange:
         tm.assert_index_equal(result, expected)
         assert result[-1] == Timestamp("2024-01-09 09:00")
 
+    def test_date_range_business_start_end_near_timestamp_max(self):
+        # GH#64648 (post-merge): the GH#64790 time-of-day fix must not raise
+        # OutOfBoundsDatetime when start is a business day with time-of-day
+        # within one offset step of Timestamp.max (2262-04-11 is a Friday)
+        start = Timestamp("2262-04-11 10:00").as_unit("ns")
+        end = Timestamp("2262-04-11 15:00").as_unit("ns")
+        result = date_range(start, end, freq="B")
+        expected = DatetimeIndex([start], freq="B")
+        tm.assert_index_equal(result, expected)
+
+        # aligning end to start's time-of-day would exceed Timestamp.max; the
+        # unrepresentable boundary element is excluded, not raised on
+        start = Timestamp("2262-04-10 23:59:59.999999").as_unit("ns")
+        end = Timestamp("2262-04-11 01:00").as_unit("ns")
+        result = date_range(start, end, freq="B")
+        expected = DatetimeIndex([start], freq="B")
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDateRange:
     def test_cdate_range_periods_holidays_starve_buffer(self):

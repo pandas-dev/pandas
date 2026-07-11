@@ -165,11 +165,18 @@ def generate_daily_offset_range(
             # start + end. GH#64790: for offsets that preserve start's
             # time-of-day, align end's time-of-day to start's so the last
             # on-offset date isn't excluded when end's time-of-day is earlier.
-            tod
-            and (freq._apply(start) - freq._apply(start).normalize()) == tod
-            and end >= start  # type: ignore[operator]
+            # Mask-supporting offsets preserve time-of-day unless
+            # ``freq.normalize``; checking the attribute instead of probing
+            # ``freq._apply(start)`` avoids raising when start is within one
+            # offset step of Timestamp.max (GH#64648).
+            tod and not freq.normalize and end >= start  # type: ignore[operator]
         ):
-            end = (end.normalize() + tod).as_unit(unit)  # type: ignore[union-attr]
+            try:
+                end = (end.normalize() + tod).as_unit(unit)  # type: ignore[union-attr]
+            except OutOfBoundsDatetime:
+                # the boundary element this alignment would admit is beyond
+                # Timestamp.max, so keeping the raw end excludes it correctly
+                pass
 
     i8values = generate_regular_range(start, end, None, Day(), unit=unit)
     dt64 = i8values.view(f"datetime64[{unit}]")
