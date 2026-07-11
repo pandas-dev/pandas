@@ -4419,27 +4419,57 @@ def test_xsqlite_if_exists(sqlite_buildin):
     drop_table(table_name, sqlite_buildin)
 
 
-def test_to_sql_preserves_user_sqlite_adapters(sqlite_buildin):
+def test_to_sql_restores_user_sqlite_adapters(sqlite_buildin):
     """
-    GH#64337 — DataFrame.to_sql() should not overwrite user-registered
-    SQLite adapters on subsequent calls.
+    GH#64337 — DataFrame.to_sql() should restore user-registered
+    SQLite adapters after the insert operation completes.
+
+    User registers a custom adapter BEFORE any to_sql() call.
+    After to_sql() returns, the user's adapter must still be in place.
     """
     import sqlite3
 
-    # First to_sql call — pandas registers its adapters
-    df = DataFrame({"t": [time(12, 30)]})
-    df.to_sql("test_adapter_1", sqlite_buildin, if_exists="replace", index=False)
-
-    # User registers a custom adapter for time
+    # User has a custom adapter before pandas is ever called
     def custom_time_adapter(t):
         return f"CUSTOM:{t.hour:02d}:{t.minute:02d}:{t.second:02d}"
 
     sqlite3.register_adapter(time, custom_time_adapter)
 
-    # Second to_sql call — must NOT overwrite the user's adapter
-    df2 = DataFrame({"t": [time(14, 0)]})
-    df2.to_sql("test_adapter_2", sqlite_buildin, if_exists="replace", index=False)
+    # to_sql should temporarily use pandas' adapter, then restore user's
+    df = DataFrame({"t": [time(12, 30)]})
+    df.to_sql("test_restore", sqlite_buildin, if_exists="replace", index=False)
 
-    # Verify user's adapter is still registered
+    # Verify user's adapter was restored
     registered = sqlite3.adapters.get((time, sqlite3.PrepareProtocol))
     assert registered is custom_time_adapter
+
+
+def test_to_sql_restores_user_sqlite_converters(sqlite_buildin):
+    """
+    GH#64337 — DataFrame.to_sql() should restore user-registered
+    SQLite converters after the insert operation completes.
+    """
+    import sqlite3
+
+    def custom_date_converter(val):
+        return date.fromisoformat(f"2000-{val.decode()}")
+
+    sqlite3.register_converter("date", custom_date_converter)
+
+    df = DataFrame({"d": [date(2024, 1, 15)]})
+    df.to_sql("test_conv", sqlite_buildin, if_exists="replace", index=False)
+
+    registered = sqlite3.converters.get("date")
+    assert registered is custom_date_converter
+
+
+def test_to_sql_sqlite_adapters_no_crash_without_prior_registration(sqlite_buildin):
+    """
+    GH#64337 — restore should not crash when no user adapters were
+    registered before to_sql().
+    """
+    # No prior user registration — pandas registers its own,
+    # restore is a no-op with empty saved dicts.
+    df = DataFrame({"t": [time(12, 30)]})
+    df.to_sql("test_no_prior", sqlite_buildin, if_exists="replace", index=False)
+    # Should not raise — restore with empty saved dicts is a no-op
