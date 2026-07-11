@@ -457,6 +457,18 @@ def test_header_names_backward_compat(all_parsers, data, header):
     tm.assert_frame_equal(result, expected)
 
 
+def test_header_int_names_no_trailing_newline(all_parsers):
+    # GH#65862 the data portion starting on the final, newline-less line
+    #  trips pyarrow's skip_rows
+    parser = all_parsers
+    data = "foo,bar,baz\n1,2,3\n4,5,6"
+
+    result = parser.read_csv(StringIO(data), header=1, names=["a", "b", "c"])
+
+    expected = DataFrame([[4, 5, 6]], columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
+
+
 @skip_pyarrow  # CSV parse error: Empty CSV file or block: cannot infer
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": False}])
 def test_read_only_header_no_rows(all_parsers, kwargs):
