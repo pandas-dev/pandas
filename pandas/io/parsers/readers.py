@@ -857,7 +857,7 @@ def _read_csv_parallel(
     leftover_pos: list[int] = []
     col_list: list = []
     chunk_dicts: list[dict] = []
-    columns: Sequence[Hashable] = []
+    columns: list[Hashable] = []
     total = 0
     readers_closing = False
     try:
@@ -873,7 +873,7 @@ def _read_csv_parallel(
             readers_closing = True
 
             chunk_results = cast("list[tuple]", results)
-            columns = chunk_results[0][0]
+            columns = list(chunk_results[0][0])
             chunk_dicts = [col_dict for _, col_dict in chunk_results]
             col_list = list(chunk_dicts[0])
             if col_list:
@@ -945,7 +945,7 @@ def _read_csv_parallel(
     index = RangeIndex(total)
 
     if needs_series_wrap:
-        data = _concatenate_chunks(chunk_dicts, list(columns), warn_mixed=False)
+        data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
         if isinstance(dtype_arg, dict):
             dtype: defaultdict = defaultdict(lambda: None)
             dtype.update(dtype_arg)
