@@ -4414,7 +4414,7 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (2, "B"),
         (3, "C"),
         (4, "D"),
-         (5, "E"),
+        (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
 
