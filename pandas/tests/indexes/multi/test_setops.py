@@ -267,8 +267,15 @@ def test_union(idx, sort):
 
 def test_union_mixed_date_timestamp():
     # GH 61807
-    left = MultiIndex.from_tuples([(date(2001, 1, 1), "foo")])
-    right = MultiIndex.from_tuples([(pd.Timestamp("2001-01-01"), "bar")])
+    left = MultiIndex.from_arrays(
+        [Index([date(2001, 1, 1)], dtype=object), Index(["foo"], dtype=object)]
+    )
+    right = MultiIndex.from_arrays(
+        [
+            Index([pd.Timestamp("2001-01-01")], dtype=object),
+            Index(["bar"], dtype=object),
+        ]
+    )
 
     with tm.assert_produces_warning(None):
         result = left.union(right, sort=False)
