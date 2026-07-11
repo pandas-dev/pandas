@@ -284,12 +284,19 @@ class TestPeriodIndex:
         with pytest.raises(OverflowError, match="value too large"):
             PeriodIndex.from_fields(**fields, freq="M")
 
+    def test_constructor_field_arrays_tuple(self):
+        # GH#65921 a tuple is array-like and must be treated as such, not
+        #  silently repeated as if it were a scalar
+        result = PeriodIndex.from_fields(year=(2020, 2021), month=[1, 2], freq="M")
+        expected = PeriodIndex(["2020-01", "2021-02"], freq="M")
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_field_arrays_tuple_mismatched_length(self):
-        # GH#65921 a tuple is not treated as list-like, so it is repeated and
-        #  used to bypass the length check; must raise instead of reading OOB
+        # GH#65921 a genuinely mismatched tuple length must raise instead of
+        #  reading out of bounds
         msg = "Mismatched Period array lengths"
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex.from_fields(year=(2020, 2021), month=[1, 2], freq="M")
+            PeriodIndex.from_fields(year=(2020, 2021, 2022), month=[1, 2], freq="M")
 
     @pytest.mark.parametrize(
         "kwargs", [{"month": [1, 2], "freq": "M"}, {"quarter": [1, 2]}]
