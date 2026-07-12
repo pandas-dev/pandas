@@ -247,10 +247,25 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _from_sequence(cls, data, *, dtype=None, copy: bool = False) -> Self:
-        unit = None
         if dtype:
             dtype = _validate_td64_dtype(dtype)
-            if lib.infer_dtype(data) in ("integer", "floating"):
+
+        data, copy = dtl.ensure_arraylike_for_datetimelike(
+            data, copy, cls_name="TimedeltaArray"
+        )
+
+        unit = None
+        if dtype is not None:
+            if data.dtype == object:
+                # the unit applies iff the non-null values are all numeric
+                mask = isna(data)
+                notna_data = data[~mask] if mask.any() else data
+                is_numeric = lib.is_integer_float_array(notna_data)
+            else:
+                is_numeric = data.dtype.kind in "iuf"
+            if is_numeric:
+                # numeric data is interpreted in the dtype's unit, matching
+                #  to_timedelta(data, unit=...)
                 unit = np.datetime_data(dtype)[0]
 
         data = sequence_to_td64ns(data, copy=copy, unit=unit)
