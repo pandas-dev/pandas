@@ -885,6 +885,29 @@ class TestLocBaseIndependent:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            "Int64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_loc_setitem_all_false_boolean_column_mask_ea(self, dtype):
+        # GH#66255 an all-False boolean column indexer wrongly set the
+        #  whole column for extension array dtypes
+        df = DataFrame({"col": [1, 2, 3, 4]}, dtype=dtype)
+        expected = df.copy()
+        df.loc[:, df.columns == "nope"] = pd.NA
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_all_true_boolean_column_mask_ea(self):
+        # GH#66255 this raised NotImplementedError
+        df = DataFrame({"col": [1, 2]}, dtype="Float64")
+        df.loc[:, np.array([True])] = 99
+        expected = DataFrame({"col": [99, 99]}, dtype="Float64")
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_frame(self, has_ref):
         df = DataFrame(

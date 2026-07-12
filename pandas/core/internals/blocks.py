@@ -2110,6 +2110,23 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
+            elif is_list_like(indexer[1]) and len(indexer[1]) == 0:
+                # GH#66255 no columns selected, e.g. iloc[:, []]; there is
+                #  nothing to set
+                indexer = np.array([], dtype=np.intp)
+
+            elif (
+                is_list_like(indexer[1])
+                and len(indexer[1]) == 1
+                and np.asarray(indexer[1]).dtype == np.bool_
+            ):
+                # GH#66255 boolean mask over this block's single column; an
+                #  all-False mask means there is nothing to set
+                if indexer[1][0]:
+                    indexer = indexer[0]
+                else:
+                    indexer = np.array([], dtype=np.intp)
+
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
 

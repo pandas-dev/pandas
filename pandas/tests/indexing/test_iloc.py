@@ -1084,6 +1084,13 @@ class TestiLocBaseIndependent:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
+    def test_iloc_setitem_empty_column_indexer_ea(self):
+        # GH#66255 this raised IndexError for extension array dtypes
+        df = DataFrame({"col": [1, 2]}, dtype="Float64")
+        expected = df.copy()
+        df.iloc[:, []] = 99
+        tm.assert_frame_equal(df, expected)
+
     def test_iloc_getitem_read_only_values(self, indexer_li):
         # GH#10043 this is fundamentally a test for iloc, but test loc while
         #  we're here
