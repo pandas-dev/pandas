@@ -2417,6 +2417,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             * Interval
             * Sparse
             * IntegerNA
+            * String
 
         See Examples section.
 
@@ -5674,6 +5675,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
+            Filling is based on the position of each new label relative to the
+            existing labels. For example, with ``method='ffill'`` and a
+            monotonically increasing index, a new label is filled from the
+            nearest existing label that sorts before it.
 
             * None (default): don't fill gaps
             * pad / ffill: Propagate last valid observation forward to next
@@ -5696,7 +5701,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level.
+            passed MultiIndex level. The new labels are aligned against the
+            values of that single level while the other levels are left
+            unchanged; passing a flat index with ``level`` does not form the
+            Cartesian product of the remaining levels.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -5859,6 +5867,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         does not look at DataFrame values, but only compares the original and
         desired indexes. If you do want to fill in the ``NaN`` values present
         in the original DataFrame, use the ``fillna()`` method.
+
+        Because ``method="bfill"`` fills each new label from the next entry
+        present in the original index, the trailing entry at 2010-01-07 stays
+        ``NaN``: there is no original index entry after it. Conversely,
+        ``method="ffill"`` would leave the leading entries (before the first
+        original index entry) unfilled.
 
         See the :ref:`user guide <basics.reindexing>` for more.
         """

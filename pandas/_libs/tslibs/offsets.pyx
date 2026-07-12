@@ -2224,6 +2224,16 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
         to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
 
+    Notes
+    -----
+    When added to a :class:`DatetimeIndex` or datetime :class:`Series`, a
+    ``DateOffset`` is applied to each entry independently. Calendar components
+    such as ``months`` and ``years`` do not represent a fixed duration, so
+    evenly spaced input dates are not guaranteed to remain evenly spaced: dates
+    that would fall on a nonexistent day are clamped to the end of the month.
+    For example, adding ``DateOffset(months=1)`` to both ``2018-01-30`` and
+    ``2018-01-31`` yields ``2018-02-28`` in each case.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import DateOffset

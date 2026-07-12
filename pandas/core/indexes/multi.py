@@ -856,6 +856,13 @@ class MultiIndex(Index):
         it filters out all rows of the level C, MultiIndex.levels will still
         return A, B, C.
 
+        When a ``MultiIndex`` is built by the standard constructors (e.g.
+        :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_tuples`),
+        missing values (``NaN``) are not stored in ``levels``; they are
+        represented by a code of ``-1`` in :attr:`MultiIndex.codes`, so
+        ``levels`` does not contain ``NaN`` even when the corresponding
+        level of the ``MultiIndex`` does.
+
         See Also
         --------
         MultiIndex.codes : The codes of the levels in the MultiIndex.
