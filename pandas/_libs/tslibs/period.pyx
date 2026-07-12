@@ -1593,10 +1593,21 @@ def period_ordinals_from_fields(
     ndarray[int64]
     """
     cdef:
-        Py_ssize_t i, n = len(years)
-        int64_t[::1] result = np.empty(n, dtype="i8")
+        Py_ssize_t i, n = years.shape[0]
+        int64_t[::1] result
         npy_datetimestruct dts
 
+    # Guard against out-of-bounds reads below (boundscheck is disabled).
+    if not (
+        months.shape[0] == n
+        and days.shape[0] == n
+        and hours.shape[0] == n
+        and minutes.shape[0] == n
+        and seconds.shape[0] == n
+    ):
+        raise ValueError("Mismatched Period array lengths")
+
+    result = np.empty(n, dtype="i8")
     memset(&dts, 0, sizeof(npy_datetimestruct))
 
     for i in range(n):
@@ -1644,6 +1655,11 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
         else:
             # equiv Period(val, freq=dtype.unit).ordinal, specialized
             #  bc we know val is an integer
+            if not INT32_MIN <= val <= INT32_MAX:
+                # val is used as the year, which lands in the int32
+                #  npy_datetimestruct.year field; out-of-range would silently
+                #  wrap, so raise to match the scalar Period(int) path.
+                raise OutOfBoundsDatetime(f"Out of bounds year: {val}")
             result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
@@ -1691,8 +1707,12 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
-        ordinal = item
+        if item == NPY_NAT:
+            ordinal = NPY_NAT
+        else:
+            # GH#64227 treat integers as calendar years, matching the
+            #  int-array path (from_calendar_ordinals) and Period(int, freq)
+            ordinal = Period(item, freq=dtype).ordinal
     else:
         try:
             ordinal = item.ordinal

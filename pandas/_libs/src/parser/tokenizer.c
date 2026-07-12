@@ -155,6 +155,7 @@ void parser_set_default_options(parser_t *self) {
 
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
+  self->preloaded = 0;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -444,8 +445,12 @@ static int end_line(parser_t *self) {
     return 0;
   }
 
-  if (!(self->lines <= self->header_end + 1) && (fields > ex_fields) &&
-      !(self->usecols)) {
+  /* The first line is normally exempt from the field-count check: it is the
+   * header, or it defines the table width (implicit-index inference).  In
+   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
+   * the first line is plain data, so the exemption must not apply. */
+  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
+      (fields > ex_fields) && !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -862,7 +867,10 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     breaks_field_scan[index] |= 0x2;
   }
 
-  if (self->file_lines == 0) {
+  if (self->file_lines == 0 && !self->preloaded) {
+    /* In preloaded mode the buffer usually starts mid-file, where a BOM
+     * byte sequence is real data; load_buffer strips a leading BOM itself
+     * when the buffer really is the start of the file. */
     CHECK_FOR_BOM();
   }
 
@@ -1506,6 +1514,16 @@ static int _tokenize_helper(parser_t *self, uint64_t nrows, int all,
       break;
 
     if (self->datapos == self->datalen) {
+      if (self->source == NULL) {
+        /* Pre-loaded buffer mode: the entire chunk has been consumed.
+         * Signal EOF without invoking the Python I/O callback so the
+         * GIL is never re-acquired during tokenisation. */
+        self->datalen = 0;
+        status = parser_handle_eof(self);
+        self->state = FINISHED;
+        break;
+      }
+
       status = parser_buffer_bytes(self, self->chunksize, encoding_errors);
 
       if (status == REACHED_EOF) {
@@ -1608,9 +1626,9 @@ int to_boolean(const char *item, uint8_t *val) {
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error,
-                       int *maybe_int) {
+double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
+                                char sci, char tsep, int skip_trailing,
+                                int *error, int *maybe_int, const char *end) {
   // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
   if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
@@ -1627,10 +1645,15 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL).
-    const char *end = p;
-    while (*end && !isspace_ascii(*end))
-      end++;
+    // Find end of token (next whitespace or NUL) unless the caller passed
+    // it; fast_float stops at the first non-numeric byte regardless, so a
+    // looser end bound is harmless.
+    if (end == NULL) {
+      const char *scan = p;
+      while (*scan && !isspace_ascii(*scan))
+        scan++;
+      end = scan;
+    }
 
     double value;
     const char *parsed_end;
@@ -1813,6 +1836,13 @@ fallback:
   if (endptr)
     *endptr = (char *)p;
   return number;
+}
+
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
+  return precise_xstrtod_with_end(str, endptr, decimal, sci, tsep,
+                                  skip_trailing, error, maybe_int, NULL);
 }
 
 // End of xstrtod code

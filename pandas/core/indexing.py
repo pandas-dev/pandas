@@ -2458,6 +2458,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         _setitem_with_indexer cases that can go through DataFrame.__setitem__.
         """
+        # GH#65418 a dict is a label->value mapping; treat it as a Series so it
+        #  is aligned by key like the non-expansion paths, rather than being
+        #  sanitized positionally into its keys.
+        if isinstance(value, dict):
+            from pandas import Series
+
+            value = Series(value)
+
         # add the new item, and set the value
         # must have all defined axes if we have a scalar
         # or a list-like on the non-info axes if we have a
