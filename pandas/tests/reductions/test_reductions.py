@@ -131,6 +131,22 @@ class TestReductions:
         ser = Series(["a", "b"], index=idx)
         assert ser.loc[result] == "a"
 
+    def test_object_dtype_reductions(self, index_or_series, using_python_scalars):
+        # GH#64266 future.python_scalars does not affect float statistics
+        #  computed from object-dtype data; any/all coerce to bool for all
+        #  dtypes and so do unbox
+        klass = index_or_series
+        obj = klass([1, 2, 4], dtype=object)
+        expected_bool = bool if using_python_scalars else np.bool_
+        assert type(obj.any()) is expected_bool
+        assert type(obj.all()) is expected_bool
+        if klass is Series:
+            assert isinstance(obj.mean(), np.float64)
+            other = Series([2, 5, 7], dtype=object)
+            assert isinstance(obj.corr(other), np.float64)
+            assert isinstance(obj.cov(other), np.float64)
+            assert isinstance(obj.autocorr(), np.float64)
+
     @pytest.mark.parametrize("opname", ["max", "min"])
     def test_nanargminmax(self, opname, index_or_series):
         # GH#7261

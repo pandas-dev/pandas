@@ -366,7 +366,13 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[1]
-            if using_python_scalars and values.dtype.kind in "if":
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266 np.maximum.reduce returns whatever obj.max() does;
+                #  EA reductions do not unbox to Python scalars
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -391,7 +397,13 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[0]
-            if using_python_scalars and values.dtype.kind in ["i", "f"]:
+            if (
+                using_python_scalars
+                and values.dtype.kind in "if"
+                and box is not pd.array
+            ):
+                # GH#64266 np.minimum.reduce returns whatever obj.min() does;
+                #  EA reductions do not unbox to Python scalars
                 expected = expected.item()
             assert result == expected
             if same_type:

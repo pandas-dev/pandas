@@ -2518,6 +2518,9 @@ def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
     result = df.min(axis=None)
     assert isinstance(result, np.int8)
 
+    result = np.minimum.reduce(df, axis=None)
+    assert isinstance(result, np.int8)
+
 
 @pytest.mark.parametrize(
     "kernel",
