@@ -1675,7 +1675,9 @@ class RangeIndex(Index):
             return np.intp(result.item())
         return result.astype(np.intp, copy=False)
 
-    def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+    def isin(
+        self, values: Axes | set, level: Hashable | None = None
+    ) -> npt.NDArray[np.bool_]:
         if level is not None:
             self._validate_index_level(level)
 
