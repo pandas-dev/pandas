@@ -21,12 +21,11 @@ class TestSetitemValidation:
         with pytest.raises(TypeError, match=msg):
             arr[[0]] = invalid
 
-        # FIXME: don't leave commented-out
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = [invalid]
+        with pytest.raises(TypeError):
+            arr[[0]] = [invalid]
 
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = np.array([invalid], dtype=object)
+        with pytest.raises(TypeError):
+            arr[[0]] = np.array([invalid], dtype=object)
 
         # Series non-coercion, behavior subject to change
         ser = pd.Series(arr)

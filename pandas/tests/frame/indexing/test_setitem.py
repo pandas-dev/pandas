@@ -29,6 +29,7 @@ from pandas import (
     PeriodIndex,
     Series,
     Timestamp,
+    concat,
     cut,
     date_range,
     notna,
@@ -738,6 +739,38 @@ class TestDataFrameSetItem:
         ):
             df["np-matrix"] = np.matrix(a)
 
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("cols", [3, 1])
+    def test_setitem_2d_existing_column_raises(self, cols):
+        # GH#46544 setting an existing column with a multi-column 2D array used
+        #  to silently keep only the first column; it should raise like the
+        #  new-column and .loc cases do. cols=1 exercises the single-column
+        #  Block fastpath, cols=3 the consolidated-block path.
+        df = DataFrame(np.zeros((4, cols)))
+        msg = r"Expected a 1D array, got an array with shape \(4, 2\)"
+        with pytest.raises(ValueError, match=msg):
+            df[0] = np.arange(8).reshape(4, 2)
+
+    def test_setitem_2d_single_column_ok(self):
+        # GH#46544 an (N, 1) array is still a single column and is allowed
+        df = DataFrame(np.zeros((4, 2)))
+        df[0] = np.arange(4).reshape(4, 1)
+        expected = DataFrame({0: np.arange(4), 1: np.zeros(4)})
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_2d_duplicate_columns_ok(self):
+        # GH#46544 when the key maps to multiple columns, a matching 2D value
+        #  fills them and must keep working
+        df = DataFrame(np.zeros((4, 3)), columns=[0, 0, 1])
+        df[0] = np.arange(8).reshape(4, 2)
+        expected = concat(
+            [
+                DataFrame(np.arange(8).reshape(4, 2), columns=[0, 0]),
+                DataFrame(np.zeros((4, 1)), columns=[1]),
+            ],
+            axis=1,
+        )
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("vals", [{}, {"d": "a"}])

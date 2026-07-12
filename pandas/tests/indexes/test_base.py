@@ -389,11 +389,7 @@ class TestIndex:
             with pytest.raises(ValueError, match=msg):
                 index.view("i8")
         else:
-            msg = (
-                r"Cannot change data-type for array of references\.|"
-                r"Cannot change data-type for object array\.|"
-                r"Cannot change data-type for array of strings\.|"
-            )
+            msg = "Cannot change data-type"
             with pytest.raises(TypeError, match=msg):
                 index.view("i8")
 
@@ -1416,12 +1412,12 @@ class TestMixedIntIndex:
 
     def test_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             index.argsort()
 
     def test_numpy_argsort(self, simple_index):
         index = simple_index
-        with pytest.raises(TypeError, match="'>|<' not supported"):
+        with pytest.raises(TypeError, match="'(>|<)' not supported"):
             np.argsort(index)
 
     def test_copy_name(self, simple_index):
@@ -1689,7 +1685,7 @@ def test_index_subclass_constructor_wrong_kwargs(klass):
 
 
 def test_deprecated_fastpath():
-    msg = "[Uu]nexpected keyword argument"
+    msg = "unexpected keyword argument"
     with pytest.raises(TypeError, match=msg):
         Index(np.array(["a", "b"], dtype=object), name="test", fastpath=True)
 

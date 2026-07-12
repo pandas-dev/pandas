@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING
 import warnings
 
@@ -20,9 +21,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.io._util import arrow_table_to_pandas
+from pandas.io.common import mangle_dupe_names
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     import pyarrow as pa
 
     from pandas._typing import ReadBuffer
@@ -139,11 +143,21 @@ class ArrowParserWrapper(ParserBase):
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
 
+        header = self.header
+        if isinstance(header, list):
+            # GH#65862 pyarrow.csv cannot produce multi-row/MultiIndex headers
+            if len(header) == 1:
+                header = header[0]
+            else:
+                raise ValueError(
+                    "The 'pyarrow' engine does not support a list of integers "
+                    "for the 'header' argument (MultiIndex columns are not "
+                    "supported)."
+                )
+
         self.read_options = {
-            "autogenerate_column_names": self.header is None,
-            "skip_rows": self.header
-            if self.header is not None
-            else self.kwds["skiprows"],
+            "autogenerate_column_names": header is None,
+            "skip_rows": header if header is not None else self.kwds["skiprows"],
             "encoding": self.encoding,
         }
 
@@ -169,15 +183,17 @@ class ArrowParserWrapper(ParserBase):
 
         return convert_options
 
-    def _dedup_column_names(self, raw_names: list[str]) -> list[str]:
+    def _dedup_column_names(
+        self, raw_names: list[str]
+    ) -> tuple[list[Hashable], set[Hashable]]:
         """
         Match other engines' header handling: empty names become
-        "Unnamed: {i}" and duplicated names are mangled with ".{count}",
-        mirroring the algorithm in pandas._libs.parsers.TextReader.
+        "Unnamed: {i}" and duplicated names are de-duplicated, mirroring the
+        algorithm in pandas._libs.parsers.TextReader.
 
-        Sets ``self.unnamed_cols`` as a side effect.
+        Returns the new names along with the set of placeholder names.
         """
-        names = []
+        names: list[Hashable] = []
         unnamed_col_indices = []
         for i, name in enumerate(raw_names):
             if name == "":
@@ -185,38 +201,8 @@ class ArrowParserWrapper(ParserBase):
                 unnamed_col_indices.append(i)
             names.append(name)
 
-        # Ensure that regular columns are used before unnamed ones
-        # to keep given names and mangle unnamed columns
-        col_loop_order = [
-            i for i in range(len(names)) if i not in unnamed_col_indices
-        ] + unnamed_col_indices
-        counts: dict[str, int] = {}
-
-        for i in col_loop_order:
-            col = old_col = names[i]
-            cur_count = counts.get(col, 0)
-
-            if cur_count > 0:
-                while cur_count > 0:
-                    counts[old_col] = cur_count + 1
-                    col = f"{old_col}.{cur_count}"
-                    if col in names:
-                        cur_count += 1
-                    else:
-                        cur_count = counts.get(col, 0)
-
-                if (
-                    isinstance(self.dtype, dict)
-                    and self.dtype.get(old_col) is not None
-                    and self.dtype.get(col) is None
-                ):
-                    self.dtype[col] = self.dtype[old_col]
-
-            names[i] = col
-            counts[col] = cur_count + 1
-
-        self.unnamed_cols = {names[i] for i in unnamed_col_indices}
-        return names
+        names = mangle_dupe_names(names, unnamed_col_indices, self.dtype)
+        return names, {names[i] for i in unnamed_col_indices}
 
     def _adjust_column_names(self, table: pa.Table) -> bool:
         num_cols = len(table.columns)
@@ -347,6 +333,11 @@ class ArrowParserWrapper(ParserBase):
         except pa.ArrowInvalid as e:
             raise ParserError(e) from e
 
+        if self.usecols_dtype == "empty":
+            # GH#66056 pyarrow ignores an empty ``include_columns`` and returns
+            # every column; match the other engines by returning an empty frame.
+            table = table.select([]).slice(0, 0)
+
         dtype_backend = self.kwds["dtype_backend"]
 
         # Convert all pa.null() cols -> float64 (non nullable)
@@ -363,11 +354,22 @@ class ArrowParserWrapper(ParserBase):
             table = table.cast(new_schema)
 
         if self.header is not None and self.names is None:
-            new_names = self._dedup_column_names(table.column_names)
+            new_names, self.unnamed_cols = self._dedup_column_names(table.column_names)
             if new_names != table.column_names:
                 table = table.rename_columns(new_names)
 
         multi_index_named = self._adjust_column_names(table)
+
+        if isinstance(self.dtype, defaultdict):
+            # GH#41574 materialize the factory default over the actual columns
+            # so missing keys get the default, matching the other engines
+            if self.header is None:
+                # set by _adjust_column_names above
+                assert self.names is not None
+                columns = list(self.names)
+            else:
+                columns = table.column_names
+            self.dtype = {col: self.dtype[col] for col in columns}
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
