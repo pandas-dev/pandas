@@ -2380,6 +2380,13 @@ class ArrowExtensionArray(
             else:
                 data_to_accum = data_to_accum.cast(pa.int64())
 
+        if name in ["cummax", "cummin"] and pa.types.is_floating(pa_dtype):
+            # GH#66257: pyarrow defaults `start` to the smallest positive
+            # float (std::numeric_limits<T>::min()) rather than the lowest,
+            # corrupting negative running maxima and +inf running minima,
+            # so pass the identity element explicitly
+            kwargs["start"] = float("-inf") if name == "cummax" else float("inf")
+
         try:
             result = pyarrow_meth(data_to_accum, skip_nulls=skipna, **kwargs)
         except pa.ArrowNotImplementedError as err:

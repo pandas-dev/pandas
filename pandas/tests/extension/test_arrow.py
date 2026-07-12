@@ -4562,3 +4562,16 @@ def test_reduction_axis_out_of_bounds(method, axis):
     msg = "`axis` must be fewer than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
+
+
+@pytest.mark.parametrize("float_dtype", ["float32[pyarrow]", "float64[pyarrow]"])
+def test_accumulate_cummax_cummin_negative_floats(float_dtype):
+    # GH#66257: pyarrow's default `start` is the smallest positive float,
+    # which corrupted negative running maxima and +inf running minima
+    ser = pd.Series([-4.0, -3.0, -2.0, -1.0], dtype=float_dtype)
+    result = ser.cummax()
+    tm.assert_series_equal(result, ser)
+
+    ser = pd.Series([np.inf, 5.0], dtype=float_dtype)
+    result = ser.cummin()
+    tm.assert_series_equal(result, ser)
