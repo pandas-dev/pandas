@@ -325,6 +325,7 @@ def test_series_equal_series_type():
 
 
 def test_series_equal_ndarray_subclass_values():
+    # GH#65770
     class OtherArray(np.ndarray):
         pass
 

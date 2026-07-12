@@ -683,8 +683,9 @@ def assert_numpy_array_equal(
     err_msg: str | None = None,
     check_same: Literal["copy", "same"] | None = None,
     obj: str = "numpy array",
-    class_obj: str | None = None,
     index_values: Index | np.ndarray | None = None,
+    *,
+    class_obj: str | None = None,
 ) -> None:
     """
     Check that 'np.ndarray' is equivalent.
@@ -704,11 +705,11 @@ def assert_numpy_array_equal(
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+    index_values : Index | numpy.ndarray, default None
+        optional index (shared by both left and right), used in output.
     class_obj : str, default None
         Specify object name for class comparison, internally used to show
         appropriate assertion message.
-    index_values : Index | numpy.ndarray, default None
-        optional index (shared by both left and right), used in output.
     """
     __tracebackhide__ = True
 
