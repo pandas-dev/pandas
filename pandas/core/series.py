@@ -5329,6 +5329,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ``by_row`` has no effect when ``func`` is a string.
 
             .. versionadded:: 2.1.0
+        engine : str, default None
+            * ``'python'`` : Runs the function in pure Python.
+            * ``'numba'`` : Runs the function through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'python'`` or globally setting
+              ``compute.use_numba``.
+        engine_kwargs : dict, default None
+            * For ``'python'`` engine, there are no accepted ``engine_kwargs``.
+            * For ``'numba'`` engine, the engine can accept ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}`` and will be
+              applied to the function.
         **kwargs
             Additional keyword arguments passed to func.
 
