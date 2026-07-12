@@ -1882,16 +1882,18 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
 }
 
 /* SWAR (SIMD-within-a-register) helpers that validate and parse 8 ASCII digits
- * at a time by treating an 8-byte chunk as a single uint64_t. This is the same
- * technique fast_float uses internally (is_made_of_eight_digits_fast /
- * parse_eight_digits_unrolled in fast_float's ascii_number.h); it is inlined
- * here rather than calling into the C++ library so the hot integer path stays
- * a leaf function with no cross-language call overhead. Callers must guarantee
- * 8 readable bytes at `chars`. */
+ * at a time by treating an 8-byte chunk as a single uint64_t. The helper
+ * bodies are copied from the vendored fast_float's ascii_number.h
+ * (subprojects/fast_float-8.2.3, MIT: LICENSE-MIT there) and can be diffed
+ * against it directly; they are inlined here rather than called through the
+ * C++ library so the hot integer path stays a leaf function with no
+ * cross-language call overhead. Callers must guarantee 8 readable bytes at
+ * `chars`. */
 
 /* Load 8 bytes into a uint64_t with the first character in the least
  * significant byte (little-endian layout), byteswapping on big-endian hosts so
- * the digit arithmetic below is endianness-independent. */
+ * the digit arithmetic below is endianness-independent (fast_float's
+ * read8_to_u64). */
 static inline uint64_t swar_read8(const char *chars) {
   uint64_t val;
   memcpy(&val, chars, 8);
@@ -1901,28 +1903,31 @@ static inline uint64_t swar_read8(const char *chars) {
   return val;
 }
 
-/* True iff all 8 bytes are ASCII digits '0'..'0x39'. For each byte b:
- *   - (b & 0xF0) isolates the high nibble; it must be 0x30 for a digit.
- *   - (b + 0x06) pushes any byte > '9' (0x39) into 0x40+, so ORing in the high
- *     nibble of (b + 0x06) sets the 0x40 bit for '0x3A'..'0x3F' as well.
- * The two terms combine to 0x33 per byte exactly when b is a digit, so all 8
- * bytes are digits iff the packed result equals 0x3333333333333333. */
+/* True iff all 8 bytes are ASCII digits '0'..'9' — fast_float's
+ * is_made_of_eight_digits_fast (credit @aqrit). Per byte b:
+ *   - (b - 0x30) wraps below zero for b < '0', setting the 0x80 bit;
+ *   - (b + 0x46) reaches 0x80 for b > '9' ('9' + 0x46 = 0x7F is the largest
+ *     carry-free result).
+ * All 8 bytes are digits iff no 0x80 bit survives. Cross-lane carries/borrows
+ * can only originate in a lane that already fails its own check, so they
+ * cannot turn an invalid input into a false pass. */
 static inline int swar_is_eight_digits(uint64_t val) {
-  return ((val & 0xF0F0F0F0F0F0F0F0ULL) |
-          (((val + 0x0606060606060606ULL) & 0xF0F0F0F0F0F0F0F0ULL) >> 4)) ==
-         0x3333333333333333ULL;
+  return (((val + 0x4646464646464646ULL) | (val - 0x3030303030303030ULL)) &
+          0x8080808080808080ULL) == 0;
 }
 
-/* Convert 8 packed ASCII digits to their integer value via three tree-reduction
- * steps. Masking with 0x0F..0F strips the '0x30' bias to leave raw digit values
- * 0..9 per byte; each multiply-and-shift then fuses adjacent lanes by their
- * place value: pairs (x*10 via 2561>>8), then 2-byte groups (x*100 via
- * 6553601>>16), then 4-byte halves (x*10000 via 42949672960001>>32), yielding
- * the final 8-digit integer. */
+/* Convert 8 packed ASCII digits to their integer value — fast_float's
+ * parse_eight_digits_unrolled (credit @aqrit). Subtracting 0x30.. strips the
+ * ASCII bias; (val * 10) + (val >> 8) fuses adjacent digits into 2-digit
+ * pairs; the two multiplies weight the four pairs by place value and their
+ * sum's top 32 bits are the 8-digit result. */
 static inline uint64_t swar_parse_eight_digits(uint64_t val) {
-  val = (val & 0x0F0F0F0F0F0F0F0FULL) * 2561 >> 8;
-  val = (val & 0x00FF00FF00FF00FFULL) * 6553601 >> 16;
-  return (val & 0x0000FFFF0000FFFFULL) * 42949672960001ULL >> 32;
+  const uint64_t mask = 0x000000FF000000FFULL;
+  const uint64_t mul1 = 0x000F424000000064ULL; // 100 + (1000000ULL << 32)
+  const uint64_t mul2 = 0x0000271000000001ULL; // 1 + (10000ULL << 32)
+  val -= 0x3030303030303030ULL;
+  val = (val * 10) + (val >> 8); // val = (val * 2561) >> 8;
+  return (((val & mask) * mul1) + (((val >> 16) & mask) * mul2)) >> 32;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
