@@ -1881,8 +1881,17 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
-/* SWAR helpers for parsing 8 ASCII digits at a time (same technique as
- * fast_float). Callers must guarantee 8 readable bytes at `chars`. */
+/* SWAR (SIMD-within-a-register) helpers that validate and parse 8 ASCII digits
+ * at a time by treating an 8-byte chunk as a single uint64_t. This is the same
+ * technique fast_float uses internally (is_made_of_eight_digits_fast /
+ * parse_eight_digits_unrolled in fast_float's ascii_number.h); it is inlined
+ * here rather than calling into the C++ library so the hot integer path stays
+ * a leaf function with no cross-language call overhead. Callers must guarantee
+ * 8 readable bytes at `chars`. */
+
+/* Load 8 bytes into a uint64_t with the first character in the least
+ * significant byte (little-endian layout), byteswapping on big-endian hosts so
+ * the digit arithmetic below is endianness-independent. */
 static inline uint64_t swar_read8(const char *chars) {
   uint64_t val;
   memcpy(&val, chars, 8);
@@ -1892,12 +1901,24 @@ static inline uint64_t swar_read8(const char *chars) {
   return val;
 }
 
+/* True iff all 8 bytes are ASCII digits '0'..'0x39'. For each byte b:
+ *   - (b & 0xF0) isolates the high nibble; it must be 0x30 for a digit.
+ *   - (b + 0x06) pushes any byte > '9' (0x39) into 0x40+, so ORing in the high
+ *     nibble of (b + 0x06) sets the 0x40 bit for '0x3A'..'0x3F' as well.
+ * The two terms combine to 0x33 per byte exactly when b is a digit, so all 8
+ * bytes are digits iff the packed result equals 0x3333333333333333. */
 static inline int swar_is_eight_digits(uint64_t val) {
   return ((val & 0xF0F0F0F0F0F0F0F0ULL) |
           (((val + 0x0606060606060606ULL) & 0xF0F0F0F0F0F0F0F0ULL) >> 4)) ==
          0x3333333333333333ULL;
 }
 
+/* Convert 8 packed ASCII digits to their integer value via three tree-reduction
+ * steps. Masking with 0x0F..0F strips the '0x30' bias to leave raw digit values
+ * 0..9 per byte; each multiply-and-shift then fuses adjacent lanes by their
+ * place value: pairs (x*10 via 2561>>8), then 2-byte groups (x*100 via
+ * 6553601>>16), then 4-byte halves (x*10000 via 42949672960001>>32), yielding
+ * the final 8-digit integer. */
 static inline uint64_t swar_parse_eight_digits(uint64_t val) {
   val = (val & 0x0F0F0F0F0F0F0F0FULL) * 2561 >> 8;
   val = (val & 0x00FF00FF00FF00FFULL) * 6553601 >> 16;
