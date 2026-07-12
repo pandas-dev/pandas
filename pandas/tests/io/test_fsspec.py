@@ -192,7 +192,7 @@ def test_to_parquet_new_file(cleared_fs, df1, request):
             using_string_dtype()
             and HAS_PYARROW
             and not pa_version_under14p0
-            and Version(fp.__version__) <= Version("2025.12.0"),
+            and Version(fp.__version__) < Version("2026.5.0"),
             reason="TODO(infer_string) fastparquet",
         )
     )

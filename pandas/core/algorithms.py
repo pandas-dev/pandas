@@ -662,6 +662,54 @@ def factorize_array(
     return codes, uniques
 
 
+def factorize_monotonic_codes(
+    arr: np.ndarray,
+    ascending: bool,
+    sort: bool,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+    """
+    Factorize an array known to be monotonic and of length >= 2.
+
+    Uses adjacent-element comparison instead of hash table construction.
+    The caller is responsible for having verified monotonicity; monotonic
+    arrays contain no NA values (NAs break monotonicity checks), so NA
+    handling is not needed.
+
+    Parameters
+    ----------
+    arr : ndarray
+    ascending : bool
+        Whether `arr` is monotonic increasing (otherwise decreasing).
+    sort : bool
+        Whether the uniques should be in sorted order.
+
+    Returns
+    -------
+    codes : ndarray[np.intp]
+    uniques_indexer : ndarray[np.intp]
+        Positions in `arr` of the unique values, ordered to match `codes`.
+    """
+    n = len(arr)
+
+    # Find group transitions via adjacent-element comparison.
+    transitions = np.empty(n, dtype=bool)
+    transitions[0] = True
+    transitions[1:] = arr[1:] != arr[:-1]
+
+    # Build codes using repeat (faster than cumsum on bool).
+    group_starts = np.flatnonzero(transitions)
+    ngroups = len(group_starts)
+    run_lengths = np.diff(group_starts, append=n)
+    codes = np.repeat(np.arange(ngroups, dtype=np.intp), run_lengths)
+
+    if sort and not ascending:
+        # Reverse uniques to sorted order and remap codes.
+        codes = ensure_platform_int(ngroups - 1 - codes)
+        group_starts = group_starts[::-1]
+
+    return codes, group_starts
+
+
 @set_module("pandas")
 def factorize(
     values,
@@ -1116,6 +1164,30 @@ def rank(
         raise TypeError("Array with ndim > 2 is not supported.")
 
     return ranks
+
+
+def is_monotonic(values: ArrayLike) -> tuple[bool, bool, bool]:
+    """
+    Determine whether values are monotonic increasing/decreasing.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    tuple[bool, bool, bool]
+        (is_monotonic_increasing, is_monotonic_decreasing, is_strict_monotonic)
+
+    Raises
+    ------
+    TypeError
+        If the dtype is not orderable by the underlying routine (e.g. complex).
+    """
+    timelike = needs_i8_conversion(values.dtype)
+    values = _ensure_data(values)
+    inc, dec, strict = algos.is_monotonic(values, timelike=timelike)
+    return bool(inc), bool(dec), bool(strict)
 
 
 # ---- #

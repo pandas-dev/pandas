@@ -1483,6 +1483,21 @@ def test_transpose_ea_single_column():
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
+def test_unstack_multiblock():
+    # GH#65107 the zero-copy fast path for a sorted MultiIndex returns a view
+    #  of the source for non-consolidated (multi-block) frames; ensure CoW
+    #  still tracks the reference so mutating the result leaves the source
+    #  unchanged.
+    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": ["p", "q", "r", "s"]}, index=idx)
+    df_orig = df.copy()
+    result = df.unstack()
+
+    assert np.shares_memory(get_array(df, "x"), get_array(result, ("x", 1)))
+    result.iloc[0, 0] = 999.0
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_transform_frame():
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()

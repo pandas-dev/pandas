@@ -2458,6 +2458,14 @@ class _iLocIndexer(_LocationIndexer):
         """
         _setitem_with_indexer cases that can go through DataFrame.__setitem__.
         """
+        # GH#65418 a dict is a label->value mapping; treat it as a Series so it
+        #  is aligned by key like the non-expansion paths, rather than being
+        #  sanitized positionally into its keys.
+        if isinstance(value, dict):
+            from pandas import Series
+
+            value = Series(value)
+
         # add the new item, and set the value
         # must have all defined axes if we have a scalar
         # or a list-like on the non-info axes if we have a
@@ -2849,6 +2857,20 @@ class _iLocIndexer(_LocationIndexer):
                     loc = item_labels.get_loc(col)
                     self._setitem_single_column(loc, value, indexer[0])
                     return
+
+            if (
+                self.ndim == 2
+                and len(indexer) == 2
+                and self.obj.shape[1] > 1
+                and not com.is_null_slice(indexer[1])
+                and not isinstance(value, ABCDataFrame)
+                and not can_hold_element(
+                    self.obj._mgr.blocks[0].values,
+                    extract_array(value, extract_numpy=True),
+                )
+            ):
+                self._setitem_with_indexer_split_path(indexer, value, name)
+                return
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 

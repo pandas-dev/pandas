@@ -573,7 +573,7 @@ class TestUnique:
         result = algos.unique(index)
 
         # dict.fromkeys preserves the order
-        unique_values = list(dict.fromkeys(index.values))
+        unique_values = list(dict.fromkeys(index._values))
         if isinstance(index, MultiIndex):
             expected = MultiIndex.from_tuples(unique_values, names=index.names)
         else:
@@ -1861,6 +1861,58 @@ class TestRank:
         values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
+
+
+class TestIsMonotonic:
+    @pytest.mark.parametrize(
+        "arr, expected",
+        [
+            ([1, 2, 3], (True, False, True)),
+            ([3, 2, 1], (False, True, True)),
+            ([1, 2, 2, 3], (True, False, False)),
+            ([3, 2, 2, 1], (False, True, False)),
+            ([5, 5, 5], (True, True, False)),
+            ([1, 3, 2], (False, False, False)),
+            ([7], (True, True, True)),
+            ([], (True, True, True)),
+        ],
+    )
+    def test_numeric(self, arr, expected, any_real_numpy_dtype):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        values = np.array(arr, dtype=any_real_numpy_dtype)
+        assert algos.is_monotonic(values) == expected
+
+    def test_float16(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        # float16 is not supported by libalgos.is_monotonic directly;
+        # _ensure_data converts it to float64
+        values = np.array([1, 2, 3], dtype="float16")
+        assert algos.is_monotonic(values) == (True, False, True)
+        assert algos.is_monotonic(values[::-1]) == (False, True, True)
+
+    def test_bool(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        assert algos.is_monotonic(np.array([False, True, True])) == (True, False, False)
+        assert algos.is_monotonic(np.array([True, False])) == (False, True, True)
+
+    def test_object(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        values = np.array(["a", "b", "c"], dtype=object)
+        assert algos.is_monotonic(values) == (True, False, True)
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    def test_datetimelike(self, dtype):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        values = np.array([1, 2, 3], dtype="int64").view(dtype)
+        assert algos.is_monotonic(values) == (True, False, True)
+        assert algos.is_monotonic(values[::-1]) == (False, True, True)
+
+    def test_complex_raises(self):
+        # https://github.com/pandas-dev/pandas/pull/65803
+        # complex is not orderable
+        values = np.array([1 + 0j, 2 + 0j], dtype="complex128")
+        with pytest.raises(TypeError, match="No matching signature found"):
+            algos.is_monotonic(values)
 
 
 class TestMode:

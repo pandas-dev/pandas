@@ -44,6 +44,20 @@ class TestFromDict:
         ).reindex(result.index)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("blank", [Series(), {}])
+    def test_from_nested_dict_with_empty_entry(self, blank):
+        # GH#62775 an empty Series/dict should give an all-NA row, not be dropped
+        data = {"good": Series({"a": 1, "b": 2}), "blank": blank}
+
+        result = DataFrame.from_dict(data, orient="index")
+        expected = DataFrame(
+            {
+                "a": {"good": 1.0, "blank": np.nan},
+                "b": {"good": 2.0, "blank": np.nan},
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_series(self):
         data = [
             OrderedDict([["a", 1.5], ["b", 3.0], ["c", 4.0]]),
