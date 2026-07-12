@@ -2873,6 +2873,19 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
+            if not can_hold_element(self._values, value) and not is_valid_na_for_dtype(
+                value, self.dtype
+            ):
+                # GH#45153 fillna with incompatible value requiring any
+                #  dtype casting is deprecated.
+                warnings.warn(
+                    f"'{type(value).__name__}' is not supported as a fill "
+                    f"value for {self.dtype} dtype. In a future version, "
+                    f"calling fillna with an incompatible value will raise. "
+                    f"Explicitly cast to a common dtype before filling.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             result = self.putmask(self._isnan, value)
             # no need to care metadata other than name
             # because it can't have freq if it has NaTs
@@ -5316,16 +5329,19 @@ class Index(IndexOpsMixin, PandasObject):
 
         ``_values`` are consistent between ``Series`` and ``Index``.
 
-        It may differ from the public '.values' method.
+        It may differ from the public '.values' method, though this
+        difference is deprecated and will be removed in a future version.
 
         index             | values          | _values       |
         ----------------- | --------------- | ------------- |
         Index             | ndarray         | ndarray       |
         CategoricalIndex  | Categorical     | Categorical   |
         DatetimeIndex     | ndarray[M8ns]   | DatetimeArray |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DatetimeArray |
-        PeriodIndex       | ndarray[object] | PeriodArray   |
+        DatetimeIndex[tz] | ndarray[M8ns]*  | DatetimeArray |
+        PeriodIndex       | ndarray[object]*| PeriodArray   |
         IntervalIndex     | IntervalArray   | IntervalArray |
+
+        * Will return the ExtensionArray in a future version (deprecated).
 
         See Also
         --------
@@ -5484,7 +5500,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        ser = Series(self._values, copy=False, dtype=self.dtype)
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         try:
             result_ser = ser.where(cond, other)
         except (TypeError, ValueError):
@@ -5494,9 +5512,7 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype == self.dtype:
                 raise
             return self.astype(dtype).where(cond, other)
-        return Index(
-            result_ser._values, dtype=result_ser.dtype, name=self.name, copy=False
-        )
+        return Index(result_ser, dtype=result_ser.dtype, name=self.name, copy=False)
 
     # construction helpers
     @final
@@ -7604,6 +7620,11 @@ class Index(IndexOpsMixin, PandasObject):
         Index
             A new Index object with the computed differences.
 
+        See Also
+        --------
+        Series.diff : First discrete difference of Series elements.
+        DataFrame.diff : First discrete difference of element.
+
         Examples
         --------
         >>> import pandas as pd
@@ -7664,6 +7685,16 @@ class Index(IndexOpsMixin, PandasObject):
             self
         ) != len(other):
             raise ValueError("Lengths must match to compare")
+
+        if (
+            not isinstance(self, ABCMultiIndex)
+            and not isinstance(self._values, ExtensionArray)
+            and self._values.dtype != object
+        ):
+            # MultiIndex and object dtype already treat a non-standard listlike
+            # as scalar-like; for EA-backed values the warning is emitted
+            # downstream by the EA (GH#62423).
+            ops.maybe_warn_listlike(other)
 
         if not isinstance(other, ABCMultiIndex):
             other = extract_array(other, extract_numpy=True)

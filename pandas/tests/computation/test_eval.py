@@ -658,7 +658,9 @@ class TestEval:
         x, a, b = np.random.default_rng(2).standard_normal(3), 1, 2  # noqa: F841
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))  # noqa: F841
 
-        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        msg = "|".join(
+            ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
+        )
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 
@@ -1880,6 +1882,15 @@ def test_empty_string_raises(engine, parser):
         pd.eval("", engine=engine, parser=parser)
 
 
+@pytest.mark.parametrize("box", [Series, DataFrame])
+def test_pandas_object_raises(box, engine, parser):
+    # GH#16289 passing a Series/DataFrame parsed its (possibly truncated) repr
+    obj = box(["1 == 1", "2 == 1"] * 1000)
+    msg = "expr must be a string to be evaluated"
+    with pytest.raises(ValueError, match=msg):
+        pd.eval(obj, engine=engine, parser=parser)
+
+
 def test_more_than_one_expression_raises(engine, parser):
     with pytest.raises(SyntaxError, match="only a single expression is allowed"):
         pd.eval("1 + 1; 2 + 2", engine=engine, parser=parser)
@@ -1902,7 +1913,9 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ex2 = f"lhs {cmp} mid and mid {cmp} rhs"
     ex3 = f"(lhs {cmp} mid) & (mid {cmp} rhs)"
     for ex in (ex1, ex2, ex3):
-        msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
+        msg = "|".join(
+            ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
+        )
         with pytest.raises(NotImplementedError, match=msg):
             pd.eval(ex, engine=engine, parser=parser)
 

@@ -396,8 +396,8 @@ def assert_index_equal(
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)
         _testing.assert_almost_equal(
-            left.values,
-            right.values,
+            left._values,
+            right._values,
             rtol=rtol,
             atol=atol,
             check_dtype=exact_bool,
@@ -506,7 +506,7 @@ def assert_attr_equal(
 def assert_is_sorted(seq: Index | Series | np.ndarray | ExtensionArray) -> None:
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
-        seq = seq.values
+        seq = seq._values
     # sorting does not change precisions
     if isinstance(seq, np.ndarray):
         assert_numpy_array_equal(seq, np.sort(np.array(seq)))

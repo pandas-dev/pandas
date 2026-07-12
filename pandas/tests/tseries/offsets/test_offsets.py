@@ -188,7 +188,7 @@ class TestCommon:
     def test_immutable(self, offset_types):
         # GH#21341 check that __setattr__ raises
         offset = _create_offset(offset_types)
-        msg = "objects is not writable|DateOffset objects are immutable"
+        msg = "|".join(["objects is not writable", "DateOffset objects are immutable"])
         with pytest.raises(AttributeError, match=msg):
             offset.normalize = True
         with pytest.raises(AttributeError, match=msg):
@@ -1279,6 +1279,23 @@ def test_dateoffset_days_vs_n_near_dst_transition():
     offset_days = ts + offsets.DateOffset(days=1)
     offset_n = ts + offsets.DateOffset(1)
     assert offset_days == offset_n
+
+
+@pytest.mark.parametrize("n", [1, 2, -1])
+@pytest.mark.parametrize("box", [DatetimeIndex, Series])
+def test_dateoffset_n_vectorized_near_dst_transition(box, n):
+    # GH#61870 bare DateOffset(n) was a no-op on the vectorized (array) path
+    # while the scalar path correctly added n days; results must agree with
+    # both the scalar path and DateOffset(days=n).
+    ts = Timestamp("2021-11-06 12:00", tz="US/Pacific")
+    obj = box([ts])
+
+    result = obj + offsets.DateOffset(n)
+    expected = obj + offsets.DateOffset(days=n)
+    tm.assert_equal(result, expected)
+
+    scalar = ts + offsets.DateOffset(n)
+    assert result[0] == scalar
 
 
 @pytest.mark.parametrize("n", [1, 2])
