@@ -16,6 +16,7 @@ from pandas.errors import NumbaUtilError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
     from pandas import Series
 
 GLOBAL_USE_NUMBA: bool = False
@@ -160,8 +161,11 @@ _GLOBAL_LOOP: Callable | None = None
 def get_global_loop(numba: types.ModuleType) -> Callable:
     global _GLOBAL_LOOP
     if _GLOBAL_LOOP is None:
+
         @numba.njit(parallel=True)  # type: ignore[untyped-decorator]
-        def global_numba_apply_loop(arr: np.ndarray, jitted_func: Callable[[Any], Any]) -> np.ndarray:
+        def global_numba_apply_loop(
+            arr: np.ndarray, jitted_func: Callable[[Any], Any]
+        ) -> np.ndarray:
             n = len(arr)
             first_val = jitted_func(arr[0])
             res = np.empty(n, dtype=type(first_val))
@@ -169,7 +173,9 @@ def get_global_loop(numba: types.ModuleType) -> Callable:
             for i in numba.prange(1, n):
                 res[i] = jitted_func(arr[i])
             return res
+
         _GLOBAL_LOOP = global_numba_apply_loop
+    assert _GLOBAL_LOOP is not None
     return _GLOBAL_LOOP
 
 
@@ -212,14 +218,18 @@ def maybe_run_numba_apply(
     )
     if not is_supported_dtype:
         if engine == "numba":
-            raise ValueError(f"Numba engine only supports numeric/datetime dtypes, got {series.dtype}")
+            raise ValueError(
+                f"Numba engine only supports numeric/datetime dtypes, got {series.dtype}"
+            )
         return None
 
     try:
         import numba
     except ImportError as err:
         if engine == "numba":
-            raise ImportError("Numba is not installed. Please install numba to use engine='numba'") from err
+            raise ImportError(
+                "Numba is not installed. Please install numba to use engine='numba'"
+            ) from err
         return None
 
     func_id = id(func)
@@ -246,7 +256,3 @@ def maybe_run_numba_apply(
         if engine == "numba":
             raise NumbaUtilError(f"Failed to execute Numba JIT loop: {err}") from err
         return None
-
-
-
-

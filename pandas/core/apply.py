@@ -1713,7 +1713,10 @@ class SeriesApply(NDFrameApply):
 
         if not self.args and not self.kwargs:
             from pandas.core.util.numba_ import maybe_run_numba_apply
-            res_arr = maybe_run_numba_apply(obj, func, engine=self.engine, engine_kwargs=self.engine_kwargs)
+
+            res_arr = maybe_run_numba_apply(
+                obj, func, engine=self.engine, engine_kwargs=self.engine_kwargs
+            )
             if res_arr is not None:
                 return obj._constructor(res_arr, index=obj.index).__finalize__(
                     obj, method="apply"
