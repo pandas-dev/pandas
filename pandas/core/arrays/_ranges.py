@@ -128,16 +128,13 @@ def generate_daily_offset_range(
     """
     abs_n = freq.n  # caller ensures n >= 1
 
-    # Resolve the endpoints with offset arithmetic so that, for the periods
-    # cases, the on-offset count is exact regardless of holidays/weekmasks. The
-    # previous calendar-day buffer of ``needed * 7 + 6`` days assumed at least
-    # one on-offset day per 7 calendar days, which is false for e.g. a
-    # CustomBusinessDay whose holidays blank out whole weeks -- the buffer then
-    # held fewer than ``periods`` on-offset days and the result was silently
-    # short (GH#64648 post-merge). The arithmetic is done on normalized dates
-    # with the time-of-day re-attached afterwards, so an offset's
-    # ``normalize=True`` does not strip the time-of-day from the output
-    # (GH#44025).
+    # Resolve the endpoints with offset arithmetic so the on-offset count is
+    # exact regardless of holidays/weekmasks. The old ``needed * 7 + 6``-day
+    # buffer assumed >=1 on-offset day per 7 calendar days, which fails for e.g.
+    # a CustomBusinessDay whose holidays blank out whole weeks -- the result was
+    # then silently short (GH#64648 post-merge). Arithmetic runs on normalized
+    # dates with the time-of-day re-attached, so ``normalize=True`` offsets
+    # don't strip it from the output (GH#44025).
     if periods is not None and end is not None:
         # end + periods: anchor at the last on-offset date <= end so that
         # ``periods`` on-offset dates are returned (GH#64834).
@@ -162,13 +159,11 @@ def generate_daily_offset_range(
             # start + periods.
             end = (anchor + (periods - 1) * freq + tod).as_unit(unit)
         elif (
-            # start + end. GH#64790: for offsets that preserve start's
-            # time-of-day, align end's time-of-day to start's so the last
-            # on-offset date isn't excluded when end's time-of-day is earlier.
-            # Mask-supporting offsets preserve time-of-day unless
-            # ``freq.normalize``; checking the attribute instead of probing
-            # ``freq._apply(start)`` avoids raising when start is within one
-            # offset step of Timestamp.max (GH#64648).
+            # start + end. GH#64790: align end's time-of-day to start's so the
+            # last on-offset date isn't dropped when end's is earlier. Mask
+            # offsets preserve time-of-day unless ``freq.normalize``; testing
+            # that attribute rather than probing ``freq._apply(start)`` avoids
+            # raising near Timestamp.max (GH#64648).
             tod and not freq.normalize and end >= start  # type: ignore[operator]
         ):
             try:
