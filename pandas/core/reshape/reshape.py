@@ -212,11 +212,8 @@ class _Unstacker:
 
     @cache_readonly
     def _indexer_is_identity(self) -> bool:
-        # Note: we test the codes-based sort indexer, not index.is_monotonic_
-        #  increasing, because the latter reflects tuple *values* and can be
-        #  True even when the codes are unsorted (GH#65107), which would put
-        #  values under the wrong labels.  _indexer_and_to_sort is already
-        #  computed during __init__, so this check is free.
+        # Note: index.is_monotonic_increasing would be wrong here: it reflects
+        #  tuple values, which can be monotonic while the codes are not (GH#65107).
         indexer, _ = self._indexer_and_to_sort
         return lib.is_range_indexer(indexer, len(self.index))
 
