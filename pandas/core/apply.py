@@ -1204,9 +1204,7 @@ class FrameApply(NDFrameApply):
                     "Cannot apply_along_axis when any iteration dimensions are 0"
                 )
             obj_iter = self.values.T if self.axis == 0 else self.values
-            res_list = [
-                wrapped(val, *self.args, **self.kwargs) for val in obj_iter
-            ]
+            res_list = [wrapped(val, *self.args, **self.kwargs) for val in obj_iter]
             first_res = res_list[0]
             dtype = np.asanyarray(first_res).dtype
             res_list = [lib.item_from_zerodim(x) for x in res_list]
