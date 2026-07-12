@@ -21,9 +21,12 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.io._util import arrow_table_to_pandas
+from pandas.io.common import mangle_dupe_names
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     import pyarrow as pa
 
     from pandas._typing import ReadBuffer
@@ -180,6 +183,27 @@ class ArrowParserWrapper(ParserBase):
 
         return convert_options
 
+    def _dedup_column_names(
+        self, raw_names: list[str]
+    ) -> tuple[list[Hashable], set[Hashable]]:
+        """
+        Match other engines' header handling: empty names become
+        "Unnamed: {i}" and duplicated names are de-duplicated, mirroring the
+        algorithm in pandas._libs.parsers.TextReader.
+
+        Returns the new names along with the set of placeholder names.
+        """
+        names: list[Hashable] = []
+        unnamed_col_indices = []
+        for i, name in enumerate(raw_names):
+            if name == "":
+                name = f"Unnamed: {i}"
+                unnamed_col_indices.append(i)
+            names.append(name)
+
+        names = mangle_dupe_names(names, unnamed_col_indices, self.dtype)
+        return names, {names[i] for i in unnamed_col_indices}
+
     def _adjust_column_names(self, table: pa.Table) -> bool:
         num_cols = len(table.columns)
         multi_index_named = True
@@ -221,6 +245,13 @@ class ArrowParserWrapper(ParserBase):
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
+            elif self.unnamed_cols:
+                # GH#13017 match other engines: empty header fields used as
+                # an index produce an unnamed index level
+                frame.index.names = [
+                    None if name in self.unnamed_cols else name
+                    for name in frame.index.names
+                ]
 
         return frame
 
@@ -321,6 +352,11 @@ class ArrowParserWrapper(ParserBase):
                     )
 
             table = table.cast(new_schema)
+
+        if self.header is not None and self.names is None:
+            new_names, self.unnamed_cols = self._dedup_column_names(table.column_names)
+            if new_names != table.column_names:
+                table = table.rename_columns(new_names)
 
         multi_index_named = self._adjust_column_names(table)
 
