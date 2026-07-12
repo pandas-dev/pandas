@@ -183,13 +183,15 @@ class ArrowParserWrapper(ParserBase):
 
         return convert_options
 
-    def _dedup_column_names(self, raw_names: list[str]) -> list[Hashable]:
+    def _dedup_column_names(
+        self, raw_names: list[str]
+    ) -> tuple[list[Hashable], set[Hashable]]:
         """
         Match other engines' header handling: empty names become
         "Unnamed: {i}" and duplicated names are de-duplicated, mirroring the
         algorithm in pandas._libs.parsers.TextReader.
 
-        Sets ``self.unnamed_cols`` as a side effect.
+        Returns the new names along with the set of placeholder names.
         """
         names: list[Hashable] = []
         unnamed_col_indices = []
@@ -200,8 +202,7 @@ class ArrowParserWrapper(ParserBase):
             names.append(name)
 
         names = mangle_dupe_names(names, unnamed_col_indices, self.dtype)
-        self.unnamed_cols = {names[i] for i in unnamed_col_indices}
-        return names
+        return names, {names[i] for i in unnamed_col_indices}
 
     def _adjust_column_names(self, table: pa.Table) -> bool:
         num_cols = len(table.columns)
@@ -353,7 +354,7 @@ class ArrowParserWrapper(ParserBase):
             table = table.cast(new_schema)
 
         if self.header is not None and self.names is None:
-            new_names = self._dedup_column_names(table.column_names)
+            new_names, self.unnamed_cols = self._dedup_column_names(table.column_names)
             if new_names != table.column_names:
                 table = table.rename_columns(new_names)
 
