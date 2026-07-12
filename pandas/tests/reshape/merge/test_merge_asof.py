@@ -1982,7 +1982,7 @@ class TestAsOfMerge:
                 tolerance=1.0,
             )
 
-        msg = "tolerance must be positive"
+        msg = "tolerance must be non-negative"
 
         # invalid negative
         with pytest.raises(MergeError, match=msg):
