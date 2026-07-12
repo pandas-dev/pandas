@@ -1731,6 +1731,10 @@ class EABackedBlock(Block):
         orig_value = value
 
         indexer = self._unwrap_setitem_indexer(indexer)
+        if indexer is lib.no_default:
+            # GH#66255 no columns of this block were selected; there is
+            #  nothing to set, matching the numpy-backed behavior
+            return self
         value = self._maybe_squeeze_arg(value)
 
         values = self.values
@@ -2094,6 +2098,10 @@ class ExtensionBlock(EABackedBlock):
             if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                 # GH#44703 went through indexing.maybe_convert_ix
                 first, second = indexer
+                if second.size == 0:
+                    # GH#66255 no columns selected, e.g. iloc[[0], []];
+                    #  there is nothing to set
+                    return lib.no_default
                 if not (
                     second.size == 1 and (second == 0).all() and first.shape[1] == 1
                 ):
@@ -2110,25 +2118,44 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
-            elif is_list_like(indexer[1]) and len(indexer[1]) == 0:
-                # GH#66255 no columns selected, e.g. iloc[:, []]; there is
-                #  nothing to set
-                indexer = np.array([], dtype=np.intp)
-
-            elif (
-                is_list_like(indexer[1])
-                and len(indexer[1]) == 1
-                and np.asarray(indexer[1]).dtype == np.bool_
-            ):
-                # GH#66255 boolean mask over this block's single column; an
-                #  all-False mask means there is nothing to set
-                if indexer[1][0]:
+            elif isinstance(indexer[1], slice):
+                # GH#66255 non-null slice over this block's single column
+                if 0 in range(*indexer[1].indices(1)):
                     indexer = indexer[0]
                 else:
-                    indexer = np.array([], dtype=np.intp)
+                    return lib.no_default
 
-            elif is_list_like(indexer[1]) and indexer[1][0] == 0:
-                indexer = indexer[0]
+            elif is_list_like(indexer[1]):
+                col_indexer = np.asarray(indexer[1])
+                if col_indexer.size == 0:
+                    # GH#66255 no columns selected, e.g. iloc[:, []]; there
+                    #  is nothing to set
+                    return lib.no_default
+                elif col_indexer.dtype == np.bool_:
+                    # GH#66255 boolean mask over this block's single column;
+                    #  an all-False mask means there is nothing to set
+                    if not col_indexer.any():
+                        return lib.no_default
+                    elif col_indexer.size == 1:
+                        indexer = indexer[0]
+                    else:
+                        raise NotImplementedError(
+                            "This should not be reached. Please report a bug at "
+                            "github.com/pandas-dev/pandas/"
+                        )
+                elif col_indexer.dtype == object:
+                    # match the numpy-backed behavior for object-dtype
+                    #  indexer arrays
+                    raise IndexError(
+                        "arrays used as indices must be of integer (or boolean) type"
+                    )
+                elif indexer[1][0] == 0:
+                    indexer = indexer[0]
+                else:
+                    raise NotImplementedError(
+                        "This should not be reached. Please report a bug at "
+                        "github.com/pandas-dev/pandas/"
+                    )
 
             else:
                 raise NotImplementedError(

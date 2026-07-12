@@ -1091,6 +1091,42 @@ class TestiLocBaseIndependent:
         df.iloc[:, []] = 99
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_iloc_setitem_empty_column_selections_noop(self, dtype):
+        # GH#66255 empty column selections are no-ops and do not validate
+        #  the value, matching numpy-backed columns
+        df = DataFrame({"col": [1.0, 2.0]}, dtype=dtype)
+        expected = df.copy()
+
+        df.iloc[:, :0] = 99
+        tm.assert_frame_equal(df, expected)
+
+        df.iloc[[0], []] = 99
+        tm.assert_frame_equal(df, expected)
+
+        df.iloc[:, []] = np.empty((2, 0))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_iloc_setitem_object_dtype_column_mask_raises(self, dtype):
+        # GH#66255 object-dtype indexer arrays raise for numpy-backed
+        #  columns; extension array columns must match
+        df = DataFrame({"col": [1.0, 2.0]}, dtype=dtype)
+        msg = "arrays used as indices must be of integer"
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[:, np.array([False], dtype=object)] = 99
+
+    def test_iloc_setitem_boolean_column_mask_ea(self):
+        # GH#66255 boolean column masks with iloc on EA dtypes
+        df = DataFrame({"col": [1, 2]}, dtype="Float64")
+        expected = df.copy()
+
+        df.iloc[:, np.array([False])] = 99
+        tm.assert_frame_equal(df, expected)
+
+        df.iloc[:, np.array([True])] = 99
+        tm.assert_frame_equal(df, DataFrame({"col": [99, 99]}, dtype="Float64"))
+
     def test_iloc_getitem_read_only_values(self, indexer_li):
         # GH#10043 this is fundamentally a test for iloc, but test loc while
         #  we're here

@@ -908,6 +908,14 @@ class TestLocBaseIndependent:
         expected = DataFrame({"col": [99, 99]}, dtype="Float64")
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_all_false_column_mask_invalid_value_ea(self):
+        # GH#66255 nothing is selected, so the value is not validated,
+        #  matching numpy-backed columns
+        df = DataFrame({"col": [1, 2]}, dtype="Float64")
+        expected = df.copy()
+        df.loc[:, np.array([False])] = "bad"
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_frame(self, has_ref):
         df = DataFrame(
