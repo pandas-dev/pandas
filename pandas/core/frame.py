@@ -7809,11 +7809,10 @@ class DataFrame(NDFrame, OpsMixin):
                     mask = ~nan_mask.all(axis=0)
                 else:
                     mask = ~nan_mask.any(axis=0)
+            elif how == "all":
+                mask = ~nan_mask.all(axis=1)
             else:
-                if how == "all":
-                    mask = ~nan_mask.all(axis=1)
-                else:
-                    mask = ~nan_mask.any(axis=1)
+                mask = ~nan_mask.any(axis=1)
 
             if np.all(mask):
                 if inplace:
@@ -7834,10 +7833,13 @@ class DataFrame(NDFrame, OpsMixin):
                 new_index = self.index
                 new_columns = self.columns[mask]
 
-            from pandas.core.internals.blocks import new_block_2d
             from pandas._libs.internals import BlockPlacement
 
-            new_blk = new_block_2d(new_values, placement=BlockPlacement(slice(len(new_columns))))
+            from pandas.core.internals.blocks import new_block_2d
+
+            new_blk = new_block_2d(
+                new_values, placement=BlockPlacement(slice(len(new_columns)))
+            )
             new_mgr = BlockManager((new_blk,), [new_columns, new_index])
             result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
             if ignore_index:
