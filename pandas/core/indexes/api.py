@@ -241,26 +241,40 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
                     sorted_indexes = sorted(non_empty, key=lambda x: x.start)
                     possible = True
                     for i in range(len(sorted_indexes) - 1):
-                        if sorted_indexes[i].stop < sorted_indexes[i+1].start:
+                        if sorted_indexes[i].stop < sorted_indexes[i + 1].start:
                             possible = False
                             break
-                        if (sorted_indexes[i+1].start - sorted_indexes[i].start) % step != 0:
+                        diff = sorted_indexes[i + 1].start - sorted_indexes[i].start
+                        if diff % step != 0:
                             possible = False
                             break
                     if possible:
-                        return RangeIndex(sorted_indexes[0].start, sorted_indexes[-1].stop, step, name=name)
+                        return RangeIndex(
+                            sorted_indexes[0].start,
+                            sorted_indexes[-1].stop,
+                            step,
+                            name=name,
+                        )
                 else:
-                    sorted_indexes = sorted(non_empty, key=lambda x: x.start, reverse=True)
+                    sorted_indexes = sorted(
+                        non_empty, key=lambda x: x.start, reverse=True
+                    )
                     possible = True
                     for i in range(len(sorted_indexes) - 1):
-                        if sorted_indexes[i].stop > sorted_indexes[i+1].start:
+                        if sorted_indexes[i].stop > sorted_indexes[i + 1].start:
                             possible = False
                             break
-                        if (sorted_indexes[i+1].start - sorted_indexes[i].start) % step != 0:
+                        diff = sorted_indexes[i + 1].start - sorted_indexes[i].start
+                        if diff % step != 0:
                             possible = False
                             break
                     if possible:
-                        return RangeIndex(sorted_indexes[0].start, sorted_indexes[-1].stop, step, name=name)
+                        return RangeIndex(
+                            sorted_indexes[0].start,
+                            sorted_indexes[-1].stop,
+                            step,
+                            name=name,
+                        )
 
         indexes = unique_indexes
 
