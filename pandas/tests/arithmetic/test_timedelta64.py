@@ -10,7 +10,10 @@ import pytest
 
 from pandas._libs.tslibs import timezones
 from pandas.compat import WASM
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1557,13 +1560,13 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in int64 multiplication"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * 2
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             2 * tdi
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.int64(2)
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.array([2, 2], dtype="i8")
 
     def test_td64arr_mul_uint_overflow(self, box_with_array):
@@ -1573,13 +1576,13 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in int64 multiplication"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.uint64(2**63 + 5)
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.array([2**63 + 5, 2**63 + 5], dtype="u8")
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * (2**63 + 5)
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * (-(2**63) - 5)
 
     def test_td64arr_mul_int_min_boundary(self, box_with_array):
@@ -1589,7 +1592,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in int64 multiplication"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * 2
 
     def test_td64arr_mul_float_overflow(self, box_with_array):
@@ -1600,13 +1603,13 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in timedelta multiplication"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * 2.5
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             2.5 * tdi
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.float64(2.5)
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.array([2.5, 2.5])
 
     def test_td64arr_mul_float_overflow_boundary(self, box_with_array):
@@ -1616,7 +1619,7 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in timedelta multiplication"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * 2.0
 
     def test_td64arr_mul_inf_raises(self, box_with_array):
@@ -1626,9 +1629,9 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in timedelta multiplication"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * np.inf
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi * -np.inf
 
     def test_td64arr_mul_nan_returns_nat(self, box_with_array):
@@ -1660,13 +1663,13 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = tm.box_expected(tdi, box_with_array)
 
         msg = "Overflow in timedelta division"
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi / 0.4
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi // 0.4
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi / np.array([0.4, 0.4])
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             tdi // np.array([0.4, 0.4])
 
     # numpy < 2.0 emits RuntimeWarnings for zero/NaN float divisors
@@ -1691,11 +1694,17 @@ class TestTimedeltaArraylikeMulDivOps:
         tdi = TimedeltaIndex(np.array([2**62, 2**62], dtype="m8[s]"))
         tdi = tm.box_expected(tdi, box_with_array)
 
-        with pytest.raises(OverflowError, match="Overflow in int64 multiplication"):
+        with pytest.raises(
+            OutOfBoundsTimedelta, match="Overflow in int64 multiplication"
+        ):
             tdi * 2
-        with pytest.raises(OverflowError, match="Overflow in timedelta multiplication"):
+        with pytest.raises(
+            OutOfBoundsTimedelta, match="Overflow in timedelta multiplication"
+        ):
             tdi * 2.0
-        with pytest.raises(OverflowError, match="Overflow in timedelta division"):
+        with pytest.raises(
+            OutOfBoundsTimedelta, match="Overflow in timedelta division"
+        ):
             tdi / 0.5
 
         # values far outside the ns-representable range multiply fine in "s"

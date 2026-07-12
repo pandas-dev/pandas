@@ -458,7 +458,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         #  2**63 in float64, so a product landing exactly on 2**63 would slip
         #  past a ``> i8max`` check and saturate on the cast. Also catches +/-inf.
         if non_nan.size and np.max(np.abs(non_nan), initial=0.0) >= 2.0**63:
-            raise OverflowError("Overflow in timedelta multiplication")
+            raise OutOfBoundsTimedelta("Overflow in timedelta multiplication")
         # NaN-to-int cast is platform-dependent; substitute 0 then re-mask as NaT
         if nan_mask.any():
             f_result = np.where(nan_mask, 0.0, f_result)
@@ -466,6 +466,16 @@ class TimedeltaArray(dtl.TimelikeOps):
         nat_out = self_mask | nan_mask
         if nat_out.any():
             i8_result[nat_out] = iNaT
+        result = i8_result.view(self._ndarray.dtype)
+        return type(self)._simple_new(result, dtype=result.dtype)
+
+    def _mul_int_overflowsafe(self, i8_other: npt.NDArray[np.int64]) -> Self:
+        # GH#43178: mul_overflowsafe raises the low-level OverflowError; surface
+        #  it as OutOfBoundsTimedelta to match pandas' other td64 overflow paths.
+        try:
+            i8_result = mul_overflowsafe(self.asi8, i8_other)
+        except OverflowError as err:
+            raise OutOfBoundsTimedelta("Overflow in int64 multiplication") from err
         result = i8_result.view(self._ndarray.dtype)
         return type(self)._simple_new(result, dtype=result.dtype)
 
@@ -480,12 +490,13 @@ class TimedeltaArray(dtl.TimelikeOps):
             if lib.is_integer(other):
                 # GH#43178: detect int64 overflow rather than silently wrapping
                 #  in the i8 cast below (e.g. a multiplier outside int64 bounds).
-                # TODO(numpy>=2.5): numpy raises natively here (numpy GH-31378);
-                #  drop mul_overflowsafe and these integer branches once the
-                #  numpy floor is >= 2.5. The float path isn't covered and stays.
+                # TODO(numpy>=2.5): numpy detects this natively (numpy GH-31378)
+                #  but raises OverflowError; once the numpy floor is >= 2.5, drop
+                #  mul_overflowsafe and re-wrap numpy's error as
+                #  OutOfBoundsTimedelta. The float path isn't covered and stays.
                 other = int(other)
                 if other > lib.i8max or other < -lib.i8max - 1:
-                    raise OverflowError("Overflow in int64 multiplication")
+                    raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
                 i8_vals = self.asi8
                 if other != 0 and i8_vals.size:
                     # The extreme elements bound all products, so checking them
@@ -498,9 +509,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     if max(abs(low_prod), abs(high_prod)) <= lib.i8max:
                         result = (i8_vals * other).view(self._ndarray.dtype)
                         return type(self)._simple_new(result, dtype=result.dtype)
-                i8_result = mul_overflowsafe(i8_vals, np.asarray(other, dtype="i8"))
-                result = i8_result.view(self._ndarray.dtype)
-                return type(self)._simple_new(result, dtype=result.dtype)
+                return self._mul_int_overflowsafe(np.asarray(other, dtype="i8"))
             if lib.is_float(other):
                 return self._mul_float_overflowsafe(other)
             # numpy will raise TypeError for non-numeric scalar
@@ -547,10 +556,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             #  DataFrame blockwise path).
             i8_other = other.astype("i8", copy=False)
             if other.dtype.kind == "u" and (i8_other < 0).any():
-                raise OverflowError("Overflow in int64 multiplication")
-            i8_result = mul_overflowsafe(self.asi8, i8_other)
-            result = i8_result.view(self._ndarray.dtype)
-            return type(self)._simple_new(result, dtype=result.dtype)
+                raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
+            return self._mul_int_overflowsafe(i8_other)
 
         if other.dtype.kind == "f":
             return self._mul_float_overflowsafe(other)
@@ -593,7 +600,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             f_quot = i8 / other_arr
         exclude_mask = (i8 == iNaT) | np.isnan(f_quot) | (other_arr == 0)
         if np.max(np.abs(f_quot), initial=0.0, where=~exclude_mask) >= 2.0**63:
-            raise OverflowError("Overflow in timedelta division")
+            raise OutOfBoundsTimedelta("Overflow in timedelta division")
 
     def _scalar_divlike_op(self, other, op):
         """
