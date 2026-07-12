@@ -2513,12 +2513,13 @@ def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
 
 def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
     # GH#64266
-    df = DataFrame({"a": [np.int8(1)], "b": [np.int8(5)]}, dtype=object)
+    left = np.int8(1)
+    df = DataFrame({"a": [left], "b": [np.int8(5)]}, dtype=object)
     result = df.min(axis=None)
-    assert isinstance(result, np.int8)
+    assert result is left
 
     result = np.minimum.reduce(df, axis=None)
-    assert isinstance(result, np.int8)
+    assert result is left
 
 
 @pytest.mark.parametrize(

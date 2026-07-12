@@ -2924,7 +2924,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0], self.dtype)
+            return maybe_unbox_numpy_scalar(result.iloc[0], dtype=self.dtype)
 
     def corr(
         self,
@@ -3014,7 +3014,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = nanops.nancorr(
                 this_values, other_values, method=method, min_periods=min_periods
             )
-            result = maybe_unbox_numpy_scalar(result, self.dtype)
+            result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
             return result
 
         raise ValueError(
@@ -3070,7 +3070,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
-        result = maybe_unbox_numpy_scalar(result, self.dtype)
+        result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
         return result
 
     def describe(
@@ -3389,7 +3389,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
-        return maybe_unbox_numpy_scalar(result, self.dtype)
+        return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
 
     def __matmul__(self, other):
         """
@@ -6165,7 +6165,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item), self.dtype)
+        return maybe_unbox_numpy_scalar(super().pop(item=item), dtype=self.dtype)
 
     def info(
         self,

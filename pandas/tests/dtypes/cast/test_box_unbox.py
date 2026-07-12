@@ -109,5 +109,5 @@ def test_maybe_unbox_numpy_scalar_object_dtype():
     # GH#64266
     value = np.float32(1.5)
     with option_context("future.python_scalars", True):
-        result = maybe_unbox_numpy_scalar(value, np.dtype(object))
+        result = maybe_unbox_numpy_scalar(value, dtype=np.dtype(object))
     assert result is value

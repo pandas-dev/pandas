@@ -117,17 +117,18 @@ class TestReductions:
     def test_minmax_object_dtype_preserves_numpy_scalars(self, index_or_series):
         # GH#64266
         klass = index_or_series
-        obj = klass([np.int8(1), np.int8(3)], dtype=object)
-        assert isinstance(obj.min(), np.int8)  # monotonic fast path for Index
-        assert isinstance(obj.max(), np.int8)
-        assert isinstance(np.maximum.reduce(obj), np.int8)
+        left, right = np.int8(1), np.int8(3)
+        obj = klass([left, right], dtype=object)
+        assert obj.min() is left  # monotonic fast path for Index
+        assert obj.max() is right
+        assert np.maximum.reduce(obj) is right
 
-        # value not representable as float64; unboxing would break .loc
         val = np.longdouble("1.1") + np.longdouble("1e-19")
         idx = Index([val, np.longdouble("0.5")], dtype=object)
         result = idx.max()
-        assert isinstance(result, np.longdouble)
+        assert result is val
         ser = Series(["a", "b"], index=idx)
+        # Ensure we can index using the result.
         assert ser.loc[result] == "a"
 
     def test_object_dtype_reductions(self, index_or_series, using_python_scalars):
@@ -135,14 +136,22 @@ class TestReductions:
         klass = index_or_series
         obj = klass([1, 2, 4], dtype=object)
         expected_bool = bool if using_python_scalars else np.bool_
-        assert type(obj.any()) is expected_bool
-        assert type(obj.all()) is expected_bool
+        result = obj.any()
+        assert type(result) is expected_bool
+        assert result
+        result = obj.all()
+        assert type(result) is expected_bool
+        assert result
         if klass is Series:
-            assert isinstance(obj.mean(), np.float64)
+            result = obj.mean()
+            assert type(result) is np.float64
+            assert result == 7 / 3
+            # for corr/cov/autocorr, checking the exact float value would
+            #  just re-derive the statistic; only the type is of interest
             other = Series([2, 5, 7], dtype=object)
-            assert isinstance(obj.corr(other), np.float64)
-            assert isinstance(obj.cov(other), np.float64)
-            assert isinstance(obj.autocorr(), np.float64)
+            assert type(obj.corr(other)) is np.float64
+            assert type(obj.cov(other)) is np.float64
+            assert type(obj.autocorr()) is np.float64
 
     @pytest.mark.parametrize("opname", ["max", "min"])
     def test_nanargminmax(self, opname, index_or_series):

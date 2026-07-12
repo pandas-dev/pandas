@@ -107,7 +107,8 @@ class TestSeriesQuantile:
         # GH#64266
         ser = Series([np.int8(1), np.int8(3)], dtype=object)
         result = ser.quantile(0.5, interpolation="lower")
-        assert isinstance(result, np.int8)
+        assert result == 1
+        assert type(result) is np.int8
 
     def test_quantile_nan(self):
         # GH 13098

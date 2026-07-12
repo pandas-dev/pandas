@@ -17,6 +17,10 @@ def test_pop():
 
 def test_pop_object_dtype_preserves_numpy_scalars():
     # GH#64266
-    ser = Series([np.int8(1), np.int8(3)], dtype=object)
+    left, right = np.int8(1), np.int8(3)
+    ser = Series([left, right], dtype=object)
     result = ser.pop(0)
-    assert isinstance(result, np.int8)
+    assert result is left
+
+    expected = Series([right], index=[1], dtype=object)
+    tm.assert_series_equal(ser, expected)

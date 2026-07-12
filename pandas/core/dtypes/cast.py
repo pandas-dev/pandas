@@ -1408,7 +1408,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any, dtype: DtypeObj | None = None) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> Any:
     """
     Maybe convert a NumPy scalar to its Python equivalent.
 
