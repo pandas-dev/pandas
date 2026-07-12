@@ -182,6 +182,64 @@ def safe_sort_index(index: Index) -> Index:
     return index
 
 
+def _union_range_indexes(indexes, sort: bool | lib.NoDefault) -> Index:
+    """
+    Fast-path union for homogeneous RangeIndex objects.
+
+    Deduplicates by (start, stop, step, name), then checks if all unique
+    non-empty indexes are contiguous with the same step and name. If so,
+    returns a single RangeIndex spanning the full range.
+    """
+    from pandas import RangeIndex
+
+    # Deduplicate by (start, stop, step, name)
+    seen = set()
+    unique = []
+    for idx in indexes:
+        key = (idx.start, idx.stop, idx.step, idx.name)
+        if key not in seen:
+            seen.add(key)
+            unique.append(idx)
+
+    if len(unique) == 1:
+        return unique[0]
+
+    # Check if all have the same step and name
+    first = unique[0]
+    same_step = all(idx.step == first.step for idx in unique)
+    same_name = all(idx.name == first.name for idx in unique)
+
+    if same_step and same_name and first.step != 0:
+        # Check for contiguity: find overall min/max
+        starts = [idx.start for idx in unique]
+        stops = [idx.stop for idx in unique]
+        overall_start = min(starts)
+        overall_stop = max(stops)
+
+        # Count total unique elements
+        total_elements = sum(len(idx) for idx in unique)
+
+        # Check if they form a contiguous range
+        expected_elements = len(range(overall_start, overall_stop, first.step))
+        if total_elements == expected_elements:
+            if sort is lib.no_default:
+                sort = True
+            if sort:
+                return RangeIndex(overall_start, overall_stop, first.step, name=first.name)
+            else:
+                # Without sort, just concatenate the unique indexes
+                result = unique[0]
+                for idx in unique[1:]:
+                    result = result.append(idx)
+                return result
+
+    # Fall back to standard union logic for deduplicated unique indexes
+    result = unique[0]
+    for other in unique[1:]:
+        result = result.union(other, sort=None if sort else False)
+    return result
+
+
 def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
     """
     Return the union of indexes.
@@ -209,6 +267,10 @@ def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
             else:
                 result = Index(sorted(result))
         return result
+
+    # Fast-path for homogeneous RangeIndex: deduplicate and check contiguity
+    if all(isinstance(idx, RangeIndex) for idx in indexes):
+        return _union_range_indexes(indexes, sort)
 
     indexes, kind = _sanitize_and_check(indexes)
 
