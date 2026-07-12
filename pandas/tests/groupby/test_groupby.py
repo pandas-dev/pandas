@@ -72,6 +72,29 @@ def test_groupby_nonobject_dtype_mixed():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_masked_array_column_values_type_consistent():
+    # GH#65458
+    bins = np.linspace(0.0, 100.0, 101)
+    labels = [str(value) for value in 0.5 * (bins[1:] + bins[:-1])]
+
+    cases = [
+        (np.ma.array([0.1, 0.2, 0.3]), np.array([25.0, 50.0, 75.0])),
+        (np.ma.array([0.1, 0.2, 0.3]), np.array([50.0, 75.0, 25.0])),
+        (np.ma.array([], dtype=float), np.array([], dtype=float)),
+    ]
+
+    for x, y in cases:
+        df = DataFrame()
+        df["x"] = x
+        df["y"] = y
+        df = df.loc[:, ["x", "y"]]
+        df.reset_index(inplace=True)
+        df["bin"] = pd.cut(df["y"].values, bins=bins, labels=labels)
+
+        _, group = next(iter(df.groupby("bin", observed=False)))
+        assert type(group["x"].values) is np.ndarray
+
+
 def test_pass_args_kwargs(ts):
     def f(x, q=None, axis=0):
         return np.percentile(x, q, axis=axis)
