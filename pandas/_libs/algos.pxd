@@ -7,8 +7,8 @@ from numpy cimport (
     float64_t,
     int64_t,
     intp_t,
-    uint8_t,
     ndarray,
+    uint8_t,
 )
 
 from pandas._libs.dtypes cimport (
@@ -135,4 +135,3 @@ cpdef ensure_int16(object arr)
 cpdef ensure_int32(object arr)
 cpdef ensure_int64(object arr)
 cpdef ensure_uint64(object arr)
-
