@@ -65,10 +65,14 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     PeriodDtype,
 )
 
-from pandas.core import roperator
+from pandas.core import (
+    algorithms,
+    roperator,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -891,6 +895,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 uniques = self.copy()
             uniques._name = None
             return codes, uniques
+        if len(self) > 1 and (
+            self.is_monotonic_increasing or self.is_monotonic_decreasing
+        ):
+            # Monotonic implies no NaT, so NA handling is not needed
+            codes, uniques_indexer = algorithms.factorize_monotonic_codes(
+                self._data._ndarray, self.is_monotonic_increasing, sort
+            )
+            uniques = self[uniques_indexer]
+            uniques._name = None
+            return codes, uniques
         return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
     @property
@@ -1004,6 +1018,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
+        if isinstance(self.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "DatetimeIndex.values returning an ndarray that drops "
+                "timezone information is deprecated. In a future version, "
+                "this will return the underlying DatetimeArray instead. "
+                "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
+                "'DatetimeIndex.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         data = self._data._ndarray
         data = data.view()
         data.flags.writeable = False
@@ -1325,7 +1349,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             result = type(self)._simple_new(dates, name=self.name)
-            result._freq = self.freq
+            # The sort=False result is non-monotonic (self's values followed
+            #  by earlier values from other), so it cannot carry a freq.
             return result
         else:
             left, right = other, self

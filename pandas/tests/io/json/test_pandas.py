@@ -1380,6 +1380,22 @@ class TestPandasContainer:
         expected = '{"42":42}'
         assert result == expected
 
+    @pytest.mark.parametrize("base_typ", [datetime.date, datetime.timedelta])
+    def test_to_json_datetimelike_subclass_missing_creso(self, base_typ):
+        # GH#65904 a datetime.date/timedelta subclass carrying a "_value"
+        # attribute but no "_creso" reached get_long_attr and segfaulted; it
+        # should raise cleanly instead
+        class Fake(base_typ):
+            _value = 5
+
+        obj = Fake(2020, 1, 1) if base_typ is datetime.date else Fake(5)
+        # dtype=object keeps the subclass instance for the timedelta case, which
+        # would otherwise be inferred to timedelta64
+        index = Index([obj], dtype=object)
+        ser = Series([1], index=index)
+        with pytest.raises(AttributeError, match="_creso"):
+            ser.to_json(date_format="iso")
+
     def test_default_handler(self):
         value = object()
         frame = DataFrame({"a": [7, value]})

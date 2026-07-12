@@ -2125,8 +2125,11 @@ def group_idxmin_idxmax(
                 continue
 
             for j in range(K):
-                if not skipna and out[lab, j] == -1:
-                    # Once we've hit NA there is no going back
+                if not skipna and seen[lab, j] and out[lab, j] == -1:
+                    # Once we've hit an NA in this group there is no going back.
+                    # seen[lab, j] distinguishes this locked state from the
+                    # initial out[lab, j] == -1 sentinel that holds before any
+                    # row of the group has been visited (GH#56903).
                     continue
 
                 val = values[i, j]
@@ -2137,7 +2140,12 @@ def group_idxmin_idxmax(
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if isna_entry:
-                    if not skipna or not seen[lab, j]:
+                    if not skipna:
+                        # Lock the group to the NA sentinel; the guard above
+                        # then keeps later non-NA values from overwriting it.
+                        out[lab, j] = -1
+                        seen[lab, j] = True
+                    elif not seen[lab, j]:
                         out[lab, j] = -1
                 else:
                     if not seen[lab, j]:

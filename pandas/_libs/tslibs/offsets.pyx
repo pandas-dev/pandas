@@ -2008,6 +2008,11 @@ cdef class RelativeDeltaOffset(BaseOffset):
                     delta = delta.as_unit("ms")
                 else:
                     delta = delta.as_unit("s")
+            elif not kwds:
+                # GH#61870: bare DateOffset(n) with no keywords defaults to
+                # n days (matching the scalar path); without this branch it
+                # would incorrectly become a no-op on the vectorized path.
+                delta = Timedelta(days=1).as_unit("s")
             else:
                 delta = Timedelta(0).as_unit("s")
 
@@ -2633,7 +2638,7 @@ cdef class BusinessDay(BusinessMixin):
         """
         cdef:
             int periods = self._n
-            Py_ssize_t i, count = i8other.size
+            Py_ssize_t _, count = i8other.size
             ndarray result = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
             )
@@ -2646,7 +2651,7 @@ cdef class BusinessDay(BusinessMixin):
         weeks = periods // 5
 
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -4804,7 +4809,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         cdef:
             ndarray i8other = dtarr.view("i8")
-            Py_ssize_t i, count = dtarr.size
+            Py_ssize_t _, count = dtarr.size
             int64_t val, res_val
             ndarray out = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
@@ -4817,7 +4822,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -5187,7 +5192,7 @@ cdef class Week(SingleConstructorOffset):
         ndarray[int64_t]
         """
         cdef:
-            Py_ssize_t i, count = i8other.size
+            Py_ssize_t _, count = i8other.size
             int64_t val, res_val
             ndarray out = cnp.PyArray_EMPTY(
                 i8other.ndim, i8other.shape, cnp.NPY_INT64, 0
@@ -5199,7 +5204,7 @@ cdef class Week(SingleConstructorOffset):
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -7605,7 +7610,7 @@ cdef ndarray shift_quarters(
     cdef:
         Py_ssize_t count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
-        Py_ssize_t i
+        Py_ssize_t _
         int64_t val, res_val
         int months_since, n
         npy_datetimestruct dts
@@ -7613,7 +7618,7 @@ cdef ndarray shift_quarters(
         _DayOpt day_opt_enum = _str_to_day_opt(day_opt)
 
     with nogil:
-        for i in range(count):
+        for _ in range(count):
             # Analogous to: val = dtindex[i]
             val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -7658,7 +7663,7 @@ def shift_months(
        * 'end' last day of month
     """
     cdef:
-        Py_ssize_t i
+        Py_ssize_t _
         npy_datetimestruct dts
         int count = dtindex.size
         ndarray out = cnp.PyArray_EMPTY(dtindex.ndim, dtindex.shape, cnp.NPY_INT64, 0)
@@ -7671,7 +7676,7 @@ def shift_months(
     if day_opt is None:
         # TODO: can we combine this with the non-None case?
         with nogil:
-            for i in range(count):
+            for _ in range(count):
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -7693,7 +7698,7 @@ def shift_months(
     else:
         day_opt_enum = _str_to_day_opt(day_opt)
         with nogil:
-            for i in range(count):
+            for _ in range(count):
 
                 # Analogous to: val = i8other[i]
                 val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
