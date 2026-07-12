@@ -549,6 +549,4 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    # unboxing to Python scalars under future.python_scalars is left to the
-    # reduction method itself so this dispatch matches it exactly (GH#64266)
     return getattr(self, method_name)(skipna=False, **kwargs)

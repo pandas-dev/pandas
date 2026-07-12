@@ -8860,7 +8860,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # any/all coerce to bool for all dtypes, so unbox even for object
         result = maybe_unbox_numpy_scalar(
-            result, None if name in ["any", "all"] else self.dtype
+            result, dtype=None if name in ["any", "all"] else self.dtype
         )
         return result
 

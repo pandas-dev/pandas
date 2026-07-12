@@ -104,8 +104,7 @@ class TestSeriesQuantile:
         assert is_integer(q)
 
     def test_quantile_object_dtype_preserves_numpy_scalars(self):
-        # GH#64266 future.python_scalars should not unbox numpy scalars
-        #  stored in object dtype
+        # GH#64266
         ser = Series([np.int8(1), np.int8(3)], dtype=object)
         result = ser.quantile(0.5, interpolation="lower")
         assert isinstance(result, np.int8)

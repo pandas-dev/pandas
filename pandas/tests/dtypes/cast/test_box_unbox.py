@@ -106,7 +106,7 @@ def test_maybe_unbox_numpy_scalar_datetime(unit, using_python_scalars):
 
 
 def test_maybe_unbox_numpy_scalar_object_dtype():
-    # GH#64266 numpy scalars stored in object dtype are data, not boxing
+    # GH#64266
     value = np.float32(1.5)
     with option_context("future.python_scalars", True):
         result = maybe_unbox_numpy_scalar(value, np.dtype(object))

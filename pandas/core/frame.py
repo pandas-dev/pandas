@@ -16184,7 +16184,8 @@ class DataFrame(NDFrame, OpsMixin):
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             return maybe_unbox_numpy_scalar(
-                func(df.values), None if name in ["any", "all"] else dtype
+                func(df.values),
+                dtype=None if name in ["any", "all"] else dtype,
             )
         elif axis == 1:
             if len(df.index) == 0:

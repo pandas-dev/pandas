@@ -371,8 +371,7 @@ class TestNumpyReductions:
                 and values.dtype.kind in "if"
                 and box is not pd.array
             ):
-                # GH#64266 np.maximum.reduce returns whatever obj.max() does;
-                #  EA reductions do not unbox to Python scalars
+                # GH#64266
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -402,8 +401,7 @@ class TestNumpyReductions:
                 and values.dtype.kind in "if"
                 and box is not pd.array
             ):
-                # GH#64266 np.minimum.reduce returns whatever obj.min() does;
-                #  EA reductions do not unbox to Python scalars
+                # GH#64266
                 expected = expected.item()
             assert result == expected
             if same_type:

@@ -115,8 +115,7 @@ class TestReductions:
         assert check_missing(getattr(obj, opname)(skipna=False))
 
     def test_minmax_object_dtype_preserves_numpy_scalars(self, index_or_series):
-        # GH#64266 future.python_scalars should not unbox numpy scalars
-        #  stored in object dtype
+        # GH#64266
         klass = index_or_series
         obj = klass([np.int8(1), np.int8(3)], dtype=object)
         assert isinstance(obj.min(), np.int8)  # monotonic fast path for Index
@@ -132,9 +131,7 @@ class TestReductions:
         assert ser.loc[result] == "a"
 
     def test_object_dtype_reductions(self, index_or_series, using_python_scalars):
-        # GH#64266 future.python_scalars does not affect float statistics
-        #  computed from object-dtype data; any/all coerce to bool for all
-        #  dtypes and so do unbox
+        # GH#64266
         klass = index_or_series
         obj = klass([1, 2, 4], dtype=object)
         expected_bool = bool if using_python_scalars else np.bool_
