@@ -1205,9 +1205,10 @@ def nanargmax(
     """
     values, mask = _get_values(values, True, fill_value_typ="-inf", mask=mask)
     result = values.argmax(axis)
-    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
-    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
+    result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
+    result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
 
@@ -1251,9 +1252,10 @@ def nanargmin(
     """
     values, mask = _get_values(values, True, fill_value_typ="+inf", mask=mask)
     result = values.argmin(axis)
-    # error: Argument 1 to "_maybe_arg_null_out" has incompatible type "Any |
+    # error: Argument 1 to "_maybe_fix_arg_at_na" has incompatible type "Any |
     # signedinteger[Any]"; expected "ndarray[Any, Any]"
-    result = _maybe_arg_null_out(result, axis, mask, skipna)  # type: ignore[arg-type]
+    result = _maybe_fix_arg_at_na(result, mask, axis)  # type: ignore[arg-type]
+    result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
 
@@ -1414,6 +1416,30 @@ def nanprod(
     return _maybe_null_out(  # type: ignore[return-value]
         result, axis, mask, values.shape, min_count=min_count
     )
+
+
+def _maybe_fix_arg_at_na(
+    result: np.ndarray,
+    mask: npt.NDArray[np.bool_] | None,
+    axis: AxisInt | None,
+) -> np.ndarray:
+    # helper function for nanargmin/nanargmax: an argmin/argmax that landed on
+    # a masked position means the extremum equals the sentinel fill, so every
+    # unmasked value ties with the fill; the first unmasked position is the
+    # correct result (GH#64478)
+    if mask is None or not mask.any():
+        return result
+    if axis is None or mask.ndim == 1:
+        if mask.ravel()[result] and not mask.all():
+            # error: Incompatible return value type (got "signedinteger[_32Bit
+            # | _64Bit]", expected "ndarray[tuple[Any, ...], dtype[Any]]")
+            return (~mask).ravel().argmax()  # type: ignore[return-value]
+    else:
+        indexer = np.expand_dims(result, axis)
+        arg_is_na = np.take_along_axis(mask, indexer, axis).squeeze(axis)
+        if arg_is_na.any():
+            result = np.where(arg_is_na, (~mask).argmax(axis), result)
+    return result
 
 
 def _maybe_arg_null_out(

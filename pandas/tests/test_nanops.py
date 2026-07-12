@@ -1411,3 +1411,46 @@ def test_idxminmax_uint64_with_na():
     df = pd.DataFrame({"a": values})
     assert df.idxmax().tolist() == [2]
     assert df.idxmin().tolist() == [0]
+
+
+@pytest.mark.parametrize("tie_value", [0, 2**64 - 1])
+def test_nanargminmax_uint64_na_tie(tie_value):
+    # GH#64478 the NA fill values equal the dtype extremes; when every
+    # unmasked value ties with the fill, the NA position must not win
+    values = np.full(3, tie_value, dtype=np.uint64)
+    mask = np.array([True, False, False])
+    assert nanops.nanargmax(values, mask=mask) == 1
+    assert nanops.nanargmin(values, mask=mask) == 1
+
+
+def test_nanargminmax_int64_na_tie():
+    # GH#64478 same tie at the signed extremes
+    mask = np.array([True, False, False])
+    int64_info = np.iinfo(np.int64)
+    values = np.full(3, int64_info.min, dtype=np.int64)
+    assert nanops.nanargmax(values, mask=mask) == 1
+    values = np.full(3, int64_info.max, dtype=np.int64)
+    assert nanops.nanargmin(values, mask=mask) == 1
+
+
+def test_nanargminmax_float_inf_tie():
+    # GH#64478 NaN filled with -inf/+inf ties real infinities
+    assert nanops.nanargmax(np.array([np.nan, -np.inf, -np.inf])) == 1
+    assert nanops.nanargmin(np.array([np.nan, np.inf, np.inf])) == 1
+
+
+def test_idxminmax_uint64_all_zero_with_na():
+    # GH#64478 all-zero UInt64 column with a leading NA: idxmax must not
+    # return the NA row
+    df = pd.DataFrame({"a": pd.array([pd.NA, 0, 0], dtype="UInt64")})
+    assert df.idxmax().tolist() == [1]
+    assert df.idxmin().tolist() == [1]
+
+
+def test_idxminmax_float_inf_tie():
+    # GH#64478 2-D path: NaN filled with -inf/+inf ties real infinities
+    df = pd.DataFrame({"a": [np.nan, -np.inf, -np.inf], "b": [1.0, 3.0, 2.0]})
+    assert df.idxmax().tolist() == [1, 1]
+    assert df.idxmin().tolist() == [1, 0]
+    assert df["a"].idxmax() == 1
+    assert df["a"].idxmin() == 1
