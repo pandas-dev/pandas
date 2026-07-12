@@ -207,7 +207,8 @@ def maybe_run_numba_apply(
     if not maybe_use_numba(engine):
         return None
 
-    # Size threshold only applies to automatic JIT (engine is None and GLOBAL_USE_NUMBA is True)
+    # Size threshold only applies to automatic JIT
+    # (engine is None and GLOBAL_USE_NUMBA is True)
     if engine is None and len(series) < 50_000:
         return None
 
@@ -219,7 +220,8 @@ def maybe_run_numba_apply(
     if not is_supported_dtype:
         if engine == "numba":
             raise ValueError(
-                f"Numba engine only supports numeric/datetime dtypes, got {series.dtype}"
+                "Numba engine only supports numeric/datetime dtypes, "
+                f"got {series.dtype}"
             )
         return None
 
