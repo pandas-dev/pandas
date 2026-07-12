@@ -2924,7 +2924,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0])
+            return maybe_unbox_numpy_scalar(result.iloc[0], self.dtype)
 
     def corr(
         self,
@@ -3389,7 +3389,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
-        return maybe_unbox_numpy_scalar(result)
+        return maybe_unbox_numpy_scalar(result, self.dtype)
 
     def __matmul__(self, other):
         """
@@ -6165,7 +6165,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item))
+        return maybe_unbox_numpy_scalar(super().pop(item=item), self.dtype)
 
     def info(
         self,
@@ -8858,7 +8858,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
             result = op(delegate, skipna=skipna, **kwds)
 
-        result = maybe_unbox_numpy_scalar(result)
+        result = maybe_unbox_numpy_scalar(result, self.dtype)
         return result
 
     # error: Signature of "any" incompatible with supertype "NDFrame"

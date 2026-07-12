@@ -114,6 +114,23 @@ class TestReductions:
         assert getattr(obj, opname)() == val
         assert check_missing(getattr(obj, opname)(skipna=False))
 
+    def test_minmax_object_dtype_preserves_numpy_scalars(self, index_or_series):
+        # GH#64266 future.python_scalars should not unbox numpy scalars
+        #  stored in object dtype
+        klass = index_or_series
+        obj = klass([np.int8(1), np.int8(3)], dtype=object)
+        assert isinstance(obj.min(), np.int8)  # monotonic fast path for Index
+        assert isinstance(obj.max(), np.int8)
+        assert isinstance(np.maximum.reduce(obj), np.int8)
+
+        # value not representable as float64; unboxing would break .loc
+        val = np.longdouble("1.1") + np.longdouble("1e-19")
+        idx = Index([val, np.longdouble("0.5")], dtype=object)
+        result = idx.max()
+        assert isinstance(result, np.longdouble)
+        ser = Series(["a", "b"], index=idx)
+        assert ser.loc[result] == "a"
+
     @pytest.mark.parametrize("opname", ["max", "min"])
     def test_nanargminmax(self, opname, index_or_series):
         # GH#7261

@@ -1408,9 +1408,11 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, dtype: DtypeObj | None = None) -> Any:
+    # object dtype stores arbitrary user objects; a numpy scalar coming from
+    # object-dtype data is a stored value, not a boxing artifact (GH#64266)
     result = value
-    if using_python_scalars() and isinstance(value, np.generic):
+    if dtype != object and using_python_scalars() and isinstance(value, np.generic):
         if isinstance(result, np.longdouble):
             result = float(result)
         elif isinstance(result, np.complex256):

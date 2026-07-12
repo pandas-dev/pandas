@@ -551,5 +551,5 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
     result = getattr(self, method_name)(skipna=False, **kwargs)
-    result = maybe_unbox_numpy_scalar(result)
+    result = maybe_unbox_numpy_scalar(result, getattr(self, "dtype", None))
     return result
