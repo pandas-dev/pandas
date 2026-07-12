@@ -7785,6 +7785,7 @@ class DataFrame(NDFrame, OpsMixin):
         ):
             blk = self._mgr.blocks[0]
             values = blk.values  # shape: (columns, rows)
+            assert isinstance(values, np.ndarray)
 
             if how not in ("any", "all"):
                 raise ValueError(f"invalid how option: {how}")
