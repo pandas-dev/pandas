@@ -171,14 +171,11 @@ def test_localize_pydatetime_dt_types(dt, expected):
 
 @pytest.mark.parametrize("unit", ["us", "ms", "s", "m", "h", "D", "W"])
 def test_cast_from_unit_vectorized_near_int64_boundary(unit):
-    # GH#57366 within a few ULP of +/-2**63 ns the array cast must agree with
-    # the scalar cast. A float bound check on the analytic result is unreliable
-    # here because the rounded float lands on the wrong side of the boundary:
-    # negative near-bound floats used to wrap to large positive values, and
-    # in-bounds floats just shy of int64 max used to spuriously raise.
+    # GH#57366 near +/-2**63 ns the array cast must agree with the scalar cast;
+    # near-bound floats used to wrap or spuriously raise. Walk every representable
+    # float straddling each int64 bound and check the two match.
     ns_per_unit = np.timedelta64(1, unit).astype("timedelta64[ns]").astype(np.int64)
 
-    # walk every representable float straddling each int64 bound
     values = []
     for bound in (-(2**63), 2**63 - 1):
         low = high = np.float64(bound / ns_per_unit)

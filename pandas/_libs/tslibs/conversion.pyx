@@ -156,15 +156,12 @@ def cast_from_unit_vectorized(
 
     out = base * np.int64(m) + (frac * m).astype("i8")
 
-    # Overflow check. When base * m + int64(frac * m) leaves the int64 range the
-    # integer result silently wraps modulo 2**64. A float bound check on the
-    # analytic result (result_f >= 2**63) is unreliable near the boundary: even
-    # though +-2**63 are exactly representable, result_f is itself rounded, so
-    # for values within half an ULP of the boundary it lands on the wrong side,
-    # both missing real overflows (negative near-bound floats wrapped to huge
-    # positive timestamps) and rejecting in-bounds values (GH#57366). Detect the
-    # wrap directly instead: the exact integer result agrees with its float64
-    # estimate to within a few ULP when it fits, but a wrap shifts it by ~2**64.
+    # Overflow check. On overflow base * m + int64(frac * m) wraps modulo 2**64.
+    # A float bound check on the analytic result (result_f >= 2**63) is unreliable
+    # near the boundary because result_f is itself rounded, landing on the wrong
+    # side within half an ULP. Detect the wrap directly instead: the exact integer
+    # result tracks its float64 estimate to within a few ULP when it fits, but a
+    # wrap shifts it by ~2**64. (GH#57366)
     if m != 1:
         result_f = base.astype("f8") * m + frac * m
         oob = np.abs(result_f - out.astype("f8")) >= np.float64(2**63)
