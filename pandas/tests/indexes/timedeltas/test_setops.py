@@ -42,6 +42,9 @@ class TestTimedeltaIndex:
         result = left.union(right, sort=False)
         expected = TimedeltaIndex(["4 Days", "5 Days", "1 Days", "2 Day", "3 Days"])
         tm.assert_index_equal(result, expected)
+        # GH#65191 the sort=False result is non-monotonic, so it must not
+        #  retain a freq; otherwise e.g. shift silently returns an empty index.
+        assert result.freq is None
 
     def test_union_coverage(self):
         # GH#59051

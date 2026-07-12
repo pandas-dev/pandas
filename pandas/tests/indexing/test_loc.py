@@ -475,6 +475,47 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_partial_series_preserves_other_columns_dtype(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, "B"] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9, 10, 11, 12],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_preserves_large_int_values(self):
+        # GH#66105
+        df = DataFrame({"A": [2**53 + 1, 2**53 + 3, 2**53 + 5], "B": [1, 2, 3]})
+        df.loc[df.index > 0, "B"] = Series([99], index=[1])
+
+        expected = DataFrame(
+            {
+                "A": [2**53 + 1, 2**53 + 3, 2**53 + 5],
+                "B": [1.0, 99.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_partial_series_multiple_columns(self):
+        # GH#66105
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8], "C": [9, 10, 11, 12]})
+        df.loc[df["A"] > 1, ["B", "C"]] = Series([99], index=[2])
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, 3, 4],
+                "B": [5.0, np.nan, 99.0, np.nan],
+                "C": [9.0, np.nan, 99.0, np.nan],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=["a", "b", "c"])
 
@@ -2308,6 +2349,20 @@ class TestLocSetitemWithExpansion:
             {"data": [True, False, True, np.nan]}, index=range(4), dtype=object
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_dict_partial(self):
+        # GH#65418 — partial assignment of a dict used to write the dict keys
+        #  positionally instead of aligning its values by key.
+        df = DataFrame({"a": [10, 20, 30, 40]})
+        df.loc[[0, 1, 2], "data"] = {0: "x", 1: "y", 2: "z"}
+        expected = DataFrame({"a": [10, 20, 30, 40], "data": ["x", "y", "z", np.nan]})
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+        # a dict aligns by key, so it matches the equivalent Series and the
+        #  non-expansion (existing-column / null-slice) paths
+        alt = DataFrame({"a": [10, 20, 30, 40]})
+        alt.loc[[0, 1, 2], "data"] = Series({0: "x", 1: "y", 2: "z"})
+        tm.assert_frame_equal(df, alt, check_column_type=False)
 
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime

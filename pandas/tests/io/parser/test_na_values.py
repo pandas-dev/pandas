@@ -440,17 +440,23 @@ def test_na_values_na_filter_override(
     request, all_parsers, na_filter, row_data, using_infer_string
 ):
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        # mismatched dtypes in both cases, FutureWarning in the True case
-        if not (using_infer_string and na_filter):
-            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
-            request.applymarker(mark)
     data = """\
 A,B
 1,A
 nan,B
 3,C
 """
+    if parser.engine == "pyarrow":
+        if na_filter is False:
+            msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
+            return
+        if not using_infer_string:
+            # mismatched dtypes, FutureWarning
+            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+            request.applymarker(mark)
+
     result = parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
 
     expected = DataFrame(row_data, columns=["A", "B"])
@@ -636,7 +642,7 @@ def test_empty_na_values_no_default_with_index(all_parsers):
 @pytest.mark.parametrize(
     "na_filter,index_data", [(False, ["", "5"]), (True, [np.nan, 5.0])]
 )
-def test_no_na_filter_on_index(all_parsers, na_filter, index_data, request):
+def test_no_na_filter_on_index(all_parsers, na_filter, index_data):
     # see gh-5239
     #
     # Don't parse NA-values in index unless na_filter=True
@@ -644,8 +650,10 @@ def test_no_na_filter_on_index(all_parsers, na_filter, index_data, request):
     data = "a,b,c\n1,,3\n4,5,6"
 
     if parser.engine == "pyarrow" and na_filter is False:
-        mark = pytest.mark.xfail(reason="mismatched index result")
-        request.applymarker(mark)
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), index_col=[1], na_filter=na_filter)
+        return
 
     expected = DataFrame({"a": [1, 4], "c": [3, 6]}, index=Index(index_data, name="b"))
     result = parser.read_csv(StringIO(data), index_col=[1], na_filter=na_filter)
@@ -671,11 +679,17 @@ def test_na_values_with_dtype_str_and_na_filter(
 ):
     # see gh-20377
     parser = all_parsers
-    if parser.engine == "pyarrow" and (na_filter is False or not using_infer_string):
-        mark = pytest.mark.xfail(reason="mismatched shape")
-        request.applymarker(mark)
-
     data = "a,b,c\n1,,3\n4,5,6"
+
+    if parser.engine == "pyarrow":
+        if na_filter is False:
+            msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), na_filter=na_filter, dtype=str)
+            return
+        if not using_infer_string:
+            mark = pytest.mark.xfail(reason="mismatched shape")
+            request.applymarker(mark)
 
     # na_filter=True --> missing value becomes NaN.
     # na_filter=False --> missing value remains empty string.
