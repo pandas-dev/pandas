@@ -169,6 +169,10 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
+    strip_whitespace : bool
+        Whether table row values should have all extra whitespaces stripped to
+        a single space.
+        .. versionadded:: 3.1.0
     Attributes
     ----------
     io : str or file-like
@@ -191,6 +195,10 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
+    strip_whitespace : bool
+        Whether table row values should have all extra whitespaces stripped to
+        a single space.
+        .. versionadded:: 3.1.0
     Notes
     -----
     To subclass this class effectively you must override the following methods:
@@ -217,6 +225,7 @@ class _HtmlFrameParser:
         displayed_only: bool,
         extract_links: Literal["header", "footer", "body", "all"] | None,
         storage_options: StorageOptions = None,
+        strip_whitespace: bool = True,
     ) -> None:
         self.io = io
         self.match = match
@@ -225,6 +234,7 @@ class _HtmlFrameParser:
         self.displayed_only = displayed_only
         self.extract_links = extract_links
         self.storage_options = storage_options
+        self.strip_whitespace = strip_whitespace
 
     def parse_tables(self):
         """
@@ -518,10 +528,15 @@ class _HtmlFrameParser:
                     index += 1
 
                 # Append the text from this <td>, colspan times
-                text = _remove_whitespace(self._text_getter(td))
+                if self.strip_whitespace:
+                    text = _remove_whitespace(self._text_getter(td))
+                else:
+                    text = self._text_getter(td)
+
                 if self.extract_links in ("all", section):
                     href = self._href_getter(td)
                     text = (text, href)
+
                 rowspan = int(self._attr_getter(td, "rowspan") or 1)
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
@@ -957,6 +972,7 @@ def _parse(
     displayed_only,
     extract_links,
     storage_options,
+    strip_whitespace,
     **kwargs,
 ):
     flavor = _validate_flavor(flavor)
@@ -973,6 +989,7 @@ def _parse(
             displayed_only,
             extract_links,
             storage_options,
+            strip_whitespace,
         )
 
         try:
@@ -1040,6 +1057,7 @@ def read_html(
     extract_links: Literal["header", "footer", "body", "all"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     storage_options: StorageOptions = None,
+    strip_whitespace: bool = True,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1171,6 +1189,11 @@ def read_html(
 
         .. versionadded:: 2.1.0
 
+    strip_whitespace : bool
+        Whether table row values should have all extra whitespaces stripped to
+        a single space.
+        .. versionadded:: 3.1.0
+
     Returns
     -------
     dfs
@@ -1251,4 +1274,5 @@ def read_html(
         extract_links=extract_links,
         dtype_backend=dtype_backend,
         storage_options=storage_options,
+        strip_whitespace=strip_whitespace,
     )
