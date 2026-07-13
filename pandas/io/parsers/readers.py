@@ -401,6 +401,9 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       literal newline would be split mid-field.
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
+    * ``low_memory`` is not ``False`` - ``low_memory=False`` guarantees
+      whole-file type inference, which per-chunk parallel reading cannot honour
+      (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
@@ -499,6 +502,11 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # Datetime format inference is per-chunk and may disagree with the serial
     # whole-column inference.
     if kwds.get("parse_dates"):
+        return False
+
+    # low_memory=False guarantees whole-file type inference, which per-chunk
+    # parallel reading cannot honour (GH#64347).
+    if kwds.get("low_memory") is False:
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
