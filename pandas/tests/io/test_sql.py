@@ -1224,6 +1224,30 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_callable_multiindex_columns(conn, request):
+    # GH#59112
+    conn = request.getfixturevalue(conn)
+
+    keys_received = []
+
+    def capture_keys(pd_table, conn, keys, data_iter):
+        keys_received.extend(keys)
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
+        conn.execute(pd_table.table.insert(), data)
+
+    columns = MultiIndex.from_tuples([("A", "X"), ("A", "Y")])
+    df = DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=columns)
+
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.to_sql(df, "test_multiindex_cols", method=capture_keys)
+
+    table_col_names = [
+        c.name for c in pandasSQL.get_table("test_multiindex_cols").columns
+    ]
+    assert keys_received == table_col_names
+
+
 @pytest.mark.parametrize("conn", all_connectable_types)
 def test_default_type_conversion(conn, request):
     conn_name = conn
