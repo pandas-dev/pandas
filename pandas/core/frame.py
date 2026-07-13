@@ -297,7 +297,9 @@ class DataFrame(NDFrame, OpsMixin):
         will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
-        If ``data`` is DataFrame then is ignored.
+        If ``data`` is DataFrame then is ignored. Missing values in ``data``
+        are not cast: for example, with ``dtype=str`` a ``NaN`` entry stays
+        missing rather than becoming the string ``"nan"``.
     copy : bool or None, default None
         Copy data from inputs.
         For dict data, the default of None behaves like ``copy=True``.  For DataFrame
@@ -6101,7 +6103,8 @@ class DataFrame(NDFrame, OpsMixin):
             passed MultiIndex level. The new labels are aligned against the
             values of that single level while the other levels are left
             unchanged; passing a flat index with ``level`` does not form the
-            Cartesian product of the remaining levels.
+            Cartesian product of the remaining levels. See
+            :ref:`advanced.advanced_reindex` for the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.

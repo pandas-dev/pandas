@@ -5704,7 +5704,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             passed MultiIndex level. The new labels are aligned against the
             values of that single level while the other levels are left
             unchanged; passing a flat index with ``level`` does not form the
-            Cartesian product of the remaining levels.
+            Cartesian product of the remaining levels. See
+            :ref:`advanced.advanced_reindex` for the intended use.
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
