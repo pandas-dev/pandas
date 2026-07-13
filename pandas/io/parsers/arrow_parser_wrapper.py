@@ -53,6 +53,37 @@ class ArrowParserWrapper(ParserBase):
         encoding: str | None = self.kwds.get("encoding")
         self.encoding = "utf-8" if encoding is None else encoding
 
+        # GH#66317 validate the single-character options up front so the user
+        #  gets the same informative errors as with the other engines instead
+        #  of cryptic errors from pyarrow option conversion.
+        delimiter = self.kwds.get("delimiter")
+        if delimiter is not None and len(delimiter) != 1:
+            # longer separators already raise in _clean_options; this catches
+            #  e.g. sep=""
+            raise ValueError("Only length-1 delimiters supported")
+
+        quotechar = self.kwds.get("quotechar", '"')
+        if quotechar is not None and not isinstance(quotechar, (str, bytes)):
+            raise TypeError(
+                f'"quotechar" must be string, not {type(quotechar).__name__}'
+            )
+        if not quotechar:
+            # None or zero-length; pyarrow only supports quoting=QUOTE_MINIMAL,
+            #  so quoting is always enabled
+            raise TypeError("quotechar must be set if quoting enabled")
+        if len(quotechar) > 1:
+            raise TypeError('"quotechar" must be a 1-character string')
+
+        escapechar = self.kwds.get("escapechar")
+        if escapechar is not None and (
+            not isinstance(escapechar, (str, bytes)) or len(escapechar) != 1
+        ):
+            raise ValueError("Only length-1 escapes supported")
+
+        decimal = self.kwds.get("decimal", ".")
+        if not isinstance(decimal, (str, bytes)) or len(decimal) != 1:
+            raise ValueError("Only length-1 decimal markers supported")
+
         na_values = self.kwds["na_values"]
         if isinstance(na_values, dict):
             raise ValueError(
