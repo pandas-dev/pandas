@@ -1468,12 +1468,41 @@ class IntervalDtype(PandasExtensionDtype):
                 return False
         return super().is_dtype(dtype)
 
+    def _arrow_bound_to_ndarray_or_ea(self, field: pa.Array):
+        """
+        Convert a pyarrow left/right field to IntervalArray-compatible bounds.
+
+        Numpy subtypes use ``np.asarray``. Extension subtypes that IntervalArray
+        supports (notably :class:`DatetimeTZDtype`) are converted via the
+        subtype's ``__from_arrow__`` (GH#64297).
+        """
+        subtype = self.subtype
+        if isinstance(subtype, np.dtype):
+            return np.asarray(field, dtype=subtype)
+
+        # e.g. DatetimeTZDtype — IntervalArray already supports these bounds
+        convert = getattr(subtype, "__from_arrow__", None)
+        if convert is not None:
+            try:
+                return convert(field)
+            except (TypeError, ValueError) as err:
+                raise TypeError(
+                    f"Conversion from arrow with IntervalDtype subtype "
+                    f"'{subtype}' is not supported"
+                ) from err
+
+        raise TypeError(
+            f"Conversion from arrow with IntervalDtype subtype '{subtype}' "
+            "is not supported"
+        )
+
     def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> IntervalArray:
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
 
+        from pandas import Index
         from pandas.core.arrays import IntervalArray
 
         if isinstance(array, pyarrow.Array):
@@ -1485,16 +1514,17 @@ class IntervalDtype(PandasExtensionDtype):
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
-            iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
+            left = self._arrow_bound_to_ndarray_or_ea(arr.field("left"))
+            right = self._arrow_bound_to_ndarray_or_ea(arr.field("right"))
+            iarr = IntervalArray.from_arrays(
+                left, right, closed=self.closed, dtype=self
+            )
             results.append(iarr)
 
         if not results:
+            empty = Index([], dtype=self.subtype)
             return IntervalArray.from_arrays(
-                np.array([], dtype=self.subtype),
-                np.array([], dtype=self.subtype),
-                closed=self.closed,
+                empty, empty, closed=self.closed, dtype=self
             )
         return IntervalArray._concat_same_type(results)
 
