@@ -208,7 +208,6 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 _TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -252,11 +251,15 @@ def test_header_multi_index_common_format1(all_parsers, kwargs):
 one,1,2,3,4,5,6
 two,7,8,9,10,11,12"""
 
+    if parser.engine == "pyarrow" and "header" in kwargs:
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), index_col=0, **kwargs)
+        return
+
     result = parser.read_csv(StringIO(data), index_col=0, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -299,11 +302,15 @@ def test_header_multi_index_common_format2(all_parsers, kwargs):
 one,1,2,3,4,5,6
 two,7,8,9,10,11,12"""
 
+    if parser.engine == "pyarrow" and "header" in kwargs:
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), index_col=0, **kwargs)
+        return
+
     result = parser.read_csv(StringIO(data), index_col=0, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -346,6 +353,11 @@ def test_header_multi_index_common_format3(all_parsers, kwargs):
 q,r,s,t,u,v
 1,2,3,4,5,6
 7,8,9,10,11,12"""
+
+    if parser.engine == "pyarrow" and "header" in kwargs:
+        with pytest.raises(ValueError, match="does not support a list of integers"):
+            parser.read_csv(StringIO(data), index_col=None, **kwargs)
+        return
 
     result = parser.read_csv(StringIO(data), index_col=None, **kwargs)
     tm.assert_frame_equal(result, expected)
