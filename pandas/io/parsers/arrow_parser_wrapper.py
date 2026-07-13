@@ -296,7 +296,7 @@ class ArrowParserWrapper(ParserBase):
                     raise ValueError(f"Index {item} invalid")
 
                 # Process dtype for index_col and drop from dtypes
-                if self.dtype is not None:
+                if isinstance(self.dtype, dict):
                     key, new_dtype = (
                         (item, self.dtype.get(item))
                         if self.dtype.get(item) is not None
@@ -305,6 +305,20 @@ class ArrowParserWrapper(ParserBase):
                     if new_dtype is not None:
                         frame[key] = frame[key].astype(new_dtype)
                         del self.dtype[key]
+
+            if self.dtype is not None and not isinstance(self.dtype, dict):
+                # GH#45801 match the c engine: an index column left as object
+                #  by the scalar dtype (i.e. the dtype resolved to object) is
+                #  re-inferred, as if no dtype had been passed
+                for key in index_to_set:
+                    if frame[key].dtype == object:
+                        new_values, _ = self._infer_types(
+                            frame[key].to_numpy(copy=True),
+                            set(),
+                            no_dtype_specified=True,
+                        )
+                        frame[key] = new_values
+                        frame[key] = frame[key].infer_objects()
 
             frame.set_index(index_to_set, drop=True, inplace=True)
             # Clear names if no name given for the padded leading columns
