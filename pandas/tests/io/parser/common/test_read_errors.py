@@ -118,7 +118,6 @@ skip
             reader.read(nrows)
 
 
-@xfail_pyarrow  # does not raise
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\
