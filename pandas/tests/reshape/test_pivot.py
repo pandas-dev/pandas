@@ -3189,5 +3189,40 @@ class TestPivot:
         expected = DataFrame(
             index=expected_index, columns=expected_columns, dtype=dtype
         )
-
         tm.assert_frame_equal(result, expected)
+
+
+def test_pivot_non_column_label_raises_gh35785():
+    # GH#35785 passing a non-column label (e.g. an Index object) for
+    # index/columns/values should raise a clear error naming the offending
+    # labels instead of a cryptic downstream TypeError.
+    df = DataFrame.from_records(
+        [{"date": datetime(2016, 3, 2), "col1": 1, "col2": 2}], index=["date"]
+    )
+
+    # passing the frame's Index object as ``index`` (its values are not columns)
+    msg = "The following 'index' labels are not columns of the DataFrame"
+    with pytest.raises(KeyError, match=msg):
+        df.pivot(index=df.index, columns="col1")
+    with pytest.raises(KeyError, match=msg):
+        df.pivot(index=df.index, columns="col1", values="col2")
+
+    # a bare missing scalar label for each parameter
+    with pytest.raises(KeyError, match="'index' labels are not columns"):
+        df.pivot(index="missing", columns="col1")
+    with pytest.raises(KeyError, match="'columns' labels are not columns"):
+        df.pivot(index="col2", columns="missing")
+    with pytest.raises(KeyError, match="'values' labels are not columns"):
+        df.pivot(index="col2", columns="col1", values="missing")
+
+    # valid usage with real column labels is unaffected
+    valid = DataFrame(
+        {"foo": ["one", "one", "two"], "bar": ["A", "B", "A"], "baz": [1, 2, 3]}
+    )
+    result = valid.pivot(index="foo", columns="bar", values="baz")
+    expected = DataFrame(
+        {"A": [1.0, 3.0], "B": [2.0, np.nan]},
+        index=Index(["one", "two"], name="foo"),
+    )
+    expected.columns.name = "bar"
+    tm.assert_frame_equal(result, expected)
