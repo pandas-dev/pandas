@@ -253,7 +253,7 @@ cdef extern from "pandas/parser/tokenizer.h":
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
-    void del_rd_source(void *src)
+    void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
                           size_t *bytes_read, int *status, const char *encoding_errors)
@@ -280,8 +280,6 @@ cdef extern from "pandas/parser/pd_parser.h":
     int parser_consume_rows(parser_t *self, uint64_t nrows)
 
     int parser_trim_buffers(parser_t *self)
-
-    void parser_clear_data_buffers(parser_t *self) nogil
 
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(
@@ -316,7 +314,7 @@ cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    const char *encoding_errors) noexcept:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
-cdef void del_rd_source_wrapper(void *src) noexcept:
+cdef void del_rd_source_wrapper(void *src) noexcept nogil:
     del_rd_source(src)
 
 
@@ -1448,16 +1446,13 @@ cdef _close(TextReader reader):
     # can close the backing mmap (free-threaded builds may otherwise delay
     # the release past pool shutdown).
     reader._buffer_ref = None
-    # also preemptively free all allocated memory
-    # Free the (potentially large) data buffers without the GIL: on macOS
-    # freeing them gives pages back to the OS via madvise, which would
-    # otherwise stall every other parser thread in the parallel-read path.
-    # Guard NULL: __cinit__ can raise before parser_new() (e.g. missing
-    # source) yet __dealloc__ still runs (GH#53131).
-    if reader.parser != NULL:
-        with nogil:
-            parser_clear_data_buffers(reader.parser)
-    parser_free(reader.parser)
+    # Preemptively free all allocated memory, without the GIL: on macOS
+    # freeing the (potentially large) data buffers gives pages back to the
+    # OS via madvise, which would otherwise stall every other parser thread
+    # in the parallel-read path. del_rd_source re-acquires the GIL for its
+    # decrefs.
+    with nogil:
+        parser_free(reader.parser)
     if reader.true_set:
         kh_destroy_str_starts(reader.true_set)
         reader.true_set = NULL

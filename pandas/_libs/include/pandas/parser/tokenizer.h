@@ -195,11 +195,6 @@ int parser_consume_rows(parser_t *self, uint64_t nrows);
 
 int parser_trim_buffers(parser_t *self);
 
-// Free the parser's (potentially large) data buffers ahead of parser_free:
-// callable without the GIL so the madvise-heavy frees don't stall other
-// parser threads.
-void parser_clear_data_buffers(parser_t *self);
-
 int parser_add_skiprow(parser_t *self, int64_t row);
 
 void parser_set_skipfirstnrows(parser_t *self, int64_t nrows);

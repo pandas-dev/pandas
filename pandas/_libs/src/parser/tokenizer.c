@@ -168,7 +168,7 @@ void parser_set_default_options(parser_t *self) {
 
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
-void parser_clear_data_buffers(parser_t *self) {
+static void parser_clear_data_buffers(parser_t *self) {
   free_if_not_null((void *)&self->stream);
   free_if_not_null((void *)&self->words);
   free_if_not_null((void *)&self->word_starts);
