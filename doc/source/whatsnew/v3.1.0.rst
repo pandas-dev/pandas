@@ -258,6 +258,7 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
+- Fixed bug in :func:`testing.assert_series_equal` showing a misleading class mismatch message when Series values were backed by different :class:`numpy.ndarray` subclasses (:issue:`65770`)
 - Fixed bug in :func:`to_timedelta` and :class:`Timedelta` not accepting Day offsets (:issue:`64240`)
 
 Categorical
@@ -302,6 +303,7 @@ Timedelta
 - Bug in :class:`Timedelta` constructor where keyword arguments (e.g. ``days=365000``) that exceeded nanosecond int64 bounds raised ``OutOfBoundsTimedelta`` instead of falling back to a coarser resolution (:issue:`46587`)
 - Bug in :meth:`Series.sum` and :meth:`DataFrame.sum` on an overflowing ``timedelta64`` object where :meth:`Series.sum` raised a plain ``ValueError`` and :meth:`DataFrame.sum` silently returned a saturated result instead of raising :class:`OutOfBoundsTimedelta` (:issue:`43178`)
 - Bug in ``Series.dt.seconds`` and ``Series.dt.microseconds`` with :class:`ArrowDtype` durations returning the ``Series.dt.components`` field values (e.g. 0-59 for seconds, or 0 for ``microseconds`` on a ``"ms"`` unit) instead of the totals within each day and second respectively, inconsistent with NumPy-backed timedeltas (:issue:`63470`)
+- Bug in multiplying a :class:`Series` of ``timedelta64`` by an integer or float, or dividing it by a float, where an overflowing result silently wrapped or saturated instead of raising :class:`OutOfBoundsTimedelta`; multiplying by ``inf`` now raises :class:`OutOfBoundsTimedelta` instead of returning ``NaT`` (:issue:`43178`)
 
 Timezones
 ^^^^^^^^^
@@ -407,6 +409,7 @@ I/O
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug in :func:`read_excel` with the ``openpyxl`` engine where reading a sheet set its ``max_row`` and ``max_column`` to ``None`` on the workbook exposed through ``ExcelFile.book`` (:issue:`63010`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
+- Fixed bugs in :func:`read_csv` with ``engine="pyarrow"`` where column names were handled inconsistently with the other engines: duplicated names were not de-duplicated to ``"x.1"``-style names, empty header fields did not get ``"Unnamed: {i}"`` placeholder names, and an unnamed ``index_col`` produced an index named ``""`` instead of an unnamed index (:issue:`13017`, :issue:`35211`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
@@ -495,11 +498,13 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`Series.mean` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
+- Bug in :meth:`Series.reindex` and alignment raising when extending a boolean :class:`SparseDtype`-backed :class:`Series`; missing entries now upcast to ``object`` to match the dense behavior (:issue:`32119`)
 - Bug in :meth:`Series.sum`, :meth:`Series.min`, and :meth:`Series.max` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
 - Bug in :meth:`SparseArray.astype` where converting a datetime64 :class:`SparseArray` with ``NaT`` fill value to ``"Sparse[int64]"`` silently replaced the fill value with ``0`` instead of ``iNaT`` (:issue:`49631`)
 - Bug in :meth:`SparseArray.mean` raising a ``TypeError`` when called with the ``skipna`` argument (:issue:`65478`)
 - Bug in :meth:`SparseArray.sum` with ``skipna=False`` returning ``NA`` for a non-null ``fill_value`` and ignoring missing values under a null ``fill_value`` (:issue:`65478`)
 - Bug in indexing a :class:`SparseArray` with an out-of-bounds integer with the value of the length of the array returning the fill value instead of raising an ``IndexError`` (:issue:`64183`).
+- Bug in logical operators (``&``, ``|``, ``^``) between a :class:`SparseDtype`-backed :class:`Series` and a differently-indexed :class:`Series` raising an uninformative error instead of aligning and returning the expected result (:issue:`32119`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -517,6 +522,7 @@ Other
 ^^^^^
 
 - Bug in :class:`DataFrame` constructor where passing the same :class:`Index` object as both ``index`` and ``columns`` shared a single object between the two axes, so mutating metadata such as ``names`` on one would also change the other (:issue:`42934`)
+- Bug in :func:`eval` and :meth:`DataFrame.eval` where passing a :class:`Series` or :class:`DataFrame` as ``expr`` silently parsed its (possibly truncated) repr instead of raising, producing a confusing error (:issue:`16289`)
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
 - Bug in :meth:`DataFrame.select_dtypes` with an :class:`~pandas.api.extensions.ExtensionDtype` subclass such as :class:`ArrowDtype` or :class:`DatetimeTZDtype` raising ``TypeError``, emitting a spurious ``UserWarning``, or selecting the wrong columns; passing such a class now selects every column whose dtype is an instance of that class (:issue:`65366`)
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)

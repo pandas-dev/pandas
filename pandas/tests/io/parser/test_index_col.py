@@ -166,12 +166,8 @@ def test_empty_with_index_col_false(all_parsers):
         ["NotReallyUnnamed", "Unnamed: 0"],
     ],
 )
-def test_multi_index_naming(all_parsers, index_names, request):
+def test_multi_index_naming(all_parsers, index_names):
     parser = all_parsers
-
-    if parser.engine == "pyarrow" and "" in index_names:
-        mark = pytest.mark.xfail(reason="One case raises, others are wrong")
-        request.applymarker(mark)
 
     # We don't want empty index names being replaced with "Unnamed: 0"
     data = ",".join([*index_names, "col\na,c,1\na,d,2\nb,c,3\nb,d,4"])
@@ -184,7 +180,6 @@ def test_multi_index_naming(all_parsers, index_names, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_multi_index_naming_not_all_at_beginning(all_parsers):
     parser = all_parsers
     data = ",Unnamed: 2,\na,c,1\na,d,2\nb,c,3\nb,d,4"
@@ -199,7 +194,6 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_no_multi_index_level_names_empty(temp_file, all_parsers):
     # GH 10984
     parser = all_parsers
