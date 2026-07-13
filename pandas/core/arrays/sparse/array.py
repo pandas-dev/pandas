@@ -1201,6 +1201,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif self.sp_index.npoints == 0:
             # Use the old fill_value unless we took for an index of -1
             _dtype = np.result_type(self.dtype.subtype, type(fill_value))
+            if self.dtype.subtype.kind == "b" and _dtype.kind != "b":
+                # GH#32119 numpy bool can't hold a non-bool (e.g. NA) fill;
+                #  match the dense reindex behavior and upcast to object
+                _dtype = np.dtype(object)
             taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
             taken[old_fill_indices] = self.fill_value
         else:
@@ -1223,6 +1227,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             if m1.any():
                 result_type = np.result_type(result_type, type(fill_value))
+                if taken.dtype.kind == "b" and result_type.kind != "b":
+                    # GH#32119 numpy bool can't hold a non-bool (e.g. NA)
+                    #  fill; match the dense reindex behavior (bool -> object)
+                    result_type = np.dtype(object)
                 taken = taken.astype(result_type)
                 taken[new_fill_indices] = fill_value
 
@@ -2007,7 +2015,37 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype=np.bool_,
             )
 
-    _logical_method = _cmp_method
+    def _logical_method(self, other, op) -> SparseArray:
+        # GH#32119 the sparse fast path (see _sparse_array_op / splib) only
+        #  implements and/or/xor for boolean and integer subtypes. When
+        #  alignment upcasts an operand to object/float -- e.g. NA introduced
+        #  by reindexing a boolean SparseArray to a longer index -- fall back
+        #  to a dense computation so the result matches the non-sparse path.
+        if not self._logical_needs_dense(other):
+            return self._cmp_method(other, op)
+
+        from pandas.core.ops.array_ops import logical_op
+
+        lvalues = np.asarray(self)
+        rvalues = other if is_scalar(other) else np.asarray(other)
+        result = logical_op(lvalues, rvalues, op)
+        return type(self)(result)
+
+    def _logical_needs_dense(self, other) -> bool:
+        # The and/or/xor sparse kernels only support boolean/integer subtypes;
+        #  everything else (object/float produced by NA upcasting) must be
+        #  computed densely. Inspect dtypes without materializing so the fast
+        #  path still receives the original operand (and its warnings).
+        if self.dtype.subtype.kind not in "biu":
+            return True
+        other_dtype = getattr(other, "dtype", None)
+        if other_dtype is None:
+            # scalar or a dtype-less sequence (e.g. list); the fast path
+            #  handles these, including raising on length mismatch
+            return False
+        if isinstance(other_dtype, SparseDtype):
+            return other_dtype.subtype.kind not in "biu"
+        return other_dtype.kind not in "biu"
 
     def _unary_method(self, op) -> SparseArray:
         fill_value = op(np.array(self.fill_value)).item()
