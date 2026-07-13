@@ -1,12 +1,16 @@
 import array
 from collections import (
     OrderedDict,
+    UserList,
     abc,
     defaultdict,
     namedtuple,
 )
 from collections.abc import Iterator
-from dataclasses import make_dataclass
+from dataclasses import (
+    dataclass,
+    make_dataclass,
+)
 from datetime import (
     date,
     datetime,
@@ -550,9 +554,23 @@ class TestDataFrameConstructors:
         # empty dict with index and columns
         idx = Index([0, 1, 2])
         frame = DataFrame({}, index=idx, columns=idx)
-        assert frame.index is idx
-        assert frame.columns is idx
+        tm.assert_index_equal(frame.index, idx)
+        tm.assert_index_equal(frame.columns, idx)
+        # GH#42934 the two axes must not be the same object, otherwise mutating
+        #  metadata on one (e.g. names) would silently affect the other
+        assert frame.index is not frame.columns
         assert len(frame._series) == 3
+
+    def test_constructor_same_index_and_columns_no_alias(self):
+        # GH#42934 passing one Index as both index and columns should not
+        #  alias the two axes, so mutating names on one leaves the other intact
+        idx = Index(["a", "b"])
+        frame = DataFrame([[1, 2], [3, 4]], index=idx, columns=idx)
+        assert frame.index is not frame.columns
+
+        frame.index.names = ["zzz"]
+        assert frame.columns.names == [None]
+        assert idx.names == [None]
 
     def test_constructor_dict_of_empty_lists(self):
         # with dict of empty list and Series
@@ -1653,6 +1671,17 @@ class TestDataFrameConstructors:
         msg = "asdict() should be called on dataclass instances"
         with pytest.raises(TypeError, match=re.escape(msg)):
             DataFrame([Point(0, 0), {"x": 1, "y": 0}])
+
+    def test_constructor_list_of_list_like_dataclasses(self):
+        # GH#41682 a dataclass that is also list-like (e.g. a UserList subclass)
+        # is treated as list-like, not converted to a dict of its fields
+        @dataclass(frozen=True)
+        class MyList(UserList):
+            data: list
+
+        result = DataFrame([MyList([1, 2, 3]), [4, 5, 6]])
+        expected = DataFrame([[1, 2, 3], [4, 5, 6]])
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_list_of_dict_order(self):
         # GH10056

@@ -435,6 +435,77 @@ class JSONTableWriter(FrameWriter):
         return {"schema": self.schema, "data": self.obj}
 
 
+def _validate_pyarrow_engine_options(
+    *,
+    typ,
+    dtype,
+    convert_axes,
+    convert_dates,
+    keep_default_dates,
+    precise_float,
+    date_unit,
+    encoding,
+    encoding_errors,
+    compression,
+    storage_options,
+) -> None:
+    """
+    Reject ``read_json`` arguments the ``"pyarrow"`` engine cannot honor.
+
+    The pyarrow engine hands the input straight to ``pyarrow.json.read_json``,
+    so any argument that pandas would otherwise apply itself is silently
+    ignored, producing a wrong result rather than an error. Raise instead.
+
+    Called from ``read_json`` before ``convert_axes`` and ``dtype`` are
+    resolved from ``None`` to ``True``, so that an explicitly-passed value is
+    distinguishable from the default.
+    """
+
+    def raise_unsupported(argname: str) -> None:
+        raise ValueError(
+            f"The {argname!r} option is not supported with the 'pyarrow' engine"
+        )
+
+    if typ != "frame":
+        raise_unsupported("typ")
+    if convert_axes is not None:
+        raise_unsupported("convert_axes")
+    if convert_dates is not True:
+        raise_unsupported("convert_dates")
+    if keep_default_dates is not True:
+        raise_unsupported("keep_default_dates")
+    if precise_float is not False:
+        raise_unsupported("precise_float")
+    if date_unit is not None:
+        raise_unsupported("date_unit")
+    if storage_options is not None:
+        raise_unsupported("storage_options")
+    if compression != "infer":
+        # pyarrow infers compression from the file extension itself; pandas
+        # cannot honor an explicit method (or dict) or disable inference.
+        raise_unsupported("compression")
+    if encoding is not None and encoding.lower() not in ("utf-8", "utf8"):
+        # pyarrow assumes UTF-8 and ignores the encoding argument entirely.
+        raise_unsupported("encoding")
+    if encoding_errors is not None and encoding_errors != "strict":
+        raise_unsupported("encoding_errors")
+
+    if isinstance(dtype, dict):
+        # GH#59516 supports a mapping of ArrowDtype; any other dtype in the
+        # mapping is silently dropped, so reject it.
+        for field, field_dtype in dtype.items():
+            if not isinstance(pandas_dtype(field_dtype), ArrowDtype):
+                raise ValueError(
+                    "The 'pyarrow' engine only supports ArrowDtype values in "
+                    f"the 'dtype' mapping, got {field_dtype!r} for column "
+                    f"{field!r}"
+                )
+    elif dtype is not None:
+        # a scalar dtype (including True/False) applies to every column but is
+        # silently ignored by the pyarrow engine.
+        raise_unsupported("dtype")
+
+
 @overload
 def read_json(
     path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
@@ -728,7 +799,10 @@ def read_json(
 
     engine : {"ujson", "pyarrow"}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
-        ``lines=True``.
+        ``lines=True``, and only supports ``typ="frame"`` with default parsing
+        options; passing an option it cannot apply (for example ``convert_dates``,
+        ``date_unit``, ``precise_float``, ``encoding``, or a non-``ArrowDtype``
+        ``dtype``) raises ``ValueError``.
 
         .. versionadded:: 2.0
 
@@ -819,6 +893,24 @@ def read_json(
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
     check_dtype_backend(dtype_backend)
+
+    if engine == "pyarrow":
+        # Validate before dtype/convert_axes are resolved from None to True
+        # below, so an explicitly-passed value can be told apart from the
+        # default.
+        _validate_pyarrow_engine_options(
+            typ=typ,
+            dtype=dtype,
+            convert_axes=convert_axes,
+            convert_dates=convert_dates,
+            keep_default_dates=keep_default_dates,
+            precise_float=precise_float,
+            date_unit=date_unit,
+            encoding=encoding,
+            encoding_errors=encoding_errors,
+            compression=compression,
+            storage_options=storage_options,
+        )
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
