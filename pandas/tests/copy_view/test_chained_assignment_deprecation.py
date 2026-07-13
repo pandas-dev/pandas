@@ -105,10 +105,10 @@ def test_frame_iat_setitem():
 
 
 def test_chained_assignment_disabled_env_var():
+    import os
     import subprocess
     import sys
     import textwrap
-    import os
 
     code = textwrap.dedent(
         """
@@ -121,11 +121,14 @@ def test_chained_assignment_disabled_env_var():
             warnings.simplefilter("always")
             df["a"][0] = 0
 
-        chained = [w for w in caught if issubclass(w.category, ChainedAssignmentError)]
-        assert not chained, f"Expected no ChainedAssignmentError warning, but got: {chained}"
+        chained = [
+            w for w in caught if issubclass(w.category, ChainedAssignmentError)
+        ]
+        assert not chained, (
+            f"Expected no ChainedAssignmentError warning, but got: {chained}"
+        )
         """
     )
     env = os.environ.copy()
     env["PANDAS_CHAINED_WARNING_DISABLED"] = "1"
     subprocess.check_call([sys.executable, "-c", code], env=env)
-
