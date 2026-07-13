@@ -1152,12 +1152,15 @@ class Block(PandasObject, libinternals.Block):
                 casted = setitem_datetimelike_compat(values, num_set, casted)
 
                 if (
-                    isinstance(casted, list)
+                    self.ndim == 1
+                    and isinstance(casted, list)
                     and len(casted) > 0
                     and isinstance(casted[0], (tuple, list, np.ndarray))
                 ):
                     # Prevent numpy from unpacking nested containers
-                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    # (e.g. tuples) into a scalar cell during assignment. GH#37629
+                    # Only for 1D blocks: on a 2D block a list of lists/tuples is
+                    # a genuine 2D value whose rows must not be wrapped. GH#65264
                     casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)

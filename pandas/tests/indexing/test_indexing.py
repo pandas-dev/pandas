@@ -1171,6 +1171,16 @@ def test_loc_setitem_list_of_tuples_on_object_column():
     tm.assert_frame_equal(df2, expected)
 
 
+@pytest.mark.parametrize("value", [[[1, 2], [3, 4], [5, 6]], [(1, 2), (3, 4), (5, 6)]])
+def test_loc_setitem_2d_list_on_object_frame(value):
+    # GH#65264 - a list of lists/tuples assigned to a 2D object block is a
+    # genuine 2D value; its rows must not be wrapped into single object cells
+    df = DataFrame({"a": [10, 20, 30], "b": [40, 50, 60]}, dtype=object)
+    df.loc[:, :] = value
+    expected = DataFrame({"a": [1, 3, 5], "b": [2, 4, 6]}, dtype=object)
+    tm.assert_frame_equal(df, expected)
+
+
 def test_object_dtype_series_set_series_element():
     # GH 48933
     s1 = Series(dtype="O", index=["a", "b"])
