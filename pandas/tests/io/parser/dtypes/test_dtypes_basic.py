@@ -10,8 +10,8 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
+    EmptyDataError,
     Pandas4Warning,
-    ParserError,
     ParserWarning,
 )
 
@@ -250,8 +250,8 @@ def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
     if all_parsers.engine == "pyarrow":
         # pyarrow cannot parse this single-line input with these options
-        msg = "Empty CSV file or block: cannot infer number of columns"
-        with pytest.raises(ParserError, match=msg):
+        msg = "No columns to parse from file"
+        with pytest.raises(EmptyDataError, match=msg):
             all_parsers.read_csv(
                 StringIO('"dump","-9,1","-9,1",20101010'),
                 engine="python",
