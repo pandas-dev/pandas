@@ -85,7 +85,6 @@ b"""
         parser.read_csv(StringIO(data), header=header)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -448,17 +447,25 @@ def test_header_multi_index_blank_line(all_parsers):
 @pytest.mark.parametrize(
     "data,header", [("1,2,3\n4,5,6", None), ("foo,bar,baz\n1,2,3\n4,5,6", 0)]
 )
-def test_header_names_backward_compat(all_parsers, data, header, request):
+def test_header_names_backward_compat(all_parsers, data, header):
     # see gh-2539
     parser = all_parsers
-
-    if parser.engine == "pyarrow" and header is not None:
-        mark = pytest.mark.xfail(reason="DataFrame.columns are different")
-        request.applymarker(mark)
 
     expected = parser.read_csv(StringIO("1,2,3\n4,5,6"), names=["a", "b", "c"])
 
     result = parser.read_csv(StringIO(data), names=["a", "b", "c"], header=header)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_header_int_names_no_trailing_newline(all_parsers):
+    # GH#65862 the data portion starting on the final, newline-less line
+    #  trips pyarrow's skip_rows
+    parser = all_parsers
+    data = "foo,bar,baz\n1,2,3\n4,5,6"
+
+    result = parser.read_csv(StringIO(data), header=1, names=["a", "b", "c"])
+
+    expected = DataFrame([[4, 5, 6]], columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)
 
 
