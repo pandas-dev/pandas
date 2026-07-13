@@ -17,7 +17,6 @@ import pandas._testing as tm
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 if PY314:
@@ -40,7 +39,6 @@ else:
         ({"quotechar": 2}, f'"quotechar" must be {MSG2}, not int'),
     ],
 )
-@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_bad_quote_char(all_parsers, kwargs, msg):
     data = "1,2,3"
     parser = all_parsers
@@ -98,24 +96,11 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
     data = "a,b,c\n1,2,3"
     parser = all_parsers
 
-    if parser.engine == "pyarrow":
-        if quoting != csv.QUOTE_MINIMAL:
-            # any non-default value of ``quoting`` is rejected outright
-            msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(StringIO(data), **kwargs)
-            return
-        if quote_char == "":
-            # pyarrow rejects a zero-length quotechar outright
-            msg = "only single character unicode strings can be converted to Py_UCS4"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(StringIO(data), **kwargs)
-            return
-        # quote_char is None: pyarrow ignores it and parses successfully rather
-        # than requiring a quotechar like the C/python engines do.
-        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
-        result = parser.read_csv(StringIO(data), **kwargs)
-        tm.assert_frame_equal(result, expected)
+    if parser.engine == "pyarrow" and quoting != csv.QUOTE_MINIMAL:
+        # any non-default value of ``quoting`` is rejected outright
+        msg = "The 'quoting' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
         return
 
     if quoting != csv.QUOTE_NONE:
