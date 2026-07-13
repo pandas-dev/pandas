@@ -791,14 +791,10 @@ def test_nan_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # BUG: the wrapper's astype silently casts NA to False
 def test_bool_and_nan_to_bool(all_parsers):
     # GH#42808
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        pytest.skip(
-            reason="pyarrow silently casts NA to False for bool dtype "
-            "instead of raising"
-        )
     data = """0
 NaN
 True

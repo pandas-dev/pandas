@@ -191,16 +191,16 @@ def test_quotechar_unicode(all_parsers, quotechar):
 
 
 @pytest.mark.parametrize("balanced", [True, False])
-def test_unbalanced_quoting(all_parsers, balanced):
+def test_unbalanced_quoting(all_parsers, balanced, request):
     # see gh-22789.
     parser = all_parsers
     data = 'a,b,c\n1,2,"3'
 
     if parser.engine == "pyarrow" and not balanced:
-        pytest.skip(
-            reason="pyarrow does not raise on an unterminated quote; it closes "
-            "the field at EOF"
-        )
+        # pyarrow closes the unterminated quote at EOF and returns the
+        #  balanced-case result instead of raising
+        mark = pytest.mark.xfail(reason="DID NOT RAISE")
+        request.applymarker(mark)
 
     if balanced:
         # Re-balance the quoting and read in without errors.
