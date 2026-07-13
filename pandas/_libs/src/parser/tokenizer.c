@@ -1882,18 +1882,18 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
 }
 
 /* SWAR (SIMD-within-a-register) helpers that validate and parse 8 ASCII digits
- * at a time by treating an 8-byte chunk as a single uint64_t. The helper
- * bodies are copied from the vendored fast_float's ascii_number.h
- * (subprojects/fast_float-8.2.3, MIT: LICENSE-MIT there) and can be diffed
- * against it directly; they are inlined here rather than called through the
- * C++ library so the hot integer path stays a leaf function with no
- * cross-language call overhead. Callers must guarantee 8 readable bytes at
- * `chars`. */
+ * at a time by treating an 8-byte chunk as a single uint64_t. Copied (MIT)
+ * from fast_float's ascii_number.h:
+ * https://github.com/fastfloat/fast_float/blob/v8.2.3/include/fast_float/ascii_number.h
+ * They are inlined here rather than called through the C++ library so the hot
+ * integer path stays a leaf function. Callers must guarantee 8 readable bytes
+ * at `chars`. */
 
 /* Load 8 bytes into a uint64_t with the first character in the least
  * significant byte (little-endian layout), byteswapping on big-endian hosts so
  * the digit arithmetic below is endianness-independent (fast_float's
- * read8_to_u64). */
+ * read8_to_u64). MSVC never defines __BYTE_ORDER__, but all Windows targets
+ * are little-endian, so skipping the swap there is correct. */
 static inline uint64_t swar_read8(const char *chars) {
   uint64_t val;
   memcpy(&val, chars, 8);
@@ -1930,46 +1930,51 @@ static inline uint64_t swar_parse_eight_digits(uint64_t val) {
   return (((val & mask) * mul1) + (((val >> 16) & mask) * mul2)) >> 32;
 }
 
+/* SWAR fast path for the common case: an optional sign followed by 1-18
+ * digits filling the whole [p_item, p_item+length) span. 18 digits cannot
+ * overflow int64, and a pure-digit span can contain no thousands separator,
+ * spaces or trailing junk, so full consumption means the token is exactly a
+ * clean integer. Returns true and stores the value in *result on success;
+ * anything else returns false so the caller falls through to the slow path. */
+static inline bool swar_try_parse_int64(const char *p_item, int64_t length,
+                                        int64_t *result) {
+  if (length < 1) {
+    return false;
+  }
+  const char *p_end = p_item + length;
+  const bool neg = *p_item == '-';
+  const char *digits = p_item + (neg || *p_item == '+');
+  size_t rem = (size_t)(p_end - digits);
+  if (rem < 1 || rem > 18) {
+    return false;
+  }
+  uint64_t acc = 0;
+  while (rem >= 8) {
+    const uint64_t block = swar_read8(digits);
+    if (!swar_is_eight_digits(block)) {
+      return false;
+    }
+    acc = acc * 100000000ULL + swar_parse_eight_digits(block);
+    digits += 8;
+    rem -= 8;
+  }
+  for (; rem > 0; rem--, digits++) {
+    const unsigned char digit = (unsigned char)(*digits - '0');
+    if (digit > 9) {
+      return false;
+    }
+    acc = acc * 10 + digit;
+  }
+  *result = neg ? -(int64_t)acc : (int64_t)acc;
+  return true;
+}
+
 int64_t str_to_int64(const char *p_item, int64_t length, int *error,
                      char tsep) {
-  // SWAR fast path for the common case: an optional sign followed by 1-18
-  // digits filling the whole [p_item, p_item+length) span. 18 digits cannot
-  // overflow int64, and a pure-digit span can contain no thousands
-  // separator, spaces or trailing junk, so full consumption means the token
-  // is exactly a clean integer. Anything else falls through to the slow path.
-  if (length >= 1) {
-    const char *p_end = p_item + length;
-    const bool neg = *p_item == '-';
-    const char *digits = p_item + (neg || *p_item == '+');
-    size_t rem = (size_t)(p_end - digits);
-    if (rem >= 1 && rem <= 18) {
-      uint64_t acc = 0;
-      bool valid = true;
-      while (rem >= 8) {
-        const uint64_t block = swar_read8(digits);
-        if (!swar_is_eight_digits(block)) {
-          valid = false;
-          break;
-        }
-        acc = acc * 100000000ULL + swar_parse_eight_digits(block);
-        digits += 8;
-        rem -= 8;
-      }
-      if (valid) {
-        for (; rem > 0; rem--, digits++) {
-          const unsigned char digit = (unsigned char)(*digits - '0');
-          if (digit > 9) {
-            valid = false;
-            break;
-          }
-          acc = acc * 10 + digit;
-        }
-      }
-      if (valid) {
-        *error = 0;
-        return neg ? -(int64_t)acc : (int64_t)acc;
-      }
-    }
+  int64_t swar_result;
+  if (swar_try_parse_int64(p_item, length, &swar_result)) {
+    *error = 0;
+    return swar_result;
   }
 
   const char *p = p_item;
