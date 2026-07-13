@@ -102,3 +102,30 @@ def test_frame_iat_setitem():
 
     with tm.raises_chained_assignment_error():
         df[0:3].iat[0, 0] = 10
+
+
+def test_chained_assignment_disabled_env_var():
+    import subprocess
+    import sys
+    import textwrap
+    import os
+
+    code = textwrap.dedent(
+        """
+        import pandas as pd
+        import warnings
+        from pandas.errors import ChainedAssignmentError
+
+        df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            df["a"][0] = 0
+
+        chained = [w for w in caught if issubclass(w.category, ChainedAssignmentError)]
+        assert not chained, f"Expected no ChainedAssignmentError warning, but got: {chained}"
+        """
+    )
+    env = os.environ.copy()
+    env["PANDAS_CHAINED_WARNING_DISABLED"] = "1"
+    subprocess.check_call([sys.executable, "-c", code], env=env)
+

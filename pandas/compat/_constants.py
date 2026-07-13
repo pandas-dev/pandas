@@ -7,6 +7,7 @@ Constants relevant for the Python implementation.
 
 from __future__ import annotations
 
+import os
 import platform
 import sys
 import sysconfig
@@ -23,7 +24,7 @@ ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
 REF_COUNT = 2 if PY314 else 3
 REF_COUNT_IDX = 2
 REF_COUNT_METHOD = 1 if PY314 else 2
-CHAINED_WARNING_DISABLED = PYPY
+CHAINED_WARNING_DISABLED = PYPY or os.environ.get("PANDAS_CHAINED_WARNING_DISABLED", "0") == "1"
 
 
 __all__ = [
