@@ -1554,7 +1554,6 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return range(1) if self.name is None else [self.name]
 
-    @final
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
         if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":

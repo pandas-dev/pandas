@@ -384,20 +384,19 @@ def format_dateaxis(
         # x and y coord info
         subplot.format_coord = functools.partial(_format_coord, freq)
 
-        # For BDay the x-axis holds plain int64 ordinals, so matplotlib's
-        # units machinery never registers a converter.  Set PeriodConverter
+        # The x-axis holds plain int64 ordinals (Period ordinals for PeriodIndex
+        # plots; business-day ordinals for BDay), so matplotlib's units
+        # machinery never registers a converter.  Set PeriodConverter
         # explicitly so that post-plot ax.set_xlim(string, ...) /
         # ax.set_xlim(datetime, ...) calls can map values to ordinals via
-        # _get_datevalue().  For PeriodIndex plots the converter is already
-        # stored by matplotlib; skip to avoid a RuntimeError on re-entry.
-        if _get_period_alias(freq) == "B":
-            if hasattr(subplot.xaxis, "set_converter"):
-                # matplotlib >= 3.10: only set if not already a PeriodConverter
-                existing = subplot.xaxis.get_converter()
-                if not isinstance(existing, PeriodConverter):
-                    subplot.xaxis.set_converter(PeriodConverter())
-            else:
-                subplot.xaxis.converter = PeriodConverter()
+        # _get_datevalue().
+        if hasattr(subplot.xaxis, "set_converter"):
+            # matplotlib >= 3.10: only set if not already a PeriodConverter
+            existing = subplot.xaxis.get_converter()
+            if not isinstance(existing, PeriodConverter):
+                subplot.xaxis.set_converter(PeriodConverter())
+        else:
+            subplot.xaxis.converter = PeriodConverter()
 
     elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))
