@@ -2548,6 +2548,7 @@ class ArrowExtensionArray(
                 "prod": "product",
                 "std": "stddev",
                 "var": "variance",
+                "kurt": "kurtosis",
             }.get(name, name)
             # error: Incompatible types in assignment
             # (expression has type "Optional[Any]", variable has type
@@ -2568,6 +2569,8 @@ class ArrowExtensionArray(
         elif name in ["std", "var", "sem"] and "ddof" not in kwargs:
             # pyarrow defaults to ddof=0, pandas behavior is ddof=1
             kwargs["ddof"] = 1
+        elif name in ["skew", "kurt"] and "biased" not in kwargs:
+            kwargs["biased"] = False
 
         try:
             result = pyarrow_meth(data_to_reduce, skip_nulls=skipna, **kwargs)
@@ -2738,6 +2741,16 @@ class ArrowExtensionArray(
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
         return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+
+    def kurt(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        nv.validate_stat_ddof_func((), kwargs, fname="kurt")
+        return self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
 
     def median(
         self,
