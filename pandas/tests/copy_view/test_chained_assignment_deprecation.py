@@ -131,7 +131,7 @@ def test_chained_assignment_disabled_env_var():
     )
     env = os.environ.copy()
     env["PANDAS_CHAINED_WARNING_DISABLED"] = "1"
-    subprocess.check_call([sys.executable, "-c", code], env=env)
+    subprocess.check_call([sys.executable, "-c", code], env=env, cwd=sys.prefix)
 
 
 def test_chained_assignment_option():
@@ -142,7 +142,7 @@ def test_chained_assignment_option():
     # Test "warn" behavior
     with pd.option_context("mode.chained_assignment", "warn"):
         df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
-        with pytest.warns(ChainedAssignmentError, match="A value is being set on a copy"):
+        with tm.assert_produces_warning(ChainedAssignmentError, match="A value is being set on a copy"):
             df["a"][0] = 0
 
     # Test "raise" behavior (raises actual exception)

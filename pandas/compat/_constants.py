@@ -11,6 +11,7 @@ import os
 import platform
 import sys
 import sysconfig
+from typing import cast
 
 IS64 = sys.maxsize > 2**32
 
@@ -35,7 +36,7 @@ class ChainedWarningDisabled:
             )
 
 
-CHAINED_WARNING_DISABLED = ChainedWarningDisabled()
+CHAINED_WARNING_DISABLED = cast(bool, ChainedWarningDisabled())
 
 
 __all__ = [
