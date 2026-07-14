@@ -1775,6 +1775,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
+            if (
+                orient == "columns"
+                and isinstance(data, dict)
+                and len(data) > 0
+                and all(is_scalar(value) for value in data.values())
+            ):
+                # GH#25515
+                raise ValueError(
+                    "If using all scalar values, pass orient='index' to use "
+                    "the keys as the index, or use the DataFrame constructor."
+                )
         else:  # pragma: no cover
             raise ValueError(
                 f"Expected 'index', 'columns' or 'tight' for orient parameter. "
