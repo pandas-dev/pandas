@@ -17,6 +17,7 @@ from pandas.api.types import (
     is_float_dtype,
     is_unsigned_integer_dtype,
 )
+from pandas.errors import Pandas4Warning
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
@@ -271,16 +272,14 @@ def test_union_mixed_date_timestamp():
         [Index([date(2001, 1, 1)], dtype=object), Index(["foo"], dtype=object)]
     )
     right = MultiIndex.from_arrays(
-        [
-            Index([pd.Timestamp("2001-01-01")], dtype=object),
-            Index(["bar"], dtype=object),
-        ]
+        [Index([pd.Timestamp("2001-01-01")]), Index(["bar"], dtype=object)]
     )
 
     with tm.assert_produces_warning(
-        RuntimeWarning, match="The values in the array are unorderable"
+        Pandas4Warning,
+        match="Inferring datetime64 from data containing datetime.date objects",
     ):
-        result = left.union(right)
+        result = left.union(right, sort=False)
 
     expected = MultiIndex.from_arrays(
         [
