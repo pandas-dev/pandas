@@ -37,6 +37,7 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+from pandas.tests.extension.decimal import DecimalArray
 
 is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
@@ -2699,6 +2700,47 @@ def test_idxmax_idxmin_axis_1_ea_all_na_row_raises(how, skipna, dtype):
     df = DataFrame(values, columns=["a", "b"]).astype(dtype)
     with pytest.raises(ValueError, match="[Ee]ncountered an?.*NA value"):
         getattr(df, how)(axis=1, skipna=skipna)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("dtype", ["boolean", "bool[pyarrow]"])
+def test_logical_reductions_axis_1_ea_matches_numpy(dtype, skipna):
+    # GH#56903 any/all axis=1 fastpath for boolean-like EA dtypes
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = [[True, False, True], [False, False, False], [True, True, True]]
+    df_ea = DataFrame(values, columns=["a", "b", "c"]).astype(dtype)
+    df_np = DataFrame(values, columns=["a", "b", "c"])
+    for how in ["any", "all"]:
+        result = getattr(df_ea, how)(axis=1, skipna=skipna)
+        expected = getattr(df_np, how)(axis=1, skipna=skipna).astype(dtype)
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["str", "string"])
+@pytest.mark.parametrize("how", ["min", "max"])
+def test_str_min_max_axis_1(how, dtype):
+    # GH#56903 no cython groupby op for object-backed str min/max; the
+    # axis=1 EA fastpath must fall back to python aggregation
+    df = DataFrame({"a": ["x", "b"], "b": ["c", "d"]}, dtype=dtype)
+    result = getattr(df, how)(axis=1)
+    values = ["c", "b"] if how == "min" else ["x", "d"]
+    expected = Series(values, dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_third_party_ea_axis_1():
+    # GH#56903 EAs without a _groupby_op override must fall back to
+    # python aggregation in the axis=1 EA fastpath
+    df = DataFrame(
+        {
+            "a": DecimalArray([Decimal("1"), Decimal("2")]),
+            "b": DecimalArray([Decimal("3"), Decimal("4")]),
+        }
+    )
+    result = df.sum(axis=1)
+    expected = Series(DecimalArray([Decimal("4"), Decimal("6")]))
+    tm.assert_series_equal(result, expected)
 
 
 def test_mean_nullable_int_axis_1():

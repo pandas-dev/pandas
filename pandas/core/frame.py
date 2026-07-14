@@ -16238,22 +16238,56 @@ class DataFrame(NDFrame, OpsMixin):
                     [block.values.dtype for block in df._mgr.blocks]
                 )
                 if isinstance(dtype, ExtensionDtype):
-                    # GH 54341: fastpath for EA-backed axis=1 reductions
-                    # This flattens the frame into a single 1D array while keeping
-                    # track of the row and column indices of the original frame. Once
-                    # flattened, grouping by the row indices and aggregating should
-                    # be equivalent to transposing the original frame and aggregating
-                    # with axis=0.
+                    # GH#54341: fastpath for EA-backed axis=1 reductions.
+                    # Flatten the frame into a 1D EA and call _groupby_op
+                    # directly with row indices as pre-computed group codes,
+                    # which is equivalent to transposing and reducing with
+                    # axis=0 but avoids the expensive factorize step that
+                    # ser.groupby(row_index) would otherwise perform on the
+                    # already-known codes (GH#56903).
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype)
                     arr = concat_compat(list(df._iter_column_arrays()))
+                    assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
-                    row_index = np.tile(np.arange(nrows), ncols)
-                    col_index = np.repeat(np.arange(ncols), nrows)
-                    ser = Series(arr, index=col_index, copy=False)
-                    result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
-                    result.index = df.index
-                    return result
+                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
+                    if name in ("idxmin", "idxmax"):
+                        if not skipna and arr.isna().any():
+                            # Match the error raised by GroupBy._idxmax_idxmin
+                            raise ValueError(
+                                f"{name} with skipna=False encountered an NA value."
+                            )
+                    op_kwargs = dict(kwds)
+                    min_count = op_kwargs.pop("min_count", -1)
+                    try:
+                        res_values = arr._groupby_op(
+                            how=name,
+                            has_dropped_na=False,
+                            min_count=min_count,
+                            ngroups=nrows,
+                            ids=row_index,
+                            skipna=skipna,
+                            **op_kwargs,
+                        )
+                    except NotImplementedError:
+                        # e.g. min/max on object-backed str dtype, or a
+                        # third-party EA without _groupby_op; groupby falls
+                        # back to pure-python aggregation for these.
+                        col_index = np.repeat(np.arange(ncols), nrows)
+                        ser = Series(arr, index=col_index, copy=False)
+                        result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
+                        result.index = df.index
+                        return result
+                    if name in ("idxmin", "idxmax"):
+                        # res_values are positions in the flattened arr.
+                        # Position k = row + col * nrows, so col = k // nrows;
+                        # preserve -1 (all-NA) sentinel from the cython op.
+                        assert isinstance(res_values, np.ndarray)
+                        result_values = np.where(
+                            res_values >= 0, res_values // nrows, -1
+                        ).astype(np.intp, copy=False)
+                        return Series(result_values, index=df.index)
+                    return Series(res_values, index=df.index)
 
             df = df.T
 
