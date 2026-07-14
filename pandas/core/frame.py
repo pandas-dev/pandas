@@ -106,6 +106,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -5488,6 +5489,22 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
+            def matches_interval_subtype(
+                target: IntervalDtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # GH#66119, GH#66120: an interval spec with a subtype but no
+                # ``closed`` (e.g. the string "interval[int64]" or the instance
+                # IntervalDtype("int64")) has closed=None, which ``==`` never
+                # matches since no column has closed=None. Treat it as naming
+                # the subtype family, matching that subtype for any closed.
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return (
+                        isinstance(dtype_obj, IntervalDtype)
+                        and dtype_obj.subtype == target.subtype
+                    )
+
+                return func
+
             def matches_np_dtype(
                 np_dtype: np.dtype,
             ) -> Callable[[DtypeObj], bool]:
@@ -5542,6 +5559,17 @@ class DataFrame(NDFrame, OpsMixin):
                         # "category" string
                         resolved.add(dtype.type)
                         funcs.append(matches_type(dtype.type))
+                        continue
+                    elif (
+                        isinstance(dtype, IntervalDtype)
+                        and dtype.subtype is not None
+                        and dtype.closed is None
+                    ):
+                        # GH#66119: a partially-specified IntervalDtype instance
+                        # (subtype but no closed, e.g. IntervalDtype("int64"))
+                        # names the subtype family, matching any closed value
+                        resolved.add(dtype)
+                        ea_funcs.append(matches_interval_subtype(dtype))
                         continue
                     resolved.add(dtype)
                     instances.append(dtype)
@@ -5622,8 +5650,19 @@ class DataFrame(NDFrame, OpsMixin):
                                 # a bare name (e.g. "Int64", "category") names
                                 # the dtype's class and matches any instance.
                                 if "[" in dtype:
-                                    resolved.add(pdtype)
-                                    ea_funcs.append(matches_ea_instance(pdtype))
+                                    if (
+                                        isinstance(pdtype, IntervalDtype)
+                                        and pdtype.closed is None
+                                    ):
+                                        # GH#66120: "interval[int64]" resolves to
+                                        # closed=None; match the subtype family
+                                        resolved.add(pdtype)
+                                        ea_funcs.append(
+                                            matches_interval_subtype(pdtype)
+                                        )
+                                    else:
+                                        resolved.add(pdtype)
+                                        ea_funcs.append(matches_ea_instance(pdtype))
                                 else:
                                     resolved.add(type(pdtype))
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
