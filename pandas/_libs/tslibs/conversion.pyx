@@ -164,13 +164,18 @@ def cast_from_unit_vectorized(
     # wrap shifts it by ~2**64. (GH#57366)
     if m != 1:
         result_f = base.astype("f8") * m + frac * m
-        oob = np.abs(result_f - out.astype("f8")) >= np.float64(2**63)
-        non_nat = ~nat_mask
-        if (oob & non_nat).any():
-            bad_idx = int(np.where(oob & non_nat)[0][0])
-            raise OutOfBoundsDatetime(
-                f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
-            )
+        # Detecting the wrap costs an extra pass over the data, so gate it behind
+        # a cheap bound. result_f tracks the true result to ~2**-50 relative, well
+        # inside this margin, so a wrap can never land outside it.
+        near_bound = np.float64(2**63) * (1 - 2**-30)
+        if ((result_f >= near_bound) | (result_f <= -near_bound)).any():
+            oob = np.abs(result_f - out.astype("f8")) >= np.float64(2**63)
+            non_nat = ~nat_mask
+            if (oob & non_nat).any():
+                bad_idx = int(np.where(oob & non_nat)[0][0])
+                raise OutOfBoundsDatetime(
+                    f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+                )
 
     out[nat_mask] = NPY_NAT
     return out
