@@ -1961,7 +1961,21 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = localize_pydatetime(other, tzinfo)
 
-            return Timestamp(other)
+            result = Timestamp(other)
+            # GH#64806 The computation above uses Python timedelta /
+            # relativedelta, which floor sub-second components to microseconds
+            # and lose the offset's declared resolution (e.g. milliseconds).
+            # Coerce to that resolution when lossless so the scalar result
+            # matches the vectorized DatetimeIndex/Series path; apply_wraps
+            # then narrows back to ``other``'s unit where that is also lossless.
+            try:
+                offset_unit = self._pd_timedelta.unit
+            except NotImplementedError:
+                return result
+            result2 = result.as_unit(offset_unit)
+            if result == result2:
+                result = result2
+            return result
         else:
             return other + timedelta(self._n)
 
