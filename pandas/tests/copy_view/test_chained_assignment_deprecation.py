@@ -132,3 +132,35 @@ def test_chained_assignment_disabled_env_var():
     env = os.environ.copy()
     env["PANDAS_CHAINED_WARNING_DISABLED"] = "1"
     subprocess.check_call([sys.executable, "-c", code], env=env)
+
+
+def test_chained_assignment_option():
+    import pandas as pd
+    import pytest
+    from pandas.errors import ChainedAssignmentError
+
+    # Test "warn" behavior
+    with pd.option_context("mode.chained_assignment", "warn"):
+        df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
+        with pytest.warns(ChainedAssignmentError, match="A value is being set on a copy"):
+            df["a"][0] = 0
+
+    # Test "raise" behavior (raises actual exception)
+    with pd.option_context("mode.chained_assignment", "raise"):
+        df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
+        with pytest.raises(ChainedAssignmentError, match="A value is being set on a copy"):
+            df["a"][0] = 0
+
+    # Test None behavior (disabled)
+    with pd.option_context("mode.chained_assignment", None):
+        df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
+        # Use warnings.catch_warnings to verify absolutely no warnings of category ChainedAssignmentError are raised
+        import warnings
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            df["a"][0] = 0
+        chained = [
+            w for w in caught if issubclass(w.category, ChainedAssignmentError)
+        ]
+        assert not chained
+

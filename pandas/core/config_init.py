@@ -436,12 +436,40 @@ chained_assignment = """
     The default is warn
 """
 
+
+def chained_assignment_cb(key: str) -> None:
+    from pandas._config.config import _global_config as config
+    from pandas.errors import ChainedAssignmentError
+    import warnings
+
+    val = config["mode"]["chained_assignment"]
+
+    try:
+        warnings.filters = [
+            f for f in warnings.filters if f[2] is not ChainedAssignmentError
+        ]
+    except Exception:
+        pass
+
+    if val == "raise":
+        warnings.simplefilter("error", ChainedAssignmentError)
+    elif val == "warn":
+        warnings.simplefilter("always", ChainedAssignmentError)
+    elif val is None:
+        warnings.simplefilter("ignore", ChainedAssignmentError)
+
+
+from pandas.compat import PYPY
+
 with cf.config_prefix("mode"):
     cf.register_option(
         "chained_assignment",
-        "warn",
+        None
+        if (PYPY or os.environ.get("PANDAS_CHAINED_WARNING_DISABLED", "0") == "1")
+        else "warn",
         chained_assignment,
         validator=is_one_of_factory([None, "warn", "raise"]),
+        cb=chained_assignment_cb,
     )
 
 performance_warnings = """

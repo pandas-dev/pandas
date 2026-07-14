@@ -24,9 +24,18 @@ ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
 REF_COUNT = 2 if PY314 else 3
 REF_COUNT_IDX = 2
 REF_COUNT_METHOD = 1 if PY314 else 2
-CHAINED_WARNING_DISABLED = (
-    PYPY or os.environ.get("PANDAS_CHAINED_WARNING_DISABLED", "0") == "1"
-)
+class ChainedWarningDisabled:
+    def __bool__(self) -> bool:
+        try:
+            from pandas._config.config import _global_config as config
+            return config["mode"]["chained_assignment"] is None
+        except (ImportError, KeyError, AttributeError, TypeError):
+            return (
+                PYPY or os.environ.get("PANDAS_CHAINED_WARNING_DISABLED", "0") == "1"
+            )
+
+
+CHAINED_WARNING_DISABLED = ChainedWarningDisabled()
 
 
 __all__ = [
