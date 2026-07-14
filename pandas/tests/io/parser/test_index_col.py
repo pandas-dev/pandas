@@ -369,6 +369,48 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", [str, object])
+def test_scalar_dtype_for_index_col(all_parsers, dtype, using_infer_string, request):
+    # GH#45801 a scalar dtype applies to the index column too, like the c
+    #  engine, except when it resolves to object (dtype=object always;
+    #  dtype=str with infer_string disabled), in which case index columns
+    #  keep their inferred values
+    parser = all_parsers
+    data = "a,b\n1,x\n2,y"
+    apply_to_index = dtype is str and using_infer_string
+    if parser.engine == "python" and apply_to_index:
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="python engine does not apply scalar dtype to index_col"
+            )
+        )
+    result = parser.read_csv(StringIO(data), index_col="a", dtype=dtype)
+    if apply_to_index:
+        expected_index = Index(["1", "2"], name="a", dtype=dtype)
+    else:
+        expected_index = Index([1, 2], name="a")
+    expected = DataFrame({"b": ["x", "y"]}, index=expected_index, dtype=dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "Int64"])
+def test_scalar_numeric_dtype_for_index_col(all_parsers, dtype, request):
+    # GH#45801 a scalar dtype applies to the index column too, like the c
+    #  engine
+    parser = all_parsers
+    data = "a,b\n1,2\n3,4"
+    if parser.engine == "python":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="python engine does not apply scalar dtype to index_col"
+            )
+        )
+    result = parser.read_csv(StringIO(data), index_col="a", dtype=dtype)
+    expected = DataFrame({"b": [2, 4]}, index=Index([1, 3], name="a"), dtype=dtype)
+    expected.index = expected.index.astype(dtype)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiindex_columns_not_leading_index_col(all_parsers):
     # GH#38549
     parser = all_parsers

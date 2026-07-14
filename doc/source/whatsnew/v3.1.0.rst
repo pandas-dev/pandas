@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
+- :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - :meth:`DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`GroupBy.agg`, and supports :class:`NamedFunc` (:issue:`58318`)
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
@@ -413,6 +414,7 @@ I/O
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
 - Fixed bugs in :func:`read_csv` with ``engine="pyarrow"`` where column names were handled inconsistently with the other engines: duplicated names were not de-duplicated to ``"x.1"``-style names, empty header fields did not get ``"Unnamed: {i}"`` placeholder names, and an unnamed ``index_col`` produced an index named ``""`` instead of an unnamed index (:issue:`13017`, :issue:`35211`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where invalid ``sep``, ``quotechar``, ``escapechar``, and ``decimal`` arguments raised cryptic errors, or in the case of ``quotechar=None`` were silently ignored, instead of raising the same informative errors as the other engines (:issue:`66317`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing a scalar (non-dict) ``dtype`` together with ``index_col`` raised ``AttributeError``; the scalar ``dtype`` is now also applied to the index column, matching the default ``c`` engine (:issue:`45801`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
@@ -514,6 +516,7 @@ ExtensionArray
 - Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` not propagating ``pd.NA`` on numpy-nullable columns (``boolean``, ``Int*``, ``UInt*``, ``Float*``); ``axis=0`` raised ``ValueError`` and ``axis=1`` returned a concrete ``True``/``False`` (:issue:`65710`)
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
+- Fixed bug in :meth:`Series.cummax` and :meth:`Series.cummin` (and their :class:`DataFrame` counterparts) with floating-point :class:`ArrowDtype` returning a finite sentinel value instead of the correct running maximum/minimum (:issue:`66257`)
 - Fixed the :attr:`~Series.is_monotonic_increasing` and :attr:`~Series.is_monotonic_decreasing` properties to dispatch to the underlying :class:`ExtensionArray` implementation (:issue:`65585`)
 -
 
