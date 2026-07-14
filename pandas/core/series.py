@@ -2924,7 +2924,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0])
+            return maybe_unbox_numpy_scalar(result.iloc[0], dtype=self.dtype)
 
     def corr(
         self,
@@ -3014,7 +3014,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = nanops.nancorr(
                 this_values, other_values, method=method, min_periods=min_periods
             )
-            result = maybe_unbox_numpy_scalar(result)
+            result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
             return result
 
         raise ValueError(
@@ -3070,7 +3070,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
-        result = maybe_unbox_numpy_scalar(result)
+        result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
         return result
 
     def describe(
@@ -3389,7 +3389,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
-        return maybe_unbox_numpy_scalar(result)
+        return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
 
     def __matmul__(self, other):
         """
@@ -6165,7 +6165,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item))
+        return maybe_unbox_numpy_scalar(super().pop(item=item), dtype=self.dtype)
 
     def info(
         self,
@@ -7164,6 +7164,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise ValueError("Can only compare identically-labeled Series objects")
 
         lvalues = self._values
+        if not isinstance(lvalues, ExtensionArray) and lvalues.dtype != object:
+            # For EA-backed values the warning is emitted by the EA's own
+            # _cmp_method; object dtype already treats a non-standard listlike
+            # as scalar-like, so it needs no warning either (GH#62423).
+            ops.maybe_warn_listlike(other)
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.comparison_op(lvalues, rvalues, op)
@@ -8853,7 +8858,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 )
             result = op(delegate, skipna=skipna, **kwds)
 
-        result = maybe_unbox_numpy_scalar(result)
+        # any/all coerce to bool for all dtypes, so unbox even for object
+        result = maybe_unbox_numpy_scalar(
+            result, dtype=None if name in ["any", "all"] else self.dtype
+        )
         return result
 
     # error: Signature of "any" incompatible with supertype "NDFrame"

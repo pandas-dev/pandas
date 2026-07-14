@@ -2350,6 +2350,20 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_with_expansion_dict_partial(self):
+        # GH#65418 — partial assignment of a dict used to write the dict keys
+        #  positionally instead of aligning its values by key.
+        df = DataFrame({"a": [10, 20, 30, 40]})
+        df.loc[[0, 1, 2], "data"] = {0: "x", 1: "y", 2: "z"}
+        expected = DataFrame({"a": [10, 20, 30, 40], "data": ["x", "y", "z", np.nan]})
+        tm.assert_frame_equal(df, expected, check_column_type=False)
+
+        # a dict aligns by key, so it matches the equivalent Series and the
+        #  non-expansion (existing-column / null-slice) paths
+        alt = DataFrame({"a": [10, 20, 30, 40]})
+        alt.loc[[0, 1, 2], "data"] = Series({0: "x", 1: "y", 2: "z"})
+        tm.assert_frame_equal(df, alt, check_column_type=False)
+
     def test_loc_setitem_datetimeindex_str_column_name(self):
         # GH#47006 - string column name that could be parsed as a datetime
         # should not be interpreted as a row indexer

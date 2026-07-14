@@ -294,6 +294,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             # test_constructor_empty_special has a case with an iter object
             scalars = list(scalars)
 
+        if isinstance(scalars, ExtensionArray) and scalars.dtype.kind in "iu":
+            # e.g. masked or arrow-backed integer array; np.asarray would cast
+            #  integers-with-NA to float and raise a misleading "floating point"
+            #  error below, so route through object dtype to keep the integers.
+            scalars = scalars.to_numpy(dtype=object, na_value=NaT)
+
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
             if not lib.all_nans(arrdata):
@@ -1581,8 +1587,8 @@ def _range_from_fields(
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        year = np.asarray(year, dtype=np.int64)
-        quarter = np.asarray(quarter, dtype=np.int64)
+        year = _field_to_int64(year)
+        quarter = _field_to_int64(quarter)
 
         if (quarter < 1).any() or (quarter > 4).any():
             raise ValueError("Quarter must be 1 <= q <= 4")
@@ -1603,22 +1609,31 @@ def _range_from_fields(
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
         ordinals = libperiod.period_ordinals_from_fields(
-            arrays[0].astype(np.int64, copy=False),
-            arrays[1].astype(np.int64, copy=False),
-            arrays[2].astype(np.int64, copy=False),
-            arrays[3].astype(np.int64, copy=False),
-            arrays[4].astype(np.int64, copy=False),
-            arrays[5].astype(np.int64, copy=False),
+            _field_to_int64(arrays[0]),
+            _field_to_int64(arrays[1]),
+            _field_to_int64(arrays[2]),
+            _field_to_int64(arrays[3]),
+            _field_to_int64(arrays[4]),
+            _field_to_int64(arrays[5]),
             base,
         )
 
     return ordinals, freq
 
 
+def _field_to_int64(values) -> np.ndarray:
+    values = np.asarray(values)
+    if values.dtype.kind == "f" and np.isnan(values).any():
+        # Match the error raised by the scalar Period constructor; casting
+        #  NaN to int64 would otherwise silently produce garbage ordinals.
+        raise ValueError("cannot convert float NaN to integer")
+    return values.astype(np.int64, copy=False)
+
+
 def _make_field_arrays(*fields) -> list[np.ndarray]:
     length = None
     for x in fields:
-        if isinstance(x, (list, np.ndarray, ABCSeries)):
+        if isinstance(x, (list, tuple, np.ndarray, ABCSeries)):
             if length is not None and len(x) != length:
                 raise ValueError("Mismatched Period array lengths")
             if length is None:
@@ -1630,7 +1645,7 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
     return [
         (
             np.asarray(x)
-            if isinstance(x, (np.ndarray, list, ABCSeries))
+            if isinstance(x, (np.ndarray, list, tuple, ABCSeries))
             else np.repeat(x, length)  # type: ignore[arg-type]
         )
         for x in fields

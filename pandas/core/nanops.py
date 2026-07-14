@@ -346,7 +346,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
     return not issubclass(dtype.type, np.integer)
 
 
-def _wrap_results(result, dtype: np.dtype, fill_value=None):
+def _wrap_results(result, dtype: np.dtype, fill_value=None, result_mask=None):
     """wrap our results if needed"""
     if result is NaT:
         pass
@@ -371,7 +371,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
             result = result.astype(dtype)
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
-            if result == fill_value or np.isnan(result):
+            if result_mask or result == fill_value or np.isnan(result):
                 unit = np.datetime_data(dtype)[0]
                 result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
@@ -383,6 +383,15 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.int64(result).astype(dtype, copy=False)
 
         else:
+            overflow = np.abs(result) > lib.i8max
+            if result_mask is not None:
+                # GH#43178: positions that will be set to NaT (skipna=False) are
+                #  exempt from the overflow check and must not trip the cast below
+                overflow &= ~result_mask
+                result = np.where(result_mask, 0, result)
+            if overflow.any():
+                # GH#43178: raise if any result is too large for the dtype's unit
+                raise OutOfBoundsTimedelta("overflow in timedelta operation")
             result = result.astype("m8[ns]").view(dtype)
 
     return result
@@ -412,7 +421,18 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
-            result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
+            result_mask = None
+            if not skipna:
+                assert mask is not None  # checked above
+                # positions with any NA reduce to NaT, so exempt them from the
+                # timedelta overflow guard in _wrap_results
+                if isinstance(result, np.ndarray):
+                    result_mask = mask.any(axis=axis)
+                else:
+                    result_mask = mask.any()
+            result = _wrap_results(
+                result, orig_values.dtype, fill_value=iNaT, result_mask=result_mask
+            )
             if not skipna:
                 assert mask is not None  # checked above
                 result = _mask_datetimelike_result(result, axis, mask, orig_values)
