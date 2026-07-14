@@ -2511,6 +2511,17 @@ def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
         assert result == expected
 
 
+def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
+    # GH#64266
+    left = np.int8(1)
+    df = DataFrame({"a": [left], "b": [np.int8(5)]}, dtype=object)
+    result = df.min(axis=None)
+    assert result is left
+
+    result = np.minimum.reduce(df, axis=None)
+    assert result is left
+
+
 @pytest.mark.parametrize(
     "kernel",
     [
