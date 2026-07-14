@@ -41,7 +41,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
-    FY5253Mixin,
     RelativeDeltaOffset,
     Week,
 )
@@ -797,29 +796,33 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if freq != inferred:
                 # GH#61086 freq may be equivalent but not equal (e.g.
                 # QS-FEB vs QS-MAY), so validate against the actual data.
-                if len(self) == 0:
-                    pass
-                elif len(self) == 1:
+                # GH#65012 checking a single step is not enough: a fixed-step
+                # (Tick/Day) or business/custom offset can match the first gap
+                # by coincidence yet diverge on a later step, so every step
+                # must conform.
+                if len(self) == 1:
                     if not freq.is_on_offset(self[0]):
                         raise ValueError(
                             f"Inferred frequency {inferred} from passed "
                             "values does not conform to passed frequency "
                             f"{freq.freqstr}"
                         )
-                elif self[0] + freq == self[1]:
-                    # For standard offsets, the step is a deterministic
-                    # function of the date, so agreement on one step proves
-                    # equivalence. For Custom/FY5253 offsets, external
-                    # state (holidays, 52/53-week patterns) could cause
-                    # later steps to diverge, so we validate fully.
-                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
-                        type(arr)._validate_frequency(self, freq, **validate_kwds)
-                else:
-                    raise ValueError(
-                        f"Inferred frequency {inferred} from passed "
-                        "values does not conform to passed frequency "
-                        f"{freq.freqstr}"
-                    )
+                elif isinstance(freq, Tick) and len(self) > 1:
+                    # A Tick is a fixed step in i8 space regardless of tz, so
+                    # conformance is just uniform spacing. This avoids the
+                    # pricier _validate_frequency (which infers the freq and
+                    # allocates a range). Not valid for Day (DST-dependent) or
+                    # calendar offsets, which stay on the path below.
+                    delta = Timedelta(freq)
+                    step = delta.as_unit(self.unit)
+                    if step != delta or not (np.diff(self.asi8) == step._value).all():
+                        raise ValueError(
+                            f"Inferred frequency {inferred} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
+                elif len(self) > 1:
+                    type(arr)._validate_frequency(self, freq, **validate_kwds)
             self._freq = freq
 
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
