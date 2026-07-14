@@ -261,7 +261,7 @@ cdef extern from "pandas/parser/tokenizer.h":
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
-    void del_rd_source(void *src)
+    void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
                           size_t *bytes_read, int *status, const char *encoding_errors)
@@ -322,7 +322,7 @@ cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    const char *encoding_errors) noexcept:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
-cdef void del_rd_source_wrapper(void *src) noexcept:
+cdef void del_rd_source_wrapper(void *src) noexcept nogil:
     del_rd_source(src)
 
 
@@ -1450,8 +1450,17 @@ cdef class TextReader:
 # which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
-    # also preemptively free all allocated memory
-    parser_free(reader.parser)
+    # Drop the pre-loaded buffer reference deterministically so the caller
+    # can close the backing mmap (free-threaded builds may otherwise delay
+    # the release past pool shutdown).
+    reader._buffer_ref = None
+    # Preemptively free all allocated memory, without the GIL: on macOS
+    # freeing the (potentially large) data buffers gives pages back to the
+    # OS via madvise, which would otherwise stall every other parser thread
+    # in the parallel-read path. del_rd_source re-acquires the GIL for its
+    # decrefs.
+    with nogil:
+        parser_free(reader.parser)
     if reader.true_set:
         kh_destroy_str_starts(reader.true_set)
         reader.true_set = NULL
