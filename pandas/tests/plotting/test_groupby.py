@@ -167,7 +167,6 @@ class TestDataFrameGroupByPlots:
             g.hist(legend=True, label="d")
 
     def test_plot_kwargs_scatter_legend_labels(self):
-        # GH#66027
         # https://github.com/pandas-dev/pandas/pull/66027
         df = DataFrame(
             {
@@ -187,7 +186,6 @@ class TestDataFrameGroupByPlots:
         _check_legend_labels(res["b"], ["b"])
 
     def test_plot_kwargs_scatter_no_legend(self):
-        # GH#66027
         # https://github.com/pandas-dev/pandas/pull/66027
         df = DataFrame(
             {
