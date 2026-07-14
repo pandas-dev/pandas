@@ -481,6 +481,7 @@ def read_hdf(
         # so delegate to the iterator
         auto_close = True
 
+    read_succeeded = False
     try:
         if key is None:
             groups = store.groups()
@@ -502,7 +503,7 @@ def read_hdf(
                         "file contains multiple datasets."
                     )
             key = candidate_only_group._v_pathname
-        return store.select(
+        result = store.select(
             key,
             where=where,
             start=start,
@@ -512,13 +513,15 @@ def read_hdf(
             chunksize=chunksize,
             auto_close=auto_close,
         )
-    except (ValueError, TypeError, LookupError):
-        if not isinstance(path_or_buf, HDFStore):
-            # if there is an error, close the store if we opened it.
+        read_succeeded = True
+        return result
+    finally:
+        # If the read failed for any reason, close the store when we were the
+        # ones who opened it, so the caller can reopen the file (GH#28430). On
+        # success the store is left as-is: an iterator result needs it open.
+        if not read_succeeded and not isinstance(path_or_buf, HDFStore):
             with suppress(AttributeError):
                 store.close()
-
-        raise
 
 
 def _is_metadata_of(group: Node, parent_group: Node) -> bool:
@@ -577,7 +580,10 @@ class HDFStore:
         Specifies a compression level for data.
         A value of 0 or None disables compression.
     complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
-        Specifies the compression library to be used.
+        Specifies the compression library to be used. This has no effect
+        unless ``complevel`` is set to a value greater than 0; passing
+        ``complib`` alone emits a ``UserWarning`` and produces an
+        uncompressed store.
         These additional compressors for Blosc are supported
         (default if no compressor specified: 'blosc:blosclz'):
         {'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
@@ -633,6 +639,18 @@ class HDFStore:
 
         if complib is None and complevel is not None:
             complib = tables.filters.default_complib
+
+        if complib is not None and complevel is None:
+            # GH#29310 complib without complevel does not compress, because
+            # complevel defaults to 0. Warn rather than silently ignoring the
+            # requested library.
+            warnings.warn(
+                f"complib={complib!r} was specified without complevel; no "
+                "compression will be applied. Pass complevel (an int in 1-9) "
+                "to enable compression.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         self._path = stringify_path(path)
         if mode is None:
@@ -2619,6 +2637,7 @@ class IndexCol:
         table=None,
         meta=None,
         metadata=None,
+        nan_rep=None,
     ) -> None:
         if not isinstance(name, str):
             raise ValueError("`name` must be a str.")
@@ -2637,6 +2656,9 @@ class IndexCol:
         self.table = table
         self.meta = meta
         self.metadata = metadata
+        # GH#9604: for a string Index, the sentinel used on write to encode
+        # missing values (None when the index had no missing values).
+        self.nan_rep = nan_rep
 
         if pos is not None:
             self.set_pos(pos)
@@ -2658,6 +2680,10 @@ class IndexCol:
     @property
     def meta_attr(self) -> str:
         return f"{self.name}_meta"
+
+    @property
+    def nan_rep_attr(self) -> str:
+        return f"{self.name}_nan_rep"
 
     def set_pos(self, pos: int) -> None:
         """set the position of this column in the Table"""
@@ -2743,7 +2769,9 @@ class IndexCol:
             return cat_index, cat_index
 
         val_kind = self.kind
-        values = _maybe_convert(values, val_kind, encoding, errors)
+        # GH#9604: self.nan_rep (set from the persisted per-index sentinel) lets
+        # a string Index restore missing values while leaving a literal "nan".
+        values = _maybe_convert(values, val_kind, encoding, errors, self.nan_rep)
         kwargs = {}
         kwargs["name"] = self.index_name
 
@@ -2927,6 +2955,10 @@ class IndexCol:
             # empty categories cannot be written as metadata, still round-trips
             # as categorical rather than as raw integer codes. GH#65576
             _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
+        if self.nan_rep is not None:
+            # GH#9604: persist the string-Index NaN sentinel so select() can
+            # restore missing values on read (see IndexCol.convert).
+            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -3682,6 +3714,11 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
 
+            if converted.nan_rep is not None:
+                # GH#9604: persist the string-Index NaN sentinel so read_index
+                # can restore missing values (see read_index_node).
+                node._v_attrs.nan_rep = converted.nan_rep
+
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
 
@@ -3710,6 +3747,9 @@ class GenericFixed(Fixed):
             node = getattr(self.group, level_key)
             node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
+
+            if conv_level.nan_rep is not None:
+                node._v_attrs.nan_rep = conv_level.nan_rep
 
             # write the name
             setattr(node._v_attrs, f"{key}_name{name}", name)
@@ -3768,6 +3808,9 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
+        # GH#9604: per-index string NaN sentinel (absent for old files)
+        nan_rep = getattr(node._v_attrs, "nan_rep", None)
+
         if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
@@ -3780,7 +3823,11 @@ class GenericFixed(Fixed):
             try:
                 index = factory(
                     _unconvert_index(
-                        data, kind, encoding=self.encoding, errors=self.errors
+                        data,
+                        kind,
+                        encoding=self.encoding,
+                        errors=self.errors,
+                        nan_rep=nan_rep,
                     ),
                     **kwargs,
                 )
@@ -3793,7 +3840,11 @@ class GenericFixed(Fixed):
                 ):
                     index = factory(
                         _unconvert_index(
-                            data, kind, encoding=self.encoding, errors=self.errors
+                            data,
+                            kind,
+                            encoding=self.encoding,
+                            errors=self.errors,
+                            nan_rep=nan_rep,
                         ),
                         dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
@@ -4436,6 +4487,8 @@ class Table(Fixed):
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
+            # GH#9604: per-index string NaN sentinel (absent for old files)
+            nan_rep = getattr(table_attrs, f"{name}_nan_rep", None)
 
             index_col = IndexCol(
                 name=name,
@@ -4446,6 +4499,7 @@ class Table(Fixed):
                 table=self.table,
                 meta=meta,
                 metadata=md,
+                nan_rep=nan_rep,
             )
             _indexables.append(index_col)
 
@@ -4618,7 +4672,9 @@ class Table(Fixed):
         """return the data for this obj"""
         return obj
 
-    def validate_data_columns(self, data_columns, min_itemsize, non_index_axes) -> list:
+    def validate_data_columns(
+        self, data_columns, min_itemsize, non_index_axes, index_cnames=()
+    ) -> list:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4635,7 +4691,11 @@ class Table(Fixed):
                     f"data_columns {data_columns}"
                 )
             if isinstance(min_itemsize, dict):
-                mi_keys = [k for k in min_itemsize if k != "values"]
+                # GH#12154 'values' sizes every string column and the index
+                # cname(s) size the row index; both are legal here. Only
+                # per-column keys are unsupported for MultiIndex columns.
+                allowed = {"values", *index_cnames}
+                mi_keys = [k for k in min_itemsize if k not in allowed]
                 if mi_keys:
                     raise ValueError(
                         f"cannot use min_itemsize keys {mi_keys} on axis "
@@ -4797,7 +4857,7 @@ class Table(Fixed):
 
         # figure out data_columns and get out blocks
         data_columns = self.validate_data_columns(
-            data_columns, min_itemsize, new_non_index_axes
+            data_columns, min_itemsize, new_non_index_axes, (new_index.cname,)
         )
 
         if new_index.cname in data_columns:
@@ -5760,6 +5820,19 @@ def _set_tz(
     return dta
 
 
+def _make_index_nan_rep(values: np.ndarray, mask: np.ndarray) -> str:
+    """
+    Choose a string NaN sentinel for a string Index that does not collide with
+    any non-missing value, so genuine missing values round-trip without being
+    confused with a literal string such as ``"nan"`` (GH#9604).
+    """
+    existing = set(values[~mask])
+    nan_rep = "nan"
+    while nan_rep in existing:
+        nan_rep = f"_{nan_rep}_"
+    return nan_rep
+
+
 def _convert_index(name: str, index: Index, encoding: str, errors: str) -> IndexCol:
     assert isinstance(name, str)
 
@@ -5841,6 +5914,18 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             name, converted, "date", _tables().Time32Col(), index_name=index_name
         )
     elif inferred_type == "string":
+        # GH#9604: a genuine missing value and the literal string "nan" both
+        # serialize to b"nan" via the fixed-width string cast, so they cannot
+        # be told apart on read. Substitute the missing values with a sentinel
+        # that does not collide with any real value and persist it (see
+        # write_index / IndexCol.set_attr) so the reader can restore the NAs
+        # while leaving a literal "nan" untouched.
+        mask = np.asarray(index.isna())
+        nan_rep = None
+        if mask.any():
+            nan_rep = _make_index_nan_rep(values, mask)
+            values = values.copy()
+            values[mask] = nan_rep
         converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
         return IndexCol(
@@ -5849,6 +5934,7 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
             "string",
             _tables().StringCol(itemsize),
             index_name=index_name,
+            nan_rep=nan_rep,
         )
 
     elif inferred_type in ["integer", "floating"]:
@@ -5862,7 +5948,9 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
         return IndexCol(name, converted, kind, atom, index_name=index_name)
 
 
-def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray | Index:
+def _unconvert_index(
+    data, kind: str, encoding: str, errors: str, nan_rep=None
+) -> np.ndarray | Index:
     index: Index | np.ndarray
 
     if kind.startswith("datetime64"):
@@ -5886,7 +5974,7 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
         index = np.asarray(data)
     elif kind in ("string"):
         index = _unconvert_string_array(
-            data, nan_rep=None, encoding=encoding, errors=errors
+            data, nan_rep=nan_rep, encoding=encoding, errors=errors
         )
     elif kind == "object":
         index = np.asarray(data[0])
@@ -6014,9 +6102,9 @@ def _unconvert_string_array(
     ----------
     data : np.ndarray[fixed-length-string]
     nan_rep : the storage repr of NaN, or None to skip substitution.
-        Pass None when the writer did not encode NaN as a sentinel string
-        (e.g. for string indices); otherwise legitimate occurrences of the
-        sentinel value would be incorrectly replaced with NaN on read.
+        Pass None when the writer did not encode NaN as a sentinel string;
+        otherwise legitimate occurrences of the sentinel value would be
+        incorrectly replaced with NaN on read.
     encoding : str
     errors : str
         Handler for encoding errors.
@@ -6047,22 +6135,24 @@ def _unconvert_string_array(
     return data.reshape(shape)
 
 
-def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str):
+def _maybe_convert(
+    values: np.ndarray, val_kind: str, encoding: str, errors: str, nan_rep=None
+):
     assert isinstance(val_kind, str), type(val_kind)
     if _need_convert(val_kind):
-        conv = _get_converter(val_kind, encoding, errors)
+        conv = _get_converter(val_kind, encoding, errors, nan_rep)
         values = conv(values)
     return values
 
 
-def _get_converter(kind: str, encoding: str, errors: str):
+def _get_converter(kind: str, encoding: str, errors: str, nan_rep=None):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
     elif "datetime64" in kind:
         return lambda x: np.asarray(x, dtype=kind)
     elif kind == "string":
         return lambda x: _unconvert_string_array(
-            x, nan_rep=None, encoding=encoding, errors=errors
+            x, nan_rep=nan_rep, encoding=encoding, errors=errors
         )
     else:  # pragma: no cover
         raise ValueError(f"invalid kind {kind}")

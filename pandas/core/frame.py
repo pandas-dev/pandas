@@ -40,6 +40,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
@@ -1774,6 +1775,17 @@ class DataFrame(NDFrame, OpsMixin):
         elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
+            if (
+                orient == "columns"
+                and isinstance(data, dict)
+                and len(data) > 0
+                and all(is_scalar(value) for value in data.values())
+            ):
+                # GH#25515
+                raise ValueError(
+                    "If using all scalar values, pass orient='index' to use "
+                    "the keys as the index, or use the DataFrame constructor."
+                )
         else:  # pragma: no cover
             raise ValueError(
                 f"Expected 'index', 'columns' or 'tight' for orient parameter. "
@@ -5361,6 +5373,10 @@ class DataFrame(NDFrame, OpsMixin):
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
           ``'timedelta64'``
+        * To select datetimes or timedeltas of a specific resolution, pass a
+          unit-qualified dtype such as ``'datetime64[us]'`` or
+          ``'timedelta64[ms]'``; this matches only columns with exactly that
+          resolution, whereas an unqualified spec matches every resolution
         * To select Pandas categorical dtypes, use ``'category'``
         * To select Pandas datetimetz dtypes, use ``'datetimetz'``
           or ``'datetime64[ns, tz]'``
@@ -5469,6 +5485,16 @@ class DataFrame(NDFrame, OpsMixin):
             ) -> Callable[[DtypeObj], bool]:
                 def func(dtype_obj: DtypeObj) -> bool:
                     return dtype_obj == target
+
+                return func
+
+            def matches_np_dtype(
+                np_dtype: np.dtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # A datetime64/timedelta64 dtype with a specific unit matches
+                # only columns with exactly that resolution (GH#40234)
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return isinstance(dtype_obj, np.dtype) and dtype_obj == np_dtype
 
                 return func
 
@@ -5604,10 +5630,21 @@ class DataFrame(NDFrame, OpsMixin):
                                 continue
                             if lib.is_np_dtype(pdtype, "mM"):
                                 unit = np.datetime_data(pdtype)[0]
-                                if unit not in ("generic", "ns"):
+                                if unit == "generic":
+                                    # a unitless datetime64/timedelta64 matches
+                                    # every resolution
+                                    dtype_type = pdtype.type
+                                elif is_supported_dtype(pdtype):
+                                    # a specific unit (s, ms, us, ns) matches
+                                    # only that exact resolution (GH#40234)
+                                    resolved.add(pdtype)
+                                    funcs.append(matches_np_dtype(pdtype))
+                                    continue
+                                else:
                                     raise ValueError(
-                                        f"{pdtype.name!r} is too specific of a "
-                                        f"frequency, try passing "
+                                        f"{pdtype.name!r} is not a supported "
+                                        "datetime64/timedelta64 resolution; pass "
+                                        "'s', 'ms', 'us', 'ns', or "
                                         f"{pdtype.type.__name__!r}"
                                     )
                             # Instances are handled at the top of the loop, so
