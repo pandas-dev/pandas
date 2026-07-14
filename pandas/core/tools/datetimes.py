@@ -49,6 +49,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
+    is_bool_dtype,
     is_float,
     is_float_dtype,
     is_integer,
@@ -1216,6 +1217,7 @@ def _assemble_from_unit_mappings(
     """
     from pandas import (
         DataFrame,
+        Series,
         to_numeric,
         to_timedelta,
     )
@@ -1269,8 +1271,8 @@ def _assemble_from_unit_mappings(
             values = values.astype("int64")
         return values
 
-    # Convert field values to int64 arrays, tracking NaN positions
-    # (NaN arises when errors="coerce" and a value can't be parsed)
+    # Convert field values to int64 arrays, tracking rows where a
+    #  year/month/day column has NaN (e.g. from errors="coerce" parsing)
     nan_mask = np.zeros(len(arg), dtype=bool)
 
     field_spec = [
@@ -1281,10 +1283,13 @@ def _assemble_from_unit_mappings(
         ("m", 0),
         ("s", 0),
     ]
+    i32info = np.iinfo(np.int32)
     field_arrs = []
-    # hour/minute/second columns with fractional values; added via
-    #  to_timedelta below
-    frac_units: list[tuple[UnitChoices, AnyArrayLike]] = []
+    # hour/minute/second columns that cannot go through datetime_from_fields
+    #  (fractional e.g. hour=1.5, NaN, bool, or out-of-int32 values); added
+    #  via to_timedelta below, keeping the column-wise semantics of the
+    #  non-vectorized implementation
+    td_units: list[tuple[UnitChoices, AnyArrayLike]] = []
     for field, default in field_spec:
         col_name = unit_rev.get(field)
         if col_name is None:
@@ -1292,23 +1297,49 @@ def _assemble_from_unit_mappings(
             continue
         vals = coerce(arg[col_name])
         arr = np.asarray(vals)
+
+        if field in ("h", "m", "s"):
+            # the npy_datetimestruct time fields are int32
+            if is_integer_dtype(arr.dtype):
+                fits_struct = len(arr) == 0 or (
+                    arr.min() >= i32info.min and arr.max() <= i32info.max
+                )
+            elif is_float_dtype(arr.dtype):
+                fits_struct = bool(
+                    (
+                        (arr == np.floor(arr))
+                        & (arr >= i32info.min)
+                        & (arr <= i32info.max)
+                    ).all()
+                )
+            else:
+                fits_struct = False
+            if fits_struct:
+                field_arrs.append(arr.astype(np.int64, copy=False))
+            else:
+                td_units.append((cast("UnitChoices", field), vals))
+                field_arrs.append(np.zeros(len(arg), dtype=np.int64))
+            continue
+
+        # year/month/day
+        if is_bool_dtype(vals.dtype):
+            if errors == "raise":
+                raise ValueError(
+                    f"cannot assemble the datetimes: column {col_name!r} has dtype bool"
+                )
+            nan_mask[:] = True
+            field_arrs.append(np.full(len(arg), default, dtype=np.int64))
+            continue
         if not is_float_dtype(arr.dtype):
             field_arrs.append(arr.astype(np.int64, copy=False))
             continue
         isnan = np.isnan(arr)
         fractional = (~isnan) & (arr != np.floor(arr))
-        if fractional.any():
-            if field in ("h", "m", "s"):
-                # Fractional hours/minutes/seconds are meaningful
-                #  (e.g. hour=1.5 -> 01:30); handle through to_timedelta
-                frac_units.append((cast("UnitChoices", field), vals))
-                field_arrs.append(np.zeros(len(arg), dtype=np.int64))
-                continue
-            if errors == "raise":
-                raise ValueError(
-                    f"cannot assemble the datetimes: column {col_name!r} "
-                    f"contains fractional values"
-                )
+        if fractional.any() and errors == "raise":
+            raise ValueError(
+                f"cannot assemble the datetimes: column {col_name!r} "
+                f"contains fractional values"
+            )
         # +/-inf and values beyond int64 range cannot be cast meaningfully
         out_of_range = (arr >= 2**63) | (arr < -(2**63))
         if out_of_range.any() and errors == "raise":
@@ -1324,8 +1355,9 @@ def _assemble_from_unit_mappings(
 
     # Construct datetime64[us] directly from fields, avoiding the
     # object-dtype round-trip through format="%Y%m%d" string parsing.
-    # Replace NaN-masked entries with valid placeholders; the Cython
-    # function writes iNaT for invalid or out-of-bounds dates.
+    # Rows with NaN in a year/month/day column get valid placeholders in
+    # every field and NaT at the end; the Cython function writes iNaT for
+    # invalid or out-of-bounds dates.
     if nan_mask.any():
         for idx, (_, default) in enumerate(field_spec):
             field_arrs[idx] = np.where(nan_mask, default, field_arrs[idx])
@@ -1363,8 +1395,6 @@ def _assemble_from_unit_mappings(
 
     dt64_values = usecs.view("M8[us]")
 
-    from pandas import Series
-
     if utc:
         dta = DatetimeArray._simple_new(
             dt64_values, dtype=DatetimeTZDtype(tz="UTC", unit="us")
@@ -1373,8 +1403,9 @@ def _assemble_from_unit_mappings(
     else:
         values = Series(dt64_values, index=arg.index, copy=False)
 
-    # Add fractional hour/minute/second columns as timedeltas
-    for u, vals in frac_units:
+    # Add hour/minute/second columns that couldn't go through the
+    #  vectorized path
+    for u, vals in td_units:
         try:
             values += to_timedelta(vals, unit=u, errors=errors)
         except (TypeError, ValueError) as err:
