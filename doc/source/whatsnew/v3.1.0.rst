@@ -233,6 +233,7 @@ Performance improvements
 - Performance improvement in :meth:`NDFrame.__finalize__`, :meth:`Series.to_numpy`, :attr:`DataFrame.dtypes`, and :meth:`DataFrame.__getitem__` (:issue:`57431`)
 - Performance improvement in :meth:`PeriodIndex.from_fields` (:issue:`65921`)
 - Performance improvement in :meth:`Series.skew`, :meth:`Series.kurt`, and their :class:`DataFrame` counterparts when axis is ``None`` or ``0`` (:issue:`64884`)
+- Performance improvement in :meth:`Series.str.isascii` for :class:`StringDtype` with storage ``"pyarrow"``, which fell back to an object-dtype implementation instead of using PyArrow's ``string_is_ascii`` kernel (:issue:`66335`)
 - Performance improvement in :meth:`Timedelta.total_seconds` (:issue:`65388`)
 - Performance improvement in :meth:`arrays.SparseArray.isna` by avoiding a dense-then-resparsify round-trip (:issue:`41023`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
