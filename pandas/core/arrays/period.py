@@ -1631,22 +1631,26 @@ def _field_to_int64(values) -> np.ndarray:
 
 
 def _make_field_arrays(*fields) -> list[np.ndarray]:
+    array_types = (list, tuple, range, ABCIndex, ABCSeries, ExtensionArray)
+    field_arrays = [
+        np.asarray(x)
+        if isinstance(x, array_types) or (isinstance(x, np.ndarray) and x.ndim != 0)
+        else None
+        for x in fields
+    ]
+
     length = None
-    for x in fields:
-        if isinstance(x, (list, tuple, np.ndarray, ABCSeries)):
-            if length is not None and len(x) != length:
+    for values in field_arrays:
+        if values is not None:
+            if length is not None and len(values) != length:
                 raise ValueError("Mismatched Period array lengths")
             if length is None:
-                length = len(x)
+                length = len(values)
 
-    # error: Argument 2 to "repeat" has incompatible type "Optional[int]"; expected
-    # "Union[Union[int, integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
-    # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
+    if length is None:
+        length = 1
+
     return [
-        (
-            np.asarray(x)
-            if isinstance(x, (np.ndarray, list, tuple, ABCSeries))
-            else np.repeat(x, length)  # type: ignore[arg-type]
-        )
-        for x in fields
+        values if values is not None else np.repeat(x, length)
+        for x, values in zip(fields, field_arrays, strict=True)
     ]

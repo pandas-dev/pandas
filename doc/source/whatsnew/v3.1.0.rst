@@ -465,6 +465,7 @@ Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :meth:`Period.strftime` where unknown format directives (e.g. ``"%Q"``) silently produced platform-dependent output and crashed the Python process on Windows; an ``Invalid format string`` ``ValueError`` is now raised on all platforms (:issue:`53562`)
+- Bug in :meth:`PeriodIndex.from_fields` raising ``TypeError`` for scalar fields and common array-like inputs such as :class:`Index` and ``range`` (:issue:`66333`)
 -
 
 Plotting
