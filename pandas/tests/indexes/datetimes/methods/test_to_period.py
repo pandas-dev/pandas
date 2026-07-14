@@ -12,6 +12,7 @@ from pandas import (
     DatetimeIndex,
     Period,
     PeriodIndex,
+    Series,
     Timestamp,
     date_range,
     period_range,
@@ -109,6 +110,11 @@ class TestToPeriod:
         result = dti.to_period()
         expected = PeriodIndex(expected_periods, freq=expected_freq)
         tm.assert_index_equal(result, expected)
+
+        # Series.dt.to_period goes through DatetimeArray.to_period, which
+        #  infers the freq itself rather than receiving it from the Index
+        result2 = Series(dti).dt.to_period()
+        tm.assert_series_equal(result2, Series(expected))
 
     @pytest.mark.parametrize(
         "off, expected_freq",
