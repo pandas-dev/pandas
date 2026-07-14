@@ -798,6 +798,48 @@ class TestSeriesInterpolateData:
         expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("method", ["linear", "index", "values", "time"])
+    @pytest.mark.parametrize("tz", [None, "UTC"])
+    def test_interpolate_arrow_temporal_index(self, method, tz):
+        # GH#66338
+        pa = pytest.importorskip("pyarrow")
+
+        dti = date_range("2020-01-01", periods=3, freq="D", tz=tz).as_unit("us")
+        dti = dti.delete(2).append(
+            date_range("2020-01-04", periods=1, tz=tz).as_unit("us")
+        )
+        arrow_index = Index(
+            pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("us", tz=tz)))
+        )
+
+        values = [1.0, np.nan, 3.0]
+        result = Series(values, index=arrow_index).interpolate(method=method)
+        expected = Series(values, index=dti).interpolate(method=method)
+        tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+    def test_interpolate_arrow_duration_index(self):
+        # GH#66338
+        pa = pytest.importorskip("pyarrow")
+
+        tdi = pd.to_timedelta([1, 3, 4], unit="D").as_unit("us")
+        arrow_index = Index(pd.array(tdi, dtype=pd.ArrowDtype(pa.duration("us"))))
+
+        values = [1.0, np.nan, 3.0]
+        result = Series(values, index=arrow_index).interpolate(method="index")
+        expected = Series(values, index=tdi).interpolate(method="index")
+        tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+    def test_interpolate_time_non_temporal_arrow_index_raises(self):
+        # GH#66338
+        pytest.importorskip("pyarrow")
+
+        ser = Series(
+            [1.0, np.nan, 3.0], index=Index(pd.array([1, 3, 4], dtype="int64[pyarrow]"))
+        )
+        msg = "time-weighted interpolation only works"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="time")
+
     @pytest.mark.parametrize(
         "ascending, expected_values",
         [(True, [1, 2, 3, 9, 10]), (False, [10, 9, 3, 2, 1])],

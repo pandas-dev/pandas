@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         AxisInt,
+        DtypeObj,
         F,
         ReindexMethod,
         npt,
@@ -395,7 +396,7 @@ def interpolate_2d_inplace(
         fill_value = na_value_for_dtype(data.dtype, compat=False)
 
     if method == "time":
-        if not needs_i8_conversion(index.dtype):
+        if not needs_i8_conversion(index.dtype) and not _is_arrow_temporal(index.dtype):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -430,6 +431,47 @@ def interpolate_2d_inplace(
     np.apply_along_axis(func, axis, data)
 
 
+def _is_arrow_temporal(dtype: DtypeObj | None) -> bool:
+    """
+    Check whether the dtype is an ArrowDtype holding timestamps or durations.
+
+    These are not covered by ``needs_i8_conversion`` but need the same i8 view
+    to be usable as interpolation x-values.
+
+    Parameters
+    ----------
+    dtype : np.dtype, ExtensionDtype, or None
+
+    Returns
+    -------
+    boolean
+        Whether or not the dtype is an ArrowDtype timestamp or duration.
+    """
+    return isinstance(dtype, ArrowDtype) and dtype.kind in "mM"
+
+
+def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
+    """
+    View an ArrowDtype timestamp/duration array as int64.
+
+    ``np.asarray`` is not usable here: for tz-aware timestamps it yields an
+    object array of ``Timestamp`` objects, which cannot be viewed as i8.
+
+    Parameters
+    ----------
+    arr : ArrowExtensionArray
+        Array whose dtype satisfies ``_is_arrow_temporal``.
+
+    Returns
+    -------
+    np.ndarray
+        int64 view of the underlying values, with ``iNaT`` for missing values.
+    """
+    if arr.dtype.kind == "M":
+        return arr._to_datetimearray().asi8  # type: ignore[union-attr]
+    return arr._to_timedeltaarray().asi8  # type: ignore[union-attr]
+
+
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
     """
     Convert Index to ndarray of indices to pass to NumPy/SciPy.
@@ -438,6 +480,8 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
     if needs_i8_conversion(xarr.dtype):
         # GH#1646 for dt64tz
         xarr = xarr.view("i8")
+    elif _is_arrow_temporal(xarr.dtype):
+        xarr = _arrow_temporal_to_i8(xarr)
 
     if method == "linear":
         inds = xarr
