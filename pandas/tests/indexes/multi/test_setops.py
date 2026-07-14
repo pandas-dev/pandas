@@ -277,14 +277,18 @@ def test_union_mixed_date_timestamp():
         ]
     )
 
-    with tm.assert_produces_warning(None):
-        result = left.union(right, sort=False)
+    with tm.assert_produces_warning(
+        RuntimeWarning, match="The values in the array are unorderable"
+    ):
+        result = left.union(right)
 
-    assert result.tolist() == [
-        (date(2001, 1, 1), "foo"),
-        (pd.Timestamp("2001-01-01"), "bar"),
-    ]
-    assert result.levels[0].dtype == object
+    expected = MultiIndex.from_arrays(
+        [
+            Index([date(2001, 1, 1), pd.Timestamp("2001-01-01")], dtype=object),
+            Index(["foo", "bar"], dtype=object),
+        ]
+    )
+    tm.assert_index_equal(result, expected)
 
 
 def test_union_with_regular_index(idx, using_infer_string):
