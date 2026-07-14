@@ -5,10 +5,13 @@ requires = [
     "meson-python>=0.17.1,<1",
     "meson>=1.2.1,<2",
     "wheel",
-    "Cython>3.1.0,<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Force numpy higher than 2.0, so that built wheels are compatible
-    # with both numpy 1 and 2
-    "numpy>=2.0.0",
+    # "<4", not "<4.0.0a0": a pre-release in the bound makes pip eligible to
+    # install Cython pre-releases (that pulled the 3.3.0a1 alpha into 3.0.4).
+    "Cython>3.1.0,<4",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    # numpy >= 2.0 keeps wheels compatible with numpy 1 and 2. Exclude 2.5.0:
+    # wheels built against it segfault on older numpy (GH#66086; numpy GH#31804,
+    # fixed in 2.5.1).
+    "numpy>=2.0.0,!=2.5.0",
     "versioneer[toml]"
 ]
 
