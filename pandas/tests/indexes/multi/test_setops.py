@@ -3,6 +3,8 @@ from datetime import date
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -17,7 +19,6 @@ from pandas.api.types import (
     is_float_dtype,
     is_unsigned_integer_dtype,
 )
-from pandas.errors import Pandas4Warning
 
 
 @pytest.mark.parametrize("case", [0.5, "xxx"])
