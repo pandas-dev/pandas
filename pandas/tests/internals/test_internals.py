@@ -870,6 +870,90 @@ class TestBlockManager:
         assert len(bm.blocks) == 3
 
 
+class TestGetDtypesCache:
+    # GH#65382 get_dtypes caches the per-column dtypes array on the manager;
+    # block-mutating operations must invalidate the cache.
+
+    @staticmethod
+    def _prime_cache(df):
+        df.dtypes
+        assert df._mgr._dtypes_cache is not None
+
+    def test_get_dtypes_returns_copy(self):
+        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        mgr = df._mgr
+        result = mgr.get_dtypes()
+        assert mgr._dtypes_cache is not None
+        assert result is not mgr._dtypes_cache
+
+        # mutating the returned array must not corrupt the cache
+        result[0] = np.dtype("float64")
+        assert mgr.get_dtypes()[0] == np.dtype("int64")
+
+    def test_iset_multi_column_block_invalidates(self):
+        # iset replacing one column of a multi-column block with a new dtype
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        self._prime_cache(df)
+
+        df["a"] = np.array([1.5, 2.5])
+        assert df._mgr._dtypes_cache is None
+        expected = Series([np.dtype("float64"), np.dtype("int64")], index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_iset_single_block_invalidates(self):
+        # _iset_single fastpath: the column is its own single-column block
+        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        self._prime_cache(df)
+
+        df["a"] = np.array([1 + 2j, 3 + 4j])
+        assert df._mgr._dtypes_cache is None
+        expected = Series(
+            [np.dtype("complex128"), np.dtype("float64")], index=["a", "b"]
+        )
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_insert_invalidates(self):
+        df = DataFrame({"a": [1, 2]})
+        self._prime_cache(df)
+
+        df.insert(1, "b", np.array([1.5, 2.5]))
+        assert df._mgr._dtypes_cache is None
+        expected = Series([np.dtype("int64"), np.dtype("float64")], index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_delitem_dtypes_correct(self):
+        # idelete returns a new manager, which starts with an empty cache
+        df = DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+        self._prime_cache(df)
+
+        del df["a"]
+        assert df._mgr._dtypes_cache is None
+        expected = Series([np.dtype("float64")], index=["b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_inplace_setitem_same_dtype_keeps_cache_valid(self):
+        # same-dtype in-place value writes do not change per-column dtypes,
+        # so the cache may legitimately survive; dtypes must stay correct
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        self._prime_cache(df)
+
+        df.iloc[0, 0] = 10
+        expected = Series([np.dtype("int64")] * 2, index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+    def test_iset_split_block_with_reference_dtypes_correct(self):
+        # with a live reference, in-place setitem goes through
+        # _iset_split_block (Copy-on-Write); dtypes are unchanged
+        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        view = df[:]
+        self._prime_cache(df)
+
+        df.iloc[0, 0] = 10
+        expected = Series([np.dtype("int64")] * 2, index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+        tm.assert_frame_equal(view, DataFrame({"a": [1, 2], "b": [3, 4]}))
+
+
 def _as_array(mgr):
     if mgr.ndim == 1:
         return mgr.external_values()
