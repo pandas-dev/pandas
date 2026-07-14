@@ -782,7 +782,7 @@ def test_string_storage_python_consistent(c_parser_only):
 def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
     # The SIMD block fast lane defers lines led by blanks (or entirely
     # blank) to the state machine; a no-progress lane exit must preserve
-    # the post-WHITESPACE_LINE state instead of ping-ponging (GH#XXXXX).
+    # the post-WHITESPACE_LINE state instead of ping-ponging (GH#66274).
     parser = c_parser_only
     rows = []
     for i in range(200):
@@ -800,7 +800,7 @@ def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
 
 def test_block_lane_chunked_reads_match(c_parser_only):
     # A line-limited tokenize call can stop mid-lane; the parser state must
-    # be reset so the next chunk resumes cleanly (GH#XXXXX).
+    # be reset so the next chunk resumes cleanly (GH#66274).
     parser = c_parser_only
     n_rows = 500
     data = "a,b\n" + "\n".join(f"value{i:04d},{i}" for i in range(n_rows)) + "\n"
@@ -837,3 +837,16 @@ def test_block_lane_quoted_specials_mid_block(c_parser_only):
     result = parser.read_csv(StringIO(data))
     expected = read_csv(StringIO(data), engine="python")
     tm.assert_frame_equal(result, expected)
+
+
+def test_block_lane_nrows_short_row_near_stream_capacity(c_parser_only):
+    # GH#66274: the lane must honor nrows when the row hitting the limit is
+    # a short row (synthetic trailing fields) landing where the token stream
+    # is nearly full.  Each 2-byte row emits 5 stream bytes, outrunning the
+    # 2x up-front reservation so the capacity wall falls inside the lane;
+    # the over-wide final row raises only if the reader ignores nrows.
+    parser = c_parser_only
+    data = "a,b,c,d\n" + "2222\n" + "1\n" * 55_000 + "1,2,3,4,5,6,7,8,9,10\n"
+    for nrows in range(52_415, 52_431):
+        result = parser.read_csv(StringIO(data), nrows=nrows)
+        assert len(result) == nrows

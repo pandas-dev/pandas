@@ -1025,6 +1025,17 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
               i += p;
               goto parsingerror;
             }
+            if (line_limit > 0 && self->lines == start_lines + line_limit) {
+              // Must run before the tail re-copy bail below: end_line has
+              // already counted this line, and the state machine's ==-based
+              // limit checks would never match again.
+              slen = self->stream_len;
+              // index of the terminator's last byte; the label increments
+              // one past it
+              i += p + term_extra;
+              self->state = START_RECORD;
+              goto linelimit;
+            }
             if (term_extra ||
                 self->stream_len != block_base + (uint64_t)(p + 1)) {
               // The write position no longer tracks the input position:
