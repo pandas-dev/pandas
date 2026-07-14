@@ -1655,7 +1655,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 except KeyError:
                     na_val = np.nan
 
-        if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
+        if new_categories.is_unique and not new_categories.hasnans and isna(na_val):
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
 
