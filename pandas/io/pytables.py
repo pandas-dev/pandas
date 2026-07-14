@@ -2573,13 +2573,9 @@ class TableIterator:
                 raise TypeError("can only use an iterator or chunksize on a table")
 
             if self.where is not None:
-                if self.s._where_selects_columns(self.where):
-                    raise NotImplementedError(
-                        "selecting columns through the 'where' expression "
-                        "(e.g. \"columns=['A']\") is not supported with "
-                        "'iterator' or 'chunksize'; use the 'columns' argument "
-                        "instead"
-                    )
+                # read_coordinates raises a clear NotImplementedError if the
+                #  where is a column projection (e.g. "columns=['A']") rather
+                #  than a row filter (GH#12953).
                 self.coordinates = self.s.read_coordinates(where=self.where)
 
             return self
@@ -5075,7 +5071,12 @@ class Table(Fixed):
                     # this might be the name of a file IN an axis
                     elif field in axis_values:
                         # we need to filter on this dimension
-                        values = ensure_index(getattr(obj, field).values)
+                        # use the column Series rather than .values so the
+                        #  filter respects the column dtype -- .values strips
+                        #  tz from a datetimetz column and the isin below then
+                        #  matches nothing (GH#12953). This mirrors the
+                        #  coordinate path in Selection.select_coords.
+                        values = obj[field]
                         filt = ensure_index(filt)
 
                         # hack until we support reversed dim flags
@@ -5136,6 +5137,15 @@ class Table(Fixed):
         if not self.infer_axes():
             return False
 
+        if where is not None and self._where_selects_columns(where):
+            raise NotImplementedError(
+                "selecting columns through the 'where' expression "
+                "(e.g. \"columns=['A']\") is a column projection, not a row "
+                "filter, so it cannot be read as row coordinates (e.g. with "
+                "select_as_coordinates, select_as_multiple, iterator, or "
+                "chunksize); use the 'columns' argument of 'select' instead"
+            )
+
         # create the selection
         selection = Selection(self, where=where, start=start, stop=stop)
         coords = selection.select_coords()
@@ -5147,9 +5157,11 @@ class Table(Fixed):
         Whether ``where`` contains a column selection such as "columns=['A']".
 
         Such a selection is a column projection rather than a row filter, which
-        cannot be applied via row coordinates and so is unsupported when
-        iterating (GH#12953); callers raise a clear error instead of returning
-        the wrong columns.
+        cannot be applied via row coordinates and so is unsupported on any
+        coordinate-based read -- ``iterator``/``chunksize``,
+        :meth:`select_as_coordinates`, and :meth:`select_as_multiple`
+        (GH#12953); ``read_coordinates`` raises a clear error instead of a
+        cryptic ``KeyError``.
         """
         if not self.non_index_axes:
             return False

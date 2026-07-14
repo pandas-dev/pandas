@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
+    EmptyDataError,
     Pandas4Warning,
     ParserWarning,
 )
@@ -245,9 +246,22 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_delimiter_with_usecols_and_parse_dates(all_parsers):
     # GH#35873
+    if all_parsers.engine == "pyarrow":
+        # pyarrow cannot parse this single-line input with these options
+        msg = "No columns to parse from file"
+        with pytest.raises(EmptyDataError, match=msg):
+            all_parsers.read_csv(
+                StringIO('"dump","-9,1","-9,1",20101010'),
+                engine="python",
+                names=["col", "col1", "col2", "col3"],
+                usecols=["col1", "col2", "col3"],
+                parse_dates=["col3"],
+                decimal=",",
+            )
+        return
+
     result = all_parsers.read_csv(
         StringIO('"dump","-9,1","-9,1",20101010'),
         engine="python",

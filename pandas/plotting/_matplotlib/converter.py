@@ -277,6 +277,10 @@ class PeriodConverter(mdates.DateConverter):
             return values.asfreq(freq).asi8
         elif isinstance(values, Index):
             return values.map(lambda x: _get_datevalue(x, freq))
+        elif isinstance(values, np.ndarray) and values.dtype.kind in "iuf":
+            # Already ordinal-numeric (e.g. from PeriodIndex._mpl_repr);
+            # nothing to convert.  GH#10578
+            return values
         elif lib.infer_dtype(values, skipna=False) == "period":
             # https://github.com/pandas-dev/pandas/issues/24304
             # convert ndarray[period] -> ordinals
