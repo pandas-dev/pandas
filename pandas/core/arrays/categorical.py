@@ -726,6 +726,39 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return None
 
     @classmethod
+    def _from_converted_categories(cls, converted: Index, codes: np.ndarray) -> Self:
+        """
+        Construct a Categorical from ``_maybe_convert_categories`` output.
+
+        Merges categories that converted to the same value and sorts the
+        categories, recoding ``codes`` accordingly.
+
+        Parameters
+        ----------
+        converted : Index
+            Converted categories; may contain duplicates.
+        codes : np.ndarray
+
+        Returns
+        -------
+        Categorical
+        """
+        if not converted.is_unique:
+            # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True; merge the
+            #  duplicated categories and recode
+            unique_cats = converted.unique()
+            codes = recode_for_categories(codes, converted, unique_cats, copy=False)
+            converted = unique_cats
+
+        if not converted.is_monotonic_increasing:
+            sorted_cats = converted.sort_values()
+            codes = recode_for_categories(codes, converted, sorted_cats, copy=False)
+            converted = sorted_cats
+
+        dtype = CategoricalDtype(converted, ordered=False)
+        return cls._simple_new(codes, dtype=dtype)
+
+    @classmethod
     def _from_inferred_categories(
         cls,
         inferred_categories,
@@ -789,15 +822,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 convert_bool=convert_bool,
             )
             if converted is not None:
-                if not converted.is_unique:
-                    # e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True; merge the
-                    #  duplicated categories and recode
-                    unique_cats = converted.unique()
-                    inferred_codes = recode_for_categories(
-                        inferred_codes, converted, unique_cats, copy=False
-                    )
-                    converted = unique_cats
-                cats = converted
+                return cls._from_converted_categories(converted, inferred_codes)
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.

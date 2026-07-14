@@ -69,7 +69,8 @@ These are bug fixes that might have notable behavior changes.
 produced string categories for numeric and boolean columns, while the
 ``pyarrow`` engine inferred numeric and boolean categories. All engines now
 infer numeric and boolean categories, matching the type a column would receive
-without ``dtype="category"`` (:issue:`56044`).
+without ``dtype="category"`` under the default ``dtype_backend``
+(:issue:`56044`).
 
 .. ipython:: python
 

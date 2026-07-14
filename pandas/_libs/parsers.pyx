@@ -1037,9 +1037,7 @@ cdef class TextReader:
                 # No conversion applies; keep the union result as-is rather
                 #  than re-sorting its categories
                 continue
-            data[i] = array_type._from_inferred_categories(
-                cat.categories, cat._codes, dtype, true_values=true_values,
-                false_values=false_values, convert_numeric=convert_numeric)
+            data[i] = array_type._from_converted_categories(converted, cat._codes)
         self.deferred_cat_cols = {}
 
     cdef _tokenize_rows(self, uint64_t nrows):

@@ -3,6 +3,7 @@ Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
 
+import csv
 from io import StringIO
 import os
 
@@ -204,6 +205,45 @@ def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
     expected = DataFrame({"a": Categorical.from_codes([0, 1, 0], dtype=cat_dtype)})
     actual = parser.read_csv(StringIO(data), dtype={"a": cat_dtype})
     tm.assert_frame_equal(actual, expected)
+
+
+def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend):
+    # GH#56044 category inference does not yet respect dtype_backend, and
+    #  the engines disagree on the result; pin the current behavior
+    parser = all_parsers
+    data = "a\n1\n2"
+    result = parser.read_csv(
+        StringIO(data), dtype="category", dtype_backend=dtype_backend
+    )
+    cat_dtype = result["a"].cat.categories.dtype
+    if parser.engine == "pyarrow" and dtype_backend == "numpy_nullable":
+        assert cat_dtype == pd.Int64Dtype()
+    elif parser.engine == "pyarrow":
+        pyarrow = pytest.importorskip("pyarrow")
+        assert cat_dtype == pd.ArrowDtype(pyarrow.int64())
+    elif parser.engine == "python" and dtype_backend == "pyarrow":
+        # no inference is applied at all
+        pyarrow = pytest.importorskip("pyarrow")
+        assert cat_dtype == pd.ArrowDtype(pyarrow.string())
+    else:
+        assert cat_dtype == np.dtype("int64")
+
+
+@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
+def test_categorical_dtype_quote_nonnumeric(all_parsers):
+    # GH#56044 with QUOTE_NONNUMERIC, non-categorical columns parse as
+    #  float64; the c engine currently infers int64 categories, while the
+    #  python engine (whose tokenizer produces floats) gives float64
+    parser = all_parsers
+    data = '"a"\n1\n2'
+    result = parser.read_csv(
+        StringIO(data), dtype="category", quoting=csv.QUOTE_NONNUMERIC
+    )
+    if parser.engine == "python":
+        expected = DataFrame({"a": Categorical([1.0, 2.0])})
+    else:
+        expected = DataFrame({"a": Categorical([1, 2])})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_categorical_dtype_low_memory_mixed_numeric_chunks(all_parsers, monkeypatch):

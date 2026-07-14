@@ -498,10 +498,17 @@ among the specified categories will raise.
 
 .. note::
 
-   With ``dtype='category'``, the resulting categories will always be parsed
-   as strings (object dtype). If the categories are numeric they can be
-   converted using the :func:`to_numeric` function, or as appropriate, another
-   converter such as :func:`to_datetime`.
+   With ``dtype="category"``, numeric and boolean categories are inferred,
+   matching the type each column would receive without ``dtype="category"``.
+
+   .. versionchanged:: 3.1.0
+
+      Previously the categories were always parsed as strings.
+
+   Columns whose values do not all parse as numeric or boolean, and columns
+   read with non-default ``thousands`` or ``decimal`` options, retain string
+   categories. Those can be converted using the :func:`to_numeric` function,
+   or as appropriate, another converter such as :func:`to_datetime`.
 
    When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
    all numeric, all datetimes, etc.), the conversion is done automatically.
@@ -510,9 +517,6 @@ among the specified categories will raise.
 
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
-      df["col3"]
-      new_categories = pd.to_numeric(df["col3"].cat.categories)
-      df["col3"] = df["col3"].cat.rename_categories(new_categories)
       df["col3"]
 
 
