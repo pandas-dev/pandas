@@ -20,6 +20,10 @@ See LICENSE for the license
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define STREAM_INIT_SIZE 32
 
 #define REACHED_EOF 1
@@ -229,3 +233,7 @@ double precise_xstrtod(const char *p, char **q, char decimal, char sci,
                        char tsep, int skip_trailing, int *error,
                        int *maybe_int);
 int to_boolean(const char *item, uint8_t *val);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
