@@ -2416,6 +2416,33 @@ def test_sum_empty_mixed_with_timedelta_column():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_sum_timedelta64_overflow_raises(axis, skipna):
+    # GH#43178: DataFrame.sum on an overflowing timedelta64 frame should raise
+    #  OutOfBoundsTimedelta, consistent with Series.sum, rather than silently
+    #  returning a saturated result.
+    half = np.iinfo(np.int64).max // 2
+    arr = np.array([half, half, half], dtype="m8[ns]")
+    df = DataFrame({"a": arr, "b": arr, "c": arr})
+
+    msg = "overflow in timedelta operation"
+    with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
+        df.sum(axis=axis, skipna=skipna)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_timedelta64_all_nat_skipna_false(axis):
+    # GH#43178: an all-NaT reduction with skipna=False must return NaT, not be
+    #  mistaken for an overflow (the NaT sentinels accumulate past int64 bounds)
+    nat = np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]")
+    df = DataFrame({"a": nat, "b": nat, "c": nat})
+
+    result = df.sum(axis=axis, skipna=False)
+    assert result.dtype == "m8[ns]"
+    assert result.isna().all()
+
+
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))

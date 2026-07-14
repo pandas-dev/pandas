@@ -7164,6 +7164,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             raise ValueError("Can only compare identically-labeled Series objects")
 
         lvalues = self._values
+        if not isinstance(lvalues, ExtensionArray) and lvalues.dtype != object:
+            # For EA-backed values the warning is emitted by the EA's own
+            # _cmp_method; object dtype already treats a non-standard listlike
+            # as scalar-like, so it needs no warning either (GH#62423).
+            ops.maybe_warn_listlike(other)
         rvalues = extract_array(other, extract_numpy=True, extract_range=True)
 
         res_values = ops.comparison_op(lvalues, rvalues, op)

@@ -7686,6 +7686,16 @@ class Index(IndexOpsMixin, PandasObject):
         ) != len(other):
             raise ValueError("Lengths must match to compare")
 
+        if (
+            not isinstance(self, ABCMultiIndex)
+            and not isinstance(self._values, ExtensionArray)
+            and self._values.dtype != object
+        ):
+            # MultiIndex and object dtype already treat a non-standard listlike
+            # as scalar-like; for EA-backed values the warning is emitted
+            # downstream by the EA (GH#62423).
+            ops.maybe_warn_listlike(other)
+
         if not isinstance(other, ABCMultiIndex):
             other = extract_array(other, extract_numpy=True)
         else:
