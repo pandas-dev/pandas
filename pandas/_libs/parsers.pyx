@@ -44,7 +44,10 @@ from cpython.unicode cimport (
     PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
-from libc.stdint cimport INT32_MAX
+from libc.stdint cimport (
+    INT32_MAX,
+    int64_t as c_int64_t,
+)
 from libc.stdlib cimport free
 from libc.string cimport (
     memcpy,
@@ -227,7 +230,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         # pick one, depending on whether the converter requires GIL
         double (*double_converter)(const char *, char **,
                                    char, char, char,
-                                   int, int *, int *) noexcept nogil
+                                   int, int *, int *, const char *) noexcept nogil
 
         #  error handling
         char *warn_msg
@@ -247,13 +250,18 @@ cdef extern from "pandas/parser/tokenizer.h":
         int seen_uint
         int seen_null
 
-    void COLITER_NEXT(coliter_t, const char *) nogil
-    void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
+    const char *coliter_next(coliter_t *) nogil
+    const char *coliter_next_with_idx(coliter_t *, c_int64_t *) nogil
+
+    double precise_xstrtod_with_end(const char *p, char **q, char decimal,
+                                    char sci, char tsep, int skip_trailing,
+                                    int *error, int *maybe_int,
+                                    const char *end) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
-    void del_rd_source(void *src)
+    void del_rd_source(void *src) nogil
 
     char* buffer_rd_bytes(void *source, size_t nbytes,
                           size_t *bytes_read, int *status, const char *encoding_errors)
@@ -263,8 +271,6 @@ cdef extern from "pandas/parser/pd_parser.h":
 
     void coliter_setup(coliter_t *it, parser_t *parser,
                        int64_t i, int64_t start) nogil
-    void COLITER_NEXT(coliter_t, const char *) nogil
-    void COLITER_NEXT_WITH_IDX(coliter_t, const char *, int64_t) nogil
 
     parser_t* parser_new()
 
@@ -305,8 +311,10 @@ PandasParser_IMPORT
 # cdef extern'ed declarations seem to leave behind an undefined symbol
 cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
                                     char sci, char tsep, int skip_trailing,
-                                    int *error, int *maybe_int) noexcept nogil:
-    return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
+                                    int *error, int *maybe_int,
+                                    const char *end) noexcept nogil:
+    return precise_xstrtod_with_end(p, q, decimal, sci, tsep, skip_trailing,
+                                    error, maybe_int, end)
 
 
 cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
@@ -314,7 +322,7 @@ cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    const char *encoding_errors) noexcept:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
-cdef void del_rd_source_wrapper(void *src) noexcept:
+cdef void del_rd_source_wrapper(void *src) noexcept nogil:
     del_rd_source(src)
 
 
@@ -1442,8 +1450,17 @@ cdef class TextReader:
 # which causes a class attribute lookup and violates best practices
 # https://cython.readthedocs.io/en/latest/src/userguide/special_methods.html#finalization-method-dealloc
 cdef _close(TextReader reader):
-    # also preemptively free all allocated memory
-    parser_free(reader.parser)
+    # Drop the pre-loaded buffer reference deterministically so the caller
+    # can close the backing mmap (free-threaded builds may otherwise delay
+    # the release past pool shutdown).
+    reader._buffer_ref = None
+    # Preemptively free all allocated memory, without the GIL: on macOS
+    # freeing the (potentially large) data buffers gives pages back to the
+    # OS via madvise, which would otherwise stall every other parser thread
+    # in the parallel-read path. del_rd_source re-acquires the GIL for its
+    # decrefs.
+    with nogil:
+        parser_free(reader.parser)
     if reader.true_set:
         kh_destroy_str_starts(reader.true_set)
         reader.true_set = NULL
@@ -1586,7 +1603,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         Py_ssize_t i, lines
         coliter_t it
         const char *word = NULL
-        int64_t token_idx = 0
+        c_int64_t token_idx = 0
         ndarray[object] result
 
         int ret = 0
@@ -1603,7 +1620,7 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        COLITER_NEXT_WITH_IDX(it, word, token_idx)
+        word = coliter_next_with_idx(&it, &token_idx)
 
         if na_filter:
             if kh_get_str_starts_item(na_hashset, word):
@@ -1706,7 +1723,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next(&it)
 
             if na_filter and kh_get_str_starts_item(na_hashset, word):
                 na_count += 1
@@ -1746,7 +1763,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
     with nogil:
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next(&it)
             if large:
                 seg = offsets64_ptr[i + 1] - offsets64_ptr[i]
                 if seg:
@@ -1844,7 +1861,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
         coliter_setup(&it, parser, col, line_start)
 
         for i in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next(&it)
 
             if na_filter:
                 if kh_get_str_starts_item(na_hashset, word):
@@ -1899,7 +1916,7 @@ cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for _ in range(line_end - line_start):
-        COLITER_NEXT(it, word)
+        word = coliter_next(&it)
         strncpy(data, word, width)
         data += width
 
@@ -1946,7 +1963,8 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef int _try_double_nogil(parser_t *parser,
                            float64_t (*double_converter)(
                                const char *, char **, char,
-                               char, char, int, int *, int *) noexcept nogil,
+                               char, char, int, int *, int *,
+                               const char *) noexcept nogil,
                            int64_t col, int64_t line_start, int64_t line_end,
                            bint na_filter, kh_str_starts_t *na_hashset,
                            bint use_na_flist,
@@ -1958,6 +1976,8 @@ cdef int _try_double_nogil(parser_t *parser,
         Py_ssize_t _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
+        const char *word_end
+        c_int64_t token_idx = 0
         char *p_end
         khiter_t k64
 
@@ -1966,16 +1986,17 @@ cdef int _try_double_nogil(parser_t *parser,
 
     if na_filter:
         for _ in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next_with_idx(&it, &token_idx)
 
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 na_count[0] += 1
                 data[0] = NA
             else:
+                word_end = word + _token_len(parser, token_idx)
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
-                                           1, &error, NULL)
+                                           1, &error, NULL, word_end)
                 if error != 0 or p_end == word or p_end[0]:
                     error = 0
                     if (strcasecmp(word, cinf) == 0 or
@@ -1996,10 +2017,11 @@ cdef int _try_double_nogil(parser_t *parser,
             data += 1
     else:
         for _ in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_end = word + _token_len(parser, token_idx)
             data[0] = double_converter(word, &p_end, parser.decimal,
                                        parser.sci, parser.thousands,
-                                       1, &error, NULL)
+                                       1, &error, NULL, word_end)
             if error != 0 or p_end == word or p_end[0]:
                 error = 0
                 if (strcasecmp(word, cinf) == 0 or
@@ -2076,14 +2098,14 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        int64_t token_idx = 0
+        c_int64_t token_idx = 0
         char thousands = parser.thousands
 
     coliter_setup(&it, parser, col, line_start)
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            word = coliter_next_with_idx(&it, &token_idx)
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 state.seen_null = 1
@@ -2096,7 +2118,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            word = coliter_next_with_idx(&it, &token_idx)
             data[i] = str_to_uint64(state, word, _token_len(parser, token_idx),
                                     &error, thousands)
             if error != 0:
@@ -2144,7 +2166,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
-        int64_t token_idx = 0
+        c_int64_t token_idx = 0
         char thousands = parser.thousands
 
     na_count[0] = 0
@@ -2152,7 +2174,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
 
     if na_filter:
         for i in range(lines):
-            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            word = coliter_next_with_idx(&it, &token_idx)
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
                 na_count[0] += 1
@@ -2165,7 +2187,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 return error
     else:
         for i in range(lines):
-            COLITER_NEXT_WITH_IDX(it, word, token_idx)
+            word = coliter_next_with_idx(&it, &token_idx)
             data[i] = str_to_int64(word, _token_len(parser, token_idx),
                                    &error, thousands)
             if error != 0:
@@ -2192,7 +2214,7 @@ cdef _try_pylong(parser_t *parser, Py_ssize_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        COLITER_NEXT(it, word)
+        word = coliter_next(&it)
         if na_filter and kh_get_str_starts_item(na_hashset, word):
             # in the hash table
             na_count += 1
@@ -2251,7 +2273,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
 
     if na_filter:
         for _ in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next(&it)
 
             if kh_get_str_starts_item(na_hashset, word):
                 # in the hash table
@@ -2275,7 +2297,7 @@ cdef int _try_bool_flex_nogil(parser_t *parser, int64_t col,
             data += 1
     else:
         for _ in range(lines):
-            COLITER_NEXT(it, word)
+            word = coliter_next(&it)
 
             if kh_get_str_starts_item(true_hashset, word):
                 data[0] = 1
@@ -2439,7 +2461,7 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
     coliter_setup(&it, parser, col, line_start)
 
     for i in range(lines):
-        COLITER_NEXT(it, word)
+        word = coliter_next(&it)
         val = PyUnicode_FromString(word)
         result[i] = f(val)
 
