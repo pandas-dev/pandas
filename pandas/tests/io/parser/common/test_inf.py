@@ -30,6 +30,13 @@ g,+INf
 h,-INf
 i,inF
 j,-inF"""
+
+    if parser.engine == "pyarrow" and na_filter is False:
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+        return
+
     expected = DataFrame(
         {"A": [float("inf"), float("-inf")] * 5},
         index=["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
@@ -54,6 +61,13 @@ a,Infinity
 b,-Infinity
 c,+Infinity
 """
+
+    if parser.engine == "pyarrow" and na_filter is False:
+        msg = "The 'na_filter' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+        return
+
     expected = DataFrame(
         {"A": [float("infinity"), float("-infinity"), float("+infinity")]},
         index=["a", "b", "c"],
