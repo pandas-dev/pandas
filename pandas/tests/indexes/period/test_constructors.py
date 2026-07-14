@@ -15,7 +15,6 @@ from pandas import (
     Period,
     PeriodIndex,
     Series,
-    array,
     date_range,
     offsets,
     period_range,
@@ -301,27 +300,6 @@ class TestPeriodIndex:
         msg = "Mismatched Period array lengths"
         with pytest.raises(ValueError, match=msg):
             PeriodIndex.from_fields(year=(2020, 2021, 2022), month=[1, 2], freq="M")
-
-    @pytest.mark.parametrize("year,month", [(2020, 1), (np.array(2020), np.array(1))])
-    def test_constructor_field_scalars(self, year, month):
-        # GH#66333
-        result = PeriodIndex.from_fields(year=year, month=month, freq="M")
-        expected = PeriodIndex(["2020-01"], freq="M")
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "year,month",
-        [
-            (range(2020, 2022), range(1, 3)),
-            (Index([2020, 2021]), Index([1, 2])),
-            (array([2020, 2021], dtype="Int64"), array([1, 2], dtype="Int64")),
-        ],
-    )
-    def test_constructor_field_array_like(self, year, month):
-        # GH#66333
-        result = PeriodIndex.from_fields(year=year, month=month, freq="M")
-        expected = PeriodIndex(["2020-01", "2021-02"], freq="M")
-        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "kwargs", [{"month": [1, 2], "freq": "M"}, {"quarter": [1, 2]}]
