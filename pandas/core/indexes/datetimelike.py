@@ -41,7 +41,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import (
-    FY5253Mixin,
     RelativeDeltaOffset,
     Week,
 )
@@ -65,10 +64,14 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
+    DatetimeTZDtype,
     PeriodDtype,
 )
 
-from pandas.core import roperator
+from pandas.core import (
+    algorithms,
+    roperator,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -793,29 +796,33 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             if freq != inferred:
                 # GH#61086 freq may be equivalent but not equal (e.g.
                 # QS-FEB vs QS-MAY), so validate against the actual data.
-                if len(self) == 0:
-                    pass
-                elif len(self) == 1:
+                # GH#65012 checking a single step is not enough: a fixed-step
+                # (Tick/Day) or business/custom offset can match the first gap
+                # by coincidence yet diverge on a later step, so every step
+                # must conform.
+                if len(self) == 1:
                     if not freq.is_on_offset(self[0]):
                         raise ValueError(
                             f"Inferred frequency {inferred} from passed "
                             "values does not conform to passed frequency "
                             f"{freq.freqstr}"
                         )
-                elif self[0] + freq == self[1]:
-                    # For standard offsets, the step is a deterministic
-                    # function of the date, so agreement on one step proves
-                    # equivalence. For Custom/FY5253 offsets, external
-                    # state (holidays, 52/53-week patterns) could cause
-                    # later steps to diverge, so we validate fully.
-                    if hasattr(freq, "_holidays") or isinstance(freq, FY5253Mixin):
-                        type(arr)._validate_frequency(self, freq, **validate_kwds)
-                else:
-                    raise ValueError(
-                        f"Inferred frequency {inferred} from passed "
-                        "values does not conform to passed frequency "
-                        f"{freq.freqstr}"
-                    )
+                elif isinstance(freq, Tick) and len(self) > 1:
+                    # A Tick is a fixed step in i8 space regardless of tz, so
+                    # conformance is just uniform spacing. This avoids the
+                    # pricier _validate_frequency (which infers the freq and
+                    # allocates a range). Not valid for Day (DST-dependent) or
+                    # calendar offsets, which stay on the path below.
+                    delta = Timedelta(freq)
+                    step = delta.as_unit(self.unit)
+                    if step != delta or not (np.diff(self.asi8) == step._value).all():
+                        raise ValueError(
+                            f"Inferred frequency {inferred} from passed "
+                            "values does not conform to passed frequency "
+                            f"{freq.freqstr}"
+                        )
+                elif len(self) > 1:
+                    type(arr)._validate_frequency(self, freq, **validate_kwds)
             self._freq = freq
 
     def _get_arithmetic_result_freq(self, other) -> BaseOffset | None:
@@ -889,6 +896,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             else:
                 codes = np.arange(len(self), dtype=np.intp)
                 uniques = self.copy()
+            uniques._name = None
+            return codes, uniques
+        if len(self) > 1 and (
+            self.is_monotonic_increasing or self.is_monotonic_decreasing
+        ):
+            # Monotonic implies no NaT, so NA handling is not needed
+            codes, uniques_indexer = algorithms.factorize_monotonic_codes(
+                self._data._ndarray, self.is_monotonic_increasing, sort
+            )
+            uniques = self[uniques_indexer]
             uniques._name = None
             return codes, uniques
         return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
@@ -1004,6 +1021,16 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
+        if isinstance(self.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "DatetimeIndex.values returning an ndarray that drops "
+                "timezone information is deprecated. In a future version, "
+                "this will return the underlying DatetimeArray instead. "
+                "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
+                "'DatetimeIndex.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         data = self._data._ndarray
         data = data.view()
         data.flags.writeable = False
@@ -1325,7 +1352,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             result = type(self)._simple_new(dates, name=self.name)
-            result._freq = self.freq
+            # The sort=False result is non-monotonic (self's values followed
+            #  by earlier values from other), so it cannot carry a freq.
             return result
         else:
             left, right = other, self

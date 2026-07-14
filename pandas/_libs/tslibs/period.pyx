@@ -881,7 +881,7 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
     int64_t
     """
     cdef:
-        int64_t sub, factor
+        int64_t periods_per_day, nanos_per_period, periods_since_midnight
         int64_t nanos_in_day = 24 * 3600 * 10**9
 
     freq = get_freq_group(freq)
@@ -890,26 +890,30 @@ cdef int64_t get_time_nanos(int freq, int64_t unix_date,
         return 0
 
     elif freq == FR_NS:
-        factor = 1
+        nanos_per_period = 1
 
     elif freq == FR_US:
-        factor = 10**3
+        nanos_per_period = 10**3
 
     elif freq == FR_MS:
-        factor = 10**6
+        nanos_per_period = 10**6
 
     elif freq == FR_SEC:
-        factor = 10 **9
+        nanos_per_period = 10 **9
 
     elif freq == FR_MIN:
-        factor = 10**9 * 60
+        nanos_per_period = 10**9 * 60
 
     else:
         # We must have freq == FR_HR
-        factor = 10**9 * 3600
+        nanos_per_period = 10**9 * 3600
 
-    sub = ordinal - unix_date * (nanos_in_day / factor)
-    return sub * factor
+    periods_per_day = nanos_in_day // nanos_per_period
+    periods_since_midnight = ordinal % periods_per_day
+    if periods_since_midnight < 0:
+        periods_since_midnight += periods_per_day
+
+    return periods_since_midnight * nanos_per_period
 
 
 cdef int get_yq(int64_t ordinal, int freq, npy_datetimestruct* dts):
@@ -1593,10 +1597,21 @@ def period_ordinals_from_fields(
     ndarray[int64]
     """
     cdef:
-        Py_ssize_t i, n = len(years)
-        int64_t[::1] result = np.empty(n, dtype="i8")
+        Py_ssize_t i, n = years.shape[0]
+        int64_t[::1] result
         npy_datetimestruct dts
 
+    # Guard against out-of-bounds reads below (boundscheck is disabled).
+    if not (
+        months.shape[0] == n
+        and days.shape[0] == n
+        and hours.shape[0] == n
+        and minutes.shape[0] == n
+        and seconds.shape[0] == n
+    ):
+        raise ValueError("Mismatched Period array lengths")
+
+    result = np.empty(n, dtype="i8")
     memset(&dts, 0, sizeof(npy_datetimestruct))
 
     for i in range(n):
@@ -1644,6 +1659,11 @@ def from_calendar_ordinals(const int64_t[:] values, PeriodDtypeBase dtype):
         else:
             # equiv Period(val, freq=dtype.unit).ordinal, specialized
             #  bc we know val is an integer
+            if not INT32_MIN <= val <= INT32_MAX:
+                # val is used as the year, which lands in the int32
+                #  npy_datetimestruct.year field; out-of-range would silently
+                #  wrap, so raise to match the scalar Period(int) path.
+                raise OutOfBoundsDatetime(f"Out of bounds year: {val}")
             result[i] = period_ordinal(val, 1, 1, 0, 0, 0, 0, 0, dtype._dtype_code)
 
     return result.base
@@ -1655,7 +1675,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
     # values is object-dtype, may be 2D
 
     cdef:
-        Py_ssize_t i, n = values.size
+        Py_ssize_t _, n = values.size
         int64_t ordinal
         ndarray ordinals = cnp.PyArray_EMPTY(
             values.ndim, values.shape, cnp.NPY_INT64, 0
@@ -1667,7 +1687,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    for i in range(n):
+    for _ in range(n):
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
@@ -1691,8 +1711,12 @@ cdef int64_t _extract_ordinal(object item, PeriodDtypeBase dtype) except? -1:
     if checknull_with_nat(item) or item is C_NA:
         ordinal = NPY_NAT
     elif util.is_integer_object(item):
-        # GH#64227 treat ints as ordinals, matching PeriodIndex/period_array
-        ordinal = item
+        if item == NPY_NAT:
+            ordinal = NPY_NAT
+        else:
+            # GH#64227 treat integers as calendar years, matching the
+            #  int-array path (from_calendar_ordinals) and Period(int, freq)
+            ordinal = Period(item, freq=dtype).ordinal
     else:
         try:
             ordinal = item.ordinal

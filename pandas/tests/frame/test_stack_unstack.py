@@ -1438,6 +1438,26 @@ def test_unstack_sort_false_unsorted_with_gaps():
     tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_monotonic_values_unsorted_codes():
+    # GH#65107 An MI whose tuple *values* are monotonic but whose codes are
+    #  unsorted (here level 0 has unsorted levels ['b', 'a']) must still be
+    #  reordered before reshaping.  Previously the identity-indexer fast path
+    #  keyed off index.is_monotonic_increasing, which reflects values not
+    #  codes, so it skipped the take and placed values under the wrong labels.
+    index = MultiIndex(levels=[["b", "a"], [1, 2]], codes=[[1, 1, 0, 0], [0, 1, 0, 1]])
+    # tuples are ("a", 1), ("a", 2), ("b", 1), ("b", 2)
+    ser = Series([10, 20, 30, 40], index=index)
+    result = ser.unstack()
+    expected = DataFrame(
+        {1: [30, 10], 2: [40, 20]},
+        index=Index(["b", "a"]),
+        columns=Index([1, 2]),
+    )
+    tm.assert_frame_equal(result, expected)
+    # ("a", 1) -> 10 must land under row "a", not row "b"
+    assert result.loc["a", 1] == 10
+
+
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
     data = Series(["a", "b", "c", "a"], dtype="object")
