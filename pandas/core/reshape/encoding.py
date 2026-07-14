@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
+from pandas.compat import pa_version_under16p0
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -174,8 +175,9 @@ def get_dummies(
             if (
                 pa.types.is_string(pa_type)
                 or pa.types.is_large_string(pa_type)
-                or pa.types.is_string_view(pa_type)
                 or pa.types.is_dictionary(pa_type)
+                # is_string_view is only available in pyarrow>=16
+                or (not pa_version_under16p0 and pa.types.is_string_view(pa_type))
             ):
                 return True
             # Arrow types whose numpy fallback is object (e.g. binary,
