@@ -7,6 +7,7 @@ import warnings
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
+    EmptyDataError,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -414,8 +415,22 @@ class ArrowParserWrapper(ParserBase):
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
                 convert_options=convert_options,
             )
-        except pa.ArrowInvalid as e:
-            raise ParserError(e) from e
+        except pa.ArrowInvalid as err:
+            # pyarrow reports "Empty CSV file or block" when it cannot extract
+            # any columns from the source; re-raise as EmptyDataError so the
+            # pyarrow engine matches the "c" and "python" engines.
+            if "Empty CSV file" in str(err):
+                raise EmptyDataError("No columns to parse from file") from err
+            raise ParserError(err) from err
+        except TypeError as err:
+            # pyarrow can only read from a binary buffer; a text-mode file
+            # handle raises a bare "a bytes-like object is required" TypeError.
+            if "a bytes-like object is required" in str(err):
+                raise TypeError(
+                    "The 'pyarrow' engine can only read from a binary file "
+                    "object; the given file was opened in text mode"
+                ) from err
+            raise
 
         if self.usecols_dtype == "empty":
             # GH#66056 pyarrow ignores an empty ``include_columns`` and returns
