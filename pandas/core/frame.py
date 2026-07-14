@@ -5368,8 +5368,9 @@ class DataFrame(NDFrame, OpsMixin):
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
           of dtypes. Under-specified instances like a unitless
-          ``np.dtype("datetime64")`` or a bare ``pd.CategoricalDtype()``
-          select their whole family
+          ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
+          ``pd.IntervalDtype("int64")`` without a ``closed`` select their
+          whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
