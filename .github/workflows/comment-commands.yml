@@ -37,9 +37,15 @@ jobs:
           script: |
             if (context.payload.comment.body.trim() !== '/take') return;
             const docsUrl = 'https://pandas.pydata.org/docs/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle';
-            const issue = context.payload.issue;
+            // The payload's issue is a snapshot from comment-creation time; two
+            // near-simultaneous /take commands would both see it unassigned.
+            // Decide on a fresh read instead (runs are serialized by the
+            // concurrency group above).
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number,
+            });
             const user = context.payload.comment.user.login;
-            const labels = issue.labels.map(label => label.name);
+            const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
             const assignees = issue.assignees.map(assignee => assignee.login);
             const blocking = ['Needs Triage', 'Needs Discussion'].find(label => labels.includes(label));
             const comment = body => github.rest.issues.createComment({
@@ -79,7 +85,10 @@ jobs:
         with:
           script: |
             if (context.payload.comment.body.trim() !== '/untake') return;
-            const issue = context.payload.issue;
+            // Fresh read for the same reason as /take above.
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number,
+            });
             const user = context.payload.comment.user.login;
             const assignees = issue.assignees.map(assignee => assignee.login);
             if (!assignees.includes(user)) {

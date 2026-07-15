@@ -2,11 +2,13 @@
 
 Two triggers:
 
-* ``schedule`` — (1) sweep open assigned issues and unassign any that are
-  inactive (no open linked PR by an assignee, no assignee comment within
-  ``STALE_ASSIGNEE_DAYS``); (2) run the PR stale engine (``run_pr_stale_sweep``)
-  that replaces ``actions/stale``: mark/clear ``Stale`` and auto-close purely on
-  the **author's own** activity, with owners/members/collaborators exempt.
+* ``schedule`` — (1) sweep open assigned issues and unassign any non-maintainer
+  assignees that are inactive (no open linked PR by an assignee, no assignee
+  comment or fresh assignment within ``STALE_ASSIGNEE_DAYS``); (2) run the PR
+  stale engine (``run_pr_stale_sweep``) that replaces ``actions/stale``: whether
+  a PR is stale is decided purely by the **author's own** activity, the
+  warning-to-close countdown by the engine's own ``Stale`` label event, with
+  owners/members/collaborators exempt.
 * ``pull_request_target`` ``closed`` — when a *human* closes a ``Stale``-labeled
   PR, free its linked issues. (Auto-closes from the engine free issues inline,
   since a ``GITHUB_TOKEN`` close doesn't re-trigger this event.)
@@ -42,6 +44,7 @@ def free_linked_issues(client: GitHubClient, number: int, author: str | None) ->
 
 def run_sweep(client: GitHubClient) -> None:
     now = datetime.now(timezone.utc)
+    window = timedelta(days=core.STALE_ASSIGNEE_DAYS)
     for number in client.list_open_assigned_issue_numbers():
         activity = client.issue_activity(number)
         assignees = activity["assignees"]
@@ -49,14 +52,32 @@ def run_sweep(client: GitHubClient) -> None:
             continue
         assignee_set = set(assignees)
         has_open_pr = any(a in assignee_set for a in activity["open_pr_authors"])
-        last_comment_at = core.latest_assignee_comment_at(
-            activity["comments"], assignees
-        )
-        if not core.issue_is_active(
-            now, has_open_pr, last_comment_at, core.STALE_ASSIGNEE_DAYS
+        candidates = [
+            activity["assigned_at"],
+            core.latest_assignee_comment_at(activity["comments"], assignees),
+            core.ROLLOUT_CUTOFF,
+        ]
+        last_activity_at = max(t for t in candidates if t is not None)
+        if core.issue_is_active(
+            now, has_open_pr, last_activity_at, core.STALE_ASSIGNEE_DAYS
         ):
-            client.remove_assignees(number, assignees)
-            client.comment(number, messages.issue_unassigned_inactive(assignees))
+            continue
+        # Unassigning is destructive, so an absence of protecting signals in
+        # the bounded windows has to be re-checked exactly before acting.
+        if activity["comments_truncated"] and (
+            client.latest_comment_at_since(number, assignee_set, now - window)
+            is not None
+        ):
+            continue
+        if activity["crossrefs_truncated"] and any(
+            a in assignee_set for a in client.open_pr_authors_exact(number)
+        ):
+            continue
+        to_unassign = [a for a in assignees if not client.is_exempt_collaborator(a)]
+        if not to_unassign:
+            continue
+        client.remove_assignees(number, to_unassign)
+        client.comment(number, messages.issue_unassigned_inactive(to_unassign))
 
 
 def _stale_clock_anchor(
@@ -66,29 +87,47 @@ def _stale_clock_anchor(
     changes_requested_at: datetime | None,
 ) -> datetime | None:
     """When the PR's stale clock started: the later of ``changes_requested_at``
-    (the ball entering the contributor's court) and the author's last action
-    (commit, PR comment, or linked-issue comment).
+    (the ball entering the contributor's court), the author's last action
+    (commit, PR comment, review/inline reply, or linked-issue comment), and the
+    last reopen — by anyone, since only the author and maintainers can reopen
+    and either doing so is an explicit act of keeping the PR alive.
 
     Flooring at ``changes_requested_at`` is what keeps a long review wait from
     eating into the stale window — the author gets a full ``PR_STALE_DAYS`` from
-    the review, never from whenever they last happened to act before it. Linked
-    issues are only read when nothing already shows the author active inside
-    ``PR_STALE_DAYS`` — that read can't change the outcome, so it's skipped.
+    the review, never from whenever they last happened to act before it. The
+    reads escalate in cost and each is skipped once a cheaper one already shows
+    the author active inside ``PR_STALE_DAYS``: batched PR-side signals first,
+    then the exact comment fetch (only when the bounded window couldn't prove
+    absence), then per-linked-issue comments.
     """
     author = pr["author"]
+    authors = [author] if author else []
+    window = timedelta(days=core.PR_STALE_DAYS)
     candidates = [
         changes_requested_at,
         pr["last_commit_at"],
-        core.latest_assignee_comment_at(pr["comments"], [author] if author else []),
+        core.latest_assignee_comment_at(pr["comments"], authors),
+        core.latest_review_submitted_at(pr["reviews"], set(authors)),
+        core.latest_event_at(pr["reopened_events"]),
     ]
     anchor = max((t for t in candidates if t is not None), default=None)
-    if anchor is not None and now - anchor < timedelta(days=core.PR_STALE_DAYS):
+    if anchor is not None and now - anchor < window:
         return anchor
-    for issue in client.linked_issues_for_pr(pr["number"]):
-        comment_at = core.latest_assignee_comment_at(
-            client.issue_activity(issue["number"])["comments"],
-            [author] if author else [],
+    if pr["comments_truncated"]:
+        comment_at = client.latest_comment_at_since(
+            pr["number"], set(authors), now - window
         )
+        if comment_at is not None and (anchor is None or comment_at > anchor):
+            anchor = comment_at
+            if now - anchor < window:
+                return anchor
+    for issue in client.linked_issues_for_pr(pr["number"]):
+        activity = client.issue_activity(issue["number"])
+        comment_at = core.latest_assignee_comment_at(activity["comments"], authors)
+        if comment_at is None and activity["comments_truncated"]:
+            comment_at = client.latest_comment_at_since(
+                issue["number"], set(authors), now - window
+            )
         if comment_at is not None and (anchor is None or comment_at > anchor):
             anchor = comment_at
     return anchor
@@ -99,7 +138,7 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
     now = datetime.now(timezone.utc)
     for pr in client.iter_open_pull_requests_review_state():
         contributors = {pr["author"]} - {None}
-        changes_requested_at = core.latest_changes_requested_at(pr["reviews"])
+        changes_requested_at = core.outstanding_changes_requested_at(pr["reviews"])
         subject = core.pr_subject_to_stale(
             core.is_exempt(pr["author_association"], False),
             pr["is_draft"],
@@ -111,16 +150,22 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
             if subject
             else None
         )
+        label_present = core.STALE_LABEL in pr["labels"]
         action = core.pr_stale_action(
             now,
             subject,
-            core.STALE_LABEL in pr["labels"],
+            label_present,
+            pr["stale_marked_at"],
             anchor,
             core.PR_STALE_DAYS,
             core.PR_CLOSE_DAYS,
         )
         number = pr["number"]
         if action == "mark_stale":
+            if label_present:
+                # A label someone else applied carries no engine label-event;
+                # cycle it so the close countdown has a fresh, own anchor.
+                client.remove_label(number, core.STALE_LABEL)
             client.add_labels(number, [core.STALE_LABEL])
             client.comment(number, messages.pr_marked_stale())
         elif action == "clear_stale":

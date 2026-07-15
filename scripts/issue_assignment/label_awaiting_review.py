@@ -41,7 +41,7 @@ def reconcile_all(client: SupportsLabelReconcile) -> None:
     for pr in client.iter_open_pull_requests_review_state():
         if core.is_exempt(pr["author_association"], False):
             continue
-        changes_requested_at = core.latest_changes_requested_at(pr["reviews"])
+        changes_requested_at = core.outstanding_changes_requested_at(pr["reviews"])
         contributors = {pr["author"]} - {None}
         rereview_requested_at = core.latest_rereview_request_at(
             pr["review_requests"], contributors

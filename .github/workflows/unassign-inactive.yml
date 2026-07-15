@@ -9,7 +9,13 @@ permissions: {}
 
 jobs:
   maintenance:
-    if: github.repository_owner == 'pandas-dev'
+    # On close events, skip the runner boot entirely for the ~99% of closed
+    # PRs (merged, or never Stale) the Python handler would no-op on anyway.
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      (github.event_name == 'schedule' ||
+       (github.event.pull_request.merged == false &&
+        contains(github.event.pull_request.labels.*.name, 'Stale')))
     runs-on: ubuntu-24.04
     permissions:
       contents: read

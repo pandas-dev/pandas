@@ -11,15 +11,27 @@ from __future__ import annotations
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
-from typing import TypedDict
+from typing import (
+    Required,
+    TypedDict,
+)
 
-STALE_ASSIGNEE_DAYS = 14
+STALE_ASSIGNEE_DAYS = 7
 PR_STALE_DAYS = 14
 PR_CLOSE_DAYS = 7
 
+# Update to the merge date when this lands: assignments and inactivity that
+# predate the automation are never judged by rules nobody was operating under —
+# every pre-existing assignment gets a full STALE_ASSIGNEE_DAYS from this date.
+ROLLOUT_CUTOFF = datetime(2026, 7, 15, tzinfo=timezone.utc)
+
 EXEMPT_ASSOCIATIONS = {"OWNER", "MEMBER", "COLLABORATOR"}
 REVIEW_BLOCKING_ASSOCIATIONS = {"OWNER", "MEMBER"}
+# Review states that express a reviewer's standing verdict on the PR;
+# COMMENTED and PENDING reviews leave their previous verdict in place.
+STANCE_STATES = {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
 BLOCKING_LABELS = ("Needs Triage", "Needs Discussion")
 
 GATE_LABEL = "Needs Issue Assignment"
@@ -33,6 +45,7 @@ class LinkedIssue(TypedDict):
 
 
 class Review(TypedDict):
+    author: str | None
     state: str | None
     submitted_at: datetime | None
     author_association: str | None
@@ -50,8 +63,11 @@ class Comment(TypedDict):
 
 class IssueActivity(TypedDict):
     assignees: list[str]
+    assigned_at: datetime | None
     comments: list[Comment]
+    comments_truncated: bool
     open_pr_authors: list[str]
+    crossrefs_truncated: bool
 
 
 class OpenPRState(TypedDict):
@@ -63,12 +79,14 @@ class OpenPRState(TypedDict):
     review_requests: list[ReviewRequest]
     last_commit_at: datetime | None
     comments: list[Comment]
+    comments_truncated: bool
+    reopened_events: list[Comment]
     labels: list[str]
+    stale_marked_at: datetime | None
 
 
 class GateDecision(TypedDict, total=False):
-    # always present:
-    outcome: str  # "not_in_scope" | "valid_assignment" | "invalid_assignment"
+    outcome: Required[str]  # "not_in_scope" | "valid_assignment" | "invalid_assignment"
     reason: str  # "exempt" | "no_linked_issue" (not_in_scope only)
     variant: str  # "unassigned" | "assigned_other" (invalid_assignment only)
     issue: int  # invalid_assignment only
@@ -80,17 +98,45 @@ def is_exempt(author_association: str | None, author_is_bot: bool) -> bool:
     return bool(author_is_bot) or (author_association or "") in EXEMPT_ASSOCIATIONS
 
 
-def latest_changes_requested_at(reviews: list[Review]) -> datetime | None:
-    """Newest ``CHANGES_REQUESTED`` review from a maintainer, or ``None``.
+def outstanding_changes_requested_at(reviews: list[Review]) -> datetime | None:
+    """Newest maintainer changes-request that is still outstanding, or ``None``.
 
     Only an ``OWNER``/``MEMBER`` review moves the ball into the contributor's
     court; a drive-by "request changes" from an outside account doesn't count.
+    A changes-request is outstanding only while it is that reviewer's *current
+    stance*: their own later ``APPROVED`` (or a dismissal, which rewrites the
+    review's state to ``DISMISSED``) supersedes it, while ``COMMENTED`` reviews
+    leave it standing — matching GitHub's own merge-box semantics. Another
+    reviewer's approval does not clear it.
+    """
+    stances: dict[str | None, tuple[datetime, str | None]] = {}
+    for r in reviews:
+        submitted = r["submitted_at"]
+        if (
+            r.get("state") in STANCE_STATES
+            and (r.get("author_association") or "") in REVIEW_BLOCKING_ASSOCIATIONS
+            and submitted is not None
+        ):
+            current = stances.get(r.get("author"))
+            if current is None or submitted > current[0]:
+                stances[r.get("author")] = (submitted, r.get("state"))
+    times = [t for t, state in stances.values() if state == "CHANGES_REQUESTED"]
+    return max(times) if times else None
+
+
+def latest_review_submitted_at(
+    reviews: list[Review], contributors: set[str]
+) -> datetime | None:
+    """Newest review submitted by one of ``contributors``, or ``None``.
+
+    Any state counts: replying inline to a review thread creates an implicit
+    ``COMMENTED`` review, so this is what registers an author who responds to
+    feedback without pushing or leaving a top-level comment.
     """
     times = [
         submitted
         for r in reviews
-        if r.get("state") == "CHANGES_REQUESTED"
-        and (r.get("author_association") or "") in REVIEW_BLOCKING_ASSOCIATIONS
+        if r.get("author") in contributors
         and (submitted := r["submitted_at"]) is not None
     ]
     return max(times) if times else None
@@ -110,6 +156,12 @@ def latest_rereview_request_at(
         if r.get("actor") in contributors
         and (requested := r["requested_at"]) is not None
     ]
+    return max(times) if times else None
+
+
+def latest_event_at(events: list[Comment]) -> datetime | None:
+    """Newest event time regardless of actor, or ``None``."""
+    times = [created for e in events if (created := e["created_at"]) is not None]
     return max(times) if times else None
 
 
@@ -199,18 +251,21 @@ def _within(now: datetime, ts: datetime | None, days: int) -> bool:
 def issue_is_active(
     now: datetime,
     has_open_linked_pr_by_assignee: bool,
-    last_assignee_comment_at: datetime | None,
+    last_activity_at: datetime | None,
     stale_days: int,
 ) -> bool:
     """Whether a claimed issue should keep its assignment.
 
     An open linked PR by an assignee keeps the claim regardless of age; failing
-    that, the issue is active only if an assignee commented within
-    ``stale_days``.
+    that, the issue is active only if ``last_activity_at`` — the newest of the
+    latest assignee comment, the assignment itself, and ``ROLLOUT_CUTOFF`` —
+    falls within ``stale_days``. Anchoring on the assignment means a fresh
+    assignee who hasn't commented yet still gets the full window, and the
+    cutoff keeps pre-automation claims from being expired retroactively.
     """
     if has_open_linked_pr_by_assignee:
         return True
-    return _within(now, last_assignee_comment_at, stale_days)
+    return _within(now, last_activity_at, stale_days)
 
 
 def pr_subject_to_stale(
@@ -233,23 +288,49 @@ def pr_subject_to_stale(
 def pr_stale_action(
     now: datetime,
     subject_to_stale: bool,
-    currently_stale: bool,
+    label_present: bool,
+    stale_marked_at: datetime | None,
     last_author_action_at: datetime | None,
     stale_days: int,
     close_days: int,
 ) -> str:
     """Decide the stale action for an open PR.
 
-    Returns ``"none"``, ``"mark_stale"``, ``"clear_stale"``, or ``"close"``. The
-    clock is driven purely by the **author's own** activity
-    (``last_author_action_at`` — commit, PR or linked-issue comment, re-review).
-    A close requires the PR to have carried ``Stale`` through the whole
-    ``stale_days + close_days`` window, so the warning always precedes the close.
+    Returns ``"none"``, ``"mark_stale"``, ``"clear_stale"``, or ``"close"``.
+    Whether the PR is stale at all is driven purely by the **author's own**
+    activity (``last_author_action_at`` — commit, PR/review/linked-issue
+    comment, reopen); the countdown from warning to close is driven by
+    ``stale_marked_at``, the time the *engine* applied the ``Stale`` label. A
+    close therefore always follows the engine's own warning by a full
+    ``close_days``, no matter how long the author was already inactive when the
+    PR was first marked. A ``Stale`` label the engine itself never applied
+    (e.g. added by a human) triggers a fresh ``mark_stale`` rather than a
+    close, so the warning comment is never skipped.
     """
     if not subject_to_stale or _within(now, last_author_action_at, stale_days):
-        return "clear_stale" if currently_stale else "none"
-    if not currently_stale:
+        return "clear_stale" if label_present else "none"
+    if not label_present or stale_marked_at is None:
         return "mark_stale"
-    if _within(now, last_author_action_at, stale_days + close_days):
+    if _within(now, stale_marked_at, close_days):
         return "none"
     return "close"
+
+
+def gate_action(
+    decision: GateDecision, label_present: bool, close_enabled: bool
+) -> str:
+    """What the gate should actually do, given the decision and current labels.
+
+    Returns ``"none"``, ``"clear_label"``, ``"flag"``, or ``"flag_and_close"``.
+    In warn-only mode an already-flagged PR is left alone — reopening without
+    fixing the assignment shouldn't repost the same comment. In close mode a
+    repeat still comments and closes: silently re-closing a reopened PR would
+    be far worse than repeating the explanation.
+    """
+    if decision["outcome"] == "not_in_scope":
+        return "none"
+    if decision["outcome"] == "valid_assignment":
+        return "clear_label" if label_present else "none"
+    if close_enabled:
+        return "flag_and_close"
+    return "none" if label_present else "flag"

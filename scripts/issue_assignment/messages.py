@@ -70,8 +70,9 @@ def pr_marked_stale() -> str:
     return (
         f"This pull request has had no activity from its author for "
         f"**{PR_STALE_DAYS} days**, so I've marked it **stale**. If you're still "
-        f"on it, just push a commit or leave a comment — here or on the linked "
-        f"issue — and the label clears itself. If you've already addressed the "
+        f"on it, just push a commit, reply to a review comment, or leave a "
+        f"comment — here or on the linked issue — and the label clears itself. "
+        f"If you've already addressed the "
         f"feedback, **re-request a review** (the ↻ next to the reviewer) to move "
         f"it back into the review queue. Otherwise it'll be closed in "
         f"**{PR_CLOSE_DAYS} days** to keep the queue manageable — you can always "

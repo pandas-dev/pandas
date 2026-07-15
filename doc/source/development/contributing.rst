@@ -59,6 +59,16 @@ on the issue and it will be assigned to you. See
 :ref:`contributing.issue_assignment` for the full set of rules around claiming
 and releasing issues, and how pull requests progress once opened.
 
+For advice on choosing an issue that is a good fit for you, see Marco Gorelli's
+`Don't start with good first issues
+<https://labs.quansight.org/blog/dont-start-with-good-first-issues>`_.
+
+Contributions are also welcome at `pandas-stubs
+<https://github.com/pandas-dev/pandas-stubs/issues>`_, the officially supported
+type stubs for pandas. It is maintained as a separate project, so the issue
+assignment and pull request rules described in this guide do not apply there —
+check its contributing guidelines before starting.
+
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
 new contributors, dev meetings, a dev mailing list, and a Slack for the contributor community.
@@ -111,8 +121,9 @@ and will **not** be marked stale — you keep your assignment for as long as rev
 takes.
 
 Once a maintainer requests changes, the ball is in your court and a **14-day**
-timer starts. Only *your* activity resets it: pushing a commit, or commenting on
-the pull request **or its linked issue** (a comment from someone else does not).
+timer starts. Only *your* activity resets it: pushing a commit, replying to a
+review comment, or commenting on the pull request **or its linked issue** (a
+comment from someone else does not).
 If there is no activity from you for 14 days, the pull request is marked
 ``Stale``; your next push or comment clears the label and resets the timer. If it
 stays stale for another **7 days**, it is automatically closed — you can reopen
@@ -123,7 +134,8 @@ available again.
 When you've addressed the feedback and want another look, **re-request a review**
 (the ↻ button next to the reviewer). That moves the pull request back to
 ``Awaiting Review`` and stops the staleness timer; pushing commits alone does not
-return it to the review queue.
+return it to the review queue. The timer also stops when the maintainer who
+requested changes approves your pull request.
 
 .. note::
 
@@ -137,7 +149,7 @@ Inactive assignments
 --------------------
 
 If you claim an issue but do not open a linked pull request or stay active on it
-for **14 days**, the issue is automatically unassigned and made available again.
+for **7 days**, the issue is automatically unassigned and made available again.
 You're welcome to ``/take`` it again whenever you're ready.
 
 .. _contributing.github:
