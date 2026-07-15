@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1352,8 +1353,8 @@ class ScatterPlot(PlanePlot):
         x_data = data[x]
         s = Series(index=x_data)
         if use_dynamic_x(ax, s.index):
-            s = maybe_convert_index(ax, s)
-            freq, s = prepare_ts_data(s, ax, self.kwds)
+            s, index_freq = maybe_convert_index(ax, s)
+            freq, s = prepare_ts_data(s, ax, self.kwds, index_freq)
             x_data = s.index
 
         c_is_column = is_hashable(c) and c in self.data.columns
@@ -1554,16 +1555,16 @@ class LinePlot(MPLPlot):
     def _make_plot(self, fig: Figure) -> None:
         if self._is_ts_plot():
             ax0 = self._get_ax(0)
-            data = maybe_convert_index(ax0, self.data)
+            data, index_freq = maybe_convert_index(ax0, self.data)
 
             x = data.index  # dummy, not used
-            plotf = self._ts_plot
+            plotf = partial(self._ts_plot, index_freq=index_freq)
             it = data.items()
         else:
             x = self._get_xticks()
             # error: Incompatible types in assignment (expression has type
-            # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
-            # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
+            # "Callable[[Axes, Any, ndarray[tuple[Any, ...], dtype[Any]], Any,
+            # Any, Any, KwArg(Any)], Any]", variable has type "partial[Any]")
             plotf = self._plot  # type: ignore[assignment]
             # error: Incompatible types in assignment (expression has type
             # "Iterator[tuple[Hashable, ndarray[Any, Any]]]", variable has
@@ -1636,11 +1637,19 @@ class LinePlot(MPLPlot):
         return lines
 
     @final
-    def _ts_plot(self, ax: Axes, x, data: Series, style=None, **kwds):
+    def _ts_plot(
+        self,
+        ax: Axes,
+        x,
+        data: Series,
+        style=None,
+        index_freq: str | None = None,
+        **kwds,
+    ):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
-        freq, data = prepare_ts_data(data, ax, kwds)
+        freq, data = prepare_ts_data(data, ax, kwds, index_freq)
 
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]

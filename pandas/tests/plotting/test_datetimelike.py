@@ -962,6 +962,37 @@ class TestTSPlot:
         expected_b = np.array([conv.bday_count(ts) for ts in bser.index])
         tm.assert_numpy_array_equal(line_b.get_xdata(), expected_b)
 
+    def test_plain_int_index_onto_ts_axis_raises(self):
+        # GH#64311 an integer index only means business-day ordinals when it
+        # came from the BDay conversion; a genuine int-index series overlaid
+        # on a ts axis must raise (as before) rather than be reinterpreted as
+        # business days and rescale the existing line.
+        mser = Series(
+            np.arange(12, dtype=np.float64),
+            index=period_range("2020-01", periods=12, freq="M"),
+        )
+        iser = Series(np.arange(10, dtype=np.float64))
+        _, ax = mpl.pyplot.subplots()
+        mser.plot(ax=ax)
+        with pytest.raises(TypeError, match="index type not supported"):
+            iser.plot(ax=ax)
+
+    def test_scatter_plain_int_x_onto_ts_axis(self):
+        # GH#64311 scatter with a plain integer x column onto an existing ts
+        # axis must not reinterpret the ints as business-day ordinals (which
+        # rescaled the existing line and clobbered ax.freq).
+        mser = Series(
+            np.arange(12, dtype=np.float64),
+            index=period_range("2020-01", periods=12, freq="M"),
+        )
+        df = DataFrame({"x": np.arange(10), "y": np.arange(10, dtype=np.float64)})
+        _, ax = mpl.pyplot.subplots()
+        mser.plot(ax=ax)
+        expected = ax.get_lines()[0].get_xdata().copy()
+        df.plot.scatter(x="x", y="y", ax=ax)
+        assert ax.freq == "M"
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), expected)
+
     def test_mixed_freq_hf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
