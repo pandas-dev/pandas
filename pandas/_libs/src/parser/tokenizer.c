@@ -1625,7 +1625,7 @@ int to_boolean(const char *item, uint8_t *val) {
 //
 // -----------------------------------------------------------------------
 
-// Defined in fast_float_strtod.cpp — provides IEEE 754 correctly-rounded
+// Defined in fast_float_wrappers.cpp — provides IEEE 754 correctly-rounded
 // float parsing via the fast_float library.
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
