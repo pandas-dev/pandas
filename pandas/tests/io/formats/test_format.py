@@ -363,7 +363,7 @@ class TestDataFrameFormatting:
             assert ".." in repr(df)
             assert "2  " not in repr(df)
             assert "..." in df._repr_html_()
-            assert '<td style="border: 2px solid black;">5</td>' not in df._repr_html_()
+            assert '<td style="border: 1px solid black;">2</td>' not in df._repr_html_()
 
         with option_context("display.max_rows", 12, "display.min_rows", None):
             # when set to None, follow value of max_rows
