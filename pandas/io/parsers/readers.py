@@ -421,6 +421,16 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if "://" in filepath:
         return False
 
+    # GH-66259: The parallel path evaluates types per-chunk, which contradicts the
+    # whole-file type inference guaranteed by low_memory=False.
+    if kwds.get("low_memory") is False:
+        return False
+
+    # GH-66259: Pyarrow chunk concatenation does a strict checked int->double
+    # cast that fails for integers > 2^53. Fallback to serial.
+    if kwds.get("dtype_backend") == "pyarrow":
+        return False
+
     # storage_options on a local path raises ValueError in get_handle; the
     # parallel path strips it and would mask that error.
     if kwds.get("storage_options") is not None:
@@ -679,7 +689,15 @@ def _read_csv_parallel(
         first_line = fd.readline()
 
     name_buf = io.BytesIO(preamble + first_line)
-    name_reader = TextFileReader(name_buf, **base_kwds)
+    
+    from pandas.errors import EmptyDataError
+    try:
+        name_reader = TextFileReader(name_buf, **base_kwds)
+    except EmptyDataError:
+        # GH-66259: header=None on a file with a blank first line raises here.
+        # Fall back to serial reading, which correctly skips the blank line.
+        return None
+
     if not isinstance(name_reader._engine, CParserWrapper):
         # TextFileReader fell back to the python engine for a reason the
         # eligibility checks did not anticipate; load_buffer needs the C engine.
