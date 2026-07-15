@@ -2116,48 +2116,6 @@ class TestDataFrameReductions:
                     check_names=False,
                 )
 
-    @pytest.mark.parametrize("method", ["sum", "prod", "mean"])
-    @pytest.mark.parametrize("dtype", ["float64", "int64"])
-    @pytest.mark.parametrize("with_nan", [False, True])
-    def test_reduce_axis1_wide_few_rows(self, method, dtype, with_nan):
-        # GH#51474 - a wide single-block frame (few rows, many columns) reduces
-        # summation ops (sum/prod/mean) over a contiguous transpose rather than
-        # the strided block axis; result must still match the transpose path.
-        if with_nan and dtype != "float64":
-            pytest.skip("only float can hold NaN")
-        rng = np.random.default_rng(0)
-        nrows, ncols = 3, 50
-        if dtype == "float64":
-            values = rng.standard_normal((nrows, ncols))
-            if with_nan:
-                values[values > 0.5] = np.nan
-        else:
-            values = rng.integers(0, 100, (nrows, ncols))
-        df = DataFrame(values)
-        assert len(df._mgr.blocks) == 1
-        # the fastpath gate keys on the block being (ncols, nrows) with nrows < 6
-        assert df._mgr.blocks[0].values.shape[1] == nrows
-
-        result = getattr(df, method)(axis=1)
-        expected = getattr(df.T, method)()
-        tm.assert_series_equal(result, expected, check_names=False, check_dtype=False)
-
-    def test_reduce_axis1_wide_few_rows_min_count(self):
-        # GH#51474 - min_count still applies per row on the contiguous-transpose
-        # path for wide single-block frames.
-        rng = np.random.default_rng(1)
-        values = rng.standard_normal((2, 40))
-        values[values > 0.0] = np.nan  # roughly half NaN per row
-        df = DataFrame(values)
-        assert df._mgr.blocks[0].values.shape[1] == 2
-
-        # more non-null values required than any row has -> all NaN
-        assert df.sum(axis=1, min_count=100).isna().all()
-
-        result = df.sum(axis=1, min_count=1)
-        expected = df.T.sum(min_count=1)
-        tm.assert_series_equal(result, expected, check_names=False)
-
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_reduce_axis1_dt64tz_with_nat(self, method):
         # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
@@ -2174,6 +2132,42 @@ class TestDataFrameReductions:
         # skipna=False propagates NaT.
         result = getattr(df, method)(axis=1, skipna=False)
         expected = Series([ts, pd.NaT], dtype=df["a"].dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("method", ["min", "max"])
+    def test_reduce_axis1_single_block_dt64tz_with_nat(self, method):
+        # GH#51474, GH#65500: the single-block fastpath reduces a 2D EA block
+        # directly rather than going through _reduce_axis1 or the transpose.
+        # NaT must be skipped under skipna=True and propagated under
+        # skipna=False, without raising and without changing dtype.
+        df = _make_2d_ea_df(
+            [
+                to_datetime(["2020-01-01", "2020-01-02"])
+                .as_unit("us")
+                .tz_localize("UTC")
+                ._data,
+                to_datetime(["2020-01-02", pd.NaT])
+                .as_unit("us")
+                .tz_localize("UTC")
+                ._data,
+            ],
+            ["dz1", "dz2"],
+        )
+        # the fastpath only applies to a single 2D EA block
+        assert len(df._mgr.blocks) == 1
+        assert df._mgr.blocks[0].values.ndim == 2
+
+        first = Timestamp("2020-01-01", tz="UTC")
+        second = Timestamp("2020-01-02", tz="UTC")
+        # row 0 is [first, second]; row 1 is [second, NaT]
+        winner = first if method == "min" else second
+
+        result = getattr(df, method)(axis=1)
+        expected = Series([winner, second], dtype=df["dz1"].dtype)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(axis=1, skipna=False)
+        expected = Series([winner, pd.NaT], dtype=df["dz1"].dtype)
         tm.assert_series_equal(result, expected)
 
     def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):

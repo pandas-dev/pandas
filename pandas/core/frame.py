@@ -16267,26 +16267,15 @@ class DataFrame(NDFrame, OpsMixin):
                     bvalues = blocks[0].values
                     result = None
                     if isinstance(bvalues, np.ndarray) and bvalues.dtype.kind != "O":
-                        if (
-                            name in ("sum", "prod", "mean")
-                            and bvalues.shape[1] < 6
-                            and bvalues.flags["C_CONTIGUOUS"]
+                        # A block with few rows and many columns is
+                        # (ncols, nrows), so reducing it along axis=0 walks the
+                        # long axis with a strided inner loop that barely
+                        # vectorizes (only nrows output lanes).  sum/prod/mean
+                        # are faster on the transpose path for that shape, so
+                        # leave those frames to it.
+                        if not (
+                            name in ("sum", "prod", "mean") and bvalues.shape[1] < 6
                         ):
-                            # For a frame with few rows and many columns the
-                            # block is (ncols, nrows) C-contiguous, so reducing
-                            # along axis=0 walks the long column axis with a
-                            # strided inner loop that barely vectorizes (only
-                            # nrows output lanes).  Summation-based reductions
-                            # are much faster over a contiguous axis, so reduce
-                            # a C-contiguous transpose instead (crossover is
-                            # ~6 rows; other reductions don't benefit).
-                            result = op(
-                                np.ascontiguousarray(bvalues.T),
-                                axis=1,
-                                skipna=skipna,
-                                **kwds,
-                            )
-                        else:
                             result = op(bvalues, axis=0, skipna=skipna, **kwds)
                     elif isinstance(bvalues, ExtensionArray) and bvalues.ndim == 2:
                         result = bvalues._reduce(name, axis=0, skipna=skipna, **kwds)
