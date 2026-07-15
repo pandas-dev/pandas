@@ -427,7 +427,6 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         msg = "|".join(
             [
                 "SeriesGroupBy.sem called with numeric_only=True and dtype object",
-                "Series.skew does not allow numeric_only=True with non-numeric",
                 "cum(sum|prod|min|max) is not supported for object dtype",
                 r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]

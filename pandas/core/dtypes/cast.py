@@ -842,21 +842,6 @@ def _maybe_infer_dtype_type(element: object) -> DtypeObj | None:
     return tipo
 
 
-def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
-    """
-    Change string like dtypes to object for
-    ``DataFrame.select_dtypes()``.
-    """
-    non_string_dtypes = dtype_set - {
-        np.dtype("S").type,
-        np.dtype("<U").type,
-    }
-    if non_string_dtypes != dtype_set:
-        raise TypeError(
-            "numpy string dtypes are not allowed, use 'str' or 'object' instead"
-        )
-
-
 def coerce_indexer_dtype(indexer: np.ndarray, categories: Index) -> np.ndarray:
     """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
@@ -1423,9 +1408,36 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> Any:
+    """
+    Maybe convert a NumPy scalar to its Python equivalent.
+
+    If future.python_scalars is disabled or ``value`` is not a NumPy scalar, ``value``
+    is returned unchanged. ``np.datetime64`` and ``np.timedelta64`` values are
+    converted to ``Timestamp`` and ``Timedelta`` respectively. Converting
+    ``np.longdouble`` to ``float`` and ``np.complex256`` to ``complex`` can
+    lose precision.
+
+    Parameters
+    ----------
+    value : Any
+        The value to unbox.
+    dtype : DtypeObj or None, default None
+        The dtype of the data ``value`` came from. Pass this whenever
+        ``value`` is an element of the data or is derived from its elements:
+        object dtype stores arbitrary user objects, so a NumPy scalar coming
+        from object-dtype data is a stored value rather than a boxing
+        artifact, and is returned unchanged. Omit for values whose
+        type does not follow the data's dtype, e.g. positions, counts, and
+        the results of any/all.
+
+    Returns
+    -------
+    Any
+        The equivalent Python scalar, or ``value`` unchanged.
+    """
     result = value
-    if using_python_scalars() and isinstance(value, np.generic):
+    if dtype != object and using_python_scalars() and isinstance(value, np.generic):
         if isinstance(result, np.longdouble):
             result = float(result)
         elif isinstance(result, np.complex256):

@@ -1152,12 +1152,15 @@ class Block(PandasObject, libinternals.Block):
                 casted = setitem_datetimelike_compat(values, num_set, casted)
 
                 if (
-                    isinstance(casted, list)
+                    self.ndim == 1
+                    and isinstance(casted, list)
                     and len(casted) > 0
                     and isinstance(casted[0], (tuple, list, np.ndarray))
                 ):
                     # Prevent numpy from unpacking nested containers
-                    # (e.g. tuples) during boolean-indexed assignment. GH#37629
+                    # (e.g. tuples) into a scalar cell during assignment. GH#37629
+                    # Only for 1D blocks: on a 2D block a list of lists/tuples is
+                    # a genuine 2D value whose rows must not be wrapped. GH#65264
                     casted = construct_1d_object_array_from_listlike(casted)
 
             self = self._maybe_copy(inplace=True)
@@ -1407,6 +1410,21 @@ class Block(PandasObject, libinternals.Block):
         if noop:
             return [self.copy(deep=False)]
 
+        if not self._can_hold_element(value) and not is_valid_na_for_dtype(
+            value, self.dtype
+        ):
+            # GH#45153 fillna with incompatible value requiring any
+            #  dtype casting is deprecated.
+            warnings.warn(
+                f"'{type(value).__name__}' is not supported as a "
+                f"fill value for {self.dtype} dtype. In a future "
+                f"version, calling fillna with an incompatible "
+                f"value will raise. Explicitly cast to a common "
+                f"dtype before filling.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         if limit is not None:
             mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
@@ -1589,11 +1607,7 @@ class Block(PandasObject, libinternals.Block):
                     stacklevel=find_stack_level(),
                 )
             return self.copy(deep=False)
-        # TODO: round only defined on BaseMaskedArray
-        # Series also does this, so would need to fix both places
-        # error: Item "ExtensionArray" of "Union[ndarray[Any, Any], ExtensionArray]"
-        # has no attribute "round"
-        values = self.values.round(decimals)  # type: ignore[union-attr]
+        values = self.values.round(decimals)
 
         refs = None
         if values is self.values:
@@ -2445,11 +2459,30 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
+        warnings.warn(
+            f"Series.values returning an object-dtype ndarray for "
+            f"{type(values.dtype).__name__} dtype is deprecated. "
+            f"In a future version, this will return the underlying "
+            f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
+            f"NumPy array, or 'Series.array' to get the ExtensionArray.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
+        if isinstance(values.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "Series.values returning an ndarray that drops timezone "
+                "information for DatetimeTZDtype is deprecated. "
+                "In a future version, this will return the underlying "
+                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
+                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

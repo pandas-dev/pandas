@@ -110,26 +110,35 @@ static void free_if_not_null(void **ptr) {
 static void *grow_buffer(void *buffer, uint64_t length, uint64_t *capacity,
                          int64_t space, int64_t elsize, int *error) {
   uint64_t cap = *capacity;
-  void *newbuffer = buffer;
 
-  // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
-  while ((length + space >= cap) && (newbuffer != NULL)) {
-    cap = cap ? cap << 1 : 2;
-    buffer = newbuffer;
-    newbuffer = realloc(newbuffer, elsize * cap);
+  // Can we already fit length + space (tokens + null terminators)?
+  if (length + space < cap) {
+    *error = 0;
+    return buffer;
   }
 
+  // Compute the final power-of-two capacity first, then realloc *once*.
+  // Doubling with a realloc inside the loop reallocs (and copies) at every
+  // step; the up-front stream reservation in tokenize_bytes grows the buffer
+  // from its initial size to the whole chunk in a single call, so that would
+  // be ~log2(chunk / init) copying reallocs.  On allocators with a single
+  // process-wide heap lock (notably the Windows UCRT heap) those extra
+  // reallocs serialize the parallel read_csv workers against each other, so
+  // we size the buffer in one shot instead.
+  uint64_t newcap = cap ? cap : 2;
+  while (length + space >= newcap) {
+    newcap <<= 1;
+  }
+
+  void *newbuffer = realloc(buffer, elsize * newcap);
   if (newbuffer == NULL) {
     // realloc failed so don't change *capacity, set *error to errno
-    // and return the last good realloc'd buffer so it can be freed
+    // and return the still-valid old buffer so it can be freed
     *error = errno;
-    newbuffer = buffer;
-  } else {
-    // realloc worked, update *capacity and set *error to 0
-    // sigh, multiple return values
-    *capacity = cap;
-    *error = 0;
+    return buffer;
   }
+  *capacity = newcap;
+  *error = 0;
   return newbuffer;
 }
 
@@ -155,6 +164,7 @@ void parser_set_default_options(parser_t *self) {
 
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
+  self->preloaded = 0;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -444,8 +454,12 @@ static int end_line(parser_t *self) {
     return 0;
   }
 
-  if (!(self->lines <= self->header_end + 1) && (fields > ex_fields) &&
-      !(self->usecols)) {
+  /* The first line is normally exempt from the field-count check: it is the
+   * header, or it defines the table width (implicit-index inference).  In
+   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
+   * the first line is plain data, so the exemption must not apply. */
+  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
+      (fields > ex_fields) && !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -862,7 +876,10 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     breaks_field_scan[index] |= 0x2;
   }
 
-  if (self->file_lines == 0) {
+  if (self->file_lines == 0 && !self->preloaded) {
+    /* In preloaded mode the buffer usually starts mid-file, where a BOM
+     * byte sequence is real data; load_buffer strips a leading BOM itself
+     * when the buffer really is the start of the file. */
     CHECK_FOR_BOM();
   }
 
@@ -1352,12 +1369,18 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
 
-  /* if word_deletions == 0 (i.e. this case) then char_count must
-   * be 0 too, as no data needs to be skipped */
-  const uint64_t char_count =
-      word_deletions >= 1 ? (self->word_starts[word_deletions - 1] +
-                             strlen(self->words[word_deletions - 1]) + 1)
-                          : 0;
+  uint64_t char_count;
+  if (word_deletions < 1) {
+    /* nothing deleted, so no data needs to be skipped */
+    char_count = 0;
+  } else if ((uint64_t)word_deletions < self->words_len) {
+    /* start of the first surviving word, which equals the end (past the
+     * trailing '\0') of the last deleted word */
+    char_count = (uint64_t)self->word_starts[word_deletions];
+  } else {
+    /* every word is being deleted */
+    char_count = self->stream_len;
+  }
 
   /* move stream, only if something to move */
   if (char_count < self->stream_len) {
@@ -1500,6 +1523,16 @@ static int _tokenize_helper(parser_t *self, uint64_t nrows, int all,
       break;
 
     if (self->datapos == self->datalen) {
+      if (self->source == NULL) {
+        /* Pre-loaded buffer mode: the entire chunk has been consumed.
+         * Signal EOF without invoking the Python I/O callback so the
+         * GIL is never re-acquired during tokenisation. */
+        self->datalen = 0;
+        status = parser_handle_eof(self);
+        self->state = FINISHED;
+        break;
+      }
+
       status = parser_buffer_bytes(self, self->chunksize, encoding_errors);
 
       if (status == REACHED_EOF) {
@@ -1602,9 +1635,9 @@ int to_boolean(const char *item, uint8_t *val) {
 int fast_float_strtod(const char *start, const char *end, double *value,
                       const char **endptr, char decimal);
 
-double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
-                       char tsep, int skip_trailing, int *error,
-                       int *maybe_int) {
+double precise_xstrtod_with_end(const char *str, char **endptr, char decimal,
+                                char sci, char tsep, int skip_trailing,
+                                int *error, int *maybe_int, const char *end) {
   // Use fast_float for standard format (no tsep, sci='e'/'E').
   // fast_float provides IEEE 754 correctly-rounded parsing.
   if (tsep == '\0' && (sci == 'e' || sci == 'E')) {
@@ -1621,10 +1654,15 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (!isdigit_ascii(*q) && !(*q == decimal && isdigit_ascii(*(q + 1))))
       goto fallback;
 
-    // Find end of token (next whitespace or NUL).
-    const char *end = p;
-    while (*end && !isspace_ascii(*end))
-      end++;
+    // Find end of token (next whitespace or NUL) unless the caller passed
+    // it; fast_float stops at the first non-numeric byte regardless, so a
+    // looser end bound is harmless.
+    if (end == NULL) {
+      const char *scan = p;
+      while (*scan && !isspace_ascii(*scan))
+        scan++;
+      end = scan;
+    }
 
     double value;
     const char *parsed_end;
@@ -1809,6 +1847,13 @@ fallback:
   return number;
 }
 
+double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
+                       char tsep, int skip_trailing, int *error,
+                       int *maybe_int) {
+  return precise_xstrtod_with_end(str, endptr, decimal, sci, tsep,
+                                  skip_trailing, error, maybe_int, NULL);
+}
+
 // End of xstrtod code
 // ---------------------------------------------------------------------------
 
@@ -1857,7 +1902,8 @@ static int copy_number_without_tsep(char output[PROCESSED_WORD_CAPACITY],
   return (int)bytes_written;
 }
 
-int64_t str_to_int64(const char *p_item, int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, int64_t length, int *error,
+                     char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1877,7 +1923,10 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
@@ -1926,8 +1975,8 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
-                       char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t length,
+                       int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1950,7 +1999,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p);
+  // length == strlen(p_item) supplied by the caller (-1 to compute here);
+  // lets from_chars get its end pointer without a strlen scan.
+  size_t str_len =
+      length < 0 ? strlen(p) : (size_t)length - (size_t)(p - p_item);
   const char *number_end = NULL;
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int written =
