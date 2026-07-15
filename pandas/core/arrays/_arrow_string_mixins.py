@@ -8,6 +8,7 @@ from typing import (
     Literal,
     Self,
 )
+import unicodedata
 
 import numpy as np
 
@@ -175,6 +176,18 @@ class ArrowStringArrayMixin:
             result = self._apply_elementwise(predicate)
             return self._from_pyarrow_array(pa.chunked_array(result))
         return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
+
+    def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
+        if form not in ("NFC", "NFD", "NFKC", "NFKD"):
+            raise ValueError("invalid normalization form")
+        if form in ("NFC", "NFKC"):
+            # GH#64359 pc.utf8_normalize only decomposes; it skips the canonical
+            #  composition step, so for the composing forms it returns decomposed
+            #  output. Fall back to unicodedata for these.
+            predicate = lambda val: unicodedata.normalize(form, val)
+            result = self._apply_elementwise(predicate)
+            return self._from_pyarrow_array(pa.chunked_array(result))
+        return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
