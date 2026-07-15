@@ -298,6 +298,7 @@ Datetimelike
 - Bug in :meth:`DataFrame.to_string` and :meth:`Series.to_string` where ``na_rep`` was ignored for datetime and timedelta columns, always displaying ``NaT`` (:issue:`55426`)
 - Bug in :meth:`DatetimeArray.isin` and :meth:`TimedeltaArray.isin` where mismatched resolutions could silently truncate finer-resolution values, leading to false matches (:issue:`64545`)
 - Bug in :meth:`DatetimeIndex.intersection` returning incorrect results when the two indexes had matching ``freq`` but did not lie on the same grid, e.g. ranges with the same business-day frequency but different time-of-day components (:issue:`44025`)
+- Bug in :meth:`DatetimeIndex.union` and :meth:`TimedeltaIndex.union` with ``sort=False`` silently dropping values from the other index that fell after the end of ``self`` (:issue:`66322`)
 - Bug in :meth:`Series.dt.isocalendar` with a pyarrow-backed datetime or date dtype not preserving the original index, resetting it to a default :class:`RangeIndex` (:issue:`65894`)
 - Bug in adding a :class:`DateOffset` with a ``milliseconds`` component to a :class:`Timestamp` returning a microsecond-resolution result, inconsistent with the millisecond-resolution result of the equivalent :class:`DatetimeIndex` and :class:`Series` operations (:issue:`64806`)
 - Bug in adding non-nano :class:`DatetimeIndex` with non-vectorized offsets (e.g. :class:`CustomBusinessDay`, :class:`CustomBusinessMonthEnd`) having a sub-unit ``offset`` parameter incorrectly truncating the result or raising ``AttributeError`` (:issue:`56586`)
@@ -474,6 +475,8 @@ Period
 ^^^^^^
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :meth:`Period.strftime` where unknown format directives (e.g. ``"%Q"``) silently produced platform-dependent output and crashed the Python process on Windows; an ``Invalid format string`` ``ValueError`` is now raised on all platforms (:issue:`53562`)
+- Bug in :meth:`Period.to_timestamp` and :meth:`PeriodIndex.to_timestamp` returning incorrect timestamps when the target frequency normalized to nanoseconds (e.g. ``"1ns"``) or when converting a nanosecond ``Period`` to a coarser target frequency (:issue:`63760`)
+- Bug in :meth:`Period.to_timestamp` and :meth:`PeriodIndex.to_timestamp` with ``how="end"`` losing nanosecond precision when the target frequency normalized to nanoseconds (e.g. ``"1ns"``); the target frequency is now also validated when ``how="end"`` (:issue:`63760`)
 -
 
 Plotting

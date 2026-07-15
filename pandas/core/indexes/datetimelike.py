@@ -1337,24 +1337,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self, other: Self, sort=None) -> Self:
+    def _fast_union(self, other: Self) -> Self:
         # Caller is responsible for ensuring self and other are non-empty
+        #  and that the result is monotonic, so that it retains self.freq.
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
             left, right = self, other
-        elif sort is False:
-            # TDIs are not in the "correct" order and we don't want
-            #  to sort but want to remove overlaps
-            left, right = self, other
-            left_start = left[0]
-            loc = right.searchsorted(left_start, side="left")
-            right_chunk = right._values[:loc]
-            dates = concat_compat((left._values, right_chunk))
-            result = type(self)._simple_new(dates, name=self.name)
-            # The sort=False result is non-monotonic (self's values followed
-            #  by earlier values from other), so it cannot carry a freq.
-            return result
         else:
             left, right = other, self
 
@@ -1383,10 +1372,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         if self._can_range_setop(other):
             return self._range_union(other, sort=sort)
 
-        if self._can_fast_union(other):
-            # in the case with sort=None, the _can_fast_union check ensures
-            #  that result.freq == self.freq
-            return self._fast_union(other, sort=sort)
+        if self._can_fast_union(other) and (sort is not False or self[0] <= other[0]):
+            # the _can_fast_union check ensures that result.freq == self.freq.
+            #  With sort=False and self starting after other, the result would
+            #  instead be non-monotonic and carry no freq, so we leave that case
+            #  to the generic path below.  GH#66322
+            return self._fast_union(other)
         else:
             # super()._union can return an ArrayLike; wrap into an Index first
             result = self._wrap_setop_result(other, super()._union(other, sort))
