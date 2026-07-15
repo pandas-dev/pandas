@@ -27,10 +27,10 @@ the ``categories`` array.
 The categorical data type is useful in the following cases:
 
 * A string variable consisting of only a few different values. Converting such a string
-  variable to a categorical variable will save some memory, see section :ref:`<categorical.memory>`.
+  variable to a categorical variable will save some memory, see section :ref:`categorical.memory`.
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
-  min/max will use the logical order instead of the lexical order, see section :ref:`<categorical.sort>`.
+  min/max will use the logical order instead of the lexical order, see section :ref:`categorical.sort`.
 * As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
@@ -983,7 +983,7 @@ Missing data
 ------------
 
 pandas primarily uses the value ``np.nan`` to represent missing data. It is by
-default not included in computations. See :ref:`<missing_data>`.
+default not included in computations. See :ref:`missing_data`.
 
 Missing values should **not** be included in the Categorical's ``categories``,
 only in the ``values``.
