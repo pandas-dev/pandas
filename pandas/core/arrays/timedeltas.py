@@ -265,7 +265,8 @@ class TimedeltaArray(dtl.TimelikeOps):
                 is_numeric = data.dtype.kind in "iuf"
             if is_numeric:
                 # numeric data is interpreted in the dtype's unit, matching
-                #  to_timedelta(data, unit=...)
+                #  to_timedelta(data, unit=...); mixed Timedelta/numeric data
+                #  keeps the "ns" default, unlike to_timedelta
                 unit = np.datetime_data(dtype)[0]
 
         data = sequence_to_td64ns(data, copy=copy, unit=unit)
