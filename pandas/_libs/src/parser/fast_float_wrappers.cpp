@@ -1,5 +1,5 @@
 /*
-Thin C++ wrapper exposing fast_float::from_chars with C linkage.
+Thin C++ wrappers exposing fast_float::from_chars with C linkage.
 fast_float provides IEEE 754 round-to-even (i.e. correctly rounded) parsing.
 */
 #include "fast_float/fast_float.h"
@@ -20,7 +20,6 @@ int fast_float_strtod(const char *start, const char *end, double *value,
   return -1;
 }
 
-// See doc comment in tokenizer.h.
 int try_parse_plain_double(const char *start, const char *end, char decimal,
                            double *out) {
   fast_float::parse_options options{

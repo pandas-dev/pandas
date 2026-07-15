@@ -239,7 +239,7 @@ double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
 // anything else — leading/trailing spaces, inf/nan spellings, junk — returns
 // nonzero so the caller retries through the full converter with its legacy
 // semantics. Overflow parses to +/-inf like precise_xstrtod. On nonzero
-// return *out may still have been clobbered. Defined in fast_float_strtod.cpp.
+// return *out may still have been clobbered.
 int try_parse_plain_double(const char *start, const char *end, char decimal,
                            double *out);
 int to_boolean(const char *item, uint8_t *val);
