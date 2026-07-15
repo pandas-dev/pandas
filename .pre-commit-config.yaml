@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: v0.15.20
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -46,7 +46,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.19.0
+    rev: v0.21.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -262,6 +262,12 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="doesnt_use_pandas_warnings"
         types: [ python ]
+    -   id: unwanted-patterns-bare-pipe-alternation-in-message
+        name: Check that message regexes use '|'.join([...]) instead of a bare | alternation
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="bare_pipe_alternation_in_message"
+        types: [python]
+        files: ^pandas/tests/
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
@@ -278,13 +284,13 @@ repos:
         name: Check for pg8000 not installed on CI for test_pg8000_sqlalchemy_passthrough_error
         language: pygrep
         entry: 'pg8000'
-        files: ^ci/deps
-        types: [yaml]
+        files: pixi\.toml
+        types: [toml]
     -   id: validate-min-versions-in-sync
         name: Check minimum version of dependencies are aligned
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
-        files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
+        files: ^(pixi\.toml|pandas/compat/_optional\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations

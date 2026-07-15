@@ -20,6 +20,7 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.algos as libalgos
+from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
@@ -345,7 +346,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
     return not issubclass(dtype.type, np.integer)
 
 
-def _wrap_results(result, dtype: np.dtype, fill_value=None):
+def _wrap_results(result, dtype: np.dtype, fill_value=None, result_mask=None):
     """wrap our results if needed"""
     if result is NaT:
         pass
@@ -370,18 +371,27 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
             result = result.astype(dtype)
     elif dtype.kind == "m":
         if not isinstance(result, np.ndarray):
-            if result == fill_value or np.isnan(result):
+            if result_mask or result == fill_value or np.isnan(result):
                 unit = np.datetime_data(dtype)[0]
                 result = np.timedelta64("NaT", unit)  # type: ignore[call-overload]
 
             elif np.fabs(result) > lib.i8max:
-                # raise if we have a timedelta64[ns] which is too large
-                raise ValueError("overflow in timedelta operation")
+                # GH#43178: raise if the result is too large for the dtype's unit
+                raise OutOfBoundsTimedelta("overflow in timedelta operation")
             else:
                 # return a timedelta64 with the original unit
                 result = np.int64(result).astype(dtype, copy=False)
 
         else:
+            overflow = np.abs(result) > lib.i8max
+            if result_mask is not None:
+                # GH#43178: positions that will be set to NaT (skipna=False) are
+                #  exempt from the overflow check and must not trip the cast below
+                overflow &= ~result_mask
+                result = np.where(result_mask, 0, result)
+            if overflow.any():
+                # GH#43178: raise if any result is too large for the dtype's unit
+                raise OutOfBoundsTimedelta("overflow in timedelta operation")
             result = result.astype("m8[ns]").view(dtype)
 
     return result
@@ -411,7 +421,18 @@ def _datetimelike_compat(func: F) -> F:
         result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
         if datetimelike:
-            result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
+            result_mask = None
+            if not skipna:
+                assert mask is not None  # checked above
+                # positions with any NA reduce to NaT, so exempt them from the
+                # timedelta overflow guard in _wrap_results
+                if isinstance(result, np.ndarray):
+                    result_mask = mask.any(axis=axis)
+                else:
+                    result_mask = mask.any()
+            result = _wrap_results(
+                result, orig_values.dtype, fill_value=iNaT, result_mask=result_mask
+            )
             if not skipna:
                 assert mask is not None  # checked above
                 result = _mask_datetimelike_result(result, axis, mask, orig_values)
@@ -1114,9 +1135,34 @@ def _nanminmax(meth, fill_value_typ):
             return _na_for_min_count(values, axis)
 
         dtype = values.dtype
-        values, mask = _get_values(
-            values, skipna, fill_value_typ=fill_value_typ, mask=mask
-        )
+        if dtype == object and skipna:
+            # GH#65500: _get_values' +/-inf fill isn't comparable with arbitrary
+            # objects (Timestamps, strings) and raises.  Fill NAs from the same
+            # slice instead (leaves min/max unchanged); all-NA slices keep the
+            # +/-inf fill since _maybe_null_out discards them anyway.
+            mask = _maybe_get_mask(values, skipna, mask)
+            if mask is not None and mask.any():
+                fill_value = _get_fill_value(dtype, fill_value_typ=fill_value_typ)
+                if mask.all():
+                    values = np.full(values.shape, fill_value, dtype=object)
+                elif values.ndim == 1 or axis is None:
+                    fill = np.empty(1, dtype=object)
+                    # wrap in an array so that e.g. tuple fill values
+                    # are not broadcast by np.where
+                    fill[0] = values[~mask][0]
+                    values = np.where(mask, fill, values)
+                else:
+                    indexer = np.expand_dims((~mask).argmax(axis=axis), axis)
+                    fill = np.take_along_axis(values, indexer, axis=axis)
+                    # argmax selects an NA entry for entirely-NA slices; fill
+                    # those with +/-inf instead so the reduction does not warn
+                    all_na = np.expand_dims(mask.all(axis=axis), axis)
+                    fill = np.where(all_na, fill_value, fill)
+                    values = np.where(mask, fill, values)
+        else:
+            values, mask = _get_values(
+                values, skipna, fill_value_typ=fill_value_typ, mask=mask
+            )
         result = getattr(values, meth)(axis)
         result = _maybe_null_out(
             result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"

@@ -82,11 +82,7 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
-            # TODO: the message being checked here isn't actually checking anything
-            msg = (
-                "[Cc]annot perform|Categorical is not ordered for operation|"
-                "does not support operation|"
-            )
+            msg = "|".join(["[Cc]annot perform", "does not support operation"])
 
             with pytest.raises(TypeError, match=msg):
                 getattr(ser, op_name)(skipna=skipna)
@@ -101,10 +97,17 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
-            # TODO: the message being checked here isn't actually checking anything
-            msg = (
-                "[Cc]annot perform|Categorical is not ordered for operation|"
-                "does not support operation|"
+            msg = "|".join(
+                [
+                    "[Cc]annot perform",
+                    "does not support",
+                    "Categorical is not ordered for operation",
+                    "is not implemented for",
+                    r"complex\(\) (first )?argument must be a string or a number",
+                    "can't multiply sequence by non-int",
+                    "setting an array element with a sequence",
+                    "Cannot convert .* to numeric",
+                ]
             )
 
             with pytest.raises(TypeError, match=msg):
@@ -126,3 +129,42 @@ class BaseReduceTests:
             pytest.skip(f"Reduction {op_name} not supported for this dtype")
 
         self.check_reduce_frame(ser, op_name, skipna)
+
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
+        # https://github.com/pandas-dev/pandas/pull/63512
+        op_name = all_reductions
+        ser = pd.Series(data)
+
+        kwargs = {}
+        if op_name in ["any", "all"] and isinstance(ser.array, pd.arrays.SparseArray):
+            # SparseArray.any/all do not accept a skipna argument
+            pass
+        elif op_name != "count":
+            kwargs["skipna"] = skipna
+
+        if not self._supports_reduction(ser, op_name):
+            # TODO: the message being checked here isn't actually checking anything
+            msg = "|".join(
+                [
+                    f"object has no attribute '{op_name}'",
+                    "does not support operation",
+                    f"{op_name} is not implemented for",
+                    f"Cannot perform reduction '{op_name}'",
+                    "[Cc]ould not convert",
+                    "Cannot convert",
+                    f"Categorical is not ordered for operation {op_name}",
+                    "setting an array element with a sequence",
+                    "can't multiply sequence by non-int of type",
+                    r"complex\(\) first argument must be a string or a number",
+                    r"complex\(\) argument must be a string or a number",
+                ]
+            )
+            with pytest.raises((TypeError, AttributeError), match=msg):
+                getattr(ser.array, op_name)(**kwargs)
+            return
+
+        res_op = getattr(ser.array, op_name)
+        expected = ser.array._reduce(op_name, **kwargs)
+        result = res_op(**kwargs)
+        tm.assert_almost_equal(result, expected)

@@ -142,16 +142,14 @@ def test_statsmodels():
 
 
 def test_scikit_learn():
-    pytest.importorskip("sklearn")
-    from sklearn import (
-        datasets,
-        svm,
-    )
+    svm = pytest.importorskip("sklearn.svm")
 
-    digits = datasets.load_digits()
+    digits = DataFrame(
+        {"feat1": range(5), "feat2": reversed(range(5)), "Group": [0, 1, 0, 1, 0]}
+    )
     clf = svm.SVC(gamma=0.001, C=100.0)
-    clf.fit(digits.data[:-1], digits.target[:-1])
-    clf.predict(digits.data[-1:])
+    clf.fit(digits.iloc[:-1, :1], digits.iloc[:-1, 2])
+    clf.predict(digits.iloc[-1:, :1])
 
 
 def test_seaborn(mpl_cleanup):
@@ -162,10 +160,7 @@ def test_seaborn(mpl_cleanup):
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-@pytest.mark.xfail(reason="pandas_datareader uses old variant of deprecate_kwarg")
 def test_pandas_datareader():
-    # https://github.com/pandas-dev/pandas/pull/61468
-    # https://github.com/pydata/pandas-datareader/issues/1005
     pytest.importorskip("pandas_datareader")
 
 

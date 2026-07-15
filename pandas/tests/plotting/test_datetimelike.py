@@ -26,6 +26,7 @@ from pandas import (
     concat,
     isna,
     to_datetime,
+    to_timedelta,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import (
@@ -59,9 +60,11 @@ class TestTSPlot:
         _check_plot_works(ts.plot)
         ax = ts.plot()
         xdata = next(iter(ax.get_lines())).get_xdata()
-        # Check first and last points' labels are correct
-        assert (xdata[0].hour, xdata[0].minute) == (0, 0)
-        assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)
+        # xdata are raw Period ordinals (int64); reconstruct to check labels
+        first = Period(ordinal=int(xdata[0]), freq=ax.freq)
+        last = Period(ordinal=int(xdata[-1]), freq=ax.freq)
+        assert (first.hour, first.minute) == (0, 0)
+        assert (last.hour, last.minute) == (1, 0)
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
@@ -182,7 +185,7 @@ class TestTSPlot:
         _, ax = mpl.pyplot.subplots()
         ser.plot(ax=ax)
         first_line = ax.get_lines()[0]
-        first_x = first_line.get_xdata()[0].ordinal
+        first_x = int(first_line.get_xdata()[0])
         first_y = first_line.get_ydata()[0]
         assert expected_string == ax.format_coord(first_x, first_y)
 
@@ -391,7 +394,7 @@ class TestTSPlot:
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        assert PeriodIndex(data=idx).freqstr == "M"
+        assert PeriodIndex.from_ordinals(idx, freq=ax.freq).freqstr == "M"
 
     def test_business_freq_no_weekend_gaps(self):
         # Verify that plotting a BDay-frequency series produces evenly-spaced
@@ -444,7 +447,9 @@ class TestTSPlot:
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
         idx = ax.get_lines()[0].get_xdata()
-        tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
+        tm.assert_index_equal(
+            bts.index.to_period(), PeriodIndex.from_ordinals(idx, freq=ax.freq)
+        )
 
     @pytest.mark.parametrize(
         "obj",
@@ -618,6 +623,33 @@ class TestTSPlot:
 
         assert rs == xp
 
+    @pytest.mark.parametrize(
+        "freq, equiv_freq", [("h", "60min"), ("2h", "120min"), ("D", "24h")]
+    )
+    def test_finder_period_equivalent_freq_same_labels(self, freq, equiv_freq):
+        # GH#57587 equivalent frequencies (e.g. "h" and "60min") must render
+        # identical x-axis tick labels, not just identical line data.
+        def _tick_labels(frqncy):
+            idx = period_range("2000-01-01", freq=frqncy, periods=4)
+            df = DataFrame(np.array([0, 1, 0, 1]), index=idx, columns=["A"])
+            _, ax = mpl.pyplot.subplots()
+            df.plot(ax=ax)
+            ax.figure.canvas.draw()
+            labels = [
+                label.get_text()
+                for label in list(ax.get_xticklabels(minor=False))
+                + list(ax.get_xticklabels(minor=True))
+                if label.get_text()
+            ]
+            mpl.pyplot.close(ax.figure)
+            return sorted(labels)
+
+        expected = _tick_labels(freq)
+        # sanity check: more than just the two endpoints are labeled, so a
+        # regression that collapses the ticks would not silently match
+        assert len(expected) > 2
+        assert _tick_labels(equiv_freq) == expected
+
     def test_gaps(self):
         ts = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
@@ -736,7 +768,8 @@ class TestTSPlot:
         assert not hasattr(ax, "right_ax")
         axes = fig.get_axes()
         line = ax.get_lines()[0]
-        xp = Series(line.get_ydata(), line.get_xdata()).to_timestamp()
+        idx = PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq)
+        xp = Series(line.get_ydata(), idx).to_timestamp()
         xp.index = xp.index.as_unit("ns")
         tm.assert_series_equal(ser, xp)
         assert ax.get_yaxis().get_ticks_position() == "right"
@@ -877,7 +910,7 @@ class TestTSPlot:
         high.plot(ax=ax)
         low.plot(ax=ax)
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "D"
+            assert PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq == "D"
 
     def test_mixed_freq_alignment(self):
         ts_ind = date_range("2012-01-01 13:00", "2012-01-02", freq="h")
@@ -901,7 +934,7 @@ class TestTSPlot:
         low.plot(legend=True, ax=ax)
         high.plot(legend=True, ax=ax)
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "D"
+            assert PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq == "D"
         leg = ax.get_legend()
         assert len(leg.texts) == 2
         mpl.pyplot.close(ax.get_figure())
@@ -915,7 +948,9 @@ class TestTSPlot:
         low.plot(ax=ax)
         high.plot(ax=ax)
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "min"
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq == "min"
+            )
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_mixed_freq_irreg_period(self):
@@ -1008,7 +1043,10 @@ class TestTSPlot:
         high.plot(ax=ax)
         low.plot(ax=ax)
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == idxh.freq
+            )
 
     def test_from_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
@@ -1025,7 +1063,10 @@ class TestTSPlot:
             dtype=np.float64,
         )
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == idxh.freq
+            )
             xdata = line.get_xdata(orig=False)
             if len(xdata) == 12:  # idxl lines
                 tm.assert_numpy_array_equal(xdata, expected_l)
@@ -1072,7 +1113,10 @@ class TestTSPlot:
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             line = ax.lines[i]
-            assert PeriodIndex(line.get_xdata()).freq == idxh.freq
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == idxh.freq
+            )
             tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected_x)
             # check stacked values are correct
             expected_y += low[i].values
@@ -1083,7 +1127,10 @@ class TestTSPlot:
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             line = ax.lines[3 + i]
-            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == idxh.freq
+            )
             tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected_x)
             expected_y += high[i].values
             tm.assert_numpy_array_equal(line.get_ydata(orig=False), expected_y)
@@ -1111,7 +1158,10 @@ class TestTSPlot:
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             line = ax.lines[i]
-            assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == idxh.freq
+            )
             tm.assert_numpy_array_equal(line.get_xdata(orig=False), expected_x)
             expected_y += high[i].values
             tm.assert_numpy_array_equal(line.get_ydata(orig=False), expected_y)
@@ -1137,7 +1187,10 @@ class TestTSPlot:
         expected_y = np.zeros(len(expected_x), dtype=np.float64)
         for i in range(3):
             lines = ax.lines[3 + i]
-            assert PeriodIndex(data=lines.get_xdata()).freq == idxh.freq
+            assert (
+                PeriodIndex.from_ordinals(lines.get_xdata(), freq=ax.freq).freq
+                == idxh.freq
+            )
             tm.assert_numpy_array_equal(lines.get_xdata(orig=False), expected_x)
             expected_y += low[i].values
             tm.assert_numpy_array_equal(lines.get_ydata(orig=False), expected_y)
@@ -1154,7 +1207,10 @@ class TestTSPlot:
         low.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "100ms"
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == "100ms"
+            )
 
     def test_mixed_freq_second_millisecond_low_to_high(self):
         # GH 7772, GH 7760
@@ -1168,7 +1224,10 @@ class TestTSPlot:
         high.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
-            assert PeriodIndex(data=line.get_xdata()).freq == "100ms"
+            assert (
+                PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq
+                == "100ms"
+            )
 
     def test_irreg_dtypes(self):
         # date
@@ -1304,11 +1363,11 @@ class TestTSPlot:
         low.plot(ax=ax)
         ax = high.plot(secondary_y=True, ax=ax)
         for line in ax.get_lines():
-            assert PeriodIndex(line.get_xdata()).freq == "D"
+            assert PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq == "D"
         assert hasattr(ax, "left_ax")
         assert not hasattr(ax, "right_ax")
         for line in ax.left_ax.get_lines():
-            assert PeriodIndex(line.get_xdata()).freq == "D"
+            assert PeriodIndex.from_ordinals(line.get_xdata(), freq=ax.freq).freq == "D"
 
     def test_secondary_legend(self):
         fig = mpl.pyplot.figure()
@@ -1608,6 +1667,20 @@ class TestTSPlot:
         result_labels = [x.get_text() for x in labels]
         assert len(result_labels) == len(expected_labels)
         assert result_labels == expected_labels
+
+    def test_irregular_timedelta_index_labels(self):
+        # GH#18910 a sub-millisecond TimedeltaIndex with no inferred freq must
+        # still get x-axis tick labels
+        rng = to_timedelta(np.arange(0, 1, 1e-4), unit="s")
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
+        _, ax = mpl.pyplot.subplots()
+        df.plot(ax=ax)
+        mpl.pyplot.draw()
+
+        labels = [x.get_text() for x in ax.get_xticklabels() if x.get_text().strip()]
+        assert labels
+        # every label shown corresponds to an actual index entry
+        assert set(labels) <= {str(td) for td in rng}
 
     def test_timedelta_plot(self):
         # test issue #8711

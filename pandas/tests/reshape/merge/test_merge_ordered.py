@@ -89,9 +89,9 @@ class TestMergeOrdered:
     @pytest.mark.parametrize(
         "df_seq, pattern",
         [
-            ((), "[Nn]o objects"),
-            ([], "[Nn]o objects"),
-            ({}, "[Nn]o objects"),
+            ((), "No objects to concatenate"),
+            ([], "No objects to concatenate"),
+            ({}, "No objects to concatenate"),
             ([None], "objects.*None"),
             ([None, None], "objects.*None"),
         ],

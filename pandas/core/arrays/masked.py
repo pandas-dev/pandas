@@ -421,6 +421,65 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self._validate_setitem_value(item)
         return super().insert(loc, item)
 
+    def _validate_listlike(self, value) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+        """
+        Validate a non-scalar setitem value and return ``(data, mask)``.
+
+        Raises
+        ------
+        TypeError
+            If `value` cannot be losslessly stored in self.dtype.
+        """
+        kind = self.dtype.kind
+
+        if hasattr(value, "dtype"):
+            their_kind = value.dtype.kind
+            # Compatible numeric/bool ndarrays defer to _coerce_to_array,
+            # which handles precision/NaN checks via _safe_cast.  Bool
+            # ndarrays are accepted for numeric targets to preserve the
+            # long-standing bool-as-int treatment exercised by Series.mask.
+            if (kind == "b" and their_kind == "b") or (
+                kind in "iuf" and their_kind in "iufb"
+            ):
+                if kind in "iuf" and isinstance(value, type(self)):
+                    return self._coerce_same_family(value)
+                return self._coerce_to_array(value, dtype=self.dtype)
+        elif not is_list_like(value):
+            # is_scalar in __setitem__ misses some non-listlike inputs
+            # (e.g. an opaque ``object()`` instance); route them through
+            # the scalar validator, which will raise.
+            self._validate_setitem_value(value)
+        else:
+            # Materialize other list-likes (e.g. a tuple, for which isna
+            # returns a scalar) as an object ndarray so that
+            # _cast_pointwise_result infers their type element-wise.
+            value = np.asarray(value, dtype=object)
+
+        # Otherwise let _cast_pointwise_result infer the natural type of
+        # `value` (without the silent string-/bool-to-numeric coercions
+        # that _coerce_to_array performs).  A kind-mismatch is invalid.
+        casted = self._cast_pointwise_result(value)
+        casted_kind = casted.dtype.kind
+        if not (
+            (kind == "b" and casted_kind == "b")
+            or (kind in "iuf" and casted_kind in "iuf")
+        ):
+            raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+        if kind in "iuf" and isinstance(casted, type(self)):
+            return self._coerce_same_family(casted)
+        return self._coerce_to_array(casted, dtype=self.dtype)
+
+    def _coerce_same_family(
+        self, value: BaseMaskedArray
+    ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
+        # ``value`` is a masked array of the same numeric family as self.
+        # Coerce its underlying ndarray rather than the masked array itself:
+        # _coerce_to_array's isinstance fast path would raw-astype and
+        # silently wrap out-of-bounds values (GH#65510), whereas the ndarray
+        # takes the general path that rejects a lossy cast via _safe_cast.
+        data, _ = self._coerce_to_array(value._data, dtype=self.dtype)
+        return data, value._mask
+
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
@@ -438,7 +497,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 self._mask[key] = False
             return
 
-        value, mask = self._coerce_to_array(value, dtype=self.dtype)
+        value, mask = self._validate_listlike(value)
 
         self._data[key] = value
         self._mask[key] = mask
@@ -1640,17 +1699,33 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Reductions
 
     def _reduce(
-        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+        self,
+        name: str,
+        *,
+        skipna: bool = True,
+        keepdims: bool = False,
+        axis: int | None = 0,
+        **kwargs,
     ):
-        if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
-            result = getattr(self, name)(skipna=skipna, **kwargs)
+        result: Any
+        if name == "count":
+            result = self.count()
+        elif name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
+            result = getattr(self, name)(skipna=skipna, axis=axis, **kwargs)
         else:
             # median, skew, kurt, sem
             data = self._data
             mask = self._mask
             op = getattr(nanops, f"nan{name}")
-            axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
+
+        if self.ndim == 2 and axis is not None:
+            if keepdims:
+                raise NotImplementedError(
+                    "keepdims=True is not implemented for 2D MaskedArray "
+                    "reductions with axis"
+                )
+            return result
 
         if keepdims:
             if isna(result):
@@ -1683,7 +1758,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
+        if name in ("any", "all"):
+            np_dtype = "bool"
+        elif name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
@@ -1756,6 +1833,26 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("mean", result, skipna=skipna, axis=axis)
+
+    def median(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_median((), kwargs)
+        result = self._reduce("median", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("median", result, skipna=skipna, axis=axis)
+
+    def kurt(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="kurt")
+        result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
+
+    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="sem")
+        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
+
+    def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+        nv.validate_stat_ddof_func((), kwargs, fname="skew")
+        result = self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        return self._wrap_reduction_result("skew", result, skipna=skipna, axis=axis)
 
     def var(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1838,7 +1935,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
@@ -1932,7 +2029,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
-            compatibility with NumPy.
+            compatibility with NumPy. See :ref:`gotchas.numpy_kwargs` for more.
 
         Returns
         -------
