@@ -2000,17 +2000,12 @@ class TestAsOfMerge:
             )
 
     def test_tolerance_zero(self):
-        # GH#66289 tolerance=0 is valid (exact-match-only), so the rejection
-        # message says "non-negative", not "positive"
+        # GH#66289 tolerance=0 is valid (exact-match-only) and must not be rejected
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
-        right = pd.DataFrame({"a": [1, 6, 10], "right_val": ["A", "B", "C"]})
+        right = pd.DataFrame({"a": [1, 6, 10], "right_val": [1, 2, 3]})
         result = merge_asof(left, right, on="a", tolerance=0)
         expected = pd.DataFrame(
-            {
-                "a": [1, 5, 10],
-                "left_val": ["a", "b", "c"],
-                "right_val": ["A", None, "C"],
-            }
+            {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, np.nan, 3]}
         )
         tm.assert_frame_equal(result, expected)
 
