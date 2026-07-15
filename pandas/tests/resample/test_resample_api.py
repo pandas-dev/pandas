@@ -149,8 +149,15 @@ def test_getitem(test_frame):
     assert r._selected_obj.name == test_frame.columns[1]
 
     # tuple keys should no longer be treated as a list of columns
-    with pytest.raises(KeyError, match=r"\('A', 'B'\)"):
-        test_frame.resample("h")["A", "B"]
+    # with pytest.raises(KeyError, match=r"\('A', 'B'\)"):
+    #     test_frame.resample("h")["A", "B"]
+
+    with tm.assert_produces_warning(
+        Pandas4Warning,
+        match="Passing a tuple to __getitem__ is deprecated",
+    ):
+        with pytest.raises(KeyError, match=r"\('A', 'B'\)"):
+            test_frame.resample("h")[("A", "B")]
 
 
 def test_getitem_tuple_multiindex_columns():
