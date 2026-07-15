@@ -258,8 +258,8 @@ cdef extern from "pandas/parser/tokenizer.h":
                                     int *error, int *maybe_int,
                                     const char *end) nogil
 
-    int pd_fast_double(const char *start, const char *end, char decimal,
-                       double *out) nogil
+    int try_parse_plain_double(const char *start, const char *end, char decimal,
+                               double *out) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
@@ -1974,9 +1974,9 @@ cdef int _try_double_nogil(parser_t *parser,
         c_int64_t token_idx = 0
         char *p_end
         khiter_t k64
-        # pd_fast_double covers the default converter with default settings;
-        # tokens it rejects (spaces, inf/nan spellings, junk) take the
-        # generic converter below for the legacy semantics.
+        # try_parse_plain_double covers the default converter with default
+        # settings; tokens it rejects (spaces, inf/nan spellings, junk) take
+        # the generic converter below for the legacy semantics.
         bint fastpath = (double_converter == precise_xstrtod_wrapper
                          and parser.thousands == b"\0"
                          and (parser.sci == b"e" or parser.sci == b"E"))
@@ -1995,8 +1995,8 @@ cdef int _try_double_nogil(parser_t *parser,
             else:
                 word_end = word + _token_len(parser, token_idx)
                 if not (fastpath and
-                        pd_fast_double(word, word_end,
-                                       parser.decimal, data) == 0):
+                        try_parse_plain_double(word, word_end,
+                                               parser.decimal, data) == 0):
                     data[0] = double_converter(word, &p_end, parser.decimal,
                                                parser.sci, parser.thousands,
                                                1, &error, NULL, word_end)
@@ -2023,7 +2023,8 @@ cdef int _try_double_nogil(parser_t *parser,
             word = coliter_next_with_idx(&it, &token_idx)
             word_end = word + _token_len(parser, token_idx)
             if not (fastpath and
-                    pd_fast_double(word, word_end, parser.decimal, data) == 0):
+                    try_parse_plain_double(word, word_end,
+                                           parser.decimal, data) == 0):
                 data[0] = double_converter(word, &p_end, parser.decimal,
                                            parser.sci, parser.thousands,
                                            1, &error, NULL, word_end)

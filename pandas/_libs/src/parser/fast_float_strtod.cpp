@@ -20,18 +20,13 @@ int fast_float_strtod(const char *start, const char *end, double *value,
   return -1;
 }
 
-/* Hot-path double parse for read_csv with default settings (no thousands
- * separator, 'e'/'E' exponent). Succeeds (returns 0, writes *out) only
- * when a plain numeric token parses cleanly and consumes exactly
- * [start, end); anything else — leading/trailing spaces, leading '+',
- * inf/nan spellings, junk — returns nonzero so the caller retries through
- * the full converter with its legacy semantics.
- */
-int pd_fast_double(const char *start, const char *end, char decimal,
-                   double *out) {
-  fast_float::parse_options options{fast_float::chars_format::general |
-                                        fast_float::chars_format::no_infnan,
-                                    decimal};
+// See doc comment in tokenizer.h.
+int try_parse_plain_double(const char *start, const char *end, char decimal,
+                           double *out) {
+  fast_float::parse_options options{
+      fast_float::chars_format::general | fast_float::chars_format::no_infnan |
+          fast_float::chars_format::allow_leading_plus,
+      decimal};
   auto result = fast_float::from_chars_advanced(start, end, *out, options);
   if ((result.ec == std::errc() ||
        result.ec == std::errc::result_out_of_range) &&

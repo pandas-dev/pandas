@@ -233,9 +233,13 @@ double precise_xstrtod(const char *p, char **q, char decimal, char sci,
 double precise_xstrtod_with_end(const char *p, char **q, char decimal, char sci,
                                 char tsep, int skip_trailing, int *error,
                                 int *maybe_int, const char *end);
-// Hot-path double parse (fast_float) for default settings; succeeds only
-// when the token parses cleanly and consumes exactly [start, end). Defined
-// in fast_float_strtod.cpp.
-int pd_fast_double(const char *start, const char *end, char decimal,
-                   double *out);
+// Hot-path double parse (fast_float) for read_csv with default settings (no
+// thousands separator, 'e'/'E' exponent). Returns 0 and writes *out only when
+// a plain numeric token parses cleanly and consumes exactly [start, end);
+// anything else — leading/trailing spaces, inf/nan spellings, junk — returns
+// nonzero so the caller retries through the full converter with its legacy
+// semantics. Overflow parses to +/-inf like precise_xstrtod. On nonzero
+// return *out may still have been clobbered. Defined in fast_float_strtod.cpp.
+int try_parse_plain_double(const char *start, const char *end, char decimal,
+                           double *out);
 int to_boolean(const char *item, uint8_t *val);
